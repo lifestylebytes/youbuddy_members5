@@ -919,6 +919,8 @@ const defaultState = () => ({
   checkpoints: {},                // { "d14-record": true }
   quiz_answers: {},               // { "q0": 1 }
   bookmarks: {},                  // { "d14-0": true }
+  community_likes: {},            // { "p1": true }
+  community_bookmarks: {},        // { "p1": true }
   meeting_notes: {},              // { "m1": { talk_points:[], meeting_notes: '' } }
 });
 
@@ -1083,6 +1085,7 @@ const ICONS = {
   target: `<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/>`,
   bookmark: `<path d="M6 3h12v18l-6-4-6 4z"/>`,
   bookmarkFill: `<path d="M6 3h12v18l-6-4-6 4z" fill="currentColor"/>`,
+  messageCircle: `<path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H7l-4 3v-6.5A8.5 8.5 0 1 1 21 11.5z"/>`,
   chevronDown: `<path d="M6 9l6 6 6-6"/>`,
   edit: `<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>`,
 };
@@ -1665,7 +1668,9 @@ function WeeksPage() {
       const chip = el('button', {
         class: 'day-chip ' + st,
         onMouseEnter: () => {
-          window.__setWeekPreview(w.n, d.day);
+          if (window.matchMedia && window.matchMedia('(hover: hover)').matches) {
+            window.__setWeekPreview(w.n, d.day);
+          }
         },
         onClick: (e) => {
           e.stopPropagation();
@@ -1723,9 +1728,15 @@ function WeeksPage() {
 // Per-render preview state stored on window so button handlers can read/write.
 window.__weekPreview = window.__weekPreview || {};
 window.__setWeekPreview = (weekN, dayN) => {
+  const week = CHALLENGE.weeks.find((w) => w.n === weekN);
+  if (!week || !week.days.some((d) => d.day === dayN)) return;
+  if (window.__weekPreview[weekN] === dayN) return;
   window.__weekPreview[weekN] = dayN;
-  // Soft-rerender just the WeeksPage (cheap — full re-render).
-  if (currentPage === 'weeks') render();
+  if (currentPage === 'weeks') {
+    window.requestAnimationFrame(() => {
+      if (currentPage === 'weeks') render();
+    });
+  }
 };
 
 /* ============================================================
@@ -2132,7 +2143,13 @@ function DayPage(dayN) {
 function PremiumPage() {
   const page = el('div', { class: 'page' });
   page.appendChild(TopBar());
-  const mayMeetings = [7, 14, 21, 28];
+  const mayMeetings = [7, 14, 21];
+  const premiumMeetings = [
+    { n: 1, date: '2026-04-30', title: 'Week 1 — Kickoff & Onboarding', desc: 'North Star 정렬 + 오프닝 표현 롤플레이', status: 'upcoming', zoom: 'Zoom' },
+    { n: 2, date: '2026-05-07', title: 'Week 2 — Meetings & Messaging', desc: '상태 업데이트/이슈 공유 시뮬레이션', status: 'upcoming', zoom: 'Zoom' },
+    { n: 3, date: '2026-05-14', title: 'Week 3 — Feedback & Collab', desc: '피드백 주고받기 + 의견 차이 좁히기', status: 'upcoming', zoom: 'Zoom' },
+    { n: 4, date: '2026-05-21', title: 'Week 4 — Own the Room (PPT 발표)', desc: '본인 Industry 맞춤 PPT 발표 + 피드백', status: 'upcoming', zoom: 'Zoom' },
+  ];
 
   if (state.tier !== 'premium') {
     const wrap = el('div', { class: 'locked-panel', style: { marginTop: '18px' } });
@@ -2178,6 +2195,7 @@ function PremiumPage() {
       <div>
         <div class="kicker" style="color:var(--lilac);">MAY 2026</div>
         <div class="h3" style="margin-top:6px;">매주 목요일 21:00</div>
+        <div class="t-small" style="margin-top:6px;color:var(--ink-soft);">첫 미팅은 4/30 목요일에 시작해요.</div>
       </div>
       <span class="badge badge-lilac">${mayMeetings.length}회 예정</span>
     </div>`;
@@ -2229,7 +2247,7 @@ function PremiumPage() {
     (() => { const s = el('span'); s.innerHTML = '<span class="serif">Weekly</span> meetup'; return s; })()
   ));
   const mstack = el('div', { class: 'stack' });
-  CHALLENGE.premium.weekly_meetings.forEach(m => {
+  premiumMeetings.forEach(m => {
     const [y, mo, da] = m.date.split('-');
     const monShort = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][parseInt(mo,10)-1];
     const meetingId = 'm' + m.n;
@@ -3142,6 +3160,8 @@ function ProfilePage() {
 function CommunityPage() {
   const page = el('div', { class: 'page', style: { paddingTop: '24px', paddingLeft: '22px', paddingRight: '22px' } });
   const filterState = state.communityFilter || 'all';
+  const likedMap = state.community_likes || {};
+  const savedMap = state.community_bookmarks || {};
 
   const header = el('div', {
     style: {
@@ -3157,8 +3177,8 @@ function CommunityPage() {
   const title = el('div', { style: { textAlign: 'center', paddingTop: '2px' } });
   title.innerHTML = `<h2 style="margin:0;font-size:21px;line-height:1.2;letter-spacing:-0.02em;">커뮤니티</h2><p style="margin:6px 0 0;font-size:12px;line-height:1.4;color:var(--muted);">오늘 동료들의 문장</p>`;
   header.appendChild(title);
-  const bell = el('button', { class: 'icon-btn', style: { width: '56px', height: '56px', borderRadius: '20px' } });
-  bell.innerHTML = Icon('sparkles', 18);
+  const bell = el('button', { class: 'icon-btn', style: { width: '56px', height: '56px', borderRadius: '20px' }, onClick: () => showToast('저장한 문장 모아보기는 다음 단계에서 붙일게요.') });
+  bell.innerHTML = Icon('bookmark', 18);
   header.appendChild(bell);
   page.appendChild(header);
 
@@ -3196,6 +3216,9 @@ function CommunityPage() {
   const posts = filterState === 'all' ? COMMUNITY_POSTS : COMMUNITY_POSTS.filter((p) => p.word === filterState);
   const stack = el('div');
   posts.forEach((post) => {
+    const liked = !!likedMap[post.id];
+    const saved = !!savedMap[post.id];
+    const likeCount = post.likes + (liked ? 1 : 0);
     const card = el('div', {
       style: {
         background: 'rgba(255, 253, 247, 0.56)',
@@ -3218,14 +3241,14 @@ function CommunityPage() {
             <span style="font-size:13px;color:var(--muted);">${post.time}</span>
           </div>
         </div>
-        <button class="icon-btn" style="width:48px;height:48px;border-radius:18px;flex-shrink:0;">${Icon('sparkles', 12)}</button>
+        <button class="icon-btn" style="width:48px;height:48px;border-radius:18px;flex-shrink:0;color:${saved ? 'var(--orange-dark)' : 'var(--ink)'};background:${saved ? 'var(--orange-ghost)' : 'transparent'};border-color:${saved ? 'rgba(240,125,56,0.28)' : 'var(--line)'};" onclick="window.__toggleCommunityBookmark('${post.id}')" title="문장 저장">${Icon(saved ? 'bookmarkFill' : 'bookmark', 13)}</button>
       </div>
-      <p class="serif" style="margin:20px 0 0;font-size:24px;line-height:1.42;letter-spacing:-0.025em;color:var(--ink);">${post.sentence.replace(/(align on|go with|for now)/i, '<mark style="background:var(--orange-ghost);color:var(--orange);padding:3px 7px 2px;border-radius:8px;">$1</mark>')}</p>
-      <p style="margin:22px 0 0;font-size:16px;line-height:1.48;color:var(--ink-soft);letter-spacing:-0.02em;word-break:keep-all;">${post.translation}</p>
+      <p style="margin:20px 0 0;font-size:20px;line-height:1.52;letter-spacing:-0.03em;color:var(--ink);font-weight:700;">${post.sentence.replace(/(align on|go with|for now)/i, '<mark style="background:var(--orange-ghost);color:var(--orange);padding:3px 7px 2px;border-radius:8px;">$1</mark>')}</p>
+      <p style="margin:18px 0 0;font-size:14px;line-height:1.55;color:var(--ink-soft);letter-spacing:-0.02em;word-break:keep-all;">${post.translation}</p>
       <div style="display:flex;gap:22px;margin-top:22px;padding-top:18px;border-top:1px solid var(--line);">
-        <button style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:6px;color:var(--ink-soft);font-size:14px;">${Icon('flame', 12)} ${post.likes}</button>
-        <button style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:6px;color:var(--ink-soft);font-size:14px;">${Icon('plus', 12)} ${post.comments}</button>
-        <button style="margin-left:auto;background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:6px;color:var(--ink);font-size:15px;font-weight:700;">${Icon('star', 12)} 듣기</button>
+        <button onclick="window.__toggleCommunityLike('${post.id}')" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:6px;color:${liked ? 'var(--orange-dark)' : 'var(--ink-soft)'};font-size:14px;font-weight:${liked ? '700' : '500'};">${Icon('flame', 12)} ${likeCount}</button>
+        <button onclick="showToast('댓글 기능은 다음 단계에서 연결할게요. 지금은 개수만 보여줘요.')" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:6px;color:var(--ink-soft);font-size:14px;">${Icon('messageCircle', 12)} ${post.comments}</button>
+        <button onclick="window.__speakText(${JSON.stringify(post.sentence)})" style="margin-left:auto;background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:6px;color:var(--ink);font-size:15px;font-weight:700;">${Icon('volume', 12)} 듣기</button>
       </div>`;
     stack.appendChild(card);
   });
@@ -3341,6 +3364,17 @@ function PremiumGateModal() {
 window.__openPremiumGate = () => { showPremiumGate = true; render(); };
 window.__closePremiumGate = () => { showPremiumGate = false; render(); };
 window.__openTodayFromWeek = (week, day) => { go('day', { week, day }); };
+window.__toggleCommunityLike = (postId) => {
+  state.community_likes[postId] = !state.community_likes[postId];
+  saveState();
+  render();
+};
+window.__toggleCommunityBookmark = (postId) => {
+  state.community_bookmarks[postId] = !state.community_bookmarks[postId];
+  saveState();
+  showToast(state.community_bookmarks[postId] ? '문장을 저장했어요.' : '저장을 해제했어요.');
+  render();
+};
 /* Female English voice picker — prefers well-known female voices, falls back gracefully */
 function pickFemaleEnVoice() {
   try {
@@ -3366,6 +3400,18 @@ if (typeof speechSynthesis !== 'undefined') {
   window.speechSynthesis.getVoices();
   window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
 }
+window.__speakText = (text) => {
+  try {
+    if (!text) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.voice = pickFemaleEnVoice();
+    u.lang = 'en-US';
+    u.rate = 0.94;
+    u.pitch = 1.04;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  } catch (e) {}
+};
 window.__speakWord = (day, idx) => {
   try {
     const data = getDay(day);
