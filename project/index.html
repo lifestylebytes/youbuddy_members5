@@ -905,9 +905,9 @@ const SUPABASE_URL = window.YB_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = window.YB_SUPABASE_ANON_KEY || '';
 
 /* ============================================================
-   STATE — lives in localStorage
+   STATE — canonical source is Supabase, local is cache only
    ============================================================ */
-const LS_KEY = 'yb5_state_v1';
+const LS_KEY = 'yb5_state_cache_v2';
 const defaultState = () => ({
   tier: 'premium',                // basic | premium
   name: '박지혜',
@@ -923,16 +923,126 @@ const defaultState = () => ({
   community_bookmarks: {},        // { "p1": true }
   meeting_notes: {},              // { "m1": { talk_points:[], meeting_notes: '' } }
 });
+const PERSISTED_STATE_KEYS = [
+  'tier',
+  'name',
+  'email',
+  'currentDay',
+  'verified',
+  'sentences',
+  'ai_feedback',
+  'checkpoints',
+  'quiz_answers',
+  'bookmarks',
+  'community_likes',
+  'community_bookmarks',
+  'meeting_notes',
+  'communityFilter',
+];
 
-let state = loadState();
-function loadState() {
+let state = defaultState();
+let stateHydrated = false;
+let statePersistTimer = null;
+let statePersistInFlight = false;
+let statePersistQueued = false;
+let stateLastSavedJson = '';
+
+function persistedStateSnapshot(source = state) {
+  const snapshot = {};
+  PERSISTED_STATE_KEYS.forEach((key) => {
+    snapshot[key] = source[key] ?? defaultState()[key];
+  });
+  return snapshot;
+}
+
+function mergePersistedState(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return;
+  state = { ...defaultState(), ...snapshot };
+}
+
+function loadCachedState() {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    if (raw) return { ...defaultState(), ...JSON.parse(raw), tier: 'premium' };
-  } catch (e) {}
-  return defaultState();
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.state) return parsed.state;
+    return parsed;
+  } catch (e) {
+    return null;
+  }
 }
-function saveState() { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+
+function cacheState(snapshot = persistedStateSnapshot()) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      member_key: memberKey(),
+      cached_at: new Date().toISOString(),
+      state: snapshot,
+    }));
+  } catch (e) {}
+}
+
+async function loadRemoteState() {
+  if (!hasSupabase()) return null;
+  try {
+    const payload = await supabaseRpc('get_member_app_state', {
+      p_cohort: CHALLENGE.cohort,
+      p_member_key: memberKey(),
+    });
+    if (!payload || (typeof payload === 'object' && !Array.isArray(payload) && !Object.keys(payload).length)) return null;
+    return payload;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function persistStateNow() {
+  const snapshot = persistedStateSnapshot();
+  const snapshotJson = JSON.stringify(snapshot);
+  if (snapshotJson === stateLastSavedJson && !statePersistQueued) return true;
+  cacheState(snapshot);
+  if (!hasSupabase()) {
+    stateLastSavedJson = snapshotJson;
+    return true;
+  }
+  if (statePersistInFlight) {
+    statePersistQueued = true;
+    return false;
+  }
+  statePersistInFlight = true;
+  statePersistQueued = false;
+  try {
+    await supabaseRpc('upsert_member_app_state', {
+      p_cohort: CHALLENGE.cohort,
+      p_member_key: memberKey(),
+      p_member_name: state.name || '',
+      p_tier: state.tier || 'basic',
+      p_app_state: snapshot,
+    });
+    stateLastSavedJson = snapshotJson;
+    return true;
+  } catch (e) {
+    return false;
+  } finally {
+    statePersistInFlight = false;
+    if (statePersistQueued) {
+      statePersistQueued = false;
+      persistStateNow();
+    }
+  }
+}
+
+function saveState(opts = {}) {
+  const { immediate = false } = opts;
+  cacheState();
+  if (immediate) return persistStateNow();
+  clearTimeout(statePersistTimer);
+  statePersistTimer = setTimeout(() => {
+    persistStateNow();
+  }, 450);
+  return Promise.resolve(true);
+}
+
 function patch(k, v) { state[k] = v; saveState(); render(); }
 
 function escapeHtml(str='') {
@@ -1642,6 +1752,18 @@ function WeeksPage() {
   CHALLENGE.weeks.forEach(w => {
     const progress = weekProgress(w);
     const hasToday = w.days.some(d => d.day === state.currentDay);
+    const tone = {
+      text: hasToday ? 'var(--cream)' : 'var(--ink)',
+      sub: hasToday ? 'rgba(251,247,240,0.65)' : 'var(--ink-soft)',
+      meta: hasToday ? 'rgba(251,247,240,0.6)' : 'var(--muted)',
+      inactiveBg: hasToday ? 'rgba(251,247,240,0.08)' : 'var(--paper)',
+      activeBg: hasToday ? 'var(--cream)' : 'var(--ink)',
+      activeText: hasToday ? 'var(--ink)' : 'var(--cream)',
+      lockBorder: hasToday ? 'rgba(251,247,240,0.12)' : 'var(--line)',
+      lockText: hasToday ? 'rgba(251,247,240,0.3)' : 'var(--muted)',
+      previewBorder: hasToday ? '1px solid rgba(251,247,240,0.14)' : '1px solid var(--line-soft)',
+      lockBg: hasToday ? 'rgba(251,247,240,0.08)' : 'var(--paper)',
+    };
     const card = el('div', {
       class: 'week-card' + (hasToday ? ' current' : ''),
       style: { padding: '20px 22px', borderRadius: '26px', cursor: 'default' }
@@ -1661,62 +1783,145 @@ function WeeksPage() {
       <div class="bar" style="margin-top:16px;height:6px;border-radius:999px;background:${hasToday ? 'rgba(251,247,240,0.12)' : 'var(--line-soft)'};"><span style="display:block;height:100%;border-radius:999px;width:${progress/5*100}%;background:${hasToday ? 'var(--orange)' : (isPast ? 'var(--ink)' : 'var(--line)')};"></span></div>
     `;
 
-    // Day dots row
-    const chipRow = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', marginTop: '16px' } });
+    const chipWrap = el('div', { style: { position: 'relative', marginTop: '16px' } });
+    const activePill = el('div', {
+      style: {
+        position: 'absolute',
+        top: '0',
+        left: '0',
+        width: '0',
+        height: '0',
+        borderRadius: '14px',
+        background: tone.activeBg,
+        transition: 'transform 220ms cubic-bezier(.2,.9,.3,1), width 220ms cubic-bezier(.2,.9,.3,1), height 220ms cubic-bezier(.2,.9,.3,1), opacity 160ms ease',
+        boxShadow: hasToday ? '0 10px 24px -20px rgba(255,255,255,0.95)' : '0 10px 20px -16px rgba(42,31,20,0.55)',
+        zIndex: '0',
+        opacity: '0',
+        pointerEvents: 'none',
+      }
+    });
+    chipWrap.appendChild(activePill);
+    const chipRow = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', position: 'relative', zIndex: '1' } });
+    const chipButtons = [];
     w.days.forEach(d => {
       const st = dayStatus(d.day);
       const chip = el('button', {
-        class: 'day-chip ' + st,
+        title: `Day ${d.day} — ${d.title}`,
         onMouseEnter: () => {
-          if (window.matchMedia && window.matchMedia('(hover: hover)').matches) {
-            window.__setWeekPreview(w.n, d.day);
-          }
+          if (st === 'locked') return;
+          if (window.matchMedia && window.matchMedia('(hover: hover)').matches) setPreview(d.day);
         },
         onClick: (e) => {
           e.stopPropagation();
-          // Mobile & desktop behavior:
-          //   - first tap: preview this day in the current week's preview panel
-          //   - second tap (already previewing): go to the day
           if (st === 'locked') return;
           if (window.__weekPreview && window.__weekPreview[w.n] === d.day) {
             go('day', { week: w.n, day: d.day });
           } else {
-            window.__setWeekPreview(w.n, d.day);
+            setPreview(d.day);
           }
         },
-        title: `Day ${d.day} — ${d.title}`,
         style: {
-          width: '100%', aspectRatio: '1 / 1',
+          position: 'relative',
+          width: '100%',
+          aspectRatio: '1 / 1',
           borderRadius: '14px',
-          fontSize: '16px', fontWeight: '800',
-          border: 'none',
+          fontSize: '16px',
+          fontWeight: '800',
+          border: '1px solid transparent',
           cursor: st === 'locked' ? 'not-allowed' : 'pointer',
+          background: st === 'locked' ? 'transparent' : tone.inactiveBg,
+          color: st === 'locked' ? tone.lockText : tone.text,
+          transition: 'color 180ms ease, transform 180ms ease, background 180ms ease, border-color 180ms ease',
         }
       }, d.day);
+      chipButtons.push({ btn: chip, day: d.day, status: st, data: d });
       chipRow.appendChild(chip);
     });
-    card.appendChild(chipRow);
+    chipWrap.appendChild(chipRow);
+    card.appendChild(chipWrap);
 
-    // Preview panel — default shows today if this week has today; else hides.
-    const previewDay = (window.__weekPreview || {})[w.n] || (hasToday ? state.currentDay : null);
-    const previewDayObj = previewDay ? w.days.find(d => d.day === previewDay) : null;
-    if (previewDayObj) {
-      const isCurrent = previewDay === state.currentDay;
-      const canOpen = dayStatus(previewDay) !== 'locked';
-      const preview = el('div', { class: 'week-preview', style: { marginTop: '18px', paddingTop: '16px', borderTop: hasToday ? '1px solid rgba(251,247,240,0.14)' : '1px solid var(--line-soft)' } });
-      preview.innerHTML = `
-        <div style="display:flex;align-items:flex-end;gap:14px;">
-          <div style="flex:1;min-width:0;">
-            <div class="t-small" style="font-size:11px;${hasToday ? 'color:rgba(251,247,240,0.6);' : 'color:var(--muted);'}">${isCurrent ? '오늘' : 'DAY ' + previewDay}</div>
-            <div style="margin-top:4px;font-size:17px;font-weight:800;line-height:1.25;${hasToday ? 'color:var(--cream);' : 'color:var(--ink);'}">${escapeHtml(previewDayObj.title)}</div>
-            <div style="margin-top:6px;font-size:13.5px;line-height:1.45;${hasToday ? 'color:rgba(251,247,240,0.65);' : 'color:var(--ink-soft);'}">"${escapeHtml(previewDayObj.goal_en)}"</div>
-          </div>
-          ${canOpen
-            ? `<button class="icon-btn" style="width:52px;height:52px;border-radius:16px;background:var(--orange);border:none;color:#fff;flex-shrink:0;" onclick="window.__openTodayFromWeek(${w.n}, ${previewDay})">${Icon('arrowRight', 20)}</button>`
-            : `<div style="width:52px;height:52px;border-radius:16px;background:${hasToday ? 'rgba(251,247,240,0.08)' : 'var(--paper)'};display:grid;place-items:center;color:${hasToday ? 'rgba(251,247,240,0.4)' : 'var(--muted)'};flex-shrink:0;font-size:11px;font-weight:700;">LOCK</div>`}
-        </div>`;
-      card.appendChild(preview);
+    const preview = el('div', { class: 'week-preview', style: { marginTop: '18px', paddingTop: '16px', borderTop: tone.previewBorder } });
+    const previewRow = el('div', { style: { display: 'flex', alignItems: 'flex-end', gap: '14px' } });
+    const previewCopy = el('div', { style: { flex: '1', minWidth: '0' } });
+    const previewMeta = el('div', { class: 't-small', style: { fontSize: '11px', color: tone.meta } });
+    const previewTitle = el('div', { style: { marginTop: '4px', fontSize: '17px', fontWeight: '800', lineHeight: '1.25', color: tone.text } });
+    const previewGoal = el('div', { style: { marginTop: '6px', fontSize: '13.5px', lineHeight: '1.45', color: tone.sub } });
+    const previewAction = el('div', { style: { flexShrink: '0' } });
+    previewCopy.appendChild(previewMeta);
+    previewCopy.appendChild(previewTitle);
+    previewCopy.appendChild(previewGoal);
+    previewRow.appendChild(previewCopy);
+    previewRow.appendChild(previewAction);
+    preview.appendChild(previewRow);
+    card.appendChild(preview);
+
+    const initialPreviewDay = (window.__weekPreview || {})[w.n]
+      || (hasToday ? state.currentDay : null)
+      || (w.days.find((d) => dayStatus(d.day) !== 'locked') || w.days[0]).day;
+
+    function syncChipStyles(activeDay) {
+      chipButtons.forEach(({ btn, day, status }) => {
+        const isActive = day === activeDay && status !== 'locked';
+        btn.style.transform = isActive ? 'translateY(-1px)' : 'translateY(0)';
+        btn.style.background = isActive ? 'transparent' : (status === 'locked' ? 'transparent' : tone.inactiveBg);
+        btn.style.color = isActive ? tone.activeText : (status === 'locked' ? tone.lockText : tone.text);
+        btn.style.borderColor = status === 'locked' ? tone.lockBorder : 'transparent';
+      });
     }
+
+    function moveActivePill(targetBtn, isLocked) {
+      if (!targetBtn || isLocked) {
+        activePill.style.opacity = '0';
+        return;
+      }
+      activePill.style.opacity = '1';
+      activePill.style.width = `${targetBtn.offsetWidth}px`;
+      activePill.style.height = `${targetBtn.offsetHeight}px`;
+      activePill.style.transform = `translate(${targetBtn.offsetLeft}px, ${targetBtn.offsetTop}px)`;
+    }
+
+    function updatePreviewContent(dayObj) {
+      const isCurrent = dayObj.day === state.currentDay;
+      const canOpen = dayStatus(dayObj.day) !== 'locked';
+      previewMeta.textContent = isCurrent ? '오늘' : `DAY ${dayObj.day}`;
+      previewTitle.textContent = dayObj.title;
+      previewGoal.textContent = `"${dayObj.goal_en}"`;
+      previewAction.innerHTML = '';
+      if (canOpen) {
+        const openBtn = el('button', {
+          class: 'icon-btn',
+          style: { width: '52px', height: '52px', borderRadius: '16px', background: 'var(--orange)', border: 'none', color: '#fff', flexShrink: '0' },
+          onClick: () => go('day', { week: w.n, day: dayObj.day }),
+        });
+        openBtn.innerHTML = Icon('arrowRight', 20);
+        previewAction.appendChild(openBtn);
+      } else {
+        previewAction.appendChild(el('div', {
+          style: {
+            width: '52px',
+            height: '52px',
+            borderRadius: '16px',
+            background: tone.lockBg,
+            display: 'grid',
+            placeItems: 'center',
+            color: tone.lockText,
+            fontSize: '11px',
+            fontWeight: '700',
+          }
+        }, 'LOCK'));
+      }
+    }
+
+    function setPreview(dayNum) {
+      const item = chipButtons.find((entry) => entry.day === dayNum);
+      if (!item) return;
+      window.__weekPreview[w.n] = dayNum;
+      syncChipStyles(dayNum);
+      moveActivePill(item.btn, item.status === 'locked');
+      updatePreviewContent(item.data);
+    }
+
+    setPreview(initialPreviewDay);
 
     stack.appendChild(card);
   });
@@ -1725,19 +1930,7 @@ function WeeksPage() {
   return page;
 }
 
-// Per-render preview state stored on window so button handlers can read/write.
 window.__weekPreview = window.__weekPreview || {};
-window.__setWeekPreview = (weekN, dayN) => {
-  const week = CHALLENGE.weeks.find((w) => w.n === weekN);
-  if (!week || !week.days.some((d) => d.day === dayN)) return;
-  if (window.__weekPreview[weekN] === dayN) return;
-  window.__weekPreview[weekN] = dayN;
-  if (currentPage === 'weeks') {
-    window.requestAnimationFrame(() => {
-      if (currentPage === 'weeks') render();
-    });
-  }
-};
 
 /* ============================================================
    DAY PAGE — the actual learning note
