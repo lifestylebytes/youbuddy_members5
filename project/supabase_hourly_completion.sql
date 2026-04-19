@@ -11,6 +11,21 @@ create table if not exists public.challenge_verification_events (
 create index if not exists idx_challenge_verification_events_lookup
   on public.challenge_verification_events (cohort, verified_day, verified_at);
 
+create table if not exists public.challenge_member_state (
+  id bigint generated always as identity primary key,
+  cohort text not null,
+  member_key text not null,
+  member_name text,
+  tier text,
+  app_state jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  unique (cohort, member_key)
+);
+
+create index if not exists idx_challenge_member_state_lookup
+  on public.challenge_member_state (cohort, member_key);
+
 create or replace function public.record_verification_event(
   p_cohort text,
   p_member_key text,
@@ -90,3 +105,65 @@ $$;
 
 grant execute on function public.record_verification_event(text, text, integer, timestamptz) to anon, authenticated;
 grant execute on function public.get_hourly_completion_delta(text, integer, integer, timestamptz) to anon, authenticated;
+
+create or replace function public.get_member_app_state(
+  p_cohort text,
+  p_member_key text
+)
+returns jsonb
+language sql
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    (
+      select app_state
+      from public.challenge_member_state
+      where cohort = p_cohort
+        and member_key = p_member_key
+      limit 1
+    ),
+    '{}'::jsonb
+  );
+$$;
+
+create or replace function public.upsert_member_app_state(
+  p_cohort text,
+  p_member_key text,
+  p_member_name text,
+  p_tier text,
+  p_app_state jsonb
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.challenge_member_state (
+    cohort,
+    member_key,
+    member_name,
+    tier,
+    app_state,
+    updated_at
+  )
+  values (
+    p_cohort,
+    p_member_key,
+    p_member_name,
+    p_tier,
+    coalesce(p_app_state, '{}'::jsonb),
+    now()
+  )
+  on conflict (cohort, member_key)
+  do update set
+    member_name = excluded.member_name,
+    tier = excluded.tier,
+    app_state = excluded.app_state,
+    updated_at = now();
+end;
+$$;
+
+grant execute on function public.get_member_app_state(text, text) to anon, authenticated;
+grant execute on function public.upsert_member_app_state(text, text, text, text, jsonb) to anon, authenticated;

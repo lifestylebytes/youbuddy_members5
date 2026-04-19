@@ -893,6 +893,44 @@ const MEMBERS = [
   { id: 'u29', name: '배수민', team: 'A', color: 'ink', progress: 2, streak: 1 },
 ];
 
+const MEMBER_SPOTLIGHTS = {
+  me: {
+    role: () => state.role || 'PM',
+    goal: '회의에서 내 의견을 짧고 또렷하게 말하기',
+    motive: '완벽하게 말하기보다, 바로 꺼내 말하는 속도를 만들고 있어요.',
+    focus: '오늘도 한 문장이라도 내 말로 끝까지 말하기',
+    phrase: 'align on',
+  },
+  u1: {
+    role: '마케터',
+    goal: '캠페인 공유할 때 숫자와 인사이트를 같이 말하기',
+    motive: '매일 2분이라도 이어가면 회의 톤이 달라진다고 믿어요.',
+    focus: '업데이트를 돌려 말하지 않고 바로 핵심부터 말하기',
+    phrase: 'at the core',
+  },
+  u2: {
+    role: '사업개발',
+    goal: '영어 미팅에서 다음 액션을 먼저 정리하는 사람 되기',
+    motive: '표현 하나만 익혀도 회의 리드감이 꽤 달라져요.',
+    focus: '결론을 늦추지 않고 ownership까지 닫기',
+    phrase: 'align on',
+  },
+  u3: {
+    role: '운영',
+    goal: '이슈 공유할 때 부드럽지만 분명하게 말하기',
+    motive: '작은 루틴이 쌓이면 영어도 결국 습관이 된다고 보는 편이에요.',
+    focus: '오늘은 쿠션어를 넣되 결론은 흐리지 않기',
+    phrase: 'for now',
+  },
+  u4: {
+    role: '디자이너',
+    goal: '피드백 줄 때 감이 아니라 논리로 말하기',
+    motive: '내 작업 설명을 영어로도 자연스럽게 꺼내고 싶어요.',
+    focus: '의견 차이가 나도 톤은 부드럽게 유지하기',
+    phrase: 'go with',
+  },
+};
+
 /* ============================================================
    PREMIUM GATE
    Basic users: challenge participants (default tier)
@@ -905,17 +943,19 @@ const SUPABASE_URL = window.YB_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = window.YB_SUPABASE_ANON_KEY || '';
 
 /* ============================================================
-   STATE — lives in localStorage
+   STATE — canonical source is Supabase, local is cache only
    ============================================================ */
-const LS_KEY = 'yb5_state_v1';
+const LS_KEY = 'yb5_state_cache_v2';
 const defaultState = () => ({
   tier: 'premium',                // basic | premium
   name: '박지혜',
+  role: 'PM',
   email: '',
   currentDay: 14,                 // today marker
   verified: {},                   // { "d14": true }
   sentences: {},                  // { "d14-0": "my sentence" }
   ai_feedback: {},                // { "d14-0": { corrected, diff_html, why } }
+  ai_daily_usage: {},             // { "d14": 1 }
   checkpoints: {},                // { "d14-record": true }
   quiz_answers: {},               // { "q0": 1 }
   bookmarks: {},                  // { "d14-0": true }
@@ -923,16 +963,128 @@ const defaultState = () => ({
   community_bookmarks: {},        // { "p1": true }
   meeting_notes: {},              // { "m1": { talk_points:[], meeting_notes: '' } }
 });
+const PERSISTED_STATE_KEYS = [
+  'tier',
+  'name',
+  'role',
+  'email',
+  'currentDay',
+  'verified',
+  'sentences',
+  'ai_feedback',
+  'ai_daily_usage',
+  'checkpoints',
+  'quiz_answers',
+  'bookmarks',
+  'community_likes',
+  'community_bookmarks',
+  'meeting_notes',
+  'communityFilter',
+];
 
-let state = loadState();
-function loadState() {
+let state = defaultState();
+let stateHydrated = false;
+let statePersistTimer = null;
+let statePersistInFlight = false;
+let statePersistQueued = false;
+let stateLastSavedJson = '';
+
+function persistedStateSnapshot(source = state) {
+  const snapshot = {};
+  PERSISTED_STATE_KEYS.forEach((key) => {
+    snapshot[key] = source[key] ?? defaultState()[key];
+  });
+  return snapshot;
+}
+
+function mergePersistedState(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return;
+  state = { ...defaultState(), ...snapshot };
+}
+
+function loadCachedState() {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    if (raw) return { ...defaultState(), ...JSON.parse(raw), tier: 'premium' };
-  } catch (e) {}
-  return defaultState();
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.state) return parsed.state;
+    return parsed;
+  } catch (e) {
+    return null;
+  }
 }
-function saveState() { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+
+function cacheState(snapshot = persistedStateSnapshot()) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      member_key: memberKey(),
+      cached_at: new Date().toISOString(),
+      state: snapshot,
+    }));
+  } catch (e) {}
+}
+
+async function loadRemoteState() {
+  if (!hasSupabase()) return null;
+  try {
+    const payload = await supabaseRpc('get_member_app_state', {
+      p_cohort: CHALLENGE.cohort,
+      p_member_key: memberKey(),
+    });
+    if (!payload || (typeof payload === 'object' && !Array.isArray(payload) && !Object.keys(payload).length)) return null;
+    return payload;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function persistStateNow() {
+  const snapshot = persistedStateSnapshot();
+  const snapshotJson = JSON.stringify(snapshot);
+  if (snapshotJson === stateLastSavedJson && !statePersistQueued) return true;
+  cacheState(snapshot);
+  if (!hasSupabase()) {
+    stateLastSavedJson = snapshotJson;
+    return true;
+  }
+  if (statePersistInFlight) {
+    statePersistQueued = true;
+    return false;
+  }
+  statePersistInFlight = true;
+  statePersistQueued = false;
+  try {
+    await supabaseRpc('upsert_member_app_state', {
+      p_cohort: CHALLENGE.cohort,
+      p_member_key: memberKey(),
+      p_member_name: state.name || '',
+      p_tier: state.tier || 'basic',
+      p_app_state: snapshot,
+    });
+    stateLastSavedJson = snapshotJson;
+    return true;
+  } catch (e) {
+    return false;
+  } finally {
+    statePersistInFlight = false;
+    if (statePersistQueued) {
+      statePersistQueued = false;
+      persistStateNow();
+    }
+  }
+}
+
+function saveState(opts = {}) {
+  const { immediate = false } = opts;
+  cacheState();
+  if (immediate) return persistStateNow();
+  clearTimeout(statePersistTimer);
+  statePersistTimer = setTimeout(() => {
+    persistStateNow();
+  }, 450);
+  return Promise.resolve(true);
+}
+
 function patch(k, v) { state[k] = v; saveState(); render(); }
 
 function escapeHtml(str='') {
@@ -992,6 +1144,20 @@ Return ONLY valid JSON with this exact shape:
   return buildLocalCorrection(word, sentence);
 }
 
+function aiDailyKey(dayN) {
+  return `d${dayN}`;
+}
+
+function basicAiUsedCount(dayN) {
+  return Number(state.ai_daily_usage?.[aiDailyKey(dayN)] || 0);
+}
+
+function canUseAiForSentence(dayN, sentenceKey) {
+  if (state.tier === 'premium') return true;
+  if (state.ai_feedback?.[sentenceKey]) return true;
+  return basicAiUsedCount(dayN) < 1;
+}
+
 /* ============================================================
    ROUTER — just a simple page state
    ============================================================ */
@@ -1017,6 +1183,7 @@ let currentPage = savedRoute.page || 'home';
 let currentWeek = savedRoute.week || 3;   // the week being viewed
 let currentDay = savedRoute.day || 14;
 let showPremiumGate = false;
+let activeMemberCard = null;
 let toast = null;
 let confettiTimer = null;
 let dashboardStats = {
@@ -1026,6 +1193,11 @@ let dashboardStats = {
 
 function go(page, opts={}) {
   currentPage = page;
+  if (page === 'weeks' && !opts.week && !opts.day) {
+    const autoWeek = CHALLENGE.weeks.find((w) => w.days.some((d) => d.day === state.currentDay));
+    currentWeek = autoWeek ? autoWeek.n : 1;
+    window.__weekPreview[currentWeek] = state.currentDay;
+  }
   if (opts.week) currentWeek = opts.week;
   if (opts.day) currentDay = opts.day;
   saveRoute();
@@ -1038,6 +1210,67 @@ function showToast(msg) {
   toast = msg;
   render();
   setTimeout(() => { toast = null; render(); }, 3200);
+}
+
+function memberByRef(ref) {
+  if (!ref) return null;
+  if (typeof ref === 'string') {
+    return MEMBERS.find((m) => m.id === ref || m.name === ref) || null;
+  }
+  return MEMBERS.find((m) => m.id === ref.id) || ref;
+}
+
+function memberCardData(ref) {
+  const member = memberByRef(ref);
+  if (!member) return null;
+  const spot = MEMBER_SPOTLIGHTS[member.id] || {};
+  const progress = member.me ? completedCount() : member.progress;
+  const role = typeof spot.role === 'function' ? spot.role() : (spot.role || (member.team === 'A' ? '운영' : '기획'));
+  const phrase = recentSavedExpressionForMember(member) || spot.phrase || 'align on';
+  const nextDay = Math.min(progress + 1, CHALLENGE.total_days);
+  return {
+    ...member,
+    progress,
+    role,
+    goal: spot.goal || '하루 한 문장이라도 내 상황에 맞게 직접 말해보기',
+    motive: spot.motive || '작게라도 매일 이어가면 회의에서 입이 먼저 풀린다고 믿어요.',
+    focus: spot.focus || `다음은 Day ${nextDay}까지 흐름 끊기지 않게 이어가기`,
+    phrase,
+  };
+}
+
+function titleCasePhrase(phrase='') {
+  return String(phrase)
+    .toLowerCase()
+    .split(' ')
+    .map((part) => part ? part[0].toUpperCase() + part.slice(1) : part)
+    .join(' ');
+}
+
+function recentSavedExpressionForMember(member) {
+  if (!member) return null;
+  if (member.me) {
+    const savedWords = [];
+    CHALLENGE.weeks.forEach((week) => {
+      week.days.forEach((day) => {
+        day.words.forEach((word, idx) => {
+          const key = `d${day.day}-${idx}`;
+          if (state.bookmarks[key]) {
+            savedWords.push({ rank: day.day * 10 + idx, label: word.en });
+          }
+        });
+      });
+    });
+    const savedPosts = COMMUNITY_POSTS
+      .filter((post, idx) => state.community_bookmarks?.[post.id])
+      .map((post, idx) => ({ rank: 1000 - idx, label: titleCasePhrase(post.word) }));
+    const allSaved = [...savedWords, ...savedPosts].sort((a, b) => b.rank - a.rank);
+    return allSaved[0]?.label || null;
+  }
+
+  const latestCommunityWord = COMMUNITY_POSTS.find((post) => post.user === member.name)?.word;
+  if (latestCommunityWord) return titleCasePhrase(latestCommunityWord);
+  return null;
 }
 
 /* ============================================================
@@ -1145,6 +1378,39 @@ function defaultNuance(w) {
   if (NUANCE_MAP[k]) return NUANCE_MAP[k];
   return `"${w.en}"은(는) 실제 업무에서 ${w.def}의 느낌으로 자주 써요. 너무 딱딱하지 않으면서도 프로페셔널한 톤이에요.`;
 }
+const SYNONYM_GLOSSARY = {
+  'get on the same page': '같은 이해에 도달하다',
+  'sync on': '빠르게 합을 맞추다',
+  'converge on': '여러 의견이 하나로 모이다',
+  'commit to': '그 방향으로 확정하다',
+  'settle on': '여러 안 중 하나로 정하다',
+  'pick': '고르다',
+  'for the time being': '당분간은',
+  'tentatively': '일단 잠정적으로',
+  'at this point': '지금 시점에서는',
+  'start': '시작하다',
+  'launch': '출발시키다',
+  'get started': '시작에 들어가다',
+  'fundamentally': '근본적으로',
+  'at heart': '핵심적으로',
+  'essentially': '본질적으로',
+  'to be clear': '분명히 하자면',
+  'to confirm': '확인하자면',
+  'revisit': '다시 검토하다',
+  'follow up': '이어서 챙기다',
+  'obstacle': '걸림돌',
+  'roadblock': '진행을 막는 장애물',
+  'raise': '문제를 꺼내다',
+  'call out': '눈에 띄게 짚다',
+  'finish off': '마무리 짓다',
+  'close out': '정리하고 끝내다',
+};
+function synonymMeaning(syn='') {
+  return SYNONYM_GLOSSARY[String(syn).toLowerCase()] || '비슷하지만 말의 강도와 상황이 조금 달라져요.';
+}
+function synonymNuance(word, syn) {
+  return `"${syn}"은 "${word.en}"보다 ${word.pos?.includes('noun') ? '표현 범위가 넓고' : '조금 더 직설적이거나 일반적인'} 편이라 상황에 따라 톤 차이가 나요.`;
+}
 const weekProgress = (w) => w.days.filter(d => state.verified['d'+d.day]).length;
 const hasSupabase = () => !!(SUPABASE_URL && SUPABASE_ANON_KEY);
 const memberKey = () => (state.email || state.name || 'anonymous').trim();
@@ -1209,6 +1475,19 @@ const COMMUNITY_POSTS = [
   { id: 'p3', user: '송유빈', team: 'B', avatar: '송유', avatarClass: 'ink', word: 'FOR NOW', time: '5분 전', sentence: "Let's park that question for now and bring it up in the retro.", translation: '일단 그 이슈는 보류하고 회고 때 꺼내봐요.', likes: 6, comments: 1 },
 ];
 
+const VERIFY_VOCAB_BANK = [
+  { en: 'align on', kr: '(기준/방향에) 맞추다, 정렬하다', syn: ['get on the same page', 'sync on'], prompt: "Let's ____ the timeline before we split up.", prompt_kr: '흩어지기 전에 타임라인부터 맞춰봐요.' },
+  { en: 'go with', kr: '~로 결정하다, 그걸로 가다', syn: ['commit to', 'settle on'], prompt: "I think we should ____ option B this time.", prompt_kr: '이번엔 B안으로 가는 게 좋겠어요.' },
+  { en: 'for now', kr: '일단, 당분간', syn: ['at this point', 'for the time being'], prompt: "Let's park that issue ____ and revisit later.", prompt_kr: '그 이슈는 일단 보류하고 나중에 다시 봐요.' },
+  { en: 'push back', kr: '반대 의사를 밝히다, 미루다', syn: ['disagree softly', 'defer'], prompt: "I want to ____ a little on the current scope.", prompt_kr: '지금 스코프에는 조금 반대 의견이 있어요.' },
+  { en: 'circle back', kr: '다시 돌아와서 논의하다', syn: ['revisit', 'follow up'], prompt: "Let's ____ on pricing next week.", prompt_kr: '가격은 다음 주에 다시 이야기해요.' },
+  { en: 'heads-up', kr: '미리 알려주는 안내', syn: ['FYI', 'a quick note'], prompt: "Quick ____: deploys may run late tonight.", prompt_kr: '미리 말해두면 오늘 배포가 늦을 수 있어요.' },
+  { en: 'on track', kr: '예정대로 진행 중인', syn: ['on pace', 'as planned'], prompt: "We're ____ to launch next Tuesday.", prompt_kr: '다음 주 화요일 출시 일정은 순조로워요.' },
+  { en: 'wrap up', kr: '마무리하다', syn: ['finish off', 'close out'], prompt: "Let's ____ this meeting in five minutes.", prompt_kr: '이 회의 5분 안에 마무리하죠.' },
+  { en: 'flag', kr: '이슈를 공유하다/제기하다', syn: ['raise', 'call out'], prompt: "I want to ____ one risk before we proceed.", prompt_kr: '진행 전에 리스크 하나만 짚고 갈게요.' },
+  { en: 'blocker', kr: '진행을 막는 이슈', syn: ['obstacle', 'roadblock'], prompt: "QA is becoming a ____ right now.", prompt_kr: '지금 QA가 병목 구간이 되고 있어요.' },
+];
+
 /* Peer sentences per day — shown inline on the Day page so participants can see
    each other's work immediately when they open a day note. Keyed by wordIdx 0..2. */
 const PEER_SENTENCES = {
@@ -1269,6 +1548,7 @@ function render() {
   if (currentPage === 'home') page = HomePage();
   else if (currentPage === 'weeks') page = WeeksPage();
   else if (currentPage === 'day') page = DayPage(currentDay);
+  else if (currentPage === 'verify') page = VerifyPage(currentDay);
   else if (currentPage === 'premium') page = PremiumPage();
   else if (currentPage === 'meeting-notes') page = MeetingNotesPage(window.__currentMeetingId);
   else if (currentPage === 'quiz') page = QuizPage();
@@ -1284,6 +1564,7 @@ function render() {
 
   if (toast) root.appendChild(el('div', { class: 'toast' }, toast));
   if (showPremiumGate) root.appendChild(PremiumGateModal());
+  if (activeMemberCard) root.appendChild(MemberCardModal(activeMemberCard));
 
   // Start/stop peer-sentence ticker based on whether we're on a day page
   if (currentPage === 'day') startPeerTicker(currentDay);
@@ -1501,10 +1782,8 @@ function HomePage() {
 
   // Checkboard
   const cbWrap = el('div', { style: { marginTop: '24px' } });
-  cbWrap.appendChild(el('div', { class: 'kicker' }, '30인 인증 체크보드'));
-  cbWrap.appendChild(el('h2', { class: 'h2', style: { marginTop: '4px', marginBottom: '12px' } },
-    (() => { const s = el('span'); s.innerHTML = '<span class="serif">Who\'s</span> showing up'; return s; })()
-  ));
+  cbWrap.appendChild(el('div', { class: 'kicker' }, '30인 데일리 루틴 보드'));
+  cbWrap.appendChild(el('h2', { class: 'h2', style: { marginTop: '4px', marginBottom: '12px' } }, 'Daily Streak Board'));
   cbWrap.appendChild(Checkboard());
   page.appendChild(cbWrap);
 
@@ -1532,7 +1811,10 @@ function HomePage() {
   page.appendChild(el('div', { class: 'kicker', style: { marginTop: '28px', marginBottom: '8px' } }, 'LEADERBOARD · TOP 10'));
   const listCard = el('div', { class: 'card', style: { padding: '6px' } });
   sorted.slice(0, 10).forEach((m, i) => {
-    const row = el('div', { class: 'rank-row' + (m.me ? ' me' : '') });
+    const row = el('div', {
+      class: 'rank-row' + (m.me ? ' me' : ''),
+      onClick: () => window.__openMemberCard(m.id),
+    });
     row.innerHTML = `
       <div class="rank-num ${i === 0 ? 'top1' : ''}">${i+1}</div>
       <div class="avatar ${m.color}">${m.name.slice(0,1)}</div>
@@ -1639,82 +1921,136 @@ function WeeksPage() {
 
   // ------- week cards -------
   const stack = el('div', { class: 'stack', style: { marginTop: '18px', gap: '14px' } });
+  const autoTodayWeek = todayWeek ? todayWeek.n : 1;
+  const selectedWeekN = currentWeek || autoTodayWeek;
+  if (!window.__weekPreview[selectedWeekN]) {
+    const selectedWeekDays = CHALLENGE.weeks.find((w) => w.n === selectedWeekN)?.days || [];
+    const defaultSelectedDay = selectedWeekDays.find((d) => d.day === state.currentDay)?.day || selectedWeekDays[0]?.day;
+    if (defaultSelectedDay) window.__weekPreview[selectedWeekN] = defaultSelectedDay;
+  }
   CHALLENGE.weeks.forEach(w => {
     const progress = weekProgress(w);
-    const hasToday = w.days.some(d => d.day === state.currentDay);
+    const isSelectedWeek = w.n === selectedWeekN;
+    const tone = {
+      text: isSelectedWeek ? 'var(--cream)' : 'var(--ink)',
+      sub: isSelectedWeek ? 'rgba(251,247,240,0.65)' : 'var(--ink-soft)',
+      meta: isSelectedWeek ? 'rgba(251,247,240,0.6)' : 'var(--muted)',
+      inactiveBg: isSelectedWeek ? 'rgba(251,247,240,0.08)' : 'var(--paper)',
+      activeBg: isSelectedWeek ? 'var(--cream)' : 'var(--ink)',
+      activeText: isSelectedWeek ? 'var(--ink)' : 'var(--cream)',
+      lockBorder: isSelectedWeek ? 'rgba(251,247,240,0.12)' : 'var(--line)',
+      lockText: isSelectedWeek ? 'rgba(251,247,240,0.3)' : 'var(--muted)',
+      previewBorder: isSelectedWeek ? '1px solid rgba(251,247,240,0.14)' : '1px solid var(--line-soft)',
+      lockBg: isSelectedWeek ? 'rgba(251,247,240,0.08)' : 'var(--paper)',
+    };
     const card = el('div', {
-      class: 'week-card' + (hasToday ? ' current' : ''),
-      style: { padding: '20px 22px', borderRadius: '26px', cursor: 'default' }
+      class: 'week-card' + (isSelectedWeek ? ' current' : ''),
+      style: { padding: '20px 22px', borderRadius: '26px', cursor: 'default', transition: 'none', transform: 'none' }
     });
     const isPast = w.days.every(d => state.verified['d'+d.day]);
     card.innerHTML = `
       <div class="row-between">
         <div style="min-width:0;flex:1;">
-          <div class="kicker" style="${hasToday ? 'color:rgba(251,247,240,0.5);' : ''}">WEEK ${w.n} · ${w.title.toUpperCase()}</div>
-          <h3 style="margin:8px 0 0;font-size:22px;line-height:1.22;letter-spacing:-0.025em;font-weight:800;${hasToday ? 'color:var(--cream);' : 'color:var(--ink);'}">${w.subtitle}</h3>
+          <div class="kicker" style="${isSelectedWeek ? 'color:rgba(251,247,240,0.5);' : ''}">WEEK ${w.n} · ${w.title.toUpperCase()}</div>
+          <h3 style="margin:8px 0 0;font-size:22px;line-height:1.22;letter-spacing:-0.025em;font-weight:800;${isSelectedWeek ? 'color:var(--cream);' : 'color:var(--ink);'}">${w.subtitle}</h3>
         </div>
         <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
-          <div style="font-size:20px;font-weight:800;letter-spacing:-0.02em;${hasToday ? 'color:var(--cream);' : 'color:var(--ink);'}">${progress}<span style="opacity:0.45;font-weight:500;">/5</span></div>
-          ${hasToday ? '<span class="badge" style="background:var(--cream);color:var(--orange-dark);padding:6px 12px;font-size:10px;font-weight:700;">진행중</span>' : ''}
+          <div style="font-size:20px;font-weight:800;letter-spacing:-0.02em;${isSelectedWeek ? 'color:var(--cream);' : 'color:var(--ink);'}">${progress}<span style="opacity:0.45;font-weight:500;">/5</span></div>
+          ${isSelectedWeek ? '<span class="badge" style="background:var(--cream);color:var(--orange-dark);padding:6px 12px;font-size:10px;font-weight:700;">선택중</span>' : ''}
         </div>
       </div>
-      <div class="bar" style="margin-top:16px;height:6px;border-radius:999px;background:${hasToday ? 'rgba(251,247,240,0.12)' : 'var(--line-soft)'};"><span style="display:block;height:100%;border-radius:999px;width:${progress/5*100}%;background:${hasToday ? 'var(--orange)' : (isPast ? 'var(--ink)' : 'var(--line)')};"></span></div>
+      <div class="bar" style="margin-top:16px;height:6px;border-radius:999px;background:${isSelectedWeek ? 'rgba(251,247,240,0.12)' : 'var(--line-soft)'};"><span style="display:block;height:100%;border-radius:999px;width:${progress/5*100}%;background:${isSelectedWeek ? 'var(--orange)' : (isPast ? 'var(--ink)' : 'var(--line)')};transition:none;"></span></div>
     `;
 
-    // Day dots row
+    const previewDay = isSelectedWeek
+      ? ((window.__weekPreview || {})[w.n]
+        || (state.currentDay >= w.days[0].day && state.currentDay <= w.days[w.days.length - 1].day ? state.currentDay : null)
+        || w.days[0].day)
+      : null;
+
     const chipRow = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', marginTop: '16px' } });
     w.days.forEach(d => {
       const st = dayStatus(d.day);
+      const isSelectedDay = isSelectedWeek && previewDay === d.day;
+      let chipBackground = tone.inactiveBg;
+      let chipColor = tone.text;
+      let chipBorder = '1px solid transparent';
+
+      if (st === 'done') {
+        chipBackground = isSelectedWeek ? 'rgba(251,247,240,0.16)' : '#EDE4D2';
+        chipColor = isSelectedWeek ? 'var(--cream)' : 'var(--ink)';
+      } else if (st === 'missed') {
+        chipBackground = isSelectedWeek ? 'rgba(240,125,56,0.14)' : '#FFF4E8';
+        chipColor = 'var(--orange-dark)';
+        chipBorder = `1px solid ${isSelectedWeek ? 'rgba(240,125,56,0.24)' : 'rgba(240,125,56,0.18)'}`;
+      } else if (st === 'today') {
+        chipBackground = 'var(--orange)';
+        chipColor = '#fff';
+      } else if (st === 'locked') {
+        chipBackground = 'transparent';
+        chipColor = tone.lockText;
+        chipBorder = `1px solid ${tone.lockBorder}`;
+      }
+
+      if (isSelectedDay && st !== 'locked') {
+        if (st === 'today') {
+          chipBackground = 'var(--orange)';
+          chipColor = '#fff';
+        } else {
+          chipBackground = tone.activeBg;
+          chipColor = tone.activeText;
+        }
+        chipBorder = '1px solid transparent';
+      }
+
       const chip = el('button', {
-        class: 'day-chip ' + st,
-        onMouseEnter: () => {
-          if (window.matchMedia && window.matchMedia('(hover: hover)').matches) {
-            window.__setWeekPreview(w.n, d.day);
-          }
-        },
+        title: `Day ${d.day} — ${d.title}`,
         onClick: (e) => {
           e.stopPropagation();
-          // Mobile & desktop behavior:
-          //   - first tap: preview this day in the current week's preview panel
-          //   - second tap (already previewing): go to the day
           if (st === 'locked') return;
-          if (window.__weekPreview && window.__weekPreview[w.n] === d.day) {
+          if (isSelectedWeek && previewDay === d.day) {
             go('day', { week: w.n, day: d.day });
           } else {
-            window.__setWeekPreview(w.n, d.day);
+            currentWeek = w.n;
+            window.__weekPreview[w.n] = d.day;
+            saveRoute();
+            render();
           }
         },
-        title: `Day ${d.day} — ${d.title}`,
         style: {
-          width: '100%', aspectRatio: '1 / 1',
+          width: '100%',
+          aspectRatio: '1 / 1',
           borderRadius: '14px',
-          fontSize: '16px', fontWeight: '800',
-          border: 'none',
+          fontSize: '16px',
+          fontWeight: '800',
+          border: chipBorder,
           cursor: st === 'locked' ? 'not-allowed' : 'pointer',
+          background: chipBackground,
+          color: chipColor,
+          transition: 'none',
         }
       }, d.day);
       chipRow.appendChild(chip);
     });
     card.appendChild(chipRow);
 
-    // Preview panel — default shows today if this week has today; else hides.
-    const previewDay = (window.__weekPreview || {})[w.n] || (hasToday ? state.currentDay : null);
-    const previewDayObj = previewDay ? w.days.find(d => d.day === previewDay) : null;
-    if (previewDayObj) {
-      const isCurrent = previewDay === state.currentDay;
-      const canOpen = dayStatus(previewDay) !== 'locked';
-      const preview = el('div', { class: 'week-preview', style: { marginTop: '18px', paddingTop: '16px', borderTop: hasToday ? '1px solid rgba(251,247,240,0.14)' : '1px solid var(--line-soft)' } });
+    if (isSelectedWeek && previewDay) {
+      const previewDayObj = w.days.find((d) => d.day === previewDay) || w.days[0];
+      const preview = el('div', { class: 'week-preview', style: { marginTop: '18px', paddingTop: '16px', borderTop: tone.previewBorder } });
+      const isCurrent = previewDayObj.day === state.currentDay;
+      const canOpen = dayStatus(previewDayObj.day) !== 'locked';
       preview.innerHTML = `
         <div style="display:flex;align-items:flex-end;gap:14px;">
           <div style="flex:1;min-width:0;">
-            <div class="t-small" style="font-size:11px;${hasToday ? 'color:rgba(251,247,240,0.6);' : 'color:var(--muted);'}">${isCurrent ? '오늘' : 'DAY ' + previewDay}</div>
-            <div style="margin-top:4px;font-size:17px;font-weight:800;line-height:1.25;${hasToday ? 'color:var(--cream);' : 'color:var(--ink);'}">${escapeHtml(previewDayObj.title)}</div>
-            <div style="margin-top:6px;font-size:13.5px;line-height:1.45;${hasToday ? 'color:rgba(251,247,240,0.65);' : 'color:var(--ink-soft);'}">"${escapeHtml(previewDayObj.goal_en)}"</div>
+            <div class="t-small" style="font-size:11px;color:${tone.meta};">${isCurrent ? '오늘' : 'DAY ' + previewDayObj.day}</div>
+            <div style="margin-top:4px;font-size:17px;font-weight:800;line-height:1.25;color:${tone.text};">${escapeHtml(previewDayObj.title)}</div>
+            <div style="margin-top:6px;font-size:13.5px;line-height:1.45;color:${tone.sub};">"${escapeHtml(previewDayObj.goal_en)}"</div>
           </div>
           ${canOpen
-            ? `<button class="icon-btn" style="width:52px;height:52px;border-radius:16px;background:var(--orange);border:none;color:#fff;flex-shrink:0;" onclick="window.__openTodayFromWeek(${w.n}, ${previewDay})">${Icon('arrowRight', 20)}</button>`
-            : `<div style="width:52px;height:52px;border-radius:16px;background:${hasToday ? 'rgba(251,247,240,0.08)' : 'var(--paper)'};display:grid;place-items:center;color:${hasToday ? 'rgba(251,247,240,0.4)' : 'var(--muted)'};flex-shrink:0;font-size:11px;font-weight:700;">LOCK</div>`}
-        </div>`;
+            ? `<button class="icon-btn" style="width:52px;height:52px;border-radius:16px;background:var(--orange);border:none;color:#fff;flex-shrink:0;" onclick="window.__openTodayFromWeek(${w.n}, ${previewDayObj.day})">${Icon('arrowRight', 20)}</button>`
+            : `<div style="width:52px;height:52px;border-radius:16px;background:${tone.lockBg};display:grid;place-items:center;color:${tone.lockText};font-size:11px;font-weight:700;">LOCK</div>`}
+        </div>
+      `;
       card.appendChild(preview);
     }
 
@@ -1725,19 +2061,201 @@ function WeeksPage() {
   return page;
 }
 
-// Per-render preview state stored on window so button handlers can read/write.
-window.__weekPreview = window.__weekPreview || {};
-window.__setWeekPreview = (weekN, dayN) => {
-  const week = CHALLENGE.weeks.find((w) => w.n === weekN);
-  if (!week || !week.days.some((d) => d.day === dayN)) return;
-  if (window.__weekPreview[weekN] === dayN) return;
-  window.__weekPreview[weekN] = dayN;
-  if (currentPage === 'weeks') {
-    window.requestAnimationFrame(() => {
-      if (currentPage === 'weeks') render();
+function buildVerifyQuestions(dayN) {
+  const day = getDay(dayN);
+  const primary = (day?.words || []).map((w) => ({
+    en: w.en,
+    kr: w.def,
+    syn: w.syn || [],
+    prompt: w.ex_en || `Let's use ${w.en} in a sentence.`,
+    prompt_kr: w.ex_kr || '',
+  }));
+  const reviewPool = [];
+  CHALLENGE.weeks.forEach((week) => {
+    week.days.forEach((item) => {
+      if (item.day >= dayN) return;
+      item.words.forEach((w) => {
+        reviewPool.push({
+          day: item.day,
+          en: w.en,
+          kr: w.def,
+          syn: w.syn || [],
+          prompt: w.ex_en || `Let's use ${w.en} in a sentence.`,
+          prompt_kr: w.ex_kr || '',
+        });
+      });
     });
+  });
+  reviewPool.sort((a, b) => b.day - a.day);
+  const seen = new Set();
+  const deduped = [...primary, ...reviewPool, ...VERIFY_VOCAB_BANK].filter((item) => {
+    const key = item.en.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return [...deduped.slice(0, 3), ...deduped.slice(3).slice(0, 7)];
+}
+
+function VerifyPage(dayN) {
+  const d = getDay(dayN);
+  if (!d) return WeeksPage();
+  const page = el('div', { class: 'page' });
+  const questions = buildVerifyQuestions(dayN);
+  window.__verifyUi = window.__verifyUi || {};
+  const ui = window.__verifyUi[dayN] || { idx: 0, value: '', done: false, score: 0, activeStep: null };
+  window.__verifyUi[dayN] = ui;
+
+  const copyKey = `d${dayN}-copy`;
+  const sentenceDone = d.words.every((_, i) => !!state.ai_feedback[`d${dayN}-${i}`]);
+  const quizKey = `d${dayN}-quiz`;
+  const recordKey = `d${dayN}-record`;
+  const steps = [
+    { id: 'copy', label: '오늘의 표현 3번씩 소리 내어 읽기', time: '2분', done: !!state.checkpoints[copyKey] },
+    { id: 'sentence', label: '내 문장 3개 만들고 AI 교정 받기', time: '5분', done: sentenceDone },
+    { id: 'capture', label: '단어 시험 바로 풀기', time: '1분', done: !!state.checkpoints[quizKey] },
+    { id: 'record', label: '내 문장 녹음 (화요일/목요일)', time: '2분', done: !!state.checkpoints[recordKey] },
+  ];
+  const completed = steps.filter((step) => step.done).length;
+  const activeStep = steps.find((step) => !step.done)?.id || 'record';
+  const currentQuestion = questions[ui.idx] || questions[0];
+
+  const head = el('div', { class: 'topbar' });
+  const back = el('button', { class: 'icon-btn', onClick: () => go('day', { week: d.weekN, day: dayN }) });
+  back.innerHTML = Icon('arrowLeft', 16);
+  head.appendChild(back);
+  head.appendChild(el('div', { style: { fontWeight: '800', fontSize: '16px' } }, `인증 · Day ${dayN}`));
+  const bell = el('button', { class: 'icon-btn', style: { position: 'relative' }, onClick: () => showToast('알림 센터는 곧 열려요!') });
+  bell.innerHTML = Icon('flame', 16) + '<span style="position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--orange);"></span>';
+  head.appendChild(bell);
+  page.appendChild(head);
+
+  const progress = el('div', { style: { marginTop: '8px', marginBottom: '20px' } });
+  progress.innerHTML = `
+    <div class="row-between" style="margin-bottom:8px;">
+      <span class="kicker">VERIFICATION · 4 STEPS</span>
+      <span class="t-small mono">${completed}/4</span>
+    </div>
+    <div class="bar orange"><span style="width:${completed / 4 * 100}%;transition:none;"></span></div>
+  `;
+  page.appendChild(progress);
+
+  const panel = el('div', { class: 'card', style: { padding: '22px', background: 'var(--ink)', color: 'var(--cream)', borderColor: 'var(--ink)', borderRadius: '28px' } });
+  const activeMeta = steps.find((step) => step.id === activeStep);
+  panel.innerHTML = `<div class="kicker" style="color:rgba(251,247,240,0.6)">STEP ${steps.findIndex((step) => step.id === activeStep) + 1}/4 · ${activeMeta.time}</div><h2 class="h2" style="margin-top:10px;color:var(--cream);font-size:28px;line-height:1.24;">${activeMeta.label}</h2>`;
+
+  if (activeStep === 'capture') {
+    const passed = ui.done && (ui.score / questions.length) >= 0.7;
+    const wrap = el('div', { style: { marginTop: '20px' } });
+    if (ui.done) {
+      wrap.innerHTML = `
+        <div style="padding:24px;border-radius:22px;background:rgba(251,247,240,0.06);border:1px solid rgba(251,247,240,0.12);text-align:center;">
+          <div class="kicker" style="color:rgba(251,247,240,0.5)">단어 시험 결과</div>
+          <div class="h3" style="margin-top:10px;color:var(--cream);">${passed ? '제출 가능한 점수예요' : '70% 이상이 되면 제출할 수 있어요'}</div>
+          <div style="margin-top:10px;font-size:34px;font-weight:800;color:${passed ? 'var(--orange)' : 'var(--cream)'};">${ui.score}<span style="color:rgba(251,247,240,0.3);font-size:24px;">/${questions.length}</span></div>
+          <div class="t-small" style="color:rgba(251,247,240,0.6);margin-top:6px;">정답률 ${Math.round(ui.score / questions.length * 100)}%</div>
+          <button class="btn btn-ghost" style="margin-top:14px;background:#fff;color:var(--ink);border:none;" onclick="window.__restartVerifyQuiz(${dayN})">다시 풀기</button>
+        </div>
+      `;
+      wrap.appendChild(el('button', {
+        class: 'btn btn-full',
+        style: { marginTop: '12px', background: passed ? 'var(--cream)' : 'rgba(251,247,240,0.16)', color: passed ? 'var(--ink)' : 'rgba(251,247,240,0.5)' },
+        disabled: !passed,
+        onClick: () => { state.checkpoints[quizKey] = true; saveState(); render(); }
+      }, `${Icon('check', 14)} 시험 결과 제출`));
+    } else {
+      const promptText = currentQuestion.prompt || `Use ${currentQuestion.en} in context.`;
+      const parts = promptText.includes('____')
+        ? promptText.split('____')
+        : promptText.replace(new RegExp(currentQuestion.en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '____').split('____');
+      wrap.innerHTML = `
+        <div style="padding:18px 18px 20px;border-radius:22px;background:#F7F5FF;border:1px solid rgba(255,255,255,0.08);color:var(--ink);">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div class="kicker" style="color:#8B84D7;">오늘의 단어 · 기본 10문제</div>
+            <span class="badge" style="background:#ECE8FF;color:#5C53A5;">${ui.idx + 1} / ${questions.length}</span>
+          </div>
+          <div style="margin-top:18px;padding:28px 18px;border-radius:24px;background:rgba(255,255,255,0.68);text-align:center;box-shadow:inset 0 0 0 1px rgba(236,232,255,0.9);">
+            <div style="font-size:19px;line-height:1.7;font-weight:600;color:#35344A;word-break:keep-all;">
+              ${escapeHtml(parts[0] || '')}
+              <input class="input" style="display:inline-block;width:220px;max-width:72%;margin:0 8px;padding:12px 14px;border-radius:18px;text-align:center;font-size:24px;font-weight:700;letter-spacing:-0.03em;background:#fff;border:2px solid #ECE8FF;vertical-align:middle;" placeholder="입력" value="${escapeHtml(ui.value)}" oninput="window.__setVerifyQuizValue(${dayN}, this.value)" />
+              ${escapeHtml(parts[1] || '')}
+            </div>
+            <div style="margin-top:20px;font-size:18px;line-height:1.5;color:#6C6A86;">${escapeHtml(currentQuestion.prompt_kr || '')}</div>
+            <div style="margin-top:10px;font-size:16px;line-height:1.5;color:#7D5CFF;font-weight:700;">뜻 · ${escapeHtml(currentQuestion.kr)}</div>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;">
+              <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;" onclick="window.__toggleVerifyAnswer(${dayN})">정답 보기</button>
+              <button class="btn btn-ghost" style="background:#fff;color:#7D7A98;border:1px solid #E1DCF8;" onclick="showToast('Voice는 다음 단계에서 붙일게요.')">Voice (Beta)</button>
+            </div>
+            ${ui.reveal ? `<div style="margin-top:14px;font-size:18px;color:#3E3B59;font-weight:800;">정답 · ${escapeHtml(currentQuestion.en)}</div>` : ''}
+            <div style="display:flex;gap:8px;margin-top:18px;">
+              <button class="btn btn-ghost" style="flex:1;justify-content:center;background:#4F4438;color:#fff;border:none;" onclick="window.__advanceVerifyQuiz(${dayN}, true)">Skip</button>
+              <button class="btn btn-primary" style="flex:2;justify-content:center;background:#F2EBD9;color:#8C7D58;" onclick="window.__advanceVerifyQuiz(${dayN}, false)" ${!ui.value.trim() ? 'disabled' : ''}>${ui.idx === questions.length - 1 ? '제출' : '다음'} ${Icon('arrowRight', 14)}</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    panel.appendChild(wrap);
+  } else if (activeStep === 'copy') {
+    d.words.forEach((w, i) => {
+      const row = el('div', { style: { padding: '12px 14px', borderRadius: '14px', background: 'rgba(251,247,240,0.06)', display: 'flex', alignItems: 'center', gap: '10px', marginTop: i === 0 ? '18px' : '10px' } });
+      row.innerHTML = `<span class="mono" style="font-size:11px;color:rgba(251,247,240,0.4)">0${i+1}</span><span style="font-size:24px;color:var(--orange);font-weight:700;letter-spacing:-0.03em;">${escapeHtml(w.en)}</span><button class="icon-btn" style="margin-left:auto;background:rgba(251,247,240,0.1);border:none;color:var(--cream);" onclick="window.__speakWord(${dayN}, ${i})">${Icon('volume', 14)}</button>`;
+      panel.appendChild(row);
+    });
+    panel.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, onClick: () => { state.checkpoints[copyKey] = true; saveState(); render(); } }, `${Icon('check', 14)} 3번씩 소리 내어 읽었어요`));
+  } else if (activeStep === 'sentence') {
+    const info = el('div', { style: { marginTop: '18px', color: 'rgba(251,247,240,0.8)', lineHeight: '1.6' } });
+    info.innerHTML = `<div>오늘 배운 표현 3개로 내 상황 문장을 만들고 AI 교정을 받으면 바로 완료돼요.</div><div style="margin-top:12px;padding:14px 16px;border-radius:16px;background:rgba(251,247,240,0.06);"><div class="t-small mono" style="color:rgba(251,247,240,0.5)">현재 상태</div><div style="margin-top:6px;font-size:16px;font-weight:700;color:var(--cream);">${sentenceDone ? '문장 3개 준비 완료' : '아직 Day 화면에서 문장 3개를 마쳐야 해요'}</div></div>`;
+    info.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '14px' }, onClick: () => go('day', { week: d.weekN, day: dayN }) }, sentenceDone ? '문장 다시 보기' : 'Day로 돌아가서 마무리'));
+    panel.appendChild(info);
+  } else {
+    const submitted = d.words.map((w, i) => state.ai_feedback[`d${dayN}-${i}`]?.corrected || state.sentences[`d${dayN}-${i}`] || '').filter(Boolean);
+    const box = el('div', { style: { marginTop: '20px' } });
+    box.innerHTML = `<div style="padding:14px 16px;border-radius:16px;background:rgba(251,247,240,0.06);border:1px solid rgba(232,116,60,0.35);"><div class="t-small mono" style="color:rgba(251,247,240,0.45)">내 문장 녹음</div><div style="margin-top:10px;font-size:18px;line-height:1.45;color:var(--cream);font-weight:700;">"${escapeHtml(submitted[0] || '(먼저 내 문장을 준비해주세요)')}"</div></div>`;
+    box.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, disabled: !submitted.length, onClick: () => { state.checkpoints[recordKey] = true; saveState(); render(); } }, `${Icon('check', 14)} 녹음 파일 제출`));
+    panel.appendChild(box);
   }
-};
+  page.appendChild(panel);
+
+  const stepList = el('div', { class: 'stack', style: { marginTop: '18px', gap: '12px' } });
+  steps.forEach((step, idx) => {
+    const isActive = activeStep === step.id;
+    const row = el('button', {
+      style: {
+        width: '100%', display: 'flex', alignItems: 'center', gap: '14px', padding: '18px',
+        borderRadius: '24px', border: isActive && !step.done ? '1.5px solid rgba(240,125,56,0.85)' : '1px solid var(--line)',
+        background: step.done ? '#E4F1D6' : '#FFFDF7', textAlign: 'left',
+      },
+      onClick: () => { if (!step.done) { ui.activeStep = step.id; render(); } }
+    });
+    row.innerHTML = `<div style="width:56px;height:56px;border-radius:18px;background:${step.done ? 'rgba(107,142,78,0.12)' : 'var(--paper)'};display:grid;place-items:center;color:${step.done ? 'var(--green)' : 'var(--ink-soft)'};">${step.done ? Icon('check', 18) : Icon(idx === 0 ? 'mic' : idx === 1 ? 'edit' : idx === 2 ? 'play' : 'mic', 18)}</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:800;color:var(--ink);">${step.label}</div><div class="t-small mono" style="margin-top:4px;color:var(--muted);">${step.time} · Step ${idx + 1}</div></div>${step.done ? '<span class="badge badge-green">완료</span>' : isActive ? '<span class="badge badge-orange">진행</span>' : Icon('lock', 14)}`;
+    stepList.appendChild(row);
+  });
+  page.appendChild(stepList);
+
+  const verified = !!state.verified['d'+dayN];
+  const allDone = steps.every((step) => step.done);
+  page.appendChild(el('button', {
+    class: 'btn btn-full btn-lg',
+    style: { marginTop: '20px', padding: '22px 24px', fontSize: '18px', background: verified ? 'var(--green-soft)' : (allDone ? 'var(--orange)' : 'var(--paper)'), color: verified ? 'var(--green)' : (allDone ? '#fff' : 'var(--muted)') },
+    disabled: !allDone && !verified,
+    onClick: () => {
+      if (verified) go('day', { week: d.weekN, day: dayN });
+      else {
+        state.verified['d'+dayN] = true;
+        saveState();
+        recordVerificationEvent(dayN);
+        showToast('🎉 Day ' + dayN + ' 인증 완료! 대시보드에 반영됐어요');
+        fireConfetti();
+        setTimeout(() => go('home'), 1400);
+      }
+    }
+  }, verified ? '오늘 인증 완료됨' : (allDone ? '인증 완료하기 ✓' : `${completed}/4 단계 완료`)));
+  page.appendChild(el('div', { class: 't-small', style: { textAlign: 'center', marginTop: '10px', color: 'var(--muted)' } }, '완료 메시지가 자동으로 유버디(5기) 카톡방에 올라갑니다'));
+  return page;
+}
+
+window.__weekPreview = window.__weekPreview || {};
 
 /* ============================================================
    DAY PAGE — the actual learning note
@@ -1749,6 +2267,8 @@ function DayPage(dayN) {
   const copyKey = `d${dayN}-copy`;
   const copyDone = !!state.checkpoints[copyKey];
   const allSentenceDone = d.words.every((_, i) => !!state.ai_feedback[`d${dayN}-${i}`]);
+  const correctedCount = d.words.filter((_, i) => !!state.ai_feedback[`d${dayN}-${i}`]).length;
+  const basicAiUsed = basicAiUsedCount(dayN);
   const prepDone = [copyDone, allSentenceDone].filter(Boolean).length;
 
   const speak = (text) => {
@@ -1961,14 +2481,30 @@ function DayPage(dayN) {
     if (isNuanceOpen) {
       const detail = el('div', { style: { marginTop: '10px' } });
       const nuance = w.nuance || defaultNuance(w);
-      const synHtml = (w.syn || []).map(s =>
-        `<span class="syn-chip" style="padding:4px 10px;font-size:11px;font-family:var(--font-mono);">${escapeHtml(s)}</span>`
-      ).join('');
-      detail.innerHTML = `
-        <div style="font-size:13px;line-height:1.6;color:var(--ink);">
-          <b>뉘앙스.</b> ${escapeHtml(nuance)}
-        </div>
-        <div class="syn-row" style="margin-top:10px;gap:6px;">${synHtml}</div>`;
+      if (state.tier !== 'premium') {
+        detail.innerHTML = `
+          <div style="padding:14px 16px;border-radius:16px;background:linear-gradient(135deg, #FFF5EC 0%, #FFF0E2 100%);border:1px solid rgba(240,125,56,0.18);">
+            <div class="kicker" style="color:var(--orange-dark);">PREMIUM ONLY</div>
+            <div style="margin-top:8px;font-size:14px;line-height:1.55;color:var(--ink);font-weight:700;">유의어의 뜻과 뉘앙스 차이는 프리미엄에서 더 자세히 볼 수 있어요.</div>
+            <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">같은 뜻처럼 보여도 강도, 회의 톤, 써도 되는 상황이 조금씩 달라요.</div>
+            <button class="btn btn-ghost" style="margin-top:12px;padding:10px 14px;background:#fff;" onclick="window.__openPremiumGate()">프리미엄에서 보기</button>
+          </div>`;
+      } else {
+        const synHtml = (w.syn || []).map((s) => `
+          <div style="padding:12px 14px;border-radius:14px;background:var(--paper);border:1px solid var(--line-soft);">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span class="syn-chip" style="padding:4px 10px;font-size:11px;font-family:var(--font-mono);">${escapeHtml(s)}</span>
+              <span style="font-size:12px;color:var(--ink-soft);">${escapeHtml(synonymMeaning(s))}</span>
+            </div>
+            <div style="margin-top:8px;font-size:12.5px;line-height:1.55;color:var(--ink);">${escapeHtml(synonymNuance(w, s))}</div>
+          </div>
+        `).join('');
+        detail.innerHTML = `
+          <div style="font-size:13px;line-height:1.6;color:var(--ink);">
+            <b>뉘앙스.</b> ${escapeHtml(nuance)}
+          </div>
+          <div style="margin-top:10px;display:grid;gap:8px;">${synHtml}</div>`;
+      }
       card.appendChild(detail);
     }
 
@@ -2006,13 +2542,33 @@ function DayPage(dayN) {
   s2Head.innerHTML = '<div class="step-num" style="width:58px;height:58px;border-radius:18px;font-size:22px;">2</div><div><div class="kicker">CARD 2 · YOUR SENTENCES</div><div class="h2" style="margin-top:6px;font-size:28px;">내 업무 문장 만들기 <span style="color:var(--muted);font-weight:500;">· 5분</span></div></div>';
   s2.appendChild(s2Head);
   s2.appendChild(el('p', { class: 't-body', style: { marginTop: '16px', fontSize: '18px', lineHeight: '1.55' } }, '오늘 배운 표현 3개로, 내 실제 업무 상황에 맞는 문장을 하나씩 만들어봐요. 완벽할 필요 없어요. — Claude가 자연스럽게 다듬어 드립니다.'));
+  const sentenceNotice = el('div', {
+    style: {
+      marginTop: '14px',
+      padding: '14px 16px',
+      borderRadius: '18px',
+      background: allSentenceDone ? '#E4F1D6' : '#FFF4E8',
+      border: `1px solid ${allSentenceDone ? 'rgba(107,142,78,0.22)' : 'rgba(240,125,56,0.18)'}`,
+    }
+  });
+  sentenceNotice.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <div style="font-size:14px;line-height:1.5;color:var(--ink);font-weight:700;">인증하려면 문장 3개를 모두 <b>AI 교정 완료</b>해야 해요.</div>
+      <span class="badge ${allSentenceDone ? 'badge-green' : 'badge-orange'}">AI 교정 ${correctedCount}/3</span>
+    </div>
+    <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">문장만 입력한 상태는 아직 준비 완료가 아니고, 각 카드의 <b>AI 교정 받기</b>를 눌러 결과가 떠야 다음 단계로 넘어갈 수 있어요.</div>
+    ${state.tier === 'basic' ? `<div class="t-small" style="margin-top:6px;color:var(--orange-dark);line-height:1.5;"><b>베이직</b>은 하루에 AI 교정을 <b>1번만</b> 사용할 수 있어요. 현재 사용: ${basicAiUsed}/1</div>` : ''}
+  `;
+  s2.appendChild(sentenceNotice);
 
   const sentenceStack = el('div', { class: 'stack', style: { marginTop: '14px' } });
   d.words.forEach((w, i) => {
     const key = `d${dayN}-${i}`;
+    const hasCorrection = !!state.ai_feedback[key];
+    const aiAvailable = canUseAiForSentence(dayN, key);
     const row = el('div', { class: 'card', style: { padding: '24px', borderRadius: '32px', background: 'rgba(255,253,247,0.72)' } });
     const label = el('div', { class: 'row row-gap-sm', style: { marginBottom: '14px', alignItems: 'center' } });
-    label.innerHTML = `<span class="syn-chip" style="padding:8px 18px;font-size:12px;">${w.en.toUpperCase()}</span><span class="t-small" style="font-size:16px;">를 써서 내 업무 상황 문장</span>`;
+    label.innerHTML = `<span class="syn-chip" style="padding:8px 18px;font-size:12px;">${w.en.toUpperCase()}</span><span class="t-small" style="font-size:16px;">를 써서 내 업무 상황 문장</span>${hasCorrection ? '<span class="badge badge-green" style="margin-left:auto;">AI 완료</span>' : ''}`;
     row.appendChild(label);
     const ta = el('textarea', {
       class: 'sentence-input',
@@ -2033,14 +2589,21 @@ function DayPage(dayN) {
     controls.appendChild(count);
     const aiBtn = el('button', {
       class: 'btn btn-ghost',
-      style: { padding: '16px 24px', background: 'transparent', borderRadius: '999px', fontSize: '17px', fontWeight: '700' },
-      disabled: !ta.value.trim(),
+      style: { padding: '16px 24px', background: hasCorrection ? 'var(--green-soft)' : 'transparent', color: hasCorrection ? 'var(--green)' : 'var(--ink)', borderRadius: '999px', fontSize: '17px', fontWeight: '700' },
+      disabled: !ta.value.trim() || (!hasCorrection && !aiAvailable),
       onClick: async () => {
+        if (!canUseAiForSentence(dayN, key)) {
+          showToast('베이직은 하루 1번만 AI 교정을 사용할 수 있어요.');
+          return;
+        }
         aiBtn.disabled = true;
         aiBtn.innerHTML = `${Icon('sparkles', 12)} 교정 중...`;
         try {
           const result = await requestSentenceCorrection(w, ta.value);
           state.ai_feedback[key] = result;
+          if (state.tier === 'basic' && !hasCorrection) {
+            state.ai_daily_usage[aiDailyKey(dayN)] = 1;
+          }
           saveState();
           render();
         } catch (e) {
@@ -2049,18 +2612,23 @@ function DayPage(dayN) {
             diff_html: escapeHtml(ta.value),
             why: '네트워크 이슈로 AI 교정이 지연되고 있어요. 잠시 후 다시 시도해보세요.',
           };
+          if (state.tier === 'basic' && !hasCorrection) {
+            state.ai_daily_usage[aiDailyKey(dayN)] = 1;
+          }
           saveState();
           render();
         }
       }
     });
-    aiBtn.innerHTML = `${Icon('sparkles', 12)} AI 교정 받기`;
+    aiBtn.innerHTML = hasCorrection
+      ? `${Icon('check', 12)} AI 교정 완료`
+      : (aiAvailable ? `${Icon('sparkles', 12)} AI 교정 받기` : `베이직 1회 사용 완료`);
     controls.appendChild(aiBtn);
     row.appendChild(controls);
 
     ta.addEventListener('input', () => {
       count.textContent = `${ta.value.length} chars`;
-      aiBtn.disabled = !ta.value.trim();
+      aiBtn.disabled = !ta.value.trim() || (!hasCorrection && !canUseAiForSentence(dayN, key));
     });
 
     const fb = state.ai_feedback[key];
@@ -2120,19 +2688,20 @@ function DayPage(dayN) {
         saveState();
         showToast('인증 취소됨');
       } else {
-        state.verified['d'+dayN] = true;
-        saveState();
-        recordVerificationEvent(dayN);
-        showToast('🎉 Day ' + dayN + ' 인증 완료! 대시보드에 반영됐어요');
-        fireConfetti();
-        setTimeout(() => go('home'), 1400);
+        go('verify', { week: d.weekN, day: dayN });
       }
     },
   });
   cta.innerHTML = verified ? `오늘 인증 완료됨` : (prepDone === 2 ? `인증하러 가기 ${Icon('arrowRight', 18)}` : `체크 완료 (${prepDone}/2 준비됨) ${Icon('arrowRight', 18)}`);
   page.appendChild(cta);
 
-  page.appendChild(el('div', { class: 't-small', style: { textAlign: 'center', marginTop: '16px', fontSize: '16px', lineHeight: '1.55' } }, '3단계 인증을 모두 마치면 대시보드에 자동 반영됩니다'));
+  page.appendChild(el('div', { class: 't-small', style: { textAlign: 'center', marginTop: '16px', fontSize: '16px', lineHeight: '1.55' } },
+    verified
+      ? '인증이 완료되어 대시보드에 반영됐어요.'
+      : (prepDone === 2
+          ? '준비 완료. 이제 인증 화면으로 넘어가 Step 3, 4를 마치면 됩니다.'
+          : `현재 준비 상태: 읽기 ${copyDone ? '완료' : '미완료'} · AI 교정 ${correctedCount}/3 완료`)
+  ));
 
   return page;
 }
@@ -3026,8 +3595,33 @@ function ProfilePage() {
   hero.innerHTML = `
     <div class="avatar orange" style="width:68px;height:68px;border-radius:22px;font-size:24px;margin:0 auto 12px;">${state.name.slice(0,1)}</div>
     <h2 class="h1" style="margin-top:4px;">${state.name}</h2>
-    <div class="t-body" style="margin-top:4px;">${CHALLENGE.cohort} · Team A · ${state.tier === 'premium' ? '⭐ Premium 멤버' : '🎓 Basic 멤버'}</div>`;
+    <div class="t-body" style="margin-top:4px;">${CHALLENGE.cohort} · Team A · ${state.tier === 'premium' ? '⭐ Premium 멤버' : '🎓 Basic 멤버'}</div>
+    <div class="badge" style="margin-top:10px;background:var(--paper);color:var(--ink);padding:7px 12px;">직무 · ${escapeHtml(state.role || '미입력')}</div>`;
   page.appendChild(hero);
+
+  const infoCard = el('div', { class: 'card', style: { marginTop: '18px' } });
+  infoCard.innerHTML = `
+    <div class="kicker">PROFILE</div>
+    <h3 class="h3" style="margin-top:6px;">내 정보 수정</h3>
+    <div class="t-body" style="margin-top:6px;color:var(--ink-soft);">이름과 함께 직무도 저장해둘게요.</div>
+  `;
+  const fieldWrap = el('div', { style: { display: 'grid', gap: '12px', marginTop: '16px' } });
+  const roleField = el('label', { style: { display: 'grid', gap: '6px' } });
+  roleField.appendChild(el('div', { class: 'kicker', style: { color: 'var(--muted)' } }, '직무'));
+  const roleInput = el('input', {
+    class: 'input',
+    type: 'text',
+    placeholder: '예: PM, 마케터, 디자이너, 개발자',
+    value: state.role || '',
+    onInput: (e) => {
+      state.role = e.target.value;
+      saveState();
+    },
+  });
+  roleField.appendChild(roleInput);
+  fieldWrap.appendChild(roleField);
+  infoCard.appendChild(fieldWrap);
+  page.appendChild(infoCard);
 
   // Tier section
   const tierCard = el('div', { class: 'card', style: { marginTop: '18px' } });
@@ -3075,21 +3669,25 @@ function ProfilePage() {
       });
     });
   });
+  const savedCommunityPosts = COMMUNITY_POSTS.filter((post) => state.community_bookmarks?.[post.id]);
   const bookmarkCard = el('div', { class: 'card', style: { marginTop: '18px', padding: '18px' } });
   const bookHead = el('div', { class: 'row-between' });
   bookHead.innerHTML = `
     <div>
       <div class="kicker">MY BOOKMARKS</div>
-      <h3 class="h3" style="margin-top:6px;">저장한 단어 <span class="mono" style="color:var(--muted);font-weight:500;">· ${bookmarkedEntries.length}개</span></h3>
+      <h3 class="h3" style="margin-top:6px;">저장한 항목 <span class="mono" style="color:var(--muted);font-weight:500;">· ${bookmarkedEntries.length + savedCommunityPosts.length}개</span></h3>
     </div>
     <span class="icon-btn" style="width:34px;height:34px;border-radius:12px;background:var(--orange-ghost);border-color:var(--orange-soft);color:var(--orange-dark);">${Icon('bookmarkFill', 14)}</span>`;
   bookmarkCard.appendChild(bookHead);
 
-  if (!bookmarkedEntries.length) {
+  if (!bookmarkedEntries.length && !savedCommunityPosts.length) {
     bookmarkCard.appendChild(el('p', { class: 't-body', style: { marginTop: '12px', fontSize: '13.5px' } },
-      'Day 노트에서 단어의 🔖 버튼을 눌러보세요. 저장한 단어가 여기 모여요.'));
+      'Day 노트나 커뮤니티에서 저장 버튼을 눌러보세요. 저장한 단어와 문장이 여기 모여요.'));
   } else {
     const list = el('div', { style: { marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' } });
+    if (bookmarkedEntries.length) {
+      list.appendChild(el('div', { class: 'kicker', style: { color: 'var(--muted)', marginTop: '4px' } }, `단어 · ${bookmarkedEntries.length}`));
+    }
     bookmarkedEntries.forEach(({ key, day, weekN, word }) => {
       const row = el('div', {
         style: {
@@ -3106,6 +3704,35 @@ function ProfilePage() {
           <div class="t-small" style="margin-top:2px;font-size:12px;color:var(--ink-soft);">${escapeHtml(word.def)}</div>
         </div>
         <button class="icon-btn" style="width:30px;height:30px;border-radius:10px;background:transparent;border:none;color:var(--orange);" onclick="event.stopPropagation(); window.__toggleBookmark('${key}')">${Icon('bookmarkFill', 13)}</button>`;
+      list.appendChild(row);
+    });
+    if (savedCommunityPosts.length) {
+      list.appendChild(el('div', { class: 'kicker', style: { color: 'var(--muted)', marginTop: bookmarkedEntries.length ? '10px' : '4px' } }, `커뮤니티 문장 · ${savedCommunityPosts.length}`));
+    }
+    savedCommunityPosts.forEach((post) => {
+      const row = el('div', {
+        style: {
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '12px',
+          padding: '12px',
+          borderRadius: '14px',
+          background: 'var(--paper)',
+          cursor: 'pointer',
+        },
+        onClick: () => go('community'),
+      });
+      row.innerHTML = `
+        <div class="avatar ${post.avatarClass}" style="width:36px;height:36px;border-radius:12px;font-size:12px;flex-shrink:0;">${post.avatar}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:13px;font-weight:800;color:var(--ink);">${escapeHtml(post.user)}</span>
+            <span class="mono" style="font-size:10px;color:var(--muted);">${escapeHtml(post.word)}</span>
+          </div>
+          <div style="margin-top:4px;font-size:13px;line-height:1.45;color:var(--ink);font-weight:600;">${escapeHtml(post.sentence)}</div>
+          <div class="t-small" style="margin-top:4px;font-size:11.5px;color:var(--ink-soft);line-height:1.45;">${escapeHtml(post.translation)}</div>
+        </div>
+        <button class="icon-btn" style="width:30px;height:30px;border-radius:10px;background:transparent;border:none;color:var(--orange);flex-shrink:0;" onclick="event.stopPropagation(); window.__toggleCommunityBookmark('${post.id}')">${Icon('bookmarkFill', 13)}</button>`;
       list.appendChild(row);
     });
     bookmarkCard.appendChild(list);
@@ -3230,7 +3857,8 @@ function CommunityPage() {
     });
     card.innerHTML = `
       <div style="display:flex;align-items:flex-start;gap:14px;">
-        <div class="avatar ${post.avatarClass}" style="width:60px;height:60px;border-radius:20px;font-size:19px;">${post.avatar}</div>
+        <button onclick="window.__openMemberCard(${JSON.stringify(post.user)})" style="background:transparent;border:none;padding:0;display:flex;align-items:flex-start;gap:14px;flex:1;min-width:0;text-align:left;">
+        <div class="avatar ${post.avatarClass}" style="width:60px;height:60px;border-radius:20px;font-size:19px;flex-shrink:0;">${post.avatar}</div>
         <div style="flex:1;min-width:0;padding-top:3px;">
           <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
             <span style="font-size:20px;font-weight:700;letter-spacing:-0.03em;line-height:1.1;">${post.user}</span>
@@ -3241,6 +3869,7 @@ function CommunityPage() {
             <span style="font-size:13px;color:var(--muted);">${post.time}</span>
           </div>
         </div>
+        </button>
         <button class="icon-btn" style="width:48px;height:48px;border-radius:18px;flex-shrink:0;color:${saved ? 'var(--orange-dark)' : 'var(--ink)'};background:${saved ? 'var(--orange-ghost)' : 'transparent'};border-color:${saved ? 'rgba(240,125,56,0.28)' : 'var(--line)'};" onclick="window.__toggleCommunityBookmark('${post.id}')" title="문장 저장">${Icon(saved ? 'bookmarkFill' : 'bookmark', 13)}</button>
       </div>
       <p style="margin:20px 0 0;font-size:20px;line-height:1.52;letter-spacing:-0.03em;color:var(--ink);font-weight:700;">${post.sentence.replace(/(align on|go with|for now)/i, '<mark style="background:var(--orange-ghost);color:var(--orange);padding:3px 7px 2px;border-radius:8px;">$1</mark>')}</p>
@@ -3255,6 +3884,95 @@ function CommunityPage() {
   page.appendChild(stack);
 
   return page;
+}
+
+function MemberCardModal(memberRef) {
+  const member = memberCardData(memberRef);
+  if (!member) return document.createDocumentFragment();
+  const backdrop = el('div', {
+    class: 'modal-backdrop',
+    onClick: (e) => {
+      if (e.target === backdrop) {
+        activeMemberCard = null;
+        render();
+      }
+    }
+  });
+  const modal = el('div', {
+    class: 'modal',
+    style: {
+      width: 'min(92vw, 420px)',
+      padding: '22px 20px 20px',
+      borderRadius: '28px',
+      background: member.me ? 'linear-gradient(180deg, #FFF7EF 0%, #FFFDF7 100%)' : '#FFFDF7',
+      border: member.me ? '1px solid rgba(240,125,56,0.26)' : '1px solid var(--line)',
+    }
+  });
+  modal.innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:14px;">
+      <div class="avatar ${member.color}" style="width:62px;height:62px;border-radius:18px;font-size:22px;">${member.name.slice(0,1)}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div style="font-size:24px;font-weight:800;letter-spacing:-0.03em;line-height:1.08;">${escapeHtml(member.name)}</div>
+          ${member.me ? '<span class="badge badge-orange">ME</span>' : ''}
+        </div>
+        <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span class="badge">${escapeHtml(member.role)}</span>
+          <span class="t-small mono" style="color:var(--muted);">Team ${member.team}</span>
+          <span class="t-small mono" style="color:var(--muted);">${member.progress}/20</span>
+          <span class="t-small mono" style="color:var(--orange);display:inline-flex;align-items:center;gap:4px;">${Icon('flame', 11)} ${member.streak}d</span>
+        </div>
+      </div>
+      <button class="icon-btn" style="width:40px;height:40px;border-radius:14px;" onclick="window.__closeMemberCard()">${Icon('close', 16)}</button>
+    </div>
+  `;
+
+  const stats = el('div', {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+      gap: '10px',
+      marginTop: '16px',
+    }
+  });
+  stats.innerHTML = `
+    <div style="padding:14px;border-radius:18px;background:var(--paper);">
+      <div class="kicker" style="color:var(--muted);">이번 목표</div>
+      <div style="margin-top:8px;font-size:15px;line-height:1.45;font-weight:700;color:var(--ink);word-break:keep-all;">${escapeHtml(member.goal)}</div>
+    </div>
+    <div style="padding:14px;border-radius:18px;background:var(--paper);">
+      <div class="kicker" style="color:var(--muted);">요즘 붙잡는 표현</div>
+      <div style="margin-top:8px;font-size:22px;line-height:1.05;color:var(--orange);font-weight:700;letter-spacing:-0.03em;">${escapeHtml(member.phrase)}</div>
+      <div class="t-small" style="margin-top:6px;color:var(--ink-soft);">작게라도 바로 써먹기 좋은 표현</div>
+    </div>
+  `;
+  modal.appendChild(stats);
+
+  const quoteCard = el('div', {
+    style: {
+      marginTop: '12px',
+      padding: '16px',
+      borderRadius: '20px',
+      background: 'linear-gradient(135deg, #FFF8EB 0%, #FFF2E2 100%)',
+      border: '1px solid rgba(240,125,56,0.16)',
+    }
+  });
+  quoteCard.innerHTML = `
+    <div class="kicker" style="color:var(--orange-dark);">챌린지 톤</div>
+    <div style="margin-top:8px;font-size:16px;line-height:1.55;font-weight:700;color:var(--ink);word-break:keep-all;">${escapeHtml(member.motive)}</div>
+    <div style="margin-top:10px;font-size:13px;line-height:1.5;color:var(--ink-soft);">오늘 한 줄 목표: ${escapeHtml(member.focus)}</div>
+  `;
+  modal.appendChild(quoteCard);
+
+  const footer = el('div', { style: { display: 'flex', gap: '8px', marginTop: '14px', flexWrap: 'wrap' } });
+  footer.innerHTML = `
+    <span class="badge" style="padding:7px 11px;">Day ${member.progress} 진행 중</span>
+    <span class="badge" style="padding:7px 11px;">루틴 이어가는 중</span>
+    <span class="badge" style="padding:7px 11px;">같이 달리는 동료</span>
+  `;
+  modal.appendChild(footer);
+  backdrop.appendChild(modal);
+  return backdrop;
 }
 
 /* ============================================================
@@ -3364,9 +4082,54 @@ function PremiumGateModal() {
 window.__openPremiumGate = () => { showPremiumGate = true; render(); };
 window.__closePremiumGate = () => { showPremiumGate = false; render(); };
 window.__openTodayFromWeek = (week, day) => { go('day', { week, day }); };
+window.__setVerifyQuizValue = (dayN, value) => {
+  window.__verifyUi = window.__verifyUi || {};
+  window.__verifyUi[dayN] = window.__verifyUi[dayN] || { idx: 0, value: '', done: false, score: 0 };
+  window.__verifyUi[dayN].value = value;
+};
+window.__restartVerifyQuiz = (dayN) => {
+  window.__verifyUi = window.__verifyUi || {};
+  window.__verifyUi[dayN] = { idx: 0, value: '', done: false, score: 0, activeStep: 'capture', reveal: false };
+  render();
+};
+window.__toggleVerifyAnswer = (dayN) => {
+  window.__verifyUi = window.__verifyUi || {};
+  const ui = window.__verifyUi[dayN] || { idx: 0, value: '', done: false, score: 0, activeStep: 'capture', reveal: false };
+  ui.reveal = !ui.reveal;
+  window.__verifyUi[dayN] = ui;
+  render();
+};
+window.__advanceVerifyQuiz = (dayN, skipped) => {
+  const questions = buildVerifyQuestions(dayN);
+  window.__verifyUi = window.__verifyUi || {};
+  const ui = window.__verifyUi[dayN] || { idx: 0, value: '', done: false, score: 0, activeStep: 'capture', reveal: false };
+  const current = questions[ui.idx];
+  const answer = (ui.value || '').trim().toLowerCase();
+  const correct = skipped ? false : answer === current.en.toLowerCase();
+  ui.score = (ui.score || 0) + (correct ? 1 : 0);
+  if (ui.idx >= questions.length - 1) {
+    ui.done = true;
+    ui.value = '';
+  } else {
+    ui.idx += 1;
+    ui.value = '';
+  }
+  ui.reveal = false;
+  ui.activeStep = 'capture';
+  window.__verifyUi[dayN] = ui;
+  render();
+};
 window.__toggleCommunityLike = (postId) => {
   state.community_likes[postId] = !state.community_likes[postId];
   saveState();
+  render();
+};
+window.__openMemberCard = (memberRef) => {
+  activeMemberCard = memberRef;
+  render();
+};
+window.__closeMemberCard = () => {
+  activeMemberCard = null;
   render();
 };
 window.__toggleCommunityBookmark = (postId) => {
