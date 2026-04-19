@@ -863,7 +863,7 @@ const CHALLENGE = {
 /* 5기 베타 cohort roster — actual participants (deduplicated).
    Day 1 = 2026-04-20. All progress/streak start at 0; will tick up as they verify. */
 const MEMBERS = [
-  { id: 'me',  name: '박지혜', team: 'A', color: 'orange', progress: 0, streak: 0, me: true, tier: 'auto' },
+  { id: 'me',  name: '나',      team: 'A', color: 'orange', progress: 0, streak: 0, me: true, tier: 'auto' },
   { id: 'u1',  name: '이수진',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'premium' },
   { id: 'u2',  name: '정주혜',   team: 'B', color: 'cream',  progress: 0, streak: 0, tier: 'premium' },
   { id: 'u3',  name: '이도현',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'premium' },
@@ -887,7 +887,59 @@ const MEMBERS = [
   { id: 'u21', name: '김수린',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'basic' },
   { id: 'u22', name: '진여송',   team: 'B', color: 'cream',  progress: 0, streak: 0, tier: 'basic' },
   { id: 'u23', name: '권지선',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'basic' },
+  { id: 'u24', name: '이규태',   team: 'B', color: 'cream',  progress: 0, streak: 0, tier: 'premium' },
+  { id: 'u25', name: '이지흔',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'premium' },
 ];
+
+/* Bind the logged-in user to the correct MEMBERS identity.
+   - If state.name matches a roster entry by name → that roster entry becomes "me" (me: true),
+     and the placeholder me slot is marked hidden so we don't duplicate rows.
+   - Otherwise (operator like 유버디, or generic YB5 user) → keep the placeholder as the me slot,
+     renamed to state.name; operators are hidden from the streak/ranking board.
+   Call this after state hydration and after __finishOnboarding. */
+function bindMeToMembers() {
+  const placeholder = MEMBERS.find((m) => m.id === 'me');
+  if (!placeholder) return;
+  // reset transient flags
+  MEMBERS.forEach((m) => { if (m.id !== 'me') m.me = false; });
+  placeholder.hidden = false;
+  placeholder.isOperator = false;
+
+  const nm = (state.name || '').trim();
+  if (!nm) {
+    placeholder.name = '나';
+    placeholder.me = true;
+    return;
+  }
+
+  const real = MEMBERS.find((m) => m.id !== 'me' && m.name === nm);
+  if (real) {
+    // Existing roster member logged in → promote that row to "me", hide placeholder
+    real.me = true;
+    placeholder.me = false;
+    placeholder.hidden = true;
+    placeholder.name = nm;
+    return;
+  }
+
+  // Not in roster (e.g., 유버디 운영팀, or a generic code user)
+  placeholder.name = nm;
+  placeholder.me = true;
+  if (state.isOperator) {
+    placeholder.isOperator = true;
+    // Operators don't show on the public streak board.
+    placeholder.hidden = true;
+  }
+}
+
+/* Visible roster — filters out hidden rows (placeholder when already bound to a real member,
+   or operators like 유버디). Use this for rankings / streak board / counts shown to users. */
+function visibleMembers() {
+  return MEMBERS.filter((m) => !m.hidden);
+}
+function meMember() {
+  return MEMBERS.find((m) => m.me) || MEMBERS[0];
+}
 
 const MEMBER_SPOTLIGHTS = {
   me: {
@@ -950,6 +1002,7 @@ const defaultState = () => ({
   goal: '',                       // personal goal for this cohort
   accessCode: '',                 // cohort access code (e.g., 5기 code)
   email: '',
+  isOperator: false,              // true for 운영팀 (e.g., 유버디)
   onboarded: false,               // has completed first-run onboarding
   currentDay: 1,                  // today marker (Day 1 of cohort)
   verified: {},                   // { "d1": true }
@@ -975,6 +1028,7 @@ const PERSISTED_STATE_KEYS = [
   'goal',
   'accessCode',
   'email',
+  'isOperator',
   'onboarded',
   'currentDay',
   'verified',
@@ -1541,7 +1595,7 @@ async function refreshDashboardStats() {
     const data = await supabaseRpc('get_hourly_completion_delta', {
       p_cohort: CHALLENGE.cohort,
       p_verified_day: state.currentDay,
-      p_total_members: MEMBERS.length,
+      p_total_members: visibleMembers().length,
     });
     const row = Array.isArray(data) ? data[0] : data;
     dashboardStats = {
@@ -2024,7 +2078,9 @@ function __finishOnboarding() {
   state.onboarded = true;
   const m = lookupCode(state.accessCode);
   if (m && m.tier) state.tier = m.tier;
-  saveState();
+  state.isOperator = !!(m && m.isOperator);
+  bindMeToMembers();
+  saveState({ immediate: true });
   currentPage = 'home';
   saveRoute();
   showToast(`🚀 환영해요, ${state.name}! Day 1이 기다리고 있어요.`);
@@ -2069,12 +2125,13 @@ function HomePage() {
   const page = el('div', { class: 'page' });
   page.appendChild(TopBar());
 
-  const me = MEMBERS[0];
-  const sorted = [...MEMBERS].sort((a,b) => b.progress - a.progress || b.streak - a.streak);
+  const me = meMember();
+  const visible = visibleMembers();
+  const sorted = [...visible].sort((a,b) => b.progress - a.progress || b.streak - a.streak);
   const myRank = sorted.findIndex(m => m.me) + 1;
   const done = completedCount();
   const totalDays = CHALLENGE.total_days;
-  const fallbackTodayRate = Math.round((MEMBERS.filter(m => m.progress >= state.currentDay).length / MEMBERS.length) * 100);
+  const fallbackTodayRate = Math.round((visible.filter(m => m.progress >= state.currentDay).length / Math.max(1, visible.length)) * 100);
   const todayRate = dashboardStats.todayRate ?? fallbackTodayRate;
 
   // Hero progress
@@ -2102,7 +2159,7 @@ function HomePage() {
     <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;color:var(--orange);">
       ${Icon('flame', 14)} <span class="mono" style="font-size:12px;font-weight:600;color:var(--orange)">${me.streak}-day streak</span>
     </div>
-    <div class="t-small mono" style="color:rgba(251,247,240,0.55);margin-top:4px;">#${myRank} of ${MEMBERS.length}</div>`;
+    <div class="t-small mono" style="color:rgba(251,247,240,0.55);margin-top:4px;">#${myRank} of ${visible.length}</div>`;
   heroMain.appendChild(streakBox);
   hero.appendChild(heroMain);
 
@@ -2138,7 +2195,7 @@ function HomePage() {
 
   // Checkboard
   const cbWrap = el('div', { style: { marginTop: '24px' } });
-  cbWrap.appendChild(el('div', { class: 'kicker' }, `${MEMBERS.length}인 데일리 루틴 보드`));
+  cbWrap.appendChild(el('div', { class: 'kicker' }, `${visible.length}인 데일리 루틴 보드`));
   cbWrap.appendChild(el('h2', { class: 'h2', style: { marginTop: '4px', marginBottom: '12px' } }, 'Daily Streak Board'));
   cbWrap.appendChild(Checkboard());
   page.appendChild(cbWrap);
@@ -2153,12 +2210,12 @@ function HomePage() {
     </div>
     <div class="card card-flat" style="padding:14px 12px;">
       <div class="kicker">TEAM A</div>
-      <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;">${Math.round(sorted.filter(m=>m.team==='A').reduce((s,m)=>s+m.progress,0)/sorted.filter(m=>m.team==='A').length/totalDays*100)}%</div>
+      <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;">${Math.round(sorted.filter(m=>m.team==='A').reduce((s,m)=>s+m.progress,0)/Math.max(1,sorted.filter(m=>m.team==='A').length)/totalDays*100)}%</div>
       <div class="t-small" style="margin-top:2px;">평균 진행률</div>
     </div>
     <div class="card card-flat" style="padding:14px 12px;">
       <div class="kicker">TEAM B</div>
-      <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;">${Math.round(sorted.filter(m=>m.team==='B').reduce((s,m)=>s+m.progress,0)/sorted.filter(m=>m.team==='B').length/totalDays*100)}%</div>
+      <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;">${Math.round(sorted.filter(m=>m.team==='B').reduce((s,m)=>s+m.progress,0)/Math.max(1,sorted.filter(m=>m.team==='B').length)/totalDays*100)}%</div>
       <div class="t-small" style="margin-top:2px;">평균 진행률</div>
     </div>`;
   page.appendChild(stats);
@@ -2207,7 +2264,7 @@ function Checkboard() {
   for (let d = 1; d <= 20; d++) {
     grid.appendChild(el('div', { class: 'cb-header' + (d === state.currentDay ? ' today-col' : '') }, d));
   }
-  MEMBERS.forEach((m) => {
+  visibleMembers().forEach((m) => {
     const name = el('div', { class: 'cb-name' + (m.me ? ' cb-row-me' : '') });
     name.innerHTML = `<div class="tiny-av ${m.color}">${m.name.slice(0,1)}</div><span>${m.name}</span>`;
     grid.appendChild(name);
@@ -4139,7 +4196,7 @@ function ProfilePage() {
     </div>
     <div class="card card-flat" style="padding:14px 12px;text-align:center;">
       <div class="kicker">STREAK</div>
-      <div class="serif" style="font-size:28px;line-height:1;margin-top:4px;">${MEMBERS[0].streak}</div>
+      <div class="serif" style="font-size:28px;line-height:1;margin-top:4px;">${meMember().streak}</div>
       <div class="t-small" style="margin-top:2px;">🔥 연속일</div>
     </div>
     <div class="card card-flat" style="padding:14px 12px;text-align:center;">
@@ -4500,7 +4557,7 @@ function CommunityPage() {
   const dateStr = formatDateKR(dayDate(selectedDay));
   hero.innerHTML = `
     <div class="kicker">${selectedDay === state.currentDay ? 'TODAY' : 'LOOKING BACK'} · DAY ${selectedDay} · ${dateStr}</div>
-    <h1 style="margin:10px 0 0;font-size:26px;line-height:1.12;letter-spacing:-0.03em;font-weight:700;"><span class="serif">${MEMBERS.length}명의</span> ${selectedDay === state.currentDay ? '오늘 문장' : `Day ${selectedDay} 문장`}</h1>
+    <h1 style="margin:10px 0 0;font-size:26px;line-height:1.12;letter-spacing:-0.03em;font-weight:700;"><span class="serif">${visibleMembers().length}명의</span> ${selectedDay === state.currentDay ? '오늘 문장' : `Day ${selectedDay} 문장`}</h1>
     <p style="margin:10px 0 0;font-size:13px;line-height:1.55;color:var(--ink-soft);letter-spacing:-0.01em;word-break:keep-all;">
       제출한 <b>영어 원문</b>이 그대로 올라가요. 한글 해석은 없어도 OK — 있으면 같이 보여줘요.
     </p>`;
@@ -5508,7 +5565,19 @@ function fireConfetti() {
 /* ============================================================
    BOOT
    ============================================================ */
-// Sync currentDay to today's calendar (skip in demo mode so seed stays visible)
+// 1) Hydrate state from localStorage (restores onboarded flag + user identity)
+//    so returning users skip onboarding and see their real identity.
+if (!__DEMO_MODE__) {
+  try {
+    const cached = loadCachedState();
+    if (cached) mergePersistedState(cached);
+  } catch (e) { console.warn('hydrate state failed', e); }
+}
+
+// 2) Bind the logged-in user to the right MEMBERS row (or keep placeholder renamed).
+try { bindMeToMembers(); } catch (e) { console.warn('bindMeToMembers failed', e); }
+
+// 3) Sync currentDay to today's calendar (skip in demo mode so seed stays visible)
 if (!__DEMO_MODE__) {
   try {
     const realDay = computeCurrentDay();
@@ -5517,6 +5586,22 @@ if (!__DEMO_MODE__) {
     }
   } catch (e) { console.warn('computeCurrentDay failed', e); }
 }
+
+// 4) Async remote hydrate (Supabase) — overrides localStorage if fresher,
+//    then re-binds + re-renders.
+if (!__DEMO_MODE__ && hasSupabase()) {
+  (async () => {
+    try {
+      const remote = await loadRemoteState();
+      if (remote && typeof remote === 'object') {
+        mergePersistedState(remote);
+        bindMeToMembers();
+        render();
+      }
+    } catch (e) { console.warn('loadRemoteState failed', e); }
+  })();
+}
+
 if (hasSupabase()) {
   refreshDashboardStats();
   setInterval(refreshDashboardStats, 60 * 60 * 1000);
