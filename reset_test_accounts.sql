@@ -9,7 +9,7 @@
 -- ================================================================
 
 -- 1) 서버 state 삭제 (cohort + member_key 매칭)
-delete from public.challenge_member_app_state
+delete from public.challenge_member_state
 where cohort = '5기'
   and member_key in ('유버디', '이규태');
 
@@ -25,7 +25,7 @@ where cohort = '5기'
 
 -- 확인용 조회
 select 'app_state 남은 레코드 (유버디/이규태):' as label, count(*) as cnt
-  from public.challenge_member_app_state
+  from public.challenge_member_state
   where cohort = '5기' and member_key in ('유버디', '이규태')
 union all
 select '커뮤니티 포스트 남은 레코드 (유버디/이규태):', count(*)

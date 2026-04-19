@@ -642,31 +642,35 @@ input, textarea, select { font-family: inherit; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* peer ticker - floating new sentence notification at top */
+/* peer ticker - lightweight floating notification at top */
 .peer-ticker {
-  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-  background: #fff; color: var(--ink);
-  padding: 10px 14px 10px 12px; border-radius: 14px;
-  font-size: 13px; z-index: 95; max-width: 92vw;
-  display: flex; align-items: center; gap: 10px;
-  box-shadow: 0 16px 40px -18px rgba(52,34,22,0.32), 0 4px 12px -6px rgba(52,34,22,0.12);
-  border: 1px solid rgba(231,221,200,0.9);
-  animation: peerSlideIn 400ms cubic-bezier(.2,.9,.3,1.1);
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(255,253,247,0.96);
+  backdrop-filter: saturate(140%) blur(6px);
+  -webkit-backdrop-filter: saturate(140%) blur(6px);
+  color: var(--ink);
+  padding: 7px 12px 7px 10px; border-radius: 999px;
+  font-size: 12px; z-index: 95; max-width: 88vw;
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 8px 22px -14px rgba(52,34,22,0.25);
+  border: 1px solid rgba(231,221,200,0.75);
+  animation: peerSlideIn 320ms cubic-bezier(.2,.9,.3,1.05);
+  cursor: pointer;
 }
-.peer-ticker.out { animation: peerSlideOut 300ms ease forwards; }
+.peer-ticker.out { animation: peerSlideOut 240ms ease forwards; }
 .peer-ticker .pt-avatar {
-  width: 32px; height: 32px; border-radius: 10px;
+  width: 22px; height: 22px; border-radius: 50%;
   background: var(--lilac); color: #fff;
   display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; flex-shrink: 0;
+  font-size: 10px; font-weight: 700; flex-shrink: 0;
 }
-.peer-ticker .pt-text { min-width: 0; flex: 1; }
-.peer-ticker .pt-label { font-size: 11px; color: var(--muted); letter-spacing: 0.04em; }
-.peer-ticker .pt-body { font-weight: 600; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+.peer-ticker .pt-text { min-width: 0; flex: 1; display: flex; align-items: center; gap: 6px; }
+.peer-ticker .pt-label { font-size: 11px; color: var(--muted); letter-spacing: 0; white-space: nowrap; }
+.peer-ticker .pt-body { font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; color: var(--ink); }
 .peer-ticker .pt-pulse {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--orange); flex-shrink: 0; margin-right: 2px;
-  animation: pulseDot 1.4s ease-in-out infinite;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--orange); flex-shrink: 0;
+  animation: pulseDot 1.6s ease-in-out infinite;
 }
 @keyframes peerSlideIn {
   from { transform: translateX(-50%) translateY(-24px); opacity: 0; }
@@ -1530,7 +1534,7 @@ function zonedNow(offsetMinutes = effectiveTimezoneOffsetMinutes()) {
 
 function premiumPill(member) {
   const isPremium = member?.me ? state.tier === 'premium' : member?.tier === 'premium';
-  return isPremium ? `<span class="badge badge-lilac" style="padding:3px 7px;font-size:9px;">P</span>` : '';
+  return isPremium ? `<span class="badge badge-lilac" style="padding:1px 4px;font-size:7px;line-height:1.1;border-radius:4px;">P</span>` : '';
 }
 
 function memberRole(member) {
@@ -1802,8 +1806,17 @@ async function refreshRemoteStateAndCommunity(opts = {}) {
   } catch (e) {}
   const dayToRefresh = state.communityDay || state.currentDay;
   if (hasSupabase() && dayToRefresh) {
-    await loadCommunityPosts(dayToRefresh, { force: true });
-    changed = true;
+    // Only force-fetch + re-render if the user is actively on a community-aware page.
+    // This prevents the app from flashing every 15 seconds on Home/Profile/etc.
+    const isOnCommunityPage = currentPage === 'community' || currentPage === 'day';
+    if (force || isOnCommunityPage) {
+      const before = communityFeedCache[dayToRefresh]?.rows || [];
+      const beforeJson = JSON.stringify(before.map((p) => p.id + ':' + (p.updated_at || '') + ':' + (p.likes_count || 0)));
+      await loadCommunityPosts(dayToRefresh, { force: true });
+      const after = communityFeedCache[dayToRefresh]?.rows || [];
+      const afterJson = JSON.stringify(after.map((p) => p.id + ':' + (p.updated_at || '') + ':' + (p.likes_count || 0)));
+      if (afterJson !== beforeJson) changed = true;
+    }
   }
   if (changed) render();
   return changed;
@@ -1962,35 +1975,54 @@ function render() {
    Lightweight: single setInterval, pauses when tab hidden, stops on nav away
    ============================================================ */
 window.__peerTickerTimer = window.__peerTickerTimer || null;
+// Track sentences already shown as notifications (lifetime, per post id).
 window.__peerTickerSeen = window.__peerTickerSeen || new Set();
+// Snapshot of peer post IDs present at ticker start — these are NOT considered "new arrivals".
+window.__peerTickerBaseline = window.__peerTickerBaseline || null;
+
+function peerTickerKey(dayN, peer) {
+  // Prefer a stable post id if available; fall back to user+sentence.
+  return 'd' + dayN + ':' + (peer.id || (peer.user + '::' + (peer.sentence || '').slice(0, 60)));
+}
 
 function stopPeerTicker() {
   if (window.__peerTickerTimer) {
     clearInterval(window.__peerTickerTimer);
     window.__peerTickerTimer = null;
   }
+  window.__peerTickerBaseline = null;
   const existing = document.querySelector('.peer-ticker');
   if (existing) existing.remove();
 }
 
 function startPeerTicker(dayN) {
   stopPeerTicker();
-  // Fire first one after 20s, then every 45s
-  let first = true;
+  // Baseline: everything already posted when the user opened this day is NOT a "new" arrival.
+  // Mark those as seen so we never notify about them.
+  const existing = peerSentencesFor(dayN) || [];
+  const baseline = new Set(existing.map((p) => peerTickerKey(dayN, p)));
+  window.__peerTickerBaseline = baseline;
+  existing.forEach((p) => window.__peerTickerSeen.add(peerTickerKey(dayN, p)));
+
   const tick = () => {
     if (document.hidden) return;
     if (currentPage !== 'day') { stopPeerTicker(); return; }
     const peers = peerSentencesFor(dayN);
     if (!peers || !peers.length) return;
-    // Pick an unseen-in-session peer (or cycle)
-    const unseen = peers.filter(p => !window.__peerTickerSeen.has('d' + dayN + ':' + p.user + ':' + p.sentence));
-    const pick = (unseen.length ? unseen : peers)[Math.floor(Math.random() * (unseen.length ? unseen.length : peers.length))];
-    if (!pick) return;
-    window.__peerTickerSeen.add('d' + dayN + ':' + pick.user + ':' + pick.sentence);
+    // Only notify about peers that were NOT in the baseline and we haven't shown yet.
+    const fresh = peers.filter((p) => {
+      const key = peerTickerKey(dayN, p);
+      return !window.__peerTickerSeen.has(key);
+    });
+    if (!fresh.length) return; // nothing new — stay quiet
+    // Oldest-first so notifications fire in arrival order
+    const pick = fresh[0];
+    window.__peerTickerSeen.add(peerTickerKey(dayN, pick));
     showPeerTicker(pick);
   };
-  window.__peerTickerTimer = setInterval(tick, 45000);
-  setTimeout(() => { if (first) { first = false; tick(); } }, 20000);
+  // Gentle cadence: first check after 30s, then every 60s.
+  window.__peerTickerTimer = setInterval(tick, 60000);
+  setTimeout(tick, 30000);
 }
 
 function showPeerTicker(peer) {
@@ -1999,15 +2031,11 @@ function showPeerTicker(peer) {
   if (existing) existing.remove();
 
   const node = el('div', { class: 'peer-ticker' });
-  const preview = (peer.sentence || '').length > 48
-    ? (peer.sentence || '').slice(0, 46) + '…'
-    : (peer.sentence || '');
   node.innerHTML = `
     <span class="pt-pulse"></span>
-    <div class="pt-avatar">${(peer.avatar || peer.user || '').slice(0,2)}</div>
+    <div class="pt-avatar">${(peer.avatar || peer.user || '').slice(0,1)}</div>
     <div class="pt-text">
-      <div class="pt-label">방금 ${peer.user}님이 문장을 올렸어요</div>
-      <div class="pt-body">${preview.replace(/</g, '&lt;')}</div>
+      <span class="pt-label">${escapeHtml(peer.user || '')}님 문장 올림</span>
     </div>`;
   node.addEventListener('click', () => {
     // Scroll to peer sentences section if present
@@ -2414,9 +2442,9 @@ function HomePage() {
   const streakBox = el('div', { style: { marginLeft: 'auto', textAlign: 'right' } });
   streakBox.innerHTML = `
     <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;color:var(--orange);">
-      ${Icon('flame', 14)} <span class="mono" style="font-size:12px;font-weight:600;color:var(--orange)">${me.streak}-day streak</span>
+      ${Icon('flame', 14)} <span class="mono" style="font-size:12px;font-weight:600;color:var(--orange)">${me.streak}일 연속</span>
     </div>
-    <div class="t-small mono" style="color:rgba(251,247,240,0.55);margin-top:4px;">#${myRank} of ${visible.length}</div>`;
+    <div class="t-small mono" style="color:rgba(251,247,240,0.55);margin-top:4px;">${done === 0 ? '오늘부터 시작' : `${done}/${totalDays}일 완료`}</div>`;
   heroMain.appendChild(streakBox);
   hero.appendChild(heroMain);
 
@@ -2452,7 +2480,7 @@ function HomePage() {
 
   // Checkboard
   const cbWrap = el('div', { style: { marginTop: '24px' } });
-  cbWrap.appendChild(el('div', { class: 'kicker' }, `${visible.length}인 데일리 루틴 보드`));
+  cbWrap.appendChild(el('div', { class: 'kicker' }, '데일리 루틴 보드'));
   cbWrap.appendChild(el('h2', { class: 'h2', style: { marginTop: '4px', marginBottom: '12px' } }, 'Daily Streak Board'));
   cbWrap.appendChild(Checkboard());
   page.appendChild(cbWrap);
@@ -2530,7 +2558,6 @@ function Checkboard() {
   }
   visibleMembers().forEach((m) => {
     const name = el('div', { class: 'cb-name' + (m.me ? ' cb-row-me' : '') });
-    const role = memberRole(m);
     const tz = memberTimezoneText(m);
     name.innerHTML = `
       <div class="tiny-av ${m.color}">${m.name.slice(0,1)}</div>
@@ -2539,7 +2566,7 @@ function Checkboard() {
           <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.name}</span>
           ${premiumPill(m)}
         </div>
-        ${(role || tz) ? `<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:9px;color:var(--muted);margin-top:1px;">${role ? `<span>${escapeHtml(role)}</span>` : ''}${tz ? `<span class="mono">${escapeHtml(tz)}</span>` : ''}</div>` : ''}
+        ${tz ? `<div style="font-size:9px;color:var(--muted);margin-top:1px;"><span class="mono">${escapeHtml(tz)}</span></div>` : ''}
       </div>`;
     grid.appendChild(name);
     for (let d = 1; d <= 20; d++) {
@@ -4725,6 +4752,40 @@ function ProfilePage() {
   exportCard.appendChild(exportActions);
   page.appendChild(exportCard);
 
+  // 로그아웃 — 베타 계정 전용 (유버디 / 이규태 / 이지흔)
+  const BETA_ACCOUNTS = new Set(['유버디', '이규태', '이지흔']);
+  if (BETA_ACCOUNTS.has(state.name)) {
+    const logoutCard = el('div', {
+      class: 'card',
+      style: {
+        marginTop: '18px',
+        padding: '16px 18px',
+        background: 'var(--paper)',
+        borderColor: 'var(--line)',
+      }
+    });
+    logoutCard.innerHTML = `
+      <div class="kicker" style="color:var(--muted);">SESSION · 베타 계정</div>
+      <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">
+        다른 계정으로 테스트할 때 로그아웃하면 이 기기의 로그인 상태만 초기화돼요. 서버에 저장된 내 진행 기록은 유지됩니다.
+      </div>`;
+    const logoutBtn = el('button', {
+      class: 'btn btn-ghost',
+      style: {
+        marginTop: '12px',
+        width: '100%',
+        justifyContent: 'center',
+        color: '#B04A2B',
+        borderColor: 'rgba(176,74,43,0.25)',
+        background: '#fff',
+      },
+      onClick: () => window.__logoutBeta(),
+    });
+    logoutBtn.innerHTML = `${Icon('arrowRight', 14)} 로그아웃`;
+    logoutCard.appendChild(logoutBtn);
+    page.appendChild(logoutCard);
+  }
+
   return page;
 }
 
@@ -5717,6 +5778,26 @@ window.__resetForSignup = () => {
   if (!state.isOperator) return;
   if (!confirm('가입 화면부터 다시 시작할까요? 이 기기에서 저장된 로그인 상태가 초기화돼요.')) return;
   try { localStorage.removeItem(LS_KEY); } catch (e) {}
+  state = defaultState();
+  state.currentDay = computeCurrentDay();
+  __onboardStep = 0;
+  __onboardDraft = { name: '', code: '', goal: '', role: '', roleSkipped: false, timezoneOffsetText: '+0h' };
+  showSettings = false;
+  showPremiumGate = false;
+  activeMemberCard = null;
+  currentPage = 'home';
+  currentWeek = 1;
+  currentDay = state.currentDay;
+  bindMeToMembers();
+  saveRoute();
+  render();
+};
+
+// 베타 계정 전용 로그아웃: 이 기기 로컬 상태만 초기화. 서버 state는 유지.
+window.__logoutBeta = () => {
+  if (!confirm('로그아웃할까요? 이 기기의 로그인 상태가 초기화돼요.')) return;
+  try { localStorage.removeItem(LS_KEY); } catch (_) {}
+  try { localStorage.removeItem('demoMode'); } catch (_) {}
   state = defaultState();
   state.currentDay = computeCurrentDay();
   __onboardStep = 0;
