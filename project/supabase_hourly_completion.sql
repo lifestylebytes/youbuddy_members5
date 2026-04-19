@@ -168,6 +168,91 @@ $$;
 grant execute on function public.get_member_app_state(text, text) to anon, authenticated;
 grant execute on function public.upsert_member_app_state(text, text, text, text, jsonb) to anon, authenticated;
 
+create or replace function public.get_cohort_member_summaries(
+  p_cohort text
+)
+returns table (
+  member_key text,
+  member_name text,
+  tier text,
+  role text,
+  timezone_text text,
+  progress integer,
+  streak integer
+)
+language sql
+security definer
+set search_path = public
+as $$
+with base as (
+  select
+    cms.member_key,
+    coalesce(cms.member_name, cms.app_state ->> 'name', '') as member_name,
+    coalesce(cms.tier, cms.app_state ->> 'tier', 'basic') as tier,
+    coalesce(cms.app_state ->> 'role', '') as role,
+    coalesce(cms.app_state ->> 'timezoneOffsetText', '+0h') as timezone_text,
+    cms.app_state
+  from public.challenge_member_state cms
+  where cms.cohort = p_cohort
+),
+day_rows as (
+  select
+    b.member_key,
+    b.member_name,
+    b.tier,
+    b.role,
+    b.timezone_text,
+    gs.day_n,
+    coalesce((b.app_state -> 'verified' ->> ('d' || gs.day_n))::boolean, false) as verified
+  from base b
+  cross join generate_series(1, 20) as gs(day_n)
+),
+progress_rows as (
+  select
+    member_key,
+    member_name,
+    tier,
+    role,
+    timezone_text,
+    count(*) filter (where verified)::int as progress,
+    max(day_n) filter (where verified) as last_done_day
+  from day_rows
+  group by member_key, member_name, tier, role, timezone_text
+),
+streak_rows as (
+  select
+    p.member_key,
+    count(*)::int as streak
+  from progress_rows p
+  join lateral (
+    select
+      d.day_n,
+      row_number() over (order by d.day_n desc) as rn
+    from day_rows d
+    where d.member_key = p.member_key
+      and d.verified = true
+      and p.last_done_day is not null
+      and d.day_n <= p.last_done_day
+  ) seq
+    on seq.day_n = p.last_done_day - (seq.rn - 1)
+  group by p.member_key
+)
+select
+  p.member_key,
+  p.member_name,
+  p.tier,
+  p.role,
+  p.timezone_text,
+  p.progress,
+  coalesce(s.streak, 0)::int as streak
+from progress_rows p
+left join streak_rows s
+  on s.member_key = p.member_key
+order by p.progress desc, coalesce(s.streak, 0) desc, p.member_name asc;
+$$;
+
+grant execute on function public.get_cohort_member_summaries(text) to anon, authenticated;
+
 create table if not exists public.challenge_community_posts (
   id bigint generated always as identity primary key,
   cohort text not null,

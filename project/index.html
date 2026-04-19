@@ -931,6 +931,8 @@ const MEMBERS = [
 function bindMeToMembers() {
   const placeholder = MEMBERS.find((m) => m.id === 'me');
   if (!placeholder) return;
+  const myProgress = completedCount();
+  const myStreak = localStreakCount();
   // reset transient flags
   MEMBERS.forEach((m) => { if (m.id !== 'me') m.me = false; });
   placeholder.hidden = false;
@@ -940,6 +942,8 @@ function bindMeToMembers() {
   if (!nm) {
     placeholder.name = '나';
     placeholder.me = true;
+    placeholder.progress = myProgress;
+    placeholder.streak = myStreak;
     return;
   }
 
@@ -947,6 +951,8 @@ function bindMeToMembers() {
   if (real) {
     // Existing roster member logged in → promote that row to "me", hide placeholder
     real.me = true;
+    real.progress = myProgress;
+    real.streak = myStreak;
     placeholder.me = false;
     placeholder.hidden = true;
     placeholder.name = nm;
@@ -956,6 +962,8 @@ function bindMeToMembers() {
   // Not in roster (generic code user)
   placeholder.name = nm;
   placeholder.me = true;
+  placeholder.progress = myProgress;
+  placeholder.streak = myStreak;
   if (state.isOperator) {
     placeholder.isOperator = true;
   }
@@ -1341,6 +1349,7 @@ function saveRoute() {
       lastLearningPage,
       navBackStack,
       navForwardStack,
+      scrollPositions: routeScrollPositions,
     }));
   } catch (e) {}
 }
@@ -1351,6 +1360,7 @@ let currentDay = savedRoute.day || 1;
 let lastLearningPage = savedRoute.lastLearningPage || ((savedRoute.page === 'day' || savedRoute.page === 'weeks') ? savedRoute.page : 'weeks');
 let navBackStack = Array.isArray(savedRoute.navBackStack) ? savedRoute.navBackStack : [];
 let navForwardStack = Array.isArray(savedRoute.navForwardStack) ? savedRoute.navForwardStack : [];
+let routeScrollPositions = (savedRoute.scrollPositions && typeof savedRoute.scrollPositions === 'object') ? savedRoute.scrollPositions : {};
 let showPremiumGate = false;
 let activeMemberCard = null;
 let showSettings = false;
@@ -1363,6 +1373,7 @@ let dashboardStats = {
 
 function go(page, opts={}) {
   const previousPage = currentPage;
+  rememberCurrentScroll();
   if (opts.restoreLearning) {
     page = lastLearningPage === 'day' ? 'day' : 'weeks';
   }
@@ -1384,7 +1395,9 @@ function go(page, opts={}) {
   }
   saveRoute();
   render();
-  if (opts.scroll !== false && previousPage !== page) {
+  if (opts.restoreSavedScroll) {
+    restoreCurrentScroll();
+  } else if (opts.scroll !== false && previousPage !== page) {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
 }
@@ -1399,6 +1412,23 @@ function currentRouteSnapshot() {
   };
 }
 
+function scrollRouteKey(route = currentRouteSnapshot()) {
+  return [route.page || 'home', route.week || 0, route.day || 0].join(':');
+}
+
+function rememberCurrentScroll() {
+  routeScrollPositions[scrollRouteKey()] = Math.max(window.scrollY || window.pageYOffset || 0, 0);
+}
+
+function restoreCurrentScroll() {
+  const top = Number(routeScrollPositions[scrollRouteKey()] || 0);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      window.scrollTo({ top, behavior: 'auto' });
+    });
+  });
+}
+
 function sameRoute(a, b) {
   if (!a || !b) return false;
   return a.page === b.page
@@ -1409,6 +1439,7 @@ function sameRoute(a, b) {
 
 function applyRouteSnapshot(route, direction = 'back') {
   if (!route) return false;
+  rememberCurrentScroll();
   const current = currentRouteSnapshot();
   if (direction === 'back') {
     navForwardStack.push(current);
@@ -1423,7 +1454,7 @@ function applyRouteSnapshot(route, direction = 'back') {
   lastLearningPage = route.lastLearningPage || ((currentPage === 'day' || currentPage === 'weeks') ? currentPage : lastLearningPage || 'weeks');
   saveRoute();
   render();
-  window.scrollTo({ top: 0, behavior: 'auto' });
+  restoreCurrentScroll();
   return true;
 }
 
@@ -1633,8 +1664,18 @@ function memberRole(member) {
 }
 
 function memberTimezoneText(member) {
-  if (!member || !member.me) return '';
-  return state.timezoneOffsetText || timezoneShiftLabel();
+  if (!member) return '';
+  if (member.me) return state.timezoneOffsetText || timezoneShiftLabel();
+  return member.timezoneOffsetText || member.timezone_text || '';
+}
+
+function localStreakCount() {
+  let streak = 0;
+  for (let day = state.currentDay; day >= 1; day -= 1) {
+    if (!state.verified?.['d' + day]) break;
+    streak += 1;
+  }
+  return streak;
 }
 
 const dayStatus = (d) => {
@@ -1780,6 +1821,9 @@ async function supabaseRpc(fn, payload={}) {
 const communityFeedCache = {};
 const communityFeedInFlight = {};
 const COMMUNITY_REFRESH_MS = 15000;
+let memberSummaryCache = { loadedAt: 0, rows: [] };
+let memberSummaryInFlight = null;
+let memberSummaryRpcUnavailable = false;
 
 function myTeam() {
   return meMember()?.team || 'A';
@@ -1791,6 +1835,79 @@ function myCommunityPostId(sourceKey) {
 
 function communityCommentsFor(postId) {
   return state.community_comments?.[postId] || [];
+}
+
+function applyRemoteMemberSummaries(rows = []) {
+  const byName = new Map((rows || [])
+    .filter((row) => row && row.member_name)
+    .map((row) => [String(row.member_name).trim(), row]));
+  let changed = false;
+  MEMBERS.forEach((member) => {
+    if (!member || !member.name) return;
+    const summary = byName.get(String(member.name).trim());
+    if (!summary) return;
+    const nextProgress = Number(summary.progress || 0);
+    const nextStreak = Number(summary.streak || 0);
+    if (Number(member.progress || 0) !== nextProgress) {
+      member.progress = nextProgress;
+      changed = true;
+    }
+    if (Number(member.streak || 0) !== nextStreak) {
+      member.streak = nextStreak;
+      changed = true;
+    }
+    if (summary.tier && member.tier !== summary.tier) {
+      member.tier = summary.tier;
+      changed = true;
+    }
+    if (summary.role && member.role !== summary.role) {
+      member.role = summary.role;
+      changed = true;
+    }
+    if (summary.timezone_text && member.timezoneOffsetText !== summary.timezone_text) {
+      member.timezoneOffsetText = summary.timezone_text;
+      changed = true;
+    }
+  });
+  return changed;
+}
+
+async function loadMemberSummaries(opts = {}) {
+  if (!hasSupabase() || memberSummaryRpcUnavailable) return memberSummaryCache.rows || [];
+  const { force = false } = opts;
+  if (!force && memberSummaryCache.rows.length && (Date.now() - memberSummaryCache.loadedAt) < COMMUNITY_REFRESH_MS) {
+    return memberSummaryCache.rows;
+  }
+  if (memberSummaryInFlight) return memberSummaryInFlight;
+  memberSummaryInFlight = (async () => {
+    try {
+      const payload = await supabaseRpc('get_cohort_member_summaries', {
+        p_cohort: CHALLENGE.cohort,
+      });
+      const rows = Array.isArray(payload) ? payload : [];
+      memberSummaryCache = { loadedAt: Date.now(), rows };
+      applyRemoteMemberSummaries(rows);
+      return rows;
+    } catch (e) {
+      if (/supabase rpc failed: get_cohort_member_summaries/i.test(String(e && e.message || ''))) {
+        memberSummaryRpcUnavailable = true;
+      }
+      return memberSummaryCache.rows || [];
+    } finally {
+      memberSummaryInFlight = null;
+    }
+  })();
+  return memberSummaryInFlight;
+}
+
+function requestMemberSummaries(opts = {}) {
+  const stale = !memberSummaryCache.rows.length || (Date.now() - memberSummaryCache.loadedAt) >= COMMUNITY_REFRESH_MS;
+  if (hasSupabase() && !memberSummaryRpcUnavailable && (opts.force || stale)) {
+    loadMemberSummaries({ force: true }).then(() => {
+      if (currentPage === 'home' || currentPage === 'community' || currentPage === 'profile') render();
+    });
+  }
+  return memberSummaryCache.rows || [];
 }
 
 function patchCachedCommunityPost(postId, updater) {
@@ -1895,6 +2012,12 @@ async function refreshRemoteStateAndCommunity(opts = {}) {
         changed = true;
       }
     }
+  } catch (e) {}
+  try {
+    const before = JSON.stringify(memberSummaryCache.rows || []);
+    const summaries = await loadMemberSummaries({ force });
+    const after = JSON.stringify(summaries || []);
+    if (before !== after) changed = true;
   } catch (e) {}
   const dayToRefresh = state.communityDay || state.currentDay;
   if (hasSupabase() && dayToRefresh) {
@@ -2158,36 +2281,81 @@ function setupSwipeNavigation() {
   let startY = 0;
   let startTime = 0;
   let tracking = false;
+  let trackingPointerId = null;
 
-  document.addEventListener('touchstart', (event) => {
-    if (!event.touches || event.touches.length !== 1) return;
-    if (shouldIgnoreSwipeTarget(event.target)) {
+  const beginSwipe = (target, clientX, clientY) => {
+    if (shouldIgnoreSwipeTarget(target)) {
       tracking = false;
+      trackingPointerId = null;
       return;
     }
-    const touch = event.touches[0];
-    startX = touch.clientX;
-    startY = touch.clientY;
+    startX = clientX;
+    startY = clientY;
     startTime = Date.now();
     tracking = true;
-  }, { passive: true });
+  };
 
-  document.addEventListener('touchend', (event) => {
-    if (!tracking || !event.changedTouches || !event.changedTouches.length) return;
+  const finishSwipe = (clientX, clientY) => {
+    if (!tracking) return;
     tracking = false;
+    trackingPointerId = null;
     if (showPremiumGate || activeMemberCard || showSettings) return;
-    const touch = event.changedTouches[0];
-    const deltaX = touch.clientX - startX;
-    const deltaY = touch.clientY - startY;
+    const deltaX = clientX - startX;
+    const deltaY = clientY - startY;
     const elapsed = Date.now() - startTime;
     const absX = Math.abs(deltaX);
     const absY = Math.abs(deltaY);
-    if (elapsed > 600 || absX < 72 || absY > 48 || absX < absY * 1.35) return;
+    if (elapsed > 650 || absX < 72 || absY > 56 || absX < absY * 1.35) return;
     if (deltaX > 0) {
-      if (goBackRoute()) showToast('이전 화면');
+      goBackRoute();
     } else {
-      if (goForwardRoute()) showToast('다음 화면');
+      goForwardRoute();
     }
+  };
+
+  document.addEventListener('touchstart', (event) => {
+    if (!event.touches || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    beginSwipe(event.target, touch.clientX, touch.clientY);
+  }, { passive: true });
+
+  document.addEventListener('touchend', (event) => {
+    if (!event.changedTouches || !event.changedTouches.length) return;
+    const touch = event.changedTouches[0];
+    finishSwipe(touch.clientX, touch.clientY);
+  }, { passive: true });
+
+  document.addEventListener('pointerdown', (event) => {
+    if (!event.isPrimary) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    trackingPointerId = event.pointerId;
+    beginSwipe(event.target, event.clientX, event.clientY);
+  }, { passive: true });
+
+  document.addEventListener('pointerup', (event) => {
+    if (!event.isPrimary) return;
+    if (trackingPointerId !== null && event.pointerId !== trackingPointerId) return;
+    finishSwipe(event.clientX, event.clientY);
+  }, { passive: true });
+
+  document.addEventListener('pointercancel', () => {
+    tracking = false;
+    trackingPointerId = null;
+  }, { passive: true });
+}
+
+function setupScrollMemory() {
+  if (window.__ybScrollMemoryInit) return;
+  window.__ybScrollMemoryInit = true;
+  let frame = null;
+  const save = () => {
+    frame = null;
+    rememberCurrentScroll();
+    saveRoute();
+  };
+  window.addEventListener('scroll', () => {
+    if (frame) return;
+    frame = requestAnimationFrame(save);
   }, { passive: true });
 }
 
@@ -2505,6 +2673,7 @@ async function __onboardAdvance() {
         state.currentDay = computeCurrentDay();
         bindMeToMembers();
         saveState({ immediate: true });
+        try { await loadMemberSummaries({ force: true }); } catch (_) {}
         showToast(`다시 만나서 반가워요, ${state.name}!`);
         currentPage = 'home';
         __onboardStep = 0;
@@ -2576,7 +2745,7 @@ function TabBar() {
         background: active ? 'var(--lilac)' : 'transparent',
       } : {},
       onClick: () => go(t.id, t.id === 'weeks'
-        ? { restoreLearning: true, preserveSelection: true, week: currentWeek, day: currentDay, scroll: nextLearningPage !== currentPage }
+        ? { restoreLearning: true, preserveSelection: true, week: currentWeek, day: currentDay, scroll: false, restoreSavedScroll: true }
         : {}),
     });
     tab.innerHTML = Icon(t.icon, 14) + ' <span>' + t.label + '</span>';
@@ -2590,6 +2759,7 @@ function TabBar() {
    HOME PAGE
    ============================================================ */
 function HomePage() {
+  requestMemberSummaries();
   const page = el('div', { class: 'page' });
   page.appendChild(TopBar());
 
@@ -4746,7 +4916,21 @@ function ProfilePage() {
       });
     });
   });
-  const savedCommunityPosts = COMMUNITY_POSTS.filter((post) => state.community_bookmarks?.[post.id]);
+  const savedCommunityPosts = Array.from(new Map(
+    [
+      ...Object.values(communityFeedCache).flatMap((entry) => entry?.rows || []).map((post) => ({
+        id: post.id,
+        user: post.user,
+        word: post.word,
+        sentence: post.sentence,
+        avatar: (post.user || '').slice(0, 2),
+        avatarClass: post.member_key === memberKey() ? 'orange' : 'cream',
+      })),
+      ...COMMUNITY_POSTS,
+    ]
+      .filter((post) => state.community_bookmarks?.[post.id])
+      .map((post) => [post.id, post])
+  ).values());
   const totalSaved = bookmarkedEntries.length + synonymEntries.length + savedCommunityPosts.length;
   const tab = state.savedTab || 'all';
   const bookmarkCard = el('div', { class: 'card', style: { marginTop: '18px', padding: '18px' } });
@@ -5812,6 +5996,7 @@ window.__toggleCommunityLike = async (postId) => {
         liked_by_me: nextLiked,
         likes_count: Number(likesCount || 0),
       }));
+      showToast(nextLiked ? '좋아요를 남겼어요.' : '좋아요를 취소했어요.');
       render();
       return;
     } catch (e) {
@@ -5821,6 +6006,7 @@ window.__toggleCommunityLike = async (postId) => {
   }
   state.community_likes[postId] = !state.community_likes[postId];
   saveState();
+  showToast(state.community_likes[postId] ? '좋아요를 남겼어요.' : '좋아요를 취소했어요.');
   render();
 };
 window.__openMemberCard = (memberRef) => {
@@ -5930,7 +6116,8 @@ window.__speakText = (text) => {
     u.rate = 0.94;
     u.pitch = 1.04;
     window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
+    window.speechSynthesis.resume?.();
+    setTimeout(() => window.speechSynthesis.speak(u), 16);
   } catch (e) {
     showToast('듣기를 시작하지 못했어요.');
   }
@@ -5950,7 +6137,8 @@ window.__speakWord = (day, idx) => {
     u.rate = 0.92;
     u.pitch = 1.1;
     window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
+    window.speechSynthesis.resume?.();
+    setTimeout(() => window.speechSynthesis.speak(u), 16);
   } catch (e) {
     showToast('듣기를 시작하지 못했어요.');
   }
@@ -6265,6 +6453,7 @@ if (!__DEMO_MODE__) {
 // 2) Bind the logged-in user to the right MEMBERS row (or keep placeholder renamed).
 try { bindMeToMembers(); } catch (e) { console.warn('bindMeToMembers failed', e); }
 try { setupSwipeNavigation(); } catch (e) { console.warn('setupSwipeNavigation failed', e); }
+try { setupScrollMemory(); } catch (e) { console.warn('setupScrollMemory failed', e); }
 
 // 3) Sync currentDay to today's calendar (skip in demo mode so seed stays visible)
 if (!__DEMO_MODE__) {
@@ -6285,6 +6474,7 @@ if (!__DEMO_MODE__ && hasSupabase()) {
       if (remote && typeof remote === 'object') {
         mergePersistedState(remote);
         bindMeToMembers();
+        await loadMemberSummaries({ force: true });
         await loadCommunityPosts(state.communityDay || state.currentDay, { force: true });
         render();
       }
@@ -6306,6 +6496,9 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden && hasSupabase()) refreshRemoteStateAndCommunity({ force: true });
 });
 render();
+if (currentPage === 'weeks' || currentPage === 'day') {
+  restoreCurrentScroll();
+}
 </script>
 </body>
 </html>
