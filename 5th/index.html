@@ -1901,10 +1901,12 @@ async function loadMemberSummaries(opts = {}) {
 }
 
 function requestMemberSummaries(opts = {}) {
-  const stale = !memberSummaryCache.rows.length || (Date.now() - memberSummaryCache.loadedAt) >= COMMUNITY_REFRESH_MS;
+  const stale = !memberSummaryCache.loadedAt || (Date.now() - memberSummaryCache.loadedAt) >= COMMUNITY_REFRESH_MS;
   if (hasSupabase() && !memberSummaryRpcUnavailable && (opts.force || stale)) {
-    loadMemberSummaries({ force: true }).then(() => {
-      if (currentPage === 'home' || currentPage === 'community' || currentPage === 'profile') render();
+    const before = JSON.stringify(memberSummaryCache.rows || []);
+    loadMemberSummaries({ force: true }).then((rows) => {
+      const after = JSON.stringify(rows || []);
+      if (before !== after && (currentPage === 'home' || currentPage === 'community' || currentPage === 'profile')) render();
     });
   }
   return memberSummaryCache.rows || [];
