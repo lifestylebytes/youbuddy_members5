@@ -65,8 +65,7 @@ input, textarea, select { font-family: inherit; }
   body { padding: 24px 0 48px; }
   .app { border-radius: 36px; min-height: calc(100vh - 72px); }
 }
-.page { padding: 20px 20px 24px; animation: pageIn 280ms cubic-bezier(.2,.9,.3,1.1); }
-@keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.page { padding: 20px 20px 24px; }
 
 /* typography */
 .kicker { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
@@ -118,7 +117,7 @@ input, textarea, select { font-family: inherit; }
   font-weight: 600; font-size: 14px; letter-spacing: -0.005em;
   border: none; transition: transform 120ms, background 150ms, color 150ms;
 }
-.btn:active { transform: scale(0.97); }
+.btn:active { transform: none; }
 .btn-primary { background: var(--orange); color: #fff; }
 .btn-primary:hover { background: var(--orange-dark); }
 .btn-primary:disabled { background: var(--paper); color: var(--muted); cursor: not-allowed; }
@@ -216,7 +215,7 @@ input, textarea, select { font-family: inherit; }
   border-radius: var(--radius-l); padding: 16px;
   transition: all 180ms; cursor: pointer;
 }
-.week-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-m); }
+.week-card:hover { transform: none; box-shadow: var(--shadow); }
 .week-card.current { background: var(--ink); color: var(--cream); border-color: var(--ink); }
 .week-card.current .t-small, .week-card.current .t-body { color: rgba(251,247,240,0.65); }
 .week-card.current .bar { background: rgba(251,247,240,0.15); }
@@ -230,7 +229,7 @@ input, textarea, select { font-family: inherit; }
   border: 1px solid transparent; transition: all 140ms;
   cursor: pointer; position: relative;
 }
-.day-chip:hover:not(.locked) { transform: scale(1.06); }
+.day-chip:hover:not(.locked) { transform: none; }
 .day-chip.done { background: var(--ink); color: var(--cream); }
 .day-chip.today { background: var(--orange); color: #fff; box-shadow: 0 0 0 3px var(--orange-ghost); }
 .day-chip.locked { background: transparent; color: var(--muted); border-color: var(--line); cursor: not-allowed; }
@@ -479,7 +478,7 @@ input, textarea, select { font-family: inherit; }
   background: var(--ink); color: var(--cream);
   padding: 12px 18px; border-radius: 999px;
   font-size: 13px; font-weight: 500; z-index: 80;
-  box-shadow: var(--shadow-l); animation: popIn 240ms;
+  box-shadow: var(--shadow-l);
   max-width: 360px; text-align: center;
 }
 
@@ -557,7 +556,7 @@ input, textarea, select { font-family: inherit; }
   font-family: inherit; font-size: 12px; font-weight: 600;
   transition: all 140ms;
 }
-.mn-chip:hover { background: var(--orange-ghost); transform: translateY(-1px); }
+.mn-chip:hover { background: var(--orange-ghost); transform: none; }
 
 .mn-ai-card {
   position: relative;
@@ -590,7 +589,7 @@ input, textarea, select { font-family: inherit; }
   transition: all 160ms;
   box-shadow: 0 4px 10px -6px rgba(52,34,22,0.1);
 }
-.mn-ai-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 18px -8px rgba(52,34,22,0.18); }
+.mn-ai-btn:hover { transform: none; box-shadow: 0 8px 18px -8px rgba(52,34,22,0.18); }
 .mn-ai-btn:disabled { opacity: 0.55; cursor: wait; }
 .mn-ai-btn .mn-ai-btn-emoji { font-size: 18px; display: block; margin-bottom: 4px; }
 .mn-ai-btn .mn-ai-btn-title { font-weight: 700; font-size: 13px; }
@@ -895,6 +894,7 @@ const CHALLENGE = {
    Day 1 = 2026-04-20. All progress/streak start at 0; will tick up as they verify. */
 const MEMBERS = [
   { id: 'me',  name: '나',      team: 'A', color: 'orange', progress: 0, streak: 0, me: true, tier: 'auto' },
+  { id: 'op1', name: '유버디',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'premium', role: '운영팀' },
   { id: 'u1',  name: '이수진',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'premium' },
   { id: 'u2',  name: '정주혜',   team: 'B', color: 'cream',  progress: 0, streak: 0, tier: 'premium' },
   { id: 'u3',  name: '이도현',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'premium' },
@@ -925,8 +925,8 @@ const MEMBERS = [
 /* Bind the logged-in user to the correct MEMBERS identity.
    - If state.name matches a roster entry by name → that roster entry becomes "me" (me: true),
      and the placeholder me slot is marked hidden so we don't duplicate rows.
-   - Otherwise (operator like 유버디, or generic YB5 user) → keep the placeholder as the me slot,
-     renamed to state.name; operators are hidden from the streak/ranking board.
+   - Otherwise (generic code user not in roster) → keep the placeholder as the me slot,
+     renamed to state.name.
    Call this after state hydration and after __finishOnboarding. */
 function bindMeToMembers() {
   const placeholder = MEMBERS.find((m) => m.id === 'me');
@@ -953,12 +953,11 @@ function bindMeToMembers() {
     return;
   }
 
-  // Not in roster (e.g., 유버디 운영팀, or a generic code user)
+  // Not in roster (generic code user)
   placeholder.name = nm;
   placeholder.me = true;
   if (state.isOperator) {
     placeholder.isOperator = true;
-    // 운영팀도 학습은 똑같이 진행 → 대시보드/리더보드에 정상 노출.
   }
 }
 
@@ -1050,6 +1049,7 @@ const defaultState = () => ({
   saved_syns: {},                 // { "d1-0::circle back": true } 유의어 북마크
   community_likes: {},            // { "p1": true }
   community_bookmarks: {},        // { "p1": true }
+  community_comments: {},         // { "post-id": [{ text, author, createdAt }] }
   meeting_notes: {},              // { "m1": { talk_points:[], meeting_notes: '' } }
   verified_at: {},                // { "d1": "2026-04-20" } 실제 인증한 날짜 (YYYY-MM-DD)
   community_edits: {},            // { "post-id": { sentence, translation, editedAt } } 내 문장 수정
@@ -1080,6 +1080,7 @@ const PERSISTED_STATE_KEYS = [
   'saved_syns',
   'community_likes',
   'community_bookmarks',
+  'community_comments',
   'meeting_notes',
   'verified_at',
   'community_edits',
@@ -1337,6 +1338,9 @@ function saveRoute() {
       page: currentPage,
       week: currentWeek,
       day: currentDay,
+      lastLearningPage,
+      navBackStack,
+      navForwardStack,
     }));
   } catch (e) {}
 }
@@ -1344,6 +1348,9 @@ const savedRoute = loadRoute();
 let currentPage = savedRoute.page || 'home';
 let currentWeek = savedRoute.week || 1;   // the week being viewed
 let currentDay = savedRoute.day || 1;
+let lastLearningPage = savedRoute.lastLearningPage || ((savedRoute.page === 'day' || savedRoute.page === 'weeks') ? savedRoute.page : 'weeks');
+let navBackStack = Array.isArray(savedRoute.navBackStack) ? savedRoute.navBackStack : [];
+let navForwardStack = Array.isArray(savedRoute.navForwardStack) ? savedRoute.navForwardStack : [];
 let showPremiumGate = false;
 let activeMemberCard = null;
 let showSettings = false;
@@ -1355,19 +1362,85 @@ let dashboardStats = {
 };
 
 function go(page, opts={}) {
+  const previousPage = currentPage;
+  if (opts.restoreLearning) {
+    page = lastLearningPage === 'day' ? 'day' : 'weeks';
+  }
+  const previousRoute = currentRouteSnapshot();
   currentPage = page;
-  if (page === 'weeks' && !opts.week && !opts.day) {
+  if (page === 'weeks' || page === 'day') lastLearningPage = page;
+  if (page === 'weeks' && !opts.week && !opts.day && (!opts.preserveSelection && (!currentWeek || !CHALLENGE.weeks.some((w) => w.n === currentWeek)))) {
     const autoWeek = CHALLENGE.weeks.find((w) => w.days.some((d) => d.day === state.currentDay));
     currentWeek = autoWeek ? autoWeek.n : 1;
     window.__weekPreview[currentWeek] = state.currentDay;
   }
   if (opts.week) currentWeek = opts.week;
   if (opts.day) currentDay = opts.day;
+  const nextRoute = currentRouteSnapshot();
+  if (!opts.fromHistory && !sameRoute(previousRoute, nextRoute)) {
+    navBackStack.push(previousRoute);
+    if (navBackStack.length > 40) navBackStack = navBackStack.slice(-40);
+    navForwardStack = [];
+  }
   saveRoute();
   render();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (opts.scroll !== false && previousPage !== page) {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
 }
 window.go = go;
+
+function currentRouteSnapshot() {
+  return {
+    page: currentPage,
+    week: currentWeek,
+    day: currentDay,
+    lastLearningPage,
+  };
+}
+
+function sameRoute(a, b) {
+  if (!a || !b) return false;
+  return a.page === b.page
+    && Number(a.week || 0) === Number(b.week || 0)
+    && Number(a.day || 0) === Number(b.day || 0)
+    && (a.lastLearningPage || '') === (b.lastLearningPage || '');
+}
+
+function applyRouteSnapshot(route, direction = 'back') {
+  if (!route) return false;
+  const current = currentRouteSnapshot();
+  if (direction === 'back') {
+    navForwardStack.push(current);
+    if (navForwardStack.length > 40) navForwardStack = navForwardStack.slice(-40);
+  } else {
+    navBackStack.push(current);
+    if (navBackStack.length > 40) navBackStack = navBackStack.slice(-40);
+  }
+  currentPage = route.page || 'home';
+  currentWeek = route.week || currentWeek || 1;
+  currentDay = route.day || currentDay || state.currentDay || 1;
+  lastLearningPage = route.lastLearningPage || ((currentPage === 'day' || currentPage === 'weeks') ? currentPage : lastLearningPage || 'weeks');
+  saveRoute();
+  render();
+  window.scrollTo({ top: 0, behavior: 'auto' });
+  return true;
+}
+
+function goBackRoute() {
+  const route = navBackStack.pop();
+  if (!route) return false;
+  return applyRouteSnapshot(route, 'back');
+}
+
+function goForwardRoute() {
+  const route = navForwardStack.pop();
+  if (!route) return false;
+  return applyRouteSnapshot(route, 'forward');
+}
+
+window.__goBackRoute = goBackRoute;
+window.__goForwardRoute = goForwardRoute;
 
 function showToast(msg) {
   toast = msg;
@@ -1716,6 +1789,10 @@ function myCommunityPostId(sourceKey) {
   return `${memberKey()}::${sourceKey}`;
 }
 
+function communityCommentsFor(postId) {
+  return state.community_comments?.[postId] || [];
+}
+
 function patchCachedCommunityPost(postId, updater) {
   Object.keys(communityFeedCache).forEach((day) => {
     communityFeedCache[day] = (communityFeedCache[day] || []).map((post) => {
@@ -1962,8 +2039,7 @@ function render() {
     if (activeMemberCard) root.appendChild(MemberCardModal(activeMemberCard));
     if (showSettings) root.appendChild(SettingsModal());
 
-    if (currentPage === 'day') startPeerTicker(currentDay);
-    else stopPeerTicker();
+    stopPeerTicker();
   } catch (error) {
     console.error('render failed', error);
     stopPeerTicker();
@@ -2065,6 +2141,54 @@ function showPeerTicker(peer) {
     node.classList.add('out');
     setTimeout(() => node.remove(), 280);
   }, 4200);
+}
+
+function shouldIgnoreSwipeTarget(target) {
+  if (!target || !(target instanceof Element)) return false;
+  if (target.closest('input, textarea, select, button, a, [contenteditable="true"], .modal, .modal-backdrop')) return true;
+  const scrollHost = target.closest('.hidden-scroll, .tabbar-inner, [data-no-swipe], [style*="overflow-x: auto"]');
+  if (scrollHost) return true;
+  return false;
+}
+
+function setupSwipeNavigation() {
+  if (window.__ybSwipeInit) return;
+  window.__ybSwipeInit = true;
+  let startX = 0;
+  let startY = 0;
+  let startTime = 0;
+  let tracking = false;
+
+  document.addEventListener('touchstart', (event) => {
+    if (!event.touches || event.touches.length !== 1) return;
+    if (shouldIgnoreSwipeTarget(event.target)) {
+      tracking = false;
+      return;
+    }
+    const touch = event.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+    startTime = Date.now();
+    tracking = true;
+  }, { passive: true });
+
+  document.addEventListener('touchend', (event) => {
+    if (!tracking || !event.changedTouches || !event.changedTouches.length) return;
+    tracking = false;
+    if (showPremiumGate || activeMemberCard || showSettings) return;
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - startX;
+    const deltaY = touch.clientY - startY;
+    const elapsed = Date.now() - startTime;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+    if (elapsed > 600 || absX < 72 || absY > 48 || absX < absY * 1.35) return;
+    if (deltaX > 0) {
+      if (goBackRoute()) showToast('이전 화면');
+    } else {
+      if (goForwardRoute()) showToast('다음 화면');
+    }
+  }, { passive: true });
 }
 
 // Clean up timer when tab is hidden
@@ -2422,6 +2546,7 @@ function __finishOnboarding() {
   bindMeToMembers();
   saveState({ immediate: true });
   currentPage = 'home';
+  lastLearningPage = 'weeks';
   saveRoute();
   showToast(`🚀 환영해요, ${state.name}! Day 1이 기다리고 있어요.`);
   render();
@@ -2443,13 +2568,16 @@ function TabBar() {
   ];
   for (const t of tabs) {
     const active = (t.match || [t.id]).includes(currentPage);
+    const nextLearningPage = lastLearningPage === 'day' ? 'day' : 'weeks';
     const tab = el('button', {
       class: 'tab' + (active ? ' active' : ''),
       style: t.id === 'premium' ? {
         color: active ? '#fff' : '#D7C5E3',
         background: active ? 'var(--lilac)' : 'transparent',
       } : {},
-      onClick: () => go(t.id),
+      onClick: () => go(t.id, t.id === 'weeks'
+        ? { restoreLearning: true, preserveSelection: true, week: currentWeek, day: currentDay, scroll: nextLearningPage !== currentPage }
+        : {}),
     });
     tab.innerHTML = Icon(t.icon, 14) + ' <span>' + t.label + '</span>';
     inner.appendChild(tab);
@@ -5053,7 +5181,9 @@ function CommunityPage() {
     const tz = memberTimezoneText(member);
     const liked = hasSupabase() ? !!post.likedByMe : !!likedMap[post.id];
     const saved = !!savedMap[post.id];
+    const localComments = communityCommentsFor(post.id);
     const likeCount = hasSupabase() ? Number(post.likesCount || 0) : ((post.likesCount || 0) + (liked ? 1 : 0));
+    const commentCount = Math.max(Number(post.comments || 0), localComments.length);
     const row = el('div', {
       style: {
         display: 'grid',
@@ -5091,11 +5221,20 @@ function CommunityPage() {
         ${post.translation ? `<p style="margin:3px 0 0;font-size:11.5px;line-height:1.45;color:var(--ink-soft);word-break:keep-all;">${escapeHtml(post.translation)}</p>` : ''}
         <div style="display:flex;gap:12px;margin-top:6px;align-items:center;">
           <button onclick="window.__toggleCommunityLike(${JSON.stringify(post.id)})" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:${liked ? 'var(--orange-dark)' : 'var(--muted)'};font-size:11px;font-weight:${liked ? '700' : '500'};">${Icon('flame', 10)} ${likeCount}</button>
-          <button onclick="showToast('댓글은 다음 단계에서 연결할게요.')" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:var(--muted);font-size:11px;">${Icon('messageCircle', 10)} ${post.comments}</button>
+          <button onclick="window.__commentOnCommunityPost(${JSON.stringify(post.id)})" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:${commentCount ? 'var(--orange-dark)' : 'var(--muted)'};font-size:11px;font-weight:${commentCount ? '700' : '500'};">${Icon('messageCircle', 10)} ${commentCount}</button>
           <button onclick="window.__speakText(${JSON.stringify(post.sentence)})" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:var(--muted);font-size:11px;">${Icon('volume', 10)} 듣기</button>
           <button onclick="window.__toggleCommunityBookmark(${JSON.stringify(post.id)})" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:${saved ? 'var(--orange-dark)' : 'var(--muted)'};font-size:11px;margin-left:auto;">${Icon(saved ? 'bookmarkFill' : 'bookmark', 10)}</button>
           ${mineEditBtn}
         </div>
+        ${localComments.length ? `
+          <div style="margin-top:8px;display:grid;gap:6px;">
+            ${localComments.slice(-2).map((comment) => `
+              <div style="padding:8px 10px;border-radius:10px;background:var(--paper);font-size:11px;line-height:1.45;color:var(--ink-soft);">
+                <b style="color:var(--ink);font-size:10.5px;">${escapeHtml(comment.author || '익명')}</b> ${escapeHtml(comment.text || '')}
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
       </div>`;
     stack.appendChild(row);
   });
@@ -5706,6 +5845,28 @@ window.__toggleCommunityBookmark = (postId) => {
   showToast(state.community_bookmarks[postId] ? '문장을 저장했어요.' : '저장을 해제했어요.');
   render();
 };
+window.__commentOnCommunityPost = (postId) => {
+  const currentComments = communityCommentsFor(postId);
+  const draft = window.prompt('짧게 응원이나 코멘트를 남겨볼까요?', '');
+  if (draft === null) return;
+  const text = draft.trim();
+  if (!text) {
+    showToast('빈 댓글은 저장하지 않았어요.');
+    return;
+  }
+  state.community_comments = state.community_comments || {};
+  state.community_comments[postId] = [
+    ...currentComments,
+    {
+      text,
+      author: state.name || '나',
+      createdAt: new Date().toISOString(),
+    },
+  ];
+  saveState();
+  showToast('댓글을 남겼어요.');
+  render();
+};
 window.__editMyCommunityPost = async (postId, sourceKey = '') => {
   const source = sourceKey || (String(postId).includes('::') ? String(postId).split('::').pop() : postId.replace(/^me-/, ''));
   const m = String(source).match(/^d(\d+)-(\d+)$/);
@@ -5759,6 +5920,10 @@ if (typeof speechSynthesis !== 'undefined') {
 window.__speakText = (text) => {
   try {
     if (!text) return;
+    if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+      showToast('이 기기에서는 듣기를 지원하지 않아요.');
+      return;
+    }
     const u = new SpeechSynthesisUtterance(text);
     u.voice = pickFemaleEnVoice();
     u.lang = 'en-US';
@@ -5766,13 +5931,19 @@ window.__speakText = (text) => {
     u.pitch = 1.04;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
-  } catch (e) {}
+  } catch (e) {
+    showToast('듣기를 시작하지 못했어요.');
+  }
 };
 window.__speakWord = (day, idx) => {
   try {
     const data = getDay(day);
     const word = data?.words?.[idx];
     if (!word) return;
+    if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+      showToast('이 기기에서는 듣기를 지원하지 않아요.');
+      return;
+    }
     const u = new SpeechSynthesisUtterance(word.en);
     u.voice = pickFemaleEnVoice();
     u.lang = 'en-US';
@@ -5780,7 +5951,9 @@ window.__speakWord = (day, idx) => {
     u.pitch = 1.1;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
-  } catch (e) {}
+  } catch (e) {
+    showToast('듣기를 시작하지 못했어요.');
+  }
 };
 window.__submitPremiumCode = () => {
   const input = $('#__premium_code');
@@ -5832,6 +6005,7 @@ window.__resetForSignup = () => {
   currentPage = 'home';
   currentWeek = 1;
   currentDay = state.currentDay;
+  lastLearningPage = 'weeks';
   bindMeToMembers();
   saveRoute();
   render();
@@ -5852,6 +6026,7 @@ window.__logoutBeta = () => {
   currentPage = 'home';
   currentWeek = 1;
   currentDay = state.currentDay;
+  lastLearningPage = 'weeks';
   bindMeToMembers();
   saveRoute();
   render();
@@ -6089,6 +6264,7 @@ if (!__DEMO_MODE__) {
 
 // 2) Bind the logged-in user to the right MEMBERS row (or keep placeholder renamed).
 try { bindMeToMembers(); } catch (e) { console.warn('bindMeToMembers failed', e); }
+try { setupSwipeNavigation(); } catch (e) { console.warn('setupSwipeNavigation failed', e); }
 
 // 3) Sync currentDay to today's calendar (skip in demo mode so seed stays visible)
 if (!__DEMO_MODE__) {
