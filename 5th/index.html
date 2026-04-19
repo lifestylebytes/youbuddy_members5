@@ -373,6 +373,27 @@ input, textarea, select { font-family: inherit; }
 .meeting-date .md-day { font-family: var(--font-serif); font-style: normal; font-size: 22px; color: var(--ink); }
 .meeting-card.upcoming .meeting-date { background: #fff; }
 .meeting-card.upcoming .meeting-date .md-day { color: var(--lilac); }
+.premium-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.premium-calendar-cell {
+  min-width: 0;
+  aspect-ratio: 1;
+  border-radius: 14px;
+  padding: 10px 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+@media (max-width: 480px) {
+  .premium-calendar-grid { gap: 4px; }
+  .premium-calendar-cell {
+    border-radius: 11px;
+    padding: 7px 4px;
+  }
+}
 
 /* quiz */
 .quiz-card {
@@ -684,6 +705,12 @@ input, textarea, select { font-family: inherit; }
 <body>
 <div id="root"></div>
 
+<!-- Supabase config (publishable key — safe in frontend; protected by RLS) -->
+<script>
+  window.YB_SUPABASE_URL = 'https://qaasxvatmribkgtatine.supabase.co';
+  window.YB_SUPABASE_ANON_KEY = 'sb_publishable_XNd9sxTnMsuNmdT1JSXtdw_wMj0Ma9R';
+</script>
+
 <script>
 /* ============================================================
    DATA — challenge content (4 weeks × 5 days = 20 days)
@@ -989,6 +1016,7 @@ const PREMIUM_CODES = ['A', 'YOUBUDDY-PREMIUM-5', 'PREMIUM5', '유버디프리�
 const BASIC_CODES = ['YOUBUDDY-BASIC-5', 'BASIC5'];
 const SUPABASE_URL = window.YB_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = window.YB_SUPABASE_ANON_KEY || '';
+const DEFAULT_TIMEZONE_OFFSET = 540;
 
 /* ============================================================
    STATE — canonical source is Supabase, local is cache only
@@ -997,10 +1025,14 @@ const LS_KEY = 'yb5_state_cache_v2';
 const defaultState = () => ({
   tier: 'premium',                // basic | premium
   name: '',
+  accountKey: '',
   role: '',
   roleSkipped: false,             // user explicitly chose not to share role
   goal: '',                       // personal goal for this cohort
   accessCode: '',                 // cohort access code (e.g., 5기 code)
+  timezoneLabel: '',
+  timezoneOffsetText: '+0h',
+  timezoneOffsetMinutes: DEFAULT_TIMEZONE_OFFSET,
   email: '',
   isOperator: false,              // true for 운영팀 (e.g., 유버디)
   onboarded: false,               // has completed first-run onboarding
@@ -1023,10 +1055,14 @@ const defaultState = () => ({
 const PERSISTED_STATE_KEYS = [
   'tier',
   'name',
+  'accountKey',
   'role',
   'roleSkipped',
   'goal',
   'accessCode',
+  'timezoneLabel',
+  'timezoneOffsetText',
+  'timezoneOffsetMinutes',
   'email',
   'isOperator',
   'onboarded',
@@ -1113,6 +1149,12 @@ function persistedStateSnapshot(source = state) {
 function mergePersistedState(snapshot) {
   if (!snapshot || typeof snapshot !== 'object') return;
   state = { ...defaultState(), ...snapshot };
+  if (!state.accountKey && (state.accessCode || state.name)) {
+    state.accountKey = [state.accessCode || 'guest', state.name || 'member'].join(':');
+  }
+  if (!state.timezoneOffsetText) {
+    state.timezoneOffsetText = timezoneShiftLabel(Number.isFinite(Number(state.timezoneOffsetMinutes)) ? Number(state.timezoneOffsetMinutes) : DEFAULT_TIMEZONE_OFFSET);
+  }
 }
 
 function loadCachedState() {
@@ -1343,13 +1385,14 @@ function memberCardData(ref) {
   if (!member) return null;
   const spot = MEMBER_SPOTLIGHTS[member.id] || {};
   const progress = member.me ? completedCount() : member.progress;
-  const role = typeof spot.role === 'function' ? spot.role() : (spot.role || (member.team === 'A' ? '운영' : '기획'));
+  const role = memberRole(member) || (typeof spot.role === 'function' ? spot.role() : (spot.role || (member.team === 'A' ? '운영' : '기획')));
   const phrase = recentSavedExpressionForMember(member) || spot.phrase || 'align on';
   const nextDay = Math.min(progress + 1, CHALLENGE.total_days);
   return {
     ...member,
     progress,
     role,
+    timezoneText: memberTimezoneText(member),
     goal: spot.goal || '하루 한 문장이라도 내 상황에 맞게 직접 말해보기',
     motive: spot.motive || '작게라도 매일 이어가면 회의에서 입이 먼저 풀린다고 믿어요.',
     focus: spot.focus || `다음은 Day ${nextDay}까지 흐름 끊기지 않게 이어가기`,
@@ -1442,6 +1485,66 @@ const ICONS = {
 };
 const Icon = (name, size=16) => `<span style="display:inline-flex;align-items:center;justify-content:center;">${svg(ICONS[name] || '', size)}</span>`;
 
+function effectiveTimezoneOffsetMinutes() {
+  const value = Number(state.timezoneOffsetMinutes);
+  return Number.isFinite(value) ? value : DEFAULT_TIMEZONE_OFFSET;
+}
+
+function formatShiftValue(minutes) {
+  const sign = minutes >= 0 ? '+' : '-';
+  const abs = Math.abs(minutes);
+  const hours = Math.floor(abs / 60);
+  const mins = abs % 60;
+  return mins ? `${sign}${hours}:${String(mins).padStart(2, '0')}h` : `${sign}${hours}h`;
+}
+
+function timezoneShiftLabel(offsetMinutes = effectiveTimezoneOffsetMinutes()) {
+  return formatShiftValue(offsetMinutes - DEFAULT_TIMEZONE_OFFSET);
+}
+
+function parseTimezoneShift(raw) {
+  const input = String(raw || '').trim().toLowerCase().replace(/\s+/g, '');
+  if (!input) {
+    return { ok: true, offsetMinutes: DEFAULT_TIMEZONE_OFFSET, text: '+0h' };
+  }
+  const normalized = input.endsWith('h') ? input.slice(0, -1) : input;
+  const match = normalized.match(/^([+-]?)(\d{1,2})(?::?([0-5]\d))?$/);
+  if (!match) return { ok: false };
+  const sign = match[1] === '-' ? -1 : 1;
+  const hours = Number(match[2] || 0);
+  const minutes = Number(match[3] || 0);
+  const total = sign * (hours * 60 + minutes);
+  if (total < -23 * 60 || total > 23 * 60 + 59) return { ok: false };
+  return {
+    ok: true,
+    offsetMinutes: DEFAULT_TIMEZONE_OFFSET + total,
+    text: formatShiftValue(total),
+  };
+}
+
+function zonedNow(offsetMinutes = effectiveTimezoneOffsetMinutes()) {
+  const now = new Date();
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  return new Date(utcMs + offsetMinutes * 60000);
+}
+
+function premiumPill(member) {
+  const isPremium = member?.me ? state.tier === 'premium' : member?.tier === 'premium';
+  return isPremium ? `<span class="badge badge-lilac" style="padding:3px 7px;font-size:9px;">P</span>` : '';
+}
+
+function memberRole(member) {
+  if (!member) return '';
+  if (member.me) return state.role || '';
+  const spot = MEMBER_SPOTLIGHTS[member.id] || {};
+  return typeof spot.role === 'function' ? spot.role() : (spot.role || (member.team === 'A' ? '기획' : '운영'));
+}
+
+function memberTimezoneText(member) {
+  if (!member || !member.me) return '';
+  return state.timezoneOffsetText || timezoneShiftLabel();
+}
+
 const dayStatus = (d) => {
   if (state.verified['d'+d]) {
     // 인증은 됐지만 지난 날짜에 뒤늦게 했다면 'done-late'
@@ -1461,9 +1564,9 @@ const dayStatus = (d) => {
   return 'locked';
 };
 
-// 오늘 날짜 (local) YYYY-MM-DD
+// 오늘 날짜 (member timezone) YYYY-MM-DD
 function todayStr() {
-  const t = new Date();
+  const t = zonedNow();
   const y = t.getFullYear();
   const m = String(t.getMonth()+1).padStart(2,'0');
   const d = String(t.getDate()).padStart(2,'0');
@@ -1566,7 +1669,7 @@ function synonymNuance(word, syn) {
 }
 const weekProgress = (w) => w.days.filter(d => state.verified['d'+d.day]).length;
 const hasSupabase = () => !!(SUPABASE_URL && SUPABASE_ANON_KEY);
-const memberKey = () => (state.email || state.name || 'anonymous').trim();
+const memberKey = () => (state.accountKey || state.email || [state.accessCode, state.name].filter(Boolean).join(':') || state.name || 'anonymous').trim();
 
 async function supabaseRpc(fn, payload={}) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
@@ -1580,6 +1683,130 @@ async function supabaseRpc(fn, payload={}) {
   });
   if (!res.ok) throw new Error(`supabase rpc failed: ${fn}`);
   return res.json();
+}
+
+const communityFeedCache = {};
+const communityFeedInFlight = {};
+const COMMUNITY_REFRESH_MS = 15000;
+
+function myTeam() {
+  return meMember()?.team || 'A';
+}
+
+function myCommunityPostId(sourceKey) {
+  return `${memberKey()}::${sourceKey}`;
+}
+
+function patchCachedCommunityPost(postId, updater) {
+  Object.keys(communityFeedCache).forEach((day) => {
+    communityFeedCache[day] = (communityFeedCache[day] || []).map((post) => {
+      if (post.id !== postId) return post;
+      const next = updater(post);
+      return next || post;
+    });
+  });
+}
+
+async function loadCommunityPosts(dayN, opts = {}) {
+  if (!hasSupabase()) return [];
+  const { force = false } = opts;
+  const cached = communityFeedCache[dayN];
+  if (!force && cached && (Date.now() - (cached.loadedAt || 0)) < COMMUNITY_REFRESH_MS) {
+    return cached.rows || [];
+  }
+  if (communityFeedInFlight[dayN]) return communityFeedInFlight[dayN];
+  communityFeedInFlight[dayN] = (async () => {
+    try {
+      const payload = await supabaseRpc('get_community_posts', {
+        p_cohort: CHALLENGE.cohort,
+        p_day: dayN,
+        p_viewer_key: memberKey(),
+      });
+      const rows = Array.isArray(payload) ? payload : [];
+      communityFeedCache[dayN] = { loadedAt: Date.now(), rows };
+      return rows;
+    } catch (e) {
+      return communityFeedCache[dayN]?.rows || [];
+    } finally {
+      delete communityFeedInFlight[dayN];
+    }
+  })();
+  return communityFeedInFlight[dayN];
+}
+
+function requestCommunityPosts(dayN, opts = {}) {
+  const cached = communityFeedCache[dayN];
+  const stale = !cached || (Date.now() - (cached.loadedAt || 0)) >= COMMUNITY_REFRESH_MS;
+  if (hasSupabase() && (opts.force || stale)) {
+    loadCommunityPosts(dayN, { force: true }).then(() => {
+      if (currentPage === 'community' || currentPage === 'day') render();
+    });
+  }
+  return cached?.rows || [];
+}
+
+async function upsertCommunityPost(dayN, idx) {
+  if (!hasSupabase()) return false;
+  const day = getDay(dayN);
+  const word = day?.words?.[idx];
+  if (!word) return false;
+  const sourceKey = `d${dayN}-${idx}`;
+  const sentence = (state.community_edits?.[`me-${sourceKey}`]?.sentence || state.sentences[sourceKey] || '').trim();
+  if (!sentence || !state.submitted?.[sourceKey]) return false;
+  await supabaseRpc('upsert_community_post', {
+    p_cohort: CHALLENGE.cohort,
+    p_post_id: myCommunityPostId(sourceKey),
+    p_member_key: memberKey(),
+    p_member_name: state.name || '익명',
+    p_member_role: state.role || '',
+    p_member_tier: state.tier || 'basic',
+    p_member_team: myTeam(),
+    p_member_timezone: state.timezoneOffsetText || '+0h',
+    p_day_n: dayN,
+    p_word: (word.en || '').toUpperCase(),
+    p_sentence: sentence,
+    p_translation: state.community_edits?.[`me-${sourceKey}`]?.translation || '',
+    p_source_key: sourceKey,
+  });
+  await loadCommunityPosts(dayN, { force: true });
+  return true;
+}
+
+async function deleteCommunityPost(dayN, idx) {
+  if (!hasSupabase()) return false;
+  const sourceKey = `d${dayN}-${idx}`;
+  await supabaseRpc('delete_community_post', {
+    p_cohort: CHALLENGE.cohort,
+    p_post_id: myCommunityPostId(sourceKey),
+    p_member_key: memberKey(),
+  });
+  await loadCommunityPosts(dayN, { force: true });
+  return true;
+}
+
+async function refreshRemoteStateAndCommunity(opts = {}) {
+  if (!hasSupabase() || !state.onboarded) return false;
+  const { force = false } = opts;
+  let changed = false;
+  try {
+    const remote = await loadRemoteState();
+    if (remote && typeof remote === 'object') {
+      const localJson = JSON.stringify(persistedStateSnapshot());
+      const remoteJson = JSON.stringify(remote);
+      if (force || (remoteJson && remoteJson !== localJson)) {
+        mergePersistedState(remote);
+        bindMeToMembers();
+        changed = true;
+      }
+    }
+  } catch (e) {}
+  const dayToRefresh = state.communityDay || state.currentDay;
+  if (hasSupabase() && dayToRefresh) {
+    await loadCommunityPosts(dayToRefresh, { force: true });
+    changed = true;
+  }
+  if (changed) render();
+  return changed;
 }
 
 function formatComparisonLabel(data) {
@@ -1643,6 +1870,25 @@ const PEER_SENTENCES = {};
 
 /* Peer sentences — only return curated/real posts. No fake fallback for beta. */
 function peerSentencesFor(day) {
+  if (hasSupabase()) {
+    const remote = requestCommunityPosts(day);
+    const dayData = getDay(day);
+    return remote
+      .filter((post) => post.member_key !== memberKey())
+      .map((post) => {
+        const wordIdx = Math.max(0, dayData?.words?.findIndex((w) => (w.en || '').toUpperCase() === (post.word || '').toUpperCase()) ?? 0);
+        return {
+          user: post.user,
+          team: post.team || 'A',
+          avatar: (post.user || '').slice(0, 2),
+          wordIdx,
+          sentence: post.sentence,
+          translation: post.translation || '',
+          time: '방금',
+          likes: Number(post.likes_count || 0),
+        };
+      });
+  }
   const curated = PEER_SENTENCES['d' + day];
   return curated && curated.length ? curated : [];
 }
@@ -1816,13 +2062,13 @@ function TopBar(title='') {
 }
 
 /* ============================================================
-   ONBOARDING PAGE — first-run landing for new beta users
+   ONBOARDING PAGE — first-run landing
    Steps:
-     1. Name + access code
+     1. Name + access code + time shift
      2. Cohort goal (free text)
-     3. Role (optional — explicit "안 밝혀도 OK" copy)
+     3. Role (optional)
    ============================================================ */
-// Code → { name, role?, tier? } binding. Each beta participant has their own code.
+// Code → { name, role?, tier? } binding. Each participant has their own code.
 // Codes are case-insensitive and whitespace-trimmed. '00' is the operator (유버디).
 const ONBOARD_CODE_MAP = {
   '00': { name: '유버디',  role: '운영팀', tier: 'premium', isOperator: true },
@@ -1831,7 +2077,6 @@ const ONBOARD_CODE_MAP = {
   // Generic codes keep original behavior (user types name themselves)
   'YB5':      { generic: true },
   'YOUBUDDY5':{ generic: true },
-  'BETA5':    { generic: true },
   '5기':      { generic: true },
 };
 const lookupCode = (raw) => {
@@ -1839,14 +2084,15 @@ const lookupCode = (raw) => {
   if (!k) return null;
   return ONBOARD_CODE_MAP[k] || ONBOARD_CODE_MAP[k.toUpperCase()] || ONBOARD_CODE_MAP[k.toLowerCase()] || null;
 };
-let __onboardStep = 0;   // 0: name+code, 1: goal, 2: role
-let __onboardDraft = { name: '', code: '', goal: '', role: '', roleSkipped: false };
+let __onboardStep = 0;   // 0: name+code+timezone, 1: goal, 2: role
+let __onboardDraft = { name: '', code: '', goal: '', role: '', roleSkipped: false, timezoneOffsetText: '+0h' };
 
 function OnboardingPage() {
   // reset draft from state on fresh mount so resume picks up
   if (!__onboardDraft.name && state.name) __onboardDraft.name = state.name;
   if (!__onboardDraft.goal && state.goal) __onboardDraft.goal = state.goal;
   if (!__onboardDraft.role && state.role) __onboardDraft.role = state.role;
+  if (!__onboardDraft.timezoneOffsetText && state.timezoneOffsetText) __onboardDraft.timezoneOffsetText = state.timezoneOffsetText;
 
   const page = el('div', {
     class: 'page',
@@ -1864,7 +2110,7 @@ function OnboardingPage() {
   const brand = el('div', { style: { textAlign: 'center', marginBottom: '24px' } });
   brand.innerHTML = `
     <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--orange-ghost);color:var(--orange-dark);font-size:11px;font-weight:700;letter-spacing:0.1em;">
-      YOUBUDDY · 5기 베타
+      YOUBUDDY · MEMBERS 5
     </div>
     <h1 style="margin:16px 0 6px;font-size:28px;line-height:1.15;letter-spacing:-0.03em;font-weight:800;">
       <span class="serif">비즈니스 영어</span> 챌린지
@@ -1901,9 +2147,9 @@ function OnboardingPage() {
   if (__onboardStep === 0) {
     card.innerHTML = `
       <div class="kicker">STEP 1 · 너의 정체</div>
-      <h2 style="margin:6px 0 12px;font-size:20px;font-weight:800;letter-spacing:-0.02em;">이름과 접속 코드를 입력해요</h2>
+      <h2 style="margin:6px 0 12px;font-size:20px;font-weight:800;letter-spacing:-0.02em;">이름, 접속 코드, 시차를 입력해요</h2>
       <p class="t-body" style="font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:16px;">
-        베타 초대 메일로 받은 접속 코드를 넣어주세요. 이름은 커뮤니티에서 노출돼요.
+        이름은 커뮤니티에 보이고, 시차는 한국 기준으로 적어요. 한국이면 <b>+0h</b>예요.
       </p>
       <label style="display:grid;gap:6px;margin-bottom:12px;">
         <span class="kicker" style="color:var(--muted);">이름</span>
@@ -1913,7 +2159,11 @@ function OnboardingPage() {
         <span class="kicker" style="color:var(--muted);">접속 코드</span>
         <input id="__obCode" class="input" type="text" placeholder="예: YB5" value="${escapeHtml(__onboardDraft.code)}" autocomplete="off" />
       </label>
-      <p id="__obCodeHint" style="margin:4px 0 0;font-size:11px;color:var(--muted);">코드를 못 받았다면 운영팀에 문의해주세요.</p>
+      <label style="display:grid;gap:6px;margin-top:12px;">
+        <span class="kicker" style="color:var(--muted);">한국 대비 시차</span>
+        <input id="__obTimezone" class="input" type="text" placeholder="예: +0h, -13h, +1:30h" value="${escapeHtml(__onboardDraft.timezoneOffsetText || '+0h')}" autocomplete="off" />
+      </label>
+      <p id="__obCodeHint" style="margin:6px 0 0;font-size:11px;color:var(--muted);">코드는 운영팀이 전달한 값을 입력해주세요.</p>
     `;
   } else if (__onboardStep === 1) {
     card.innerHTML = `
@@ -1982,7 +2232,7 @@ function OnboardingPage() {
   const footer = el('p', {
     style: { marginTop: '18px', textAlign: 'center', fontSize: '11px', color: 'var(--muted)', lineHeight: '1.6' }
   });
-  footer.innerHTML = `5기 · 2026/4/20 ~ 5/15 · 매일 영업일 하루 한 개 <br/>입력한 정보는 이 기기에만 저장돼요.`;
+  footer.innerHTML = `5기 · 2026/4/20 ~ 5/15 · 매일 영업일 하루 한 개 <br/>한 번 로그인하면 이 기기에서 계속 유지돼요.`;
   page.appendChild(footer);
 
   // Wire up after mount
@@ -1990,14 +2240,14 @@ function OnboardingPage() {
     if (__onboardStep === 0) {
       const nameInp = document.getElementById('__obName');
       const codeInp = document.getElementById('__obCode');
+      const timezoneInp = document.getElementById('__obTimezone');
       const hint = document.getElementById('__obCodeHint');
       if (nameInp) nameInp.oninput = (e) => { __onboardDraft.name = e.target.value; };
       if (codeInp) codeInp.oninput = (e) => {
         __onboardDraft.code = e.target.value;
-        // Keep the hint neutral — never reveal whether a code is bound to a name,
-        // so participant identities can't be enumerated by typing numbers.
-        if (hint) { hint.textContent = '코드를 못 받았다면 운영팀에 문의해주세요.'; hint.style.color = 'var(--muted)'; }
+        if (hint) { hint.textContent = '코드는 운영팀이 전달한 값을 입력해주세요.'; hint.style.color = 'var(--muted)'; }
       };
+      if (timezoneInp) timezoneInp.oninput = (e) => { __onboardDraft.timezoneOffsetText = e.target.value; };
       if (nameInp) nameInp.focus();
     } else if (__onboardStep === 1) {
       const goal = document.getElementById('__obGoal');
@@ -2041,7 +2291,9 @@ function __onboardAdvance() {
   if (__onboardStep === 0) {
     const name = (__onboardDraft.name || '').trim();
     const code = (__onboardDraft.code || '').trim();
+    const timezone = parseTimezoneShift(__onboardDraft.timezoneOffsetText);
     if (!name) { showToast('이름을 입력해주세요'); return; }
+    if (!timezone.ok) { showToast('시차 형식이 맞지 않아요. 예: +0h, -13h, +1:30h'); return; }
     const match = lookupCode(code);
     if (!match) {
       const hint = document.getElementById('__obCodeHint');
@@ -2072,13 +2324,18 @@ function __onboardAdvance() {
 function __finishOnboarding() {
   state.name = (__onboardDraft.name || '').trim();
   state.accessCode = (__onboardDraft.code || '').trim();
+  const timezone = parseTimezoneShift(__onboardDraft.timezoneOffsetText);
+  state.timezoneOffsetText = timezone.ok ? timezone.text : '+0h';
+  state.timezoneOffsetMinutes = timezone.ok ? timezone.offsetMinutes : DEFAULT_TIMEZONE_OFFSET;
   state.goal = (__onboardDraft.goal || '').trim();
   state.role = (__onboardDraft.role || '').trim();
   state.roleSkipped = !!__onboardDraft.roleSkipped;
   state.onboarded = true;
+  state.accountKey = [state.accessCode || 'guest', state.name || 'member'].join(':');
   const m = lookupCode(state.accessCode);
   if (m && m.tier) state.tier = m.tier;
   state.isOperator = !!(m && m.isOperator);
+  state.currentDay = computeCurrentDay();
   bindMeToMembers();
   saveState({ immediate: true });
   currentPage = 'home';
@@ -2224,6 +2481,8 @@ function HomePage() {
   page.appendChild(el('div', { class: 'kicker', style: { marginTop: '28px', marginBottom: '8px' } }, 'LEADERBOARD · TOP 10'));
   const listCard = el('div', { class: 'card', style: { padding: '6px' } });
   sorted.slice(0, 10).forEach((m, i) => {
+    const role = memberRole(m);
+    const tz = memberTimezoneText(m);
     const row = el('div', {
       class: 'rank-row' + (m.me ? ' me' : ''),
       onClick: () => window.__openMemberCard(m.id),
@@ -2234,8 +2493,13 @@ function HomePage() {
       <div style="min-width:0;">
         <div style="display:flex;align-items:center;gap:8px;">
           <span class="h3" style="font-size:13px;font-weight:600;">${m.name}</span>
+          ${premiumPill(m)}
           ${m.me ? '<span class="badge badge-orange" style="font-size:9px;padding:2px 6px;">ME</span>' : ''}
           <span class="t-small mono" style="color:var(--muted);">· Team ${m.team}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:3px;">
+          ${role ? `<span class="t-small" style="font-size:10.5px;color:var(--ink-soft);">${escapeHtml(role)}</span>` : ''}
+          ${tz ? `<span class="t-small mono" style="font-size:10px;color:var(--muted);">${escapeHtml(tz)}</span>` : ''}
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:5px;">
           <div style="flex:1;max-width:120px;" class="bar ${m.me ? 'orange' : ''}"><span style="width:${m.progress/totalDays*100}%;"></span></div>
@@ -2266,7 +2530,17 @@ function Checkboard() {
   }
   visibleMembers().forEach((m) => {
     const name = el('div', { class: 'cb-name' + (m.me ? ' cb-row-me' : '') });
-    name.innerHTML = `<div class="tiny-av ${m.color}">${m.name.slice(0,1)}</div><span>${m.name}</span>`;
+    const role = memberRole(m);
+    const tz = memberTimezoneText(m);
+    name.innerHTML = `
+      <div class="tiny-av ${m.color}">${m.name.slice(0,1)}</div>
+      <div style="min-width:0;">
+        <div style="display:flex;align-items:center;gap:4px;min-width:0;">
+          <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.name}</span>
+          ${premiumPill(m)}
+        </div>
+        ${(role || tz) ? `<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:9px;color:var(--muted);margin-top:1px;">${role ? `<span>${escapeHtml(role)}</span>` : ''}${tz ? `<span class="mono">${escapeHtml(tz)}</span>` : ''}</div>` : ''}
+      </div>`;
     grid.appendChild(name);
     for (let d = 1; d <= 20; d++) {
       const on = m.me ? !!state.verified['d'+d] : d <= m.progress;
@@ -2597,7 +2871,7 @@ function VerifyPage(dayN) {
             <div style="margin-top:10px;font-size:16px;line-height:1.5;color:#7D5CFF;font-weight:700;">뜻 · ${escapeHtml(currentQuestion.kr)}</div>
             <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;">
               <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;" onclick="window.__toggleVerifyAnswer(${dayN})">정답 보기</button>
-              <button class="btn btn-ghost" style="background:#fff;color:#7D7A98;border:1px solid #E1DCF8;" onclick="showToast('Voice는 다음 단계에서 붙일게요.')">Voice (Beta)</button>
+              <button class="btn btn-ghost" style="background:#fff;color:#7D7A98;border:1px solid #E1DCF8;" onclick="showToast('음성 답안 기능은 곧 연결돼요.')">음성으로 답하기</button>
             </div>
             ${ui.reveal ? `<div style="margin-top:14px;font-size:18px;color:#3E3B59;font-weight:800;">정답 · ${escapeHtml(currentQuestion.en)}</div>` : ''}
             <div style="display:flex;gap:8px;margin-top:18px;">
@@ -3117,6 +3391,7 @@ function DayPage(dayN) {
           state.submitted[key] = false;
           delete state.submitted[key];
           saveState();
+          deleteCommunityPost(dayN, i).finally(() => render());
           showToast('제출 취소됨. 다시 다듬어볼 수 있어요.');
           render();
           return;
@@ -3124,6 +3399,7 @@ function DayPage(dayN) {
         if (!ta.value.trim()) { showToast('문장을 먼저 써주세요.'); return; }
         state.submitted[key] = true;
         saveState();
+        upsertCommunityPost(dayN, i).finally(() => render());
         showToast('제출 완료. 원하면 AI 리뷰로 다듬어봐요 (참고용).');
         render();
       },
@@ -3345,7 +3621,7 @@ function PremiumPage() {
     (() => { const s = el('span'); s.innerHTML = '<span class="serif">Meeting</span> calendar'; return s; })()
   ));
 
-  const calendarCard = el('div', { class: 'card', style: { padding: '18px', background: 'linear-gradient(165deg, #FFFDF7 0%, #F4ECFA 100%)', borderColor: 'rgba(169,139,184,0.28)' } });
+  const calendarCard = el('div', { class: 'card', style: { padding: '18px', background: 'linear-gradient(165deg, #FFFDF7 0%, #F4ECFA 100%)', borderColor: 'rgba(169,139,184,0.28)', overflow: 'hidden' } });
   calendarCard.innerHTML = `
     <div class="row-between" style="margin-bottom:14px;">
       <div>
@@ -3355,12 +3631,12 @@ function PremiumPage() {
       </div>
       <span class="badge badge-lilac">${mayMeetings.length}회 예정</span>
     </div>`;
-  const weekHeader = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', marginBottom: '8px' } });
+  const weekHeader = el('div', { class: 'premium-calendar-grid', style: { marginBottom: '8px' } });
   ['일','월','화','수','목','금','토'].forEach((label) => {
     weekHeader.appendChild(el('div', { style: { textAlign: 'center', fontSize: '12px', color: 'var(--muted)', padding: '6px 0' } }, label));
   });
   calendarCard.appendChild(weekHeader);
-  const grid = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px' } });
+  const grid = el('div', { class: 'premium-calendar-grid' });
   const firstDayOffset = 5;
   for (let i = 0; i < firstDayOffset; i++) {
     grid.appendChild(el('div', { style: { aspectRatio: '1', borderRadius: '12px' } }));
@@ -3368,16 +3644,11 @@ function PremiumPage() {
   for (let day = 1; day <= 31; day++) {
     const isMeeting = mayMeetings.includes(day);
     const cell = el('div', {
+      class: 'premium-calendar-cell',
       style: {
-        aspectRatio: '1',
-        borderRadius: '14px',
         background: isMeeting ? 'var(--lilac)' : '#fff',
         color: isMeeting ? '#fff' : 'var(--ink)',
         border: isMeeting ? 'none' : '1px solid rgba(231,221,200,0.9)',
-        padding: '10px 8px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
         boxShadow: isMeeting ? '0 8px 20px -12px rgba(169,139,184,0.8)' : 'none',
       }
     });
@@ -4181,9 +4452,15 @@ function ProfilePage() {
   const hero = el('div', { class: 'card card-flat', style: { textAlign: 'center', padding: '24px 20px' } });
   hero.innerHTML = `
     <div class="avatar orange" style="width:68px;height:68px;border-radius:22px;font-size:24px;margin:0 auto 12px;">${state.name.slice(0,1)}</div>
-    <h2 class="h1" style="margin-top:4px;">${state.name}</h2>
-    <div class="t-body" style="margin-top:4px;">${CHALLENGE.cohort} · Team A · ${state.tier === 'premium' ? '⭐ Premium 멤버' : '🎓 Basic 멤버'}</div>
-    <div class="badge" style="margin-top:10px;background:var(--paper);color:var(--ink);padding:7px 12px;">직무 · ${escapeHtml(state.role || '미입력')}</div>`;
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;">
+      <h2 class="h1" style="margin-top:4px;">${state.name}</h2>
+      ${state.tier === 'premium' ? '<span class="badge badge-lilac" style="padding:4px 8px;">P</span>' : ''}
+    </div>
+    <div class="t-body" style="margin-top:4px;">${CHALLENGE.cohort} · Team A · ${state.tier === 'premium' ? 'Premium 멤버' : 'Basic 멤버'}</div>
+    <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:10px;">
+      <div class="badge" style="background:var(--paper);color:var(--ink);padding:7px 12px;">직무 · ${escapeHtml(state.role || '미입력')}</div>
+      <div class="badge" style="background:var(--paper);color:var(--ink);padding:7px 12px;">시차 · ${escapeHtml(state.timezoneOffsetText || '+0h')}</div>
+    </div>`;
   page.appendChild(hero);
 
   // 2. 진행 현황 (stats grid moved up)
@@ -4605,63 +4882,90 @@ function CommunityPage() {
   });
   page.appendChild(chips);
 
-  // Build merged feed for the selected day:
-  //   - My submitted sentences (from state.sentences) — editable, raw English
-  //   - Peer sentences from PEER_SENTENCES / fallback generator
-  //   - Today only: append curated COMMUNITY_POSTS
-  const myName = state.name || '박지혜';
   const dayData = selDayObj;
-  const myPosts = [];
-  if (dayData && dayData.words) {
-    dayData.words.forEach((w, i) => {
-      const raw = state.sentences[`d${selectedDay}-${i}`];
-      if (!raw || !raw.trim()) return;
-      const submitted = state.submitted?.[`d${selectedDay}-${i}`];
-      // Only raw SUBMITTED sentences appear in community
-      if (!submitted) return;
-      const edit = state.community_edits?.[`me-d${selectedDay}-${i}`];
-      myPosts.push({
-        id: `me-d${selectedDay}-${i}`,
-        user: myName,
-        team: 'A',
-        avatar: myName.slice(0, 1),
-        avatarClass: 'orange',
-        word: (w.en || '').toUpperCase(),
-        time: '방금',
-        sentence: edit?.sentence || raw,
-        translation: edit?.translation || '',
-        likes: 0,
-        comments: 0,
-        mine: true,
-        edited: !!edit,
-      });
-    });
-  }
-  const peers = peerSentencesFor(selectedDay).map((p, idx) => {
-    const w = dayData && dayData.words ? (dayData.words[p.wordIdx] || dayData.words[0]) : { en: '' };
-    return {
-      id: `peer-d${selectedDay}-${idx}`,
-      user: p.user,
-      team: p.team,
-      avatar: p.avatar,
-      avatarClass: idx % 2 === 0 ? 'cream' : 'ink',
-      word: (w.en || '').toUpperCase(),
-      time: p.time,
-      sentence: p.sentence,
-      translation: p.translation,
-      likes: p.likes || 0,
+  let basePosts = [];
+  if (hasSupabase()) {
+    const remotePosts = requestCommunityPosts(selectedDay);
+    basePosts = remotePosts.map((post) => ({
+      id: post.id,
+      sourceKey: post.source_key,
+      user: post.user,
+      team: post.team || 'A',
+      avatar: (post.user || '').slice(0, 2),
+      avatarClass: post.member_key === memberKey() ? 'orange' : 'cream',
+      word: post.word || '',
+      time: '방금',
+      sentence: post.sentence,
+      translation: post.translation || '',
+      likesCount: Number(post.likes_count || 0),
+      likedByMe: !!post.liked_by_me,
       comments: 0,
-    };
-  });
-  const curated = selectedDay === state.currentDay ? COMMUNITY_POSTS : [];
-  let basePosts = [...myPosts, ...peers, ...curated];
+      mine: post.member_key === memberKey(),
+      edited: !!post.updated_at && post.updated_at !== post.created_at,
+      member_key: post.member_key,
+      tier: post.tier,
+      role: post.role,
+      timezone_text: post.timezone_text,
+    }));
+  } else {
+    const myName = state.name || '박지혜';
+    const myPosts = [];
+    if (dayData && dayData.words) {
+      dayData.words.forEach((w, i) => {
+        const raw = state.sentences[`d${selectedDay}-${i}`];
+        if (!raw || !raw.trim()) return;
+        const submitted = state.submitted?.[`d${selectedDay}-${i}`];
+        if (!submitted) return;
+        const edit = state.community_edits?.[`me-d${selectedDay}-${i}`];
+        myPosts.push({
+          id: `me-d${selectedDay}-${i}`,
+          sourceKey: `d${selectedDay}-${i}`,
+          user: myName,
+          team: 'A',
+          avatar: myName.slice(0, 1),
+          avatarClass: 'orange',
+          word: (w.en || '').toUpperCase(),
+          time: '방금',
+          sentence: edit?.sentence || raw,
+          translation: edit?.translation || '',
+          likesCount: 0,
+          likedByMe: false,
+          comments: 0,
+          mine: true,
+          edited: !!edit,
+        });
+      });
+    }
+    const peers = peerSentencesFor(selectedDay).map((p, idx) => {
+      const w = dayData && dayData.words ? (dayData.words[p.wordIdx] || dayData.words[0]) : { en: '' };
+      return {
+        id: `peer-d${selectedDay}-${idx}`,
+        user: p.user,
+        team: p.team,
+        avatar: p.avatar,
+        avatarClass: idx % 2 === 0 ? 'cream' : 'ink',
+        word: (w.en || '').toUpperCase(),
+        time: p.time,
+        sentence: p.sentence,
+        translation: p.translation,
+        likesCount: p.likes || 0,
+        likedByMe: false,
+        comments: 0,
+      };
+    });
+    const curated = selectedDay === state.currentDay ? COMMUNITY_POSTS : [];
+    basePosts = [...myPosts, ...peers, ...curated];
+  }
   if (filterState !== 'all') basePosts = basePosts.filter((p) => p.word === filterState);
 
   const stack = el('div', { style: { marginTop: '4px' } });
   basePosts.forEach((post) => {
-    const liked = !!likedMap[post.id];
+    const member = memberByRef(post.user) || (post.mine ? meMember() : null);
+    const role = memberRole(member);
+    const tz = memberTimezoneText(member);
+    const liked = hasSupabase() ? !!post.likedByMe : !!likedMap[post.id];
     const saved = !!savedMap[post.id];
-    const likeCount = post.likes + (liked ? 1 : 0);
+    const likeCount = hasSupabase() ? Number(post.likesCount || 0) : ((post.likesCount || 0) + (liked ? 1 : 0));
     const row = el('div', {
       style: {
         display: 'grid',
@@ -4679,7 +4983,7 @@ function CommunityPage() {
     const editTag = post.edited
       ? `<span style="font-size:10px;color:var(--muted);margin-left:6px;">(수정됨)</span>` : '';
     const mineEditBtn = post.mine
-      ? `<button onclick="window.__editMyCommunityPost('${post.id}')" style="background:transparent;border:none;padding:2px 6px;font-size:11px;color:var(--orange-dark);cursor:pointer;">수정</button>` : '';
+      ? `<button onclick="window.__editMyCommunityPost(${JSON.stringify(post.id)}, ${JSON.stringify(post.sourceKey || '')})" style="background:transparent;border:none;padding:2px 6px;font-size:11px;color:var(--orange-dark);cursor:pointer;">수정</button>` : '';
     row.innerHTML = `
       <button onclick="window.__openMemberCard(${JSON.stringify(post.user)})" style="background:transparent;border:none;padding:0;">
         <div class="avatar ${post.avatarClass}" style="width:34px;height:34px;border-radius:10px;font-size:12px;">${post.avatar}</div>
@@ -4687,7 +4991,10 @@ function CommunityPage() {
       <div style="min-width:0;">
         <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
           <button onclick="window.__openMemberCard(${JSON.stringify(post.user)})" style="background:transparent;border:none;padding:0;font-size:12.5px;font-weight:700;color:var(--ink);letter-spacing:-0.01em;cursor:pointer;">${escapeHtml(post.user)}</button>
+          ${premiumPill(member)}
           <span style="font-size:10px;color:var(--muted);">Team ${post.team}</span>
+          ${role ? `<span style="font-size:10px;color:var(--ink-soft);">${escapeHtml(role)}</span>` : ''}
+          ${tz ? `<span style="font-size:10px;color:var(--muted);" class="mono">${escapeHtml(tz)}</span>` : ''}
           <span style="font-size:10px;color:var(--muted);">· ${post.time}</span>
           <span style="font-size:9.5px;font-weight:700;letter-spacing:0.08em;color:var(--orange-dark);background:var(--orange-ghost);padding:2px 6px;border-radius:4px;">${escapeHtml(post.word)}</span>
           ${editTag}
@@ -4695,10 +5002,10 @@ function CommunityPage() {
         <p style="margin:5px 0 0;font-size:13.5px;line-height:1.5;color:var(--ink);letter-spacing:-0.01em;">${highlighted}</p>
         ${post.translation ? `<p style="margin:3px 0 0;font-size:11.5px;line-height:1.45;color:var(--ink-soft);word-break:keep-all;">${escapeHtml(post.translation)}</p>` : ''}
         <div style="display:flex;gap:12px;margin-top:6px;align-items:center;">
-          <button onclick="window.__toggleCommunityLike('${post.id}')" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:${liked ? 'var(--orange-dark)' : 'var(--muted)'};font-size:11px;font-weight:${liked ? '700' : '500'};">${Icon('flame', 10)} ${likeCount}</button>
+          <button onclick="window.__toggleCommunityLike(${JSON.stringify(post.id)})" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:${liked ? 'var(--orange-dark)' : 'var(--muted)'};font-size:11px;font-weight:${liked ? '700' : '500'};">${Icon('flame', 10)} ${likeCount}</button>
           <button onclick="showToast('댓글은 다음 단계에서 연결할게요.')" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:var(--muted);font-size:11px;">${Icon('messageCircle', 10)} ${post.comments}</button>
           <button onclick="window.__speakText(${JSON.stringify(post.sentence)})" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:var(--muted);font-size:11px;">${Icon('volume', 10)} 듣기</button>
-          <button onclick="window.__toggleCommunityBookmark('${post.id}')" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:${saved ? 'var(--orange-dark)' : 'var(--muted)'};font-size:11px;margin-left:auto;">${Icon(saved ? 'bookmarkFill' : 'bookmark', 10)}</button>
+          <button onclick="window.__toggleCommunityBookmark(${JSON.stringify(post.id)})" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:${saved ? 'var(--orange-dark)' : 'var(--muted)'};font-size:11px;margin-left:auto;">${Icon(saved ? 'bookmarkFill' : 'bookmark', 10)}</button>
           ${mineEditBtn}
         </div>
       </div>`;
@@ -4730,6 +5037,7 @@ function SettingsModal() {
   });
   const ROLE_PRESETS = ['PM', '마케터', '디자이너', '개발자', '기획자', '세일즈', '리서처', 'HR'];
   const currentRole = state.role || '';
+  const currentTimezone = state.timezoneOffsetText || '+0h';
   const presetChips = ROLE_PRESETS.map((r) => {
     const active = currentRole === r;
     return `<button class="role-chip" data-role="${escapeHtml(r)}" style="border:1px solid ${active ? 'var(--ink)' : 'var(--line)'};background:${active ? 'var(--ink)' : '#FFFDF7'};color:${active ? 'var(--cream)' : 'var(--ink)'};border-radius:999px;padding:7px 14px;font-size:12px;font-weight:${active ? '700' : '500'};cursor:pointer;">${escapeHtml(r)}</button>`;
@@ -4738,11 +5046,11 @@ function SettingsModal() {
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
       <div>
         <div class="kicker">SETTINGS · 설정</div>
-        <h2 style="margin:6px 0 0;font-size:20px;font-weight:800;letter-spacing:-0.02em;">직무 변경</h2>
+        <h2 style="margin:6px 0 0;font-size:20px;font-weight:800;letter-spacing:-0.02em;">내 정보 관리</h2>
       </div>
       <button id="__settingsClose" class="icon-btn" style="width:36px;height:36px;border-radius:12px;" title="닫기">✕</button>
     </div>
-    <p class="t-body" style="margin-top:10px;font-size:13px;color:var(--ink-soft);line-height:1.5;">이름은 고정이에요. 직무는 언제든 바꿔도 돼요 — 커뮤니티와 AI 리뷰에서 톤을 맞추는 데 사용돼요.</p>
+    <p class="t-body" style="margin-top:10px;font-size:13px;color:var(--ink-soft);line-height:1.5;">이름은 코드 기준으로 유지되고, 직무와 시차는 언제든 바꿀 수 있어요.</p>
     <div style="margin-top:16px;">
       <div class="kicker" style="color:var(--muted);">이름 (수정 불가)</div>
       <div style="margin-top:6px;padding:12px 14px;border-radius:12px;background:var(--paper);color:var(--ink-soft);font-size:14px;font-weight:600;">${escapeHtml(state.name || '박지혜')}</div>
@@ -4755,6 +5063,17 @@ function SettingsModal() {
       <div class="kicker" style="color:var(--muted);">직접 입력</div>
       <input id="__settingsRoleInput" class="input" type="text" placeholder="예: 프로덕트 디자이너" value="${escapeHtml(currentRole)}" style="margin-top:8px;" />
     </div>
+    <div style="margin-top:14px;">
+      <div class="kicker" style="color:var(--muted);">한국 대비 시차</div>
+      <input id="__settingsTimezoneInput" class="input" type="text" placeholder="예: +0h, -13h, +1:30h" value="${escapeHtml(currentTimezone)}" style="margin-top:8px;" />
+    </div>
+    ${state.isOperator ? `
+      <div style="margin-top:14px;padding:14px;border-radius:14px;background:#FFF7EF;border:1px solid rgba(240,125,56,0.18);">
+        <div class="kicker" style="color:var(--orange-dark);">OPERATOR ONLY</div>
+        <div style="margin-top:6px;font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">가입 화면부터 다시 확인할 수 있어요.</div>
+        <button id="__settingsResetApp" class="btn btn-ghost btn-full" style="margin-top:12px;border-color:rgba(240,125,56,0.24);">가입부터 다시 시작</button>
+      </div>
+    ` : ''}
     <div style="display:flex;gap:8px;margin-top:20px;">
       <button id="__settingsCancel" class="btn btn-ghost" style="flex:1;">취소</button>
       <button id="__settingsSave" class="btn btn-primary" style="flex:1;">저장</button>
@@ -4764,20 +5083,31 @@ function SettingsModal() {
   // Wire up handlers after mount
   setTimeout(() => {
     const input = document.getElementById('__settingsRoleInput');
+    const timezoneInput = document.getElementById('__settingsTimezoneInput');
     const closeBtn = document.getElementById('__settingsClose');
     const cancelBtn = document.getElementById('__settingsCancel');
     const saveBtn = document.getElementById('__settingsSave');
+    const resetBtn = document.getElementById('__settingsResetApp');
     const close = () => { showSettings = false; render(); };
     if (closeBtn) closeBtn.onclick = close;
     if (cancelBtn) cancelBtn.onclick = close;
     if (saveBtn) saveBtn.onclick = () => {
       const next = (input && input.value || '').trim();
+      const timezone = parseTimezoneShift(timezoneInput && timezoneInput.value);
+      if (!timezone.ok) {
+        showToast('시차 형식이 맞지 않아요. 예: +0h, -13h, +1:30h');
+        return;
+      }
       state.role = next;
+      state.timezoneOffsetText = timezone.text;
+      state.timezoneOffsetMinutes = timezone.offsetMinutes;
+      state.currentDay = computeCurrentDay();
       saveState();
       showSettings = false;
-      showToast('✅ 직무를 업데이트했어요' + (next ? ` · ${next}` : ''));
+      showToast('내 정보를 업데이트했어요.');
       render();
     };
+    if (resetBtn) resetBtn.onclick = () => window.__resetForSignup();
     modal.querySelectorAll('.role-chip').forEach((chip) => {
       chip.onclick = () => {
         const r = chip.getAttribute('data-role') || '';
@@ -4820,11 +5150,13 @@ function MemberCardModal(memberRef) {
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <div style="font-size:24px;font-weight:800;letter-spacing:-0.03em;line-height:1.08;">${escapeHtml(member.name)}</div>
+          ${premiumPill(member)}
           ${member.me ? '<span class="badge badge-orange">ME</span>' : ''}
         </div>
         <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span class="badge">${escapeHtml(member.role)}</span>
+          ${member.role ? `<span class="badge">${escapeHtml(member.role)}</span>` : ''}
           <span class="t-small mono" style="color:var(--muted);">Team ${member.team}</span>
+          ${member.timezoneText ? `<span class="t-small mono" style="color:var(--muted);">${escapeHtml(member.timezoneText)}</span>` : ''}
           <span class="t-small mono" style="color:var(--muted);">${member.progress}/20</span>
           <span class="t-small mono" style="color:var(--orange);display:inline-flex;align-items:center;gap:4px;">${Icon('flame', 11)} ${member.streak}d</span>
         </div>
@@ -5220,7 +5552,29 @@ window.__advanceVerifyQuiz = (dayN, skipped) => {
   window.__verifyUi[dayN] = ui;
   render();
 };
-window.__toggleCommunityLike = (postId) => {
+window.__toggleCommunityLike = async (postId) => {
+  if (hasSupabase()) {
+    const current = Object.values(communityFeedCache).flatMap((entry) => entry?.rows || []).find((post) => post.id === postId);
+    const nextLiked = !(current?.liked_by_me);
+    try {
+      const likesCount = await supabaseRpc('set_community_like', {
+        p_cohort: CHALLENGE.cohort,
+        p_post_id: postId,
+        p_member_key: memberKey(),
+        p_liked: nextLiked,
+      });
+      patchCachedCommunityPost(postId, (post) => ({
+        ...post,
+        liked_by_me: nextLiked,
+        likes_count: Number(likesCount || 0),
+      }));
+      render();
+      return;
+    } catch (e) {
+      showToast('좋아요 동기화에 실패했어요.');
+      return;
+    }
+  }
   state.community_likes[postId] = !state.community_likes[postId];
   saveState();
   render();
@@ -5247,26 +5601,28 @@ window.__toggleCommunityBookmark = (postId) => {
   showToast(state.community_bookmarks[postId] ? '문장을 저장했어요.' : '저장을 해제했어요.');
   render();
 };
-window.__editMyCommunityPost = (postId) => {
-  // Only allow editing own posts (ids start with "me-")
-  if (!postId.startsWith('me-')) return;
-  const m = postId.match(/^me-d(\d+)-(\d+)$/);
+window.__editMyCommunityPost = async (postId, sourceKey = '') => {
+  const source = sourceKey || (String(postId).includes('::') ? String(postId).split('::').pop() : postId.replace(/^me-/, ''));
+  const m = String(source).match(/^d(\d+)-(\d+)$/);
   if (!m) return;
-  const [_, dayN, idx] = m;
-  const current = state.community_edits?.[postId]?.sentence || state.sentences[`d${dayN}-${idx}`] || '';
+  const [, dayN, idx] = m;
+  const localEditKey = `me-${source}`;
+  const current = state.community_edits?.[localEditKey]?.sentence || state.sentences[source] || '';
   const next = window.prompt('내 문장을 다시 써볼까요? (수정됨 태그가 붙어요)', current);
   if (next === null) return;
   const trimmed = next.trim();
   if (!trimmed) { showToast('빈 문장은 저장하지 않아요.'); return; }
   state.community_edits = state.community_edits || {};
-  state.community_edits[postId] = {
+  state.community_edits[localEditKey] = {
     sentence: trimmed,
-    translation: state.community_edits?.[postId]?.translation || '',
+    translation: state.community_edits?.[localEditKey]?.translation || '',
     editedAt: new Date().toISOString(),
   };
-  // Keep the underlying sentence in sync so raw storage reflects latest.
-  state.sentences[`d${dayN}-${idx}`] = trimmed;
+  state.sentences[source] = trimmed;
   saveState();
+  if (state.submitted?.[source]) {
+    try { await upsertCommunityPost(Number(dayN), Number(idx)); } catch (e) {}
+  }
   showToast('수정했어요. (수정됨) 태그가 붙었어요.');
   render();
 };
@@ -5356,6 +5712,24 @@ window.__resetTier = () => {
     showToast('베이직으로 되돌렸어요.');
     go('home');
   }
+};
+window.__resetForSignup = () => {
+  if (!state.isOperator) return;
+  if (!confirm('가입 화면부터 다시 시작할까요? 이 기기에서 저장된 로그인 상태가 초기화돼요.')) return;
+  try { localStorage.removeItem(LS_KEY); } catch (e) {}
+  state = defaultState();
+  state.currentDay = computeCurrentDay();
+  __onboardStep = 0;
+  __onboardDraft = { name: '', code: '', goal: '', role: '', roleSkipped: false, timezoneOffsetText: '+0h' };
+  showSettings = false;
+  showPremiumGate = false;
+  activeMemberCard = null;
+  currentPage = 'home';
+  currentWeek = 1;
+  currentDay = state.currentDay;
+  bindMeToMembers();
+  saveRoute();
+  render();
 };
 
 /* ============================================================
@@ -5596,6 +5970,7 @@ if (!__DEMO_MODE__ && hasSupabase()) {
       if (remote && typeof remote === 'object') {
         mergePersistedState(remote);
         bindMeToMembers();
+        await loadCommunityPosts(state.communityDay || state.currentDay, { force: true });
         render();
       }
     } catch (e) { console.warn('loadRemoteState failed', e); }
@@ -5605,7 +5980,16 @@ if (!__DEMO_MODE__ && hasSupabase()) {
 if (hasSupabase()) {
   refreshDashboardStats();
   setInterval(refreshDashboardStats, 60 * 60 * 1000);
+  setInterval(() => {
+    if (!document.hidden) refreshRemoteStateAndCommunity();
+  }, COMMUNITY_REFRESH_MS);
 }
+window.addEventListener('focus', () => {
+  if (hasSupabase() && !document.hidden) refreshRemoteStateAndCommunity({ force: true });
+});
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && hasSupabase()) refreshRemoteStateAndCommunity({ force: true });
+});
 render();
 </script>
 </body>

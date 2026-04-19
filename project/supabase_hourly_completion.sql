@@ -167,3 +167,220 @@ $$;
 
 grant execute on function public.get_member_app_state(text, text) to anon, authenticated;
 grant execute on function public.upsert_member_app_state(text, text, text, text, jsonb) to anon, authenticated;
+
+create table if not exists public.challenge_community_posts (
+  id bigint generated always as identity primary key,
+  cohort text not null,
+  post_id text not null,
+  member_key text not null,
+  member_name text not null,
+  member_role text,
+  member_tier text,
+  member_team text,
+  member_timezone text,
+  day_n integer not null check (day_n between 1 and 20),
+  word text,
+  sentence text not null,
+  translation text,
+  source_key text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (cohort, post_id)
+);
+
+create index if not exists idx_challenge_community_posts_lookup
+  on public.challenge_community_posts (cohort, day_n, updated_at desc);
+
+create table if not exists public.challenge_community_likes (
+  id bigint generated always as identity primary key,
+  cohort text not null,
+  post_id text not null,
+  member_key text not null,
+  created_at timestamptz not null default now(),
+  unique (cohort, post_id, member_key)
+);
+
+create index if not exists idx_challenge_community_likes_lookup
+  on public.challenge_community_likes (cohort, post_id);
+
+create or replace function public.upsert_community_post(
+  p_cohort text,
+  p_post_id text,
+  p_member_key text,
+  p_member_name text,
+  p_member_role text,
+  p_member_tier text,
+  p_member_team text,
+  p_member_timezone text,
+  p_day_n integer,
+  p_word text,
+  p_sentence text,
+  p_translation text default '',
+  p_source_key text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.challenge_community_posts (
+    cohort,
+    post_id,
+    member_key,
+    member_name,
+    member_role,
+    member_tier,
+    member_team,
+    member_timezone,
+    day_n,
+    word,
+    sentence,
+    translation,
+    source_key,
+    updated_at
+  )
+  values (
+    p_cohort,
+    p_post_id,
+    p_member_key,
+    p_member_name,
+    p_member_role,
+    p_member_tier,
+    p_member_team,
+    p_member_timezone,
+    p_day_n,
+    p_word,
+    p_sentence,
+    coalesce(p_translation, ''),
+    p_source_key,
+    now()
+  )
+  on conflict (cohort, post_id)
+  do update set
+    member_name = excluded.member_name,
+    member_role = excluded.member_role,
+    member_tier = excluded.member_tier,
+    member_team = excluded.member_team,
+    member_timezone = excluded.member_timezone,
+    day_n = excluded.day_n,
+    word = excluded.word,
+    sentence = excluded.sentence,
+    translation = excluded.translation,
+    source_key = excluded.source_key,
+    updated_at = now();
+end;
+$$;
+
+create or replace function public.delete_community_post(
+  p_cohort text,
+  p_post_id text,
+  p_member_key text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  delete from public.challenge_community_likes
+  where cohort = p_cohort
+    and post_id = p_post_id;
+
+  delete from public.challenge_community_posts
+  where cohort = p_cohort
+    and post_id = p_post_id
+    and member_key = p_member_key;
+end;
+$$;
+
+create or replace function public.set_community_like(
+  p_cohort text,
+  p_post_id text,
+  p_member_key text,
+  p_liked boolean
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_count integer;
+begin
+  if coalesce(p_liked, false) then
+    insert into public.challenge_community_likes (cohort, post_id, member_key)
+    values (p_cohort, p_post_id, p_member_key)
+    on conflict (cohort, post_id, member_key) do nothing;
+  else
+    delete from public.challenge_community_likes
+    where cohort = p_cohort
+      and post_id = p_post_id
+      and member_key = p_member_key;
+  end if;
+
+  select count(*)::int
+    into v_count
+  from public.challenge_community_likes
+  where cohort = p_cohort
+    and post_id = p_post_id;
+
+  return coalesce(v_count, 0);
+end;
+$$;
+
+create or replace function public.get_community_posts(
+  p_cohort text,
+  p_day integer,
+  p_viewer_key text default null
+)
+returns jsonb
+language sql
+security definer
+set search_path = public
+as $$
+with post_rows as (
+  select
+    p.post_id as id,
+    p.member_key,
+    p.member_name as user,
+    p.member_role as role,
+    p.member_tier as tier,
+    p.member_team as team,
+    p.member_timezone as timezone_text,
+    p.day_n,
+    p.word,
+    p.sentence,
+    p.translation,
+    p.source_key,
+    p.created_at,
+    p.updated_at,
+    coalesce(l.likes_count, 0)::int as likes_count,
+    exists(
+      select 1
+      from public.challenge_community_likes cl
+      where cl.cohort = p_cohort
+        and cl.post_id = p.post_id
+        and cl.member_key = p_viewer_key
+    ) as liked_by_me
+  from public.challenge_community_posts p
+  left join (
+    select cohort, post_id, count(*)::int as likes_count
+    from public.challenge_community_likes
+    where cohort = p_cohort
+    group by cohort, post_id
+  ) l
+    on l.cohort = p.cohort
+   and l.post_id = p.post_id
+  where p.cohort = p_cohort
+    and p.day_n = p_day
+  order by p.updated_at desc, p.created_at desc
+)
+select coalesce(jsonb_agg(to_jsonb(post_rows)), '[]'::jsonb)
+from post_rows;
+$$;
+
+grant execute on function public.upsert_community_post(text, text, text, text, text, text, text, text, integer, text, text, text, text) to anon, authenticated;
+grant execute on function public.delete_community_post(text, text, text) to anon, authenticated;
+grant execute on function public.set_community_like(text, text, text, boolean) to anon, authenticated;
+grant execute on function public.get_community_posts(text, integer, text) to anon, authenticated;
