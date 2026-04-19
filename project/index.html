@@ -2827,6 +2827,7 @@ function WeeksPage() {
 }
 
 function buildVerifyQuestions(dayN) {
+  // 베타: 오늘의 3단어만 출제. (추후 계획: 3개 맞추면 추가로 복습 7문항 랜덤, 전체 랜덤 모드 등)
   const day = getDay(dayN);
   const primary = (day?.words || []).map((w) => ({
     en: w.en,
@@ -2835,31 +2836,7 @@ function buildVerifyQuestions(dayN) {
     prompt: w.ex_en || `Let's use ${w.en} in a sentence.`,
     prompt_kr: w.ex_kr || '',
   }));
-  const reviewPool = [];
-  CHALLENGE.weeks.forEach((week) => {
-    week.days.forEach((item) => {
-      if (item.day >= dayN) return;
-      item.words.forEach((w) => {
-        reviewPool.push({
-          day: item.day,
-          en: w.en,
-          kr: w.def,
-          syn: w.syn || [],
-          prompt: w.ex_en || `Let's use ${w.en} in a sentence.`,
-          prompt_kr: w.ex_kr || '',
-        });
-      });
-    });
-  });
-  reviewPool.sort((a, b) => b.day - a.day);
-  const seen = new Set();
-  const deduped = [...primary, ...reviewPool, ...VERIFY_VOCAB_BANK].filter((item) => {
-    const key = item.en.toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-  return [...deduped.slice(0, 3), ...deduped.slice(3).slice(0, 7)];
+  return primary;
 }
 
 function VerifyPage(dayN) {
@@ -2909,13 +2886,13 @@ function VerifyPage(dayN) {
   panel.innerHTML = `<div class="kicker" style="color:rgba(251,247,240,0.6)">STEP ${steps.findIndex((step) => step.id === activeStep) + 1}/4 · ${activeMeta.time}</div><h2 class="h2" style="margin-top:10px;color:var(--cream);font-size:28px;line-height:1.24;">${activeMeta.label}</h2>`;
 
   if (activeStep === 'capture') {
-    const passed = ui.done && (ui.score / questions.length) >= 0.7;
+    const passed = ui.done && questions.length > 0 && ui.score === questions.length;
     const wrap = el('div', { style: { marginTop: '20px' } });
     if (ui.done) {
       wrap.innerHTML = `
         <div style="padding:24px;border-radius:22px;background:rgba(251,247,240,0.06);border:1px solid rgba(251,247,240,0.12);text-align:center;">
           <div class="kicker" style="color:rgba(251,247,240,0.5)">단어 시험 결과</div>
-          <div class="h3" style="margin-top:10px;color:var(--cream);">${passed ? '제출 가능한 점수예요' : '70% 이상이 되면 제출할 수 있어요'}</div>
+          <div class="h3" style="margin-top:10px;color:var(--cream);">${passed ? '모두 맞췄어요! 제출 가능해요' : '모두 맞춰야 제출할 수 있어요'}</div>
           <div style="margin-top:10px;font-size:34px;font-weight:800;color:${passed ? 'var(--orange)' : 'var(--cream)'};">${ui.score}<span style="color:rgba(251,247,240,0.3);font-size:24px;">/${questions.length}</span></div>
           <div class="t-small" style="color:rgba(251,247,240,0.6);margin-top:6px;">정답률 ${Math.round(ui.score / questions.length * 100)}%</div>
           <button class="btn btn-ghost" style="margin-top:14px;background:#fff;color:var(--ink);border:none;" onclick="window.__restartVerifyQuiz(${dayN})">다시 풀기</button>
@@ -2935,7 +2912,7 @@ function VerifyPage(dayN) {
       wrap.innerHTML = `
         <div style="padding:18px 18px 20px;border-radius:22px;background:#F7F5FF;border:1px solid rgba(255,255,255,0.08);color:var(--ink);">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-            <div class="kicker" style="color:#8B84D7;">오늘의 단어 · 기본 10문제</div>
+            <div class="kicker" style="color:#8B84D7;">오늘의 단어 · 기본 ${questions.length}문제</div>
             <span class="badge" style="background:#ECE8FF;color:#5C53A5;">${ui.idx + 1} / ${questions.length}</span>
           </div>
           <div style="margin-top:18px;padding:28px 18px;border-radius:24px;background:rgba(255,255,255,0.68);text-align:center;box-shadow:inset 0 0 0 1px rgba(236,232,255,0.9);">
