@@ -1387,19 +1387,35 @@ function memberByRef(ref) {
 function memberCardData(ref) {
   const member = memberByRef(ref);
   if (!member) return null;
-  const spot = MEMBER_SPOTLIGHTS[member.id] || {};
   const progress = member.me ? completedCount() : member.progress;
-  const role = memberRole(member) || (typeof spot.role === 'function' ? spot.role() : (spot.role || (member.team === 'A' ? '운영' : '기획')));
-  const phrase = recentSavedExpressionForMember(member) || spot.phrase || 'align on';
-  const nextDay = Math.min(progress + 1, CHALLENGE.total_days);
+  const role = memberRole(member);
+  const phrase = recentSavedExpressionForMember(member) || '';
+
+  // For "me", always use the user's real onboarding goal from state.
+  // For others, we don't fabricate a goal — we show a neutral line. (Once server data
+  // includes per-member goal visibility, this will pull the real value.)
+  let goal = '';
+  let motive = '';
+  let focus = '';
+  if (member.me) {
+    goal = (state.goal || '').trim();
+    motive = '';
+    focus = '';
+  } else {
+    // No fake hardcoded goal — keep the card honest for beta.
+    goal = '';
+    motive = '';
+    focus = '';
+  }
+
   return {
     ...member,
     progress,
     role,
     timezoneText: memberTimezoneText(member),
-    goal: spot.goal || '하루 한 문장이라도 내 상황에 맞게 직접 말해보기',
-    motive: spot.motive || '작게라도 매일 이어가면 회의에서 입이 먼저 풀린다고 믿어요.',
-    focus: spot.focus || `다음은 Day ${nextDay}까지 흐름 끊기지 않게 이어가기`,
+    goal,
+    motive,
+    focus,
     phrase,
   };
 }
@@ -2181,11 +2197,11 @@ function OnboardingPage() {
       </p>
       <label style="display:grid;gap:6px;margin-bottom:12px;">
         <span class="kicker" style="color:var(--muted);">이름</span>
-        <input id="__obName" class="input" type="text" placeholder="예: 박지혜" value="${escapeHtml(__onboardDraft.name)}" autocomplete="name" />
+        <input id="__obName" class="input" type="text" placeholder="유버디" value="${escapeHtml(__onboardDraft.name)}" autocomplete="name" />
       </label>
       <label style="display:grid;gap:6px;margin-bottom:6px;">
         <span class="kicker" style="color:var(--muted);">접속 코드</span>
-        <input id="__obCode" class="input" type="text" placeholder="예: YB5" value="${escapeHtml(__onboardDraft.code)}" autocomplete="off" />
+        <input id="__obCode" class="input" type="text" placeholder="숫자를 입력해주세요" value="${escapeHtml(__onboardDraft.code)}" autocomplete="off" inputmode="numeric" />
       </label>
       <label style="display:grid;gap:6px;margin-top:12px;">
         <span class="kicker" style="color:var(--muted);">한국 대비 시차</span>
@@ -2315,7 +2331,7 @@ function OnboardingPage() {
   return page;
 }
 
-function __onboardAdvance() {
+async function __onboardAdvance() {
   if (__onboardStep === 0) {
     const name = (__onboardDraft.name || '').trim();
     const code = (__onboardDraft.code || '').trim();
@@ -2337,6 +2353,46 @@ function __onboardAdvance() {
       }
       if (match.role) __onboardDraft.role = match.role;
     }
+
+    // === Returning-user shortcut ===
+    // If the server already has an onboarded state for this (code+name), treat this as a login
+    // and skip the goal/role steps entirely.
+    if (hasSupabase()) {
+      const hint = document.getElementById('__obCodeHint');
+      if (hint) { hint.textContent = '기존 기록을 확인하고 있어요…'; hint.style.color = 'var(--muted)'; }
+      const probeKey = [code || 'guest', name].filter(Boolean).join(':');
+      // Stash a temp account key so memberKey() resolves correctly during the probe.
+      const prevAccountKey = state.accountKey;
+      state.accountKey = probeKey;
+      let remote = null;
+      try { remote = await loadRemoteState(); } catch (_) { remote = null; }
+      state.accountKey = prevAccountKey;
+      if (remote && typeof remote === 'object' && remote.onboarded === true) {
+        // Existing account — treat as login. Merge server state and jump home.
+        try { mergePersistedState(remote); } catch (_) {}
+        // Make sure the essentials from this session's entry are honored
+        state.name = name;
+        state.accessCode = code;
+        state.accountKey = probeKey;
+        state.timezoneOffsetText = timezone.ok ? timezone.text : (state.timezoneOffsetText || '+0h');
+        state.timezoneOffsetMinutes = timezone.ok ? timezone.offsetMinutes : (state.timezoneOffsetMinutes || DEFAULT_TIMEZONE_OFFSET);
+        if (match && match.tier) state.tier = match.tier;
+        state.isOperator = !!(match && match.isOperator);
+        state.onboarded = true;
+        state.currentDay = computeCurrentDay();
+        bindMeToMembers();
+        saveState({ immediate: true });
+        showToast(`다시 만나서 반가워요, ${state.name}!`);
+        currentPage = 'home';
+        __onboardStep = 0;
+        __onboardDraft = { name: '', code: '', goal: '', role: '', roleSkipped: false, timezoneOffsetText: '+0h' };
+        saveRoute();
+        render();
+        return;
+      }
+      if (hint) { hint.textContent = '코드는 운영팀이 전달한 값을 입력해주세요.'; hint.style.color = 'var(--muted)'; }
+    }
+
     __onboardStep = 1;
     render();
   } else if (__onboardStep === 1) {
@@ -2509,12 +2565,12 @@ function HomePage() {
   page.appendChild(el('div', { class: 'kicker', style: { marginTop: '28px', marginBottom: '8px' } }, 'LEADERBOARD · TOP 10'));
   const listCard = el('div', { class: 'card', style: { padding: '6px' } });
   sorted.slice(0, 10).forEach((m, i) => {
-    const role = memberRole(m);
-    const tz = memberTimezoneText(m);
     const row = el('div', {
       class: 'rank-row' + (m.me ? ' me' : ''),
       onClick: () => window.__openMemberCard(m.id),
     });
+    // Role and tz hidden here for beta — we don't have reliable server-side values
+    // for every participant yet. Keep the row tidy and uniform.
     row.innerHTML = `
       <div class="rank-num ${i === 0 ? 'top1' : ''}">${i+1}</div>
       <div class="avatar ${m.color}">${m.name.slice(0,1)}</div>
@@ -2524,10 +2580,6 @@ function HomePage() {
           ${premiumPill(m)}
           ${m.me ? '<span class="badge badge-orange" style="font-size:9px;padding:2px 6px;">ME</span>' : ''}
           <span class="t-small mono" style="color:var(--muted);">· Team ${m.team}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:3px;">
-          ${role ? `<span class="t-small" style="font-size:10.5px;color:var(--ink-soft);">${escapeHtml(role)}</span>` : ''}
-          ${tz ? `<span class="t-small mono" style="font-size:10px;color:var(--muted);">${escapeHtml(tz)}</span>` : ''}
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:5px;">
           <div style="flex:1;max-width:120px;" class="bar ${m.me ? 'orange' : ''}"><span style="width:${m.progress/totalDays*100}%;"></span></div>
@@ -2558,7 +2610,8 @@ function Checkboard() {
   }
   visibleMembers().forEach((m) => {
     const name = el('div', { class: 'cb-name' + (m.me ? ' cb-row-me' : '') });
-    const tz = memberTimezoneText(m);
+    // Hide tz on the checkboard so all rows stay uniform height (we don't have
+    // tz for other members yet — showing it only on "me" looks inconsistent).
     name.innerHTML = `
       <div class="tiny-av ${m.color}">${m.name.slice(0,1)}</div>
       <div style="min-width:0;">
@@ -2566,7 +2619,6 @@ function Checkboard() {
           <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.name}</span>
           ${premiumPill(m)}
         </div>
-        ${tz ? `<div style="font-size:9px;color:var(--muted);margin-top:1px;"><span class="mono">${escapeHtml(tz)}</span></div>` : ''}
       </div>`;
     grid.appendChild(name);
     for (let d = 1; d <= 20; d++) {
@@ -2596,9 +2648,9 @@ function WeeksPage() {
   const title = el('div', { style: { textAlign: 'center' } });
   title.innerHTML = `<div style="font-weight:800;font-size:16px;letter-spacing:-0.01em;">내 학습</div><div class="t-small mono" style="margin-top:2px;font-size:11px;">4주 · 20일</div>`;
   top.appendChild(title);
-  const bell = el('button', { class: 'icon-btn', style: { position: 'relative' }, onClick: () => showToast('알림 센터는 곧 열려요!') });
-  bell.innerHTML = Icon('flame', 16) + '<span style="position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--orange);"></span>';
-  top.appendChild(bell);
+  // Right-side spacer: keep layout balanced. Notifications are not shipped yet.
+  const spacer = el('div', { class: 'icon-btn', style: { visibility: 'hidden' } });
+  top.appendChild(spacer);
   page.appendChild(top);
 
   // ------- hero: MY DASHBOARD + completion headline -------
@@ -2839,9 +2891,8 @@ function VerifyPage(dayN) {
   back.innerHTML = Icon('arrowLeft', 16);
   head.appendChild(back);
   head.appendChild(el('div', { style: { fontWeight: '800', fontSize: '16px' } }, `인증 · Day ${dayN}`));
-  const bell = el('button', { class: 'icon-btn', style: { position: 'relative' }, onClick: () => showToast('알림 센터는 곧 열려요!') });
-  bell.innerHTML = Icon('flame', 16) + '<span style="position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--orange);"></span>';
-  head.appendChild(bell);
+  const spacer = el('div', { class: 'icon-btn', style: { visibility: 'hidden' } });
+  head.appendChild(spacer);
   page.appendChild(head);
 
   const progress = el('div', { style: { marginTop: '8px', marginBottom: '20px' } });
@@ -5226,49 +5277,59 @@ function MemberCardModal(memberRef) {
     </div>
   `;
 
-  const stats = el('div', {
-    style: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-      gap: '10px',
-      marginTop: '16px',
+  // Goal / phrase cards — only show when we actually have data. Keep the card honest.
+  const hasGoal = !!(member.goal && member.goal.trim());
+  const hasPhrase = !!(member.phrase && member.phrase.trim());
+  if (hasGoal || hasPhrase) {
+    const stats = el('div', {
+      style: {
+        display: 'grid',
+        gridTemplateColumns: (hasGoal && hasPhrase) ? 'repeat(2, minmax(0, 1fr))' : '1fr',
+        gap: '10px',
+        marginTop: '16px',
+      }
+    });
+    let statsHtml = '';
+    if (hasGoal) {
+      statsHtml += `
+        <div style="padding:14px;border-radius:18px;background:var(--paper);">
+          <div class="kicker" style="color:var(--muted);">${member.me ? '내 챌린지 목표' : '이번 목표'}</div>
+          <div style="margin-top:8px;font-size:15px;line-height:1.45;font-weight:700;color:var(--ink);word-break:keep-all;">${escapeHtml(member.goal)}</div>
+        </div>`;
     }
-  });
-  stats.innerHTML = `
-    <div style="padding:14px;border-radius:18px;background:var(--paper);">
-      <div class="kicker" style="color:var(--muted);">이번 목표</div>
-      <div style="margin-top:8px;font-size:15px;line-height:1.45;font-weight:700;color:var(--ink);word-break:keep-all;">${escapeHtml(member.goal)}</div>
-    </div>
-    <div style="padding:14px;border-radius:18px;background:var(--paper);">
-      <div class="kicker" style="color:var(--muted);">요즘 붙잡는 표현</div>
-      <div style="margin-top:8px;font-size:22px;line-height:1.05;color:var(--orange);font-weight:700;letter-spacing:-0.03em;">${escapeHtml(member.phrase)}</div>
-      <div class="t-small" style="margin-top:6px;color:var(--ink-soft);">작게라도 바로 써먹기 좋은 표현</div>
-    </div>
-  `;
-  modal.appendChild(stats);
-
-  const quoteCard = el('div', {
-    style: {
-      marginTop: '12px',
-      padding: '16px',
-      borderRadius: '20px',
-      background: 'linear-gradient(135deg, #FFF8EB 0%, #FFF2E2 100%)',
-      border: '1px solid rgba(240,125,56,0.16)',
+    if (hasPhrase) {
+      statsHtml += `
+        <div style="padding:14px;border-radius:18px;background:var(--paper);">
+          <div class="kicker" style="color:var(--muted);">요즘 붙잡는 표현</div>
+          <div style="margin-top:8px;font-size:22px;line-height:1.05;color:var(--orange);font-weight:700;letter-spacing:-0.03em;">${escapeHtml(member.phrase)}</div>
+          <div class="t-small" style="margin-top:6px;color:var(--ink-soft);">최근 저장한 표현</div>
+        </div>`;
     }
-  });
-  quoteCard.innerHTML = `
-    <div class="kicker" style="color:var(--orange-dark);">챌린지 톤</div>
-    <div style="margin-top:8px;font-size:16px;line-height:1.55;font-weight:700;color:var(--ink);word-break:keep-all;">${escapeHtml(member.motive)}</div>
-    <div style="margin-top:10px;font-size:13px;line-height:1.5;color:var(--ink-soft);">오늘 한 줄 목표: ${escapeHtml(member.focus)}</div>
-  `;
-  modal.appendChild(quoteCard);
+    stats.innerHTML = statsHtml;
+    modal.appendChild(stats);
+  } else if (!member.me) {
+    const note = el('div', {
+      style: {
+        marginTop: '16px',
+        padding: '14px 16px',
+        borderRadius: '18px',
+        background: 'var(--paper)',
+        color: 'var(--ink-soft)',
+        fontSize: '13px',
+        lineHeight: '1.55',
+      }
+    });
+    note.textContent = '아직 프로필을 꾸미지 않은 동료예요. 같이 달리는 루틴에서 소리 없이 페이스를 맞춰주고 있어요.';
+    modal.appendChild(note);
+  }
 
   const footer = el('div', { style: { display: 'flex', gap: '8px', marginTop: '14px', flexWrap: 'wrap' } });
-  footer.innerHTML = `
-    <span class="badge" style="padding:7px 11px;">Day ${member.progress} 진행 중</span>
-    <span class="badge" style="padding:7px 11px;">루틴 이어가는 중</span>
-    <span class="badge" style="padding:7px 11px;">같이 달리는 동료</span>
-  `;
+  const progressChip = `<span class="badge" style="padding:7px 11px;">${member.progress > 0 ? `Day ${member.progress} 진행 중` : '시작 전'}</span>`;
+  const streakChip = member.streak > 0
+    ? `<span class="badge" style="padding:7px 11px;">🔥 ${member.streak}일 연속</span>`
+    : '';
+  const teamChip = `<span class="badge" style="padding:7px 11px;">같이 달리는 동료</span>`;
+  footer.innerHTML = `${progressChip}${streakChip}${teamChip}`;
   modal.appendChild(footer);
   backdrop.appendChild(modal);
   return backdrop;
@@ -5584,6 +5645,13 @@ window.__setVerifyQuizValue = (dayN, value) => {
 window.__restartVerifyQuiz = (dayN) => {
   window.__verifyUi = window.__verifyUi || {};
   window.__verifyUi[dayN] = { idx: 0, value: '', done: false, score: 0, activeStep: 'capture', reveal: false };
+  // Also clear the quiz submission checkpoint so the quiz step comes back as active.
+  // Prevents the "다시 풀기 but page shows next step instead" confusion.
+  const quizKey = `d${dayN}-quiz`;
+  if (state.checkpoints && state.checkpoints[quizKey]) {
+    delete state.checkpoints[quizKey];
+    saveState();
+  }
   render();
 };
 window.__toggleVerifyAnswer = (dayN) => {
