@@ -958,13 +958,12 @@ function bindMeToMembers() {
   placeholder.me = true;
   if (state.isOperator) {
     placeholder.isOperator = true;
-    // Operators don't show on the public streak board.
-    placeholder.hidden = true;
+    // 운영팀도 학습은 똑같이 진행 → 대시보드/리더보드에 정상 노출.
   }
 }
 
-/* Visible roster — filters out hidden rows (placeholder when already bound to a real member,
-   or operators like 유버디). Use this for rankings / streak board / counts shown to users. */
+/* Visible roster — filters out hidden rows (placeholder when already bound to a real member).
+   Operators (유버디) are NOT hidden — they learn alongside everyone and show on the board. */
 function visibleMembers() {
   return MEMBERS.filter((m) => !m.hidden);
 }
