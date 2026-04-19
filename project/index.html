@@ -5939,6 +5939,20 @@ function fireConfetti() {
 /* ============================================================
    BOOT
    ============================================================ */
+// 0) ?reset=1 URL param — wipes local cache for a clean re-onboarding.
+//    Use this to reset a specific device (e.g., 유버디/이규태 test accounts).
+try {
+  if (typeof location !== 'undefined' && /[?&]reset=1\b/.test(location.search || '')) {
+    try { localStorage.removeItem(LS_KEY); } catch (_) {}
+    try { localStorage.removeItem('demoMode'); } catch (_) {}
+    // Strip the query so refreshes don't keep wiping.
+    try {
+      const cleanUrl = location.pathname + (location.hash || '');
+      history.replaceState({}, '', cleanUrl);
+    } catch (_) {}
+  }
+} catch (_) {}
+
 // 1) Hydrate state from localStorage (restores onboarded flag + user identity)
 //    so returning users skip onboarding and see their real identity.
 if (!__DEMO_MODE__) {
