@@ -3893,13 +3893,28 @@ function DayPage(dayN) {
       borderRadius: '18px',
       background: 'var(--cream)',
       border: '1px solid var(--line)',
-      display: 'grid',
-      gridTemplateColumns: `auto repeat(${d.words.length}, 1fr)`,
+      display: 'flex',
       gap: '8px',
       alignItems: 'center',
+      overflow: 'hidden',
     }
   });
-  overview.innerHTML = `<span class="kicker" style="font-size:10px;color:var(--muted);letter-spacing:0.1em;">TODAY'S 3</span>`;
+  overview.innerHTML = `<span class="kicker" style="font-size:10px;color:var(--muted);letter-spacing:0.1em;flex:0 0 auto;">TODAY'S 3</span>`;
+  const overviewScroll = el('div', {
+    style: {
+      display: 'flex',
+      gap: '8px',
+      alignItems: 'center',
+      overflowX: 'auto',
+      overflowY: 'hidden',
+      flex: '1 1 auto',
+      paddingBottom: '2px',
+      WebkitOverflowScrolling: 'touch',
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none',
+    }
+  });
+  overviewScroll.style.setProperty('scrollbar-width', 'none');
   d.words.forEach((w, i) => {
     const key = `d${dayN}-${i}`;
     const hasAi = !!state.ai_feedback[key];
@@ -3916,6 +3931,8 @@ function DayPage(dayN) {
         gap: '6px',
         cursor: 'pointer',
         textAlign: 'left',
+        flex: '0 0 auto',
+        whiteSpace: 'nowrap',
       },
       onClick: () => {
         const t = document.getElementById(`vocab-anchor-${dayN}-${i}`);
@@ -3925,8 +3942,9 @@ function DayPage(dayN) {
     chip.innerHTML = `
       <span style="width:6px;height:6px;border-radius:3px;background:${statusDot};flex-shrink:0;"></span>
       <span style="font-size:12px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(w.en)}</span>`;
-    overview.appendChild(chip);
+    overviewScroll.appendChild(chip);
   });
+  overview.appendChild(overviewScroll);
   page.appendChild(overview);
 
   // Cohort preview — only show pre-submission nudge at the top. The "COMPARE AFTER TRYING"
