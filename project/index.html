@@ -197,12 +197,28 @@ input, textarea, select { font-family: inherit; }
 
 /* progress dots */
 .progress-dots { display: grid; grid-template-columns: repeat(20, 1fr); gap: 2px; }
-.progress-dots span { aspect-ratio: 1; border-radius: 2px; background: var(--line-soft); }
+.progress-dots span { aspect-ratio: 1; border-radius: 2px; background: var(--line-soft); min-width: 10px; min-height: 10px; }
 .progress-dots span.on { background: var(--ink); }
 .progress-dots span.today { background: var(--orange); box-shadow: 0 0 0 2px var(--orange-ghost); }
 .card-ink .progress-dots span { background: rgba(251,247,240,0.12); }
 .card-ink .progress-dots span.on { background: var(--cream); }
 .card-ink .progress-dots span.today { background: var(--orange); }
+
+/* correct-answer full-screen green flash */
+.correct-flash {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(39, 179, 126, 0.9);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 140px; font-weight: 900;
+  pointer-events: none;
+  animation: correctFlashFade 600ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+@keyframes correctFlashFade {
+  0%   { opacity: 0; transform: scale(0.85); }
+  25%  { opacity: 1; transform: scale(1); }
+  70%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.05); }
+}
 
 /* leaderboard */
 .rank-row {
@@ -1262,6 +1278,43 @@ function saveState(opts = {}) {
 
 function patch(k, v) { state[k] = v; saveState(); render(); }
 
+// Copy text to clipboard. Falls back to a temporary textarea for
+// iOS Safari / old browsers where navigator.clipboard.writeText is blocked.
+function copyToClipboard(text, sourceBtn) {
+  const value = String(text || '');
+  const flashOk = () => {
+    if (sourceBtn) {
+      const before = sourceBtn.innerHTML;
+      sourceBtn.innerHTML = '✓ 복사됨';
+      sourceBtn.disabled = true;
+      setTimeout(() => {
+        sourceBtn.innerHTML = before;
+        sourceBtn.disabled = false;
+      }, 1400);
+    }
+    try { showToast('📋 문장이 복사됐어요'); } catch (e) {}
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(value).then(flashOk).catch(() => fallbackCopy(value, flashOk));
+  } else {
+    fallbackCopy(value, flashOk);
+  }
+}
+function fallbackCopy(text, cb) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.top = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (cb) cb();
+  } catch (e) { console.warn('copy fallback failed', e); }
+}
+
 function escapeHtml(str='') {
   return String(str)
     .replace(/&/g, '&amp;')
@@ -1269,6 +1322,62 @@ function escapeHtml(str='') {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+// Word-level diff. Produces inline <del>/<ins> spans for only the tokens that
+// changed, instead of striking through the entire original sentence. Uses a
+// classic LCS walk so the unchanged words stay black/neutral.
+function buildWordDiffHtml(original, corrected) {
+  const a = String(original || '').trim();
+  const b = String(corrected || '').trim();
+  if (!a) return escapeHtml(b);
+  if (!b) return `<del>${escapeHtml(a)}</del>`;
+  if (a === b) return escapeHtml(b);
+
+  // Split into tokens but keep whitespace + punctuation as separate units so
+  // "we'll" vs "we will" shows the right piece as changed.
+  const tokenize = (s) => s.match(/[A-Za-z0-9'’]+|[^A-Za-z0-9\s]|\s+/g) || [];
+  const A = tokenize(a);
+  const B = tokenize(b);
+
+  // Normalize (case + smart-quote + whitespace) for matching only; render original casing.
+  const norm = (t) => {
+    if (/^\s+$/.test(t)) return ' ';
+    return t.toLowerCase().replace(/[’]/g, "'");
+  };
+
+  const m = A.length, n = B.length;
+  // LCS table
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = m - 1; i >= 0; i--) {
+    for (let j = n - 1; j >= 0; j--) {
+      if (norm(A[i]) === norm(B[j])) dp[i][j] = dp[i + 1][j + 1] + 1;
+      else dp[i][j] = Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+
+  const parts = [];
+  let i = 0, j = 0;
+  let delBuf = '', insBuf = '';
+  const flush = () => {
+    if (delBuf) { parts.push(`<del>${escapeHtml(delBuf)}</del>`); delBuf = ''; }
+    if (insBuf) { parts.push(`<ins>${escapeHtml(insBuf)}</ins>`); insBuf = ''; }
+  };
+  while (i < m && j < n) {
+    if (norm(A[i]) === norm(B[j])) {
+      flush();
+      parts.push(escapeHtml(B[j])); // keep corrected casing
+      i++; j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      delBuf += A[i++];
+    } else {
+      insBuf += B[j++];
+    }
+  }
+  while (i < m) delBuf += A[i++];
+  while (j < n) insBuf += B[j++];
+  flush();
+  return parts.join('');
 }
 
 function buildLocalCorrection(word, sentence) {
@@ -1328,16 +1437,26 @@ async function callAiReviewEdgeFunction(payload) {
   };
 }
 
-async function requestSentenceCorrection(word, sentence) {
+async function requestSentenceCorrection(word, sentence, koreanContext) {
   try {
-    return await callAiReviewEdgeFunction({
+    const result = await callAiReviewEdgeFunction({
       mode: 'sentence',
       word: { en: word.en, def: word.def },
       text: sentence,
+      // Korean intent sentence (한국어 문장) so the model can match the
+      // learner's actual meaning instead of guessing from English alone.
+      korean: (koreanContext || '').trim() || undefined,
     });
+    // Always recompute diff client-side so we can show WORD-level changes
+    // (server returns whole-sentence <del>/<ins>, which looks too aggressive).
+    return {
+      ...result,
+      diff_html: buildWordDiffHtml(sentence, result.corrected),
+    };
   } catch (e) {
     console.warn('[ai-review] sentence fallback:', e);
-    return buildLocalCorrection(word, sentence);
+    const local = buildLocalCorrection(word, sentence);
+    return { ...local, diff_html: buildWordDiffHtml(sentence, local.corrected) };
   }
 }
 
@@ -1362,16 +1481,22 @@ function buildLocalStoryCorrection(words, text) {
   };
 }
 
-async function requestStoryCorrection(words, text) {
+async function requestStoryCorrection(words, text, koreanContext) {
   try {
-    return await callAiReviewEdgeFunction({
+    const result = await callAiReviewEdgeFunction({
       mode: 'story',
       words: (words || []).map((w) => ({ en: w.en, def: w.def })),
       text,
+      korean: (koreanContext || '').trim() || undefined,
     });
+    return {
+      ...result,
+      diff_html: buildWordDiffHtml(text, result.corrected),
+    };
   } catch (e) {
     console.warn('[ai-review] story fallback:', e);
-    return buildLocalStoryCorrection(words, text);
+    const local = buildLocalStoryCorrection(words, text);
+    return { ...local, diff_html: buildWordDiffHtml(text, local.corrected) };
   }
 }
 
@@ -2250,6 +2375,9 @@ function isTypingFocus() {
   try {
     const a = document.activeElement;
     if (!a) return false;
+    // Inputs that opt out (quiz blank, etc.) — we want re-render to fire
+    // immediately on advance so the stale value/placeholder is cleared.
+    if (a.dataset && a.dataset.noTypingGuard === '1') return false;
     const tag = (a.tagName || '').toUpperCase();
     if (tag === 'TEXTAREA') return true;
     if (tag === 'INPUT') {
@@ -3451,15 +3579,16 @@ function VerifyPage(dayN) {
   panel.innerHTML = `<div class="kicker" style="color:rgba(251,247,240,0.6)">STEP ${steps.findIndex((step) => step.id === activeStep) + 1}/4 · ${activeMeta.time}</div><h2 class="h2" style="margin-top:10px;color:var(--cream);font-size:28px;line-height:1.24;">${activeMeta.label}</h2>`;
 
   if (activeStep === 'capture') {
-    const passed = ui.done && questions.length > 0 && ui.score === questions.length;
+    // 70% 이상 맞추면 통과 (예: 6문제 중 5문제 → 83% → 통과)
+    const passed = ui.done && questions.length > 0 && (ui.score / questions.length) >= 0.7;
     const wrap = el('div', { style: { marginTop: '20px' } });
     if (ui.done) {
       wrap.innerHTML = `
         <div style="padding:24px;border-radius:22px;background:rgba(251,247,240,0.06);border:1px solid rgba(251,247,240,0.12);text-align:center;">
           <div class="kicker" style="color:rgba(251,247,240,0.5)">단어 시험 결과</div>
-          <div class="h3" style="margin-top:10px;color:var(--cream);">${passed ? '모두 맞췄어요! 제출 가능해요' : '모두 맞춰야 제출할 수 있어요'}</div>
+          <div class="h3" style="margin-top:10px;color:var(--cream);">${passed ? '통과! 제출 가능해요' : '70% 이상 맞춰야 제출할 수 있어요'}</div>
           <div style="margin-top:10px;font-size:34px;font-weight:800;color:${passed ? 'var(--orange)' : 'var(--cream)'};">${ui.score}<span style="color:rgba(251,247,240,0.3);font-size:24px;">/${questions.length}</span></div>
-          <div class="t-small" style="color:rgba(251,247,240,0.6);margin-top:6px;">정답률 ${Math.round(ui.score / questions.length * 100)}%</div>
+          <div class="t-small" style="color:rgba(251,247,240,0.6);margin-top:6px;">정답률 ${Math.round(ui.score / questions.length * 100)}% · 통과선 70%</div>
           <button class="btn btn-ghost" style="margin-top:14px;background:#fff;color:var(--ink);border:none;" onclick="window.__restartVerifyQuiz(${dayN})">다시 풀기</button>
         </div>
       `;
@@ -3486,7 +3615,7 @@ function VerifyPage(dayN) {
           <div style="margin-top:18px;padding:28px 18px;border-radius:24px;background:rgba(255,255,255,0.68);text-align:center;box-shadow:inset 0 0 0 1px rgba(236,232,255,0.9);">
             <div style="font-size:19px;line-height:1.7;font-weight:600;color:#35344A;word-break:keep-all;">
               ${escapeHtml(parts[0] || '')}
-              <input class="input" style="display:inline-block;width:${answerWidth}ch;max-width:72%;margin:0 8px;padding:6px 4px 4px;text-align:center;font-size:24px;font-weight:700;letter-spacing:-0.02em;background:transparent;border:none;border-bottom:2px dashed #B7AEDF;border-radius:0;color:#35344A;vertical-align:baseline;" placeholder="${escapeHtml(blankPattern)}" value="${escapeHtml(ui.value)}" oninput="window.__setVerifyQuizValue(${dayN}, this.value)" />
+              <input class="input" data-no-typing-guard="1" data-quiz-idx="${ui.idx}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="display:inline-block;width:${answerWidth}ch;max-width:72%;margin:0 8px;padding:6px 4px 4px;text-align:center;font-size:24px;font-weight:700;letter-spacing:-0.02em;background:transparent;border:none;border-bottom:2px dashed #B7AEDF;border-radius:0;color:#35344A;vertical-align:baseline;" placeholder="${escapeHtml(blankPattern)}" value="${escapeHtml(ui.value)}" oninput="window.__setVerifyQuizValue(${dayN}, this.value)" />
               ${escapeHtml(parts[1] || '')}
             </div>
             <div style="margin-top:20px;font-size:18px;line-height:1.5;color:#6C6A86;">${escapeHtml(currentQuestion.prompt_kr || '')}</div>
@@ -3500,7 +3629,7 @@ function VerifyPage(dayN) {
               <button class="btn btn-ghost" style="flex:1;justify-content:center;background:#4F4438;color:#fff;border:none;" onclick="window.__advanceVerifyQuiz(${dayN}, true)">Skip</button>
               <button class="btn btn-primary" style="flex:2;justify-content:center;background:#F2EBD9;color:#8C7D58;" onclick="window.__advanceVerifyQuiz(${dayN}, false)" ${!ui.value.trim() ? 'disabled' : ''}>${ui.idx === questions.length - 1 ? '제출' : '다음'} ${Icon('arrowRight', 14)}</button>
             </div>
-            <div class="t-small" style="margin-top:12px;color:#8B84D7;line-height:1.5;">오늘까지 공개된 Day 단어 중에서 랜덤으로 출제돼요. (오늘의 3단어는 항상 포함 · 이전 Day 단어는 랜덤 복습)<br>정답을 맞히면 자동으로 다음 문제로 넘어가요.</div>
+            <div class="t-small" style="margin-top:12px;color:#8B84D7;line-height:1.5;">오늘까지 공개된 Day 단어 포함, 그 외에는 랜덤으로 출제돼요.</div>
           </div>
         </div>
       `;
@@ -3565,7 +3694,27 @@ function VerifyPage(dayN) {
         borderRadius: '24px', border: isActive && !step.done ? '1.5px solid rgba(240,125,56,0.85)' : '1px solid var(--line)',
         background: step.done ? '#E4F1D6' : '#FFFDF7', textAlign: 'left',
       },
-      onClick: () => { if (!step.done) { ui.activeStep = step.id; render(); } }
+      onClick: () => {
+        if (step.done && step.id === 'capture') {
+          // Allow re-taking the word quiz even after passing/submission
+          try { delete state.checkpoints[quizKey]; } catch (e) {}
+          saveState();
+          if (typeof window.__restartVerifyQuiz === 'function') {
+            window.__restartVerifyQuiz(dayN);
+          } else {
+            ui.activeStep = 'capture';
+            ui.done = false;
+            ui.idx = 0;
+            ui.value = '';
+            ui.score = 0;
+            ui.reveal = false;
+            render();
+          }
+        } else if (!step.done) {
+          ui.activeStep = step.id;
+          render();
+        }
+      }
     });
     row.innerHTML = `<div style="width:56px;height:56px;border-radius:18px;background:${step.done ? 'rgba(107,142,78,0.12)' : 'var(--paper)'};display:grid;place-items:center;color:${step.done ? 'var(--green)' : 'var(--ink-soft)'};">${step.done ? Icon('check', 18) : Icon(idx === 0 ? 'mic' : idx === 1 ? 'edit' : idx === 2 ? 'play' : 'mic', 18)}</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:800;color:var(--ink);">${step.label}</div><div class="t-small mono" style="margin-top:4px;color:var(--muted);">${step.time} · Step ${idx + 1}</div></div>${step.done ? '<span class="badge badge-green">완료</span>' : isActive ? '<span class="badge badge-orange">진행</span>' : Icon('lock', 14)}`;
     stepList.appendChild(row);
@@ -3698,6 +3847,43 @@ function DayPage(dayN) {
     <span style="font-size:18px;flex-shrink:0;line-height:1.2;">⚡</span>
     <span style="font-size:13px;line-height:1.55;color:#6B5A1A;flex:1;">2분만 투자해도 Day ${dayN} 완료 <span style="color:#B38A2F;opacity:0.5;">|</span> 완벽 금지 <span style="color:#B38A2F;opacity:0.5;">|</span> 오늘은 <b>"${escapeHtml(d.title)} 표현 한 번 써보기"</b>만 해요.</span>`;
   page.appendChild(tipCard);
+
+  // 인증 완료 후엔 보너스 영상을 페이지 상단에 크게 배치 — "복잡하지 않고 직관적으로"
+  // 학습 활동은 이미 끝낸 상태라, 제일 먼저 보이는 건 보상인 영상이어야 한다.
+  if (state.verified['d' + dayN]) {
+    const bonusTop = el('button', {
+      style: {
+        width: '100%',
+        marginTop: '12px',
+        padding: '18px 20px',
+        borderRadius: '22px',
+        border: 'none',
+        background: 'linear-gradient(135deg, #2A2A2A 0%, #4A3F2E 100%)',
+        color: '#fff',
+        textAlign: 'left',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '14px',
+        cursor: 'pointer',
+      },
+      onClick: () => {
+        // TODO: route to actual bonus video — placeholder toast for now
+        try { showToast('🎬 보너스 영상 준비 중이에요'); } catch (e) {}
+      },
+    });
+    bonusTop.innerHTML = `
+      <div style="width:56px;height:56px;border-radius:18px;background:rgba(255,255,255,0.12);display:grid;place-items:center;flex-shrink:0;">
+        <span style="font-size:22px;">🎬</span>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div class="kicker" style="color:#F0C987;font-size:10px;">인증 완료 · 보너스 열림</div>
+        <div style="margin-top:4px;font-size:17px;font-weight:800;letter-spacing:-0.01em;">오늘의 귀 열기 영상 보기</div>
+        <div class="t-small" style="margin-top:4px;font-size:12px;line-height:1.45;color:rgba(255,255,255,0.72);">실제 대화에서 오늘 표현이 어떻게 쓰이는지 2분 영상</div>
+      </div>
+      <span style="width:40px;height:40px;border-radius:999px;background:rgba(255,255,255,0.14);display:grid;place-items:center;flex-shrink:0;">${Icon('play', 16)}</span>
+    `;
+    page.appendChild(bonusTop);
+  }
 
   // Today's 3 words — slim overview strip (tap to scroll to that word card)
   const overview = el('div', {
@@ -4011,7 +4197,7 @@ function DayPage(dayN) {
     });
     noteWrap.innerHTML = `
       <div class="kicker" style="font-size:10px;color:var(--muted);">한국어 문장</div>
-      <div class="t-small" style="margin-top:6px;font-size:12.5px;line-height:1.5;color:var(--ink-soft);"><b>${escapeHtml(w.en)}</b>을 넣어 한 문장으로 정리해보세요.</div>
+      <div class="t-small" style="margin-top:6px;font-size:12.5px;line-height:1.5;color:var(--ink-soft);">이 어휘가 본인의 <b>어떤 업무</b>에서 사용되는지 상상해서, 그때 쓸 말을 써보세요~</div>
     `;
     const noteTa = el('textarea', {
       class: 'sentence-input',
@@ -4118,7 +4304,8 @@ function DayPage(dayN) {
           aiBtn.disabled = true;
           aiBtn.innerHTML = `${Icon('sparkles', 12)} 리뷰 중...`;
           try {
-            const result = await requestSentenceCorrection(w, ta.value);
+            const koreanCtx = (state.sentence_notes?.[key] || '').trim();
+            const result = await requestSentenceCorrection(w, ta.value, koreanCtx);
             state.ai_feedback[key] = result;
             saveState();
             render();
@@ -4156,12 +4343,25 @@ function DayPage(dayN) {
           <div class="ai-head" style="margin:0;">${Icon('sparkles', 12)} 내 기록실 · AI 리뷰</div>
           <span style="font-size:10.5px;color:var(--muted);background:var(--paper);padding:3px 8px;border-radius:999px;">참고용 · 나만 봐요</span>
         </div>
-        <div class="ai-corrected">"${escapeHtml(fb.corrected)}"</div>
+        <div class="ai-corrected" style="display:flex;align-items:flex-start;gap:8px;">
+          <span style="flex:1;min-width:0;">"${escapeHtml(fb.corrected)}"</span>
+          <button type="button" class="btn-copy-ai" data-copy-text="${escapeHtml(fb.corrected)}" style="flex-shrink:0;padding:6px 10px;border-radius:999px;background:#fff;color:var(--orange-dark);border:1px solid var(--orange-soft);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">📋 복사</button>
+        </div>
         ${hasDiff
-          ? `<div style="font-size:13px;margin-bottom:8px;">${fb.diff_html}</div>`
-          : `<div class="t-small" style="margin-bottom:8px;color:var(--green);">고칠 부분이 없어요 — 자연스럽게 잘 썼어요!</div>`}
+          ? `<div style="font-size:13px;margin:8px 0;line-height:1.55;">${fb.diff_html}</div>`
+          : `<div class="t-small" style="margin:8px 0;color:var(--green);">고칠 부분이 없어요 — 자연스럽게 잘 썼어요!</div>`}
         <div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(fb.why)}</div>
         <div class="t-small" style="margin-top:8px;color:var(--muted);font-size:11.5px;line-height:1.5;">커뮤니티에는 처음 제출한 문장이 그대로 올라가요. 이 리뷰는 다음 학습용 메모예요.</div>`;
+      // Wire up the copy button after innerHTML is set.
+      const copyBtn = result.querySelector('.btn-copy-ai');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          const txt = copyBtn.getAttribute('data-copy-text') || '';
+          copyToClipboard(txt, copyBtn);
+        });
+      }
       row.appendChild(result);
     }
 
@@ -4242,7 +4442,9 @@ function DayPage(dayN) {
         hookReviewBtn.disabled = true;
         hookReviewBtn.innerHTML = `${Icon('sparkles', 12)} 리뷰 중...`;
         try {
-          const result = await requestStoryCorrection(d.words, currentVal);
+          // Stitch together all 3 Korean memos as the story's Korean context.
+          const storyKorean = d.words.map((_, idx) => (state.sentence_notes?.[`d${dayN}-${idx}`] || '').trim()).filter(Boolean).join(' ');
+          const result = await requestStoryCorrection(d.words, currentVal, storyKorean);
           state.ai_feedback[hookKey] = result;
           state.sentences[hookKey] = currentVal;
           saveState();
@@ -4265,15 +4467,29 @@ function DayPage(dayN) {
     hook.appendChild(hookControls);
 
     if (hookFeedback) {
+      const hasHookDiff = /<del>|<ins>/i.test(hookFeedback.diff_html || '');
       const result = el('div', { class: 'ai-feedback', style: { marginTop: '14px', padding: '18px 20px', borderRadius: '24px' } });
       result.innerHTML = `
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
           <div class="ai-head" style="margin:0;">${Icon('sparkles', 12)} 내 기록실 · 보너스 AI 리뷰</div>
           <span style="font-size:10.5px;color:var(--muted);background:#fff;padding:3px 8px;border-radius:999px;">참고용 · 나만 봐요</span>
         </div>
-        <div class="ai-corrected">"${escapeHtml(hookFeedback.corrected || '')}"</div>
-        <div style="font-size:13px;margin-bottom:8px;">${hookFeedback.diff_html || ''}</div>
+        <div class="ai-corrected" style="display:flex;align-items:flex-start;gap:8px;">
+          <span style="flex:1;min-width:0;">"${escapeHtml(hookFeedback.corrected || '')}"</span>
+          <button type="button" class="btn-copy-ai" data-copy-text="${escapeHtml(hookFeedback.corrected || '')}" style="flex-shrink:0;padding:6px 10px;border-radius:999px;background:#fff;color:var(--orange-dark);border:1px solid var(--orange-soft);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">📋 복사</button>
+        </div>
+        ${hasHookDiff
+          ? `<div style="font-size:13px;margin:8px 0;line-height:1.55;">${hookFeedback.diff_html}</div>`
+          : `<div class="t-small" style="margin:8px 0;color:var(--green);">흐름이 자연스러워요 — 그대로 써도 좋아요!</div>`}
         <div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(hookFeedback.why || '')}</div>`;
+      const copyBtn = result.querySelector('.btn-copy-ai');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          copyToClipboard(copyBtn.getAttribute('data-copy-text') || '', copyBtn);
+        });
+      }
       hook.appendChild(result);
     }
 
@@ -4306,6 +4522,9 @@ function DayPage(dayN) {
       `;
       peerWrap.appendChild(compareBanner);
 
+      // Only show top 3 peer sentences — keeps the day page light and
+      // funnels heavy comparing to the Community tab.
+      const peerTop = peers.slice(0, 3);
       const peerHead = el('div', { class: 'row-between', style: { marginBottom: '10px', alignItems: 'flex-end' } });
       peerHead.innerHTML = `
         <div>
@@ -4313,11 +4532,11 @@ function DayPage(dayN) {
           <div class="h2" style="margin-top:4px;font-size:18px;">다른 사람들은 이렇게 썼어요</div>
           <div class="t-small" style="margin-top:4px;font-size:12px;color:var(--ink-soft);line-height:1.5;">먼저 써본 다음 비교하면, 표현의 차이와 톤이 더 잘 보입니다.</div>
         </div>
-        <span class="badge badge-orange" style="font-size:10px;">${peers.length}개</span>`;
+        <span class="badge badge-orange" style="font-size:10px;">TOP ${peerTop.length}</span>`;
       peerWrap.appendChild(peerHead);
 
       const peerList = el('div', { class: 'stack', style: { gap: '10px' } });
-      peers.forEach((p) => {
+      peerTop.forEach((p) => {
         const word = (d.words[p.wordIdx] || d.words[0]).en;
         const wordRe = new RegExp('(' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'i');
         const highlighted = (p.sentence || '').replace(wordRe, '<b style="color:var(--orange-dark);">$1</b>');
@@ -4340,6 +4559,15 @@ function DayPage(dayN) {
         peerList.appendChild(item);
       });
       peerWrap.appendChild(peerList);
+      if (peers.length > peerTop.length) {
+        const moreBtn = el('button', {
+          class: 'btn btn-ghost',
+          style: { marginTop: '10px', width: '100%', padding: '12px', borderRadius: '14px', background: '#fff', border: '1px solid var(--line-soft)', color: 'var(--orange-dark)', fontSize: '12.5px', fontWeight: '700' },
+          onClick: () => go('community'),
+          html: `커뮤니티에서 나머지 ${peers.length - peerTop.length}개 더 보기 →`,
+        });
+        peerWrap.appendChild(moreBtn);
+      }
     } else {
       const locked = el('div', {
         style: {
@@ -4361,30 +4589,7 @@ function DayPage(dayN) {
 
   page.appendChild(s2);
 
-  // 보너스 자료는 "오늘 인증 완료" 이후에만 노출 — 학습 흐름을 먼저 끝내고 나서 보상 느낌으로
-  if (state.verified['d' + dayN]) {
-    page.appendChild(el('div', { class: 'divider', style: { margin: '30px 0' } }));
-    const bonus = el('div', {
-      class: 'card',
-      style: {
-        background: 'var(--paper)',
-        border: 'none',
-        borderRadius: '28px',
-        padding: '24px 24px',
-      }
-    });
-    bonus.innerHTML = `
-      <div style="display:flex;align-items:center;gap:18px;">
-        <div style="font-size:26px;">💡</div>
-        <div style="flex:1;min-width:0;">
-          <div class="kicker" style="color:var(--green);">인증 완료 보상</div>
-          <div style="margin-top:4px;font-size:18px;font-weight:700;">Bonus · 귀 열기 자료</div>
-          <div class="t-small" style="margin-top:6px;font-size:16px;line-height:1.5;">오늘 표현이 실제 TED 대화에서 어떻게 쓰이는지 2분 영상으로</div>
-        </div>
-        <button class="icon-btn" style="width:72px;height:72px;border-radius:22px;background:#fff;">${Icon('play', 20)}</button>
-      </div>`;
-    page.appendChild(bonus);
-  }
+  // 보너스 영상은 페이지 상단으로 옮겼어요 — tipCard 바로 아래에서 바로 보여요.
 
   // Complete button
   const verified = !!state.verified['d'+dayN];
@@ -6488,6 +6693,15 @@ window.__openPremiumGate = () => { showPremiumGate = true; render(); };
 window.__closePremiumGate = () => { showPremiumGate = false; render(); };
 window.__openTodayFromWeek = (week, day) => { go('day', { week, day }); };
 window.__verifyAutoAdvanceTimers = window.__verifyAutoAdvanceTimers || {};
+window.__flashCorrect = () => {
+  try {
+    const overlay = document.createElement('div');
+    overlay.className = 'correct-flash';
+    overlay.textContent = '✓';
+    document.body.appendChild(overlay);
+    setTimeout(() => { try { overlay.remove(); } catch (e) {} }, 620);
+  } catch (e) {}
+};
 window.__setVerifyQuizValue = (dayN, value) => {
   const questions = buildVerifyQuestions(dayN);
   window.__verifyUi = window.__verifyUi || {};
@@ -6501,9 +6715,14 @@ window.__setVerifyQuizValue = (dayN, value) => {
       const liveUi = (window.__verifyUi || {})[dayN];
       const liveCurrent = questions[liveUi?.idx];
       if (liveCurrent && normalizeQuizAnswer(liveUi.value) === normalizeQuizAnswer(liveCurrent.en)) {
-        window.__advanceVerifyQuiz(dayN, false);
+        // Blur active input so the typing-focus guard doesn't defer the render —
+        // the stale value was visually persisting because render() was deferred.
+        try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+        window.__flashCorrect();
+        // Give the green flash ~350ms of visible time before the DOM swaps in the next question.
+        setTimeout(() => { window.__advanceVerifyQuiz(dayN, false); }, 350);
       }
-    }, 220);
+    }, 180);
   }
 };
 window.__restartVerifyQuiz = (dayN) => {
