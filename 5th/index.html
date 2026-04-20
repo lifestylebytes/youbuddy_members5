@@ -4112,27 +4112,30 @@ function DayPage(dayN) {
 
   page.appendChild(s2);
 
-  page.appendChild(el('div', { class: 'divider', style: { margin: '30px 0' } }));
-
-  const bonus = el('div', {
-    class: 'card',
-    style: {
-      background: 'var(--paper)',
-      border: 'none',
-      borderRadius: '28px',
-      padding: '24px 24px',
-    }
-  });
-  bonus.innerHTML = `
-    <div style="display:flex;align-items:center;gap:18px;">
-      <div style="font-size:26px;">💡</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:18px;font-weight:700;">Bonus · 귀 열기 자료</div>
-        <div class="t-small" style="margin-top:6px;font-size:16px;line-height:1.5;">오늘 표현이 실제 TED 대화에서 어떻게 쓰이는지 2분 영상으로</div>
-      </div>
-      <button class="icon-btn" style="width:72px;height:72px;border-radius:22px;background:#fff;">${Icon('play', 20)}</button>
-    </div>`;
-  page.appendChild(bonus);
+  // 보너스 자료는 "오늘 인증 완료" 이후에만 노출 — 학습 흐름을 먼저 끝내고 나서 보상 느낌으로
+  if (state.verified['d' + dayN]) {
+    page.appendChild(el('div', { class: 'divider', style: { margin: '30px 0' } }));
+    const bonus = el('div', {
+      class: 'card',
+      style: {
+        background: 'var(--paper)',
+        border: 'none',
+        borderRadius: '28px',
+        padding: '24px 24px',
+      }
+    });
+    bonus.innerHTML = `
+      <div style="display:flex;align-items:center;gap:18px;">
+        <div style="font-size:26px;">💡</div>
+        <div style="flex:1;min-width:0;">
+          <div class="kicker" style="color:var(--green);">인증 완료 보상</div>
+          <div style="margin-top:4px;font-size:18px;font-weight:700;">Bonus · 귀 열기 자료</div>
+          <div class="t-small" style="margin-top:6px;font-size:16px;line-height:1.5;">오늘 표현이 실제 TED 대화에서 어떻게 쓰이는지 2분 영상으로</div>
+        </div>
+        <button class="icon-btn" style="width:72px;height:72px;border-radius:22px;background:#fff;">${Icon('play', 20)}</button>
+      </div>`;
+    page.appendChild(bonus);
+  }
 
   // Complete button
   const verified = !!state.verified['d'+dayN];
@@ -4157,7 +4160,18 @@ function DayPage(dayN) {
       }
     },
   });
-  cta.innerHTML = verified ? `오늘 인증 완료됨` : (prepDone === 2 ? `인증 마무리로 가기 ${Icon('arrowRight', 18)}` : `학습 준비 ${prepDone}/2 ${Icon('arrowRight', 18)}`);
+  // 버튼 문구를 "다음에 할 일" 하나로 명확히 — 이전의 '학습 준비 0/2'는 제출 0/3과 혼동되던 문제 해결
+  let ctaLabel;
+  if (verified) {
+    ctaLabel = '오늘 인증 완료됨';
+  } else if (prepDone === 2) {
+    ctaLabel = `인증 마무리로 가기 ${Icon('arrowRight', 18)}`;
+  } else if (!copyDone) {
+    ctaLabel = `① 표현 3번씩 읽기부터 시작 ${Icon('arrowRight', 18)}`;
+  } else {
+    ctaLabel = `② 문장 제출 이어가기 (${submittedCount}/3) ${Icon('arrowRight', 18)}`;
+  }
+  cta.innerHTML = ctaLabel;
   page.appendChild(cta);
 
   page.appendChild(el('div', { class: 't-small', style: { textAlign: 'center', marginTop: '16px', fontSize: '16px', lineHeight: '1.55' } },
@@ -4165,7 +4179,7 @@ function DayPage(dayN) {
       ? '인증이 완료되어 대시보드에 반영됐어요.'
       : (prepDone === 2
           ? '학습 준비 완료. 다음 화면에서 단어 테스트와 말하기까지 마치면 오늘 인증이 끝나요.'
-          : `현재 준비 상태: 읽기 ${copyDone ? '완료' : '미완료'} · 제출 ${submittedCount}/3 완료`)
+          : `오늘 할 일: ① 읽기 ${copyDone ? '✓' : '—'} · ② 문장 제출 ${submittedCount}/3`)
   ));
 
   return page;
