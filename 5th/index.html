@@ -5247,9 +5247,9 @@ function CommunityPage() {
   const dateStr = formatDateKR(dayDate(selectedDay));
   hero.innerHTML = `
     <div class="kicker">${selectedDay === state.currentDay ? 'TODAY' : 'LOOKING BACK'} · DAY ${selectedDay} · ${dateStr}</div>
-    <h1 style="margin:10px 0 0;font-size:26px;line-height:1.12;letter-spacing:-0.03em;font-weight:700;"><span class="serif">${visibleMembers().length}명의</span> ${selectedDay === state.currentDay ? '오늘 문장' : `Day ${selectedDay} 문장`}</h1>
+    <h1 style="margin:10px 0 0;font-size:26px;line-height:1.12;letter-spacing:-0.03em;font-weight:700;">다같이 제출한 문장</h1>
     <p style="margin:10px 0 0;font-size:13px;line-height:1.55;color:var(--ink-soft);letter-spacing:-0.01em;word-break:keep-all;">
-      제출한 <b>영어 원문</b>이 그대로 올라가요. 한글 해석은 없어도 OK — 있으면 같이 보여줘요.
+      여러분이 제출한 문장이에요. 영어 원문 그대로 보이고, 한글 해석은 있으면 함께 보여줘요.
     </p>`;
   page.appendChild(hero);
 
