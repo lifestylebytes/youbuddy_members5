@@ -466,21 +466,47 @@ input, textarea, select { font-family: inherit; }
 .cert-name { font-size: 20px; font-weight: 700; color: var(--orange-dark); margin: 8px 0; }
 .cert-progress-text { font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-top: 12px; }
 
-/* checkboard */
+/* checkboard — horizontal scroll so days 1-20 stay uniform size regardless of
+   viewport width. The name column is sticky so the left side stays pinned while
+   the learner swipes the day cells. */
 .checkboard-wrap {
   background: var(--cream); border: 1px solid var(--line);
   border-radius: var(--radius-l); padding: 14px 10px 14px 14px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
-.checkboard { display: grid; grid-template-columns: 86px repeat(20, 1fr); gap: 2px; align-items: center; font-family: var(--font-mono); font-size: 9px; }
+.checkboard {
+  display: grid;
+  /* Fixed-width day cells keep 1-20 visually identical at any screen width. */
+  grid-template-columns: 96px repeat(20, 24px);
+  gap: 3px;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  min-width: max-content;
+}
 .cb-header { color: var(--muted); font-weight: 500; text-align: center; padding: 4px 0; letter-spacing: 0.04em; }
 .cb-header.today-col { color: var(--orange); font-weight: 700; }
-.cb-name { display: flex; align-items: center; gap: 6px; font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; color: var(--ink); padding-right: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.cb-name {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; color: var(--ink);
+  padding-right: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  position: sticky; left: 0; z-index: 1;
+  background: var(--cream);
+}
+.cb-header-name {
+  position: sticky; left: 0; z-index: 2;
+  background: var(--cream);
+  padding-right: 6px;
+}
 .cb-name .tiny-av { width: 18px; height: 18px; border-radius: 5px; background: var(--paper); display: grid; place-items: center; font-size: 8px; font-weight: 700; flex-shrink: 0; }
 .cb-name .tiny-av.orange { background: var(--orange); color: #fff; }
 .cb-name .tiny-av.ink { background: var(--ink); color: var(--cream); }
-.cb-cell { aspect-ratio: 1; border-radius: 3px; background: var(--line-soft); }
+.cb-cell { width: 24px; height: 24px; border-radius: 4px; background: var(--line-soft); }
 .cb-cell.on { background: var(--ink); }
 .cb-cell.today { background: var(--orange); box-shadow: 0 0 0 1.5px var(--orange-ghost); }
+.cb-row-me .cb-name { background: var(--orange-ghost); }
 .cb-row-me { background: var(--orange-ghost); border-radius: 6px; padding: 0 2px; margin: 0 -2px; }
 
 /* modal */
@@ -1191,6 +1217,14 @@ function mergePersistedState(snapshot) {
   if (!state.timezoneOffsetText) {
     state.timezoneOffsetText = timezoneShiftLabel(Number.isFinite(Number(state.timezoneOffsetMinutes)) ? Number(state.timezoneOffsetMinutes) : DEFAULT_TIMEZONE_OFFSET);
   }
+  // Stale currentDay (from cache or server) should never override today's
+  // real calendar day. Always pin currentDay to the live calendar.
+  try {
+    if (!__DEMO_MODE__) {
+      const real = computeCurrentDay();
+      if (real) state.currentDay = real;
+    }
+  } catch (e) {}
 }
 
 function loadCachedState() {
@@ -2416,6 +2450,18 @@ function render() {
     return;
   }
   window.__renderDeferred = false;
+  // Daily rollover safety net: if midnight has passed while the app was open
+  // (or we hydrated with a stale cached currentDay), recompute against today.
+  try {
+    if (!__DEMO_MODE__) {
+      const real = computeCurrentDay();
+      if (real && real !== state.currentDay) {
+        state.currentDay = real;
+        // Persist silently — no need to block render on a save.
+        try { cacheState(); } catch (e) {}
+      }
+    }
+  } catch (e) {}
   const root = $('#root');
   root.innerHTML = '';
   try {
@@ -3222,7 +3268,7 @@ function HomePage() {
 function Checkboard() {
   const wrap = el('div', { class: 'checkboard-wrap' });
   const grid = el('div', { class: 'checkboard' });
-  grid.appendChild(el('div', { class: 'cb-header', style: { textAlign: 'left' } }, 'MEMBER'));
+  grid.appendChild(el('div', { class: 'cb-header cb-header-name', style: { textAlign: 'left' } }, 'MEMBER'));
   for (let d = 1; d <= 20; d++) {
     grid.appendChild(el('div', { class: 'cb-header' + (d === state.currentDay ? ' today-col' : '') }, d));
   }
