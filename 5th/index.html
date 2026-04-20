@@ -161,8 +161,12 @@ input, textarea, select { font-family: inherit; }
   padding: 6px; border-radius: 999px;
   box-shadow: var(--shadow-l);
   pointer-events: auto;
-  width: min(92vw, 680px);
   justify-content: center;
+}
+@media (max-width: 640px) {
+  .tabbar-inner {
+    width: min(92vw, 420px);
+  }
 }
 .tab {
   padding: 10px 14px; border-radius: 999px;
