@@ -3161,12 +3161,12 @@ function VerifyPage(dayN) {
   window.__verifyUi[dayN] = ui;
 
   const copyKey = `d${dayN}-copy`;
-  const sentenceDone = d.words.every((_, i) => !!state.ai_feedback[`d${dayN}-${i}`]);
+  const sentenceDone = d.words.every((_, i) => !!state.submitted[`d${dayN}-${i}`]);
   const quizKey = `d${dayN}-quiz`;
   const recordKey = `d${dayN}-record`;
   const steps = [
     { id: 'copy', label: '오늘의 표현 3번씩 소리 내어 읽기', time: '2분', done: !!state.checkpoints[copyKey] },
-    { id: 'sentence', label: '내 문장 3개 만들고 AI 교정 받기', time: '5분', done: sentenceDone },
+    { id: 'sentence', label: '내 문장 3개 제출하기', time: '5분', done: sentenceDone },
     { id: 'capture', label: '단어 시험 바로 풀기', time: '1분', done: !!state.checkpoints[quizKey] },
     { id: 'record', label: '내 문장 녹음 (화요일/목요일)', time: '2분', done: !!state.checkpoints[recordKey] },
   ];
@@ -3258,7 +3258,7 @@ function VerifyPage(dayN) {
     panel.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, onClick: () => { state.checkpoints[copyKey] = true; saveState(); render(); } }, `${Icon('check', 14)} 3번씩 소리 내어 읽었어요`));
   } else if (activeStep === 'sentence') {
     const info = el('div', { style: { marginTop: '18px', color: 'rgba(251,247,240,0.8)', lineHeight: '1.6' } });
-    info.innerHTML = `<div>오늘 배운 표현 3개로 내 상황 문장을 만들고 AI 교정을 받으면 바로 완료돼요.</div><div style="margin-top:12px;padding:14px 16px;border-radius:16px;background:rgba(251,247,240,0.06);"><div class="t-small mono" style="color:rgba(251,247,240,0.5)">현재 상태</div><div style="margin-top:6px;font-size:16px;font-weight:700;color:var(--cream);">${sentenceDone ? '문장 3개 준비 완료' : '아직 Day 화면에서 문장 3개를 마쳐야 해요'}</div></div>`;
+    info.innerHTML = `<div>오늘 배운 표현 3개로 내 상황 문장을 만들고 3개 모두 제출하면 바로 완료돼요.</div><div style="margin-top:12px;padding:14px 16px;border-radius:16px;background:rgba(251,247,240,0.06);"><div class="t-small mono" style="color:rgba(251,247,240,0.5)">현재 상태</div><div style="margin-top:6px;font-size:16px;font-weight:700;color:var(--cream);">${sentenceDone ? '문장 3개 제출 완료' : '아직 Day 화면에서 문장 3개를 제출해야 해요'}</div></div>`;
     info.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '14px' }, onClick: () => go('day', { week: d.weekN, day: dayN }) }, sentenceDone ? '문장 다시 보기' : 'Day로 돌아가서 마무리'));
     panel.appendChild(info);
   } else {
@@ -3699,7 +3699,7 @@ function DayPage(dayN) {
     const aiAvailable = canUseAiForSentence(dayN, key);
     const row = el('div', { class: 'card', style: { padding: '24px', borderRadius: '32px', background: 'rgba(255,253,247,0.72)' } });
     const label = el('div', { class: 'row row-gap-sm', style: { marginBottom: '14px', alignItems: 'center' } });
-    label.innerHTML = `<span class="syn-chip" style="padding:8px 18px;font-size:12px;">${w.en.toUpperCase()}</span><span class="t-small" style="font-size:16px;">를 써서 내 업무 상황 문장</span>${hasCorrection ? '<span class="badge badge-green" style="margin-left:auto;">AI 완료</span>' : ''}`;
+    label.innerHTML = `<span class="syn-chip" style="padding:8px 18px;font-size:12px;">${w.en.toUpperCase()}</span><span class="t-small" style="font-size:16px;">를 써서 내 업무 상황 문장</span>${hasCorrection ? '<span class="badge badge-green" style="margin-left:auto;font-size:10px;padding:4px 10px;white-space:nowrap;">리뷰 완료</span>' : ''}`;
     row.appendChild(label);
     // Inline word reminder — so user doesn't need to scroll back up.
     const exHint = el('div', {
@@ -3738,9 +3738,10 @@ function DayPage(dayN) {
     row.appendChild(ta);
 
     const isSubmitted = !!state.submitted[key];
-    const controls = el('div', { class: 'row-between', style: { marginTop: '18px', gap: '12px', flexWrap: 'wrap' } });
+    const controls = el('div', { class: 'row-between', style: { marginTop: '18px', gap: '12px', flexWrap: 'wrap', alignItems: 'center' } });
     const count = el('span', { class: 't-small mono', style: { color: 'var(--muted)', fontSize: '15px' } }, `${ta.value.length} chars`);
     controls.appendChild(count);
+    const actionGroup = el('div', { style: { display: 'flex', gap: '10px', flexWrap: 'wrap', marginLeft: 'auto', justifyContent: 'flex-end' } });
 
     // STEP A — Submit first (raw, alone). This unlocks day verification.
     const submitBtn = el('button', {
@@ -3773,7 +3774,7 @@ function DayPage(dayN) {
     submitBtn.innerHTML = isSubmitted
       ? `${Icon('check', 12)} 제출 완료 (수정하기)`
       : `제출하기`;
-    controls.appendChild(submitBtn);
+    actionGroup.appendChild(submitBtn);
 
     // STEP B — AI review (optional, only after submit, private)
     if (isSubmitted) {
@@ -3811,8 +3812,9 @@ function DayPage(dayN) {
       aiBtn.innerHTML = hasCorrection
         ? `${Icon('sparkles', 12)} 다시 리뷰 받기`
         : `${Icon('sparkles', 12)} 💡 AI 리뷰 (참고용)`;
-      controls.appendChild(aiBtn);
+      actionGroup.appendChild(aiBtn);
     }
+    controls.appendChild(actionGroup);
     row.appendChild(controls);
 
     ta.addEventListener('input', () => {
@@ -3929,7 +3931,7 @@ function DayPage(dayN) {
       ? '인증이 완료되어 대시보드에 반영됐어요.'
       : (prepDone === 2
           ? '준비 완료. 이제 인증 화면으로 넘어가 Step 3, 4를 마치면 됩니다.'
-          : `현재 준비 상태: 읽기 ${copyDone ? '완료' : '미완료'} · AI 교정 ${correctedCount}/3 완료`)
+          : `현재 준비 상태: 읽기 ${copyDone ? '완료' : '미완료'} · 제출 ${submittedCount}/3 완료`)
   ));
 
   return page;
