@@ -895,37 +895,56 @@ const CHALLENGE = {
   }
 };
 
-/* 30 challenge members */
-/* 5기 베타 cohort roster — actual participants (deduplicated).
-   Day 1 = 2026-04-20. All progress/streak start at 0; will tick up as they verify. */
+/* Single source of truth for member onboarding + tier access.
+   Later, just edit this list and the app will sync:
+   - roster cards / board
+   - onboarding code lookup
+   - premium/basic tier
+   - operator flag
+*/
+const MEMBER_DIRECTORY = [
+  { code: '00', id: 'op1', name: '유버디', team: 'A', color: 'ink', tier: 'premium', role: '운영팀', isOperator: true },
+  { code: '3',  id: 'u1',  name: '이수진', team: 'A', color: 'ink', tier: 'premium' },
+  { code: '4',  id: 'u2',  name: '정주혜', team: 'B', color: 'cream', tier: 'premium' },
+  { code: '5',  id: 'u3',  name: '이도현', team: 'A', color: 'ink', tier: 'premium' },
+  { code: '6',  id: 'u4',  name: '정지은', team: 'B', color: 'cream', tier: 'premium' },
+  { code: '7',  id: 'u5',  name: '이송아', team: 'A', color: 'ink', tier: 'premium' },
+  { code: '8',  id: 'u6',  name: '고민지', team: 'B', color: 'cream', tier: 'basic' },
+  { code: '9',  id: 'u7',  name: '박연', team: 'A', color: 'ink', tier: 'basic' },
+  { code: '10', id: 'u8',  name: '장희정', team: 'B', color: 'cream', tier: 'basic' },
+  { code: '11', id: 'u9',  name: '이유빈', team: 'A', color: 'ink', tier: 'basic' },
+  { code: '12', id: 'u10', name: '박보름', team: 'B', color: 'cream', tier: 'basic' },
+  { code: '13', id: 'u11', name: '김선영', team: 'A', color: 'ink', tier: 'basic' },
+  { code: '14', id: 'u12', name: '신은선', team: 'B', color: 'cream', tier: 'basic' },
+  { code: '15', id: 'u13', name: '최보라', team: 'A', color: 'ink', tier: 'basic' },
+  { code: '16', id: 'u14', name: '백수지', team: 'B', color: 'cream', tier: 'basic' },
+  { code: '17', id: 'u15', name: '정진송', team: 'A', color: 'ink', tier: 'basic' },
+  { code: '18', id: 'u16', name: '권다희', team: 'B', color: 'cream', tier: 'basic' },
+  { code: '19', id: 'u17', name: '강태윤', team: 'A', color: 'ink', tier: 'basic' },
+  { code: '20', id: 'u18', name: '최수지', team: 'B', color: 'cream', tier: 'basic' },
+  { code: '21', id: 'u19', name: '이정은', team: 'A', color: 'ink', tier: 'basic' },
+  { code: '22', id: 'u20', name: '정송하', team: 'B', color: 'cream', tier: 'basic' },
+  { code: '23', id: 'u21', name: '김수린', team: 'A', color: 'ink', tier: 'basic' },
+  { code: '24', id: 'u22', name: '진여송', team: 'B', color: 'cream', tier: 'basic' },
+  { code: '25', id: 'u23', name: '권지선', team: 'A', color: 'ink', tier: 'basic' },
+  { code: '1',  id: 'u24', name: '이규태', team: 'B', color: 'cream', tier: 'premium' },
+  { code: '2',  id: 'u25', name: '이지흔', team: 'A', color: 'ink', tier: 'basic' },
+];
+
+/* 5기 roster used across dashboard/community/profile */
 const MEMBERS = [
-  { id: 'me',  name: '나',      team: 'A', color: 'orange', progress: 0, streak: 0, me: true, tier: 'auto' },
-  { id: 'op1', name: '유버디',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'premium', role: '운영팀' },
-  { id: 'u1',  name: '이수진',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'premium' },
-  { id: 'u2',  name: '정주혜',   team: 'B', color: 'cream',  progress: 0, streak: 0, tier: 'premium' },
-  { id: 'u3',  name: '이도현',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'premium' },
-  { id: 'u4',  name: '정지은',   team: 'B', color: 'cream',  progress: 0, streak: 0, tier: 'premium' },
-  { id: 'u5',  name: '이송아',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'premium' },
-  { id: 'u6',  name: '고민지',   team: 'B', color: 'cream',  progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u7',  name: '박연',     team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u8',  name: '장희정',   team: 'B', color: 'cream',  progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u9',  name: '이유빈',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u10', name: '박보름',   team: 'B', color: 'cream',  progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u11', name: '김선영',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u12', name: '신은선',   team: 'B', color: 'cream',  progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u13', name: '최보라',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u14', name: '백수지',   team: 'B', color: 'cream',  progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u15', name: '정진송',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u16', name: '권다희',   team: 'B', color: 'cream',  progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u17', name: '강태윤',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u18', name: '최수지',   team: 'B', color: 'cream',  progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u19', name: '이정은',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u20', name: '정송하',   team: 'B', color: 'cream',  progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u21', name: '김수린',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u22', name: '진여송',   team: 'B', color: 'cream',  progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u23', name: '권지선',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'basic' },
-  { id: 'u24', name: '이규태',   team: 'B', color: 'cream',  progress: 0, streak: 0, tier: 'premium' },
-  { id: 'u25', name: '이지흔',   team: 'A', color: 'ink',    progress: 0, streak: 0, tier: 'premium' },
+  { id: 'me', name: '나', team: 'A', color: 'orange', progress: 0, streak: 0, me: true, tier: 'auto' },
+  ...MEMBER_DIRECTORY.map((member) => ({
+    id: member.id,
+    name: member.name,
+    team: member.team,
+    color: member.color,
+    progress: 0,
+    streak: 0,
+    tier: member.tier,
+    role: member.role || '',
+    isOperator: !!member.isOperator,
+  })),
 ];
 
 /* Bind the logged-in user to the correct MEMBERS identity.
@@ -1054,6 +1073,7 @@ const defaultState = () => ({
   onboarded: false,               // has completed first-run onboarding
   currentDay: 1,                  // today marker (Day 1 of cohort)
   verified: {},                   // { "d1": true }
+  sentence_notes: {},             // { "d1-0": "내 한국어 메모" }
   sentences: {},                  // { "d1-0": "my sentence" }
   ai_feedback: {},                // { "d1-0": { corrected, diff_html, why } }
   ai_daily_usage: {},             // { "d1": 1 }
@@ -1085,6 +1105,7 @@ const PERSISTED_STATE_KEYS = [
   'onboarded',
   'currentDay',
   'verified',
+  'sentence_notes',
   'sentences',
   'ai_feedback',
   'ai_daily_usage',
@@ -1315,6 +1336,36 @@ Return ONLY valid JSON with this exact shape:
   }
 
   return buildLocalCorrection(word, sentence);
+}
+
+function koreanRecallPrompt(word) {
+  const promptMap = {
+    'North Star': '우리 팀이나 프로젝트의 가장 중요한 목표가 무엇인지 영어 한 문장으로 말해보세요.',
+    'align on': '회의 전에 기준이나 방향을 먼저 맞추자고 영어로 말해보세요.',
+    'kick off': '논의나 프로젝트를 지금 시작하자고 영어로 말해보세요.',
+    'go with': '지금은 한 옵션으로 결정하고 가자고 영어로 말해보세요.',
+    'for now': '지금은 일단 보류하거나 임시로 두자고 영어로 말해보세요.',
+    'follow up': '이 이슈는 나중에 다시 챙기겠다고 영어로 말해보세요.',
+    'circle back': '이 안건은 다시 돌아와서 논의하자고 영어로 말해보세요.',
+    'flag': '우려되는 점이나 이슈를 미리 짚겠다고 영어로 말해보세요.',
+    'touch base': '짧게 다시 확인하자고 영어로 말해보세요.',
+    'ownership': '누가 맡을지 책임을 분명히 하자고 영어로 말해보세요.',
+    'on track': '지금 일정이나 진행 상황이 계획대로 가고 있다고 영어로 말해보세요.',
+    'push back': '일정이나 요청을 조금 미루거나 조정해야 한다고 영어로 말해보세요.',
+    'land on': '여러 의견 중 하나로 결론 내리자고 영어로 말해보세요.',
+    'walk through': '상대에게 단계별로 설명해주겠다고 영어로 말해보세요.',
+    'revisit': '지금 결정하지 말고 나중에 다시 보자고 영어로 말해보세요.',
+    'trade-off': '무엇을 얻고 무엇을 포기하는지 영어로 설명해보세요.',
+    'scope': '이건 지금 범위 안인지 밖인지 영어로 말해보세요.',
+    'heads-up': '상대에게 미리 알려주고 싶다고 영어로 말해보세요.',
+    'bandwidth': '지금 여력이 부족하거나 있는지 영어로 말해보세요.',
+    'blocker': '현재 진행을 막는 장애물이 있다고 영어로 말해보세요.',
+  };
+  return promptMap[word.en] || `${word.def}라는 뜻이 드러나게, 지금 내 업무 상황에서 바로 쓸 영어 한 문장을 써보세요.`;
+}
+
+function koreanRecallHint(word) {
+  return word.ex_kr || `${word.def}라는 의미가 자연스럽게 들리게 한 문장으로 써보세요.`;
 }
 
 function aiDailyKey(dayN) {
@@ -1709,6 +1760,7 @@ const dayStatus = (d) => {
     return 'done';
   }
   if (d === state.currentDay) return 'today';
+  if (d >= 1 && d <= 5) return 'open';
   if (d < state.currentDay) return 'missed';
   return 'locked';
 };
@@ -2421,17 +2473,22 @@ function TopBar(title='') {
      2. Cohort goal (free text)
      3. Role (optional)
    ============================================================ */
-// Code → { name, role?, tier? } binding. Each participant has their own code.
-// Codes are case-insensitive and whitespace-trimmed. '00' is the operator (유버디).
-const ONBOARD_CODE_MAP = {
-  '00': { name: '유버디',  role: '운영팀', tier: 'premium', isOperator: true },
-  '1':  { name: '이규태',  tier: 'premium' },
-  '2':  { name: '이지흔',  tier: 'premium' },
+// Code → { name, role?, tier? } binding.
+// Participant codes are derived from MEMBER_DIRECTORY above.
+const ONBOARD_CODE_MAP = MEMBER_DIRECTORY.reduce((acc, member) => {
+  acc[String(member.code)] = {
+    name: member.name,
+    role: member.role || '',
+    tier: member.tier || 'basic',
+    isOperator: !!member.isOperator,
+  };
+  return acc;
+}, {
   // Generic codes keep original behavior (user types name themselves)
-  'YB5':      { generic: true },
-  'YOUBUDDY5':{ generic: true },
-  '5기':      { generic: true },
-};
+  'YB5': { generic: true },
+  'YOUBUDDY5': { generic: true },
+  '5기': { generic: true },
+});
 const lookupCode = (raw) => {
   const k = (raw || '').trim();
   if (!k) return null;
@@ -3013,36 +3070,48 @@ function WeeksPage() {
     const progress = weekProgress(w);
     const allDone = progress === w.days.length;
     const notStarted = progress === 0 && !w.days.some(d => d.day === state.currentDay);
+    const isSelected = selectedWeekN === w.n;
     const isCurrent = w.days.some(d => d.day === state.currentDay);
     const todayDayObj = isCurrent ? w.days.find(d => d.day === state.currentDay) : null;
+    const previewDayNumber = window.__weekPreview[w.n] || (isCurrent ? state.currentDay : w.days[0]?.day);
+    const previewDayObj = w.days.find((d) => d.day === previewDayNumber) || todayDayObj || w.days[0];
+    const isEmphasized = isSelected;
 
     // Card variant: completed (light), current (dark), upcoming (light, dim)
     const card = el('div', {
-      class: 'week-card' + (isCurrent ? ' current' : ''),
+      class: 'week-card' + (isEmphasized ? ' current' : ''),
       style: {
         padding: '22px 24px',
         borderRadius: '24px',
-        background: isCurrent ? 'var(--ink)' : '#FFFDF7',
-        border: '1px solid ' + (isCurrent ? 'var(--ink)' : 'rgba(231,221,200,0.9)'),
-        color: isCurrent ? 'var(--cream)' : 'var(--ink)',
+        background: isEmphasized ? 'var(--ink)' : '#FFFDF7',
+        border: '1px solid ' + (isEmphasized ? 'var(--ink)' : 'rgba(231,221,200,0.9)'),
+        color: isEmphasized ? 'var(--cream)' : 'var(--ink)',
         cursor: 'default', transition: 'none', transform: 'none',
-      }
+      },
+      onClick: () => {
+        currentWeek = w.n;
+        if (!window.__weekPreview[w.n]) {
+          window.__weekPreview[w.n] = previewDayObj?.day || w.days[0]?.day;
+        }
+        saveRoute();
+        render();
+      },
     });
 
     // Header
     card.innerHTML = `
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;">
         <div style="min-width:0;flex:1;">
-          <div class="kicker" style="color:${isCurrent ? 'rgba(251,247,240,0.55)' : 'var(--muted)'};">WEEK ${w.n} · ${w.title.toUpperCase()}</div>
-          <h3 style="margin:10px 0 0;font-size:22px;line-height:1.22;letter-spacing:-0.025em;font-weight:800;color:${isCurrent ? 'var(--cream)' : (notStarted ? 'var(--ink)' : 'var(--ink)')};word-break:keep-all;">${w.subtitle}</h3>
+          <div class="kicker" style="color:${isEmphasized ? 'rgba(251,247,240,0.55)' : 'var(--muted)'};">WEEK ${w.n} · ${w.title.toUpperCase()}</div>
+          <h3 style="margin:10px 0 0;font-size:22px;line-height:1.22;letter-spacing:-0.025em;font-weight:800;color:${isEmphasized ? 'var(--cream)' : (notStarted ? 'var(--ink)' : 'var(--ink)')};word-break:keep-all;">${w.subtitle}</h3>
         </div>
         <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
-          <div style="font-size:16px;font-weight:700;letter-spacing:-0.01em;white-space:nowrap;color:${isCurrent ? 'var(--cream)' : (notStarted ? 'var(--muted)' : 'var(--ink)')};">${progress}<span style="opacity:0.5;font-weight:500;">/5</span></div>
-          ${isCurrent ? '<span class="badge" style="background:var(--cream);color:var(--orange-dark);padding:5px 11px;font-size:10px;font-weight:700;border-radius:999px;">진행중</span>' : ''}
+          <div style="font-size:16px;font-weight:700;letter-spacing:-0.01em;white-space:nowrap;color:${isEmphasized ? 'var(--cream)' : (notStarted ? 'var(--muted)' : 'var(--ink)')};">${progress}<span style="opacity:0.5;font-weight:500;">/5</span></div>
+          ${isCurrent ? '<span class="badge" style="background:var(--cream);color:var(--orange-dark);padding:5px 11px;font-size:10px;font-weight:700;border-radius:999px;">진행중</span>' : (isSelected ? '<span class="badge" style="background:var(--cream);color:var(--ink);padding:5px 11px;font-size:10px;font-weight:700;border-radius:999px;">선택됨</span>' : '')}
         </div>
       </div>
-      <div style="margin:18px 0;height:${isCurrent || allDone ? '4px' : '2px'};border-radius:999px;background:${isCurrent ? 'rgba(251,247,240,0.18)' : (allDone ? 'var(--ink)' : '#E7DDC8')};overflow:hidden;">
-        ${(isCurrent && progress > 0) ? `<span style="display:block;height:100%;border-radius:999px;width:${progress/w.days.length*100}%;background:var(--orange);"></span>` : ''}
+      <div style="margin:18px 0;height:${isEmphasized || allDone ? '4px' : '2px'};border-radius:999px;background:${isEmphasized ? 'rgba(251,247,240,0.18)' : (allDone ? 'var(--ink)' : '#E7DDC8')};overflow:hidden;">
+        ${((isEmphasized || isCurrent) && progress > 0) ? `<span style="display:block;height:100%;border-radius:999px;width:${progress/w.days.length*100}%;background:var(--orange);"></span>` : ''}
       </div>
     `;
 
@@ -3055,21 +3124,25 @@ function WeeksPage() {
       if (st === 'today') {
         bg = 'var(--orange)'; fg = '#fff'; dotColor = '#fff'; dotTitle = '오늘';
       } else if (st === 'done') {
-        bg = isCurrent ? 'rgba(251,247,240,0.16)' : 'var(--ink)';
-        fg = isCurrent ? 'var(--cream)' : '#fff';
+        bg = isEmphasized ? 'rgba(251,247,240,0.16)' : 'var(--ink)';
+        fg = isEmphasized ? 'var(--cream)' : '#fff';
         dotColor = '#fff'; dotTitle = '정시 인증';
       } else if (st === 'done-late') {
-        bg = isCurrent ? 'rgba(251,247,240,0.16)' : 'var(--ink)';
-        fg = isCurrent ? 'var(--cream)' : '#fff';
+        bg = isEmphasized ? 'rgba(251,247,240,0.16)' : 'var(--ink)';
+        fg = isEmphasized ? 'var(--cream)' : '#fff';
         dotColor = 'var(--orange)'; dotTitle = '뒤늦게 인증';
       } else if (st === 'missed') {
-        bg = isCurrent ? 'rgba(240,125,56,0.18)' : '#FFF4E8';
+        bg = isEmphasized ? 'rgba(240,125,56,0.18)' : '#FFF4E8';
         fg = 'var(--orange-dark)';
-        border = '1px solid ' + (isCurrent ? 'rgba(240,125,56,0.32)' : 'rgba(240,125,56,0.18)');
+        border = '1px solid ' + (isEmphasized ? 'rgba(240,125,56,0.32)' : 'rgba(240,125,56,0.18)');
+      } else if (st === 'open') {
+        bg = isEmphasized ? 'rgba(251,247,240,0.1)' : 'var(--paper)';
+        fg = isEmphasized ? 'var(--cream)' : 'var(--ink)';
+        border = '1px solid ' + (isEmphasized ? 'rgba(251,247,240,0.16)' : 'rgba(231,221,200,0.9)');
       } else if (st === 'locked') {
         bg = 'transparent';
-        fg = isCurrent ? 'rgba(251,247,240,0.36)' : '#C8BFA8';
-        border = '1px solid ' + (isCurrent ? 'rgba(251,247,240,0.14)' : 'transparent');
+        fg = isEmphasized ? 'rgba(251,247,240,0.36)' : '#C8BFA8';
+        border = '1px solid ' + (isEmphasized ? 'rgba(251,247,240,0.14)' : 'transparent');
       }
 
       const tile = el('button', {
@@ -3078,8 +3151,9 @@ function WeeksPage() {
           e.stopPropagation();
           if (st === 'locked') return;
           currentWeek = w.n;
+          window.__weekPreview[w.n] = d.day;
           saveRoute();
-          go('day', { week: w.n, day: d.day });
+          render();
         },
         style: {
           position: 'relative',
@@ -3095,6 +3169,9 @@ function WeeksPage() {
           transition: 'none',
         }
       }, String(d.day));
+      if (isSelected && previewDayObj && previewDayObj.day === d.day) {
+        tile.style.boxShadow = isEmphasized ? 'inset 0 0 0 2px rgba(255,255,255,0.9)' : 'inset 0 0 0 2px var(--ink)';
+      }
       if (dotColor) {
         const dot = el('span', {
           style: {
@@ -3111,17 +3188,17 @@ function WeeksPage() {
     });
     card.appendChild(tileRow);
 
-    // Today preview INSIDE current week card only (matches screenshot)
-    if (isCurrent && todayDayObj) {
-      const preview = el('div', { style: { marginTop: '18px', paddingTop: '18px', borderTop: '1px solid rgba(251,247,240,0.14)' } });
+    // Selected day preview inside the selected week card.
+    if (isSelected && previewDayObj) {
+      const preview = el('div', { style: { marginTop: '18px', paddingTop: '18px', borderTop: `1px solid ${isEmphasized ? 'rgba(251,247,240,0.14)' : 'rgba(231,221,200,0.9)'}` } });
       preview.innerHTML = `
         <div style="display:flex;align-items:flex-end;gap:14px;">
           <div style="flex:1;min-width:0;">
-            <div style="font-size:11px;color:rgba(251,247,240,0.5);letter-spacing:0.04em;">오늘</div>
-            <div style="margin-top:6px;font-size:19px;font-weight:800;line-height:1.25;color:var(--cream);letter-spacing:-0.02em;">${escapeHtml(todayDayObj.title)}</div>
-            <div style="margin-top:6px;font-size:13.5px;line-height:1.45;color:rgba(251,247,240,0.65);">"${escapeHtml(todayDayObj.goal_en)}"</div>
+            <div style="font-size:11px;color:${isEmphasized ? 'rgba(251,247,240,0.5)' : 'var(--muted)'};letter-spacing:0.04em;">DAY ${previewDayObj.day}</div>
+            <div style="margin-top:6px;font-size:19px;font-weight:800;line-height:1.25;color:${isEmphasized ? 'var(--cream)' : 'var(--ink)'};letter-spacing:-0.02em;">${escapeHtml(previewDayObj.title)}</div>
+            <div style="margin-top:6px;font-size:13.5px;line-height:1.45;color:${isEmphasized ? 'rgba(251,247,240,0.65)' : 'var(--ink-soft)'};">"${escapeHtml(previewDayObj.goal_en)}"</div>
           </div>
-          <button class="icon-btn" style="width:52px;height:52px;border-radius:16px;background:var(--orange);border:none;color:#fff;flex-shrink:0;" onclick="window.__openTodayFromWeek(${w.n}, ${todayDayObj.day})">${Icon('arrowRight', 20)}</button>
+          <button class="icon-btn" style="width:52px;height:52px;border-radius:16px;background:var(--orange);border:none;color:#fff;flex-shrink:0;" onclick="window.__openTodayFromWeek(${w.n}, ${previewDayObj.day})">${Icon('arrowRight', 20)}</button>
         </div>`;
       card.appendChild(preview);
     }
@@ -3153,6 +3230,17 @@ function buildVerifyQuestions(dayN) {
     prompt_kr: w.ex_kr || '',
   }));
   return primary;
+}
+
+function normalizeQuizAnswer(value='') {
+  return String(value).trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function blankPatternFor(answer='') {
+  return String(answer)
+    .split('')
+    .map((ch) => (/\s/.test(ch) ? ' ' : '_'))
+    .join('');
 }
 
 function VerifyPage(dayN) {
@@ -3190,7 +3278,7 @@ function VerifyPage(dayN) {
   const progress = el('div', { style: { marginTop: '8px', marginBottom: '20px' } });
   progress.innerHTML = `
     <div class="row-between" style="margin-bottom:8px;">
-      <span class="kicker">VERIFICATION · 4 STEPS</span>
+      <span class="kicker">FINAL CHECK · 4 STEPS</span>
       <span class="t-small mono">${completed}/4</span>
     </div>
     <div class="bar orange"><span style="width:${completed / 4 * 100}%;transition:none;"></span></div>
@@ -3218,13 +3306,16 @@ function VerifyPage(dayN) {
         class: 'btn btn-full',
         style: { marginTop: '12px', background: passed ? 'var(--cream)' : 'rgba(251,247,240,0.16)', color: passed ? 'var(--ink)' : 'rgba(251,247,240,0.5)' },
         disabled: !passed,
-        onClick: () => { state.checkpoints[quizKey] = true; saveState(); render(); }
-      }, `${Icon('check', 14)} 시험 결과 제출`));
+        onClick: () => { state.checkpoints[quizKey] = true; saveState(); render(); },
+        html: `${Icon('check', 14)} 시험 결과 제출`
+      }));
     } else {
       const promptText = currentQuestion.prompt || `Use ${currentQuestion.en} in context.`;
       const parts = promptText.includes('____')
         ? promptText.split('____')
         : promptText.replace(new RegExp(currentQuestion.en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '____').split('____');
+      const answerWidth = Math.min(Math.max(currentQuestion.en.length + 2, 9), 18);
+      const blankPattern = blankPatternFor(currentQuestion.en);
       wrap.innerHTML = `
         <div style="padding:18px 18px 20px;border-radius:22px;background:#F7F5FF;border:1px solid rgba(255,255,255,0.08);color:var(--ink);">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
@@ -3234,7 +3325,7 @@ function VerifyPage(dayN) {
           <div style="margin-top:18px;padding:28px 18px;border-radius:24px;background:rgba(255,255,255,0.68);text-align:center;box-shadow:inset 0 0 0 1px rgba(236,232,255,0.9);">
             <div style="font-size:19px;line-height:1.7;font-weight:600;color:#35344A;word-break:keep-all;">
               ${escapeHtml(parts[0] || '')}
-              <input class="input" style="display:inline-block;width:220px;max-width:72%;margin:0 8px;padding:12px 14px;border-radius:18px;text-align:center;font-size:24px;font-weight:700;letter-spacing:-0.03em;background:#fff;border:2px solid #ECE8FF;vertical-align:middle;" placeholder="입력" value="${escapeHtml(ui.value)}" oninput="window.__setVerifyQuizValue(${dayN}, this.value)" />
+              <input class="input" style="display:inline-block;width:${answerWidth}ch;max-width:72%;margin:0 8px;padding:6px 4px 4px;text-align:center;font-size:24px;font-weight:700;letter-spacing:-0.02em;background:transparent;border:none;border-bottom:2px dashed #B7AEDF;border-radius:0;color:#35344A;vertical-align:baseline;" placeholder="${escapeHtml(blankPattern)}" value="${escapeHtml(ui.value)}" oninput="window.__setVerifyQuizValue(${dayN}, this.value)" />
               ${escapeHtml(parts[1] || '')}
             </div>
             <div style="margin-top:20px;font-size:18px;line-height:1.5;color:#6C6A86;">${escapeHtml(currentQuestion.prompt_kr || '')}</div>
@@ -3248,6 +3339,7 @@ function VerifyPage(dayN) {
               <button class="btn btn-ghost" style="flex:1;justify-content:center;background:#4F4438;color:#fff;border:none;" onclick="window.__advanceVerifyQuiz(${dayN}, true)">Skip</button>
               <button class="btn btn-primary" style="flex:2;justify-content:center;background:#F2EBD9;color:#8C7D58;" onclick="window.__advanceVerifyQuiz(${dayN}, false)" ${!ui.value.trim() ? 'disabled' : ''}>${ui.idx === questions.length - 1 ? '제출' : '다음'} ${Icon('arrowRight', 14)}</button>
             </div>
+            <div class="t-small" style="margin-top:12px;color:#8B84D7;line-height:1.5;">정답을 맞히면 자동으로 다음 문제로 넘어가요.</div>
           </div>
         </div>
       `;
@@ -3259,7 +3351,7 @@ function VerifyPage(dayN) {
       row.innerHTML = `<span class="mono" style="font-size:11px;color:rgba(251,247,240,0.4)">0${i+1}</span><span style="font-size:24px;color:var(--orange);font-weight:700;letter-spacing:-0.03em;">${escapeHtml(w.en)}</span><button class="icon-btn" style="margin-left:auto;background:rgba(251,247,240,0.1);border:none;color:var(--cream);" onclick="window.__speakWord(${dayN}, ${i})">${Icon('volume', 14)}</button>`;
       panel.appendChild(row);
     });
-    panel.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, onClick: () => { state.checkpoints[copyKey] = true; saveState(); render(); } }, `${Icon('check', 14)} 3번씩 소리 내어 읽었어요`));
+    panel.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, onClick: () => { state.checkpoints[copyKey] = true; saveState(); render(); }, html: `${Icon('check', 14)} 3번씩 소리 내어 읽었어요` }));
   } else if (activeStep === 'sentence') {
     const info = el('div', { style: { marginTop: '18px', color: 'rgba(251,247,240,0.8)', lineHeight: '1.6' } });
     info.innerHTML = `<div>오늘 배운 표현 3개로 내 상황 문장을 만들고 3개 모두 제출하면 바로 완료돼요.</div><div style="margin-top:12px;padding:14px 16px;border-radius:16px;background:rgba(251,247,240,0.06);"><div class="t-small mono" style="color:rgba(251,247,240,0.5)">현재 상태</div><div style="margin-top:6px;font-size:16px;font-weight:700;color:var(--cream);">${sentenceDone ? '문장 3개 제출 완료' : '아직 Day 화면에서 문장 3개를 제출해야 해요'}</div></div>`;
@@ -3269,7 +3361,7 @@ function VerifyPage(dayN) {
     const submitted = d.words.map((w, i) => state.ai_feedback[`d${dayN}-${i}`]?.corrected || state.sentences[`d${dayN}-${i}`] || '').filter(Boolean);
     const box = el('div', { style: { marginTop: '20px' } });
     box.innerHTML = `<div style="padding:14px 16px;border-radius:16px;background:rgba(251,247,240,0.06);border:1px solid rgba(232,116,60,0.35);"><div class="t-small mono" style="color:rgba(251,247,240,0.45)">내 문장 녹음</div><div style="margin-top:10px;font-size:18px;line-height:1.45;color:var(--cream);font-weight:700;">"${escapeHtml(submitted[0] || '(먼저 내 문장을 준비해주세요)')}"</div></div>`;
-    box.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, disabled: !submitted.length, onClick: () => { state.checkpoints[recordKey] = true; saveState(); render(); } }, `${Icon('check', 14)} 녹음 파일 제출`));
+    box.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, disabled: !submitted.length, onClick: () => { state.checkpoints[recordKey] = true; saveState(); render(); }, html: `${Icon('check', 14)} 녹음 파일 제출` }));
     panel.appendChild(box);
   }
   page.appendChild(panel);
@@ -3461,44 +3553,40 @@ function DayPage(dayN) {
   });
   page.appendChild(overview);
 
-  // Peer sentences — visible immediately on entry so participants see each other's work
+  // Cohort preview — keep social proof visible, but delay full examples until the learner tries first.
   const peers = peerSentencesFor(dayN);
   if (peers.length) {
-    const peerWrap = el('div', { style: { marginTop: '20px' }, 'data-peer-section': 'true' });
-    const peerHead = el('div', { class: 'row-between', style: { marginBottom: '10px' } });
-    peerHead.innerHTML = `
-      <div>
-        <div class="kicker">FROM YOUR COHORT · LIVE</div>
-        <div class="h2" style="margin-top:4px;font-size:18px;">동료들이 방금 올린 문장</div>
-      </div>
-      <span class="badge badge-orange" style="font-size:10px;">${peers.length}개</span>`;
-    peerWrap.appendChild(peerHead);
-
-    const peerList = el('div', { class: 'stack', style: { gap: '10px' } });
-    peers.forEach((p) => {
-      const word = (d.words[p.wordIdx] || d.words[0]).en;
-      const wordRe = new RegExp('(' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'i');
-      const highlighted = (p.sentence || '').replace(wordRe, '<b style="color:var(--orange-dark);">$1</b>');
-      const item = el('div', { class: 'card', style: { padding: '14px 16px', borderRadius: '20px', background: 'var(--cream)' } });
-      item.innerHTML = `
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-          <div style="width:32px;height:32px;border-radius:10px;background:var(--paper);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--ink);">${escapeHtml(p.avatar || '')}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:700;color:var(--ink);">${escapeHtml(p.user)} <span class="t-small mono" style="color:var(--muted);font-weight:500;">· ${p.team}</span></div>
-            <div class="t-small mono" style="font-size:10px;color:var(--muted);">${escapeHtml(p.time || '')}</div>
-          </div>
-          <span class="syn-chip" style="font-size:10px;padding:4px 10px;">${escapeHtml(word.toUpperCase())}</span>
-        </div>
-        <div style="font-size:14px;line-height:1.5;color:var(--ink);">${highlighted}</div>
-        <div class="t-small" style="margin-top:6px;color:var(--ink-soft);font-size:12px;line-height:1.5;">${escapeHtml(p.translation || '')}</div>
-        <div style="display:flex;gap:14px;margin-top:10px;align-items:center;">
-          <span class="t-small" style="font-size:11px;color:var(--muted);">♥ ${p.likes || 0}</span>
-          <span class="t-small" style="font-size:11px;color:var(--muted);cursor:pointer;" onclick="window.go('community')">↗ 커뮤니티에서 보기</span>
-        </div>`;
-      peerList.appendChild(item);
+    const cohortPreview = el('div', {
+      style: {
+        marginTop: '16px',
+        padding: '14px 16px',
+        borderRadius: '18px',
+        background: submittedCount > 0 ? '#EEF6E1' : '#FFF8EC',
+        border: `1px solid ${submittedCount > 0 ? 'rgba(107,142,78,0.18)' : 'rgba(231,221,200,0.92)'}`,
+      }
     });
-    peerWrap.appendChild(peerList);
-    page.appendChild(peerWrap);
+    cohortPreview.innerHTML = submittedCount > 0
+      ? `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <div>
+            <div class="kicker" style="color:var(--green);">COMPARE AFTER TRYING</div>
+            <div style="margin-top:4px;font-size:15px;font-weight:700;color:var(--ink);">좋아요. 이제 아래에서 동료 문장과 비교해볼 수 있어요.</div>
+          </div>
+          <span class="badge badge-green" style="font-size:10px;">LIVE ${peers.length}</span>
+        </div>
+        <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">먼저 쓴 뒤에 비교하면, 표현이 더 오래 남고 내 문장도 더 선명해져요.</div>
+      `
+      : `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <div>
+            <div class="kicker" style="color:var(--orange-dark);">FROM YOUR COHORT · LIVE</div>
+            <div style="margin-top:4px;font-size:15px;font-weight:700;color:var(--ink);">동료 문장 ${peers.length}개가 올라와 있어요.</div>
+          </div>
+          <span class="badge badge-orange" style="font-size:10px;">먼저 써보기</span>
+        </div>
+        <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">지금 바로 보이게 하면 먼저 베껴 읽게 되기 쉬워요. 내 문장 1개만 써보면 아래에서 열어볼게요.</div>
+      `;
+    page.appendChild(cohortPreview);
   }
 
   // Step 1: Vocabulary
@@ -3674,9 +3762,9 @@ function DayPage(dayN) {
   // Step 2: My sentences
   const s2 = el('div' );
   const s2Head = el('div', { class: 'step-head' });
-  s2Head.innerHTML = '<div class="step-num" style="width:58px;height:58px;border-radius:18px;font-size:22px;">2</div><div><div class="kicker">CARD 2 · YOUR SENTENCES</div><div class="h2" style="margin-top:6px;font-size:28px;">내 업무 문장 만들기 <span style="color:var(--muted);font-weight:500;">· 5분</span></div></div>';
+  s2Head.innerHTML = '<div class="step-num" style="width:58px;height:58px;border-radius:18px;font-size:22px;">2</div><div><div class="kicker">CARD 2 · KOREAN → ENGLISH</div><div class="h2" style="margin-top:6px;font-size:28px;">한국어 보고 영어로 만들기 <span style="color:var(--muted);font-weight:500;">· 5분</span></div></div>';
   s2.appendChild(s2Head);
-  s2.appendChild(el('p', { class: 't-body', style: { marginTop: '16px', fontSize: '18px', lineHeight: '1.55' } }, '오늘 배운 표현 3개로 내 업무 상황 문장을 써봐요. 먼저 혼자 써보고 제출 → 원하면 AI로 다듬어봐요 (참고용, 내 기록실에만 저장).'));
+  s2.appendChild(el('p', { class: 't-body', style: { marginTop: '16px', fontSize: '18px', lineHeight: '1.55' } }, '먼저 내 상황을 한국어로 짧게 적고, 그다음 오늘 표현을 넣어 영어 한 문장으로 바꿔보세요. 커뮤니티에는 최종 영어 문장만 올라가요.'));
   const sentenceNotice = el('div', {
     style: {
       marginTop: '14px',
@@ -3691,7 +3779,7 @@ function DayPage(dayN) {
       <div style="font-size:14px;line-height:1.5;color:var(--ink);font-weight:700;">인증하려면 문장 3개를 모두 <b>제출</b>해야 해요.</div>
       <span class="badge ${allSentenceDone ? 'badge-green' : 'badge-orange'}">제출 ${submittedCount}/3</span>
     </div>
-    <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">먼저 혼자 고심해서 써보세요. 제출 후에 <b>AI 리뷰</b>로 다듬어볼 수 있어요 (참고용, 내 기록실에만 저장돼요).</div>
+    <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">흐름은 <b>한국어 메모 → 영어 1문장</b>이에요. AI 리뷰는 선택이고, 커뮤니티에는 영어 문장만 공유돼요.</div>
     ${state.tier === 'basic' ? `<div class="t-small" style="margin-top:6px;color:var(--orange-dark);line-height:1.5;"><b>베이직</b>은 문장마다 AI 리뷰를 <b>1번씩만</b> 사용할 수 있어요. 현재: ${basicAiUsed}/3</div>` : ''}
   `;
   s2.appendChild(sentenceNotice);
@@ -3699,47 +3787,99 @@ function DayPage(dayN) {
   const sentenceStack = el('div', { class: 'stack', style: { marginTop: '14px' } });
   d.words.forEach((w, i) => {
     const key = `d${dayN}-${i}`;
+    const noteValue = state.sentence_notes?.[key] || '';
     const hasCorrection = !!state.ai_feedback[key];
     const aiAvailable = canUseAiForSentence(dayN, key);
     const row = el('div', { class: 'card', style: { padding: '24px', borderRadius: '32px', background: 'rgba(255,253,247,0.72)' } });
     const label = el('div', { class: 'row row-gap-sm', style: { marginBottom: '14px', alignItems: 'center' } });
-    label.innerHTML = `<span class="syn-chip" style="padding:8px 18px;font-size:12px;">${w.en.toUpperCase()}</span><span class="t-small" style="font-size:16px;">를 써서 내 업무 상황 문장</span>${hasCorrection ? '<span class="badge badge-green" style="margin-left:auto;font-size:10px;padding:4px 10px;white-space:nowrap;">리뷰 완료</span>' : ''}`;
+    label.innerHTML = `
+      <span class="kicker" style="font-size:10px;">0${i + 1}</span>
+      <span class="syn-chip" style="padding:8px 18px;font-size:12px;">${w.en.toUpperCase()}</span>
+      <span class="t-small" style="font-size:15px;color:var(--ink-soft);">${escapeHtml(w.def)}</span>
+      ${hasCorrection ? '<span class="badge badge-green" style="margin-left:auto;font-size:10px;padding:4px 10px;white-space:nowrap;">리뷰 완료</span>' : ''}
+    `;
     row.appendChild(label);
-    // Inline word reminder — so user doesn't need to scroll back up.
-    const exHint = el('div', {
+
+    const promptBox = el('div', {
       style: {
         marginBottom: '14px',
-        padding: '12px 14px',
-        borderRadius: '16px',
-        background: '#FFFDF4',
-        border: '1px dashed var(--line)',
-        fontSize: '13px',
-        lineHeight: '1.55',
-        color: 'var(--ink-soft)',
+        padding: '16px 18px',
+        borderRadius: '20px',
+        background: '#FFFCF4',
+        border: '1px solid var(--line-soft)',
       }
     });
-    exHint.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span class="kicker" style="color:var(--muted);font-size:10px;">WORD</span>
-        <span style="font-size:13px;font-weight:800;color:var(--orange-dark);">${escapeHtml(w.en)}</span>
-        <span style="font-size:12px;color:var(--muted);">· ${escapeHtml(w.def)}</span>
+    promptBox.innerHTML = `
+      <div class="kicker" style="font-size:10px;color:var(--orange-dark);">한국어 상황</div>
+      <div style="margin-top:8px;font-size:20px;line-height:1.42;font-weight:700;color:var(--ink);word-break:keep-all;">${escapeHtml(koreanRecallPrompt(w))}</div>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span class="badge" style="padding:6px 12px;font-size:10px;background:var(--paper);color:var(--ink-soft);font-family:var(--font-mono);">표현 힌트</span>
+        <span style="font-size:13px;color:var(--ink-soft);"><b style="color:var(--orange-dark);">${escapeHtml(w.en)}</b> · ${escapeHtml(w.def)}</span>
       </div>
-      <div style="margin-top:6px;font-size:13px;color:var(--ink);font-weight:600;">${escapeHtml(w.ex_en)}</div>
-      <div style="margin-top:2px;font-size:11.5px;color:var(--muted);">${escapeHtml(w.ex_kr)}</div>`;
-    row.appendChild(exHint);
+      <div style="margin-top:8px;font-size:12.5px;line-height:1.55;color:var(--muted);">예: ${escapeHtml(koreanRecallHint(w))}</div>
+    `;
+    row.appendChild(promptBox);
+
+    const noteWrap = el('div', {
+      style: {
+        marginBottom: '12px',
+        padding: '14px 16px',
+        borderRadius: '20px',
+        background: '#FFFDF8',
+        border: '1px solid var(--line-soft)',
+      }
+    });
+    noteWrap.innerHTML = `
+      <div class="kicker" style="font-size:10px;color:var(--muted);">내 한국어 메모</div>
+      <div class="t-small" style="margin-top:6px;font-size:12.5px;line-height:1.5;color:var(--ink-soft);">짧게만 적어도 돼요. 예: 오늘 안에 푸시하는 게 핵심</div>
+    `;
+    const noteTa = el('textarea', {
+      class: 'sentence-input',
+      placeholder: '예: 오늘 안에 푸시하는 게 핵심',
+      onInput: (e) => {
+        state.sentence_notes = state.sentence_notes || {};
+        state.sentence_notes[key] = e.target.value;
+        saveState();
+      },
+    });
+    noteTa.rows = 2;
+    noteTa.style.minHeight = '92px';
+    noteTa.style.marginTop = '10px';
+    noteTa.style.borderRadius = '18px';
+    noteTa.style.padding = '18px 20px';
+    noteTa.style.fontSize = '16px';
+    noteTa.style.background = '#fff';
+    noteTa.value = noteValue;
+    noteWrap.appendChild(noteTa);
+    row.appendChild(noteWrap);
+
+    const englishWrap = el('div', {
+      style: {
+        padding: '14px 16px',
+        borderRadius: '20px',
+        background: '#FFFDF8',
+        border: '1px solid var(--line-soft)',
+      }
+    });
+    englishWrap.innerHTML = `
+      <div class="kicker" style="font-size:10px;color:var(--muted);">영어 문장</div>
+      <div class="t-small" style="margin-top:6px;font-size:12.5px;line-height:1.5;color:var(--ink-soft);">${escapeHtml(w.en)}을 넣어 최종 한 문장으로 정리해보세요.</div>
+    `;
     const ta = el('textarea', {
       class: 'sentence-input',
-      placeholder: `e.g. Let's ${w.en} the timeline before we...`,
+      placeholder: '영어로 한 문장만 써보세요.',
       onInput: (e) => { state.sentences[key] = e.target.value; saveState(); },
     });
     ta.rows = 4;
-    ta.style.minHeight = '180px';
-    ta.style.borderRadius = '28px';
-    ta.style.padding = '28px 30px';
-    ta.style.fontSize = '19px';
-    ta.style.background = '#fffdfa';
+    ta.style.minHeight = '156px';
+    ta.style.marginTop = '10px';
+    ta.style.borderRadius = '18px';
+    ta.style.padding = '20px 22px';
+    ta.style.fontSize = '18px';
+    ta.style.background = '#fff';
     ta.value = state.sentences[key] || '';
-    row.appendChild(ta);
+    englishWrap.appendChild(ta);
+    row.appendChild(englishWrap);
 
     const isSubmitted = !!state.submitted[key];
     const controls = el('div', { class: 'row-between', style: { marginTop: '18px', gap: '12px', flexWrap: 'wrap', alignItems: 'center' } });
@@ -3863,6 +4003,22 @@ function DayPage(dayN) {
       <div class="kicker" style="color:var(--orange-dark);">BONUS · STORY HOOK</div>
       <h3 class="h3" style="margin-top:6px;">오늘 3문장을 하나의 짧은 흐름으로 이어볼까요?</h3>
       <p class="t-body" style="margin-top:6px;font-size:13px;line-height:1.55;">실제 미팅 시나리오 1분 상황극 — 세 표현을 자연스럽게 엮으면 기억에 더 오래 남아요.</p>`;
+    const hookWords = el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' } });
+    d.words.forEach((word, idx) => {
+      hookWords.appendChild(el('span', {
+        class: 'badge',
+        style: {
+          padding: '8px 12px',
+          borderRadius: '999px',
+          background: '#FFF7ED',
+          color: 'var(--orange-dark)',
+          border: '1px solid var(--orange-soft)',
+          fontSize: '11px',
+          fontFamily: 'var(--font-mono)',
+        }
+      }, `0${idx + 1} ${word.en.toUpperCase()}`));
+    });
+    hook.appendChild(hookWords);
     const hookTa = el('textarea', {
       class: 'sentence-input',
       placeholder: `예) Before we jump in, let's ${d.words[0].en} on the timeline. I think we should ${d.words[1].en} option A — ${d.words[2].en}, at least.`,
@@ -3878,6 +4034,62 @@ function DayPage(dayN) {
     hookTa.value = hookValue;
     hook.appendChild(hookTa);
     s2.appendChild(hook);
+  }
+
+  if (peers.length) {
+    const peerWrap = el('div', { style: { marginTop: '22px' }, 'data-peer-section': 'true' });
+    if (submittedCount > 0) {
+      const peerHead = el('div', { class: 'row-between', style: { marginBottom: '10px', alignItems: 'flex-end' } });
+      peerHead.innerHTML = `
+        <div>
+          <div class="kicker">SUBMIT THEN COMPARE · LIVE</div>
+          <div class="h2" style="margin-top:4px;font-size:18px;">다른 사람들은 이렇게 썼어요</div>
+          <div class="t-small" style="margin-top:4px;font-size:12px;color:var(--ink-soft);line-height:1.5;">먼저 써본 다음 비교하면, 표현의 차이와 톤이 더 잘 보입니다.</div>
+        </div>
+        <span class="badge badge-orange" style="font-size:10px;">${peers.length}개</span>`;
+      peerWrap.appendChild(peerHead);
+
+      const peerList = el('div', { class: 'stack', style: { gap: '10px' } });
+      peers.forEach((p) => {
+        const word = (d.words[p.wordIdx] || d.words[0]).en;
+        const wordRe = new RegExp('(' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'i');
+        const highlighted = (p.sentence || '').replace(wordRe, '<b style="color:var(--orange-dark);">$1</b>');
+        const item = el('div', { class: 'card', style: { padding: '14px 16px', borderRadius: '20px', background: 'var(--cream)' } });
+        item.innerHTML = `
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="width:32px;height:32px;border-radius:10px;background:var(--paper);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--ink);">${escapeHtml(p.avatar || '')}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:700;color:var(--ink);">${escapeHtml(p.user)} <span class="t-small mono" style="color:var(--muted);font-weight:500;">· ${p.team}</span></div>
+              <div class="t-small mono" style="font-size:10px;color:var(--muted);">${escapeHtml(p.time || '')}</div>
+            </div>
+            <span class="syn-chip" style="font-size:10px;padding:4px 10px;">${escapeHtml(word.toUpperCase())}</span>
+          </div>
+          <div style="font-size:13px;line-height:1.55;color:var(--ink);">${highlighted}</div>
+          <div class="t-small" style="margin-top:6px;color:var(--ink-soft);font-size:11.5px;line-height:1.5;">${escapeHtml(p.translation || '')}</div>
+          <div style="display:flex;gap:14px;margin-top:10px;align-items:center;">
+            <span class="t-small" style="font-size:11px;color:var(--muted);">♥ ${p.likes || 0}</span>
+            <span class="t-small" style="font-size:11px;color:var(--muted);cursor:pointer;" onclick="window.go('community')">↗ 커뮤니티에서 더 보기</span>
+          </div>`;
+        peerList.appendChild(item);
+      });
+      peerWrap.appendChild(peerList);
+    } else {
+      const locked = el('div', {
+        style: {
+          padding: '18px 18px',
+          borderRadius: '22px',
+          background: 'rgba(255,250,241,0.78)',
+          border: '1px dashed var(--line)',
+        }
+      });
+      locked.innerHTML = `
+        <div class="kicker">UNLOCK AFTER FIRST TRY</div>
+        <div style="margin-top:6px;font-size:18px;font-weight:700;color:var(--ink);">내 문장 1개를 먼저 써보면 동료 문장이 열려요.</div>
+        <div class="t-small" style="margin-top:8px;color:var(--ink-soft);line-height:1.55;">초반엔 참고보다 회상이 더 중요합니다. 먼저 내 문장을 꺼내 본 뒤 비교하는 흐름이 학습 효과가 더 좋아요.</div>
+      `;
+      peerWrap.appendChild(locked);
+    }
+    s2.appendChild(peerWrap);
   }
 
   page.appendChild(s2);
@@ -3927,14 +4139,14 @@ function DayPage(dayN) {
       }
     },
   });
-  cta.innerHTML = verified ? `오늘 인증 완료됨` : (prepDone === 2 ? `인증하러 가기 ${Icon('arrowRight', 18)}` : `체크 완료 (${prepDone}/2 준비됨) ${Icon('arrowRight', 18)}`);
+  cta.innerHTML = verified ? `오늘 인증 완료됨` : (prepDone === 2 ? `인증 마무리로 가기 ${Icon('arrowRight', 18)}` : `학습 준비 ${prepDone}/2 ${Icon('arrowRight', 18)}`);
   page.appendChild(cta);
 
   page.appendChild(el('div', { class: 't-small', style: { textAlign: 'center', marginTop: '16px', fontSize: '16px', lineHeight: '1.55' } },
     verified
       ? '인증이 완료되어 대시보드에 반영됐어요.'
       : (prepDone === 2
-          ? '준비 완료. 이제 인증 화면으로 넘어가 Step 3, 4를 마치면 됩니다.'
+          ? '학습 준비 완료. 다음 화면에서 단어 테스트와 말하기까지 마치면 오늘 인증이 끝나요.'
           : `현재 준비 상태: 읽기 ${copyDone ? '완료' : '미완료'} · 제출 ${submittedCount}/3 완료`)
   ));
 
@@ -5957,10 +6169,24 @@ function PremiumGateModal() {
 window.__openPremiumGate = () => { showPremiumGate = true; render(); };
 window.__closePremiumGate = () => { showPremiumGate = false; render(); };
 window.__openTodayFromWeek = (week, day) => { go('day', { week, day }); };
+window.__verifyAutoAdvanceTimers = window.__verifyAutoAdvanceTimers || {};
 window.__setVerifyQuizValue = (dayN, value) => {
+  const questions = buildVerifyQuestions(dayN);
   window.__verifyUi = window.__verifyUi || {};
   window.__verifyUi[dayN] = window.__verifyUi[dayN] || { idx: 0, value: '', done: false, score: 0 };
-  window.__verifyUi[dayN].value = value;
+  const ui = window.__verifyUi[dayN];
+  ui.value = value;
+  const current = questions[ui.idx];
+  clearTimeout(window.__verifyAutoAdvanceTimers[dayN]);
+  if (current && normalizeQuizAnswer(value) === normalizeQuizAnswer(current.en)) {
+    window.__verifyAutoAdvanceTimers[dayN] = setTimeout(() => {
+      const liveUi = (window.__verifyUi || {})[dayN];
+      const liveCurrent = questions[liveUi?.idx];
+      if (liveCurrent && normalizeQuizAnswer(liveUi.value) === normalizeQuizAnswer(liveCurrent.en)) {
+        window.__advanceVerifyQuiz(dayN, false);
+      }
+    }, 220);
+  }
 };
 window.__restartVerifyQuiz = (dayN) => {
   window.__verifyUi = window.__verifyUi || {};
@@ -5986,8 +6212,8 @@ window.__advanceVerifyQuiz = (dayN, skipped) => {
   window.__verifyUi = window.__verifyUi || {};
   const ui = window.__verifyUi[dayN] || { idx: 0, value: '', done: false, score: 0, activeStep: 'capture', reveal: false };
   const current = questions[ui.idx];
-  const answer = (ui.value || '').trim().toLowerCase();
-  const correct = skipped ? false : answer === current.en.toLowerCase();
+  const answer = normalizeQuizAnswer(ui.value || '');
+  const correct = skipped ? false : answer === normalizeQuizAnswer(current.en);
   ui.score = (ui.score || 0) + (correct ? 1 : 0);
   if (ui.idx >= questions.length - 1) {
     ui.done = true;
