@@ -177,6 +177,8 @@ returns table (
   tier text,
   role text,
   timezone_text text,
+  goal text,
+  motive text,
   progress integer,
   streak integer
 )
@@ -191,6 +193,8 @@ with base as (
     coalesce(cms.tier, cms.app_state ->> 'tier', 'basic') as tier,
     coalesce(cms.app_state ->> 'role', '') as role,
     coalesce(cms.app_state ->> 'timezoneOffsetText', '+0h') as timezone_text,
+    coalesce(cms.app_state ->> 'goal', '') as goal,
+    coalesce(cms.app_state ->> 'motive', '') as motive,
     cms.app_state
   from public.challenge_member_state cms
   where cms.cohort = p_cohort
@@ -202,6 +206,8 @@ day_rows as (
     b.tier,
     b.role,
     b.timezone_text,
+    b.goal,
+    b.motive,
     gs.day_n,
     coalesce((b.app_state -> 'verified' ->> ('d' || gs.day_n))::boolean, false) as verified
   from base b
@@ -214,10 +220,12 @@ progress_rows as (
     tier,
     role,
     timezone_text,
+    goal,
+    motive,
     count(*) filter (where verified)::int as progress,
     max(day_n) filter (where verified) as last_done_day
   from day_rows
-  group by member_key, member_name, tier, role, timezone_text
+  group by member_key, member_name, tier, role, timezone_text, goal, motive
 ),
 streak_rows as (
   select
@@ -243,6 +251,8 @@ select
   p.tier,
   p.role,
   p.timezone_text,
+  p.goal,
+  p.motive,
   p.progress,
   coalesce(s.streak, 0)::int as streak
 from progress_rows p

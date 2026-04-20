@@ -1564,20 +1564,18 @@ function memberCardData(ref) {
   const role = memberRole(member);
   const phrase = recentSavedExpressionForMember(member) || '';
 
-  // For "me", always use the user's real onboarding goal from state.
-  // For others, we don't fabricate a goal — we show a neutral line. (Once server data
-  // includes per-member goal visibility, this will pull the real value.)
+  // For "me", use state (freshest). For 동료, pull from MEMBERS fields hydrated by
+  // applyRemoteMemberSummaries (which now writes summary.goal / summary.motive).
   let goal = '';
   let motive = '';
   let focus = '';
   if (member.me) {
     goal = (state.goal || '').trim();
-    motive = '';
+    motive = (state.motive || '').trim();
     focus = '';
   } else {
-    // No fake hardcoded goal — keep the card honest for beta.
-    goal = '';
-    motive = '';
+    goal = (member.goal || '').toString().trim();
+    motive = (member.motive || '').toString().trim();
     focus = '';
   }
 
@@ -1936,6 +1934,18 @@ function applyRemoteMemberSummaries(rows = []) {
     }
     if (summary.timezone_text && member.timezoneOffsetText !== summary.timezone_text) {
       member.timezoneOffsetText = summary.timezone_text;
+      changed = true;
+    }
+    // Goal + motive from server (nullable) so 동료 카드가 실제 온보딩 데이터를 반영하도록.
+    // Keep last known value if server returns empty — avoid wiping a value we already have.
+    const nextGoal = (summary.goal || '').toString().trim();
+    if (nextGoal && member.goal !== nextGoal) {
+      member.goal = nextGoal;
+      changed = true;
+    }
+    const nextMotive = (summary.motive || '').toString().trim();
+    if (nextMotive && member.motive !== nextMotive) {
+      member.motive = nextMotive;
       changed = true;
     }
   });
