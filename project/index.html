@@ -5312,7 +5312,7 @@ function CommunityPage() {
       translation: post.translation || '',
       likesCount: Number(post.likes_count || 0),
       likedByMe: !!post.liked_by_me,
-      comments: 0,
+      comments: Array.isArray(post.comments) ? post.comments : [],
       mine: post.member_key === memberKey(),
       edited: !!post.updated_at && post.updated_at !== post.created_at,
       member_key: post.member_key,
@@ -5378,9 +5378,9 @@ function CommunityPage() {
     const tz = memberTimezoneText(member);
     const liked = hasSupabase() ? !!post.likedByMe : !!likedMap[post.id];
     const saved = !!savedMap[post.id];
-    const localComments = communityCommentsFor(post.id);
+    const localComments = hasSupabase() ? (Array.isArray(post.comments) ? post.comments : []) : communityCommentsFor(post.id);
     const likeCount = hasSupabase() ? Number(post.likesCount || 0) : ((post.likesCount || 0) + (liked ? 1 : 0));
-    const commentCount = Math.max(Number(post.comments || 0), localComments.length);
+    const commentCount = Math.max(Number(Array.isArray(post.comments) ? post.comments.length : post.comments || 0), localComments.length);
     const postIdArg = jsStringLiteral(post.id);
     const sourceKeyArg = jsStringLiteral(post.sourceKey || '');
     const userArg = jsStringLiteral(post.user);
@@ -6049,7 +6049,6 @@ window.__toggleCommunityBookmark = (postId) => {
   render();
 };
 window.__commentOnCommunityPost = (postId) => {
-  const currentComments = communityCommentsFor(postId);
   const draft = window.prompt('짧게 응원이나 코멘트를 남겨볼까요?', '');
   if (draft === null) return;
   const text = draft.trim();
@@ -6057,6 +6056,24 @@ window.__commentOnCommunityPost = (postId) => {
     showToast('빈 댓글은 저장하지 않았어요.');
     return;
   }
+  if (hasSupabase()) {
+    supabaseRpc('add_community_comment', {
+      p_cohort: CHALLENGE.cohort,
+      p_post_id: postId,
+      p_member_key: memberKey(),
+      p_member_name: state.name || '나',
+      p_comment_text: text,
+    }).then(async () => {
+      const dayToRefresh = state.communityDay || state.currentDay;
+      await loadCommunityPosts(dayToRefresh, { force: true });
+      showToast('댓글을 남겼어요.');
+      render();
+    }).catch(() => {
+      showToast('댓글 동기화에 실패했어요.');
+    });
+    return;
+  }
+  const currentComments = communityCommentsFor(postId);
   state.community_comments = state.community_comments || {};
   state.community_comments[postId] = [
     ...currentComments,

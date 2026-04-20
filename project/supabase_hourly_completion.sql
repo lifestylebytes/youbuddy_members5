@@ -288,6 +288,19 @@ create table if not exists public.challenge_community_likes (
 create index if not exists idx_challenge_community_likes_lookup
   on public.challenge_community_likes (cohort, post_id);
 
+create table if not exists public.challenge_community_comments (
+  id bigint generated always as identity primary key,
+  cohort text not null,
+  post_id text not null,
+  member_key text not null,
+  member_name text not null,
+  comment_text text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_challenge_community_comments_lookup
+  on public.challenge_community_comments (cohort, post_id, created_at desc);
+
 create or replace function public.upsert_community_post(
   p_cohort text,
   p_post_id text,
@@ -372,10 +385,56 @@ begin
   where cohort = p_cohort
     and post_id = p_post_id;
 
+  delete from public.challenge_community_comments
+  where cohort = p_cohort
+    and post_id = p_post_id;
+
   delete from public.challenge_community_posts
   where cohort = p_cohort
     and post_id = p_post_id
     and member_key = p_member_key;
+end;
+$$;
+
+create or replace function public.add_community_comment(
+  p_cohort text,
+  p_post_id text,
+  p_member_key text,
+  p_member_name text,
+  p_comment_text text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_comment public.challenge_community_comments%rowtype;
+begin
+  insert into public.challenge_community_comments (
+    cohort,
+    post_id,
+    member_key,
+    member_name,
+    comment_text
+  )
+  values (
+    p_cohort,
+    p_post_id,
+    p_member_key,
+    p_member_name,
+    trim(p_comment_text)
+  )
+  returning * into v_comment;
+
+  return jsonb_build_object(
+    'id', v_comment.id,
+    'post_id', v_comment.post_id,
+    'member_key', v_comment.member_key,
+    'author', v_comment.member_name,
+    'text', v_comment.comment_text,
+    'created_at', v_comment.created_at
+  );
 end;
 $$;
 
@@ -441,6 +500,8 @@ with post_rows as (
     p.created_at,
     p.updated_at,
     coalesce(l.likes_count, 0)::int as likes_count,
+    coalesce(c.comments_count, 0)::int as comments_count,
+    coalesce(c.comments, '[]'::jsonb) as comments,
     exists(
       select 1
       from public.challenge_community_likes cl
@@ -457,6 +518,27 @@ with post_rows as (
   ) l
     on l.cohort = p.cohort
    and l.post_id = p.post_id
+  left join (
+    select
+      cohort,
+      post_id,
+      count(*)::int as comments_count,
+      jsonb_agg(
+        jsonb_build_object(
+          'id', id,
+          'member_key', member_key,
+          'author', member_name,
+          'text', comment_text,
+          'created_at', created_at
+        )
+        order by created_at asc
+      ) as comments
+    from public.challenge_community_comments
+    where cohort = p_cohort
+    group by cohort, post_id
+  ) c
+    on c.cohort = p.cohort
+   and c.post_id = p.post_id
   where p.cohort = p_cohort
     and p.day_n = p_day
   order by p.updated_at desc, p.created_at desc
@@ -467,5 +549,6 @@ $$;
 
 grant execute on function public.upsert_community_post(text, text, text, text, text, text, text, text, integer, text, text, text, text) to anon, authenticated;
 grant execute on function public.delete_community_post(text, text, text) to anon, authenticated;
+grant execute on function public.add_community_comment(text, text, text, text, text) to anon, authenticated;
 grant execute on function public.set_community_like(text, text, text, boolean) to anon, authenticated;
 grant execute on function public.get_community_posts(text, integer, text) to anon, authenticated;
