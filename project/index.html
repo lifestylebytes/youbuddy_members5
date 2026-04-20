@@ -1003,43 +1003,10 @@ function meMember() {
   return MEMBERS.find((m) => m.me) || MEMBERS[0];
 }
 
-const MEMBER_SPOTLIGHTS = {
-  me: {
-    role: () => state.role || 'PM',
-    goal: '회의에서 내 의견을 짧고 또렷하게 말하기',
-    motive: '완벽하게 말하기보다, 바로 꺼내 말하는 속도를 만들고 있어요.',
-    focus: '오늘도 한 문장이라도 내 말로 끝까지 말하기',
-    phrase: 'align on',
-  },
-  u1: {
-    role: '마케터',
-    goal: '캠페인 공유할 때 숫자와 인사이트를 같이 말하기',
-    motive: '매일 2분이라도 이어가면 회의 톤이 달라진다고 믿어요.',
-    focus: '업데이트를 돌려 말하지 않고 바로 핵심부터 말하기',
-    phrase: 'at the core',
-  },
-  u2: {
-    role: '사업개발',
-    goal: '영어 미팅에서 다음 액션을 먼저 정리하는 사람 되기',
-    motive: '표현 하나만 익혀도 회의 리드감이 꽤 달라져요.',
-    focus: '결론을 늦추지 않고 ownership까지 닫기',
-    phrase: 'align on',
-  },
-  u3: {
-    role: '운영',
-    goal: '이슈 공유할 때 부드럽지만 분명하게 말하기',
-    motive: '작은 루틴이 쌓이면 영어도 결국 습관이 된다고 보는 편이에요.',
-    focus: '오늘은 쿠션어를 넣되 결론은 흐리지 않기',
-    phrase: 'for now',
-  },
-  u4: {
-    role: '디자이너',
-    goal: '피드백 줄 때 감이 아니라 논리로 말하기',
-    motive: '내 작업 설명을 영어로도 자연스럽게 꺼내고 싶어요.',
-    focus: '의견 차이가 나도 톤은 부드럽게 유지하기',
-    phrase: 'go with',
-  },
-};
+// MEMBER_SPOTLIGHTS was a legacy hardcoded seed for demo goal/motive/phrase per member.
+// Removed: memberCardData now pulls goal/motive from server (applyRemoteMemberSummaries)
+// and derives `phrase` from recentSavedExpressionForMember so Day 1-20 content changes
+// flow through automatically without editing this file.
 
 /* ============================================================
    PREMIUM GATE
@@ -1149,7 +1116,9 @@ function seedDemoState(s) {
       d_.words.forEach((w, i) => {
         const key = `d${d}-${i}`;
         s.submitted[key] = true;
-        if (!s.sentences[key]) s.sentences[key] = `Let's ${w.en} the timeline before we kick off.`;
+        // Seed with the day's own example sentence so demo content automatically follows
+        // whatever CHALLENGE.weeks[].days[].words[].ex_en currently is.
+        if (!s.sentences[key]) s.sentences[key] = w.ex_en || `I want to use ${w.en} in today's meeting.`;
       });
     }
   };
@@ -1340,30 +1309,60 @@ Return ONLY valid JSON with this exact shape:
   return buildLocalCorrection(word, sentence);
 }
 
-function koreanRecallPrompt(word) {
-  const promptMap = {
-    'North Star': '우리 팀이나 프로젝트의 가장 중요한 목표가 무엇인지 영어 한 문장으로 말해보세요.',
-    'align on': '회의 전에 기준이나 방향을 먼저 맞추자고 영어로 말해보세요.',
-    'kick off': '논의나 프로젝트를 지금 시작하자고 영어로 말해보세요.',
-    'go with': '지금은 한 옵션으로 결정하고 가자고 영어로 말해보세요.',
-    'for now': '지금은 일단 보류하거나 임시로 두자고 영어로 말해보세요.',
-    'follow up': '이 이슈는 나중에 다시 챙기겠다고 영어로 말해보세요.',
-    'circle back': '이 안건은 다시 돌아와서 논의하자고 영어로 말해보세요.',
-    'flag': '우려되는 점이나 이슈를 미리 짚겠다고 영어로 말해보세요.',
-    'touch base': '짧게 다시 확인하자고 영어로 말해보세요.',
-    'ownership': '누가 맡을지 책임을 분명히 하자고 영어로 말해보세요.',
-    'on track': '지금 일정이나 진행 상황이 계획대로 가고 있다고 영어로 말해보세요.',
-    'push back': '일정이나 요청을 조금 미루거나 조정해야 한다고 영어로 말해보세요.',
-    'land on': '여러 의견 중 하나로 결론 내리자고 영어로 말해보세요.',
-    'walk through': '상대에게 단계별로 설명해주겠다고 영어로 말해보세요.',
-    'revisit': '지금 결정하지 말고 나중에 다시 보자고 영어로 말해보세요.',
-    'trade-off': '무엇을 얻고 무엇을 포기하는지 영어로 설명해보세요.',
-    'scope': '이건 지금 범위 안인지 밖인지 영어로 말해보세요.',
-    'heads-up': '상대에게 미리 알려주고 싶다고 영어로 말해보세요.',
-    'bandwidth': '지금 여력이 부족하거나 있는지 영어로 말해보세요.',
-    'blocker': '현재 진행을 막는 장애물이 있다고 영어로 말해보세요.',
+function buildLocalStoryCorrection(words, text) {
+  const trimmed = (text || '').trim();
+  const wordList = (words || []).map((w) => w.en).join(', ');
+  if (!trimmed) {
+    return {
+      corrected: '',
+      diff_html: '',
+      why: '아직 문장이 비어 있어요. 세 표현을 자연스럽게 이어 한 흐름으로 써보세요.',
+    };
+  }
+  let corrected = trimmed;
+  if (!/[.!?]$/.test(corrected)) corrected += '.';
+  return {
+    corrected,
+    diff_html: escapeHtml(trimmed) === escapeHtml(corrected)
+      ? escapeHtml(corrected)
+      : `<del>${escapeHtml(trimmed)}</del> <ins>${escapeHtml(corrected)}</ins>`,
+    why: `세 표현(${wordList})이 하나의 흐름에서 자연스럽게 들리도록 최소한만 다듬었어요.`,
   };
-  return promptMap[word.en] || `${word.def}라는 뜻이 드러나게, 지금 내 업무 상황에서 바로 쓸 영어 한 문장을 써보세요.`;
+}
+
+async function requestStoryCorrection(words, text) {
+  const wordLines = (words || []).map((w) => `- "${w.en}" (${w.def})`).join('\n');
+  const prompt = `You are a warm, encouraging business English coach for Korean learners.
+The student is tying today's 3 expressions into ONE short business-scenario mini story (1~3 sentences).
+Expressions to use:
+${wordLines}
+Their attempt: "${text}"
+
+Return ONLY valid JSON with this exact shape:
+{
+  "corrected": "a natural business-English mini story that uses all 3 expressions in a believable flow",
+  "diff_html": "the corrected text as HTML with <del>removed</del> and <ins>added</ins> tags to show changes",
+  "why": "1-2 sentences in Korean explaining what you changed and why (focus on the flow/logic of using all 3 expressions together)."
+}`;
+
+  if (window.claude && typeof window.claude.complete === 'function') {
+    const raw = await window.claude.complete(prompt);
+    const clean = raw.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+    return JSON.parse(clean);
+  }
+
+  return buildLocalStoryCorrection(words, text);
+}
+
+function koreanRecallPrompt(word) {
+  // 단어별 프롬프트는 이제 CHALLENGE 데이터에서만 파생해요. 하드코딩된 표현 목록 대신
+  // word.def(뜻) + word.ex_kr(예시 한국어)을 조합해 자동 생성 → Day 1-20 어휘 교체 시 자동 반영.
+  if (!word) return '지금 내 업무 상황에서 바로 쓸 영어 한 문장을 써보세요.';
+  const hint = (word.ex_kr || '').trim();
+  if (hint) return `${hint} — 이 상황을 영어 한 문장으로 옮겨보세요.`;
+  const def = (word.def || '').trim();
+  if (def) return `${def}라는 뜻이 드러나게, 지금 내 업무 상황에서 바로 쓸 영어 한 문장을 써보세요.`;
+  return `"${word.en}"을(를) 넣어서, 지금 내 업무 상황을 영어 한 문장으로 정리해보세요.`;
 }
 
 function koreanRecallHint(word) {
@@ -1814,6 +1813,30 @@ function getDay(n) {
 }
 const completedCount = () => Object.keys(state.verified).filter(k => state.verified[k]).length;
 
+/* Single source of truth for "all challenge words".
+   Used for keyword highlighting, pattern matching, etc. so downstream code doesn't
+   hardcode Day 1-20 vocabulary and auto-follows CHALLENGE content rewrites. */
+function allChallengeWords() {
+  const out = [];
+  (CHALLENGE.weeks || []).forEach((w) => {
+    (w.days || []).forEach((d) => {
+      (d.words || []).forEach((word) => {
+        if (word && word.en) out.push(word.en);
+      });
+    });
+  });
+  return out;
+}
+function challengeWordRegex(flags = 'i') {
+  const words = allChallengeWords();
+  if (!words.length) return null;
+  const escaped = words
+    .slice()
+    .sort((a, b) => b.length - a.length) // longer matches first so "align on" beats "align"
+    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return new RegExp('(' + escaped.join('|') + ')', flags);
+}
+
 /* Fallback nuance sentences for words that don't have an explicit `nuance` field.
    Keyed by lowercased English word. */
 const NUANCE_MAP = {
@@ -2161,19 +2184,6 @@ async function recordVerificationEvent(day) {
 }
 // Curated community posts — empty for beta launch. Real participants populate the feed.
 const COMMUNITY_POSTS = [];
-
-const VERIFY_VOCAB_BANK = [
-  { en: 'align on', kr: '(기준/방향에) 맞추다, 정렬하다', syn: ['get on the same page', 'sync on'], prompt: "Let's ____ the timeline before we split up.", prompt_kr: '흩어지기 전에 타임라인부터 맞춰봐요.' },
-  { en: 'go with', kr: '~로 결정하다, 그걸로 가다', syn: ['commit to', 'settle on'], prompt: "I think we should ____ option B this time.", prompt_kr: '이번엔 B안으로 가는 게 좋겠어요.' },
-  { en: 'for now', kr: '일단, 당분간', syn: ['at this point', 'for the time being'], prompt: "Let's park that issue ____ and revisit later.", prompt_kr: '그 이슈는 일단 보류하고 나중에 다시 봐요.' },
-  { en: 'push back', kr: '반대 의사를 밝히다, 미루다', syn: ['disagree softly', 'defer'], prompt: "I want to ____ a little on the current scope.", prompt_kr: '지금 스코프에는 조금 반대 의견이 있어요.' },
-  { en: 'circle back', kr: '다시 돌아와서 논의하다', syn: ['revisit', 'follow up'], prompt: "Let's ____ on pricing next week.", prompt_kr: '가격은 다음 주에 다시 이야기해요.' },
-  { en: 'heads-up', kr: '미리 알려주는 안내', syn: ['FYI', 'a quick note'], prompt: "Quick ____: deploys may run late tonight.", prompt_kr: '미리 말해두면 오늘 배포가 늦을 수 있어요.' },
-  { en: 'on track', kr: '예정대로 진행 중인', syn: ['on pace', 'as planned'], prompt: "We're ____ to launch next Tuesday.", prompt_kr: '다음 주 화요일 출시 일정은 순조로워요.' },
-  { en: 'wrap up', kr: '마무리하다', syn: ['finish off', 'close out'], prompt: "Let's ____ this meeting in five minutes.", prompt_kr: '이 회의 5분 안에 마무리하죠.' },
-  { en: 'flag', kr: '이슈를 공유하다/제기하다', syn: ['raise', 'call out'], prompt: "I want to ____ one risk before we proceed.", prompt_kr: '진행 전에 리스크 하나만 짚고 갈게요.' },
-  { en: 'blocker', kr: '진행을 막는 이슈', syn: ['obstacle', 'roadblock'], prompt: "QA is becoming a ____ right now.", prompt_kr: '지금 QA가 병목 구간이 되고 있어요.' },
-];
 
 // Peer sentences per day — empty for beta launch. Real participants populate as they post.
 const PEER_SENTENCES = {};
@@ -3292,16 +3302,41 @@ function WeeksPage() {
 }
 
 function buildVerifyQuestions(dayN) {
-  // 베타: 오늘의 3단어만 출제. (추후 계획: 3개 맞추면 추가로 복습 7문항 랜덤, 전체 랜덤 모드 등)
-  const day = getDay(dayN);
-  const primary = (day?.words || []).map((w) => ({
+  // 출제 범위 = 오늘까지 공개된 모든 Day 단어.
+  //   - 오늘의 3단어는 항상 맨 앞에 포함.
+  //   - 이전 Day 단어들 중 랜덤하게 최대 3문항까지 복습 문항으로 섞어 출제.
+  // Day가 늘어날수록 자연스럽게 복습 분량이 붙도록 설계.
+  // 같은 회차 내에서는 리렌더되어도 문항이 흔들리지 않도록 캐시. __restartVerifyQuiz에서 초기화.
+  window.__verifyQuestionsCache = window.__verifyQuestionsCache || {};
+  const cached = window.__verifyQuestionsCache[dayN];
+  if (Array.isArray(cached) && cached.length) return cached;
+
+  const toQuestion = (w) => ({
     en: w.en,
     kr: w.def,
     syn: w.syn || [],
     prompt: w.ex_en || `Let's use ${w.en} in a sentence.`,
     prompt_kr: w.ex_kr || '',
-  }));
-  return primary;
+  });
+  const today = getDay(dayN);
+  const primary = (today?.words || []).map(toQuestion);
+
+  const pool = [];
+  (CHALLENGE.weeks || []).forEach((week) => {
+    (week.days || []).forEach((d) => {
+      if (!d || d.day >= dayN) return;
+      (d.words || []).forEach((w) => pool.push(w));
+    });
+  });
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  const recall = pool.slice(0, 3).map(toQuestion);
+
+  const questions = [...primary, ...recall];
+  window.__verifyQuestionsCache[dayN] = questions;
+  return questions;
 }
 
 function normalizeQuizAnswer(value='') {
@@ -3332,7 +3367,7 @@ function VerifyPage(dayN) {
     { id: 'copy', label: '오늘의 표현 3번씩 소리 내어 읽기', time: '2분', done: !!state.checkpoints[copyKey] },
     { id: 'sentence', label: '내 문장 3개 제출하기', time: '5분', done: sentenceDone },
     { id: 'capture', label: '단어 시험 바로 풀기', time: '1분', done: !!state.checkpoints[quizKey] },
-    { id: 'record', label: '내 문장 녹음 (화요일/목요일)', time: '2분', done: !!state.checkpoints[recordKey] },
+    { id: 'record', label: '내 문장 3개 녹음하기', time: '2분', done: !!state.checkpoints[recordKey] },
   ];
   const completed = steps.filter((step) => step.done).length;
   const activeStep = steps.find((step) => !step.done)?.id || 'record';
@@ -3391,7 +3426,7 @@ function VerifyPage(dayN) {
       wrap.innerHTML = `
         <div style="padding:18px 18px 20px;border-radius:22px;background:#F7F5FF;border:1px solid rgba(255,255,255,0.08);color:var(--ink);">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-            <div class="kicker" style="color:#8B84D7;">오늘의 단어 · 기본 ${questions.length}문제</div>
+            <div class="kicker" style="color:#8B84D7;">단어 시험 · 총 ${questions.length}문제</div>
             <span class="badge" style="background:#ECE8FF;color:#5C53A5;">${ui.idx + 1} / ${questions.length}</span>
           </div>
           <div style="margin-top:18px;padding:28px 18px;border-radius:24px;background:rgba(255,255,255,0.68);text-align:center;box-shadow:inset 0 0 0 1px rgba(236,232,255,0.9);">
@@ -3411,7 +3446,7 @@ function VerifyPage(dayN) {
               <button class="btn btn-ghost" style="flex:1;justify-content:center;background:#4F4438;color:#fff;border:none;" onclick="window.__advanceVerifyQuiz(${dayN}, true)">Skip</button>
               <button class="btn btn-primary" style="flex:2;justify-content:center;background:#F2EBD9;color:#8C7D58;" onclick="window.__advanceVerifyQuiz(${dayN}, false)" ${!ui.value.trim() ? 'disabled' : ''}>${ui.idx === questions.length - 1 ? '제출' : '다음'} ${Icon('arrowRight', 14)}</button>
             </div>
-            <div class="t-small" style="margin-top:12px;color:#8B84D7;line-height:1.5;">정답을 맞히면 자동으로 다음 문제로 넘어가요.</div>
+            <div class="t-small" style="margin-top:12px;color:#8B84D7;line-height:1.5;">오늘까지 공개된 Day 단어 중에서 랜덤으로 출제돼요. (오늘의 3단어는 항상 포함 · 이전 Day 단어는 랜덤 복습)<br>정답을 맞히면 자동으로 다음 문제로 넘어가요.</div>
           </div>
         </div>
       `;
@@ -3430,10 +3465,39 @@ function VerifyPage(dayN) {
     info.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '14px' }, onClick: () => go('day', { week: d.weekN, day: dayN }) }, sentenceDone ? '문장 다시 보기' : 'Day로 돌아가서 마무리'));
     panel.appendChild(info);
   } else {
-    const submitted = d.words.map((w, i) => state.ai_feedback[`d${dayN}-${i}`]?.corrected || state.sentences[`d${dayN}-${i}`] || '').filter(Boolean);
+    const submittedList = d.words.map((w, i) => {
+      const text = state.ai_feedback[`d${dayN}-${i}`]?.corrected || state.sentences[`d${dayN}-${i}`] || '';
+      return { word: w.en, text };
+    });
+    const hasAny = submittedList.some((row) => !!row.text);
     const box = el('div', { style: { marginTop: '20px' } });
-    box.innerHTML = `<div style="padding:14px 16px;border-radius:16px;background:rgba(251,247,240,0.06);border:1px solid rgba(232,116,60,0.35);"><div class="t-small mono" style="color:rgba(251,247,240,0.45)">내 문장 녹음</div><div style="margin-top:10px;font-size:18px;line-height:1.45;color:var(--cream);font-weight:700;">"${escapeHtml(submitted[0] || '(먼저 내 문장을 준비해주세요)')}"</div></div>`;
-    box.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, disabled: !submitted.length, onClick: () => { state.checkpoints[recordKey] = true; saveState(); render(); }, html: `${Icon('check', 14)} 녹음 파일 제출` }));
+    const guide = el('div', {
+      style: { padding: '14px 16px', borderRadius: '16px', background: 'rgba(251,247,240,0.06)', border: '1px solid rgba(232,116,60,0.28)' }
+    });
+    guide.innerHTML = `<div class="t-small mono" style="color:rgba(251,247,240,0.45)">RECORDING GUIDE</div><div style="margin-top:8px;font-size:14.5px;line-height:1.55;color:rgba(251,247,240,0.85);">아래 내 문장 3개를 소리 내어 녹음해보세요. 입으로 나와야 내 표현이 돼요.</div>`;
+    box.appendChild(guide);
+    if (!hasAny) {
+      const empty = el('div', {
+        style: { marginTop: '12px', padding: '16px', borderRadius: '16px', background: 'rgba(251,247,240,0.04)', border: '1px dashed rgba(251,247,240,0.18)', color: 'rgba(251,247,240,0.7)' }
+      });
+      empty.innerHTML = `<div style="font-size:14px;line-height:1.6;">먼저 내 문장을 준비해주세요. Day 페이지에서 3개 문장을 제출하면 여기에서 바로 읽을 수 있어요.</div>`;
+      box.appendChild(empty);
+    } else {
+      submittedList.forEach((row, i) => {
+        const item = el('div', {
+          style: { marginTop: '12px', padding: '14px 16px', borderRadius: '16px', background: 'rgba(251,247,240,0.06)', border: '1px solid rgba(232,116,60,0.22)' }
+        });
+        item.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <span class="t-small mono" style="color:rgba(251,247,240,0.45)">0${i + 1} · ${escapeHtml(row.word)}</span>
+            <button class="icon-btn" style="background:rgba(251,247,240,0.12);border:none;color:var(--cream);width:32px;height:32px;" onclick="window.__speakSentence(${dayN}, ${i})" title="들어보기">${Icon('volume', 14)}</button>
+          </div>
+          <div style="margin-top:10px;font-size:17px;line-height:1.5;color:var(--cream);font-weight:700;word-break:break-word;">${row.text ? '"' + escapeHtml(row.text) + '"' : '<span style="color:rgba(251,247,240,0.45);font-weight:500;">(아직 없음)</span>'}</div>
+        `;
+        box.appendChild(item);
+      });
+    }
+    box.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, disabled: !hasAny, onClick: () => { state.checkpoints[recordKey] = true; saveState(); render(); }, html: `${Icon('check', 14)} 3문장 모두 녹음했어요` }));
     panel.appendChild(box);
   }
   page.appendChild(panel);
@@ -3625,39 +3689,29 @@ function DayPage(dayN) {
   });
   page.appendChild(overview);
 
-  // Cohort preview — keep social proof visible, but delay full examples until the learner tries first.
+  // Cohort preview — only show pre-submission nudge at the top. The "COMPARE AFTER TRYING"
+  // banner was moved down to sit right above the peer sentences section where it's more useful.
   const peers = peerSentencesFor(dayN);
-  if (peers.length) {
+  if (peers.length && submittedCount === 0) {
     const cohortPreview = el('div', {
       style: {
         marginTop: '16px',
         padding: '14px 16px',
         borderRadius: '18px',
-        background: submittedCount > 0 ? '#EEF6E1' : '#FFF8EC',
-        border: `1px solid ${submittedCount > 0 ? 'rgba(107,142,78,0.18)' : 'rgba(231,221,200,0.92)'}`,
+        background: '#FFF8EC',
+        border: '1px solid rgba(231,221,200,0.92)',
       }
     });
-    cohortPreview.innerHTML = submittedCount > 0
-      ? `
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-          <div>
-            <div class="kicker" style="color:var(--green);">COMPARE AFTER TRYING</div>
-            <div style="margin-top:4px;font-size:15px;font-weight:700;color:var(--ink);">좋아요. 이제 아래에서 동료 문장과 비교해볼 수 있어요.</div>
-          </div>
-          <span class="badge badge-green" style="font-size:10px;">LIVE ${peers.length}</span>
+    cohortPreview.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div>
+          <div class="kicker" style="color:var(--orange-dark);">FROM YOUR COHORT · LIVE</div>
+          <div style="margin-top:4px;font-size:15px;font-weight:700;color:var(--ink);">동료 문장 ${peers.length}개가 올라와 있어요.</div>
         </div>
-        <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">먼저 쓴 뒤에 비교하면, 표현이 더 오래 남고 내 문장도 더 선명해져요.</div>
-      `
-      : `
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-          <div>
-            <div class="kicker" style="color:var(--orange-dark);">FROM YOUR COHORT · LIVE</div>
-            <div style="margin-top:4px;font-size:15px;font-weight:700;color:var(--ink);">동료 문장 ${peers.length}개가 올라와 있어요.</div>
-          </div>
-          <span class="badge badge-orange" style="font-size:10px;">먼저 써보기</span>
-        </div>
-        <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">지금 바로 보이게 하면 먼저 베껴 읽게 되기 쉬워요. 내 문장 1개만 써보면 아래에서 열어볼게요.</div>
-      `;
+        <span class="badge badge-orange" style="font-size:10px;">먼저 써보기</span>
+      </div>
+      <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">지금 바로 보이게 하면 먼저 베껴 읽게 되기 쉬워요. 내 문장 1개만 써보면 아래에서 열어볼게요.</div>
+    `;
     page.appendChild(cohortPreview);
   }
 
@@ -4062,6 +4116,7 @@ function DayPage(dayN) {
   if (allSentenceDone) {
     const hookKey = `hook-${dayN}`;
     const hookValue = state.sentences[hookKey] || '';
+    const hookFeedback = state.ai_feedback[hookKey];
     const hook = el('div', {
       style: {
         marginTop: '18px',
@@ -4105,12 +4160,94 @@ function DayPage(dayN) {
     hookTa.style.background = '#fffdfa';
     hookTa.value = hookValue;
     hook.appendChild(hookTa);
+
+    // AI review button for the bonus sentence. Shares the same "참고용 · 나만 봐요" pattern.
+    const hookControls = el('div', { style: { display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '12px', justifyContent: 'flex-end' } });
+    const hookReviewBtn = el('button', {
+      class: 'btn btn-ghost',
+      style: {
+        padding: '12px 18px',
+        borderRadius: '999px',
+        background: hookFeedback ? 'var(--green-soft)' : '#fff',
+        color: hookFeedback ? 'var(--green)' : 'var(--orange-dark)',
+        border: '1px solid var(--orange-soft)',
+        fontSize: '13.5px',
+        fontWeight: '700',
+      },
+      onClick: async () => {
+        const currentVal = (hookTa.value || '').trim();
+        if (!currentVal) { showToast('먼저 3표현을 엮은 문장을 써주세요.'); return; }
+        if (!canUseAiForSentence(dayN, hookKey)) {
+          showToast('베이직은 보너스 문장도 AI 리뷰를 1번만 사용할 수 있어요.');
+          return;
+        }
+        hookReviewBtn.disabled = true;
+        hookReviewBtn.innerHTML = `${Icon('sparkles', 12)} 리뷰 중...`;
+        try {
+          const result = await requestStoryCorrection(d.words, currentVal);
+          state.ai_feedback[hookKey] = result;
+          state.sentences[hookKey] = currentVal;
+          saveState();
+          render();
+        } catch (e) {
+          state.ai_feedback[hookKey] = {
+            corrected: currentVal,
+            diff_html: escapeHtml(currentVal),
+            why: '네트워크 이슈로 AI 리뷰가 지연되고 있어요. 잠시 후 다시 시도해보세요.',
+          };
+          saveState();
+          render();
+        }
+      },
+    });
+    hookReviewBtn.innerHTML = hookFeedback
+      ? `${Icon('sparkles', 12)} 보너스 다시 리뷰 받기`
+      : `${Icon('sparkles', 12)} 💡 보너스 AI 리뷰 (참고용)`;
+    hookControls.appendChild(hookReviewBtn);
+    hook.appendChild(hookControls);
+
+    if (hookFeedback) {
+      const result = el('div', { class: 'ai-feedback', style: { marginTop: '14px', padding: '18px 20px', borderRadius: '24px' } });
+      result.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <div class="ai-head" style="margin:0;">${Icon('sparkles', 12)} 내 기록실 · 보너스 AI 리뷰</div>
+          <span style="font-size:10.5px;color:var(--muted);background:#fff;padding:3px 8px;border-radius:999px;">참고용 · 나만 봐요</span>
+        </div>
+        <div class="ai-corrected">"${escapeHtml(hookFeedback.corrected || '')}"</div>
+        <div style="font-size:13px;margin-bottom:8px;">${hookFeedback.diff_html || ''}</div>
+        <div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(hookFeedback.why || '')}</div>`;
+      hook.appendChild(result);
+    }
+
     s2.appendChild(hook);
   }
 
   if (peers.length) {
     const peerWrap = el('div', { style: { marginTop: '22px' }, 'data-peer-section': 'true' });
     if (submittedCount > 0) {
+      // "COMPARE AFTER TRYING" banner — moved here from the top of the page (used to render
+      // far above the peer list). Keeping it next to the actual sentences makes the CTA match.
+      const compareBanner = el('div', {
+        style: {
+          marginBottom: '14px',
+          padding: '14px 16px',
+          borderRadius: '18px',
+          background: '#EEF6E1',
+          border: '1px solid rgba(107,142,78,0.18)',
+        }
+      });
+      compareBanner.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <div>
+            <div class="kicker" style="color:var(--green);">COMPARE AFTER TRYING</div>
+            <div style="margin-top:4px;font-size:15px;font-weight:700;color:var(--ink);">좋아요. 이제 아래에서 동료 문장과 비교해볼 수 있어요.</div>
+          </div>
+          <span class="badge badge-green" style="font-size:10px;">LIVE ${peers.length}</span>
+        </div>
+        <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">먼저 쓴 뒤에 비교하면, 표현이 더 오래 남고 내 문장도 더 선명해져요.</div>
+      `;
+      peerWrap.appendChild(compareBanner);
+
       const peerHead = el('div', { class: 'row-between', style: { marginBottom: '10px', alignItems: 'flex-end' } });
       peerHead.innerHTML = `
         <div>
@@ -4492,9 +4629,11 @@ function aiPolishNotes(raw) {
   // Super-lightweight structuring: group lines into a template
   const lines = text.split('\n').map(s => s.trim()).filter(Boolean);
   const buckets = { expr: [], action: [], feedback: [], misc: [] };
+  const challengeRegex = challengeWordRegex('i');
   lines.forEach(l => {
     const low = l.toLowerCase();
-    if (/^(\[?배운|표현|phrase|express|vocab)/i.test(l) || /circle back|loop in|align|kick off/i.test(low)) buckets.expr.push(l.replace(/^[-\*\s]+/, ''));
+    const hasChallengeWord = challengeRegex ? challengeRegex.test(low) : false;
+    if (/^(\[?배운|표현|phrase|express|vocab)/i.test(l) || hasChallengeWord) buckets.expr.push(l.replace(/^[-\*\s]+/, ''));
     else if (/액션|todo|다음|할일|action/i.test(l)) buckets.action.push(l.replace(/^[-\*\s]+/, ''));
     else if (/피드백|feedback|코칭|지적/i.test(l)) buckets.feedback.push(l.replace(/^[-\*\s]+/, ''));
     else buckets.misc.push(l.replace(/^[-\*\s]+/, ''));
@@ -4515,9 +4654,14 @@ function aiPolishNotes(raw) {
 }
 
 function aiKrToEn(korean) {
-  // Tiny heuristic translator: leaves a clean bilingual template for AI polishing
+  // Tiny heuristic translator: leaves a clean bilingual template for AI polishing.
+  // Empty-state example is derived from today's first word so it stays in sync with
+  // whatever Day 1-20 vocabulary is currently loaded.
   const text = (korean || '').trim();
-  if (!text) return '- I want to clarify how to use "align on" vs "sync on".\n- Could you give me 3 closings I can use to wrap up a status meeting?';
+  if (!text) {
+    const firstWord = allChallengeWords()[0] || 'today\'s phrase';
+    return `- I want to clarify how to use "${firstWord}" in real meetings.\n- Could you give me 3 natural closings I can use to end a status meeting?`;
+  }
   const lines = text.split('\n').map(s => s.trim()).filter(Boolean);
   const map = [
     ['회의', 'meeting'], ['발표', 'presentation'], ['피드백', 'feedback'], ['목표', 'goal'],
@@ -4547,10 +4691,14 @@ function aiSummarize(meta, notes) {
   }
   if (mn) {
     const len = mn.length;
-    const keywords = [];
-    ['circle back', 'loop in', 'align', 'kick off', 'for now', 'prioritize', 'trade-off'].forEach(k => {
-      if (mn.toLowerCase().includes(k)) keywords.push(`"${k}"`);
+    const low = mn.toLowerCase();
+    const seen = new Set();
+    allChallengeWords().forEach((w) => {
+      const key = w.toLowerCase();
+      if (!key || seen.has(key)) return;
+      if (low.includes(key)) { seen.add(key); }
     });
+    const keywords = Array.from(seen).map((w) => `"${w}"`);
     lines.push(`• 회의록 ${len}자 기록`);
     if (keywords.length) lines.push(`• 등장한 핵심 표현: ${keywords.join(', ')}`);
   }
@@ -4714,9 +4862,10 @@ function MeetingNotesPage(meetingId) {
     wrap.appendChild(el('h3', { class: 'h3', style: { marginTop: '10px', marginBottom: '4px' } }, '미리 적어두면 긴장 없이 말할 수 있어요'));
     wrap.appendChild(el('p', { class: 't-small', style: { marginBottom: '14px' } }, isPT ? '30분이 길지 않아요. 물어볼 것 3~5개만 정리해도 세션이 달라져요.' : 'Zoom 들어가기 전 2분만 투자하면 발언권 자신감이 달라져요.'));
 
+    const __tpFirstWord = allChallengeWords()[0] || '이번 주 표현';
     const tpTextarea = el('textarea', {
       class: 'mn-editor',
-      placeholder: '예시)\n- 지난주 발표에서 figured out 을 쓰는 게 맞았는지\n- align on 과 sync on 차이\n- 회의 마무리 표현 3개',
+      placeholder: `예시)\n- 지난주 발표에서 내가 쓴 표현이 자연스러웠는지\n- "${__tpFirstWord}"을(를) 더 자연스럽게 쓰는 법\n- 회의 마무리 표현 3개`,
       style: { minHeight: '180px' },
     });
     tpTextarea.value = notes.talk_points || '';
@@ -4756,9 +4905,12 @@ function MeetingNotesPage(meetingId) {
     wrap.appendChild(el('h3', { class: 'h3', style: { marginTop: '10px', marginBottom: '4px' } }, '미팅 중/후에 정리하는 공간'));
     wrap.appendChild(el('p', { class: 't-small', style: { marginBottom: '14px' } }, '배운 표현 · 액션 아이템 · 피드백 · 다음 주 적용 — 네 칸으로만 나눠도 복습이 쉬워져요.'));
 
+    const __mnWords = allChallengeWords();
+    const __mnSample1 = __mnWords[0] || '표현 1';
+    const __mnSample2 = __mnWords[1] || '표현 2';
     const mnTextarea = el('textarea', {
       class: 'mn-editor',
-      placeholder: '[배운 표현]\n- circle back\n- loop in\n\n[액션 아이템]\n- 다음 주까지 이메일 샘플 작성\n\n[인상적이었던 피드백]\n- ...\n\n[다음 주 적용]\n- ...',
+      placeholder: `[배운 표현]\n- ${__mnSample1}\n- ${__mnSample2}\n\n[액션 아이템]\n- 다음 주까지 이메일 샘플 작성\n\n[인상적이었던 피드백]\n- ...\n\n[다음 주 적용]\n- ...`,
       style: { minHeight: '260px' },
     });
     mnTextarea.value = notes.meeting_notes || '';
@@ -5390,24 +5542,31 @@ function ProfilePage() {
   tierCard.innerHTML = tierHtml;
   page.appendChild(tierCard);
 
-  const exportCard = el('div', { class: 'card', style: { marginTop: '20px', padding: '18px', background: 'linear-gradient(135deg, #FFF3E3, #FDE2C6)', border: '1px solid var(--orange-soft)' } });
-  exportCard.innerHTML = `
-    <div style="display:flex;gap:12px;align-items:flex-start;">
-      <div style="width:40px;height:40px;border-radius:12px;background:#fff;display:grid;place-items:center;font-size:18px;font-family:var(--font-serif);font-style:normal;font-weight:700;color:var(--ink);">N</div>
-      <div style="flex:1;">
-        <div class="h3">Notion으로 내보내기</div>
-        <div class="t-small" style="margin-top:4px;">내 학습 기록과 문장들을 Notion에 바로 붙여넣을 수 있는 형식으로 복사해요</div>
-      </div>
-    </div>`;
-  const exportActions = el('div', { style: { display: 'flex', gap: '8px', marginTop: '14px' } });
-  const exportPageBtn = el('button', { class: 'btn btn-ink', style: { flex: '1', justifyContent: 'center' }, onClick: () => go('export') });
-  exportPageBtn.innerHTML = `${Icon('download', 16)} 노션 내보내기`;
-  exportActions.appendChild(exportPageBtn);
-  const copyBtn = el('button', { class: 'btn btn-ghost', onClick: () => copyMarkdown() });
-  copyBtn.textContent = 'Notion용 복사';
-  exportActions.appendChild(copyBtn);
-  exportCard.appendChild(exportActions);
-  page.appendChild(exportCard);
+  // Notion 내보내기는 20일(마지막 Day) 인증까지 끝낸 뒤에만 노출 — 중간에 내보내면 반쪽짜리 기록이 돼서.
+  const totalDays = CHALLENGE.total_days || 20;
+  const lastDayDone = !!state.verified['d' + totalDays];
+  const reachedLastDay = (state.currentDay || 0) >= totalDays;
+  if (lastDayDone || reachedLastDay) {
+    const exportCard = el('div', { class: 'card', style: { marginTop: '20px', padding: '18px', background: 'linear-gradient(135deg, #FFF3E3, #FDE2C6)', border: '1px solid var(--orange-soft)' } });
+    exportCard.innerHTML = `
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <div style="width:40px;height:40px;border-radius:12px;background:#fff;display:grid;place-items:center;font-size:18px;font-family:var(--font-serif);font-style:normal;font-weight:700;color:var(--ink);">N</div>
+        <div style="flex:1;">
+          <div class="kicker" style="color:var(--green);">20일 완주 보상</div>
+          <div class="h3" style="margin-top:4px;">Notion으로 내보내기</div>
+          <div class="t-small" style="margin-top:4px;">내 학습 기록과 문장들을 Notion에 바로 붙여넣을 수 있는 형식으로 복사해요</div>
+        </div>
+      </div>`;
+    const exportActions = el('div', { style: { display: 'flex', gap: '8px', marginTop: '14px' } });
+    const exportPageBtn = el('button', { class: 'btn btn-ink', style: { flex: '1', justifyContent: 'center' }, onClick: () => go('export') });
+    exportPageBtn.innerHTML = `${Icon('download', 16)} 노션 내보내기`;
+    exportActions.appendChild(exportPageBtn);
+    const copyBtn = el('button', { class: 'btn btn-ghost', onClick: () => copyMarkdown() });
+    copyBtn.textContent = 'Notion용 복사';
+    exportActions.appendChild(copyBtn);
+    exportCard.appendChild(exportActions);
+    page.appendChild(exportCard);
+  }
 
   // 로그아웃 — 베타 계정 전용 (유버디 / 이규태 / 이지흔)
   const BETA_ACCOUNTS = new Set(['유버디', '이규태', '이지흔']);
@@ -5701,10 +5860,13 @@ function CommunityPage() {
         alignItems: 'flex-start',
       }
     });
-    const highlighted = escapeHtml(post.sentence).replace(
-      /(align on|go with|for now|push back|circle back|heads-up|on track|wrap up|flag|blocker)/i,
-      '<span style="background:var(--orange-ghost);color:var(--orange-dark);padding:1px 5px;border-radius:5px;font-weight:700;">$1</span>'
-    );
+    const wordRegex = challengeWordRegex('i');
+    const highlighted = wordRegex
+      ? escapeHtml(post.sentence).replace(
+          wordRegex,
+          '<span style="background:var(--orange-ghost);color:var(--orange-dark);padding:1px 5px;border-radius:5px;font-weight:700;">$1</span>'
+        )
+      : escapeHtml(post.sentence);
     const editTag = post.edited
       ? `<span style="font-size:10px;color:var(--muted);margin-left:6px;">(수정됨)</span>` : '';
     const mineEditBtn = post.mine
@@ -6289,6 +6451,8 @@ window.__setVerifyQuizValue = (dayN, value) => {
 window.__restartVerifyQuiz = (dayN) => {
   window.__verifyUi = window.__verifyUi || {};
   window.__verifyUi[dayN] = { idx: 0, value: '', done: false, score: 0, activeStep: 'capture', reveal: false };
+  // 새 회차엔 복습 문항을 새로 뽑도록 캐시 무효화.
+  if (window.__verifyQuestionsCache) window.__verifyQuestionsCache[dayN] = null;
   // Also clear the quiz submission checkpoint so the quiz step comes back as active.
   // Prevents the "다시 풀기 but page shows next step instead" confusion.
   const quizKey = `d${dayN}-quiz`;
@@ -6494,6 +6658,34 @@ window.__speakWord = (day, idx) => {
       return;
     }
     const u = new SpeechSynthesisUtterance(word.en);
+    u.voice = pickFemaleEnVoice();
+    u.lang = 'en-US';
+    u.rate = 0.92;
+    u.pitch = 1.1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.resume?.();
+    setTimeout(() => window.speechSynthesis.speak(u), 16);
+  } catch (e) {
+    showToast('듣기를 시작하지 못했어요.');
+  }
+};
+window.__speakSentence = (day, idx) => {
+  try {
+    const data = getDay(day);
+    const word = data?.words?.[idx];
+    if (!word) return;
+    const text = state.ai_feedback?.[`d${day}-${idx}`]?.corrected
+      || state.sentences?.[`d${day}-${idx}`]
+      || '';
+    if (!text) {
+      showToast('아직 준비된 문장이 없어요.');
+      return;
+    }
+    if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+      showToast('이 기기에서는 듣기를 지원하지 않아요.');
+      return;
+    }
+    const u = new SpeechSynthesisUtterance(text);
     u.voice = pickFemaleEnVoice();
     u.lang = 'en-US';
     u.rate = 0.92;
