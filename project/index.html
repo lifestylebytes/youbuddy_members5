@@ -3420,7 +3420,6 @@ function VerifyPage(dayN) {
       }
     }
   }, verified ? '오늘 인증 완료됨' : (allDone ? '인증 완료하기 ✓' : `${completed}/4 단계 완료`)));
-  page.appendChild(el('div', { class: 't-small', style: { textAlign: 'center', marginTop: '10px', color: 'var(--muted)' } }, '완료 메시지가 자동으로 유버디(5기) 카톡방에 올라갑니다'));
   return page;
 }
 
