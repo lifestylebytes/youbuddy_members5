@@ -2196,7 +2196,51 @@ function peerSentencesFor(day) {
 /* ============================================================
    RENDER — main dispatcher
    ============================================================ */
+// Pending-render queue for when focus needs to be preserved (fixes Android Chrome keyboard dismissal
+// while typing into 내 한국어 메모 / 영어 문장 textareas).
+window.__renderDeferred = window.__renderDeferred || false;
+function isTypingFocus() {
+  try {
+    const a = document.activeElement;
+    if (!a) return false;
+    const tag = (a.tagName || '').toUpperCase();
+    if (tag === 'TEXTAREA') return true;
+    if (tag === 'INPUT') {
+      const type = (a.type || 'text').toLowerCase();
+      // Treat text-like inputs as typing focus; buttons/checkboxes/etc. don't need protection.
+      return ['text', 'search', 'email', 'url', 'tel', 'password', 'number', ''].includes(type);
+    }
+    if (a.isContentEditable) return true;
+  } catch (e) {}
+  return false;
+}
+function installTypingBlurRerender(target) {
+  try {
+    if (!target || target.__rerenderBound) return;
+    target.__rerenderBound = true;
+    const handler = () => {
+      target.removeEventListener('blur', handler);
+      target.__rerenderBound = false;
+      if (window.__renderDeferred) {
+        window.__renderDeferred = false;
+        // Next tick so the blur event finishes propagating first.
+        setTimeout(() => { try { render(); } catch (e) {} }, 0);
+      }
+    };
+    target.addEventListener('blur', handler, { once: true });
+  } catch (e) {}
+}
 function render() {
+  // Keyboard stays open on mobile as long as the focused textarea/input stays in the DOM.
+  // If a typing field is focused right now, defer the re-render until blur — otherwise
+  // the wholesale innerHTML replacement below tears down the focused node and dismisses
+  // the Android Chrome soft keyboard mid-word.
+  if (isTypingFocus()) {
+    window.__renderDeferred = true;
+    installTypingBlurRerender(document.activeElement);
+    return;
+  }
+  window.__renderDeferred = false;
   const root = $('#root');
   root.innerHTML = '';
   try {
@@ -3414,9 +3458,10 @@ function VerifyPage(dayN) {
         state.verified_at['d'+dayN] = todayStr();
         saveState();
         recordVerificationEvent(dayN);
-        showToast('🎉 Day ' + dayN + ' 인증 완료! 대시보드에 반영됐어요');
+        showToast('🎉 Day ' + dayN + ' 인증 완료! 보너스 영상이 열렸어요');
         fireConfetti();
-        setTimeout(() => go('home'), 1400);
+        // Route back to the Day page so the 귀 열기 보너스 카드가 바로 보이도록 함
+        setTimeout(() => go('day', { week: d.weekN, day: dayN }), 1400);
       }
     }
   }, verified ? '오늘 인증 완료됨' : (allDone ? '인증 완료하기 ✓' : `${completed}/4 단계 완료`)));
@@ -3796,7 +3841,7 @@ function DayPage(dayN) {
       <div style="font-size:14px;line-height:1.5;color:var(--ink);font-weight:700;">인증하려면 문장 3개를 모두 <b>제출</b>해야 해요.</div>
       <span class="badge ${allSentenceDone ? 'badge-green' : 'badge-orange'}">제출 ${submittedCount}/3</span>
     </div>
-    <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">흐름은 <b>한국어 메모 → 영어 1문장</b>이에요. AI 리뷰는 선택이고, 커뮤니티에는 영어 문장만 공유돼요.</div>
+    <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">흐름은 <b>한국어 한 문장 → 영어 한 문장</b>이에요. AI 리뷰는 선택이고, 커뮤니티에는 영어 문장만 공유돼요.</div>
     ${state.tier === 'basic' ? `<div class="t-small" style="margin-top:6px;color:var(--orange-dark);line-height:1.5;"><b>베이직</b>은 문장마다 AI 리뷰를 <b>1번씩만</b> 사용할 수 있어요. 현재: ${basicAiUsed}/3</div>` : ''}
   `;
   s2.appendChild(sentenceNotice);
@@ -3847,12 +3892,12 @@ function DayPage(dayN) {
       }
     });
     noteWrap.innerHTML = `
-      <div class="kicker" style="font-size:10px;color:var(--muted);">내 한국어 메모</div>
-      <div class="t-small" style="margin-top:6px;font-size:12.5px;line-height:1.5;color:var(--ink-soft);">짧게만 적어도 돼요. 예: 오늘 안에 푸시하는 게 핵심</div>
+      <div class="kicker" style="font-size:10px;color:var(--muted);">한국어 문장</div>
+      <div class="t-small" style="margin-top:6px;font-size:12.5px;line-height:1.5;color:var(--ink-soft);"><b>${escapeHtml(w.en)}</b>을 넣어 한 문장으로 정리해보세요.</div>
     `;
     const noteTa = el('textarea', {
       class: 'sentence-input',
-      placeholder: '예: 오늘 안에 푸시하는 게 핵심',
+      placeholder: '한국어로 한 문장만 써보세요.',
       onInput: (e) => {
         state.sentence_notes = state.sentence_notes || {};
         state.sentence_notes[key] = e.target.value;
@@ -3880,7 +3925,7 @@ function DayPage(dayN) {
     });
     englishWrap.innerHTML = `
       <div class="kicker" style="font-size:10px;color:var(--muted);">영어 문장</div>
-      <div class="t-small" style="margin-top:6px;font-size:12.5px;line-height:1.5;color:var(--ink-soft);">${escapeHtml(w.en)}을 넣어 최종 한 문장으로 정리해보세요.</div>
+      <div class="t-small" style="margin-top:6px;font-size:12.5px;line-height:1.5;color:var(--ink-soft);">위 한국어 문장을 <b>${escapeHtml(w.en)}</b>을 넣어 영어 한 문장으로 옮겨주세요.</div>
     `;
     const ta = el('textarea', {
       class: 'sentence-input',
@@ -5518,10 +5563,14 @@ function CommunityPage() {
   policyNote.innerHTML = `<span style="font-size:13px;">💡</span><span>제출 시 저장되는 건 <b>영어 원문 1줄</b>뿐이에요. AI 리뷰본은 내 기록실에만 남아요.</span>`;
   page.appendChild(policyNote);
 
-  const filters = ['all', 'ALIGN ON', 'GO WITH', 'FOR NOW'];
+  // Filter chips derive from the selected day's 3 words so content swaps (Day 1~20 rewrites) flow through automatically.
+  const dayWords = (selDayObj && Array.isArray(selDayObj.words)) ? selDayObj.words : [];
+  const filters = ['all', ...dayWords.map((w) => (w.en || '').toUpperCase()).filter(Boolean)];
+  // If stored filter no longer matches today's words (e.g. user changed day), reset to 'all' in-view only.
+  const activeFilter = filters.includes(filterState) ? filterState : 'all';
   const chips = el('div', { class: 'hidden-scroll', style: { display: 'flex', gap: '8px', overflowX: 'auto', padding: '14px 0 14px', marginRight: '-22px' } });
   filters.forEach((f) => {
-    const active = filterState === f;
+    const active = activeFilter === f;
     const chip = el('button', {
       style: {
         border: 'none',
@@ -5616,7 +5665,7 @@ function CommunityPage() {
     const curated = selectedDay === state.currentDay ? COMMUNITY_POSTS : [];
     basePosts = [...myPosts, ...peers, ...curated];
   }
-  if (filterState !== 'all') basePosts = basePosts.filter((p) => p.word === filterState);
+  if (activeFilter !== 'all') basePosts = basePosts.filter((p) => (p.word || '').toUpperCase() === activeFilter);
 
   const stack = el('div', { style: { marginTop: '4px' } });
   basePosts.forEach((post) => {
@@ -5926,7 +5975,7 @@ function ScriptsPage() {
       <span class="serif">매일 쓴</span> 문장들
     </h1>
     <p style="margin:10px 0 0;font-size:13px;line-height:1.55;color:var(--ink-soft);letter-spacing:-0.01em;word-break:keep-all;">
-      제출한 영어 문장과 한국어 메모를 Day별로 한눈에 봐요. 오른쪽 위 ↓ 버튼을 누르면 <b>Notion에 바로 붙여넣기 좋은 형식</b>으로 복사돼요.
+      제출한 영어 문장과 한국어 문장을 Day별로 한눈에 봐요. 오른쪽 위 ↓ 버튼을 누르면 <b>Notion에 바로 붙여넣기 좋은 형식</b>으로 복사돼요.
     </p>`;
   page.appendChild(hero);
 
@@ -6016,7 +6065,7 @@ function ScriptsPage() {
           <span style="font-size:11px;color:var(--muted);">${escapeHtml(r.wordDef)}</span>
           ${r.submitted ? '<span style="font-size:10px;color:var(--green);margin-left:auto;">● 제출됨</span>' : '<span style="font-size:10px;color:var(--muted);margin-left:auto;">초안</span>'}
         </div>
-        ${r.note ? `<div style="margin:8px 0 0;padding:8px 10px;border-radius:10px;background:rgba(255,253,247,0.85);border:1px dashed rgba(231,221,200,0.7);"><div style="font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--muted);text-transform:uppercase;">📝 내 한국어 메모</div><p style="margin:4px 0 0;font-size:12.5px;line-height:1.5;color:var(--ink-soft);">${escapeHtml(r.note)}</p></div>` : ''}
+        ${r.note ? `<div style="margin:8px 0 0;padding:8px 10px;border-radius:10px;background:rgba(255,253,247,0.85);border:1px dashed rgba(231,221,200,0.7);"><div style="font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--muted);text-transform:uppercase;">📝 내 한국어 문장</div><p style="margin:4px 0 0;font-size:12.5px;line-height:1.5;color:var(--ink-soft);">${escapeHtml(r.note)}</p></div>` : ''}
         <p style="margin:8px 0 0;font-size:14px;line-height:1.5;color:var(--ink);letter-spacing:-0.01em;">${escapeHtml(r.sentence)}</p>
         ${r.corrected && r.corrected !== r.sentence ? `<p style="margin:4px 0 0;font-size:12px;line-height:1.45;color:var(--ink-soft);"><span style="color:var(--green);font-weight:700;">AI 교정 →</span> ${escapeHtml(r.corrected)}</p>` : ''}
       `;
@@ -6070,7 +6119,7 @@ function __collectScriptsMarkdown(onlyDay) {
       lines.push('');
       rows.forEach((r) => {
         lines.push(`- **${r.word.en}** _(${r.word.def})_`);
-        if (r.note) lines.push(`  - 내 한국어 메모: ${r.note}`);
+        if (r.note) lines.push(`  - 내 한국어 문장: ${r.note}`);
         lines.push(`  - 내 영어 문장: ${r.sentence}`);
         if (r.corrected && r.corrected !== r.sentence) {
           lines.push(`  - AI 교정: ${r.corrected}`);
@@ -6572,7 +6621,7 @@ function generateMarkdown() {
         const s = state.sentences[key] || '_(작성 전)_';
         const ai = state.ai_feedback?.[key]?.corrected || '';
         lines.push(`- **${w.en}**`);
-        if (note) lines.push(`  - 한국어 메모: ${note}`);
+        if (note) lines.push(`  - 한국어 문장: ${note}`);
         lines.push(`  - 영어 문장: ${s}`);
         if (ai && ai !== s) lines.push(`  - AI 교정: ${ai}`);
       });
