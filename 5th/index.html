@@ -1670,8 +1670,7 @@ function premiumPill(member) {
 function memberRole(member) {
   if (!member) return '';
   if (member.me) return state.role || '';
-  const spot = MEMBER_SPOTLIGHTS[member.id] || {};
-  return typeof spot.role === 'function' ? spot.role() : (spot.role || (member.team === 'A' ? '기획' : '운영'));
+  return member.role || '';
 }
 
 function memberTimezoneText(member) {
