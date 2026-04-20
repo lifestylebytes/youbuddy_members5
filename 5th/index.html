@@ -1070,7 +1070,8 @@ const defaultState = () => ({
   timezoneOffsetMinutes: DEFAULT_TIMEZONE_OFFSET,
   email: '',
   isOperator: false,              // true for 운영팀 (e.g., 유버디)
-  onboarded: false,               // has completed first-run onboarding
+  onboarded: false,               // has completed first-run onboarding (this session / device)
+  signedUp: false,                // 영속 가입 플래그. __finishOnboarding 한번이라도 완료하면 true — 로그아웃 이후 재로그인 판별에 사용
   currentDay: 1,                  // today marker (Day 1 of cohort)
   verified: {},                   // { "d1": true }
   sentence_notes: {},             // { "d1-0": "내 한국어 메모" }
@@ -1103,6 +1104,7 @@ const PERSISTED_STATE_KEYS = [
   'email',
   'isOperator',
   'onboarded',
+  'signedUp',
   'currentDay',
   'verified',
   'sentence_notes',
@@ -2733,7 +2735,21 @@ async function __onboardAdvance() {
       let remote = null;
       try { remote = await loadRemoteState(); } catch (_) { remote = null; }
       state.accountKey = prevAccountKey;
-      if (remote && typeof remote === 'object' && remote.onboarded === true) {
+      // 가입 판정: 아래 중 하나라도 참이면 "이미 가입됨"으로 간주 → 로그인 처리
+      //   1) signedUp === true (영속 가입 플래그; __finishOnboarding이 찍음)
+      //   2) onboarded === true (과거 빌드 호환 — signedUp 추가 이전 가입자)
+      //   3) goal 필드가 비어있지 않음 (가입 완료만이 goal을 저장하므로)
+      //   4) role 필드가 비어있지 않음
+      // 운영진(유버디) 등 isOperator 계정도 동일 플로우로 판정됨.
+      const remotelyRegistered = !!(
+        remote && typeof remote === 'object' && (
+          remote.signedUp === true ||
+          remote.onboarded === true ||
+          (typeof remote.goal === 'string' && remote.goal.trim().length > 0) ||
+          (typeof remote.role === 'string' && remote.role.trim().length > 0)
+        )
+      );
+      if (remotelyRegistered) {
         // Existing account — treat as login. Merge server state and jump home.
         try { mergePersistedState(remote); } catch (_) {}
         // Make sure the essentials from this session's entry are honored
@@ -2745,6 +2761,7 @@ async function __onboardAdvance() {
         if (match && match.tier) state.tier = match.tier;
         state.isOperator = !!(match && match.isOperator);
         state.onboarded = true;
+        state.signedUp = true; // 서버에 가입 기록이 있으면 로컬에도 플래그 보정
         state.currentDay = computeCurrentDay();
         bindMeToMembers();
         saveState({ immediate: true });
@@ -2782,6 +2799,7 @@ function __finishOnboarding() {
   state.role = (__onboardDraft.role || '').trim();
   state.roleSkipped = !!__onboardDraft.roleSkipped;
   state.onboarded = true;
+  state.signedUp = true; // 영속 가입 플래그 — 로그아웃 후 재로그인 시 목표/롤 다시 묻지 않게 하는 근거
   state.accountKey = [state.accessCode || 'guest', state.name || 'member'].join(':');
   const m = lookupCode(state.accessCode);
   if (m && m.tier) state.tier = m.tier;
