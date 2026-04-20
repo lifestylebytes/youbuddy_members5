@@ -2016,8 +2016,14 @@ function requestMemberSummaries(opts = {}) {
 }
 
 function patchCachedCommunityPost(postId, updater) {
+  // communityFeedCache[day] shape is { loadedAt, rows: [] }.
+  // 이전 구현이 배열로 가정하고 .map 을 돌려서 TypeError 가 나면
+  // 좋아요·댓글 RPC 의 try 블록이 catch 로 빠져 "동기화에 실패" 토스트가 잘못 떴어요.
+  // 이제 rows 만 치환하도록 수정.
   Object.keys(communityFeedCache).forEach((day) => {
-    communityFeedCache[day] = (communityFeedCache[day] || []).map((post) => {
+    const entry = communityFeedCache[day];
+    if (!entry || !Array.isArray(entry.rows)) return;
+    entry.rows = entry.rows.map((post) => {
       if (post.id !== postId) return post;
       const next = updater(post);
       return next || post;
@@ -3208,11 +3214,11 @@ function WeeksPage() {
       } else if (st === 'done') {
         bg = isEmphasized ? 'rgba(251,247,240,0.16)' : 'var(--ink)';
         fg = isEmphasized ? 'var(--cream)' : '#fff';
-        dotColor = '#fff'; dotTitle = '정시 인증';
+        dotColor = '#fff'; dotTitle = '제때 인증';
       } else if (st === 'done-late') {
         bg = isEmphasized ? 'rgba(251,247,240,0.16)' : 'var(--ink)';
         fg = isEmphasized ? 'var(--cream)' : '#fff';
-        dotColor = 'var(--orange)'; dotTitle = '뒤늦게 인증';
+        dotColor = 'var(--orange)'; dotTitle = '지각 인증';
       } else if (st === 'missed') {
         bg = isEmphasized ? 'rgba(240,125,56,0.18)' : '#FFF4E8';
         fg = 'var(--orange-dark)';
@@ -3289,13 +3295,24 @@ function WeeksPage() {
   });
   page.appendChild(stack);
 
-  // 3-state legend
-  const legend = el('div', { style: { marginTop: '18px', padding: '14px 16px', borderRadius: '16px', background: 'var(--paper)', display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '11.5px', color: 'var(--ink-soft)' } });
+  // Legend — 모든 타일 상태를 직관적인 레이블로 정리
+  const legend = el('div', { style: { marginTop: '18px', padding: '14px 16px', borderRadius: '16px', background: 'var(--paper)', display: 'flex', flexWrap: 'wrap', gap: '14px', rowGap: '10px', fontSize: '11.5px', color: 'var(--ink-soft)' } });
   legend.innerHTML = `
-    <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:20px;height:20px;border-radius:6px;background:var(--ink);position:relative;display:inline-block;"><span style="position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:#fff;"></span></span>정시 인증</span>
-    <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:20px;height:20px;border-radius:6px;background:var(--ink);position:relative;display:inline-block;"><span style="position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--orange);"></span></span>뒤늦게 인증</span>
-    <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:20px;height:20px;border-radius:6px;background:var(--orange);"></span>오늘</span>
-    <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:20px;height:20px;border-radius:6px;background:#FFF4E8;border:1px solid rgba(240,125,56,0.2);"></span>아직</span>`;
+    <span style="display:inline-flex;align-items:center;gap:6px;">
+      <span style="width:20px;height:20px;border-radius:6px;background:var(--orange);display:inline-block;"></span>오늘 Day
+    </span>
+    <span style="display:inline-flex;align-items:center;gap:6px;">
+      <span style="width:20px;height:20px;border-radius:6px;background:var(--ink);position:relative;display:inline-block;"><span style="position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:#fff;"></span></span>제때 인증
+    </span>
+    <span style="display:inline-flex;align-items:center;gap:6px;">
+      <span style="width:20px;height:20px;border-radius:6px;background:var(--ink);position:relative;display:inline-block;"><span style="position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--orange);"></span></span>지각 인증
+    </span>
+    <span style="display:inline-flex;align-items:center;gap:6px;">
+      <span style="width:20px;height:20px;border-radius:6px;background:#FFF4E8;border:1px solid rgba(240,125,56,0.2);display:inline-block;"></span>놓친 Day
+    </span>
+    <span style="display:inline-flex;align-items:center;gap:6px;">
+      <span style="width:20px;height:20px;border-radius:6px;background:transparent;border:1px dashed #C8BFA8;display:inline-block;"></span>아직 안 열림
+    </span>`;
   page.appendChild(legend);
 
   return page;
