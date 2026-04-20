@@ -3010,13 +3010,13 @@ function HomePage() {
       <div class="t-small" style="margin-top:2px;">${dashboardStats.comparisonLabel}</div>
     </div>
     <div class="card card-flat" style="padding:14px 12px;">
-      <div class="kicker">TEAM A</div>
-      <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;">${Math.round(sorted.filter(m=>m.team==='A').reduce((s,m)=>s+m.progress,0)/Math.max(1,sorted.filter(m=>m.team==='A').length)/totalDays*100)}%</div>
+      <div class="kicker">베이직</div>
+      <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;">${Math.round(sorted.filter(m=>m.tier==='basic').reduce((s,m)=>s+m.progress,0)/Math.max(1,sorted.filter(m=>m.tier==='basic').length)/totalDays*100)}%</div>
       <div class="t-small" style="margin-top:2px;">평균 진행률</div>
     </div>
     <div class="card card-flat" style="padding:14px 12px;">
-      <div class="kicker">TEAM B</div>
-      <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;">${Math.round(sorted.filter(m=>m.team==='B').reduce((s,m)=>s+m.progress,0)/Math.max(1,sorted.filter(m=>m.team==='B').length)/totalDays*100)}%</div>
+      <div class="kicker">프리미엄</div>
+      <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;">${Math.round(sorted.filter(m=>m.tier==='premium').reduce((s,m)=>s+m.progress,0)/Math.max(1,sorted.filter(m=>m.tier==='premium').length)/totalDays*100)}%</div>
       <div class="t-small" style="margin-top:2px;">평균 진행률</div>
     </div>`;
   page.appendChild(stats);
@@ -3216,9 +3216,9 @@ function WeeksPage() {
         fg = isEmphasized ? 'var(--cream)' : '#fff';
         dotColor = '#fff'; dotTitle = '제때 인증';
       } else if (st === 'done-late') {
-        bg = isEmphasized ? 'rgba(251,247,240,0.16)' : 'var(--ink)';
-        fg = isEmphasized ? 'var(--cream)' : '#fff';
-        dotColor = 'var(--orange)'; dotTitle = '지각 인증';
+        bg = isEmphasized ? 'rgba(201,87,33,0.42)' : 'var(--orange-dark)';
+        fg = '#fff';
+        dotColor = '#fff'; dotTitle = '지각 인증';
       } else if (st === 'missed') {
         bg = isEmphasized ? 'rgba(240,125,56,0.18)' : '#FFF4E8';
         fg = 'var(--orange-dark)';
@@ -3257,6 +3257,13 @@ function WeeksPage() {
           transition: 'none',
         }
       }, String(d.day));
+      // Today ring — ensure today's tile is always identifiable even when already verified
+      const isTodayTile = d.day === state.currentDay;
+      if (isTodayTile && st !== 'today') {
+        tile.style.boxShadow = isEmphasized
+          ? '0 0 0 2px rgba(240,125,56,0.9), 0 0 0 4px rgba(240,125,56,0.25)'
+          : '0 0 0 2px var(--orange), 0 0 0 4px rgba(240,125,56,0.18)';
+      }
       if (isSelected && previewDayObj && previewDayObj.day === d.day) {
         tile.style.boxShadow = isEmphasized ? 'inset 0 0 0 2px rgba(255,255,255,0.9)' : 'inset 0 0 0 2px var(--ink)';
       }
@@ -3305,7 +3312,7 @@ function WeeksPage() {
       <span style="width:20px;height:20px;border-radius:6px;background:var(--ink);position:relative;display:inline-block;"><span style="position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:#fff;"></span></span>제때 인증
     </span>
     <span style="display:inline-flex;align-items:center;gap:6px;">
-      <span style="width:20px;height:20px;border-radius:6px;background:var(--ink);position:relative;display:inline-block;"><span style="position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--orange);"></span></span>지각 인증
+      <span style="width:20px;height:20px;border-radius:6px;background:var(--orange-dark);position:relative;display:inline-block;"><span style="position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:#fff;"></span></span>지각 인증
     </span>
     <span style="display:inline-flex;align-items:center;gap:6px;">
       <span style="width:20px;height:20px;border-radius:6px;background:#FFF4E8;border:1px solid rgba(240,125,56,0.2);display:inline-block;"></span>놓친 Day
