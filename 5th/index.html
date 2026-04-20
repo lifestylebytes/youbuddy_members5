@@ -2048,7 +2048,7 @@ async function upsertCommunityPost(dayN, idx) {
     p_day_n: dayN,
     p_word: (word.en || '').toUpperCase(),
     p_sentence: sentence,
-    p_translation: state.community_edits?.[`me-${sourceKey}`]?.translation || '',
+    p_translation: (state.community_edits?.[`me-${sourceKey}`]?.translation || state.sentence_notes?.[sourceKey] || '').trim(),
     p_source_key: sourceKey,
   });
   await loadCommunityPosts(dayN, { force: true });
@@ -5310,7 +5310,7 @@ function ProfilePage() {
       <div style="width:40px;height:40px;border-radius:12px;background:#fff;display:grid;place-items:center;font-size:18px;font-family:var(--font-serif);font-style:normal;font-weight:700;color:var(--ink);">N</div>
       <div style="flex:1;">
         <div class="h3">Notion으로 내보내기</div>
-        <div class="t-small" style="margin-top:4px;">학습 기록과 내 문장을 마크다운으로 저장해서 Notion에서 바로 열어요</div>
+        <div class="t-small" style="margin-top:4px;">내 학습 기록과 문장들을 Notion에 바로 붙여넣을 수 있는 형식으로 복사해요</div>
       </div>
     </div>`;
   const exportActions = el('div', { style: { display: 'flex', gap: '8px', marginTop: '14px' } });
@@ -5318,7 +5318,7 @@ function ProfilePage() {
   exportPageBtn.innerHTML = `${Icon('download', 16)} 노션 내보내기`;
   exportActions.appendChild(exportPageBtn);
   const copyBtn = el('button', { class: 'btn btn-ghost', onClick: () => copyMarkdown() });
-  copyBtn.textContent = '마크다운 복사';
+  copyBtn.textContent = 'Notion용 복사';
   exportActions.appendChild(copyBtn);
   exportCard.appendChild(exportActions);
   page.appendChild(exportCard);
@@ -5895,7 +5895,7 @@ function ScriptsPage() {
       <span class="serif">매일 쓴</span> 문장들
     </h1>
     <p style="margin:10px 0 0;font-size:13px;line-height:1.55;color:var(--ink-soft);letter-spacing:-0.01em;word-break:keep-all;">
-      제출한 영어 문장을 Day별로 한눈에 봐요. 오른쪽 위 ↓ 버튼으로 <b>Notion에 붙여넣기 좋은 마크다운</b>으로 복사할 수 있어요.
+      제출한 영어 문장과 한국어 메모를 Day별로 한눈에 봐요. 오른쪽 위 ↓ 버튼을 누르면 <b>Notion에 바로 붙여넣기 좋은 형식</b>으로 복사돼요.
     </p>`;
   page.appendChild(hero);
 
@@ -5916,6 +5916,7 @@ function ScriptsPage() {
           sentence: s.trim(),
           submitted,
           corrected: ai?.corrected || '',
+          note: (state.sentence_notes?.[key] || '').trim(),
         });
       });
       if (rows.length) grouped.push({ day: dy.day, weekN: w.n, title: dy.title, rows });
@@ -5984,7 +5985,8 @@ function ScriptsPage() {
           <span style="font-size:11px;color:var(--muted);">${escapeHtml(r.wordDef)}</span>
           ${r.submitted ? '<span style="font-size:10px;color:var(--green);margin-left:auto;">● 제출됨</span>' : '<span style="font-size:10px;color:var(--muted);margin-left:auto;">초안</span>'}
         </div>
-        <p style="margin:6px 0 0;font-size:14px;line-height:1.5;color:var(--ink);letter-spacing:-0.01em;">${escapeHtml(r.sentence)}</p>
+        ${r.note ? `<div style="margin:8px 0 0;padding:8px 10px;border-radius:10px;background:rgba(255,253,247,0.85);border:1px dashed rgba(231,221,200,0.7);"><div style="font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--muted);text-transform:uppercase;">📝 내 한국어 메모</div><p style="margin:4px 0 0;font-size:12.5px;line-height:1.5;color:var(--ink-soft);">${escapeHtml(r.note)}</p></div>` : ''}
+        <p style="margin:8px 0 0;font-size:14px;line-height:1.5;color:var(--ink);letter-spacing:-0.01em;">${escapeHtml(r.sentence)}</p>
         ${r.corrected && r.corrected !== r.sentence ? `<p style="margin:4px 0 0;font-size:12px;line-height:1.45;color:var(--ink-soft);"><span style="color:var(--green);font-weight:700;">AI 교정 →</span> ${escapeHtml(r.corrected)}</p>` : ''}
       `;
       rows.appendChild(row);
@@ -6024,7 +6026,12 @@ function __collectScriptsMarkdown(onlyDay) {
         const s = state.sentences[key];
         if (!s || !s.trim()) return;
         const ai = state.ai_feedback?.[key];
-        rows.push({ word, sentence: s.trim(), corrected: ai?.corrected || '' });
+        rows.push({
+          word,
+          sentence: s.trim(),
+          corrected: ai?.corrected || '',
+          note: (state.sentence_notes?.[key] || '').trim(),
+        });
       });
       if (!rows.length) return;
       const dateStr = formatDateShortKR(dayDate(dy.day));
@@ -6032,7 +6039,8 @@ function __collectScriptsMarkdown(onlyDay) {
       lines.push('');
       rows.forEach((r) => {
         lines.push(`- **${r.word.en}** _(${r.word.def})_`);
-        lines.push(`  - 내 문장: ${r.sentence}`);
+        if (r.note) lines.push(`  - 내 한국어 메모: ${r.note}`);
+        lines.push(`  - 내 영어 문장: ${r.sentence}`);
         if (r.corrected && r.corrected !== r.sentence) {
           lines.push(`  - AI 교정: ${r.corrected}`);
         }
@@ -6048,7 +6056,7 @@ async function __exportScriptsAsMarkdown(onlyDay) {
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(md);
-      showToast(onlyDay ? `📋 Day ${onlyDay} 마크다운 복사됨 — Notion에 붙여넣기` : '📋 전체 마크다운 복사됨 — Notion에 붙여넣기');
+      showToast(onlyDay ? `📋 Day ${onlyDay} 복사 완료 — Notion에 바로 붙여넣어봐요` : '📋 전체 복사 완료 — Notion에 바로 붙여넣어봐요');
       return;
     }
   } catch (e) {}
@@ -6071,14 +6079,14 @@ function ExportPage() {
   const back = el('button', { class: 'icon-btn', onClick: () => go('home') });
   back.innerHTML = Icon('arrowLeft', 16);
   head.appendChild(back);
-  head.appendChild(el('div', { class: 'brand-name' }, 'Notion Export'));
+  head.appendChild(el('div', { class: 'brand-name' }, 'Notion으로 내보내기'));
   head.appendChild(el('div', { style: { width: '38px' } }));
   page.appendChild(head);
 
-  page.appendChild(el('div', { class: 'kicker' }, 'EXPORT · KEEP IT FOREVER'));
+  page.appendChild(el('div', { class: 'kicker' }, '내 기록 내보내기 · 평생 보관'));
   page.appendChild(el('h1', { class: 'h1', style: { marginTop: '6px' } },
     (() => { const s = el('span'); s.innerHTML = '<span class="serif">Your</span> 비즈니스 영어 대본'; return s; })()));
-  page.appendChild(el('p', { class: 't-body', style: { marginTop: '8px' } }, '챌린지가 끝나도 Notion에서 열어볼 수 있도록 전체 학습 내용을 마크다운 파일로 내보내요. Notion에서 "Import → Markdown"으로 바로 가져갈 수 있어요.'));
+  page.appendChild(el('p', { class: 't-body', style: { marginTop: '8px' } }, '챌린지가 끝나도 내 기록이 남도록, 전체 학습 내용을 Notion용 파일(.md)로 저장해요. Notion을 열고 "Import"에서 파일을 선택하면 그대로 들어와요.'));
 
   // Preview card
   const preview = el('div', { class: 'card card-flat', style: { marginTop: '18px' } });
@@ -6099,7 +6107,7 @@ function ExportPage() {
   const btnStack = el('div', { class: 'stack', style: { marginTop: '18px' } });
 
   const mdBtn = el('button', { class: 'btn btn-ink btn-full btn-lg', onClick: () => exportMarkdown() });
-  mdBtn.innerHTML = `${Icon('download', 16)} Notion용 마크다운(.md) 다운로드`;
+  mdBtn.innerHTML = `${Icon('download', 16)} Notion용 파일(.md) 다운로드`;
   btnStack.appendChild(mdBtn);
 
   const jsonBtn = el('button', { class: 'btn btn-ghost btn-full', onClick: () => exportJSON() });
@@ -6107,7 +6115,7 @@ function ExportPage() {
   btnStack.appendChild(jsonBtn);
 
   const copyBtn = el('button', { class: 'btn btn-ghost btn-full', onClick: () => copyMarkdown() });
-  copyBtn.innerHTML = `📋 마크다운을 클립보드로 복사`;
+  copyBtn.innerHTML = `📋 Notion에 바로 붙여넣기 좋게 복사`;
   btnStack.appendChild(copyBtn);
 
   page.appendChild(btnStack);
@@ -6115,12 +6123,12 @@ function ExportPage() {
   // Instructions
   const inst = el('div', { class: 'card', style: { marginTop: '20px' } });
   inst.innerHTML = `
-    <div class="kicker">NOTION에서 여는 법</div>
+    <div class="kicker">NOTION에 가져오는 법</div>
     <ol class="t-body" style="margin-top:10px;padding-left:20px;line-height:1.9;">
-      <li>Notion에서 새 페이지를 열고 <b>…</b> 메뉴 → <b>Import</b></li>
-      <li><b>Markdown & CSV</b> 선택</li>
-      <li>다운로드한 .md 파일 업로드</li>
-      <li>자동으로 제목/헤더/체크리스트가 Notion 블록으로 변환돼요</li>
+      <li>Notion에서 새 페이지 열고 오른쪽 위 <b>···</b> 메뉴 → <b>Import</b> 클릭</li>
+      <li>목록에서 <b>Markdown & CSV</b> 선택 (그대로 표시돼요)</li>
+      <li>방금 받은 <b>.md</b> 파일 올리기</li>
+      <li>끝! 제목·목록·체크박스까지 깔끔하게 들어가요.</li>
     </ol>`;
   page.appendChild(inst);
 
@@ -6528,8 +6536,14 @@ function generateMarkdown() {
       lines.push(`**✍️ 내 문장**`);
       lines.push('');
       d.words.forEach((w, i) => {
-        const s = state.sentences[`d${d.day}-${i}`] || '_(작성 전)_';
-        lines.push(`- **${w.en}**: ${s}`);
+        const key = `d${d.day}-${i}`;
+        const note = (state.sentence_notes?.[key] || '').trim();
+        const s = state.sentences[key] || '_(작성 전)_';
+        const ai = state.ai_feedback?.[key]?.corrected || '';
+        lines.push(`- **${w.en}**`);
+        if (note) lines.push(`  - 한국어 메모: ${note}`);
+        lines.push(`  - 영어 문장: ${s}`);
+        if (ai && ai !== s) lines.push(`  - AI 교정: ${ai}`);
       });
       lines.push('');
       lines.push(`**✅ 인증 체크**`);
@@ -6619,7 +6633,7 @@ function exportMarkdown() {
   const md = generateMarkdown();
   const date = new Date().toISOString().split('T')[0];
   download(`youbuddy-5기-영어대본-${date}.md`, md, 'text/markdown');
-  showToast('✅ 마크다운 파일이 다운로드됐어요');
+  showToast('✅ Notion용 파일이 다운로드됐어요');
 }
 
 function exportJSON() {
@@ -6637,7 +6651,7 @@ async function copyMarkdown() {
   const md = generateMarkdown();
   try {
     await navigator.clipboard.writeText(md);
-    showToast('📋 마크다운이 클립보드에 복사됐어요. Notion에 붙여넣기 해주세요.');
+    showToast('📋 복사 완료! Notion 페이지 열고 그대로 붙여넣어주세요.');
   } catch (e) {
     showToast('❌ 복사 실패. 파일 다운로드를 이용해주세요.');
   }
