@@ -200,13 +200,13 @@ input, textarea, select { font-family: inherit; }
 .progress-dots span { aspect-ratio: 1; border-radius: 2px; background: var(--line-soft); min-width: 10px; min-height: 10px; }
 .progress-dots span.on { background: var(--orange); }
 .progress-dots span.on.late { background: var(--ink); }
-.progress-dots span.today { background: var(--orange); box-shadow: 0 0 0 2px var(--orange-ghost); }
+.progress-dots span.today { background: transparent; border: 2px dashed var(--orange); box-shadow: 0 0 0 2px var(--orange-ghost); box-sizing: border-box; }
 .progress-dots span.missed { background: rgba(154,139,115,0.32); }
 .progress-dots span.locked { background: rgba(231,221,200,0.45); }
 .card-ink .progress-dots span { background: rgba(251,247,240,0.12); }
 .card-ink .progress-dots span.on { background: var(--orange); }
 .card-ink .progress-dots span.on.late { background: var(--cream); }
-.card-ink .progress-dots span.today { background: var(--orange); }
+.card-ink .progress-dots span.today { background: transparent; border: 2px dashed var(--orange); box-sizing: border-box; }
 .card-ink .progress-dots span.missed { background: rgba(251,247,240,0.22); }
 .card-ink .progress-dots span.locked { background: rgba(251,247,240,0.06); }
 
@@ -528,7 +528,10 @@ input, textarea, select { font-family: inherit; }
 .cb-cell { width: 24px; height: 24px; border-radius: 4px; background: var(--paper); border: 1px solid rgba(231,221,200,0.7); }
 .cb-cell.on { background: var(--orange); border-color: var(--orange); }
 .cb-cell.on.late { background: var(--ink); border-color: var(--ink); }
-.cb-cell.today { background: var(--orange); box-shadow: 0 0 0 2px var(--orange-ghost); border-color: var(--orange); }
+/* today = 오늘이지만 아직 미인증. 인증된 'on' 과 구분되도록 속은 비우고 주황 테두리만.
+   예전엔 background 까지 주황으로 칠해서 'done' 이랑 시각적으로 똑같았음 → 리셋해도
+   "Day 2 가 주황이다" 로 보였던 혼동의 원인. */
+.cb-cell.today { background: var(--paper); border: 2px dashed var(--orange); box-shadow: 0 0 0 2px var(--orange-ghost); }
 .cb-cell.missed { background: rgba(154,139,115,0.18); border: 1px solid rgba(154,139,115,0.34); }
 .cb-cell.locked { background: var(--cream); border: 1px solid rgba(231,221,200,0.45); }
 .cb-row-me .cb-name { background: var(--orange-ghost); }
@@ -3267,7 +3270,9 @@ function HomePage() {
 
   const heroMain = el('div', { style: { display: 'flex', alignItems: 'flex-end', gap: '16px', marginTop: '18px' } });
   const bigNum = el('div');
-  const numHtml = `<span class="serif" style="font-size:56px;line-height:0.9;letter-spacing:-0.04em;"><span style="color:var(--orange);">${Math.max(done, state.currentDay-1)}</span><span style="color:rgba(251,247,240,0.35);">/${totalDays}</span></span>`;
+  // 인증 완료된 Day 수만 orange 로 보여주기. 예전엔 Math.max(done, currentDay-1) 로
+  // "진행 중인 느낌" 연출했는데, 리셋 직후에도 1/20 이 뜨는 식으로 오히려 혼동을 줬어요.
+  const numHtml = `<span class="serif" style="font-size:56px;line-height:0.9;letter-spacing:-0.04em;"><span style="color:var(--orange);">${done}</span><span style="color:rgba(251,247,240,0.35);">/${totalDays}</span></span>`;
   bigNum.innerHTML = numHtml + `<div class="t-small" style="margin-top:8px;">${CHALLENGE.cohort} ${CHALLENGE.title}</div>`;
   heroMain.appendChild(bigNum);
 
@@ -3452,8 +3457,9 @@ function Checkboard() {
       } else {
         const on = d <= m.progress;
         if (on) cls += ' on';
-        else if (d < state.currentDay) cls += ' missed';      // 피어 과거 미인증
-        else if (d > state.currentDay + 1) cls += ' locked';  // 피어 모레 이후
+        else if (d < state.currentDay) cls += ' missed';       // 피어 과거 미인증
+        else if (d === state.currentDay) cls += ' today';      // 피어 오늘 미인증 — 'me' 와 동일한 점선 링
+        else                            cls += ' locked';      // 피어 내일 이후 (미리 풀기 가능/불가 둘 다 lock 톤)
         if (on) {
           // Peer times: look up the server-side RPC cache (keyed by both member_key
           // and member_name). Falls back to just the name if time isn't cached yet.
