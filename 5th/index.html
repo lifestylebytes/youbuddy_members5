@@ -517,13 +517,17 @@ input, textarea, select { font-family: inherit; }
   font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; color: var(--ink);
   /* padding-right keeps the name + P badge from visually touching the Day 1 cell. */
   padding-right: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
-  position: sticky; left: 0; z-index: 1;
+  position: sticky; left: 0; z-index: 3;
   background: var(--cream);
+  /* Extend the solid bg 6px into the grid-gap zone so day cells scrolling
+     behind the sticky column can't peek through between the name and Day 1. */
+  box-shadow: 6px 0 0 0 var(--cream);
 }
 .cb-header-name {
-  position: sticky; left: 0; z-index: 2;
+  position: sticky; left: 0; z-index: 4;
   background: var(--cream);
   padding-right: 10px;
+  box-shadow: 6px 0 0 0 var(--cream);
 }
 .cb-name .tiny-av { width: 18px; height: 18px; border-radius: 5px; background: var(--paper); display: grid; place-items: center; font-size: 8px; font-weight: 700; flex-shrink: 0; }
 .cb-name .tiny-av.orange { background: var(--orange); color: #fff; }
@@ -552,10 +556,15 @@ input, textarea, select { font-family: inherit; }
 .cb-cell.today { background: var(--paper); border: 1.5px solid var(--orange); }
 .cb-cell.missed { background: rgba(154,139,115,0.18); border: 1px solid rgba(154,139,115,0.34); }
 .cb-cell.locked { background: var(--cream); border: 1px solid rgba(231,221,200,0.45); }
-.cb-row-me .cb-name { background: var(--orange-ghost); }
-.cb-row-me { background: var(--orange-ghost); border-radius: 6px; padding: 0 2px; margin: 0 -2px; }
-/* Overrides so the sticky "me" name cell keeps its right padding (was bleeding into Day 1). */
-.cb-name.cb-row-me { padding: 0 10px 0 2px; margin-right: 0; }
+/* "Me" row highlight — applied to the sticky name cell only (there's no row wrapper).
+   Keep the sticky right padding so the P badge doesn't touch Day 1, and mirror the
+   bg into the gap via box-shadow so no day tile peeks through between name & Day 1. */
+.cb-name.cb-row-me {
+  background: var(--orange-ghost);
+  border-radius: 6px;
+  padding: 0 10px 0 2px;
+  box-shadow: 6px 0 0 0 var(--orange-ghost);
+}
 
 /* modal */
 .modal-backdrop {
@@ -1119,7 +1128,8 @@ function meMember() {
    Premium users: enter the access code to unlock premium pages
    Access codes are configured below — share with buyers only.
    ============================================================ */
-const PREMIUM_CODES = ['A', 'YOUBUDDY-PREMIUM-5', 'PREMIUM5', '유버디프리미엄5'];
+// 5기 프리미엄 코드. 단순화 — premium555 만 쓰고 legacy 긴 코드는 backward-compat 으로만 유지.
+const PREMIUM_CODES = ['PREMIUM555', 'A', 'YOUBUDDY-PREMIUM-5', 'PREMIUM5', '유버디프리미엄5'];
 const BASIC_CODES = ['YOUBUDDY-BASIC-5', 'BASIC5'];
 const SUPABASE_URL = window.YB_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = window.YB_SUPABASE_ANON_KEY || '';
@@ -1690,6 +1700,9 @@ let activeMemberCard = null;
 // window.prompt() 는 모바일에서 불안정해서 인라인 composer 로 대체.
 let activeCommentDraft = null;
 let showSettings = false;
+// Goal editor modal — 프로필에서 '수정' / '+ 추가' 버튼 눌렀을 때 켜짐.
+// window.prompt() 기본 팝업은 디자인이 깨지고 모바일에서 포커스가 어색해서 자체 모달로 대체.
+let showGoalEditor = false;
 let toast = null;
 let confettiTimer = null;
 let dashboardStats = {
@@ -1991,8 +2004,9 @@ function premiumPill(member) {
   return isPremium ? `<span class="badge badge-lilac" style="padding:1px 4px;font-size:7px;line-height:1.1;border-radius:4px;">P</span>` : '';
 }
 
-/* 프리미엄 게이트 패널 — 베이직 사용자가 프리미엄 서브페이지로 직접 들어와도
-   이 패널이 대신 그려지도록 PremiumPage 외 모든 프리미엄 서브 페이지에서 호출. */
+/* 프리미엄 게이트 패널 — 베이직 사용자가 프리미엄 서브 페이지(PT/미팅/퀴즈/인증) 로
+   들어왔을 때 "이 페이지는 프리미엄 전용이에요" 를 보여주는 패널. 5기 도중 업그레이드
+   불가라서 결제 CTA 는 제거하고, 프리미엄 코드를 가진 사용자만 '코드 입력' 가능. */
 function premiumGatePage(opts = {}) {
   const page = el('div', { class: 'page' });
   page.appendChild(TopBar());
@@ -2000,11 +2014,10 @@ function premiumGatePage(opts = {}) {
   wrap.innerHTML = `
     <div class="lock-icon">🔒</div>
     <div class="kicker">PREMIUM ONLY</div>
-    <h2 class="h1" style="margin-top:8px;"><span class="serif">${opts.titleSerif || 'Unlock'}</span> ${opts.titleRest || 'premium pages'}</h2>
-    <p class="t-body" style="margin-top:10px;">${opts.subtitle || 'PT 세션, 주간 Zoom 미팅, 개인 퀴즈, Certification은 프리미엄 참여자에게 열려있어요.'}</p>
+    <h2 class="h1" style="margin-top:8px;"><span class="serif">이 페이지는</span> 프리미엄 전용이에요</h2>
+    <p class="t-body" style="margin-top:10px;">${opts.subtitle || 'PT 세션 · 주간 Zoom 미팅 · 개인 퀴즈 · Certification 은 프리미엄 참여자에게만 열려 있어요. 다음 기수 때 프리미엄으로 참여하시면 만나요!'}</p>
     <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center;">
-      <button class="btn btn-lilac btn-lg" onclick="window.__openPremiumGate()">코드 입력</button>
-      <a href="https://www.latpeed.com/products/en0l_" target="_blank" class="btn btn-ghost btn-lg" style="text-decoration:none;">프리미엄 구매 (₩169,000)</a>
+      <button class="btn btn-lilac btn-lg" onclick="window.__openPremiumGate()">프리미엄 코드 있어요</button>
     </div>`;
   page.appendChild(wrap);
   return page;
@@ -2535,7 +2548,16 @@ async function supabaseRpc(fn, payload={}) {
     },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error(`supabase rpc failed: ${fn}`);
+  if (!res.ok) {
+    // 실제 원인(404/400/23505 등)을 콘솔에 남겨서 디버깅 가능하게 — 메시지에도 같이 담아줌.
+    let body = '';
+    try { body = await res.text(); } catch (_) {}
+    const err = new Error(`supabase rpc failed: ${fn} [${res.status}] ${body}`.slice(0, 600));
+    err.status = res.status;
+    err.body = body;
+    try { console.error('[supabaseRpc]', fn, res.status, body); } catch (_) {}
+    throw err;
+  }
   return res.json();
 }
 
@@ -2569,6 +2591,16 @@ function applyRemoteMemberSummaries(rows = []) {
     if (!summary) return;
     const nextProgress = Number(summary.progress || 0);
     const nextStreak = Number(summary.streak || 0);
+    // verifiedDays — exact day numbers the peer has verified. The board reads this
+    // so non-sequential verifications (Day 2 only, Day 1 skipped) render correctly.
+    const rawDays = Array.isArray(summary.verified_days) ? summary.verified_days : [];
+    const nextDays = rawDays.map((d) => Number(d)).filter((d) => d >= 1 && d <= 20);
+    const prevDaysKey = JSON.stringify((member.verifiedDays || []).slice().sort((a, b) => a - b));
+    const nextDaysKey = JSON.stringify(nextDays.slice().sort((a, b) => a - b));
+    if (prevDaysKey !== nextDaysKey) {
+      member.verifiedDays = nextDays;
+      changed = true;
+    }
     if (Number(member.progress || 0) !== nextProgress) {
       member.progress = nextProgress;
       changed = true;
@@ -2961,6 +2993,14 @@ function render() {
     }
   } catch (e) {}
   const root = $('#root');
+  // Preserve horizontal scroll position of the Daily Streak Board across re-renders.
+  // Without this, the 15-second community refresh snaps the board back to Day 1 every
+  // time, which is disorienting if the user had scrolled right to inspect Day 10+.
+  let __cbScrollLeft = 0;
+  try {
+    const cbWrap = root.querySelector && root.querySelector('.checkboard-wrap');
+    if (cbWrap) __cbScrollLeft = cbWrap.scrollLeft || 0;
+  } catch (e) {}
   root.innerHTML = '';
   try {
     const app = el('div', { class: 'app' });
@@ -2996,7 +3036,20 @@ function render() {
     if (showPremiumGate) root.appendChild(PremiumGateModal());
     if (activeMemberCard) root.appendChild(MemberCardModal(activeMemberCard));
     if (showSettings) root.appendChild(SettingsModal());
+    if (showGoalEditor) root.appendChild(GoalModal());
     if (verificationReviewDay) root.appendChild(VerificationReviewModal(verificationReviewDay));
+
+    // Restore Daily Streak Board horizontal scroll after the re-render (15-second
+    // community refresh otherwise yanks it back to Day 1). Uses the pre-render
+    // snapshot captured above. Wrapped in rAF so layout settles before we set scrollLeft.
+    if (__cbScrollLeft > 0) {
+      try {
+        requestAnimationFrame(() => {
+          const cbWrap = root.querySelector && root.querySelector('.checkboard-wrap');
+          if (cbWrap) cbWrap.scrollLeft = __cbScrollLeft;
+        });
+      } catch (e) {}
+    }
 
     stopPeerTicker();
   } catch (error) {
@@ -3322,7 +3375,7 @@ function OnboardingPage() {
 
   if (__onboardStep === 0) {
     card.innerHTML = `
-      <div class="kicker">STEP 1 · 너의 정체</div>
+      <div class="kicker">STEP 1 · 시작하기</div>
       <h2 style="margin:6px 0 12px;font-size:20px;font-weight:800;letter-spacing:-0.02em;">이름, 접속 코드, 시차를 입력해요</h2>
       <p class="t-body" style="font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:16px;">
         이름은 커뮤니티에 보이고, 시차는 한국 기준으로 적어요. 한국이면 <b>+0h</b>예요.
@@ -3636,7 +3689,16 @@ function HomePage() {
   const myRank = sorted.findIndex(m => m.me) + 1;
   const done = completedCount();
   const totalDays = CHALLENGE.total_days;
-  const fallbackTodayRate = Math.round((visible.filter(m => m.progress >= state.currentDay).length / Math.max(1, visible.length)) * 100);
+  // "오늘 인증했는가?" — me 는 state.verified 직접 조회. 피어는 verifiedDays 배열이 있으면
+  // currentDay 포함 여부로 정확히 판정, 없으면 progress count 로 fallback (비순차 인증 오판 가능).
+  const isVerifiedToday = (m) => {
+    if (m.me) return !!(state.verified && state.verified['d' + state.currentDay]);
+    if (Array.isArray(m.verifiedDays) && m.verifiedDays.length) {
+      return m.verifiedDays.map(Number).includes(Number(state.currentDay));
+    }
+    return m.progress >= state.currentDay;
+  };
+  const fallbackTodayRate = Math.round((visible.filter(isVerifiedToday).length / Math.max(1, visible.length)) * 100);
   const todayRate = dashboardStats.todayRate ?? fallbackTodayRate;
 
   // Hero progress
@@ -3690,21 +3752,9 @@ function HomePage() {
 
   page.appendChild(hero);
 
-  // Premium teaser (if basic)
-  if (state.tier !== 'premium') {
-    const teaser = el('div', { class: 'premium-banner', style: { marginTop: '20px' } });
-    teaser.innerHTML = `
-      <div class="kicker" style="color:rgba(255,255,255,0.7);">⭐ 프리미엄으로 업그레이드</div>
-      <div class="h2" style="color:#fff;margin-top:6px;">PT · 주간 미팅 · PPT 발표 · Certification</div>
-      <div class="t-body" style="color:rgba(255,255,255,0.85);margin-top:8px;">
-        3기 프리미엄 완주율 100%. 주 1회 Zoom 미팅 4회 + PT 세션 + 본인 Industry PPT 발표 + 최종 인증.
-      </div>
-      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
-        <button class="btn btn-ink btn-sm" style="background:#fff;color:var(--ink);" onclick="window.__openPremiumGate()">코드 입력해 언락</button>
-        <span style="font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,0.8);align-self:center;">₩169,000</span>
-      </div>`;
-    page.appendChild(teaser);
-  }
+  // Premium teaser 제거됨 — 5기 도중에는 프리미엄 업그레이드가 불가능해서
+  // "₩169,000 업그레이드" 배너가 오히려 혼란을 줌. 프리미엄 안내는 나(프로필)
+  // 탭의 "프리미엄은 이런 게 좋아요" 섹션으로 이동시켜 다음 기수 유도용으로만 노출.
 
   // Stats strip — 오늘 인증률 / 베이직 인증률 / 프리미엄 인증률
   // "me"의 tier는 MEMBERS 시드에서 'auto'이므로 실제 state.tier로 치환해서 집계.
@@ -3712,8 +3762,8 @@ function HomePage() {
   const effectiveTier = (m) => (m.me ? (state.tier || 'basic') : m.tier);
   const basicList = sorted.filter((m) => effectiveTier(m) === 'basic');
   const premiumList = sorted.filter((m) => effectiveTier(m) === 'premium');
-  const basicVerified = basicList.filter((m) => m.progress >= state.currentDay).length;
-  const premiumVerified = premiumList.filter((m) => m.progress >= state.currentDay).length;
+  const basicVerified = basicList.filter(isVerifiedToday).length;
+  const premiumVerified = premiumList.filter(isVerifiedToday).length;
   const basicRate = basicList.length ? Math.round((basicVerified / basicList.length) * 100) : 0;
   const premiumRate = premiumList.length ? Math.round((premiumVerified / premiumList.length) * 100) : 0;
 
@@ -3866,13 +3916,13 @@ function Checkboard() {
       }
     }
   }
-  // 정렬: 프리미엄 → 베이직 순. 같은 티어 안에서는 'me' 가 최상단.
-  // (그 외는 MEMBERS 시드 순서 유지 — 기존 대시보드 순서 안정성 확보.)
+  // 정렬: (1) 로그인한 본인 항상 최상단 — 티어 무관, (2) 그 다음 프리미엄 → 베이직,
+  // (3) 같은 티어 내에서는 MEMBERS 시드 순서 유지 (대시보드 순서 안정성).
   const tierRank = (m) => (cbTierOf(m) === 'premium' ? 0 : 1);
   const orderedMembers = [...allMembers].sort((a, b) => {
+    if (a.me !== b.me) return a.me ? -1 : 1;   // me first, always
     const ta = tierRank(a), tb = tierRank(b);
-    if (ta !== tb) return ta - tb;
-    if (a.me !== b.me) return a.me ? -1 : 1;
+    if (ta !== tb) return ta - tb;             // premium before basic
     return 0;
   });
   orderedMembers.forEach((m) => {
@@ -3909,7 +3959,16 @@ function Checkboard() {
           tooltip = `${m.name} · Day ${d} · ${vt} ${tz}${st === 'done-late' ? ' (지각)' : ''}`;
         }
       } else {
-        const on = d <= m.progress;
+        // 피어 셀: verifiedDays (서버가 내려주는 실제 인증된 day 번호 배열) 를 최우선으로 사용.
+        // RPC 가 구버전이라 verifiedDays 가 비어있으면 progress 카운트로 fallback (Day 1..progress 를 on 으로).
+        // 전 버그: progress 를 "최대 Day 번호" 로 오해해서, 이규태가 Day 2 만 인증하면
+        // progress=1 → Day 1 을 on 으로 표시하고 Day 2 는 today 링으로 표시됨.
+        const verifiedSet = Array.isArray(m.verifiedDays) && m.verifiedDays.length
+          ? new Set(m.verifiedDays.map(Number))
+          : null;
+        const on = verifiedSet
+          ? verifiedSet.has(d)
+          : (d <= Number(m.progress || 0));
         if (on) cls += ' on';
         else if (d < state.currentDay) cls += ' missed';       // 피어 과거 미인증
         else if (d === state.currentDay) cls += ' today';      // 피어 오늘 미인증 — 'me' 와 동일한 점선 링
@@ -4352,7 +4411,7 @@ function VerifyPage(dayN) {
           <div data-verify-quiz-card="1" style="margin-top:18px;padding:28px 18px;border-radius:24px;background:rgba(255,255,255,0.68);text-align:center;box-shadow:inset 0 0 0 1px rgba(236,232,255,0.9);position:relative;overflow:hidden;">
             <div style="font-size:19px;line-height:1.7;font-weight:600;color:#35344A;word-break:keep-all;">
               ${escapeHtml(parts[0] || '')}
-              <input class="input" data-no-typing-guard="1" data-quiz-idx="${ui.idx}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="display:inline-block;width:${answerWidth}ch;max-width:72%;margin:0 8px;padding:2px 4px;text-align:center;font-size:24px;font-weight:700;line-height:1.3;letter-spacing:-0.02em;background:transparent;border:none;border-bottom:2px solid #B7AEDF;border-radius:0;color:#35344A;vertical-align:baseline;caret-color:#7D5CFF;" placeholder="" value="${escapeHtml(ui.value)}" oninput="window.__setVerifyQuizValue(${dayN}, this.value)" />
+              <input class="input" data-quiz-idx="${ui.idx}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="display:inline-block;width:${answerWidth}ch;max-width:72%;margin:0 8px;padding:2px 4px;text-align:center;font-size:24px;font-weight:700;line-height:1.3;letter-spacing:-0.02em;background:transparent;border:none;border-bottom:2px solid #B7AEDF;border-radius:0;color:#35344A;vertical-align:baseline;caret-color:#7D5CFF;" placeholder="" value="${escapeHtml(ui.value)}" oninput="window.__setVerifyQuizValue(${dayN}, this.value)" />
               ${escapeHtml(parts[1] || '')}
             </div>
             <div style="margin-top:20px;font-size:18px;line-height:1.5;color:#6C6A86;">${escapeHtml(currentQuestion.prompt_kr || '')}</div>
@@ -4902,9 +4961,8 @@ function DayPage(dayN) {
         ` : `
           <div style="margin-top:12px;padding:15px 16px;border-radius:18px;background:linear-gradient(135deg, rgba(238,230,243,0.96) 0%, rgba(255,248,255,0.98) 100%);border:1px solid rgba(169,139,184,0.3);">
             <div class="kicker" style="color:var(--lilac);">PREMIUM ONLY</div>
-            <div style="margin-top:8px;font-size:14px;line-height:1.55;color:var(--ink);font-weight:700;">유의어 상세 설명과 상황별 뉘앙스 차이는 프리미엄에서 볼 수 있어요.</div>
-            <div class="t-small" style="margin-top:6px;color:#765d87;line-height:1.55;">같은 뜻처럼 보여도 회의 톤, 강도, 써도 자연스러운 장면이 달라져요.</div>
-            <button class="btn btn-lilac" style="margin-top:12px;padding:10px 14px;" onclick="window.__openPremiumGate()">프리미엄에서 보기</button>
+            <div style="margin-top:8px;font-size:14px;line-height:1.55;color:var(--ink);font-weight:700;">유의어 상세 설명과 상황별 뉘앙스 차이는 프리미엄에서만 볼 수 있어요.</div>
+            <div class="t-small" style="margin-top:6px;color:#765d87;line-height:1.55;">같은 뜻처럼 보여도 회의 톤, 강도, 써도 자연스러운 장면이 달라져요. 다음 기수에 프리미엄으로 참여하시면 열어드려요.</div>
           </div>
         `}
       `;
@@ -5509,29 +5567,16 @@ function PremiumPage() {
   ];
   const totalMeetings = aprilMeetings.length + mayMeetings.length;
 
-  if (state.tier !== 'premium') {
-    const wrap = el('div', { class: 'locked-panel', style: { marginTop: '18px' } });
-    wrap.innerHTML = `
-      <div class="lock-icon">🔒</div>
-      <div class="kicker">PREMIUM ONLY</div>
-      <h2 class="h1" style="margin-top:8px;"><span class="serif">Unlock</span> premium pages</h2>
-      <p class="t-body" style="margin-top:10px;">PT 세션, 주간 Zoom 미팅, 개인 퀴즈, Certification은 프리미엄 참여자에게 열려있어요.</p>
-      <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center;">
-        <button class="btn btn-lilac btn-lg" onclick="window.__openPremiumGate()">코드 입력</button>
-        <a href="https://www.latpeed.com/products/en0l_" target="_blank" class="btn btn-ghost btn-lg" style="text-decoration:none;">프리미엄 구매 (₩169,000)</a>
-      </div>
-      <div class="divider" style="margin:22px 0;"></div>
-      <div class="t-small" style="line-height:1.7;">
-        이미 결제했다면 단톡방/노션 초대 메시지에서 받은 <b>프리미엄 코드</b>를 입력해주세요.
-      </div>`;
-    page.appendChild(wrap);
-    return page;
-  }
+  // 베이직 사용자도 프리미엄 탭에 입장해서 일정/퀴즈/Certification 목록을 훑어볼 수 있도록 함.
+  // 개별 서브 페이지(미팅 노트, 퀴즈, 인증 등) 진입 시에만 premiumGatePage() 로 잠금.
+  // 탭 최상단에는 '이 탭은 프리미엄 전용이에요' 안내 배너 한 줄만 삽입.
+  const isPremium = state.tier === 'premium';
 
   // Premium hero
   const hero = el('div', { class: 'premium-banner' });
+  const heroKicker = isPremium ? `⭐ PREMIUM · ${state.name}님` : `⭐ PREMIUM · 다음 기수 프리뷰`;
   hero.innerHTML = `
-    <div class="kicker" style="color:rgba(255,255,255,0.7);">⭐ PREMIUM · ${state.name}님</div>
+    <div class="kicker" style="color:rgba(255,255,255,0.7);">${heroKicker}</div>
     <h1 class="h1" style="color:#fff;margin-top:6px;"><span class="serif">Premium</span> dashboard</h1>
     <p class="t-body" style="color:rgba(255,255,255,0.85);margin-top:8px;">주간 미팅 · PT 세션 · 퀴즈 · 최종 Certification</p>
     <div style="display:flex;gap:6px;margin-top:14px;flex-wrap:wrap;">
@@ -5541,6 +5586,29 @@ function PremiumPage() {
       <span class="badge" style="background:rgba(255,255,255,0.18);color:#fff;">Certification</span>
     </div>`;
   page.appendChild(hero);
+
+  // 베이직 전용 안내 — 탭에 들어와서 어떤 컨텐츠가 있는지 볼 수는 있지만 세부 페이지는 잠금.
+  if (!isPremium) {
+    const basicNotice = el('div', {
+      class: 'card',
+      style: {
+        marginTop: '14px',
+        padding: '14px 16px',
+        background: 'rgba(169,139,184,0.10)',
+        borderColor: 'rgba(169,139,184,0.28)',
+        borderRadius: '16px',
+      },
+    });
+    basicNotice.innerHTML = `
+      <div class="kicker" style="color:var(--lilac);">PREMIUM ONLY</div>
+      <div style="margin-top:6px;font-size:14px;font-weight:700;color:var(--ink);line-height:1.5;">
+        미팅 노트 · 퀴즈 · Certification 은 프리미엄 전용이에요.
+      </div>
+      <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.6;">
+        5기 도중에는 업그레이드가 열려있지 않아요. 아래 미팅/퀴즈 목록은 다음 기수 프리미엄에서 어떤 걸 하는지 미리 보여드리는 용도예요.
+      </div>`;
+    page.appendChild(basicNotice);
+  }
 
   page.appendChild(el('div', { class: 'kicker', style: { marginTop: '24px' } }, '2026년 5월 · 목요일 미팅'));
   page.appendChild(el('h2', { class: 'h2', style: { marginTop: '6px', marginBottom: '12px' } },
@@ -6450,8 +6518,28 @@ function ProfilePage() {
   page.appendChild(statsGrid);
 
   // 3. 목표 — 온보딩에서 입력한 본인 목표를 그대로 보여줌. 편집 가능.
+  // 줄바꿈을 허용해서 여러 목표를 리스트처럼 볼 수 있음 (한 줄 = 하나의 목표).
   const goalCard = el('div', { class: 'card', style: { marginTop: '18px' } });
-  const hasGoal = !!(state.goal && state.goal.trim());
+  const goalText = (state.goal || '').trim();
+  const hasGoal = !!goalText;
+  const goalLines = hasGoal
+    ? goalText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+    : [];
+  const multiGoal = goalLines.length > 1;
+  const goalBody = hasGoal
+    ? (multiGoal
+        ? `<ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;">
+             ${goalLines.map((line) => `
+               <li style="display:flex;gap:10px;align-items:flex-start;">
+                 <span style="font-size:13px;line-height:1.55;color:var(--orange-dark);flex-shrink:0;margin-top:2px;">•</span>
+                 <span style="font-size:14px;line-height:1.55;color:var(--ink);letter-spacing:-0.01em;word-break:keep-all;">${escapeHtml(line)}</span>
+               </li>`).join('')}
+           </ul>`
+        : `<div style="display:flex;gap:10px;align-items:flex-start;">
+             <span style="font-size:18px;line-height:1.1;flex-shrink:0;">🎯</span>
+             <p style="margin:0;font-size:14px;line-height:1.55;color:var(--ink);letter-spacing:-0.01em;word-break:keep-all;">${escapeHtml(goalLines[0] || goalText)}</p>
+           </div>`)
+    : '';
   goalCard.innerHTML = `
     <div class="row-between" style="align-items:flex-start;">
       <div>
@@ -6461,29 +6549,17 @@ function ProfilePage() {
       <button id="__editGoalBtn" style="background:transparent;border:none;font-size:11px;color:var(--orange-dark);cursor:pointer;padding:4px 8px;">${hasGoal ? '수정' : '+ 추가'}</button>
     </div>
     ${hasGoal
-      ? `<div style="margin-top:10px;padding:14px 16px;background:var(--orange-ghost);border-radius:14px;border:1px solid rgba(240,125,56,0.22);">
-           <div style="display:flex;gap:10px;align-items:flex-start;">
-             <span style="font-size:18px;line-height:1.1;flex-shrink:0;">🎯</span>
-             <p style="margin:0;font-size:14px;line-height:1.55;color:var(--ink);letter-spacing:-0.01em;word-break:keep-all;">${escapeHtml(state.goal)}</p>
-           </div>
-         </div>`
+      ? `<div style="margin-top:10px;padding:14px 16px;background:var(--orange-ghost);border-radius:14px;border:1px solid rgba(240,125,56,0.22);">${goalBody}</div>`
       : `<div style="margin-top:10px;padding:14px 16px;background:var(--paper);border-radius:14px;border:1px dashed var(--line);">
-           <p style="margin:0;font-size:13px;color:var(--muted);line-height:1.55;">수정 버튼을 눌러 이번 챌린지에서 이루고 싶은 목표를 한 줄로 적어보세요.</p>
+           <p style="margin:0;font-size:13px;color:var(--muted);line-height:1.55;">+ 추가 버튼을 눌러 이번 챌린지에서 이루고 싶은 목표를 적어보세요. 한 줄에 하나씩 여러 개도 가능해요.</p>
          </div>`
     }
   `;
   page.appendChild(goalCard);
-  // Wire up goal edit (opens the Settings modal, which has a goal field too, or a prompt)
+  // Wire up goal edit — opens the GoalModal (자체 모달, window.prompt 대체).
   setTimeout(() => {
     const btn = document.getElementById('__editGoalBtn');
-    if (btn) btn.onclick = () => {
-      const next = window.prompt('이번 챌린지 목표를 수정해요', state.goal || '');
-      if (next === null) return;
-      state.goal = next.trim();
-      saveState();
-      showToast('🎯 목표를 업데이트했어요');
-      render();
-    };
+    if (btn) btn.onclick = () => { showGoalEditor = true; render(); };
   }, 0);
 
   // 3.5 내 대본 모음 카드 — quick link to scripts page
@@ -6668,21 +6744,52 @@ function ProfilePage() {
   }
   page.appendChild(bookmarkCard);
 
-  // 5. Tier section (moved to bottom near export)
+  // 5. Tier section — 프리미엄 유저는 "환영합니다", 베이직 유저는 "다음 기수에 프리미엄으로 보자" 유도.
+  // 주의: 5기 도중에는 업그레이드가 닫혀 있어서 구매 CTA 는 노출하지 않음. 프리미엄 코드 입력만 열어둠.
   const tierCard = el('div', { class: 'card', style: { marginTop: '18px' } });
   const tierHtml = state.tier === 'premium' ? `
-    <div class="kicker">PREMIUM UNLOCKED · ₩169,000</div>
+    <div class="kicker">PREMIUM UNLOCKED</div>
     <h3 class="h2" style="margin-top:6px;"><span class="serif">Welcome</span> to premium</h3>
     <p class="t-body" style="margin-top:6px;">프리미엄 전용 PT · 주간 미팅 · 퀴즈 · Certification이 열려있어요.</p>
     <button class="btn btn-ghost btn-sm" style="margin-top:12px;" onclick="window.__resetTier()">베이직으로 되돌리기</button>
   ` : `
-    <div class="kicker">BASIC MEMBER · ₩59,000</div>
-    <h3 class="h2" style="margin-top:6px;"><span class="serif">Upgrade</span> to premium</h3>
-    <p class="t-body" style="margin-top:6px;">PT 세션, 주간 Zoom 미팅 4회, 개인 퀴즈, 최종 Certification을 함께 받아요.</p>
-    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
-      <button class="btn btn-lilac btn-sm" onclick="window.__openPremiumGate()">프리미엄 코드 입력</button>
-      <a href="https://www.latpeed.com/products/en0l_" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none;">업그레이드 (₩169,000)</a>
-    </div>`;
+    <div class="kicker" style="color:var(--lilac);">PREMIUM ISN'T JUST "MORE" · 다음 기수</div>
+    <h3 class="h2" style="margin-top:6px;"><span class="serif">프리미엄</span>은 이런 게 좋아요</h3>
+    <p class="t-body" style="margin-top:6px;">5기는 베이직으로 끝까지 완주해주세요. 아래는 다음 기수에 프리미엄으로 참여하시면 받게 될 핵심 혜택이에요.</p>
+    <ul style="margin:14px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;">
+      <li style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:rgba(169,139,184,0.10);border:1px solid rgba(169,139,184,0.22);">
+        <span style="flex-shrink:0;width:22px;height:22px;border-radius:7px;background:var(--lilac);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;">1</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--ink);">주 1회 Zoom 미팅 4회</div>
+          <div class="t-small" style="margin-top:3px;color:var(--ink-soft);line-height:1.55;">매주 목요일 21:00, 그 주 표현을 실제 비즈니스 상황에 적용해보는 라이브 연습.</div>
+        </div>
+      </li>
+      <li style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:rgba(169,139,184,0.10);border:1px solid rgba(169,139,184,0.22);">
+        <span style="flex-shrink:0;width:22px;height:22px;border-radius:7px;background:var(--lilac);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;">2</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--ink);">1:1 PT 세션 3회</div>
+          <div class="t-small" style="margin-top:3px;color:var(--ink-soft);line-height:1.55;">내 말투·발음·상황별 표현을 맞춤으로 잡아주는 개인 세션.</div>
+        </div>
+      </li>
+      <li style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:rgba(169,139,184,0.10);border:1px solid rgba(169,139,184,0.22);">
+        <span style="flex-shrink:0;width:22px;height:22px;border-radius:7px;background:var(--lilac);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;">3</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--ink);">Industry 맞춤 PPT 발표 + 최종 Certification</div>
+          <div class="t-small" style="margin-top:3px;color:var(--ink-soft);line-height:1.55;">본인 업계 주제로 영어 발표하고, 피드백 받고, 수료증까지.</div>
+        </div>
+      </li>
+      <li style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:rgba(169,139,184,0.10);border:1px solid rgba(169,139,184,0.22);">
+        <span style="flex-shrink:0;width:22px;height:22px;border-radius:7px;background:var(--lilac);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;">4</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--ink);">유의어 뉘앙스 · 개인 퀴즈</div>
+          <div class="t-small" style="margin-top:3px;color:var(--ink-soft);line-height:1.55;">같은 뜻 표현들 중 상황별 톤 차이, 내 약점만 뽑아주는 맞춤 퀴즈.</div>
+        </div>
+      </li>
+    </ul>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
+      <button class="btn btn-ghost btn-sm" onclick="window.__openPremiumGate()">프리미엄 코드 있어요</button>
+    </div>
+    <div class="t-small" style="margin-top:10px;color:var(--muted);line-height:1.55;">다음 기수 오픈 알림을 받고 싶으면 단톡방/노션에서 유버디에게 DM 주세요.</div>`;
   tierCard.innerHTML = tierHtml;
   page.appendChild(tierCard);
 
@@ -6984,7 +7091,13 @@ function CommunityPage() {
     const tz = memberTimezoneText(member);
     const liked = hasSupabase() ? !!post.likedByMe : !!likedMap[post.id];
     const saved = !!savedMap[post.id];
-    const localComments = hasSupabase() ? (Array.isArray(post.comments) ? post.comments : []) : communityCommentsFor(post.id);
+    // 서버 댓글 + 로컬 fallback(_localOnly) 병합. Supabase RPC 가 실패해서 서버엔 저장 안
+    // 됐지만 로컬에만 남은 댓글도 UI 에 보이도록. 서버에 실제 반영된 댓글은 _localOnly 없음.
+    const serverComments = Array.isArray(post.comments) ? post.comments : [];
+    const localFallbacks = (state.community_comments?.[post.id] || []).filter((c) => c && c._localOnly);
+    const localComments = hasSupabase()
+      ? [...serverComments, ...localFallbacks]
+      : communityCommentsFor(post.id);
     const likeCount = hasSupabase() ? Number(post.likesCount || 0) : ((post.likesCount || 0) + (liked ? 1 : 0));
     const commentCount = Math.max(Number(Array.isArray(post.comments) ? post.comments.length : post.comments || 0), localComments.length);
     const postIdArg = jsStringLiteral(post.id);
@@ -7064,6 +7177,72 @@ function CommunityPage() {
   page.appendChild(stack);
 
   return page;
+}
+
+function GoalModal() {
+  const backdrop = el('div', {
+    class: 'modal-backdrop',
+    onClick: (e) => { if (e.target === backdrop) { showGoalEditor = false; render(); } },
+  });
+  const modal = el('div', {
+    class: 'modal',
+    style: {
+      width: 'min(92vw, 440px)',
+      padding: '22px 20px 18px',
+      borderRadius: '26px',
+      background: '#FFFDF7',
+      border: '1px solid var(--line)',
+    },
+  });
+  const current = (state.goal || '').trim();
+  const hasGoal = !!current;
+  modal.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div>
+        <div class="kicker" style="color:var(--orange-dark);">MY GOAL</div>
+        <h2 style="margin:6px 0 0;font-size:20px;font-weight:800;letter-spacing:-0.02em;">${hasGoal ? '목표를 다듬어볼까요?' : '이번 챌린지 목표'}</h2>
+      </div>
+      <button id="__goalClose" class="icon-btn" style="width:36px;height:36px;border-radius:12px;" title="닫기">✕</button>
+    </div>
+    <p class="t-body" style="margin-top:10px;font-size:13px;color:var(--ink-soft);line-height:1.55;">
+      한 줄에 하나씩 적으면 목표를 여러 개 나눠 볼 수 있어요. 비워두고 저장하면 목표가 지워져요.
+    </p>
+    <textarea id="__goalInput" class="sentence-input" rows="5" placeholder="예)&#10;이메일 톤 다듬기&#10;회의에서 내 의견 바로 말하기" style="width:100%;margin-top:14px;padding:14px 16px;border-radius:16px;border:1px solid var(--line);background:#fffdfa;font-size:14px;line-height:1.55;letter-spacing:-0.01em;resize:vertical;min-height:120px;">${escapeHtml(current)}</textarea>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button id="__goalCancel" class="btn btn-ghost" style="flex:1;">취소</button>
+      <button id="__goalSave" class="btn btn-primary" style="flex:1;">저장</button>
+    </div>
+  `;
+  backdrop.appendChild(modal);
+  setTimeout(() => {
+    const ta = document.getElementById('__goalInput');
+    const closeBtn = document.getElementById('__goalClose');
+    const cancelBtn = document.getElementById('__goalCancel');
+    const saveBtn = document.getElementById('__goalSave');
+    const close = () => { showGoalEditor = false; render(); };
+    if (closeBtn) closeBtn.onclick = close;
+    if (cancelBtn) cancelBtn.onclick = close;
+    if (saveBtn) saveBtn.onclick = () => {
+      // 줄 단위로 정리 — 양옆 공백 제거, 빈 줄 제거. 최종값은 \n 로 join.
+      const raw = ta ? ta.value : '';
+      const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const next = lines.join('\n');
+      const prev = (state.goal || '').trim();
+      state.goal = next;
+      saveState();
+      showGoalEditor = false;
+      if (!next && prev) showToast('목표를 지웠어요.');
+      else if (next && !prev) showToast('🎯 목표를 저장했어요.');
+      else if (next !== prev) showToast('🎯 목표를 업데이트했어요.');
+      render();
+    };
+    if (ta) {
+      // Focus at end on open — 안드로이드/iOS 모두에서 바로 키보드가 올라오도록.
+      try { ta.focus({ preventScroll: true }); } catch (_) { try { ta.focus(); } catch (e) {} }
+      try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (_) {}
+    }
+  }, 0);
+  return backdrop;
 }
 
 function SettingsModal() {
@@ -7553,7 +7732,7 @@ function PremiumGateModal() {
     <h2 class="h1" style="margin-top:4px;"><span class="serif">Enter</span> your premium code</h2>
     <p class="t-body" style="margin-top:8px;">결제 후 단톡방/노션 초대에서 받은 프리미엄 코드를 입력해주세요.</p>
     <div style="margin-top:16px;">
-      <input type="text" id="__premium_code" class="input" placeholder="예: YOUBUDDY-PREMIUM-5" autocomplete="off" />
+      <input type="text" id="__premium_code" class="input" placeholder="프리미엄 코드 입력" autocomplete="off" />
       <div class="t-small" style="margin-top:8px;color:var(--muted);">코드를 분실했다면 유버디에게 DM 주세요.</div>
     </div>
     <div style="display:flex;gap:8px;margin-top:18px;">
@@ -7562,7 +7741,7 @@ function PremiumGateModal() {
     </div>
     <div class="divider"></div>
     <div class="t-small">
-      <b>프리미엄 (₩169,000)</b>에는 이게 포함돼요:
+      <b>프리미엄</b> 에는 이게 포함돼요:
       <ul style="margin-top:6px;padding-left:16px;line-height:1.7;">
         <li>주 1회 Zoom 미팅 4회 + PT 세션 3회</li>
         <li>개인 맞춤 퀴즈 + 최종 Certification</li>
@@ -8166,7 +8345,8 @@ window.__resetForSignup = () => {
   render();
 };
 
-// 베타 계정 전용 로그아웃: 이 기기 로컬 상태만 초기화. 서버 state는 유지.
+// 로그아웃: 이 기기의 로컬 로그인 상태만 초기화. 서버 state는 그대로 유지되므로
+// 같은 이메일/코드로 다시 로그인하면 진행 기록은 그대로 복구됨. 모든 계정 공통.
 window.__logoutBeta = () => {
   if (!confirm('로그아웃할까요? 이 기기의 로그인 상태가 초기화돼요.')) return;
   try { localStorage.removeItem(LS_KEY); } catch (_) {}

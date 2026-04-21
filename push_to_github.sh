@@ -16,26 +16,46 @@ echo "==> 현재 상태:"
 git status --short
 git log --oneline -3
 
-# If there are staged or unstaged SQL changes, auto-commit them.
+# 변경분이 있으면 전부 stage 후 자동 커밋.
 if ! git diff --cached --quiet || ! git diff --quiet; then
   echo ""
   echo "==> 변경 사항 커밋..."
-  git add -A supabase_hourly_completion.sql supabase_backup_restore.sql 2>/dev/null || true
+  git add -A
   if ! git diff --cached --quiet; then
-    git commit -m "Fix SQL parser 42P01: set search_path = '' instead of = public
+    git commit -m "Batch fixes: board sync/sort, premium UX, comments RPC
 
-Supabase's SQL editor was parsing \`set search_path = public\` with a
-bare identifier as a relation reference, producing
-  ERROR: 42P01: relation \"public\" does not exist
+Daily Streak Board
+- Sticky MEMBER column no longer leaks day tiles into the name gap
+  (box-shadow extends the cream/orange-ghost bg into the grid-gap zone,
+  and z-index raised so sticky stays on top).
+- Horizontal scroll position is preserved across the 15-second community
+  refresh render — no more snapping back to Day 1 every few seconds.
+- Logged-in user ('me') always sits at the very top, regardless of tier;
+  the premium → basic ordering now applies to the rest only.
+- Peer cells render exact verified days (not 'd <= progress'). Fixes the
+  bug where 이규태 verifying Day 2 without Day 1 showed Day 1 orange on
+  other viewers' boards. Server RPC now returns verified_days int[].
 
-Switching to the empty-string form (\`set search_path = ''\`) avoids
-the identifier path entirely. All table references in these files
-are already schema-qualified with \`public.\`, so resolving against
-an empty search_path is safe.
+Premium gating / copy
+- Removed mid-challenge '₩169,000 업그레이드' banners everywhere.
+  Basic users can enter the Premium tab and see what's inside; actual
+  sub-pages (미팅 노트 / 퀴즈 / Certification) show a '이 페이지는
+  프리미엄 전용이에요' panel instead of blocking the whole tab.
+- 나(프로필) 탭의 tier 카드를 '프리미엄은 이런 게 좋아요' 로 리작성 —
+  다음 기수 유도용. Zoom 미팅 / PT / PPT 발표 / 퀴즈 4가지 핵심 혜택
+  카드로 표시.
+- Premium code 단순화: premium555 로 로그인 가능 (legacy 코드도 backward-compat).
+- Modal placeholder '예: YOUBUDDY-PREMIUM-5' → '프리미엄 코드 입력' 로 변경
+  (긴 코드 예시가 그대로 답이 되어버리는 문제).
 
-Files updated:
-- supabase_hourly_completion.sql (11 occurrences)
-- supabase_backup_restore.sql (5 occurrences)"
+Community comments
+- add_community_comment RPC 에 set search_path = '' 추가 + CTE 를
+  intermediate jsonb 변수로 묶어서 더 robust 하게 (42P01 / CTE 파싱 회피).
+- 클라이언트: RPC 실패 시 로컬에 남긴 _localOnly 댓글이 UI 에 merge 되어
+  보이도록 (이전엔 Supabase 연결 중엔 서버 배열만 읽어서 안 보였음).
+
+SQL schema
+- get_cohort_member_summaries 반환값에 verified_days integer[] 추가."
   fi
 fi
 

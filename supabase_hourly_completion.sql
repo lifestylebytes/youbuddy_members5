@@ -164,6 +164,11 @@ $$;
 grant execute on function public.get_member_app_state(text, text) to anon, authenticated;
 grant execute on function public.upsert_member_app_state(text, text, text, text, jsonb) to anon, authenticated;
 
+-- NOTE: We return verified_days (int[]) so the client board can render the exact
+-- days each peer verified. Previously we only returned `progress` as a count —
+-- but the client interpreted that count as "max day verified", so a peer who
+-- verified Day 2 without Day 1 showed up with Day 1 orange instead of Day 2.
+-- With `verified_days` the client can mark the correct cells regardless of order.
 create or replace function public.get_cohort_member_summaries(
   p_cohort text
 )
@@ -176,7 +181,8 @@ returns table (
   goal text,
   motive text,
   progress integer,
-  streak integer
+  streak integer,
+  verified_days integer[]
 )
 language sql
 security definer
@@ -218,7 +224,11 @@ progress_rows as (
     goal,
     motive,
     count(*) filter (where verified)::int as progress,
-    max(day_n) filter (where verified) as last_done_day
+    max(day_n) filter (where verified) as last_done_day,
+    coalesce(
+      array_agg(day_n order by day_n) filter (where verified),
+      array[]::int[]
+    ) as verified_days
   from day_rows
   group by member_key, member_name, tier, role, timezone_text, goal, motive
 ),
@@ -249,7 +259,8 @@ select
   p.goal,
   p.motive,
   p.progress,
-  coalesce(s.streak, 0)::int as streak
+  coalesce(s.streak, 0)::int as streak,
+  p.verified_days
 from progress_rows p
 left join streak_rows s
   on s.member_key = p.member_key
@@ -442,38 +453,43 @@ create or replace function public.add_community_comment(
 returns jsonb
 language plpgsql
 security definer
+set search_path = ''
 as $$
+declare
+  v_result jsonb;
 begin
-  -- Insert and return row data directly as jsonb via RETURNING ... to_jsonb().
-  -- Avoids `RETURNING * INTO v_row` pattern, which some Supabase SQL editor
-  -- builds misparse as a variable-as-relation reference.
-  return (
-    with ins as (
-      insert into public.challenge_community_comments (
-        cohort,
-        post_id,
-        member_key,
-        member_name,
-        comment_text
-      )
-      values (
-        p_cohort,
-        p_post_id,
-        p_member_key,
-        p_member_name,
-        trim(p_comment_text)
-      )
-      returning id, post_id, member_key, member_name, comment_text, created_at
+  -- search_path='' + fully-qualified relation names avoids the Supabase SQL editor
+  -- bug where `set search_path = public` caused 42P01 ("relation 'public' does not exist").
+  -- Intermediate variable avoids CTE-in-RETURN parsing quirks seen on older pg versions.
+  with ins as (
+    insert into public.challenge_community_comments (
+      cohort,
+      post_id,
+      member_key,
+      member_name,
+      comment_text
     )
-    select jsonb_build_object(
-      'id', ins.id,
-      'post_id', ins.post_id,
-      'member_key', ins.member_key,
-      'author', ins.member_name,
-      'text', ins.comment_text,
-      'created_at', ins.created_at
-    ) from ins
-  );
+    values (
+      p_cohort,
+      p_post_id,
+      p_member_key,
+      coalesce(nullif(p_member_name, ''), '나'),
+      trim(both from p_comment_text)
+    )
+    returning id, post_id, member_key, member_name, comment_text, created_at
+  )
+  select jsonb_build_object(
+    'id', ins.id,
+    'post_id', ins.post_id,
+    'member_key', ins.member_key,
+    'author', ins.member_name,
+    'text', ins.comment_text,
+    'created_at', ins.created_at
+  )
+  into v_result
+  from ins;
+
+  return v_result;
 end;
 $$;
 
