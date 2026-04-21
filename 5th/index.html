@@ -200,13 +200,13 @@ input, textarea, select { font-family: inherit; }
 .progress-dots span { aspect-ratio: 1; border-radius: 2px; background: var(--line-soft); min-width: 10px; min-height: 10px; }
 .progress-dots span.on { background: var(--orange); }
 .progress-dots span.on.late { background: var(--ink); }
-.progress-dots span.today { background: transparent; border: 2px dashed var(--orange); box-shadow: 0 0 0 2px var(--orange-ghost); box-sizing: border-box; }
+.progress-dots span.today { background: transparent; border: 1.5px solid var(--orange); box-sizing: border-box; }
 .progress-dots span.missed { background: rgba(154,139,115,0.32); }
 .progress-dots span.locked { background: rgba(231,221,200,0.45); }
 .card-ink .progress-dots span { background: rgba(251,247,240,0.12); }
 .card-ink .progress-dots span.on { background: var(--orange); }
 .card-ink .progress-dots span.on.late { background: var(--cream); }
-.card-ink .progress-dots span.today { background: transparent; border: 2px dashed var(--orange); box-sizing: border-box; }
+.card-ink .progress-dots span.today { background: transparent; border: 1.5px solid var(--orange); box-sizing: border-box; }
 .card-ink .progress-dots span.missed { background: rgba(251,247,240,0.22); }
 .card-ink .progress-dots span.locked { background: rgba(251,247,240,0.06); }
 
@@ -528,10 +528,9 @@ input, textarea, select { font-family: inherit; }
 .cb-cell { width: 24px; height: 24px; border-radius: 4px; background: var(--paper); border: 1px solid rgba(231,221,200,0.7); }
 .cb-cell.on { background: var(--orange); border-color: var(--orange); }
 .cb-cell.on.late { background: var(--ink); border-color: var(--ink); }
-/* today = 오늘이지만 아직 미인증. 인증된 'on' 과 구분되도록 속은 비우고 주황 테두리만.
-   예전엔 background 까지 주황으로 칠해서 'done' 이랑 시각적으로 똑같았음 → 리셋해도
-   "Day 2 가 주황이다" 로 보였던 혼동의 원인. */
-.cb-cell.today { background: var(--paper); border: 2px dashed var(--orange); box-shadow: 0 0 0 2px var(--orange-ghost); }
+/* today = 오늘이지만 아직 미인증.
+   인증된 'on'(꽉 찬 주황) 과 구분되도록 속은 비우고 주황 실선 링만. */
+.cb-cell.today { background: var(--paper); border: 1.5px solid var(--orange); }
 .cb-cell.missed { background: rgba(154,139,115,0.18); border: 1px solid rgba(154,139,115,0.34); }
 .cb-cell.locked { background: var(--cream); border: 1px solid rgba(231,221,200,0.45); }
 .cb-row-me .cb-name { background: var(--orange-ghost); }
@@ -2113,38 +2112,321 @@ function defaultNuance(w) {
   if (NUANCE_MAP[k]) return NUANCE_MAP[k];
   return `"${w.en}"은(는) 실제 업무에서 ${w.def}의 느낌으로 자주 써요. 너무 딱딱하지 않으면서도 프로페셔널한 톤이에요.`;
 }
+// 각 Day의 메인 표현별 syn 2~3개를 실제 현업 뉘앙스로 짧게 정리한 glossary.
+// 키는 반드시 lowercase. syn 추가 시 원문 대소문자 그대로 lower()만 취하면 됨.
 const SYNONYM_GLOSSARY = {
-  'get on the same page': '같은 이해에 도달하다',
-  'sync on': '빠르게 합을 맞추다',
-  'converge on': '여러 의견이 하나로 모이다',
-  'commit to': '그 방향으로 확정하다',
-  'settle on': '여러 안 중 하나로 정하다',
-  'pick': '고르다',
-  'for the time being': '당분간은',
-  'tentatively': '일단 잠정적으로',
-  'at this point': '지금 시점에서는',
-  'start': '시작하다',
-  'launch': '출발시키다',
-  'get started': '시작에 들어가다',
-  'fundamentally': '근본적으로',
-  'at heart': '핵심적으로',
-  'essentially': '본질적으로',
-  'to be clear': '분명히 하자면',
-  'to confirm': '확인하자면',
-  'revisit': '다시 검토하다',
-  'follow up': '이어서 챙기다',
-  'obstacle': '걸림돌',
-  'roadblock': '진행을 막는 장애물',
-  'raise': '문제를 꺼내다',
-  'call out': '눈에 띄게 짚다',
-  'finish off': '마무리 짓다',
-  'close out': '정리하고 끝내다',
+  // Day 1
+  'pave the way': '본격 진입 전 장애물 치워 길을 닦아두다',
+  'prepare the ground': '터를 고르고 다져 배경을 조성하다',
+  'ground': '현실·데이터에 뿌리내리게 하다',
+  'establish a baseline': '수치로 기준선을 명확히 세우다',
+  'main catalyst': '변화를 촉발하는 주요 촉매',
+  'core factor': '성과를 좌우하는 핵심 요인',
+  // Day 2
+  'reality check': '현실과 맞는지 객관적으로 점검하기',
+  'instinctive review': '직관에 의존한 검토',
+  'screening': '1차로 후보를 걸러내는 선별',
+  'due diligence': '투자·계약 전 공식 실사',
+  'feasibility': '기술·실행 측면의 실현 가능성',
+  'workability': '일단 돌아가기는 하는지 여부',
+  // Day 3
+  'rough and ready': '투박하지만 현장에서 써먹을 수 있는',
+  'scrappy': '리소스 없이도 악착같이 해내는 태도',
+  'bring it home': '결승까지 몰아쳐 기어코 마무리하다',
+  'wrap it up': '일단 깔끔하게 마무리 짓다',
+  'tackle early': '문제를 초반에 손대기 시작하다',
+  'prioritize heavily at the start': '초반 일정에 중량 업무를 몰아 배치하다',
+  // Day 4
+  'break down': '체계적으로 잘게 쪼개 분석하다',
+  'deconstruct': '구조·논리를 해체해 뜯어보다',
+  'expand on': '기존 포인트에 살을 더 붙이다',
+  'elaborate': '구두로 더 자세히 풀어 설명하다',
+  'delve into': '한 주제 속으로 깊이 파고들다',
+  'look closely into': '가까이서 자세히 들여다보다',
+  // Day 5
+  'gain support': '지지 기반을 확보하다',
+  'secure agreement': '공식적 동의·합의를 받아내다',
+  'take the lead': '선두에 서서 주도하다',
+  'be in charge': '담당자·책임자로서 역할을 맡다',
+  'sync up perfectly': '완벽하게 박자를 맞추다',
+  'coordinate closely': '긴밀하게 일정·업무를 조율하다',
+  // Day 6
+  'actionable feedback': '바로 실행 가능한 구체 피드백',
+  'helpful critique': '도움 되는 건설적 비평',
+  'soften the blow': '타격·충격을 덜 아프게 누그러뜨리다',
+  'mince words': '말을 돌려서·애매하게 하다 (주로 부정문)',
+  'discuss separately': '이 자리 아닌 따로 자리에서 논의하다',
+  'follow up later': '지금은 말고 나중에 이어서 챙기다',
+  // Day 7
+  'argue the opposing side': '의도적으로 반대 입장을 주장하다',
+  'compromise': '서로 양보해 합의에 이르다',
+  'happy medium': '양쪽 모두 만족하는 딱 좋은 지점',
+  'make a concession': '한쪽이 먼저 한발 양보하다',
+  'strike a balance': '상충하는 요소 사이에 균형을 찾다',
+  // Day 8
+  'get straight to the point': '서론 없이 곧장 본론부터 말하다',
+  'skip the fluff': '불필요한 미사여구를 건너뛰다',
+  'set a time limit': '논의에 시간 제한을 걸어두다',
+  'cap the time': '시간 상한선을 확실히 긋다',
+  'wrap up early': '예정보다 일찍 회의를 마치다',
+  'end ahead of schedule': '공식 일정보다 앞당겨 종료하다',
+  // Day 9
+  'subject matter expert': '해당 분야의 공식 전문가(SME)',
+  'key contact': '대외적으로 가장 중요한 연락 담당',
+  'the bulk of the work': '업무량의 대부분',
+  'hard work': '그냥 일반적인 고된 노동',
+  'overstep boundaries': '권한·규정의 선을 넘다',
+  'interfere': '남의 일에 참견·방해하다',
+  // Day 10
+  'obvious problem': '누구나 알고 있는 뻔한 문제',
+  'uncomfortable truth': '입 밖에 꺼내면 불편해지는 사실',
+  'catch the vibe': '분위기·바이브를 감각적으로 캐치하다',
+  'gauge the mood': '공식석상의 분위기를 가늠하다',
+  "take one's word for it": '상대의 말을 일단 믿어주다',
+  'assume the best': '좋은 쪽으로 해석·가정하다',
+  // Day 11
+  'clean slate': '과거를 지우고 깨끗이 새 출발하다',
+  'fresh start': '가볍게 다시 시작하기',
+  'duplicate effort': '노력을 중복으로 쏟는 비효율',
+  'waste time on basics': '이미 있는 기초에 시간 낭비하기',
+  'touch on': '살짝 언급만 하고 넘어가다',
+  'barely begin': '이제 겨우 입구에 발 들인 수준',
+  // Day 12
+  'core benefit': '고객이 얻는 핵심 혜택',
+  'selling point': '즉각 어필되는 판매 포인트',
+  'advantage': '일반적인 이점·우위',
+  'upper hand': '일대일 상황에서의 주도권',
+  'breakthrough': '난관을 뚫은 획기적 성과',
+  'paradigm shift': '판 자체가 바뀌는 거시적 전환',
+  // Day 13
+  'core problem': '가장 근본이 되는 핵심 문제',
+  'friction point': '고객 여정상 거슬리는 마찰 구간',
+  'face the music': '결과·비난에 정면으로 책임지다',
+  'suck it up': '투덜대지 말고 그냥 감내하다',
+  'hurdle': '뛰어넘어야 할 한 번의 허들',
+  'obstacle': '진행을 가로막는 일반적 장애물',
+  // Day 14
+  'crisis management': '체계적·장기적 위기관리',
+  'mitigation': '피해·리스크의 완화·저감',
+  'positive aspect': '상황 속 긍정적인 측면',
+  'ray of hope': '어둠 속 한줄기 희망',
+  'plan b': '메인이 틀어지면 꺼내는 두 번째 안',
+  'backup plan': '만약을 대비한 예비 계획',
+  // Day 15
+  'expand': '단순하게 규모를 넓히다',
+  'grow rapidly': '빠른 속도로 성장하다',
+  'collaborative advantage': '협업으로 만들어내는 경쟁 우위',
+  'combined effect': '둘이 결합됐을 때의 효과',
+  'increase significantly': '수치를 크게 올리다',
+  'boost': '짧은 기간에 팍 끌어올리다',
+  // Day 16
+  'start strong': '초반부터 강한 임팩트로 출발하다',
+  'jump right in': '준비 과정 없이 바로 뛰어들다',
+  'overdeliver': '기대치보다 더 뽑아내 전달하다',
+  'exceed expectations': '평가·고과에서 기대치를 뛰어넘다',
+  'lead the way': '앞장서서 방향을 제시하다',
+  'outperform competitors': '경쟁사를 지표로 앞지르다',
+  // Day 17
+  'focused time': '집중해서 쓰는 시간 블록',
+  'blocked time': '캘린더에 통째로 비워둔 시간',
+  "find one's flow": '심리학적 몰입(flow) 상태에 진입하다',
+  'be fully immersed': '주변을 잊고 완전히 빠져들다',
+  'hyper-focused': '과할 정도로 한 곳에만 집중한 상태',
+  'zeroed in': '타깃 한 점에 정확히 조준된 상태',
+  // Day 18
+  'navigate hurdles': '장애물을 요리조리 헤쳐나가다',
+  'overcome bureaucratic hurdles': '관료적 허들을 극복해내다',
+  'bureaucracy': '관료주의 자체',
+  'official strictness': '공식적·형식적 엄격함',
+  'tough struggle': '힘들고 길게 가는 투쟁',
+  'hard slog': '지겹게 이어지는 고된 노동',
+  // Day 19
+  'complete the task': '주어진 업무를 완료하다',
+  'reach the goal': '목표 지점에 도달하다',
+  'finalize': '문서·결정을 최종 확정하다',
+  'polish up': '마지막으로 광내듯 다듬다',
+  'produce results': '실제 성과물을 뽑아내다',
+  'follow through': '말한 대로 끝까지 실행해내다',
+  // Day 20
+  'debriefing': '작전·업무 종료 후 정보 공유 회의',
+  'review session': '결과를 되짚어보는 리뷰 자리',
+  'key takeaways': '발표·회의의 핵심 시사점',
+  'insights gained': '경험에서 얻은 인사이트',
+  'see the big picture': '전체 큰 그림을 조망하다',
+  'synthesize info': '파편화된 정보를 종합하다',
 };
-function synonymMeaning(syn='') {
-  return SYNONYM_GLOSSARY[String(syn).toLowerCase()] || '비슷하지만 말의 강도와 상황이 조금 달라져요.';
+
+// pair-specific nuance: "메인 표현 vs 해당 syn" 비교해서 실제 현업에서 어떻게 다른지 한줄.
+// key = `${word.en}::${syn}` (대소문자 · 공백 원문 그대로).
+const SYNONYM_NUANCE = {
+  // Day 1 - Set the stage / Anchor / Key driver
+  'Set the stage::Pave the way': '"Set the stage"는 무대 셋업처럼 배경 분위기를 까는 뉘앙스, "Pave the way"는 후속 주자가 편하게 들어오도록 장애물을 치워두는 느낌이 강해요.',
+  'Set the stage::Prepare the ground': '"Set the stage"가 무대 비유라면 "Prepare the ground"는 농사짓듯 터를 고르는 비유라, 더 차근차근 오래 쓸 기반을 다질 때 어울려요.',
+  'Anchor::Ground': '"Anchor"는 흔들리지 않게 고정한다는 뉘앙스, "Ground"는 현실·데이터·근거에 뿌리내리게 한다는 설득용 뉘앙스가 더 강해요.',
+  'Anchor::Establish a baseline': '"Anchor"는 비유적이고 전략적인 톤이라면 "Establish a baseline"은 수치를 찍어 기준선을 박는 데이터 드리븐한 표현이에요.',
+  'Key driver::Main catalyst': '"Key driver"는 꾸준히 성과를 끌고 가는 엔진, "Main catalyst"는 변화를 한 방에 터뜨리는 촉매라서 사용 장면이 달라요.',
+  'Key driver::Core factor': '"Key driver"가 성과를 직접 움직이는 동력이라면 "Core factor"는 분석적·중립적으로 "핵심 요인"을 짚을 때 쓰는 톤이에요.',
+
+  // Day 2 - Gut check / Vetting process / Viability
+  'Gut check::Reality check': '"Gut check"는 경험에서 오는 직감으로 후딱 점검, "Reality check"는 환상을 깨고 객관적 팩트와 맞춰보는 뉘앙스예요.',
+  'Gut check::Instinctive review': '"Gut check"가 현장의 퀵·캐주얼한 슬랭이라면 "Instinctive review"는 조금 더 포멀하고 설명형이라 회의록에서 더 자주 보여요.',
+  'Vetting process::Screening': '"Vetting"이 파트너·제도 전반을 깐깐히 깊게 검증하는 과정이면 "Screening"은 1차로 후보를 걸러내는 얕은 필터 단계예요.',
+  'Vetting process::Due diligence': '"Vetting"은 조직·사람·벤더 전반에 두루 쓰이고, "Due diligence"는 M&A·투자·계약 직전에 법무·재무까지 파는 공식 실사 용어예요.',
+  'Viability::Feasibility': '"Viability"는 시장에서 실제로 돈이 될지까지 보는 것, "Feasibility"는 기술적·운영적으로 실행 가능한지에 방점을 둬요.',
+  'Viability::Workability': '"Viability"는 비즈니스 생존 가능성을 따지는 전략 용어, "Workability"는 "그래서 일단 돌아가긴 해?" 정도의 가벼운 구어예요.',
+
+  // Day 3 - Quick and dirty / Get it over the line / Front-load
+  'Quick and dirty::Rough and ready': '"Quick and dirty"는 속도 위해 지저분해도 OK, "Rough and ready"는 투박해도 바로 실전 투입 가능하다는 "쓸만함"에 방점이 있어요.',
+  'Quick and dirty::Scrappy': '"Quick and dirty"는 결과물의 상태를, "Scrappy"는 부족한 리소스를 악착같이 쥐어짜내는 팀의 태도·문화를 묘사해요.',
+  'Get it over the line::Bring it home': '"Get it over the line"은 겨우 결승선을 넘긴 안도감, "Bring it home"은 홈까지 몰아치는 추진력·승부 근성이 더 강해요.',
+  'Get it over the line::Wrap it up': '"Get it over the line"에는 우여곡절 끝의 성취감이 있지만 "Wrap it up"은 단순히 "이쯤에서 깔끔히 끝내자"는 정리 뉘앙스예요.',
+  'Front-load::Tackle early': '"Front-load"는 업무량·리소스를 초반에 몰아 넣는 배분 전략, "Tackle early"는 단순히 "일찍 손대자"는 시점 강조라 범위가 좁아요.',
+  'Front-load::Prioritize heavily at the start': '"Front-load"는 현업에서 자주 쓰는 한 단어 슬랭, "Prioritize heavily at the start"는 문서·기획서에 쓰는 설명형 긴 표현이에요.',
+
+  // Day 4 - Unpack / Flesh out / Drill down
+  'Unpack::Break down': '"Unpack"은 상자 풀듯 꺼내 살펴보는 느낌, "Break down"은 구조를 논리적으로 쪼개 분석하는 체계적인 뉘앙스예요.',
+  'Unpack::Deconstruct': '"Unpack"이 캐주얼한 회의 슬랭이라면 "Deconstruct"는 개념·논리를 해체한다는 학술·컨설팅 톤이라 더 무거워요.',
+  'Flesh out::Expand on': '"Flesh out"은 러프한 뼈대에 살을 붙여 완성해가는 과정, "Expand on"은 이미 있는 한 포인트를 더 부연·확장하는 쪽에 가까워요.',
+  'Flesh out::Elaborate': '"Flesh out"은 기획안·초안을 구체화할 때 쓰고 "Elaborate"은 회의 중 누가 "좀 더 자세히 말해주세요"라고 할 때 쓰는 구두 표현이에요.',
+  'Drill down::Delve into': '"Drill down"은 숫자·지표를 계층별로 파고드는 데이터 뉘앙스, "Delve into"는 주제 자체를 탐구적으로 파는 광범위한 느낌이에요.',
+  'Drill down::Look closely into': '"Drill down"은 날카로운 실무 슬랭이고 "Look closely into"는 그냥 "자세히 본다" 수준이라 전문성·임팩트가 덜해요.',
+
+  // Day 5 - Get buy-in / Call the shots / Move in lockstep
+  'Get buy-in::Gain support': '"Get buy-in"은 "내 계획에 적극 올라타달라"는 강한 동참 요청, "Gain support"는 그냥 "지지를 받는" 수동적 뉘앙스예요.',
+  'Get buy-in::Secure agreement': '"Get buy-in"은 감정·동기까지 움직이는 뉘앙스, "Secure agreement"는 사인·문서상 동의를 확보하는 포멀한 표현이에요.',
+  'Call the shots::Take the lead': '"Call the shots"는 결정권을 실제로 쥔 진두지휘자, "Take the lead"는 선두에 서서 리드하지만 의사결정 권한까진 모호할 수 있어요.',
+  'Call the shots::Be in charge': '"Call the shots"는 중요 결정마다 사인하는 리더십의 생생함이 있고 "Be in charge"는 직책·역할상 담당이라는 고정된 느낌이 강해요.',
+  'Move in lockstep::Sync up perfectly': '"Move in lockstep"은 군대 행진처럼 오차 없이 엄격히 맞추는 뉘앙스, "Sync up perfectly"는 프로덕트·개발팀이 박자 맞출 때 쓰는 모던한 표현이에요.',
+  'Move in lockstep::Coordinate closely': '"Move in lockstep"은 일사불란한 합을 강조하고 "Coordinate closely"는 부서 간 업무 공유·조율 수준이라 긴장감이 덜해요.',
+
+  // Day 6 - Constructive criticism / Sugarcoat / Take it offline
+  'Constructive criticism::Actionable feedback': '"Constructive criticism"은 "건설적이다"는 태도에 방점, "Actionable feedback"은 "바로 뭘 고치라"는 실행 가능성에 방점이 찍혀요.',
+  'Constructive criticism::Helpful critique': '"Constructive criticism"은 성장을 돕겠다는 의도까지 담고 "Helpful critique"는 단순히 "도움 되는 비평" 정도의 평이한 표현이에요.',
+  'Sugarcoat::Soften the blow': '"Sugarcoat"는 나쁜 소식을 달콤하게 포장해 돌려 말하는 것, "Soften the blow"는 포장 대신 타격 세기를 줄여 충격을 덜어주는 쪽이에요.',
+  'Sugarcoat::Mince words': '"Sugarcoat"는 긍정적으로 꾸며서 말하는 것, "Mince words"는 주로 부정문으로 쓰여 "돌려 말하지 않겠다"는 단호한 뉘앙스를 만들어요.',
+  'Take it offline::Discuss separately': '"Take it offline"은 회의 중 자연스럽게 화제를 잘라 따로 빼는 회의 문화 슬랭, "Discuss separately"는 그 뉘앙스 없이 중립적인 "따로 얘기"예요.',
+  'Take it offline::Follow up later': '"Take it offline"은 다 같이 있는 자리에서 지금 빼자는 현장감, "Follow up later"는 "언젠가 이어서 챙기겠다"는 시점 유예 뉘앙스예요.',
+
+  // Day 7 - Play devil's advocate / Middle ground / Meet halfway
+  "Play devil's advocate::Argue the opposing side": '"Play devil\'s advocate"는 실제론 동의하지만 점검용으로 일부러 악역을 맡는 느낌, "Argue the opposing side"는 그냥 반대편 입장을 주장하는 것이라 의도 뉘앙스가 달라요.',
+  'Middle ground::Compromise': '"Middle ground"는 서로가 만날 지점, "Compromise"는 그 지점에 도달하는 행위·합의 결과라 주어가 다르게 잡혀요.',
+  'Middle ground::Happy medium': '"Middle ground"는 중립적인 타협점, "Happy medium"은 양쪽 모두 만족스러운 기분 좋은 밸런스라 더 긍정적 톤이에요.',
+  'Meet halfway::Make a concession': '"Meet halfway"는 양쪽이 반반씩 양보해 중간에서 만나는 상호성, "Make a concession"은 한쪽이 먼저 양보하는 일방적 행위에 가까워요.',
+  'Meet halfway::Strike a balance': '"Meet halfway"는 협상 장면에서의 양보 합의, "Strike a balance"는 다양한 요소(속도 vs 품질 등) 사이에서 균형점을 찾는 더 추상적인 조율이에요.',
+
+  // Day 8 - Cut to the chase / Timebox / Give time back
+  'Cut to the chase::Get straight to the point': '"Cut to the chase"는 영화 추격씬 비유가 녹아 있어 경쾌·단호하고, "Get straight to the point"는 의미는 같지만 비유 없는 중립적 표현이에요.',
+  'Cut to the chase::Skip the fluff': '"Cut to the chase"가 본론으로 가자는 포지티브한 권유라면 "Skip the fluff"는 "쓸데없는 소리는 빼"라는 더 직설적이고 장난기 있는 톤이에요.',
+  'Timebox::Set a time limit': '"Timebox"는 애자일·스타트업 문화에서 한 단어로 많이 쓰는 슬랭, "Set a time limit"은 의미는 같지만 설명형이라 슬랭 맛은 없어요.',
+  'Timebox::Cap the time': '"Timebox"는 논의 전체를 시간 블록에 가둔다는 뉘앙스, "Cap the time"은 상한선만 못 박는다는 느낌이라 방식이 조금 달라요.',
+  'Give time back::Wrap up early': '"Give time back"은 "남은 시간은 드릴게요"라는 호스트의 배려, "Wrap up early"는 그냥 회의를 일찍 끝낸다는 중립적 행위예요.',
+  'Give time back::End ahead of schedule': '"Give time back"은 참석자 기분 좋게 해주는 구어 표현, "End ahead of schedule"은 리포트·공식 일정 문서에 어울리는 포멀한 톤이에요.',
+
+  // Day 9 - Go-to person / Heavy lifting / Step on someone's toes
+  'Go-to person::Subject matter expert': '"Go-to person"은 친숙하게 "그 일은 이 사람이지"라는 현장감, "Subject matter expert(SME)"는 조직도에 박히는 공식적 전문가 타이틀이에요.',
+  'Go-to person::Key contact': '"Go-to person"은 내부 해결사 뉘앙스가 강하고, "Key contact"는 외부 커뮤니케이션에서 "대표 연락창구"를 가리키는 중립 표현이에요.',
+  'Heavy lifting::The bulk of the work': '"Heavy lifting"은 가장 힘들고 핵심적인 막노동 구간, "The bulk of the work"는 그냥 업무량의 대부분이라 난이도 뉘앙스가 빠져 있어요.',
+  'Heavy lifting::Hard work': '"Heavy lifting"은 "메인 담당자가 멍에 지는" 책임감까지 포함, "Hard work"는 누가 어떤 일을 얼마나 하든 고되다는 평범한 표현이에요.',
+  "Step on someone's toes::Overstep boundaries": '"Step on someone\'s toes"는 상대 감정까지 상하게 하는 대인관계 뉘앙스, "Overstep boundaries"는 규정·권한 측면의 선 넘기에 방점이 있어요.',
+  "Step on someone's toes::Interfere": '"Step on toes"는 "실수로 영역 건드려 미안해" 톤이고 "Interfere"는 "남의 일에 끼어든다"는 더 부정적·의도적 뉘앙스로 읽혀요.',
+
+  // Day 10 - Elephant in the room / Read the room / Benefit of the doubt
+  'Elephant in the room::Obvious problem': '"Elephant in the room"은 다 알면서 꺼내지 못하는 긴장감이 핵심, "Obvious problem"은 그냥 "뻔한 문제"라 그 눈치게임 뉘앙스가 빠져요.',
+  'Elephant in the room::Uncomfortable truth': '"Elephant"는 회의실에 떡하니 있는 외면의 대상, "Uncomfortable truth"는 말로 꺼냈을 때 불편해지는 진실 자체라서 포커스가 달라요.',
+  'Read the room::Catch the vibe': '"Read the room"은 공식석상에서 눈치 보며 맞춰가는 뉘앙스, "Catch the vibe"는 더 캐주얼·힙하게 "분위기 감 잡다" 정도예요.',
+  'Read the room::Gauge the mood': '"Read the room"은 즉각적 반응을 읽는 순발력, "Gauge the mood"는 분위기를 재보고 다음 수를 계산하는 공식·외교적 톤이에요.',
+  "Benefit of the doubt::Take one's word for it": '"Benefit of the doubt"는 증거 부족해도 일단 좋게 믿어준다는 조심스러운 뉘앙스, "Take one\'s word for it"은 상대 말 자체를 곧이곧대로 받아들이는 더 직접적인 신뢰예요.',
+  'Benefit of the doubt::Assume the best': '"Benefit of the doubt"는 불확실 상황의 관대함, "Assume the best"는 기본적으로 긍정 가정부터 깔고 들어가는 더 낙관적인 태도예요.',
+
+  // Day 11 - Blank canvas / Reinvent the wheel / Scratch the surface
+  'Blank canvas::Clean slate': '"Blank canvas"는 창작·기획 여지가 무궁한 상태, "Clean slate"는 과거 기록을 지우고 새 출발한다는 용서·리셋 뉘앙스가 강해요.',
+  'Blank canvas::Fresh start': '"Blank canvas"는 창의성 함의가 있는 전략 표현, "Fresh start"는 커리어·관계까지 두루 쓰는 일상적·감정적 표현이에요.',
+  'Reinvent the wheel::Duplicate effort': '"Reinvent the wheel"은 "굳이 처음부터?"의 자조적·유머러스한 톤, "Duplicate effort"는 그냥 "노력 중복"이라는 건조한 업무 표현이에요.',
+  'Reinvent the wheel::Waste time on basics': '"Reinvent the wheel"은 이미 있는 해결책의 존재를 강조, "Waste time on basics"는 기초에 시간 버린다는 결과에 방점이 찍혀요.',
+  'Scratch the surface::Touch on': '"Scratch the surface"는 "겉만 긁었다"는 아쉬움이 담긴 뉘앙스, "Touch on"은 가볍게 언급만 하고 넘어갔다는 중립적인 표현이에요.',
+  'Scratch the surface::Barely begin': '"Scratch the surface"는 깊이 측면의 얕음, "Barely begin"은 시작 시점의 초기 단계라서 강조하는 축이 달라요.',
+
+  // Day 12 - Value proposition / Competitive edge / Game changer
+  'Value proposition::Core benefit': '"Value proposition"은 "왜 우리여야 하는가"의 전략적 정의, "Core benefit"은 고객이 실제 얻는 핵심 이득에 포커스를 맞춘 표현이에요.',
+  'Value proposition::Selling point': '"Value proposition"은 장기 전략과 포지셔닝을 담고 "Selling point"는 "이게 매력이에요!" 하는 즉각적 판매 어필에 가까워요.',
+  'Competitive edge::Advantage': '"Competitive edge"는 경쟁 시장에서 남보다 앞선 날카로운 차별점, "Advantage"는 그냥 일반적인 이점이라 날카로움이 덜해요.',
+  'Competitive edge::Upper hand': '"Competitive edge"는 시장 차원의 우위, "Upper hand"는 1:1 협상·대결 상황에서 주도권을 쥔 상태를 묘사해요.',
+  'Game changer::Breakthrough': '"Game changer"는 시장 규칙 자체를 바꾸는 파급력, "Breakthrough"는 기술·연구 등의 난관을 뚫은 돌파 성과라 범위가 달라요.',
+  'Game changer::Paradigm shift': '"Game changer"는 비즈니스 현장에서 쓰는 생동감 있는 표현, "Paradigm shift"는 훨씬 무겁고 이론적·거시적인 학술 톤이에요.',
+
+  // Day 13 - Pain point / Bite the bullet / Stumbling block
+  'Pain point::Core problem': '"Pain point"는 고객이 실제 느끼는 고통·짜증의 감각적 표현, "Core problem"은 중립적이고 분석적인 "핵심 문제"라 감정 뉘앙스가 빠져요.',
+  'Pain point::Friction point': '"Pain point"는 문제의 강도를 강조, "Friction point"는 고객 여정에서 거슬리는 구간을 정밀하게 짚는 UX·CX 업계 표현이에요.',
+  'Bite the bullet::Face the music': '"Bite the bullet"은 하기 싫지만 결단 내려 감내한다는 능동적 결심, "Face the music"은 이미 터진 일에 책임지고 직면한다는 사후 대응이에요.',
+  'Bite the bullet::Suck it up': '"Bite the bullet"은 전략적·비장한 결단, "Suck it up"은 "그냥 참고 해"라는 훨씬 직설적이고 캐주얼한 구어라 회의체보단 내부 대화용이에요.',
+  'Stumbling block::Hurdle': '"Stumbling block"은 발에 걸리는 돌이라 예기치 못한 뉘앙스, "Hurdle"은 육상 허들처럼 예상하고 뛰어넘어야 하는 도전이에요.',
+  'Stumbling block::Obstacle': '"Stumbling block"은 "돌부리에 걸리듯" 진행이 꺾이는 생생한 비유, "Obstacle"은 가장 일반적인 장애물 표현이라 뉘앙스가 덜 구체적이에요.',
+
+  // Day 14 - Damage control / Silver lining / Contingency plan
+  'Damage control::Crisis management': '"Damage control"은 사건 직후 불부터 끄는 응급 뉘앙스, "Crisis management"는 체계적·장기적 리스크 매니지먼트의 공식 용어예요.',
+  'Damage control::Mitigation': '"Damage control"은 이미 터진 일을 수습, "Mitigation"은 리스크·피해를 사전·사후로 완화한다는 쪽이라 시점이 더 넓어요.',
+  'Silver lining::Positive aspect': '"Silver lining"은 "구름 사이 햇살"의 시적 비유가 핵심, "Positive aspect"는 그 낭만을 뺀 평범한 "좋은 면" 표현이에요.',
+  'Silver lining::Ray of hope': '"Silver lining"은 이미 벌어진 불행 속 위안, "Ray of hope"는 아직 끝나지 않은 상황에서 찾는 희망 한줄기라 온도가 달라요.',
+  'Contingency plan::Plan B': '"Contingency plan"은 공식 리스크 관리 문서에 들어가는 체계적 비상 계획, "Plan B"는 누구나 쉽게 쓰는 구어 표현이에요.',
+  'Contingency plan::Backup plan': '"Contingency plan"은 이벤트 기반(만약 X가 터지면)인 반면 "Backup plan"은 그냥 "예비용으로 준비해둔 안" 정도라 더 느슨해요.',
+
+  // Day 15 - Scale up / Synergy / Ramp up
+  'Scale up::Expand': '"Scale up"은 이미 검증된 모델을 큰 규모로 밀어붙이는 운영·구조 확장, "Expand"는 단순히 영역·규모를 넓힌다는 일반적 표현이에요.',
+  'Scale up::Grow rapidly': '"Scale up"은 시스템적 규모 키우기, "Grow rapidly"는 속도에 방점이라 성장의 질적 구조보단 양적 증가를 의미해요.',
+  'Synergy::Collaborative advantage': '"Synergy"는 "1+1=3"의 화학반응 뉘앙스, "Collaborative advantage"는 협업이 만들어내는 전략적 경쟁 우위를 분석적으로 설명하는 톤이에요.',
+  'Synergy::Combined effect': '"Synergy"는 기대 이상의 폭발력을 내포, "Combined effect"는 그냥 둘이 합쳤을 때의 결합 효과라 중립적이고 감동이 덜해요.',
+  'Ramp up::Increase significantly': '"Ramp up"은 기어를 올려 점점 가속한다는 현업 슬랭, "Increase significantly"는 "크게 늘리다"의 설명형이라 현장감이 없어요.',
+  'Ramp up::Boost': '"Ramp up"은 일정 기간에 걸친 끌어올림, "Boost"는 단발성으로 팍 찌르는 부스팅이라 지속성·기간 뉘앙스가 달라요.',
+
+  // Day 16 - Hit the ground running / Go the extra mile / Stay ahead of the pack
+  'Hit the ground running::Start strong': '"Hit the ground running"은 착지하자마자 달리는 즉시 전력투구, "Start strong"은 초반 임팩트가 세다는 일반적 표현이라 긴박감이 덜해요.',
+  'Hit the ground running::Jump right in': '"Hit the ground running"은 사전 준비를 다 마치고 첫날부터 성과를 낸다는 뉘앙스, "Jump right in"은 준비 없이 일단 뛰어드는 경쾌한 행동에 가까워요.',
+  'Go the extra mile::Overdeliver': '"Go the extra mile"은 정성·노력의 추가분에 방점, "Overdeliver"는 결과물 품질이 기대를 초과했다는 아웃풋 중심 표현이에요.',
+  'Go the extra mile::Exceed expectations': '"Go the extra mile"은 과정에서의 수고, "Exceed expectations"는 최종 평가·고과에서 기대치를 넘은 결과라 관찰 시점이 달라요.',
+  'Stay ahead of the pack::Lead the way': '"Stay ahead of the pack"은 경쟁자 무리보다 한 발 앞선 상태 유지, "Lead the way"는 무리 자체를 끌고 가는 주도권에 방점이에요.',
+  'Stay ahead of the pack::Outperform competitors': '"Stay ahead of the pack"은 비유적·동기부여 멘트 톤, "Outperform competitors"는 KPI·지표로 경쟁사를 앞섰다는 성과 중심 표현이에요.',
+
+  // Day 17 - Deep work / Get in the zone / Laser-focused
+  'Deep work::Focused time': '"Deep work"은 고난도 두뇌 업무에 파고드는 질적 몰입, "Focused time"은 그냥 "집중하는 시간 블록" 정도라 난이도 뉘앙스가 없어요.',
+  'Deep work::Blocked time': '"Deep work"은 업무의 성격(고도 집중)을, "Blocked time"은 캘린더상 기술(시간 막아두기)을 가리켜서 축이 달라요.',
+  "Get in the zone::Find one's flow": '"Get in the zone"은 현업·스포츠 슬랭 느낌, "Find one\'s flow"는 심리학 flow state 용어와 연결되어 더 이론적·내면적 뉘앙스예요.',
+  'Get in the zone::Be fully immersed': '"Get in the zone"은 내가 고도 집중 상태에 진입한 느낌, "Be fully immersed"는 경험·환경에 외부 자극 차단하고 빠져든다는 방향이 달라요.',
+  'Laser-focused::Hyper-focused': '"Laser-focused"는 한 타깃에 날카롭게 꽂힌 긍정적 집중, "Hyper-focused"는 "과할 정도로" 과집중한 상태라 자칫 번아웃 뉘앙스까지 섞일 수 있어요.',
+  'Laser-focused::Zeroed in': '"Laser-focused"는 꾸준히 유지되는 집중, "Zeroed in"은 조준경으로 타깃 맞추듯 이 순간 정확히 조준된 상태에 가까워요.',
+
+  // Day 18 - Jump through hoops / Red tape / Uphill battle
+  'Jump through hoops::Navigate hurdles': '"Jump through hoops"는 불필요하고 번거로운 절차를 통과한 피로감, "Navigate hurdles"는 허들을 센스 있게 헤쳐나간 능숙함에 방점이 달려요.',
+  'Jump through hoops::Overcome bureaucratic hurdles': '"Jump through hoops"는 대상이 모호한 절차 일반, "Overcome bureaucratic hurdles"는 허들의 정체를 "관료적"이라고 명시한 버전이에요.',
+  'Red tape::Bureaucracy': '"Red tape"는 답답한 결재·형식에 대한 비꼼·푸념이 묻어나고 "Bureaucracy"는 중립적인 "관료주의" 개념 용어라 톤이 달라요.',
+  'Red tape::Official strictness': '"Red tape"는 구어에서 빈번한 은유, "Official strictness"는 거의 직역에 가까워 실제 대화에서는 잘 쓰이지 않는 설명형이에요.',
+  'Uphill battle::Tough struggle': '"Uphill battle"은 "오르막 전투"의 시각적 고난, "Tough struggle"은 비유 없이 "힘든 투쟁"이라 밋밋하지만 어디에나 붙일 수 있어요.',
+  'Uphill battle::Hard slog': '"Uphill battle"은 상대·외부 조건과의 싸움 뉘앙스, "Hard slog"는 영국식 구어로 "지겹게 계속되는 고된 노동"에 방점이 있어요.',
+
+  // Day 19 - Cross the finish line / Put the finishing touches / Deliver the goods
+  'Cross the finish line::Complete the task': '"Cross the finish line"은 긴 여정 끝 카타르시스, "Complete the task"는 그냥 "업무 완료"라는 중립적 보고 표현이에요.',
+  'Cross the finish line::Reach the goal': '"Cross the finish line"은 막바지 독려의 드라마가 살아 있고 "Reach the goal"은 목표 도달을 깔끔하게 짚는 포멀한 표현이에요.',
+  'Put the finishing touches::Finalize': '"Put the finishing touches"는 오탈자·픽셀까지 다듬는 마지막 디테일 작업, "Finalize"는 문서·결정을 통째로 최종 확정하는 공식 단계예요.',
+  'Put the finishing touches::Polish up': '"Put the finishing touches"와 "Polish up"은 거의 유사하지만 후자는 전반적인 품질 광내기에 더 폭넓게 쓰이는 캐주얼 표현이에요.',
+  'Deliver the goods::Produce results': '"Deliver the goods"는 구두 약속을 실제 결과로 증명했다는 강한 뉘앙스, "Produce results"는 밋밋하게 "성과를 냈다"라고 서술하는 정도예요.',
+  'Deliver the goods::Follow through': '"Deliver the goods"는 결과물 자체에 방점, "Follow through"는 말한 약속을 끝까지 실행한 행동의 일관성에 방점이 찍혀요.',
+
+  // Day 20 - Post-mortem / Lessons learned / Connect the dots
+  'Post-mortem::Debriefing': '"Post-mortem"은 실패·이슈의 원인을 해부하는 회고, "Debriefing"은 작전·업무 종료 후 정보를 공유·정리하는 성격에 가까워 목적이 달라요.',
+  'Post-mortem::Review session': '"Post-mortem"은 "사후 부검"의 무거움이 있고 "Review session"은 중립·가벼움이라 성공 프로젝트에도 쓰기 편해요.',
+  'Lessons learned::Key takeaways': '"Lessons learned"는 주로 실패·경험에서 얻은 뼈아픈 교훈, "Key takeaways"는 발표·회의 말미의 핵심 시사점 정리라 성격이 달라요.',
+  'Lessons learned::Insights gained': '"Lessons learned"는 반성적 뉘앙스, "Insights gained"는 경험 전반에서 얻은 긍정적 통찰이라 톤이 밝아요.',
+  'Connect the dots::See the big picture': '"Connect the dots"는 흩어진 점들을 잇는 과정, "See the big picture"는 연결이 끝난 전체 그림을 조망하는 상태라 시점이 달라요.',
+  'Connect the dots::Synthesize info': '"Connect the dots"는 통찰적·직관적 연결에 가깝고 "Synthesize info"는 정보를 논리적으로 종합하는 분석적·학술적 톤이에요.',
+};
+
+function synonymMeaning(syn = '') {
+  return SYNONYM_GLOSSARY[String(syn).toLowerCase()] || '비슷한 의미지만 상황·톤이 조금 달라요.';
 }
 function synonymNuance(word, syn) {
-  return `"${syn}"은 "${word.en}"보다 ${word.pos?.includes('noun') ? '표현 범위가 넓고' : '조금 더 직설적이거나 일반적인'} 편이라 상황에 따라 톤 차이가 나요.`;
+  const key = `${word?.en ?? ''}::${syn}`;
+  if (SYNONYM_NUANCE[key]) return SYNONYM_NUANCE[key];
+  // fallback: 짧고 자연스럽게만.
+  return `"${syn}"은 "${word?.en ?? ''}"과 의미는 비슷하지만 쓰이는 상황·톤이 조금 달라서, 맥락에 맞춰 골라 쓰면 좋아요.`;
 }
 const weekProgress = (w) => w.days.filter(d => state.verified['d'+d.day]).length;
 const hasSupabase = () => !!(SUPABASE_URL && SUPABASE_ANON_KEY);
