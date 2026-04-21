@@ -46,6 +46,15 @@
 --     p_member_key  := 'gyute:이규태',
 --     p_tables      := array['challenge_member_state']
 --   );
+--
+--   -- erase ONE member's day completely (e.g., re-do Day 2 from scratch)
+--   --   • clears verification events, app_state checkpoints/sentences/quiz/feedback
+--   --     for that day, and the member's community posts/comments/likes for that day.
+--   --   • leaves all OTHER days untouched.
+--   select * from public.reset_member_day('5기', array['유버디'], 2);
+--
+--   -- erase a day for several members at once
+--   select * from public.reset_member_day('5기', array['유버디','이규태','이지흔'], 2);
 -- ============================================================
 
 -- ------------------------------------------------------------
@@ -413,7 +422,176 @@ $$;
 
 
 -- ------------------------------------------------------------
--- 8. Quick-look helpers for operator triage.
+-- 8. Per-member day-level reset.
+--    "Erase Day N for these members, but leave every other day + every
+--     other member untouched." Generalized from reset_day2_accounts.sql
+--     into a reusable function so future 'reset 유버디 Day 5' calls are
+--     one line, not a 100-line script.
+--
+--    Scope of a reset for one (cohort, member, day):
+--      • challenge_verification_events : delete matching row(s)
+--      • challenge_member_state.app_state: strip the per-day keys
+--          - verified['dN'], verified_at['dN']
+--          - sentence_notes/sentences/ai_feedback/submitted: 'dN-0|1|2'
+--          - sentences/ai_feedback also drop 'hook-N'
+--          - checkpoints: 'dN-copy', 'dN-quiz', 'dN-record', 'hook-N'
+--          - community_edits: 'me-dN-0|1|2'
+--          - ai_daily_usage['dN']
+--      • challenge_community_posts/comments/likes for that (member, day)
+--
+--    Safe to call multiple times (idempotent). Doesn't touch anyone
+--    else's rows, doesn't touch other days.
+-- ------------------------------------------------------------
+create or replace function public.reset_member_day(
+  p_cohort       text,
+  p_member_keys  text[],
+  p_day          integer
+)
+returns table (step text, rows_affected integer)
+language plpgsql
+security definer
+set search_path = public
+as $$
+#variable_conflict use_column
+declare
+  v_day_str  text := 'd' || p_day::text;
+  v_hook_str text := 'hook-' || p_day::text;
+  v_count    integer;
+begin
+  -- 1) verification events — only exists if that table is deployed.
+  if to_regclass('public.challenge_verification_events') is not null then
+    delete from public.challenge_verification_events
+    where cohort = p_cohort
+      and verified_day = p_day
+      and member_key = any(p_member_keys);
+    get diagnostics v_count = row_count;
+    step := 'verification_events';
+    rows_affected := v_count;
+    return next;
+  end if;
+
+  -- 2) app_state: strip per-day keys across every subdoc that uses dN-* /
+  --    hook-N naming. All jsonb ops are key-deletes (-), so missing keys
+  --    are no-ops.
+  update public.challenge_member_state s
+  set
+    app_state = jsonb_set(
+      jsonb_set(
+        jsonb_set(
+          jsonb_set(
+            jsonb_set(
+              jsonb_set(
+                jsonb_set(
+                  coalesce(s.app_state, '{}'::jsonb),
+                  '{verified}',
+                  coalesce(s.app_state->'verified', '{}'::jsonb) - v_day_str,
+                  true
+                ),
+                '{verified_at}',
+                coalesce(s.app_state->'verified_at', '{}'::jsonb) - v_day_str,
+                true
+              ),
+              '{sentence_notes}',
+              (((coalesce(s.app_state->'sentence_notes', '{}'::jsonb)
+                 - (v_day_str || '-0')) - (v_day_str || '-1')) - (v_day_str || '-2')),
+              true
+            ),
+            '{sentences}',
+            ((((coalesce(s.app_state->'sentences', '{}'::jsonb)
+                - (v_day_str || '-0')) - (v_day_str || '-1')) - (v_day_str || '-2')) - v_hook_str),
+            true
+          ),
+          '{ai_feedback}',
+          ((((coalesce(s.app_state->'ai_feedback', '{}'::jsonb)
+              - (v_day_str || '-0')) - (v_day_str || '-1')) - (v_day_str || '-2')) - v_hook_str),
+          true
+        ),
+        '{submitted}',
+        (((coalesce(s.app_state->'submitted', '{}'::jsonb)
+           - (v_day_str || '-0')) - (v_day_str || '-1')) - (v_day_str || '-2')),
+        true
+      ),
+      '{checkpoints}',
+      ((((coalesce(s.app_state->'checkpoints', '{}'::jsonb)
+          - (v_day_str || '-copy')) - (v_day_str || '-quiz')) - (v_day_str || '-record')) - v_hook_str),
+      true
+    ),
+    updated_at = now()
+  where s.cohort = p_cohort
+    and s.member_key = any(p_member_keys);
+  get diagnostics v_count = row_count;
+  step := 'member_state (verified/sentences/checkpoints/etc)';
+  rows_affected := v_count;
+  return next;
+
+  -- 2.1) community_edits + ai_daily_usage (separate pass for readability).
+  update public.challenge_member_state s
+  set
+    app_state = jsonb_set(
+      jsonb_set(
+        coalesce(s.app_state, '{}'::jsonb),
+        '{community_edits}',
+        (((coalesce(s.app_state->'community_edits', '{}'::jsonb)
+           - ('me-' || v_day_str || '-0')) - ('me-' || v_day_str || '-1')) - ('me-' || v_day_str || '-2')),
+        true
+      ),
+      '{ai_daily_usage}',
+      coalesce(s.app_state->'ai_daily_usage', '{}'::jsonb) - v_day_str,
+      true
+    ),
+    updated_at = now()
+  where s.cohort = p_cohort
+    and s.member_key = any(p_member_keys);
+  get diagnostics v_count = row_count;
+  step := 'member_state (community_edits/ai_daily_usage)';
+  rows_affected := v_count;
+  return next;
+
+  -- 3) likes on this member's day-N posts (before the post rows disappear).
+  delete from public.challenge_community_likes
+  where cohort = p_cohort
+    and post_id in (
+      select post_id
+      from public.challenge_community_posts
+      where cohort = p_cohort
+        and day_n = p_day
+        and member_key = any(p_member_keys)
+    );
+  get diagnostics v_count = row_count;
+  step := 'community_likes';
+  rows_affected := v_count;
+  return next;
+
+  -- 4) comments on this member's day-N posts.
+  delete from public.challenge_community_comments
+  where cohort = p_cohort
+    and post_id in (
+      select post_id
+      from public.challenge_community_posts
+      where cohort = p_cohort
+        and day_n = p_day
+        and member_key = any(p_member_keys)
+    );
+  get diagnostics v_count = row_count;
+  step := 'community_comments';
+  rows_affected := v_count;
+  return next;
+
+  -- 5) the posts themselves.
+  delete from public.challenge_community_posts
+  where cohort = p_cohort
+    and day_n = p_day
+    and member_key = any(p_member_keys);
+  get diagnostics v_count = row_count;
+  step := 'community_posts';
+  rows_affected := v_count;
+  return next;
+end;
+$$;
+
+
+-- ------------------------------------------------------------
+-- 9. Quick-look helpers for operator triage.
 -- ------------------------------------------------------------
 create or replace view public.v_challenge_snapshot_summary as
 select
@@ -429,6 +607,7 @@ order by hour_bucket desc, source_table;
 -- security definer so they run with the function owner's privileges.
 grant execute on function public.take_challenge_snapshot(text) to authenticated, anon, service_role;
 grant execute on function public.restore_challenge_snapshot(timestamptz, text, text, text[], boolean) to service_role;
+grant execute on function public.reset_member_day(text, text[], integer) to service_role;
 grant execute on function public.hourly_challenge_snapshot() to service_role;
 grant execute on function public.prune_challenge_snapshots(integer) to service_role;
 

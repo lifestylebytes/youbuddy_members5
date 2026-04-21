@@ -55,24 +55,41 @@ The JSON must have exactly two string fields: "corrected" and "why".
 - "why" is 1-2 sentences in Korean, friendly tone, under 140 characters.
 Do not include markdown, code fences, or any prose outside the JSON.`;
 
-function buildSentenceUserMessage(word: { en: string; def?: string }, sentence: string) {
-  return `Phrase being practiced: "${word.en}" (${word.def || ''})
-Student's attempt: "${sentence}"
+function buildSentenceUserMessage(
+  word: { en: string; def?: string },
+  sentence: string,
+  korean?: string,
+) {
+  // Korean context (the 한국어 문장 the student wrote first) is the source of truth
+  // for meaning. Read it BEFORE the English attempt so the model anchors on the
+  // learner's intent instead of guessing from broken English.
+  const koreanBlock = (korean || '').trim()
+    ? `Korean sentence the student wrote (source of intent — match this meaning): "${korean!.trim()}"\n`
+    : '';
+  return `${koreanBlock}Phrase being practiced: "${word.en}" (${word.def || ''})
+Student's English attempt: "${sentence}"
 
 Return JSON:
-- "corrected": a natural business-English sentence that MUST naturally contain "${word.en}". Keep the learner's voice; change as little as possible.
+- "corrected": a natural business-English sentence that MUST naturally contain "${word.en}". The corrected version MUST convey the same meaning/intent as the Korean sentence above (if provided). Keep the learner's voice; change as little as possible.
 - "why": 1-2 Korean sentences (≤140 chars) explaining what changed and why.`;
 }
 
-function buildStoryUserMessage(words: { en: string; def?: string }[], text: string) {
+function buildStoryUserMessage(
+  words: { en: string; def?: string }[],
+  text: string,
+  korean?: string,
+) {
   const lines = (words || []).map((w) => `- "${w.en}" (${w.def || ''})`).join('\n');
-  return `The student is tying today's 3 expressions into ONE short business-scenario mini story (1-3 sentences).
+  const koreanBlock = (korean || '').trim()
+    ? `Korean context (what the student meant, in their own words): "${korean!.trim()}"\n`
+    : '';
+  return `${koreanBlock}The student is tying today's 3 expressions into ONE short business-scenario mini story (1-3 sentences).
 Expressions to use:
 ${lines}
-Student's attempt: "${text}"
+Student's English attempt: "${text}"
 
 Return JSON:
-- "corrected": a natural business-English mini story (1-3 sentences) that uses ALL 3 expressions in a believable flow.
+- "corrected": a natural business-English mini story (1-3 sentences) that uses ALL 3 expressions in a believable flow that matches the Korean context above (if provided).
 - "why": 1-2 Korean sentences (≤140 chars) explaining the flow/logic fix.`;
 }
 
@@ -152,6 +169,9 @@ serve(async (req) => {
 
   const mode = body?.mode; // 'sentence' | 'story'
   const text = String(body?.text || '').trim();
+  // Korean intent sentence (optional). Used as the meaning anchor so the model
+  // doesn't guess when the learner's English is ambiguous.
+  const korean = String(body?.korean || '').trim().slice(0, 500);
   if (!text) return json({ error: 'text required' }, 400);
   if (text.length > 800) return json({ error: 'text too long' }, 400);
 
@@ -160,11 +180,11 @@ serve(async (req) => {
     if (mode === 'sentence') {
       const word = body?.word;
       if (!word?.en) return json({ error: 'word required' }, 400);
-      userMessage = buildSentenceUserMessage(word, text);
+      userMessage = buildSentenceUserMessage(word, text, korean);
     } else if (mode === 'story') {
       const words = Array.isArray(body?.words) ? body.words : [];
       if (words.length < 1) return json({ error: 'words required' }, 400);
-      userMessage = buildStoryUserMessage(words, text);
+      userMessage = buildStoryUserMessage(words, text, korean);
     } else {
       return json({ error: 'mode must be sentence|story' }, 400);
     }
