@@ -263,6 +263,40 @@ $$;
 
 grant execute on function public.get_cohort_member_summaries(text) to anon, authenticated;
 
+-- Per-member verification timestamps for a given cohort + day.
+-- Client uses this to render "오늘 인증 완료됨 · 23:47" tooltips on peer cells.
+create or replace function public.list_verification_times_for_day(
+  p_cohort text,
+  p_day integer,
+  p_tz_offset_minutes integer default 540  -- default Asia/Seoul (KST, +9h)
+)
+returns table (
+  member_key text,
+  member_name text,
+  verified_at timestamptz,
+  verified_hhmm text
+)
+language sql
+security definer
+set search_path = public
+as $$
+  select
+    e.member_key,
+    coalesce(cms.member_name, cms.app_state ->> 'name', '') as member_name,
+    e.verified_at,
+    to_char(
+      e.verified_at at time zone make_interval(mins => coalesce(p_tz_offset_minutes, 540)),
+      'HH24:MI'
+    ) as verified_hhmm
+  from public.challenge_verification_events e
+  left join public.challenge_member_state cms
+    on cms.cohort = e.cohort and cms.member_key = e.member_key
+  where e.cohort = p_cohort and e.verified_day = p_day
+  order by e.verified_at asc;
+$$;
+
+grant execute on function public.list_verification_times_for_day(text, integer, integer) to anon, authenticated;
+
 create table if not exists public.challenge_community_posts (
   id bigint generated always as identity primary key,
   cohort text not null,
