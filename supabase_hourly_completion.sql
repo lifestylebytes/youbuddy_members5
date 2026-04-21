@@ -443,32 +443,36 @@ returns jsonb
 language plpgsql
 security definer
 as $$
-declare
-  v_comment public.challenge_community_comments%rowtype;
 begin
-  insert into public.challenge_community_comments (
-    cohort,
-    post_id,
-    member_key,
-    member_name,
-    comment_text
-  )
-  values (
-    p_cohort,
-    p_post_id,
-    p_member_key,
-    p_member_name,
-    trim(p_comment_text)
-  )
-  returning * into v_comment;
-
-  return jsonb_build_object(
-    'id', v_comment.id,
-    'post_id', v_comment.post_id,
-    'member_key', v_comment.member_key,
-    'author', v_comment.member_name,
-    'text', v_comment.comment_text,
-    'created_at', v_comment.created_at
+  -- Insert and return row data directly as jsonb via RETURNING ... to_jsonb().
+  -- Avoids `RETURNING * INTO v_row` pattern, which some Supabase SQL editor
+  -- builds misparse as a variable-as-relation reference.
+  return (
+    with ins as (
+      insert into public.challenge_community_comments (
+        cohort,
+        post_id,
+        member_key,
+        member_name,
+        comment_text
+      )
+      values (
+        p_cohort,
+        p_post_id,
+        p_member_key,
+        p_member_name,
+        trim(p_comment_text)
+      )
+      returning id, post_id, member_key, member_name, comment_text, created_at
+    )
+    select jsonb_build_object(
+      'id', ins.id,
+      'post_id', ins.post_id,
+      'member_key', ins.member_key,
+      'author', ins.member_name,
+      'text', ins.comment_text,
+      'created_at', ins.created_at
+    ) from ins
   );
 end;
 $$;
@@ -483,8 +487,6 @@ returns integer
 language plpgsql
 security definer
 as $$
-declare
-  v_count integer;
 begin
   if coalesce(p_liked, false) then
     insert into public.challenge_community_likes (cohort, post_id, member_key)
@@ -497,13 +499,14 @@ begin
       and member_key = p_member_key;
   end if;
 
-  select count(*)::int
-    into v_count
-  from public.challenge_community_likes
-  where cohort = p_cohort
-    and post_id = p_post_id;
-
-  return coalesce(v_count, 0);
+  -- Return the current like count directly (avoid SELECT ... INTO which
+  -- some Supabase SQL editor builds misparse as a "CREATE TABLE AS" form).
+  return coalesce((
+    select count(*)::int
+    from public.challenge_community_likes
+    where cohort = p_cohort
+      and post_id = p_post_id
+  ), 0);
 end;
 $$;
 
