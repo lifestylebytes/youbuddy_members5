@@ -1176,7 +1176,9 @@ const defaultState = () => ({
   verified_time: {},              // { "d1": "23:47" }     실제 인증한 시각 (member tz, HH:mm)
   community_edits: {},            // { "post-id": { sentence, translation, editedAt } } 내 문장 수정
   submitted: {},                  // { "d1-0": true } 첫 제출(인증 게이트). AI 교정은 그 뒤 선택.
+  submitted_text: {},             // { "d1-0": "제출할 때 문장 스냅샷" } — 현재 textarea 값과 비교해서 dirty 여부 판별 ('제출완료' ↔ '다시 제출하기')
   quiz_results: {},               // { "d1": { score:5, total:6, takenAt:"2026-04-21T10:00:00.000Z" } } 최초 시험 점수만 저장. 다시풀기는 덮어쓰지 않음.
+  tierOverride: null,             // 'basic' 으로 설정하면 MEMBER_DIRECTORY 가 premium 이어도 basic 으로 강제 (베이직 프리뷰). null = 비활성.
 });
 const PERSISTED_STATE_KEYS = [
   'tier',
@@ -1215,9 +1217,11 @@ const PERSISTED_STATE_KEYS = [
   'verified_time',
   'community_edits',
   'submitted',
+  'submitted_text',
   'quiz_results',
   'savedTab',
   'communityFilter',
+  'tierOverride',
 ];
 
 /* Demo seed — pre-fills a few days (1, 3, 5 late, 7) so the design can be previewed
@@ -2651,6 +2655,19 @@ async function loadMemberSummaries(opts = {}) {
       });
       const rows = Array.isArray(payload) ? payload : [];
       memberSummaryCache = { loadedAt: Date.now(), rows };
+      // 서버 RPC 가 verified_days 필드를 안 내려주면 (SQL 마이그레이션 미적용) 피어 보드가
+      // progress count 기반 fallback 으로 떨어져서 비순차 인증(Day 2 만 인증) 을 잘못 표시해.
+      // 한번만 경고해서 운영자가 빨리 눈치챌 수 있도록.
+      if (rows.length && !window.__verifiedDaysWarned) {
+        const missing = !Array.isArray(rows[0]?.verified_days);
+        if (missing) {
+          console.warn(
+            '[sync] get_cohort_member_summaries RPC 가 verified_days 를 반환하지 않아요. ' +
+            'Supabase SQL editor 에서 최신 마이그레이션을 돌려야 이규태 Day 2 싱크 버그가 완전히 고쳐져요.'
+          );
+          window.__verifiedDaysWarned = true;
+        }
+      }
       applyRemoteMemberSummaries(rows);
       return rows;
     } catch (e) {
@@ -3579,8 +3596,14 @@ async function __onboardAdvance() {
         //  - Personal 코드: MEMBER_DIRECTORY 의 tier 가 soul of truth
         //  - Generic 코드 (YB5 / 5기 등): 항상 basic (예전 버그로 premium 으로 저장된 기록이 있어서 여기서 강제 보정)
         //  - Personal 코드인데 tier 필드가 없으면: basic fallback
-        if (match && match.tier) state.tier = match.tier;
-        else state.tier = 'basic';
+        //  - state.tierOverride 가 'basic' 이면 위 규칙을 무시하고 basic 강제 (프리미엄 → 베이직 프리뷰)
+        if (state.tierOverride === 'basic') {
+          state.tier = 'basic';
+        } else if (match && match.tier) {
+          state.tier = match.tier;
+        } else {
+          state.tier = 'basic';
+        }
         state.isOperator = !!(match && match.isOperator);
         state.onboarded = true;
         state.signedUp = true; // 서버에 가입 기록이 있으면 로컬에도 플래그 보정
@@ -3625,7 +3648,12 @@ function __finishOnboarding() {
   state.accountKey = [state.accessCode || 'guest', state.name || 'member'].join(':');
   const m = lookupCode(state.accessCode);
   // Personal 코드(MEMBER_DIRECTORY)에서만 m.tier 가 있어요. Generic 코드(YB5/5기 등)는 tier 미지정 → basic 으로 기본.
-  state.tier = (m && m.tier) ? m.tier : 'basic';
+  // tierOverride 가 설정돼 있으면 우선 적용 (베이직 프리뷰). 아니면 MEMBER_DIRECTORY 기준.
+  if (state.tierOverride === 'basic') {
+    state.tier = 'basic';
+  } else {
+    state.tier = (m && m.tier) ? m.tier : 'basic';
+  }
   state.isOperator = !!(m && m.isOperator);
   state.currentDay = computeCurrentDay();
   bindMeToMembers();
@@ -3927,6 +3955,15 @@ function Checkboard() {
   });
   orderedMembers.forEach((m) => {
     const name = el('div', { class: 'cb-name' + (m.me ? ' cb-row-me' : '') });
+    // 리더보드를 치우고 나니 다른 멤버 프로필 카드를 열 진입점이 부족 — 이름 탭하면
+    // MemberCardModal (이미 존재하는 애) 이 뜨도록 클릭 핸들러 연결.
+    // 내 row 는 눌러도 '내 카드' 가 뜨므로 괜찮음.
+    name.style.cursor = 'pointer';
+    const memberRef = m.member_key || m.name;
+    name.addEventListener('click', () => {
+      activeMemberCard = memberRef;
+      render();
+    });
     // Hide tz on the checkboard so all rows stay uniform height (we don't have
     // tz for other members yet — showing it only on "me" looks inconsistent).
     name.innerHTML = `
@@ -5130,25 +5167,38 @@ function DayPage(dayN) {
     row.appendChild(englishWrap);
 
     const isSubmitted = !!state.submitted[key];
+    // Dirty 판별: 지금 textarea 값이 "마지막으로 제출한 스냅샷" 과 다르면 dirty.
+    // dirty == true 면 버튼을 다시 주황 '다시 제출하기' 로 돌려서 재제출 필요를 명확히.
+    // AI 리뷰 후 문장 복사해서 수정했을 때 특히 유용.
+    state.submitted_text = state.submitted_text || {};
+    const lastSubmittedText = (state.submitted_text[key] || '').trim();
+    const currentText = (ta.value || '').trim();
+    const isDirty = isSubmitted && currentText && currentText !== lastSubmittedText;
     const controls = el('div', { class: 'row-between', style: { marginTop: '18px', gap: '12px', flexWrap: 'wrap', alignItems: 'center' } });
     const count = el('span', { class: 't-small mono', style: { color: 'var(--muted)', fontSize: '15px' } }, `${ta.value.length} chars`);
     controls.appendChild(count);
     const actionGroup = el('div', { style: { display: 'flex', gap: '10px', flexWrap: 'wrap', marginLeft: 'auto', justifyContent: 'flex-end' } });
 
     // STEP A — Submit first (raw, alone). This unlocks day verification.
+    // 버튼 3-상태:
+    //   · 미제출            → 주황 '제출하기'
+    //   · 제출 완료 & 변경 없음 → 초록 '제출 완료 (수정하기)'
+    //   · 제출 완료 & 수정됨  → 주황 '다시 제출하기' (dirty)
     const submitBtn = el('button', {
       class: 'btn',
       style: {
         padding: '14px 22px', borderRadius: '999px', fontSize: '15px', fontWeight: '700',
-        background: isSubmitted ? 'var(--green-soft)' : 'var(--orange)',
-        color: isSubmitted ? 'var(--green)' : '#fff',
+        background: (isSubmitted && !isDirty) ? 'var(--green-soft)' : 'var(--orange)',
+        color: (isSubmitted && !isDirty) ? 'var(--green)' : '#fff',
         border: 'none',
       },
       disabled: !ta.value.trim() && !isSubmitted,
       onClick: () => {
-        if (isSubmitted) {
+        if (isSubmitted && !isDirty) {
+          // 취소: 제출된 상태에서 수정 없이 버튼을 누르면 제출을 철회.
           state.submitted[key] = false;
           delete state.submitted[key];
+          delete state.submitted_text[key];
           saveState();
           deleteCommunityPost(dayN, i).finally(() => render());
           showToast('제출 취소됨. 다시 다듬어볼 수 있어요.');
@@ -5158,15 +5208,16 @@ function DayPage(dayN) {
         if (guardFutureDay(dayN)) return;
         if (!ta.value.trim()) { showToast('문장을 먼저 써주세요.'); return; }
         state.submitted[key] = true;
+        state.submitted_text[key] = ta.value;
         saveState();
         upsertCommunityPost(dayN, i).finally(() => render());
-        showToast('제출 완료! AI 로 수정도 해보세요. 원하면 수정된 내용으로 재제출할 수 있어요.');
+        showToast(isDirty ? '수정된 문장으로 다시 제출했어요.' : '제출 완료! AI 로 수정도 해보세요. 원하면 수정된 내용으로 재제출할 수 있어요.');
         render();
       },
     });
-    submitBtn.innerHTML = isSubmitted
-      ? `${Icon('check', 12)} 제출 완료 (수정하기)`
-      : `제출하기`;
+    submitBtn.innerHTML = isDirty
+      ? `${Icon('arrowRight', 12)} 다시 제출하기`
+      : (isSubmitted ? `${Icon('check', 12)} 제출 완료 (수정하기)` : `제출하기`);
     actionGroup.appendChild(submitBtn);
 
     // STEP B — AI review (optional, only after submit, private)
@@ -5214,6 +5265,23 @@ function DayPage(dayN) {
     ta.addEventListener('input', () => {
       count.textContent = `${ta.value.length} chars`;
       submitBtn.disabled = !ta.value.trim() && !state.submitted[key];
+      // Dirty 재평가: textarea 값과 last submitted snapshot 비교해서 버튼 색/문구 실시간 업데이트.
+      const live = (ta.value || '').trim();
+      const last = ((state.submitted_text && state.submitted_text[key]) || '').trim();
+      const nowDirty = !!state.submitted[key] && !!live && live !== last;
+      if (nowDirty) {
+        submitBtn.style.background = 'var(--orange)';
+        submitBtn.style.color = '#fff';
+        submitBtn.innerHTML = `${Icon('arrowRight', 12)} 다시 제출하기`;
+      } else if (state.submitted[key]) {
+        submitBtn.style.background = 'var(--green-soft)';
+        submitBtn.style.color = 'var(--green)';
+        submitBtn.innerHTML = `${Icon('check', 12)} 제출 완료 (수정하기)`;
+      } else {
+        submitBtn.style.background = 'var(--orange)';
+        submitBtn.style.color = '#fff';
+        submitBtn.innerHTML = `제출하기`;
+      }
     });
 
     // Private "내 기록실" — only shown after AI review requested.
@@ -6490,7 +6558,7 @@ function ProfilePage() {
       <h2 class="h1" style="margin-top:4px;">${state.name}</h2>
       ${state.tier === 'premium' ? '<span class="badge badge-lilac" style="padding:4px 8px;">P</span>' : ''}
     </div>
-    <div class="t-body" style="margin-top:4px;">${CHALLENGE.cohort} · Team A · ${state.tier === 'premium' ? 'Premium 멤버' : 'Basic 멤버'}</div>
+    <div class="t-body" style="margin-top:4px;">${CHALLENGE.cohort} · ${state.tier === 'premium' ? 'Premium 멤버' : 'Basic 멤버'}</div>
     <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:10px;">
       <div class="badge" style="background:var(--paper);color:var(--ink);padding:7px 12px;">직무 · ${escapeHtml(state.role || '미입력')}</div>
       <div class="badge" style="background:var(--paper);color:var(--ink);padding:7px 12px;">시차 · ${escapeHtml(state.timezoneOffsetText || '+0h')}</div>
@@ -6512,7 +6580,12 @@ function ProfilePage() {
     </div>
     <div class="card card-flat" style="padding:14px 12px;text-align:center;">
       <div class="kicker">SENTENCES</div>
-      <div class="serif" style="font-size:28px;line-height:1;margin-top:4px;">${Object.values(state.sentences).filter(Boolean).length}</div>
+      <div class="serif" style="font-size:28px;line-height:1;margin-top:4px;">${
+        // 'd{n}-{i}' 포맷만 카운트. story hook(hook-{n}) 은 다른 key 라서 문장 수에 포함 안 됨.
+        Object.entries(state.sentences || {})
+          .filter(([k, v]) => /^d\d+-\d+$/.test(k) && v && String(v).trim())
+          .length
+      }</div>
       <div class="t-small" style="margin-top:2px;">개 작성</div>
     </div>`;
   page.appendChild(statsGrid);
@@ -6574,7 +6647,10 @@ function ProfilePage() {
     },
     onClick: () => go('scripts'),
   });
-  const sentenceCount = Object.values(state.sentences || {}).filter((v) => v && v.trim()).length;
+  // MY SCRIPTS 카드 숫자: 내 학습 문장 3개/day 만 카운트. hook-* 이나 기타 키는 제외.
+  const sentenceCount = Object.entries(state.sentences || {})
+    .filter(([k, v]) => /^d\d+-\d+$/.test(k) && v && String(v).trim())
+    .length;
   scriptsCard.innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;">
       <div style="width:42px;height:42px;border-radius:14px;background:var(--orange);color:#fff;display:grid;place-items:center;font-size:18px;flex-shrink:0;">📝</div>
@@ -6746,12 +6822,19 @@ function ProfilePage() {
 
   // 5. Tier section — 프리미엄 유저는 "환영합니다", 베이직 유저는 "다음 기수에 프리미엄으로 보자" 유도.
   // 주의: 5기 도중에는 업그레이드가 닫혀 있어서 구매 CTA 는 노출하지 않음. 프리미엄 코드 입력만 열어둠.
+  // tierOverride 가 'basic' 이면 프리뷰 모드 — '프리미엄으로 복귀' 버튼 노출.
   const tierCard = el('div', { class: 'card', style: { marginTop: '18px' } });
+  const isBasicPreview = state.tierOverride === 'basic';
   const tierHtml = state.tier === 'premium' ? `
     <div class="kicker">PREMIUM UNLOCKED</div>
     <h3 class="h2" style="margin-top:6px;"><span class="serif">Welcome</span> to premium</h3>
     <p class="t-body" style="margin-top:6px;">프리미엄 전용 PT · 주간 미팅 · 퀴즈 · Certification이 열려있어요.</p>
-    <button class="btn btn-ghost btn-sm" style="margin-top:12px;" onclick="window.__resetTier()">베이직으로 되돌리기</button>
+    <button class="btn btn-ghost btn-sm" style="margin-top:12px;" onclick="window.__resetTier()">베이직으로 되돌리기 (프리뷰)</button>
+  ` : isBasicPreview ? `
+    <div class="kicker" style="color:var(--orange-dark);">BASIC PREVIEW · 프리미엄 복귀 가능</div>
+    <h3 class="h2" style="margin-top:6px;"><span class="serif">베이직 프리뷰</span> 중이에요</h3>
+    <p class="t-body" style="margin-top:6px;">지금 보이는 건 베이직 유저가 보는 화면이에요. 내 실제 티어는 프리미엄이라, 아래 버튼으로 언제든 복귀할 수 있어요.</p>
+    <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="window.__restoreTier()">프리미엄으로 복귀</button>
   ` : `
     <div class="kicker" style="color:var(--lilac);">PREMIUM ISN'T JUST "MORE" · 다음 기수</div>
     <h3 class="h2" style="margin-top:6px;"><span class="serif">프리미엄</span>은 이런 게 좋아요</h3>
@@ -7133,7 +7216,6 @@ function CommunityPage() {
         <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
           <button onclick="window.__openMemberCard(${userArg})" style="background:transparent;border:none;padding:0;font-size:12.5px;font-weight:700;color:var(--ink);letter-spacing:-0.01em;cursor:pointer;">${escapeHtml(post.user)}</button>
           ${premiumPill(member)}
-          <span style="font-size:10px;color:var(--muted);">Team ${post.team}</span>
           ${role ? `<span style="font-size:10px;color:var(--ink-soft);">${escapeHtml(role)}</span>` : ''}
           ${tz ? `<span style="font-size:10px;color:var(--muted);" class="mono">${escapeHtml(tz)}</span>` : ''}
           <span style="font-size:10px;color:var(--muted);">· ${post.time}</span>
@@ -7151,11 +7233,27 @@ function CommunityPage() {
         </div>
         ${localComments.length ? `
           <div style="margin-top:8px;display:grid;gap:6px;">
-            ${localComments.slice(-2).map((comment) => `
-              <div style="padding:8px 10px;border-radius:10px;background:var(--paper);font-size:11px;line-height:1.45;color:var(--ink-soft);">
-                <b style="color:var(--ink);font-size:10.5px;">${escapeHtml(comment.author || '익명')}</b> ${escapeHtml(comment.text || '')}
-              </div>
-            `).join('')}
+            ${localComments.slice(-4).map((comment) => {
+              // 내 댓글이면 수정/삭제 버튼 노출. comment.id 가 있어야 서버 RPC 가능.
+              const myKey = memberKey();
+              const isMine = !!comment.member_key && String(comment.member_key) === String(myKey);
+              const hasServerId = !!comment.id && !comment._localOnly;
+              const cidArg = hasServerId ? String(comment.id) : 'null';
+              const ctrl = (isMine && hasServerId) ? `
+                <span style="display:inline-flex;gap:6px;margin-left:6px;">
+                  <button onclick="window.__editCommunityComment(${postIdArg}, ${cidArg})" style="background:transparent;border:none;padding:0;font-size:10px;color:var(--orange-dark);cursor:pointer;">수정</button>
+                  <button onclick="window.__deleteCommunityComment(${postIdArg}, ${cidArg})" style="background:transparent;border:none;padding:0;font-size:10px;color:var(--muted);cursor:pointer;">삭제</button>
+                </span>` : '';
+              const localTag = comment._localOnly
+                ? `<span style="font-size:9.5px;color:var(--muted);margin-left:4px;">(이 기기)</span>` : '';
+              return `
+                <div style="padding:8px 10px;border-radius:10px;background:var(--paper);font-size:11px;line-height:1.45;color:var(--ink-soft);display:flex;gap:6px;align-items:flex-start;">
+                  <div style="flex:1;min-width:0;">
+                    <b style="color:var(--ink);font-size:10.5px;">${escapeHtml(comment.author || '익명')}</b>${localTag} ${escapeHtml(comment.text || '')}
+                  </div>
+                  ${ctrl}
+                </div>`;
+            }).join('')}
           </div>
         ` : ''}
         ${activeCommentDraft && activeCommentDraft.postId === post.id ? `
@@ -7382,7 +7480,6 @@ function MemberCardModal(memberRef) {
         </div>
         <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           ${member.role ? `<span class="badge">${escapeHtml(member.role)}</span>` : ''}
-          <span class="t-small mono" style="color:var(--muted);">Team ${member.team}</span>
           ${member.timezoneText ? `<span class="t-small mono" style="color:var(--muted);">${escapeHtml(member.timezoneText)}</span>` : ''}
           <span class="t-small mono" style="color:var(--muted);">${member.progress}/20</span>
           <span class="t-small mono" style="color:var(--orange);display:inline-flex;align-items:center;gap:4px;">${Icon('flame', 11)} ${member.streak}d</span>
@@ -8171,6 +8268,65 @@ window.__submitCommentComposer = async (postId) => {
 };
 // 기존 호출부 호환용 (혹시 어디서 링크 걸려 있을까봐) — 새 composer 를 열어줌.
 window.__commentOnCommunityPost = (postId) => window.__openCommentComposer(postId);
+
+// 댓글 수정. 서버 RPC 가 실패하거나 Supabase 미연결이면 no-op + toast. 로컬에만 남아있는 댓글(_localOnly)
+// 은 commentId 가 null 이라 여기 들어오지 않음 (render 단계에서 버튼 자체를 안 띄움).
+window.__editCommunityComment = async (postId, commentId) => {
+  if (!commentId) { showToast('아직 서버에 올라가지 않은 댓글이에요.'); return; }
+  const serverComments = (communityFeedCache?.[state.communityDay || state.currentDay]?.rows || [])
+    .flatMap((p) => Array.isArray(p.comments) ? p.comments : [])
+    .concat(
+      // 혹시 다른 day 에서 로드된 캐시에도 있을 수 있어서 전체 탐색.
+      Object.values(communityFeedCache || {}).flatMap((entry) => (entry?.rows || []).flatMap((p) => p.comments || []))
+    );
+  const current = serverComments.find((c) => String(c.id) === String(commentId));
+  const currentText = current ? String(current.text || '') : '';
+  const next = window.prompt('댓글을 수정할게요.', currentText);
+  if (next === null) return;
+  const trimmed = next.trim();
+  if (!trimmed) { showToast('빈 댓글은 저장하지 않아요. 지우려면 "삭제" 를 눌러주세요.'); return; }
+  if (!hasSupabase()) { showToast('서버 연결 중이 아니라 수정할 수 없어요.'); return; }
+  try {
+    const result = await supabaseRpc('update_community_comment', {
+      p_cohort: CHALLENGE.cohort,
+      p_post_id: postId,
+      p_comment_id: Number(commentId),
+      p_member_key: memberKey(),
+      p_comment_text: trimmed,
+    });
+    if (!result) { showToast('내 댓글만 수정할 수 있어요.'); return; }
+    const dayToRefresh = state.communityDay || state.currentDay;
+    await loadCommunityPosts(dayToRefresh, { force: true });
+    showToast('댓글을 수정했어요.');
+    render();
+  } catch (e) {
+    console.error('[comment] update_community_comment 실패', { postId, commentId, error: e });
+    showToast('댓글 수정이 실패했어요. 잠시 후 다시 시도해주세요.');
+  }
+};
+
+// 댓글 삭제. Confirm 한 번 받고 서버에서 실제 삭제. 실패하면 toast 로만 알리고 UI 유지.
+window.__deleteCommunityComment = async (postId, commentId) => {
+  if (!commentId) { showToast('아직 서버에 올라가지 않은 댓글이에요.'); return; }
+  if (!confirm('댓글을 삭제할까요? 되돌릴 수 없어요.')) return;
+  if (!hasSupabase()) { showToast('서버 연결 중이 아니라 삭제할 수 없어요.'); return; }
+  try {
+    const ok = await supabaseRpc('delete_community_comment', {
+      p_cohort: CHALLENGE.cohort,
+      p_post_id: postId,
+      p_comment_id: Number(commentId),
+      p_member_key: memberKey(),
+    });
+    if (!ok) { showToast('내 댓글만 삭제할 수 있어요.'); return; }
+    const dayToRefresh = state.communityDay || state.currentDay;
+    await loadCommunityPosts(dayToRefresh, { force: true });
+    showToast('댓글을 삭제했어요.');
+    render();
+  } catch (e) {
+    console.error('[comment] delete_community_comment 실패', { postId, commentId, error: e });
+    showToast('댓글 삭제가 실패했어요. 잠시 후 다시 시도해주세요.');
+  }
+};
 window.__editMyCommunityPost = async (postId, sourceKey = '') => {
   const source = sourceKey || (String(postId).includes('::') ? String(postId).split('::').pop() : postId.replace(/^me-/, ''));
   const m = String(source).match(/^d(\d+)-(\d+)$/);
@@ -8318,12 +8474,25 @@ window.__toggleBookmark = (key) => {
   render();
 };
 window.__resetTier = () => {
-  if (confirm('베이직으로 되돌릴까요? 프리미엄 기록은 유지돼요.')) {
+  if (confirm('베이직으로 되돌릴까요? 프리미엄 기록은 유지돼요. (언제든 복귀 가능)')) {
+    // tierOverride 를 'basic' 으로 고정 — 로그인/리프레시 후에도 유지되도록.
+    // 해제하려면 __restoreTier 사용.
+    state.tierOverride = 'basic';
     state.tier = 'basic';
     saveState();
-    showToast('베이직으로 되돌렸어요.');
+    showToast('베이직 프리뷰 모드로 전환했어요. (복귀: 설정 · 프리미엄으로 돌아가기)');
     go('home');
   }
+};
+// 베이직 프리뷰 해제 — 원래 티어로 복귀. MEMBER_DIRECTORY 에 premium 으로 등록돼 있으면 premium 으로 돌아감.
+window.__restoreTier = () => {
+  if (!state.tierOverride) { showToast('이미 원래 티어예요.'); return; }
+  const m = lookupCode(state.accessCode);
+  state.tierOverride = null;
+  state.tier = (m && m.tier) ? m.tier : 'basic';
+  saveState();
+  showToast(state.tier === 'premium' ? '프리미엄으로 복귀했어요.' : '원래 티어로 돌아갔어요.');
+  go('home');
 };
 window.__resetForSignup = () => {
   if (!state.isOperator) return;

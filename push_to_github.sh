@@ -22,40 +22,43 @@ if ! git diff --cached --quiet || ! git diff --quiet; then
   echo "==> 변경 사항 커밋..."
   git add -A
   if ! git diff --cached --quiet; then
-    git commit -m "Batch fixes: board sync/sort, premium UX, comments RPC
+    git commit -m "Batch fixes: dirty submit, sentence count, cb-name click, comment CRUD, tier preview, team hide, verified_days warn
 
-Daily Streak Board
-- Sticky MEMBER column no longer leaks day tiles into the name gap
-  (box-shadow extends the cream/orange-ghost bg into the grid-gap zone,
-  and z-index raised so sticky stays on top).
-- Horizontal scroll position is preserved across the 15-second community
-  refresh render — no more snapping back to Day 1 every few seconds.
-- Logged-in user ('me') always sits at the very top, regardless of tier;
-  the premium → basic ordering now applies to the rest only.
-- Peer cells render exact verified days (not 'd <= progress'). Fixes the
-  bug where 이규태 verifying Day 2 without Day 1 showed Day 1 orange on
-  other viewers' boards. Server RPC now returns verified_days int[].
+UX
+- 제출 버튼 dirty-aware: 제출 후 textarea 수정하면 주황 '다시 제출하기'
+  로 전환, 원본과 같아지면 초록 '제출 완료'로 복귀.
+  (state.submitted_text[key] 스냅샷 비교 + input 이벤트로 실시간)
+- '나' 탭 문장 수 필터: /^d\\d+-\\d+$/ 로 hook-* 키 제외해서 6개 → 3개 정상화.
+- Daily Streak Board cb-name 클릭 → MemberCardModal 열기 (리더보드 삭제
+  이후 다른 멤버 프로필 진입 경로 복구).
+- Team A/B 라벨 전면 제거: ProfilePage hero, CommunityPage 게시글 row,
+  MemberCardModal 까지 '기수만 표기' 로 통일.
 
-Premium gating / copy
-- Removed mid-challenge '₩169,000 업그레이드' banners everywhere.
-  Basic users can enter the Premium tab and see what's inside; actual
-  sub-pages (미팅 노트 / 퀴즈 / Certification) show a '이 페이지는
-  프리미엄 전용이에요' panel instead of blocking the whole tab.
-- 나(프로필) 탭의 tier 카드를 '프리미엄은 이런 게 좋아요' 로 리작성 —
-  다음 기수 유도용. Zoom 미팅 / PT / PPT 발표 / 퀴즈 4가지 핵심 혜택
-  카드로 표시.
-- Premium code 단순화: premium555 로 로그인 가능 (legacy 코드도 backward-compat).
-- Modal placeholder '예: YOUBUDDY-PREMIUM-5' → '프리미엄 코드 입력' 로 변경
-  (긴 코드 예시가 그대로 답이 되어버리는 문제).
+커뮤니티 댓글 수정/삭제
+- 본인 댓글(member_key 일치)에만 수정/삭제 버튼 노출.
+- __editCommunityComment / __deleteCommunityComment 핸들러 + RPC
+  (update_community_comment / delete_community_comment) 연결.
+  실패 시 toast 로 에러 표시, 로컬 전용 댓글은 로컬 제거만.
 
-Community comments
-- add_community_comment RPC 에 set search_path = '' 추가 + CTE 를
-  intermediate jsonb 변수로 묶어서 더 robust 하게 (42P01 / CTE 파싱 회피).
-- 클라이언트: RPC 실패 시 로컬에 남긴 _localOnly 댓글이 UI 에 merge 되어
-  보이도록 (이전엔 Supabase 연결 중엔 서버 배열만 읽어서 안 보였음).
+티어 프리뷰
+- state.tierOverride 신설 (+ PERSISTED_STATE_KEYS). 'basic' 으로 설정되면
+  로그인/리프레시/온보딩 이후에도 premium 멤버를 basic 으로 강제.
+- __resetTier → basic 프리뷰 진입, __restoreTier → 원래 티어 복귀.
+- ProfilePage 티어 카드에 '프리미엄으로 복귀' 버튼 노출 (isBasicPreview).
 
-SQL schema
-- get_cohort_member_summaries 반환값에 verified_days integer[] 추가."
+이규태 Day 2 싱크
+- loadMemberSummaries 에 1회성 console.warn 추가:
+  get_cohort_member_summaries RPC 가 verified_days 를 안 돌려주면
+  콘솔에 SQL 마이그레이션 필요 경고 → 운영자가 즉시 인지 가능.
+
+SQL
+- add_community_comment: jsonb intermediate 변수 삭제, INSERT ...
+  RETURNING INTO 스칼라 6개로 교체 → Supabase editor + search_path=''
+  환경에서 발생하던 42P01 (v_result 파서 버그) 회피.
+- update_community_comment 신규: 본인 member_key 가드 + RETURNING INTO
+  스칼라 패턴.
+- delete_community_comment 신규: get diagnostics row_count 로 affected
+  반환, anon/authenticated 에 grant."
   fi
 fi
 
