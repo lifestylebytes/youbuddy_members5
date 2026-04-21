@@ -1286,7 +1286,10 @@ async function loadRemoteState() {
       p_cohort: CHALLENGE.cohort,
       p_member_key: memberKey(),
     });
-    if (!payload || (typeof payload === 'object' && !Array.isArray(payload) && !Object.keys(payload).length)) return null;
+    // Only treat a genuinely missing row (null/undefined) as "no remote".
+    // An empty-but-present object ({} or { verified: {}, ... }) is a RESET —
+    // we still want to honor it so the client stops showing stale d2 orange.
+    if (payload === null || payload === undefined) return null;
     return payload;
   } catch (e) {
     return null;
@@ -1301,6 +1304,16 @@ async function persistStateNow() {
   if (!hasSupabase()) {
     stateLastSavedJson = snapshotJson;
     return true;
+  }
+  // Critical: DO NOT upload local state to the server until the async remote
+  // hydrate has finished. Otherwise, on boot we'd push whatever stale state is
+  // in localStorage (e.g. verified: {d1:true, d2:true}) back to Supabase,
+  // which would silently undo any server-side reset. We still cache locally
+  // above so the user's edits aren't lost — they'll sync on next save after
+  // hydrate completes.
+  if (!stateHydrated) {
+    statePersistQueued = true;
+    return false;
   }
   if (statePersistInFlight) {
     statePersistQueued = true;
@@ -2358,6 +2371,9 @@ async function refreshRemoteStateAndCommunity(opts = {}) {
       const remoteJson = JSON.stringify(remote);
       if (force || (remoteJson && remoteJson !== localJson)) {
         mergePersistedState(remote);
+        // Keep localStorage in sync with the server — prevents stale cache
+        // from outliving a remote reset across tab/visibility cycles.
+        try { cacheState(); } catch (_) {}
         bindMeToMembers();
         changed = true;
       }
@@ -7810,12 +7826,25 @@ function fireConfetti() {
    BOOT
    ============================================================ */
 // 0) ?reset=1 URL param — wipes local cache for a clean re-onboarding.
-//    Use this to reset a specific device (e.g., 유버디/이규태 test accounts).
+//    Use this to reset a specific device (e.g., 유버디/이규태/이지흔 test accounts).
+//    Nukes BOTH LS_KEY and any stray demoMode flag, then strips the query so
+//    refreshes don't keep wiping. Intentionally fires BEFORE hydrate so there
+//    is no cached state left for mergePersistedState() to restore.
 try {
   if (typeof location !== 'undefined' && /[?&]reset=1\b/.test(location.search || '')) {
     try { localStorage.removeItem(LS_KEY); } catch (_) {}
     try { localStorage.removeItem('demoMode'); } catch (_) {}
-    // Strip the query so refreshes don't keep wiping.
+    // Also blow away anything else the app may have cached under this origin
+    // so peer snapshots / flags can't rehydrate stale views.
+    try {
+      Object.keys(localStorage || {}).forEach((k) => {
+        if (/^youbuddy|^cohort|^peerVerify|^memberSummary/i.test(k)) {
+          try { localStorage.removeItem(k); } catch (_) {}
+        }
+      });
+    } catch (_) {}
+    try { sessionStorage.clear(); } catch (_) {}
+    console.info('[youbuddy] ?reset=1 — local cache purged');
     try {
       const cleanUrl = location.pathname + (location.hash || '');
       history.replaceState({}, '', cleanUrl);
@@ -7847,21 +7876,42 @@ if (!__DEMO_MODE__) {
   } catch (e) { console.warn('computeCurrentDay failed', e); }
 }
 
-// 4) Async remote hydrate (Supabase) — overrides localStorage if fresher,
-//    then re-binds + re-renders.
+// 4) Async remote hydrate (Supabase) — server is authoritative, overrides
+//    localStorage (which may be stale after a reset). We intentionally keep
+//    `stateHydrated = false` until this block completes (success OR failure),
+//    so `persistStateNow()` cannot upload stale cache back to the server in
+//    the meantime. The boot already renders once from cached state above; this
+//    re-renders cleanly once the true remote state is loaded.
 if (!__DEMO_MODE__ && hasSupabase()) {
   (async () => {
     try {
       const remote = await loadRemoteState();
       if (remote && typeof remote === 'object') {
         mergePersistedState(remote);
+        // Overwrite the stale localStorage snapshot NOW with the fresh remote
+        // state, so next reload (even offline) starts clean. Prevents the
+        // "local cache keeps resurrecting verified d2" bug on reset.
+        try { cacheState(); } catch (_) {}
         bindMeToMembers();
         await loadMemberSummaries({ force: true });
         await loadCommunityPosts(state.communityDay || state.currentDay, { force: true });
         render();
       }
     } catch (e) { console.warn('loadRemoteState failed', e); }
+    finally {
+      // Unblock persistStateNow so the user's subsequent edits can sync up.
+      stateHydrated = true;
+      // If anything was queued while we were hydrating, flush it now —
+      // but only the latest snapshot (which is now post-remote-merge).
+      if (statePersistQueued) {
+        statePersistQueued = false;
+        persistStateNow();
+      }
+    }
   })();
+} else {
+  // No Supabase / demo mode: mark hydrated immediately so local saves still work.
+  stateHydrated = true;
 }
 
 if (hasSupabase()) {
