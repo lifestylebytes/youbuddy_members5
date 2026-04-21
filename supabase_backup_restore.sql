@@ -214,14 +214,19 @@ create or replace function public.restore_challenge_snapshot(
   p_dry_run     boolean default false
 )
 returns table (
-  source_table text,
-  rows_restored integer,
-  rows_skipped integer
+  out_source_table  text,
+  out_rows_restored integer,
+  out_rows_skipped  integer
 )
 language plpgsql
 security definer
 as $$
-#variable_conflict use_column
+-- NOTE: we build dynamic SQL via `||` concatenation rather than `format(...)`.
+--       The Supabase SQL editor's validator chokes on `format()` bodies
+--       that contain `null::public.%I`-style tokens (misreads `public` as
+--       a relation at CREATE-FUNCTION time → 42P01). The concat pattern
+--       with quote_ident/quote_literal is functionally identical and parses
+--       cleanly. Do NOT revert to format() unless you've verified it parses.
 declare
   v_table       text;
   v_rowkey_col  text;
@@ -232,6 +237,7 @@ declare
   v_restored    integer;
   v_skipped     integer;
   v_temp_name   text;
+  v_qtable      text;
 begin
   foreach v_table in array p_tables loop
     if to_regclass(format('public.%I', v_table)) is null then
@@ -241,11 +247,9 @@ begin
     v_rowkey_col := public._challenge_snapshot_rowkey_expr(v_table);
 
     -- Build UPDATE SET clause — update every column except the row-key and id.
-    -- Built via a FOR loop (not SELECT INTO / EXECUTE INTO) so we stay
-    -- clear of any plpgsql variable-vs-relation resolution quirks.
     v_updates := '';
     for v_col in
-      select column_name
+      select c.column_name
       from information_schema.columns c
       where c.table_schema = 'public'
         and c.table_name = v_table
@@ -258,88 +262,73 @@ begin
         || quote_ident(v_col) || ' = excluded.' || quote_ident(v_col);
     end loop;
 
-    -- A restorable snapshot = the most recent snapshot row per row_key
-    -- at or before p_snapshot_at, within the optional cohort+member filter.
+    -- Optional per-member narrowing. member_key sits in payload for community
+    -- + verification tables, and in its own column for challenge_member_state.
     v_filter_mk := case
       when p_member_key is not null and v_table = 'challenge_member_state'
-        then format('and row_key = %L', p_member_key)
+        then 'and row_key = ' || quote_literal(p_member_key)
       when p_member_key is not null and v_table like 'challenge_community_%'
-        -- member_key lives inside payload for community tables — filter on jsonb.
-        then format('and (payload->>''member_key'') = %L', p_member_key)
+        then 'and (payload->>''member_key'') = ' || quote_literal(p_member_key)
       when p_member_key is not null and v_table = 'challenge_verification_events'
-        -- verification events also carry member_key inside payload.
-        then format('and (payload->>''member_key'') = %L', p_member_key)
+        then 'and (payload->>''member_key'') = ' || quote_literal(p_member_key)
       else ''
     end;
 
     -- Stage to a temp table so we can report counts cleanly.
-    v_temp_name := format('_restore_%s_%s', v_table,
-      regexp_replace(gen_random_uuid()::text, '-', '', 'g'));
+    v_temp_name := '_restore_' || v_table || '_'
+                || regexp_replace(gen_random_uuid()::text, '-', '', 'g');
 
-    -- All supported tables have a cohort column, so always filter by it.
-    -- Use INSERT INTO ... SELECT (not CREATE TABLE AS) so GET DIAGNOSTICS
-    -- gives us a reliable row_count and we never need EXECUTE ... INTO,
-    -- which has confused plpgsql parser in some Supabase pg builds.
-    execute format(
-      'create temp table %I (row_key text, payload jsonb) on commit drop',
-      v_temp_name
-    );
-    execute format(
-      'insert into %I (row_key, payload) ' ||
-      'select distinct on (row_key) row_key, payload ' ||
-      'from public.challenge_snapshots ' ||
-      'where source_table = %L ' ||
-      '  and snapshot_at <= $1 ' ||
-      '  and ($2 is null or cohort = $2) ' ||
-      '  %s ' ||
-      'order by row_key, snapshot_at desc',
-      v_temp_name,
-      v_table,
-      v_filter_mk
-    ) using p_snapshot_at, p_cohort;
+    execute 'create temp table ' || quote_ident(v_temp_name)
+         || ' (row_key text, payload jsonb) on commit drop';
+
+    execute 'insert into ' || quote_ident(v_temp_name) || ' (row_key, payload) '
+         || 'select distinct on (row_key) row_key, payload '
+         || 'from public.challenge_snapshots '
+         || 'where source_table = ' || quote_literal(v_table)
+         || '  and snapshot_at <= $1 '
+         || '  and ($2 is null or cohort = $2) '
+         || '  ' || v_filter_mk
+         || ' order by row_key, snapshot_at desc'
+         using p_snapshot_at, p_cohort;
     get diagnostics v_restored = row_count;
     v_skipped := 0;
 
     if p_dry_run then
-      source_table  := v_table;
-      rows_restored := 0;
-      rows_skipped  := v_restored; -- would-have-been
+      out_source_table  := v_table;
+      out_rows_restored := 0;
+      out_rows_skipped  := v_restored; -- would-have-been
       return next;
-      execute format('drop table %I', v_temp_name);
+      execute 'drop table ' || quote_ident(v_temp_name);
       continue;
     end if;
 
     -- Upsert each snapshotted row back into the live table via jsonb→record.
-    -- We rely on to_jsonb/row_to_json symmetry: jsonb_populate_record restores types.
-    v_insert_sql := format(
-      'insert into public.%I select (jsonb_populate_record(null::public.%I, payload)).* ' ||
-      'from %I ' ||
-      'on conflict (%I) do update set %s',
-      v_table, v_table, v_temp_name, v_rowkey_col, v_updates
-    );
+    v_qtable := 'public.' || quote_ident(v_table);
+    v_insert_sql :=
+         'insert into ' || v_qtable
+      || ' select (jsonb_populate_record(null::' || v_qtable || ', payload)).* '
+      || 'from ' || quote_ident(v_temp_name) || ' '
+      || 'on conflict (' || quote_ident(v_rowkey_col) || ') do update set ' || v_updates;
 
     begin
       execute v_insert_sql;
     exception when others then
-      -- Fall back: try without ON CONFLICT if the table lacks a unique index
-      -- on row_key; caller can still manually resolve.
+      -- Fall back: drop rows by row_key then plain insert (no ON CONFLICT).
       raise notice 'restore upsert failed on %: % — falling back to delete+insert for filtered rows',
         v_table, sqlerrm;
-      execute format(
-        'delete from public.%I where %I in (select row_key from %I)',
-        v_table, v_rowkey_col, v_temp_name
-      );
-      execute format(
-        'insert into public.%I select (jsonb_populate_record(null::public.%I, payload)).* from %I',
-        v_table, v_table, v_temp_name
-      );
+      execute 'delete from ' || v_qtable
+           || ' where ' || quote_ident(v_rowkey_col)
+           || ' in (select row_key from ' || quote_ident(v_temp_name) || ')';
+      execute 'insert into ' || v_qtable
+           || ' select (jsonb_populate_record(null::' || v_qtable || ', payload)).* '
+           || 'from ' || quote_ident(v_temp_name);
     end;
 
-    execute format('drop table %I', v_temp_name);
+    execute 'drop table ' || quote_ident(v_temp_name);
 
-    source_table  := v_table;
-    rows_restored := v_restored;
-    rows_skipped  := v_skipped;
+    out_source_table  := v_table;
+    out_rows_restored := v_restored;
+    out_rows_skipped  := v_skipped;
     return next;
   end loop;
 end;
