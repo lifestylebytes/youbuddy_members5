@@ -4869,13 +4869,17 @@ function DayPage(dayN) {
 function PremiumPage() {
   const page = el('div', { class: 'page' });
   page.appendChild(TopBar());
-  const mayMeetings = [7, 14, 21];
+  // Calendar spans 4/26 (Sun) — 5/31 (Sun): April tail + full May.
+  // 4/30 (Thu) is Week 1 kickoff, then 5/7, 5/14, 5/21 for weeks 2-4.
+  const aprilMeetings = [30];
+  const mayMeetings   = [7, 14, 21];
   const premiumMeetings = [
     { n: 1, date: '2026-04-30', title: 'Week 1 — Kickoff & Onboarding', desc: 'North Star 정렬 + 오프닝 표현 롤플레이', status: 'upcoming', zoom: 'Zoom' },
     { n: 2, date: '2026-05-07', title: 'Week 2 — Meetings & Messaging', desc: '상태 업데이트/이슈 공유 시뮬레이션', status: 'upcoming', zoom: 'Zoom' },
     { n: 3, date: '2026-05-14', title: 'Week 3 — Feedback & Collab', desc: '피드백 주고받기 + 의견 차이 좁히기', status: 'upcoming', zoom: 'Zoom' },
     { n: 4, date: '2026-05-21', title: 'Week 4 — Own the Room (PPT 발표)', desc: '본인 Industry 맞춤 PPT 발표 + 피드백', status: 'upcoming', zoom: 'Zoom' },
   ];
+  const totalMeetings = aprilMeetings.length + mayMeetings.length;
 
   if (state.tier !== 'premium') {
     const wrap = el('div', { class: 'locked-panel', style: { marginTop: '18px' } });
@@ -4919,11 +4923,11 @@ function PremiumPage() {
   calendarCard.innerHTML = `
     <div class="row-between" style="margin-bottom:14px;">
       <div>
-        <div class="kicker" style="color:var(--lilac);">MAY 2026</div>
+        <div class="kicker" style="color:var(--lilac);">APR–MAY 2026</div>
         <div class="h3" style="margin-top:6px;">매주 목요일 21:00</div>
         <div class="t-small" style="margin-top:6px;color:var(--ink-soft);">첫 미팅은 4/30 목요일에 시작해요.</div>
       </div>
-      <span class="badge badge-lilac">${mayMeetings.length}회 예정</span>
+      <span class="badge badge-lilac">${totalMeetings}회 예정</span>
     </div>`;
   const weekHeader = el('div', { class: 'premium-calendar-grid', style: { marginBottom: '8px' } });
   ['일','월','화','수','목','금','토'].forEach((label) => {
@@ -4931,10 +4935,32 @@ function PremiumPage() {
   });
   calendarCard.appendChild(weekHeader);
   const grid = el('div', { class: 'premium-calendar-grid' });
+  // May 1 2026 is a Friday (weekday index 5), so the first 5 cells of the
+  // grid are the tail of April: 4/26 Sun, 4/27 Mon, 4/28 Tue, 4/29 Wed, 4/30 Thu.
+  // We fill those cells instead of leaving them blank so 4/30 (Week 1 kickoff)
+  // is actually visible on the calendar.
   const firstDayOffset = 5;
-  for (let i = 0; i < firstDayOffset; i++) {
-    grid.appendChild(el('div', { style: { aspectRatio: '1', borderRadius: '12px' } }));
-  }
+  const aprilTail = [26, 27, 28, 29, 30];
+  aprilTail.forEach((day) => {
+    const isMeeting = aprilMeetings.includes(day);
+    const cell = el('div', {
+      class: 'premium-calendar-cell',
+      style: {
+        background: isMeeting ? 'var(--lilac)' : 'rgba(255,253,247,0.55)',
+        color: isMeeting ? '#fff' : 'var(--muted)',
+        border: isMeeting ? 'none' : '1px dashed rgba(231,221,200,0.7)',
+        boxShadow: isMeeting ? '0 8px 20px -12px rgba(169,139,184,0.8)' : 'none',
+        opacity: isMeeting ? '1' : '0.6',
+      }
+    });
+    cell.appendChild(el('div', { style: { fontSize: '15px', fontWeight: '700' } }, String(day)));
+    if (isMeeting) {
+      cell.appendChild(el('div', { style: { fontSize: '10px', letterSpacing: '0.08em', opacity: '0.95' } }, 'MEET'));
+    } else {
+      cell.appendChild(el('div', { style: { fontSize: '9px', letterSpacing: '0.04em', opacity: '0.7' } }, 'APR'));
+    }
+    grid.appendChild(cell);
+  });
   for (let day = 1; day <= 31; day++) {
     const isMeeting = mayMeetings.includes(day);
     const cell = el('div', {
