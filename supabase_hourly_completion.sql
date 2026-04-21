@@ -35,7 +35,7 @@ create or replace function public.record_verification_event(
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   insert into public.challenge_verification_events (
@@ -70,7 +70,7 @@ returns table (
 )
 language sql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 with bounds as (
   select
@@ -113,7 +113,7 @@ create or replace function public.get_member_app_state(
 returns jsonb
 language sql
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select coalesce(
     (
@@ -137,7 +137,7 @@ create or replace function public.upsert_member_app_state(
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   insert into public.challenge_member_state (
@@ -184,7 +184,7 @@ returns table (
 )
 language sql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 with base as (
   select
@@ -278,7 +278,7 @@ returns table (
 )
 language sql
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select
     e.member_key,
@@ -363,7 +363,7 @@ create or replace function public.upsert_community_post(
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   insert into public.challenge_community_posts (
@@ -422,7 +422,7 @@ create or replace function public.delete_community_post(
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   delete from public.challenge_community_likes
@@ -450,7 +450,7 @@ create or replace function public.add_community_comment(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   v_comment public.challenge_community_comments%rowtype;
@@ -491,7 +491,7 @@ create or replace function public.set_community_like(
 returns integer
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   v_count integer;
@@ -525,7 +525,7 @@ create or replace function public.get_community_posts(
 returns jsonb
 language sql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 with post_rows as (
   select
