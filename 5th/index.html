@@ -253,6 +253,16 @@ input, textarea, select { font-family: inherit; }
 .avatar.orange { background: var(--orange); color: #fff; }
 .avatar.ink { background: var(--ink); color: var(--cream); }
 .avatar.cream { background: var(--cream); color: var(--ink); border: 1px solid var(--line); }
+/* Basic 멤버 통일 색상 — 흰 배경 + 옅은 외곽선 (모노톤) */
+.avatar.mono { background: #FFFDF7; color: var(--ink-soft); border: 1px solid var(--line); }
+/* 프리미엄 팔레트 — 8명 각자 톤 */
+.avatar.lilac { background: #A78BFA; color: #fff; }
+.avatar.rose { background: #F18FB0; color: #fff; }
+.avatar.sage { background: #86A86B; color: #fff; }
+.avatar.sky { background: #6FA8D6; color: #fff; }
+.avatar.mustard { background: #DCAB46; color: #fff; }
+.avatar.plum { background: #6E3F6E; color: #fff; }
+.avatar.teal { background: #4FA89E; color: #fff; }
 .streak-pill { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--ink-soft); }
 
 /* weeks */
@@ -518,6 +528,15 @@ input, textarea, select { font-family: inherit; }
 .cb-name .tiny-av { width: 18px; height: 18px; border-radius: 5px; background: var(--paper); display: grid; place-items: center; font-size: 8px; font-weight: 700; flex-shrink: 0; }
 .cb-name .tiny-av.orange { background: var(--orange); color: #fff; }
 .cb-name .tiny-av.ink { background: var(--ink); color: var(--cream); }
+.cb-name .tiny-av.cream { background: var(--cream); color: var(--ink); border: 1px solid var(--line); }
+.cb-name .tiny-av.mono { background: #FFFDF7; color: var(--ink-soft); border: 1px solid var(--line); }
+.cb-name .tiny-av.lilac { background: #A78BFA; color: #fff; }
+.cb-name .tiny-av.rose { background: #F18FB0; color: #fff; }
+.cb-name .tiny-av.sage { background: #86A86B; color: #fff; }
+.cb-name .tiny-av.sky { background: #6FA8D6; color: #fff; }
+.cb-name .tiny-av.mustard { background: #DCAB46; color: #fff; }
+.cb-name .tiny-av.plum { background: #6E3F6E; color: #fff; }
+.cb-name .tiny-av.teal { background: #4FA89E; color: #fff; }
 /* Checkboard tiles — palette synced with dayStatus():
    .on        = 정상 인증 (주황)
    .on.late   = 지각 인증 (까망)
@@ -1040,6 +1059,7 @@ function bindMeToMembers() {
   if (!placeholder) return;
   const myProgress = completedCount();
   const myStreak = localStreakCount();
+  const myEng = (state.englishName || '').trim();
   // reset transient flags
   MEMBERS.forEach((m) => { if (m.id !== 'me') m.me = false; });
   placeholder.hidden = false;
@@ -1048,6 +1068,7 @@ function bindMeToMembers() {
   const nm = (state.name || '').trim();
   if (!nm) {
     placeholder.name = '나';
+    placeholder.englishName = myEng;
     placeholder.me = true;
     placeholder.progress = myProgress;
     placeholder.streak = myStreak;
@@ -1058,6 +1079,7 @@ function bindMeToMembers() {
   if (real) {
     // Existing roster member logged in → promote that row to "me", hide placeholder
     real.me = true;
+    real.englishName = myEng;
     real.progress = myProgress;
     real.streak = myStreak;
     placeholder.me = false;
@@ -1068,6 +1090,7 @@ function bindMeToMembers() {
 
   // Not in roster (generic code user)
   placeholder.name = nm;
+  placeholder.englishName = myEng;
   placeholder.me = true;
   placeholder.progress = myProgress;
   placeholder.streak = myStreak;
@@ -1107,11 +1130,15 @@ const DEFAULT_TIMEZONE_OFFSET = 540;
    ============================================================ */
 const LS_KEY = 'yb5_state_cache_v2';
 const defaultState = () => ({
-  tier: 'premium',                // basic | premium
+  tier: 'basic',                  // basic | premium — generic 코드(YB5, 5기 등)로 가입하면 코드가 tier 를 안 정하니, 기본은 보수적으로 basic.
   name: '',
+  englishName: '',                // 선택 영어 닉네임 (max 8자, 멤버 리스트·카드 표시용)
   accountKey: '',
-  role: '',
+  role: '',                       // 직무 (free text 위주, 칩으로도 입력 가능)
   roleSkipped: false,             // user explicitly chose not to share role
+  yearsOfExperience: '',          // 연차 — 신입/1-3년/4-7년/8년+/비공개
+  focusAreas: [],                 // 잘 하고 싶은 것 (다중선택 chip)
+  currentIssue: '',               // 지금 영어/일에서 겪는 문제 (free text)
   goal: '',                       // personal goal for this cohort
   accessCode: '',                 // cohort access code (e.g., 5기 code)
   timezoneLabel: '',
@@ -1139,13 +1166,18 @@ const defaultState = () => ({
   verified_time: {},              // { "d1": "23:47" }     실제 인증한 시각 (member tz, HH:mm)
   community_edits: {},            // { "post-id": { sentence, translation, editedAt } } 내 문장 수정
   submitted: {},                  // { "d1-0": true } 첫 제출(인증 게이트). AI 교정은 그 뒤 선택.
+  quiz_results: {},               // { "d1": { score:5, total:6, takenAt:"2026-04-21T10:00:00.000Z" } } 최초 시험 점수만 저장. 다시풀기는 덮어쓰지 않음.
 });
 const PERSISTED_STATE_KEYS = [
   'tier',
   'name',
+  'englishName',
   'accountKey',
   'role',
   'roleSkipped',
+  'yearsOfExperience',
+  'focusAreas',
+  'currentIssue',
   'goal',
   'accessCode',
   'timezoneLabel',
@@ -1173,6 +1205,7 @@ const PERSISTED_STATE_KEYS = [
   'verified_time',
   'community_edits',
   'submitted',
+  'quiz_results',
   'savedTab',
   'communityFilter',
 ];
@@ -1649,7 +1682,13 @@ let showPremiumGate = false;
 // that lets the user re-read their submitted quiz/sentences/story and
 // optionally re-take the word quiz. null = hidden.
 let verificationReviewDay = null;
+// Daily Streak Board 탭 ('premium' | 'basic') — 기본값 프리미엄
+let checkboardTab = 'premium';
 let activeMemberCard = null;
+// 댓글 인라인 컴포저 상태 — { postId, draft } | null.
+// postId 가 세팅되면 해당 post 아래에 textarea + 저장 버튼이 렌더됨.
+// window.prompt() 는 모바일에서 불안정해서 인라인 composer 로 대체.
+let activeCommentDraft = null;
 let showSettings = false;
 let toast = null;
 let confettiTimer = null;
@@ -1950,6 +1989,60 @@ function zonedNow(offsetMinutes = effectiveTimezoneOffsetMinutes()) {
 function premiumPill(member) {
   const isPremium = member?.me ? state.tier === 'premium' : member?.tier === 'premium';
   return isPremium ? `<span class="badge badge-lilac" style="padding:1px 4px;font-size:7px;line-height:1.1;border-radius:4px;">P</span>` : '';
+}
+
+/* 프리미엄 게이트 패널 — 베이직 사용자가 프리미엄 서브페이지로 직접 들어와도
+   이 패널이 대신 그려지도록 PremiumPage 외 모든 프리미엄 서브 페이지에서 호출. */
+function premiumGatePage(opts = {}) {
+  const page = el('div', { class: 'page' });
+  page.appendChild(TopBar());
+  const wrap = el('div', { class: 'locked-panel', style: { marginTop: '18px' } });
+  wrap.innerHTML = `
+    <div class="lock-icon">🔒</div>
+    <div class="kicker">PREMIUM ONLY</div>
+    <h2 class="h1" style="margin-top:8px;"><span class="serif">${opts.titleSerif || 'Unlock'}</span> ${opts.titleRest || 'premium pages'}</h2>
+    <p class="t-body" style="margin-top:10px;">${opts.subtitle || 'PT 세션, 주간 Zoom 미팅, 개인 퀴즈, Certification은 프리미엄 참여자에게 열려있어요.'}</p>
+    <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center;">
+      <button class="btn btn-lilac btn-lg" onclick="window.__openPremiumGate()">코드 입력</button>
+      <a href="https://www.latpeed.com/products/en0l_" target="_blank" class="btn btn-ghost btn-lg" style="text-decoration:none;">프리미엄 구매 (₩169,000)</a>
+    </div>`;
+  page.appendChild(wrap);
+  return page;
+}
+
+/* ============================================================
+   AVATAR COLOR · DISPLAY NAME 해석기
+   - basic 멤버: 전부 'mono' (무채톤 통일)
+   - premium 멤버: 전원 단일 주황색 (브랜드 톤 통일)
+   - 운영팀(유버디): 'ink' (검정) 특별 고정
+   - 'me' 는 그대로 본인 color 유지 (me 는 항상 주황 강조)
+   ============================================================ */
+function resolveAvatarColor(member) {
+  if (!member) return 'mono';
+  // 'me' 는 MEMBERS 시드에서 이미 'orange' 로 세팅돼 있어요 (bindMeToMembers 와 연동).
+  if (member.me) return member.color || 'orange';
+  if (member.isOperator) return 'ink';
+  const tier = member.tier === 'auto' ? (state.tier || 'basic') : member.tier;
+  if (tier !== 'premium') return 'mono';
+  // 프리미엄은 전원 단일 주황색으로 통일
+  return 'orange';
+}
+
+/* 영어 닉네임 > 한글 이름 fallback. 최대 8자, 넘치면 … 로 컷.
+   첫 글자 (avatar 안에 박힐 때) 는 safeInitial() 을 따로 써요. */
+const NAME_MAX = 8;
+function displayName(member) {
+  if (!member) return '';
+  const eng = member.me ? (state.englishName || '').trim() : (member.englishName || '').trim();
+  const raw = eng || member.name || '';
+  if (!raw) return '';
+  if (raw.length <= NAME_MAX) return raw;
+  return raw.slice(0, NAME_MAX - 1) + '…';
+}
+function safeInitial(member) {
+  const src = (member?.me ? (state.englishName || state.name) : (member?.englishName || member?.name)) || '';
+  const ch = String(src).trim().charAt(0).toUpperCase();
+  return ch || '?';
 }
 
 function memberRole(member) {
@@ -3429,7 +3522,12 @@ async function __onboardAdvance() {
         state.accountKey = probeKey;
         state.timezoneOffsetText = timezone.ok ? timezone.text : (state.timezoneOffsetText || '+0h');
         state.timezoneOffsetMinutes = timezone.ok ? timezone.offsetMinutes : (state.timezoneOffsetMinutes || DEFAULT_TIMEZONE_OFFSET);
+        // Tier 원칙:
+        //  - Personal 코드: MEMBER_DIRECTORY 의 tier 가 soul of truth
+        //  - Generic 코드 (YB5 / 5기 등): 항상 basic (예전 버그로 premium 으로 저장된 기록이 있어서 여기서 강제 보정)
+        //  - Personal 코드인데 tier 필드가 없으면: basic fallback
         if (match && match.tier) state.tier = match.tier;
+        else state.tier = 'basic';
         state.isOperator = !!(match && match.isOperator);
         state.onboarded = true;
         state.signedUp = true; // 서버에 가입 기록이 있으면 로컬에도 플래그 보정
@@ -3473,7 +3571,8 @@ function __finishOnboarding() {
   state.signedUp = true; // 영속 가입 플래그 — 로그아웃 후 재로그인 시 목표/롤 다시 묻지 않게 하는 근거
   state.accountKey = [state.accessCode || 'guest', state.name || 'member'].join(':');
   const m = lookupCode(state.accessCode);
-  if (m && m.tier) state.tier = m.tier;
+  // Personal 코드(MEMBER_DIRECTORY)에서만 m.tier 가 있어요. Generic 코드(YB5/5기 등)는 tier 미지정 → basic 으로 기본.
+  state.tier = (m && m.tier) ? m.tier : 'basic';
   state.isOperator = !!(m && m.isOperator);
   state.currentDay = computeCurrentDay();
   bindMeToMembers();
@@ -3524,6 +3623,10 @@ function TabBar() {
    ============================================================ */
 function HomePage() {
   requestMemberSummaries();
+  // me.progress / me.streak 는 verify 직후 stale 할 수 있어요 (서버 스냅샷이 hourly 라서).
+  // 홈 진입시마다 로컬 state 기준으로 재싱크해서 "프리미엄 0/8 인증" 같이
+  // 방금 인증한 내 기록이 반영 안 되는 문제를 막아요.
+  try { bindMeToMembers(); } catch (e) {}
   const page = el('div', { class: 'page' });
   page.appendChild(TopBar());
 
@@ -3603,15 +3706,9 @@ function HomePage() {
     page.appendChild(teaser);
   }
 
-  // Checkboard
-  const cbWrap = el('div', { style: { marginTop: '24px' } });
-  cbWrap.appendChild(el('div', { class: 'kicker' }, '데일리 루틴 보드'));
-  cbWrap.appendChild(el('h2', { class: 'h2', style: { marginTop: '4px', marginBottom: '12px' } }, 'Daily Streak Board'));
-  cbWrap.appendChild(Checkboard());
-  page.appendChild(cbWrap);
-
   // Stats strip — 오늘 인증률 / 베이직 인증률 / 프리미엄 인증률
   // "me"의 tier는 MEMBERS 시드에서 'auto'이므로 실제 state.tier로 치환해서 집계.
+  // (Daily Streak Board 바로 위에 배치 — 보드 스캔하기 전에 오늘의 숫자를 먼저 인지하도록.)
   const effectiveTier = (m) => (m.me ? (state.tier || 'basic') : m.tier);
   const basicList = sorted.filter((m) => effectiveTier(m) === 'basic');
   const premiumList = sorted.filter((m) => effectiveTier(m) === 'premium');
@@ -3620,7 +3717,7 @@ function HomePage() {
   const basicRate = basicList.length ? Math.round((basicVerified / basicList.length) * 100) : 0;
   const premiumRate = premiumList.length ? Math.round((premiumVerified / premiumList.length) * 100) : 0;
 
-  const stats = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '14px' } });
+  const stats = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '24px' } });
   stats.innerHTML = `
     <div class="card card-flat" style="padding:14px 12px;">
       <div class="kicker">오늘 인증률</div>
@@ -3639,35 +3736,46 @@ function HomePage() {
     </div>`;
   page.appendChild(stats);
 
-  // Leaderboard top 10
-  page.appendChild(el('div', { class: 'kicker', style: { marginTop: '28px', marginBottom: '8px' } }, 'LEADERBOARD · TOP 10'));
-  const listCard = el('div', { class: 'card', style: { padding: '6px' } });
-  sorted.slice(0, 10).forEach((m, i) => {
-    const row = el('div', {
-      class: 'rank-row' + (m.me ? ' me' : ''),
-      onClick: () => window.__openMemberCard(m.id),
+  // Checkboard — 스탯 바로 아래에 배치 (스탯에서 '우리 동네' 인증률을 먼저 보고, 보드로 누가 인증했는지 확인).
+  // segmented control (프리미엄/베이직) 은 Checkboard 카드 내부 상단에 embed — 제목 옆이 아닌
+  // 카드와 자연스럽게 이어지도록.
+  const cbWrap = el('div', { style: { marginTop: '24px' } });
+  cbWrap.appendChild(el('div', { class: 'kicker' }, '데일리 루틴 보드'));
+  cbWrap.appendChild(el('h2', { class: 'h2', style: { marginTop: '4px', marginBottom: '12px' } }, 'Daily Streak Board'));
+  cbWrap.appendChild(Checkboard());
+  page.appendChild(cbWrap);
+
+  // Leaderboard top 10 — 현재 숨김.
+  // 이 챌린지는 '경쟁'이 목적이 아니므로 리더보드를 당분간 노출하지 않아요.
+  // 나중에 다시 켜야 하면 SHOW_LEADERBOARD = true 로 바꾸면 됨. 코드는 그대로 보존.
+  const SHOW_LEADERBOARD = false;
+  if (SHOW_LEADERBOARD) {
+    page.appendChild(el('div', { class: 'kicker', style: { marginTop: '28px', marginBottom: '8px' } }, 'LEADERBOARD · TOP 10'));
+    const listCard = el('div', { class: 'card', style: { padding: '6px' } });
+    sorted.slice(0, 10).forEach((m, i) => {
+      const row = el('div', {
+        class: 'rank-row' + (m.me ? ' me' : ''),
+        onClick: () => window.__openMemberCard(m.id),
+      });
+      row.innerHTML = `
+        <div class="rank-num ${i === 0 ? 'top1' : ''}">${i+1}</div>
+        <div class="avatar ${resolveAvatarColor(m)}">${safeInitial(m)}</div>
+        <div style="min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap;">
+            <span class="h3" style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">${escapeHtml(displayName(m))}</span>
+            ${premiumPill(m)}
+            ${m.me ? '<span class="badge badge-orange" style="font-size:9px;padding:2px 6px;">ME</span>' : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:5px;">
+            <div style="flex:1;max-width:120px;" class="bar ${m.me ? 'orange' : ''}"><span style="width:${m.progress/totalDays*100}%;"></span></div>
+            <span class="mono" style="font-size:11px;font-weight:600;">${m.progress}/${totalDays}</span>
+          </div>
+        </div>
+        <span class="streak-pill"><span style="color:var(--orange);">${Icon('flame', 12)}</span> ${m.streak}<span style="opacity:0.5;"> d</span></span>`;
+      listCard.appendChild(row);
     });
-    // Role and tz hidden here for beta — we don't have reliable server-side values
-    // for every participant yet. Keep the row tidy and uniform.
-    row.innerHTML = `
-      <div class="rank-num ${i === 0 ? 'top1' : ''}">${i+1}</div>
-      <div class="avatar ${m.color}">${m.name.slice(0,1)}</div>
-      <div style="min-width:0;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span class="h3" style="font-size:13px;font-weight:600;">${m.name}</span>
-          ${premiumPill(m)}
-          ${m.me ? '<span class="badge badge-orange" style="font-size:9px;padding:2px 6px;">ME</span>' : ''}
-          <span class="t-small mono" style="color:var(--muted);">· Team ${m.team}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:5px;">
-          <div style="flex:1;max-width:120px;" class="bar ${m.me ? 'orange' : ''}"><span style="width:${m.progress/totalDays*100}%;"></span></div>
-          <span class="mono" style="font-size:11px;font-weight:600;">${m.progress}/${totalDays}</span>
-        </div>
-      </div>
-      <span class="streak-pill"><span style="color:var(--orange);">${Icon('flame', 12)}</span> ${m.streak}<span style="opacity:0.5;"> d</span></span>`;
-    listCard.appendChild(row);
-  });
-  page.appendChild(listCard);
+    page.appendChild(listCard);
+  }
 
   // footer
   page.appendChild(el('div', { style: { textAlign: 'center', padding: '24px 12px 40px', color: 'var(--muted)' } },
@@ -3678,9 +3786,64 @@ function HomePage() {
   return page;
 }
 
+/* Segmented control 를 헤더 (제목 우측) 에서도 쓸 수 있게 헬퍼로 추출.
+   탭 자체는 HomePage 에서 제목 우측에 붙여 렌더하고, Checkboard 는 필터링만. */
+function CheckboardTabs() {
+  const cbTierOf = (m) => (m.me ? (state.tier || 'basic') : (m.tier === 'auto' ? (state.tier || 'basic') : m.tier));
+  const allMembers = visibleMembers();
+  const premiumCount = allMembers.filter((m) => cbTierOf(m) === 'premium').length;
+  const basicCount = allMembers.filter((m) => cbTierOf(m) === 'basic').length;
+
+  const seg = el('div', {
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '2px',
+      padding: '3px',
+      borderRadius: '999px',
+      background: 'rgba(0,0,0,0.04)',
+      border: '1px solid rgba(0,0,0,0.05)',
+    },
+  });
+  const makeTab = (key, label, count) => {
+    const active = checkboardTab === key;
+    const btn = el('button', {
+      onClick: () => { checkboardTab = key; render(); },
+      style: {
+        padding: '6px 12px',
+        borderRadius: '999px',
+        border: 'none',
+        cursor: 'pointer',
+        fontWeight: active ? '700' : '600',
+        fontSize: '12px',
+        letterSpacing: '-0.01em',
+        background: active ? '#FFFDF7' : 'transparent',
+        color: active ? 'var(--ink)' : 'var(--muted)',
+        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+        transition: 'background 0.15s ease, color 0.15s ease',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '5px',
+      },
+    });
+    btn.innerHTML = `${label}<span class="mono" style="font-size:10.5px;opacity:${active ? '0.55' : '0.6'};font-weight:500;">${count}</span>`;
+    return btn;
+  };
+  seg.appendChild(makeTab('premium', '프리미엄', premiumCount));
+  seg.appendChild(makeTab('basic', '베이직', basicCount));
+  return seg;
+}
+
 /* Checkboard — 30 rows × 20 days heatmap */
 function Checkboard() {
+  // 단일 리스트로 한 번에 보이되 정렬은 프리미엄 먼저 → 베이직 순서.
+  // 'me' 는 자기 티어 그룹의 맨 위로 고정.
   const wrap = el('div', { class: 'checkboard-wrap' });
+
+  // 티어 헬퍼 — 'me' 는 state.tier 로 치환.
+  const cbTierOf = (m) => (m.me ? (state.tier || 'basic') : (m.tier === 'auto' ? (state.tier || 'basic') : m.tier));
+  const allMembers = visibleMembers();
+
   const grid = el('div', { class: 'checkboard' });
   grid.appendChild(el('div', { class: 'cb-header cb-header-name', style: { textAlign: 'left' } }, 'MEMBER'));
   for (let d = 1; d <= 20; d++) {
@@ -3703,15 +3866,24 @@ function Checkboard() {
       }
     }
   }
-  visibleMembers().forEach((m) => {
+  // 정렬: 프리미엄 → 베이직 순. 같은 티어 안에서는 'me' 가 최상단.
+  // (그 외는 MEMBERS 시드 순서 유지 — 기존 대시보드 순서 안정성 확보.)
+  const tierRank = (m) => (cbTierOf(m) === 'premium' ? 0 : 1);
+  const orderedMembers = [...allMembers].sort((a, b) => {
+    const ta = tierRank(a), tb = tierRank(b);
+    if (ta !== tb) return ta - tb;
+    if (a.me !== b.me) return a.me ? -1 : 1;
+    return 0;
+  });
+  orderedMembers.forEach((m) => {
     const name = el('div', { class: 'cb-name' + (m.me ? ' cb-row-me' : '') });
     // Hide tz on the checkboard so all rows stay uniform height (we don't have
     // tz for other members yet — showing it only on "me" looks inconsistent).
     name.innerHTML = `
-      <div class="tiny-av ${m.color}">${m.name.slice(0,1)}</div>
+      <div class="tiny-av ${resolveAvatarColor(m)}">${safeInitial(m)}</div>
       <div style="min-width:0;">
         <div style="display:flex;align-items:center;gap:4px;min-width:0;">
-          <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.name}</span>
+          <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(displayName(m))}</span>
           ${premiumPill(m)}
         </div>
       </div>`;
@@ -3984,7 +4156,7 @@ function WeeksPage() {
   const legend = el('div', { style: { marginTop: '18px', padding: '14px 16px', borderRadius: '16px', background: 'var(--paper)', display: 'flex', flexWrap: 'wrap', gap: '14px', rowGap: '10px', fontSize: '11.5px', color: 'var(--ink-soft)' } });
   legend.innerHTML = `
     <span style="display:inline-flex;align-items:center;gap:6px;">
-      <span style="width:20px;height:20px;border-radius:6px;background:var(--orange);display:inline-block;"></span>정상 인증 (오늘/미리)
+      <span style="width:20px;height:20px;border-radius:6px;background:var(--orange);display:inline-block;"></span>정상 인증 (오늘)
     </span>
     <span style="display:inline-flex;align-items:center;gap:6px;">
       <span style="width:20px;height:20px;border-radius:6px;background:var(--ink);display:inline-block;"></span>지각 인증
@@ -4186,14 +4358,20 @@ function VerifyPage(dayN) {
             <div style="margin-top:20px;font-size:18px;line-height:1.5;color:#6C6A86;">${escapeHtml(currentQuestion.prompt_kr || '')}</div>
             <div style="margin-top:10px;font-size:16px;line-height:1.5;color:#7D5CFF;font-weight:700;">뜻 · ${escapeHtml(currentQuestion.kr)}</div>
             <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;">
-              <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;" onclick="window.__toggleVerifyAnswer(${dayN})">${ui.reveal ? '힌트 숨기기' : '힌트 보기'}</button>
+              <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;${ui.revealAnswer ? 'opacity:0.45;pointer-events:none;' : ''}" onclick="window.__toggleVerifyAnswer(${dayN})">${ui.reveal ? '힌트 숨기기' : '힌트 보기'}</button>
               <button class="btn btn-ghost" style="background:#fff;color:#7D7A98;border:1px solid #E1DCF8;" onclick="showToast('음성 답안 기능은 곧 연결돼요.')">음성으로 답하기</button>
             </div>
-            ${ui.reveal ? `<div style="margin-top:14px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);">${escapeHtml(buildVerifyHintMask(currentQuestion.en))}</div>` : ''}
+            ${ui.revealAnswer ? `
+              <div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:#FFF0E2;border:1px solid rgba(232,116,60,0.35);text-align:left;">
+                <div class="t-small mono" style="color:var(--orange-dark);letter-spacing:0.08em;">정답</div>
+                <div style="margin-top:6px;font-size:22px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em;line-height:1.3;">${escapeHtml(currentQuestion.en)}</div>
+                <div class="t-small" style="margin-top:6px;color:#6C6A86;">${escapeHtml(currentQuestion.kr || '')}</div>
+              </div>
+            ` : (ui.reveal ? `<div style="margin-top:14px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);">${escapeHtml(buildVerifyHintMask(currentQuestion.en))}</div>` : '')}
             <div style="display:flex;gap:8px;margin-top:18px;">
-              <button class="btn btn-ghost" style="flex:1;justify-content:center;background:#4F4438;color:#fff;border:none;" onclick="window.__advanceVerifyQuiz(${dayN}, true)">${ui.idx === questions.length - 1 ? '모르겠어요 · 제출' : 'Skip'}</button>
+              <button class="btn btn-ghost" style="flex:1;justify-content:center;background:#4F4438;color:#fff;border:none;" onclick="window.__advanceVerifyQuiz(${dayN}, true)">${ui.revealAnswer ? (ui.idx === questions.length - 1 ? '확인했어요 · 제출' : '확인했어요 · 다음 문제') : (ui.idx === questions.length - 1 ? '모르겠어요 · 제출' : 'Skip')}</button>
             </div>
-            <div class="t-small" style="margin-top:12px;color:#8B84D7;line-height:1.5;">정답을 맞추면 자동으로 다음 문제로 넘어가요. 모르면 <b>힌트</b>를 눌러보세요.</div>
+            <div class="t-small" style="margin-top:12px;color:#8B84D7;line-height:1.5;">${ui.revealAnswer ? '정답을 한 번 눈에 담고 다음 문제로 넘어가요.' : '정답을 맞추면 자동으로 다음 문제로 넘어가요. 모르면 <b>힌트</b>를 눌러보세요.'}</div>
           </div>
         </div>
       `;
@@ -4690,7 +4868,7 @@ function DayPage(dayN) {
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <span class="syn-chip" style="padding:4px 10px;font-size:11px;font-family:var(--font-mono);">${escapeHtml(s)}</span>
             <span style="font-size:12px;color:var(--ink-soft);flex:1;">${escapeHtml(synonymMeaning(s))}</span>
-            <button onclick="window.__toggleSynBookmark('${synKey}')" title="${isSaved ? '단어장에서 빼기' : '단어장에 저장'}" style="background:${isSaved ? 'var(--orange)' : 'transparent'};border:1px solid ${isSaved ? 'var(--orange)' : 'var(--line)'};color:${isSaved ? '#fff' : 'var(--orange-dark)'};width:26px;height:26px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;cursor:pointer;line-height:1;">${isSaved ? '✓' : '+'}</button>
+            <button onclick="window.__toggleSynBookmark('${synKey}')" title="${isSaved ? '단어장에서 빼기' : '단어장에 저장'}" style="background:transparent;border:none;color:var(--orange);width:30px;height:30px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;">${Icon(isSaved ? 'bookmarkFill' : 'bookmark', 14)}</button>
           </div>
         </div>
       `;}).join('');
@@ -4756,7 +4934,7 @@ function DayPage(dayN) {
       render();
     }
   });
-  copyBtn.innerHTML = `${Icon('mic', 20)} 3번씩 소리 내어 읽었어요`;
+  copyBtn.innerHTML = `${Icon('check', 20)} 3번씩 소리 내어 읽었어요`;
   s1.appendChild(copyBtn);
   page.appendChild(s1);
 
@@ -4815,6 +4993,15 @@ function DayPage(dayN) {
     promptBox.innerHTML = `
       <div class="kicker" style="font-size:10px;color:var(--orange-dark);">이런 상황, 내 업무로 바꿔 쓴다면?</div>
       <div style="margin-top:8px;font-size:18px;line-height:1.45;font-weight:700;color:var(--ink);word-break:keep-all;">${escapeHtml(koreanRecallHint(w))}</div>
+      ${w.ex_en ? `
+        <details style="margin-top:10px;">
+          <summary style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;list-style:none;font-size:11px;font-weight:700;color:var(--orange-dark);padding:6px 10px;border-radius:999px;background:rgba(232,116,60,0.08);border:1px dashed rgba(232,116,60,0.4);user-select:none;">
+            <span style="font-family:var(--font-mono);letter-spacing:0.04em;">영어 예시 컨닝</span>
+            <span style="font-size:10px;opacity:0.7;">(살짝만 보고 닫기!)</span>
+          </summary>
+          <div style="margin-top:8px;padding:10px 14px;border-radius:14px;background:#FFF7EB;border:1px solid rgba(232,116,60,0.2);font-size:13.5px;line-height:1.5;color:var(--ink);word-break:keep-all;">${escapeHtml(w.ex_en)}</div>
+        </details>
+      ` : ''}
       <div style="margin-top:10px;font-size:12.5px;line-height:1.55;color:var(--muted);word-break:keep-all;">※ 위 예시를 그대로 번역하지 마세요. <b style="color:var(--orange-dark);">내 업무 장면</b>을 떠올려서 <b style="color:var(--orange-dark);">${escapeHtml(w.en)}</b>(${escapeHtml(w.def)})를 자연스럽게 넣은 <b>내 문장</b>을 만들어보세요.</div>
       <div style="margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span class="badge" style="padding:6px 12px;font-size:10px;background:var(--paper);color:var(--ink-soft);font-family:var(--font-mono);">오늘 쓸 표현</span>
@@ -4915,7 +5102,7 @@ function DayPage(dayN) {
         state.submitted[key] = true;
         saveState();
         upsertCommunityPost(dayN, i).finally(() => render());
-        showToast('제출 완료. 원하면 AI 리뷰로 다듬어봐요 (참고용).');
+        showToast('제출 완료! AI 로 수정도 해보세요. 원하면 수정된 내용으로 재제출할 수 있어요.');
         render();
       },
     });
@@ -4989,7 +5176,7 @@ function DayPage(dayN) {
           ? `<div style="font-size:13px;margin:8px 0;line-height:1.55;">${fb.diff_html}</div>`
           : `<div class="t-small" style="margin:8px 0;color:var(--green);">고칠 부분이 없어요 — 자연스럽게 잘 썼어요!</div>`}
         <div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(fb.why)}</div>
-        <div class="t-small" style="margin-top:8px;color:var(--muted);font-size:11.5px;line-height:1.5;">커뮤니티에는 처음 제출한 문장이 그대로 올라가요. 이 리뷰는 다음 학습용 메모예요.</div>`;
+        <div class="t-small" style="margin-top:8px;color:var(--muted);font-size:11.5px;line-height:1.5;">이걸 복사해서 다시 붙여넣고 제출하면 수정돼 올라가요.</div>`;
       // Wire up the copy button after innerHTML is set.
       const copyBtn = result.querySelector('.btn-copy-ai');
       if (copyBtn) {
@@ -5687,6 +5874,7 @@ async function cloudSaveMeetingNote(meetingId) {
 }
 
 function MeetingNotesPage(meetingId) {
+  if (state.tier !== 'premium') return premiumGatePage({ titleRest: '미팅 노트' });
   const page = el('div', { class: 'page' });
 
   // Resolve meeting meta
@@ -6077,6 +6265,7 @@ function generateMeetingMarkdown(meetingId) {
    QUIZ PAGE
    ============================================================ */
 function QuizPage() {
+  if (state.tier !== 'premium') return premiumGatePage({ titleRest: '개인 퀴즈' });
   const page = el('div', { class: 'page' });
   const head = el('div', { class: 'topbar' });
   const back = el('button', { class: 'icon-btn', onClick: () => go('premium') });
@@ -6145,6 +6334,7 @@ function QuizPage() {
    CERTIFICATION PAGE
    ============================================================ */
 function CertPage() {
+  if (state.tier !== 'premium') return premiumGatePage({ titleRest: 'Certification' });
   const page = el('div', { class: 'page' });
   const head = el('div', { class: 'topbar' });
   const back = el('button', { class: 'icon-btn', onClick: () => go('premium') });
@@ -6522,39 +6712,36 @@ function ProfilePage() {
     page.appendChild(exportCard);
   }
 
-  // 로그아웃 — 베타 계정 전용 (유버디 / 이규태 / 이지흔)
-  const BETA_ACCOUNTS = new Set(['유버디', '이규태', '이지흔']);
-  if (BETA_ACCOUNTS.has(state.name)) {
-    const logoutCard = el('div', {
-      class: 'card',
-      style: {
-        marginTop: '18px',
-        padding: '16px 18px',
-        background: 'var(--paper)',
-        borderColor: 'var(--line)',
-      }
-    });
-    logoutCard.innerHTML = `
-      <div class="kicker" style="color:var(--muted);">SESSION · 베타 계정</div>
-      <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">
-        다른 계정으로 테스트할 때 로그아웃하면 이 기기의 로그인 상태만 초기화돼요. 서버에 저장된 내 진행 기록은 유지됩니다.
-      </div>`;
-    const logoutBtn = el('button', {
-      class: 'btn btn-ghost',
-      style: {
-        marginTop: '12px',
-        width: '100%',
-        justifyContent: 'center',
-        color: '#B04A2B',
-        borderColor: 'rgba(176,74,43,0.25)',
-        background: '#fff',
-      },
-      onClick: () => window.__logoutBeta(),
-    });
-    logoutBtn.innerHTML = `${Icon('arrowRight', 14)} 로그아웃`;
-    logoutCard.appendChild(logoutBtn);
-    page.appendChild(logoutCard);
-  }
+  // 로그아웃 — 모든 사용자에게 노출 (프로필 맨 하단)
+  const logoutCard = el('div', {
+    class: 'card',
+    style: {
+      marginTop: '24px',
+      padding: '16px 18px',
+      background: 'var(--paper)',
+      borderColor: 'var(--line)',
+    }
+  });
+  logoutCard.innerHTML = `
+    <div class="kicker" style="color:var(--muted);">SESSION</div>
+    <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">
+      로그아웃하면 이 기기의 로그인 상태만 초기화돼요. 서버에 저장된 내 진행 기록은 유지됩니다.
+    </div>`;
+  const logoutBtn = el('button', {
+    class: 'btn btn-ghost',
+    style: {
+      marginTop: '12px',
+      width: '100%',
+      justifyContent: 'center',
+      color: '#B04A2B',
+      borderColor: 'rgba(176,74,43,0.25)',
+      background: '#fff',
+    },
+    onClick: () => window.__logoutBeta(),
+  });
+  logoutBtn.innerHTML = `${Icon('arrowRight', 14)} 로그아웃`;
+  logoutCard.appendChild(logoutBtn);
+  page.appendChild(logoutCard);
 
   return page;
 }
@@ -6844,7 +7031,7 @@ function CommunityPage() {
         ${post.translation ? `<p style="margin:3px 0 0;font-size:11.5px;line-height:1.45;color:var(--ink-soft);word-break:keep-all;">${escapeHtml(post.translation)}</p>` : ''}
         <div style="display:flex;gap:12px;margin-top:6px;align-items:center;">
           <button onclick="window.__toggleCommunityLike(${postIdArg})" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:${liked ? 'var(--orange-dark)' : 'var(--muted)'};font-size:11px;font-weight:${liked ? '700' : '500'};">${Icon('flame', 10)} ${likeCount}</button>
-          <button onclick="window.__commentOnCommunityPost(${postIdArg})" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:${commentCount ? 'var(--orange-dark)' : 'var(--muted)'};font-size:11px;font-weight:${commentCount ? '700' : '500'};">${Icon('messageCircle', 10)} ${commentCount}</button>
+          <button onclick="window.__openCommentComposer(${postIdArg})" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:${commentCount ? 'var(--orange-dark)' : 'var(--muted)'};font-size:11px;font-weight:${commentCount ? '700' : '500'};">${Icon('messageCircle', 10)} ${commentCount}</button>
           <button onclick="window.__speakText(${sentenceArg})" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:var(--muted);font-size:11px;">${Icon('volume', 10)} 듣기</button>
           <button onclick="window.__toggleCommunityBookmark(${postIdArg})" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:${saved ? 'var(--orange-dark)' : 'var(--muted)'};font-size:11px;margin-left:auto;">${Icon(saved ? 'bookmarkFill' : 'bookmark', 10)}</button>
           ${mineEditBtn}
@@ -6856,6 +7043,15 @@ function CommunityPage() {
                 <b style="color:var(--ink);font-size:10.5px;">${escapeHtml(comment.author || '익명')}</b> ${escapeHtml(comment.text || '')}
               </div>
             `).join('')}
+          </div>
+        ` : ''}
+        ${activeCommentDraft && activeCommentDraft.postId === post.id ? `
+          <div style="margin-top:8px;padding:10px;border-radius:12px;background:var(--paper);border:1px solid var(--line);">
+            <textarea id="__commentInput-${escapeHtml(String(post.id))}" placeholder="짧게 응원이나 코멘트를 남겨보세요" style="width:100%;box-sizing:border-box;min-height:56px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#FFFDF7;font-size:12.5px;line-height:1.5;color:var(--ink);font-family:inherit;resize:vertical;">${escapeHtml(activeCommentDraft.draft || '')}</textarea>
+            <div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end;">
+              <button onclick="window.__cancelCommentComposer()" style="padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink-soft);font-size:11.5px;font-weight:600;cursor:pointer;">취소</button>
+              <button onclick="window.__submitCommentComposer(${postIdArg})" style="padding:6px 14px;border-radius:8px;border:none;background:var(--ink);color:var(--cream);font-size:11.5px;font-weight:700;cursor:pointer;">남기기</button>
+            </div>
           </div>
         ` : ''}
       </div>`;
@@ -6994,12 +7190,14 @@ function MemberCardModal(memberRef) {
       border: member.me ? '1px solid rgba(240,125,56,0.26)' : '1px solid var(--line)',
     }
   });
+  const memberEng = member.me ? (state.englishName || '').trim() : (member.englishName || '').trim();
   modal.innerHTML = `
     <div style="display:flex;align-items:flex-start;gap:14px;">
-      <div class="avatar ${member.color}" style="width:62px;height:62px;border-radius:18px;font-size:22px;">${member.name.slice(0,1)}</div>
+      <div class="avatar ${resolveAvatarColor(member)}" style="width:62px;height:62px;border-radius:18px;font-size:22px;">${safeInitial(member)}</div>
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <div style="font-size:24px;font-weight:800;letter-spacing:-0.03em;line-height:1.08;">${escapeHtml(member.name)}</div>
+          ${memberEng ? `<span class="t-small mono" style="color:var(--muted);font-size:12px;">${escapeHtml(memberEng)}</span>` : ''}
           ${premiumPill(member)}
           ${member.me ? '<span class="badge badge-orange">ME</span>' : ''}
         </div>
@@ -7409,12 +7607,19 @@ function VerificationReviewModal(dayN) {
     },
   });
 
-  // --- Word quiz state (runtime, not persisted beyond session) ---
+  // --- Word quiz state ---
+  // 최초 시험 점수는 state.quiz_results 에 영구 저장돼요 (다시풀기 해도 "최초" 점수는 안 덮어씀).
+  // 런타임 __verifyUi 는 같은 세션 중 시험을 방금 푼 경우 fallback 으로 사용.
+  const persistedQuiz = (state.quiz_results && state.quiz_results['d' + dayN]) || null;
   const quizUi = (window.__verifyUi || {})[dayN];
   const quizQuestions = (typeof buildVerifyQuestions === 'function') ? buildVerifyQuestions(dayN) : [];
-  const quizDone = !!(quizUi && quizUi.done);
-  const quizScore = quizUi ? (quizUi.score || 0) : 0;
-  const quizTotal = quizQuestions.length || (d.words ? d.words.length : 3);
+  const quizDone = !!(persistedQuiz || (quizUi && quizUi.done));
+  const quizScore = persistedQuiz
+    ? (persistedQuiz.score || 0)
+    : (quizUi ? (quizUi.score || 0) : 0);
+  const quizTotal = persistedQuiz
+    ? (persistedQuiz.total || quizQuestions.length || (d.words ? d.words.length : 3))
+    : (quizQuestions.length || (d.words ? d.words.length : 3));
 
   // --- Sentences ---
   const sentenceRows = (d.words || []).map((w, i) => {
@@ -7576,7 +7781,7 @@ window.__setVerifyQuizValue = (dayN, value) => {
 };
 window.__restartVerifyQuiz = (dayN) => {
   window.__verifyUi = window.__verifyUi || {};
-  window.__verifyUi[dayN] = { idx: 0, value: '', done: false, score: 0, activeStep: 'capture', reveal: false };
+  window.__verifyUi[dayN] = { idx: 0, value: '', done: false, score: 0, activeStep: 'capture', reveal: false, revealAnswer: false };
   // 새 회차엔 복습 문항을 새로 뽑도록 캐시 무효화.
   if (window.__verifyQuestionsCache) window.__verifyQuestionsCache[dayN] = null;
   // Also clear the quiz submission checkpoint so the quiz step comes back as active.
@@ -7602,15 +7807,37 @@ window.__advanceVerifyQuiz = (dayN, skipped) => {
   const current = questions[ui.idx];
   const answer = normalizeQuizAnswer(ui.value || '');
   const correct = skipped ? false : answer === normalizeQuizAnswer(current.en);
+  // 스킵이면 먼저 정답을 한 번 보여주고, 한 번 더 눌러야 실제로 넘어가요.
+  // (혹시 이미 revealAnswer 상태에서 들어왔으면 바로 다음 문제로.)
+  if (skipped && !ui.revealAnswer) {
+    ui.revealAnswer = true;
+    window.__verifyUi[dayN] = ui;
+    render();
+    return;
+  }
   ui.score = (ui.score || 0) + (correct ? 1 : 0);
   if (ui.idx >= questions.length - 1) {
     ui.done = true;
     ui.value = '';
+    // 최초 시험 점수를 영구 저장 (다시 풀기는 덮어쓰지 않음 — "최초" 점수 보존).
+    try {
+      if (!state.quiz_results) state.quiz_results = {};
+      const resultKey = 'd' + dayN;
+      if (!state.quiz_results[resultKey]) {
+        state.quiz_results[resultKey] = {
+          score: ui.score || 0,
+          total: questions.length,
+          takenAt: new Date().toISOString(),
+        };
+        saveState();
+      }
+    } catch (e) { console.warn('quiz_results save failed', e); }
   } else {
     ui.idx += 1;
     ui.value = '';
   }
   ui.reveal = false;
+  ui.revealAnswer = false;
   ui.activeStep = 'capture';
   window.__verifyUi[dayN] = ui;
   render();
@@ -7666,31 +7893,88 @@ window.__toggleCommunityBookmark = (postId) => {
   showToast(state.community_bookmarks[postId] ? '문장을 저장했어요.' : '저장을 해제했어요.');
   render();
 };
-window.__commentOnCommunityPost = (postId) => {
-  const draft = window.prompt('짧게 응원이나 코멘트를 남겨볼까요?', '');
-  if (draft === null) return;
-  const text = draft.trim();
+/* 댓글 인라인 composer — window.prompt() 는 모바일/Safari 환경에서 불안정해서
+   post 아래에 붙는 textarea 로 대체. draft 값은 렌더 사이에도 유지돼요. */
+window.__openCommentComposer = (postId) => {
+  // 이미 열려있으면 닫음(토글).
+  if (activeCommentDraft && activeCommentDraft.postId === postId) {
+    activeCommentDraft = null;
+  } else {
+    activeCommentDraft = { postId, draft: '' };
+  }
+  render();
+  // 렌더 직후 textarea 에 포커스.
+  setTimeout(() => {
+    try {
+      const safeId = String(postId).replace(/"/g, '\\"');
+      const ta = document.querySelector(`[id^="__commentInput-"]`);
+      if (ta) {
+        // draft 업데이트는 blur/input 이벤트로 처리.
+        ta.addEventListener('input', (e) => {
+          if (activeCommentDraft && activeCommentDraft.postId === postId) {
+            activeCommentDraft.draft = e.target.value;
+          }
+        });
+        ta.focus();
+      }
+    } catch (e) {}
+  }, 40);
+};
+window.__cancelCommentComposer = () => {
+  activeCommentDraft = null;
+  render();
+};
+window.__submitCommentComposer = async (postId) => {
+  // 최신 값은 DOM 의 textarea 에서 다시 읽음 (입력 이벤트 타이밍 문제 방지).
+  let text = '';
+  try {
+    const ta = document.querySelector(`[id^="__commentInput-"]`);
+    text = ta ? String(ta.value || '').trim() : String(activeCommentDraft?.draft || '').trim();
+  } catch (e) {
+    text = String(activeCommentDraft?.draft || '').trim();
+  }
   if (!text) {
     showToast('빈 댓글은 저장하지 않았어요.');
     return;
   }
   if (hasSupabase()) {
-    supabaseRpc('add_community_comment', {
-      p_cohort: CHALLENGE.cohort,
-      p_post_id: postId,
-      p_member_key: memberKey(),
-      p_member_name: state.name || '나',
-      p_comment_text: text,
-    }).then(async () => {
+    try {
+      await supabaseRpc('add_community_comment', {
+        p_cohort: CHALLENGE.cohort,
+        p_post_id: postId,
+        p_member_key: memberKey(),
+        p_member_name: state.name || '나',
+        p_comment_text: text,
+      });
       const dayToRefresh = state.communityDay || state.currentDay;
       await loadCommunityPosts(dayToRefresh, { force: true });
+      activeCommentDraft = null;
       showToast('댓글을 남겼어요.');
       render();
-    }).catch(() => {
-      showToast('댓글 동기화에 실패했어요.');
-    });
+    } catch (e) {
+      // 실제 에러 로그 — 콘솔에서 원인 파악 가능.
+      console.error('[comment] add_community_comment 실패', { postId, error: e });
+      // 서버가 응답은 했지만 빈 값이거나 정책에 막힌 경우 등 대부분의 실제 실패 케이스에서
+      // 로컬에 캐시해서 최소 UI 에선 보이게 + 사용자에게 안내.
+      const currentComments = communityCommentsFor(postId);
+      state.community_comments = state.community_comments || {};
+      state.community_comments[postId] = [
+        ...currentComments,
+        {
+          text,
+          author: state.name || '나',
+          createdAt: new Date().toISOString(),
+          _localOnly: true,
+        },
+      ];
+      saveState();
+      activeCommentDraft = null;
+      showToast('댓글이 서버에 저장은 안 됐지만 이 기기엔 남겼어요.');
+      render();
+    }
     return;
   }
+  // Supabase 미연결 시 로컬 전용.
   const currentComments = communityCommentsFor(postId);
   state.community_comments = state.community_comments || {};
   state.community_comments[postId] = [
@@ -7702,9 +7986,12 @@ window.__commentOnCommunityPost = (postId) => {
     },
   ];
   saveState();
+  activeCommentDraft = null;
   showToast('댓글을 남겼어요.');
   render();
 };
+// 기존 호출부 호환용 (혹시 어디서 링크 걸려 있을까봐) — 새 composer 를 열어줌.
+window.__commentOnCommunityPost = (postId) => window.__openCommentComposer(postId);
 window.__editMyCommunityPost = async (postId, sourceKey = '') => {
   const source = sourceKey || (String(postId).includes('::') ? String(postId).split('::').pop() : postId.replace(/^me-/, ''));
   const m = String(source).match(/^d(\d+)-(\d+)$/);
