@@ -121,7 +121,6 @@ create or replace function public.take_challenge_snapshot(p_cohort text default 
 returns table (source_table text, rows_captured integer, snapshot_at timestamptz)
 language plpgsql
 security definer
-set search_path = ''
 as $$
 declare
   v_now         timestamptz := now();
@@ -177,7 +176,6 @@ create or replace function public.prune_challenge_snapshots(p_keep_days integer 
 returns integer
 language plpgsql
 security definer
-set search_path = ''
 as $$
 declare
   v_deleted integer;
@@ -222,7 +220,6 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = ''
 as $$
 #variable_conflict use_column
 declare
@@ -356,7 +353,6 @@ create or replace function public.hourly_challenge_snapshot()
 returns void
 language plpgsql
 security definer
-set search_path = ''
 as $$
 begin
   perform public.take_challenge_snapshot(null);   -- all cohorts
@@ -450,7 +446,6 @@ create or replace function public.reset_member_day(
 returns table (step text, rows_affected integer)
 language plpgsql
 security definer
-set search_path = ''
 as $$
 #variable_conflict use_column
 declare
