@@ -201,11 +201,14 @@ input, textarea, select { font-family: inherit; }
 .progress-dots span.on { background: var(--orange); }
 .progress-dots span.on.late { background: var(--ink); }
 .progress-dots span.today { background: var(--orange); box-shadow: 0 0 0 2px var(--orange-ghost); }
-.progress-dots span.locked { background: transparent; outline: 1px dashed rgba(251,247,240,0.25); outline-offset: -1px; }
+.progress-dots span.missed { background: rgba(154,139,115,0.32); }
+.progress-dots span.locked { background: rgba(231,221,200,0.45); }
 .card-ink .progress-dots span { background: rgba(251,247,240,0.12); }
 .card-ink .progress-dots span.on { background: var(--orange); }
 .card-ink .progress-dots span.on.late { background: var(--cream); }
 .card-ink .progress-dots span.today { background: var(--orange); }
+.card-ink .progress-dots span.missed { background: rgba(251,247,240,0.22); }
+.card-ink .progress-dots span.locked { background: rgba(251,247,240,0.06); }
 
 /* correct-answer green flash — contained to the quiz card */
 .correct-flash {
@@ -502,31 +505,36 @@ input, textarea, select { font-family: inherit; }
 .cb-name {
   display: flex; align-items: center; gap: 6px;
   font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; color: var(--ink);
-  padding-right: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  /* padding-right keeps the name + P badge from visually touching the Day 1 cell. */
+  padding-right: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
   position: sticky; left: 0; z-index: 1;
   background: var(--cream);
 }
 .cb-header-name {
   position: sticky; left: 0; z-index: 2;
   background: var(--cream);
-  padding-right: 6px;
+  padding-right: 10px;
 }
 .cb-name .tiny-av { width: 18px; height: 18px; border-radius: 5px; background: var(--paper); display: grid; place-items: center; font-size: 8px; font-weight: 700; flex-shrink: 0; }
 .cb-name .tiny-av.orange { background: var(--orange); color: #fff; }
 .cb-name .tiny-av.ink { background: var(--ink); color: var(--cream); }
-/* Checkboard tiles — 3-state palette synced with dayStatus():
+/* Checkboard tiles — palette synced with dayStatus():
    .on        = 정상 인증 (주황)
    .on.late   = 지각 인증 (까망)
    .today     = 오늘 미인증 (주황 링)
-   .locked    = 아직 안 열림 (점선)
-   (default)  = 미인증 / 놓친 Day (빈칸) */
+   .missed    = 놓친 Day (무톤 베이지 실선)
+   .locked    = 아직 안 열림 (연한 실선, 거의 비어보임)
+   (default)  = 'open' = 내일 미리 풀기 슬롯 (페이퍼 크림) */
 .cb-cell { width: 24px; height: 24px; border-radius: 4px; background: var(--paper); border: 1px solid rgba(231,221,200,0.7); }
 .cb-cell.on { background: var(--orange); border-color: var(--orange); }
 .cb-cell.on.late { background: var(--ink); border-color: var(--ink); }
 .cb-cell.today { background: var(--orange); box-shadow: 0 0 0 2px var(--orange-ghost); border-color: var(--orange); }
-.cb-cell.locked { background: transparent; border: 1px dashed #D7CDB5; }
+.cb-cell.missed { background: rgba(154,139,115,0.18); border: 1px solid rgba(154,139,115,0.34); }
+.cb-cell.locked { background: var(--cream); border: 1px solid rgba(231,221,200,0.45); }
 .cb-row-me .cb-name { background: var(--orange-ghost); }
 .cb-row-me { background: var(--orange-ghost); border-radius: 6px; padding: 0 2px; margin: 0 -2px; }
+/* Overrides so the sticky "me" name cell keeps its right padding (was bleeding into Day 1). */
+.cb-name.cb-row-me { padding: 0 10px 0 2px; margin-right: 0; }
 
 /* modal */
 .modal-backdrop {
@@ -803,142 +811,142 @@ const CHALLENGE = {
   end_date: '2026-05-15',
   weeks: [
     {
-      n: 1, title: 'Onboarding', subtitle: '방향성 잡고 바로 시작',
+      n: 1, title: 'Setup & Strategy', subtitle: '일단 판부터 제대로 깔아볼까요?',
       days: [
-        { day: 1, title: '목표/방향성 + 킥오프', goal_en: "Align on our North Star, then kick off.", goal_kr: '4주의 방향성을 먼저 정리하고 출발해요.',
+        { day: 1, title: '우리 목표부터 정렬하고 시작하죠', goal_en: "Let's set the stage and anchor our strategy.", goal_kr: '제대로 판 깔고 기준점 잡기.',
           words: [
-            { en: 'North Star', pos: 'noun', def: '가장 중요한 최상위 목표', ex_en: "Our North Star is reliability over speed.", ex_kr: '우리 최상위 목표는 속도보다 안정성이에요.', syn: ['true north', 'ultimate goal', 'guiding metric'] },
-            { en: 'align on', pos: 'phrasal verb', def: '(기준/방향에) 맞추다, 정렬하다', ex_en: "Let's align on the milestone before we split up.", ex_kr: '각자 흩어지기 전에 마일스톤에 합을 맞춰봐요.', syn: ['sync on', 'get on the same page', 'converge on'] },
-            { en: 'kick off', pos: 'phrasal verb', def: '(일/프로젝트를) 시작하다', ex_en: "Let's kick off with a quick round of intros.", ex_kr: '가벼운 자기소개부터 시작해볼게요.', syn: ['start', 'launch', 'get started'] },
+            { en: 'Set the stage', pos: 'phrase', def: '기틀을 마련하다 / 판을 깔다', ex_en: "Let's set the stage for our new campaign by reviewing the data first.", ex_kr: '데이터를 먼저 검토하면서 새 캠페인을 위한 판을 깔아봅시다.', syn: ['Pave the way', 'Prepare the ground'], nuance: '새 프로젝트나 논의 전, 팀이 같은 이해도를 갖도록 배경·환경을 미리 조성해둘 때 써요.' },
+            { en: 'Anchor', pos: 'verb', def: '기준점을 잡다 / 고정시키다', ex_en: "We need to anchor this strategy in user feedback.", ex_kr: '우리는 이 전략의 기준점을 유저 피드백에 둬야 합니다.', syn: ['Ground', 'Establish a baseline'], nuance: '회의나 기획이 산으로 가지 않도록 흔들리지 않는 기준점·북극성을 꽉 잡아둘 때 써요.' },
+            { en: 'Key driver', pos: 'noun', def: '성과의 핵심 동인 / 주된 요인', ex_en: "Customer retention is the key driver of our growth.", ex_kr: '고객 유지는 우리 성장의 핵심 동인입니다.', syn: ['Main catalyst', 'Core factor'], nuance: '단순 원인을 넘어 매출·성과를 실질적으로 끌어올리는 가장 강력한 핵심 동력을 말할 때 써요.' },
           ] },
-        { day: 2, title: '회의의 시작 (아젠다/목표)', goal_en: "Let's frame today's agenda clearly.", goal_kr: '회의 오프닝 표현 3개 연습.',
+        { day: 2, title: '이거 진짜 현실적으로 승산이 있나요?', goal_en: "Run a gut check on the viability.", goal_kr: '시작 전 현실 가능성 점검.',
           words: [
-            { en: 'at the core', pos: 'phrase', def: '핵심적으로, 근본적으로', ex_en: "At the core, we're solving retention.", ex_kr: '핵심은 리텐션 문제를 푸는 거예요.', syn: ['fundamentally', 'at heart', 'essentially'] },
-            { en: 'just to clarify', pos: 'phrase', def: '확실히 하자면', ex_en: "Just to clarify — we're shipping by Friday?", ex_kr: '확실히 할게요 — 금요일까지 배포 맞나요?', syn: ['to be clear', 'to confirm'] },
-            { en: 'two main perspectives', pos: 'phrase', def: '두 가지 주요 관점', ex_en: "There are two main perspectives on this trade-off.", ex_kr: '이 트레이드오프에 대해 두 가지 주요 관점이 있어요.', syn: ['two angles', 'two viewpoints'] },
+            { en: 'Gut check', pos: 'noun', def: '직감에 따른 확인 / 퀵 점검', ex_en: "Let's do a quick gut check on this timeline before showing it to the CEO.", ex_kr: 'CEO에게 보여주기 전에 이 일정 현실성 있는지 퀵하게 점검해 봅시다.', syn: ['Reality check', 'Instinctive review'], nuance: '복잡한 데이터 분석 전, 실무자의 직감으로 "이거 진짜 말이 되나?" 하고 빠르게 점검할 때 써요.' },
+            { en: 'Vetting process', pos: 'noun', def: '철저한 검증/심사 과정', ex_en: "They have to go through a strict vetting process.", ex_kr: '그들은 엄격한 검증 과정을 거쳐야 합니다.', syn: ['Screening', 'Due diligence'], nuance: '새 파트너·중요 솔루션 도입 시 리스크가 없는지 깐깐하고 철저하게 심사하는 과정을 말해요.' },
+            { en: 'Viability', pos: 'noun', def: '실행 가능성 / 수익 가능성', ex_en: "We need to assess the commercial viability of this product.", ex_kr: '이 제품의 상업적 수익 가능성을 평가해야 합니다.', syn: ['Feasibility', 'Workability'], nuance: '아이디어는 좋은데 실제로 돈이 되거나 시장에 런칭할 수 있는지 냉정하게 따져볼 때 써요.' },
           ] },
-        { day: 3, title: '스몰톡 → 업무 전환', goal_en: "On that note, let's switch gears.", goal_kr: '자연스럽게 업무로 전환하는 표현.',
+        { day: 3, title: '일단 쉬운 것부터 빨리 끝낼까요?', goal_en: "Go quick and dirty and front-load the heavy parts.", goal_kr: '속도 우선, 초반에 몰아치기.',
           words: [
-            { en: 'on that note', pos: 'phrase', def: '그 말에 이어서', ex_en: "On that note, shall we dive in?", ex_kr: '그 얘기 나온 김에, 바로 시작할까요?', syn: ['speaking of which', 'building on that'] },
-            { en: 'switch gears', pos: 'phrasal verb', def: '화제를 전환하다', ex_en: "Let's switch gears to Q2 planning.", ex_kr: '이제 Q2 플래닝 얘기로 넘어가볼게요.', syn: ['move on', 'change topic'] },
-            { en: 'ICYMI', pos: 'acronym', def: '혹시 못 봤다면 (In Case You Missed It)', ex_en: "ICYMI, the spec doc is in #product.", ex_kr: '혹시 못 봤다면 스펙 문서는 #product에 있어요.', syn: ['just FYI', 'heads-up'] },
+            { en: 'Quick and dirty', pos: 'phrase', def: '빠르고 거칠게 / 일단 임시로', ex_en: "Let's put together a quick and dirty prototype for the meeting.", ex_kr: '회의를 위해 일단 빠르고 거칠게 프로토타입 하나 뚝딱 만들어봅시다.', syn: ['Rough and ready', 'Scrappy'], nuance: '완벽함보다 속도가 생명일 때, 투박해도 일단 빠르게 결과물을 뽑아내야 할 때 쓰는 실무 찐표현.' },
+            { en: 'Get it over the line', pos: 'phrase', def: '어렵사리 완수시키다 / 마침내 넘기다', ex_en: "We worked all weekend to get this project over the line.", ex_kr: '이 프로젝트를 무사히 완수시키기 위해 주말 내내 일했어요.', syn: ['Bring it home', 'Wrap it up'], nuance: '지지부진하던 프로젝트·아슬아슬했던 계약을 우여곡절 끝에 마침내 최종 성사시켰을 때 쾌감 담아 써요.' },
+            { en: 'Front-load', pos: 'verb', def: '업무나 리소스를 초반에 몰아서 하다', ex_en: "Let's front-load the heavy tasks this week so we have breathing room later.", ex_kr: '나중에 숨통 좀 트이게 이번 주에 빡센 일들을 몰아서 해둡시다.', syn: ['Tackle early', 'Prioritize heavily at the start'], nuance: '후반부 바빠질 걸 대비해 무거운 업무·리소스를 초반 일정에 빡세게 밀어 넣는 전략을 말해요.' },
           ] },
-        { day: 4, title: '쿠션어 (부드러운 반대)', goal_en: "I see where you're coming from, but...", goal_kr: '전문적으로 반대 의견 내는 법.',
+        { day: 4, title: '제가 이 부분 좀 더 파볼게요', goal_en: "Unpack, flesh out, and drill down.", goal_kr: '애매한 건 풀고 파고들기.',
           words: [
-            { en: "I see where you're coming from", pos: 'phrase', def: '왜 그렇게 생각하는지 이해해요', ex_en: "I see where you're coming from — still, I'd push on the timeline.", ex_kr: '이해해요. 그래도 타임라인은 한 번 더 고민해봤으면 해요.', syn: ["I hear you", "that makes sense"] },
-            { en: "I'm not sure", pos: 'phrase', def: '확신이 없어요', ex_en: "I'm not sure that's the right call for Q2.", ex_kr: 'Q2에 그게 맞는 결정인지 확신이 없어요.', syn: ["I'm on the fence", "I have doubts"] },
-            { en: 'raise a concern', pos: 'phrase', def: '우려를 제기하다', ex_en: "Quick one — I want to raise a concern on scope.", ex_kr: '잠깐만요 — 스코프에 대해 우려 하나 말씀드릴게요.', syn: ['flag a risk', 'voice a concern'] },
+            { en: 'Unpack', pos: 'verb', def: '복잡한 내용을 하나씩 풀어서 설명/분석하다', ex_en: "There's a lot to unpack in that statement.", ex_kr: '그 발언에는 하나하나 뜯어볼 내용이 참 많네요.', syn: ['Break down', 'Deconstruct'], nuance: '누군가 복잡한 아이디어를 툭 던졌을 때, 논리적으로 해체해서 꼼꼼히 뜯어볼 때 써요.' },
+            { en: 'Flesh out', pos: 'phrasal verb', def: '디테일을 더해 구체화하다 / 뼈대에 살을 붙이다', ex_en: "We need to flesh out the details of this marketing plan.", ex_kr: '이 마케팅 플랜의 디테일을 좀 더 구체화해서 살을 붙여야 해요.', syn: ['Expand on', 'Elaborate'], nuance: '러프한 아이디어·엉성한 초안에 구체적 내용과 디테일을 덧붙여 탄탄한 결과물로 완성해 나갈 때.' },
+            { en: 'Drill down', pos: 'phrasal verb', def: '심층 분석하다 / 디테일하게 깊이 파고들다', ex_en: "Let's drill down into these sales numbers by region.", ex_kr: '지역별로 이 매출 데이터를 깊이 파고들어 분석해 봅시다.', syn: ['Delve into', 'Look closely into'], nuance: '겉핥기식 High-level 논의에서 벗어나 데이터 세부 지표·문제 깊은 곳까지 뾰족하게 파고들 때.' },
           ] },
-        { day: 5, title: '우선순위/범위 조절', goal_en: "Let's prioritize and pick the trade-off.", goal_kr: '우선순위와 트레이드오프 표현.',
+        { day: 5, title: '다들 이 방향에 동의하시나요?', goal_en: "Get buy-in and move in lockstep.", goal_kr: '동의 얻고 한방향으로 가기.',
           words: [
-            { en: 'prioritize', pos: 'verb', def: '우선순위를 정하다', ex_en: "Let's prioritize what moves the needle.", ex_kr: '성과에 직접 영향 주는 것부터 챙겨봐요.', syn: ['rank', 'order', 'focus on'] },
-            { en: 'trade-off', pos: 'noun', def: '상충관계, 양자택일', ex_en: "There's a trade-off between speed and quality here.", ex_kr: '여기는 속도와 품질 사이 트레이드오프가 있어요.', syn: ['compromise', 'give-and-take'] },
-            { en: 'bottleneck', pos: 'noun', def: '병목', ex_en: "QA is the bottleneck this sprint.", ex_kr: '이번 스프린트 병목은 QA예요.', syn: ['blocker', 'chokepoint'] },
+            { en: 'Get buy-in', pos: 'phrase', def: '적극적인 지지와 동의를 얻어내다', ex_en: "We need to get buy-in from the stakeholders before we proceed.", ex_kr: '진행하기 전에 이해관계자들의 적극적인 지지를 먼저 얻어내야 해요.', syn: ['Gain support', 'Secure agreement'], nuance: '새 기획 밀어붙이기 전, 단순 승인을 넘어 "내 편이 되어주는 적극적 지지"를 얻어낼 때 써요.' },
+            { en: 'Call the shots', pos: 'phrase', def: '결정권을 쥐고 리드하다 / 진두지휘하다', ex_en: "Who is calling the shots on this new initiative?", ex_kr: '이 신규 프로젝트는 누가 결정권을 쥐고 진두지휘하고 있나요?', syn: ['Take the lead', 'Be in charge'], nuance: '프로젝트의 실질적 보스·리더로서 주도권을 쥐고 중요 의사결정을 내리며 팀을 지휘할 때.' },
+            { en: 'Move in lockstep', pos: 'phrase', def: '긴밀하게 발을 맞추다 / 혼연일체가 되다', ex_en: "Marketing and sales need to move in lockstep for this launch.", ex_kr: '이번 런칭을 위해 마케팅팀과 영업팀은 완벽하게 발을 맞춰야 합니다.', syn: ['Sync up perfectly', 'Coordinate closely'], nuance: '타 부서·파트너사와 서로 다른 말 하지 않고 오차 없이 완벽하게 협력해 나아갈 때 써요.' },
           ] },
       ]
     },
     {
-      n: 2, title: 'Meetings & Messaging', subtitle: '일상 회의 영어 루틴 완성',
+      n: 2, title: 'Smart Communication', subtitle: '부드럽지만 뼈 있게, 글로벌 커뮤니케이션',
       days: [
-        { day: 6, title: '업데이트 보고', goal_en: "Give a clean status update.", goal_kr: '상태 업데이트 깔끔하게 전달하기.',
+        { day: 6, title: '기분 상하지 않게 피드백 주고받기', goal_en: "Deliver feedback without sugarcoating.", goal_kr: '상처 주지 않고 본질 짚기.',
           words: [
-            { en: 'on track', pos: 'phrase', def: '계획대로 진행 중', ex_en: "We're on track to launch next Tuesday.", ex_kr: '다음 주 화요일 런칭은 순조로워요.', syn: ['on schedule', 'on pace'] },
-            { en: 'heads-up', pos: 'noun', def: '미리 알림', ex_en: "Quick heads-up — deploys may run late.", ex_kr: '미리 알리자면 — 배포가 늦어질 수 있어요.', syn: ['FYI', 'warning'] },
-            { en: 'wrapping up', pos: 'phrasal verb', def: '마무리 중', ex_en: "We're wrapping up the QA pass today.", ex_kr: 'QA는 오늘 마무리 중이에요.', syn: ['finishing', 'closing out'] },
+            { en: 'Constructive criticism', pos: 'noun', def: '건설적인 비판', ex_en: "Please don't take this personally; it's just constructive criticism.", ex_kr: '개인적인 감정으로 받아들이진 마세요. 그냥 건설적인 비판일 뿐이니까요.', syn: ['Actionable feedback', 'Helpful critique'], nuance: '기분 상하게 하려는 게 아니라 결과물을 더 좋게 만들기 위한 실질적·도움되는 피드백을 줄 때 써요.' },
+            { en: 'Sugarcoat', pos: 'verb', def: '듣기 좋게 포장해서 말하다', ex_en: "I'm not going to sugarcoat it — we missed the target this quarter.", ex_kr: '좋게 포장해서 돌려 말하진 않겠습니다. 우리 이번 분기 목표 달성 실패했어요.', syn: ['Soften the blow', 'Mince words'], nuance: '안 좋은 소식·뼈아픈 피드백을 전할 때 상처받지 않게 말을 예쁘게 돌려 포장하는 뉘앙스.' },
+            { en: 'Take it offline', pos: 'phrase', def: '이 회의 밖에서 따로 얘기하다', ex_en: "That's a great point, but let's take it offline to save everyone's time.", ex_kr: '좋은 포인트네요. 하지만 다른 분들 시간을 위해 그건 회의 끝나고 따로 얘기하시죠.', syn: ['Discuss separately', 'Follow up later'], nuance: '다 같이 있는 회의에서 둘만의 얘기로 빠질 때 "따로 얘기합시다"라며 화제를 끊을 때 유용해요.' },
           ] },
-        { day: 7, title: '질문/확인', goal_en: "Let me walk you through it.", goal_kr: '더 나은 확인 질문 던지기.',
+        { day: 7, title: '부드럽게 반대하고 설득하기', goal_en: "Push back softly and find a middle ground.", goal_kr: '대립 없이 의견 좁히기.',
           words: [
-            { en: 'to double-check', pos: 'phrase', def: '재확인하자면', ex_en: "To double-check — design lock is Friday?", ex_kr: '재확인하자면 — 디자인 락은 금요일 맞죠?', syn: ['to confirm', 'just checking'] },
-            { en: 'walk me through', pos: 'phrase', def: '자세히 설명해주세요', ex_en: "Could you walk me through the flow?", ex_kr: '플로우를 좀 설명해 주실 수 있을까요?', syn: ['explain step by step'] },
-            { en: 'circle back', pos: 'phrasal verb', def: '나중에 다시 이야기하다', ex_en: "Let's circle back on pricing next week.", ex_kr: '가격은 다음 주에 다시 이야기해요.', syn: ['come back to it', 'revisit'] },
+            { en: "Play devil's advocate", pos: 'phrase', def: '의도적으로 반대 입장을 취하다', ex_en: "Let me play devil's advocate for a second. What if the server crashes?", ex_kr: '잠깐 딴지 좀 걸어볼게요. 만약 서버가 터지면 어떡하죠?', syn: ['Argue the opposing side'], nuance: '모두가 "좋아요" 할 때 리스크 점검용으로 악역을 자처하며 딴지를 걸어볼 때 써요.' },
+            { en: 'Middle ground', pos: 'noun', def: '타협점 / 절충안', ex_en: "We need to find a middle ground between speed and quality.", ex_kr: '우리는 속도와 퀄리티 사이에서 타협점을 찾아야 해요.', syn: ['Compromise', 'Happy medium'], nuance: 'A안과 B안이 팽팽할 때 양쪽이 조금씩 양보해 모두가 만족할 중간 지점을 찾는 표현.' },
+            { en: 'Meet halfway', pos: 'phrase', def: '서로 양보해서 타협하다', ex_en: "If you can lower the price, we will meet you halfway and increase the volume.", ex_kr: '가격을 낮춰주신다면, 저희도 양보해서 물량을 늘리겠습니다.', syn: ['Make a concession', 'Strike a balance'], nuance: '한쪽만 100% 양보하는 게 아니라 서로 반반씩 양보해 합의를 이끌어낼 때 써요.' },
           ] },
-        { day: 8, title: '이슈 공유', goal_en: "Flag issues without panic.", goal_kr: '패닉 없이 이슈 공유하기.',
+        { day: 8, title: '회의 시간 낭비 없이 핵심만 짚기', goal_en: "Cut to the chase and timebox discussions.", goal_kr: '불필요한 서론 없이 본론만.',
           words: [
-            { en: 'flag', pos: 'verb', def: '문제를 제기하다', ex_en: "I want to flag a risk with the dependency.", ex_kr: '디펜던시 관련 리스크를 하나 공유드릴게요.', syn: ['highlight', 'raise'] },
-            { en: 'blocker', pos: 'noun', def: '진행을 막는 요인', ex_en: "API access is the blocker right now.", ex_kr: '지금은 API 권한이 블로커예요.', syn: ['obstacle', 'impediment'] },
-            { en: "we're seeing", pos: 'phrase', def: '지금 ~한 현상이 관찰돼요', ex_en: "We're seeing higher latency on mobile.", ex_kr: '모바일에서 레이턴시가 높게 나오고 있어요.', syn: ['we are observing'] },
+            { en: 'Cut to the chase', pos: 'phrase', def: '본론으로 바로 들어가다', ex_en: "We only have 10 minutes, so let's cut to the chase.", ex_kr: '우리 10분밖에 없으니까 본론으로 바로 들어갑시다.', syn: ['Get straight to the point', 'Skip the fluff'], nuance: '시간 없을 때 쓸데없는 소리는 생략하고 핵심부터 바로 얘기하자고 할 때 써요.' },
+            { en: 'Timebox', pos: 'verb', def: '특정 업무/논의에 제한 시간을 두다', ex_en: "Let's timebox this discussion to 15 minutes.", ex_kr: '이 논의는 딱 15분으로 제한 시간을 둡시다.', syn: ['Set a time limit', 'Cap the time'], nuance: '회의에서 안건이 길어지지 않게 "딱 이 시간까지만 하자"며 타이머를 맞출 때 써요.' },
+            { en: 'Give time back', pos: 'phrase', def: '남은 시간을 돌려주다', ex_en: "Since we covered everything, I'll give you 10 minutes back.", ex_kr: '안건을 다 다뤘으니, 남은 10분은 여러분께 돌려드릴게요.', syn: ['Wrap up early', 'End ahead of schedule'], nuance: '회의가 일찍 끝났을 때 "남은 시간은 각자 업무 하세요"라며 기분 좋게 마무리할 때 쓰는 마법의 멘트.' },
           ] },
-        { day: 9, title: '요청하기', goal_en: "Make a crisp ask.", goal_kr: '깔끔하게 요청하기.',
+        { day: 9, title: '선 넘지 않고 확실하게 업무 나누기', goal_en: "Know the go-to person and the heavy lifting.", goal_kr: '역할과 책임 명확하게.',
           words: [
-            { en: 'could you', pos: 'phrase', def: '부탁드려도 될까요', ex_en: "Could you share the deck by EOD?", ex_kr: '오늘 퇴근 전까지 덱 공유 가능할까요?', syn: ['would you mind', 'can you'] },
-            { en: 'when you get a chance', pos: 'phrase', def: '시간 될 때', ex_en: "When you get a chance, please review the PR.", ex_kr: '시간 되실 때 PR 리뷰 부탁드려요.', syn: ['whenever you can', 'at your convenience'] },
-            { en: 'if possible', pos: 'phrase', def: '가능하다면', ex_en: "If possible, I'd love feedback by Thursday.", ex_kr: '가능하시다면 목요일까지 피드백 받고 싶어요.', syn: ['if you can'] },
+            { en: 'Go-to person', pos: 'noun', def: '핵심 담당자 / 어떤 문제의 해결사', ex_en: "Sarah is our go-to person for anything related to data analytics.", ex_kr: '데이터 분석 관련 일이라면 사라가 우리의 만능 해결사예요.', syn: ['Subject matter expert', 'Key contact'], nuance: '특정 분야에 대해 "그건 이 사람한테 물어보면 다 알아" 할 만큼 가장 먼저 찾게 되는 핵심 전문가.' },
+            { en: 'Heavy lifting', pos: 'noun', def: '가장 힘들고 핵심적인 작업', ex_en: "The agency will do the heavy lifting on the design.", ex_kr: '디자인과 관련된 가장 빡세고 굵직한 작업은 에이전시가 맡을 거예요.', syn: ['The bulk of the work', 'Hard work'], nuance: '프로젝트에서 리소스 많이 들고 까다로운 "진짜배기 막노동"이나 핵심 작업을 뜻해요.' },
+            { en: "Step on someone's toes", pos: 'phrase', def: '남의 권한이나 영역을 침범하다', ex_en: "I want to help with the marketing plan, but I don't want to step on anyone's toes.", ex_kr: '마케팅 기획을 돕고 싶긴 한데, 담당자들 선을 넘거나 기분 나쁘게 하고 싶진 않아요.', syn: ['Overstep boundaries', 'Interfere'], nuance: '의욕이 앞서서 타 부서·담당자의 업무 영역을 선 넘어 건드려 상대방을 기분 나쁘게 만들 때 써요.' },
           ] },
-        { day: 10, title: '감사/마무리', goal_en: "Close with warmth.", goal_kr: '따뜻하게 회의 마무리하기.',
+        { day: 10, title: '껄끄러운 상황 유연하게 넘기기', goal_en: "Address the elephant and read the room.", goal_kr: '민감한 공기 읽고 대응하기.',
           words: [
-            { en: 'appreciate', pos: 'verb', def: '감사하다, 고마워하다', ex_en: "Really appreciate you jumping in.", ex_kr: '빠르게 들어와주셔서 정말 감사해요.', syn: ['thank you for', 'grateful for'] },
-            { en: 'thanks for bearing with', pos: 'phrase', def: '인내해주셔서 감사해요', ex_en: "Thanks for bearing with the delays today.", ex_kr: '오늘 딜레이 있었는데 기다려주셔서 감사해요.', syn: ['thanks for your patience'] },
-            { en: 'catch up later', pos: 'phrase', def: '나중에 얘기하다', ex_en: "Let's catch up later this week.", ex_kr: '이번 주 내로 다시 얘기해요.', syn: ['touch base', 'reconnect'] },
+            { en: 'Elephant in the room', pos: 'noun', def: '모두가 알지만 꺼내기 꺼려하는 민감한 문제', ex_en: "Let's address the elephant in the room: our budget has been cut by half.", ex_kr: '불편하지만 누구나 아는 이 문제부터 짚고 넘어갑시다. 우리 예산이 반토막 났어요.', syn: ['Obvious problem', 'Uncomfortable truth'], nuance: '회의실에 엄청난 문제가 있는데 분위기 싸해질까 봐 아무도 입 밖으로 꺼내지 않는 껄끄러운 상황.' },
+            { en: 'Read the room', pos: 'phrase', def: '분위기를 파악하다 / 눈치채다', ex_en: "You need to read the room before pitching a risky idea.", ex_kr: '리스크가 큰 아이디어를 제안하기 전에는 회의실 분위기부터 눈치껏 파악해야 해요.', syn: ['Catch the vibe', 'Gauge the mood'], nuance: '사람들의 표정·침묵 같은 보이지 않는 공기를 읽고, 이 말을 해도 될지 눈치껏 판단할 때 써요.' },
+            { en: 'Benefit of the doubt', pos: 'noun', def: '확실치 않을 때 일단 좋게 믿어주다', ex_en: "He's usually very punctual, so let's give him the benefit of the doubt.", ex_kr: '그분 원래 시간 약속 철저하잖아요. 일단 무슨 사정이 있겠거니 하고 좋게 믿어줍시다.', syn: ["Take one's word for it", 'Assume the best'], nuance: '동료가 실수·무응답일 때 "일부러 그런 건 아닐 거야, 사정이 있겠지"라며 긍정적으로 짐작할 때 써요.' },
           ] },
       ]
     },
     {
-      n: 3, title: 'Feedback & Collab', subtitle: '피드백과 협업의 언어',
+      n: 3, title: 'Problem Solving & Strategy', subtitle: '탁월한 성과를 만드는 문제 해결력',
       days: [
-        { day: 11, title: '피드백 받기', goal_en: "Receive feedback gracefully.", goal_kr: '피드백을 여유있게 받기.',
+        { day: 11, title: '제로부터 다시 튼튼하게 기획하기', goal_en: "Start with a blank canvas, don't reinvent the wheel.", goal_kr: '백지부터 기획하되 중복은 피하기.',
           words: [
-            { en: "that's fair", pos: 'phrase', def: '일리 있어요', ex_en: "That's fair — let me revise the doc.", ex_kr: '일리 있네요 — 문서 다시 정리할게요.', syn: ['good point', 'that makes sense'] },
-            { en: 'I hear you', pos: 'phrase', def: '이해해요, 알겠어요', ex_en: "I hear you on the timing concern.", ex_kr: '타이밍 걱정은 저도 이해해요.', syn: ['I get it', "I'm with you"] },
-            { en: 'let me think on it', pos: 'phrase', def: '좀 더 생각해볼게요', ex_en: "Let me think on it and come back tomorrow.", ex_kr: '좀 고민해보고 내일 다시 얘기할게요.', syn: ['give me time', 'let me reflect'] },
+            { en: 'Blank canvas', pos: 'noun', def: '백지상태 / 처음부터 다시 그릴 수 있는 상태', ex_en: "Let's approach this new product design as a blank canvas.", ex_kr: '이 신제품 디자인은 완전히 백지상태에서 새롭게 접근해 봅시다.', syn: ['Clean slate', 'Fresh start'], nuance: '기존 제약·틀에 얽매이지 않고 완전히 새로운 시각으로 프로젝트를 처음부터 시작할 때 써요.' },
+            { en: 'Reinvent the wheel', pos: 'phrase', def: '이미 있는 것을 쓸데없이 처음부터 다시 만들다', ex_en: "We have a template for this; there's no need to reinvent the wheel.", ex_kr: '이거 템플릿 이미 있어요. 쓸데없이 처음부터 다시 만들 필요 없습니다.', syn: ['Duplicate effort', 'Waste time on basics'], nuance: '(주로 부정문) 이미 잘 만들어둔 해결책이 있는데 굳이 처음부터 다시 고생할 필요 없다고 말할 때.' },
+            { en: 'Scratch the surface', pos: 'phrase', def: '수박 겉핥기 식으로 다루다 / 이제 겨우 시작일 뿐', ex_en: "This report only scratches the surface of the problem.", ex_kr: '이 보고서는 문제의 수박 겉핥기 수준밖에 안 됩니다.', syn: ['Touch on', 'Barely begin'], nuance: '문제의 진짜 원인은 파악하지 못하고 겉만 건드렸거나, 성과가 빙산의 일각일 뿐일 때 써요.' },
           ] },
-        { day: 12, title: '피드백 주기', goal_en: "Give kind-candid feedback.", goal_kr: '친절하고 솔직한 피드백 주기.',
+        { day: 12, title: '거절할 수 없는 전략 만들기', goal_en: "Sharpen our value proposition and competitive edge.", goal_kr: '우리만의 강점으로 판 뒤집기.',
           words: [
-            { en: "one thing I'd push on", pos: 'phrase', def: '한 가지 짚자면', ex_en: "One thing I'd push on is the onboarding copy.", ex_kr: '한 가지 짚자면 온보딩 카피가 애매해요.', syn: ['one callout', 'one thing to flag'] },
-            { en: 'what if we', pos: 'phrase', def: '이렇게 해보는 건 어때요', ex_en: "What if we split this into two releases?", ex_kr: '릴리즈를 두 번으로 나눠보는 건 어때요?', syn: ['how about we', 'could we try'] },
-            { en: 'a small nit', pos: 'phrase', def: '작은 트집, 사소한 지적', ex_en: "Small nit — the button label is inconsistent.", ex_kr: '사소한 건데 — 버튼 라벨이 일관성 없어요.', syn: ['minor note', 'small thing'] },
+            { en: 'Value proposition', pos: 'noun', def: '고객에게 제공하는 핵심 가치 제안', ex_en: "We need to clearly define our value proposition for the new app.", ex_kr: '새로운 앱에 대한 우리의 핵심 가치 제안을 명확히 정의해야 해요.', syn: ['Core benefit', 'Selling point'], nuance: '"왜 경쟁사가 아니라 우리 제품?"에 대해 우리만이 줄 수 있는 매력적·핵심 가치를 설명할 때 써요.' },
+            { en: 'Competitive edge', pos: 'noun', def: '경쟁 우위 / 우리만의 강점', ex_en: "Our fast delivery system gives us a competitive edge.", ex_kr: '우리의 빠른 배송 시스템이 우리에게 경쟁 우위를 줍니다.', syn: ['Advantage', 'Upper hand'], nuance: '치열한 시장·경쟁PT에서 남들을 압도할 수 있는 날카롭고 확실한 강점을 어필할 때 써요.' },
+            { en: 'Game changer', pos: 'noun', def: '시장의 판도를 완전히 뒤집는 혁신적인 것', ex_en: "Integrating AI into our service will be a total game changer.", ex_kr: '우리 서비스에 AI를 도입하는 건 완전한 게임 체인저가 될 거예요.', syn: ['Breakthrough', 'Paradigm shift'], nuance: '기존 규칙·트렌드를 한 방에 깨부수고 완전히 새로운 패러다임을 제시하는 혁신적인 것을 칭찬할 때.' },
           ] },
-        { day: 13, title: '의견 차이', goal_en: "Disagree and commit.", goal_kr: '프로답게 반대하고 따라가기.',
+        { day: 13, title: '뼈아픈 문제에 직면하고 돌파하기', goal_en: "Bite the bullet and tackle the pain point.", goal_kr: '불편한 문제 정면 돌파.',
           words: [
-            { en: 'push back a little', pos: 'phrase', def: '살짝 반대 의견 내기', ex_en: "I want to push back a little on scope.", ex_kr: '스코프에 대해 살짝 반대 의견 드릴게요.', syn: ['challenge gently'] },
-            { en: 'see it differently', pos: 'phrase', def: '다르게 보다', ex_en: "I see it a bit differently — let me share.", ex_kr: '저는 좀 다르게 봐요 — 말씀드릴게요.', syn: ['have a different take'] },
-            { en: 'meet in the middle', pos: 'phrase', def: '중간에서 타협하다', ex_en: "Can we meet in the middle on the deadline?", ex_kr: '데드라인은 중간에서 맞춰볼 수 있을까요?', syn: ['compromise', 'find common ground'] },
+            { en: 'Pain point', pos: 'noun', def: '고객이나 팀이 겪는 핵심적인 불편 사항', ex_en: "The new feature directly addresses the user's biggest pain point.", ex_kr: '이 새로운 기능은 유저들의 가장 큰 불편 사항을 직접적으로 해결해 줍니다.', syn: ['Core problem', 'Friction point'], nuance: '고객이 일상에서 겪는 가장 고통스럽고 짜증 나는 부분을 콕 짚어 "우리가 해결해 줄게"라고 접근할 때.' },
+            { en: 'Bite the bullet', pos: 'phrase', def: '어렵거나 고통스러운 상황을 정면 돌파하다', ex_en: "We just have to bite the bullet and completely rebuild the system.", ex_kr: '우린 눈 꽉 감고 정면 돌파해서 시스템을 아예 처음부터 다시 구축해야만 해요.', syn: ['Face the music', 'Suck it up'], nuance: '하기 싫은 해고 통보·예산 삭감·야근 등 피하고 싶지만 어차피 해야 할 일을 눈 딱 감고 해치울 때.' },
+            { en: 'Stumbling block', pos: 'noun', def: '진행을 막는 걸림돌 / 장애물', ex_en: "The lack of budget became a major stumbling block for the campaign.", ex_kr: '예산 부족이 이번 캠페인의 큰 걸림돌이 되었습니다.', syn: ['Hurdle', 'Obstacle'], nuance: '프로젝트가 잘 가다가 예상 못한 규제·예산·반대 등 진행을 막히게 하는 방해물을 만났을 때 써요.' },
           ] },
-        { day: 14, title: '합의 도출 · TODAY', goal_en: "Let's align on the next step and move forward.", goal_kr: '의견 속에서 합의 만들기.',
+        { day: 14, title: '위기 상황에서 살아남기', goal_en: "Run damage control with a contingency plan.", goal_kr: '불 끄고 플랜 B 가동.',
           words: [
-            { en: 'align on', pos: 'phrasal verb', def: '(기준/방향에) 합을 맞추다', ex_en: "Let's align on the next milestone before we split up.", ex_kr: '각자 흩어지기 전에 다음 마일스톤에 합을 맞춥시다.', syn: ['get on the same page', 'sync on'] },
-            { en: 'go with', pos: 'phrasal verb', def: '~로 결정하다, 그걸로 가다', ex_en: "Let's go with option B for now and iterate.", ex_kr: '일단 옵션 B로 가고 개선해나가요.', syn: ['commit to', 'settle on', 'pick'] },
-            { en: 'for now', pos: 'adverbial', def: '일단, 당분간', ex_en: "That's out of scope for now, but let's park it.", ex_kr: '지금은 범위 밖이지만 나중에 다시 봐요.', syn: ['for the time being', 'tentatively'] },
+            { en: 'Damage control', pos: 'noun', def: '피해를 최소화하기 위한 수습/방어 작업', ex_en: "PR is currently doing damage control regarding the negative article.", ex_kr: 'PR팀이 현재 그 부정적인 기사에 대해 피해 수습 작업을 하고 있습니다.', syn: ['Crisis management', 'Mitigation'], nuance: '서비스가 터지거나 클라이언트가 극대노했을 때 일이 더 커지기 전에 불을 끄고 수습하는 비상 상황.' },
+            { en: 'Silver lining', pos: 'noun', def: '어려운 상황 속에서도 발견한 한 줄기 희망', ex_en: "The delay was bad, but the silver lining is we have more time to test.", ex_kr: '지연된 건 안 좋지만, 그래도 불행 중 다행인 건 테스트할 시간이 더 생겼다는 거예요.', syn: ['Positive aspect', 'Ray of hope'], nuance: '프로젝트가 엎어지거나 실패했을 때 "그래도 이번 일 덕분에 이런 건 얻었잖아"라며 긍정적 측면을 짚어줄 때.' },
+            { en: 'Contingency plan', pos: 'noun', def: '만일의 사태에 대비한 플랜 B / 비상 계획', ex_en: "Do we have a contingency plan in case the vendor drops out?", ex_kr: '만약 벤더가 갑자기 빠질 경우를 대비한 비상 계획이 있나요?', syn: ['Plan B', 'Backup plan'], nuance: '메인 플랜이 틀어졌을 때를 대비해 리스크 관리 차원에서 미리 세워두는 안전망·비상 대책.' },
           ] },
-        { day: 15, title: '팔로우업', goal_en: "Send a clean recap.", goal_kr: '깔끔한 팔로우업 메시지 쓰기.',
+        { day: 15, title: '다음 레벨로 스케일업 하기', goal_en: "Scale up, ramp up, and create synergy.", goal_kr: '판을 키우고 속도를 올리기.',
           words: [
-            { en: 'action items', pos: 'noun', def: '해야 할 일 목록', ex_en: "Here are the action items from today's call.", ex_kr: '오늘 회의 액션 아이템 정리드려요.', syn: ['next steps', 'to-dos'] },
-            { en: 'recap', pos: 'noun', def: '요약, 정리', ex_en: "Quick recap: we're going with B, due Friday.", ex_kr: '간단 요약 — B안, 금요일 마감.', syn: ['summary', 'wrap-up'] },
-            { en: 'by EOD', pos: 'phrase', def: '오늘 퇴근 전까지 (End of Day)', ex_en: "I'll share the doc by EOD.", ex_kr: '퇴근 전까지 문서 공유드릴게요.', syn: ['by end of day', 'today'] },
+            { en: 'Scale up', pos: 'phrasal verb', def: '규모를 폭발적으로 확장하다', ex_en: "We're ready to scale up our operations in Asia next year.", ex_kr: '우리는 내년에 아시아 지역의 사업 규모를 확장할 준비가 되었습니다.', syn: ['Expand', 'Grow rapidly'], nuance: '작은 단위로 테스트해 성공한 모델을 예산·인력 대거 투입해 본격적으로 크게 키울 때 써요.' },
+            { en: 'Synergy', pos: 'noun', def: '서로 합쳐서 더 큰 효과를 내는 시너지', ex_en: "There's a lot of synergy between our two teams.", ex_kr: '우리 두 팀 사이에는 엄청난 시너지 효과가 있어요.', syn: ['Collaborative advantage', 'Combined effect'], nuance: '1+1이 3이나 4가 되는 효과. 타 부서·회사와 협업할 때 폭발적 성과를 내자고 제안할 때 써요.' },
+            { en: 'Ramp up', pos: 'phrasal verb', def: '생산·활동·노력 등을 집중적으로 끌어올리다', ex_en: "We need to ramp up our marketing efforts before the launch.", ex_kr: '런칭 전에 마케팅 노력을 집중적으로 쫙 끌어올려야 합니다.', syn: ['Increase significantly', 'Boost'], nuance: '신제품 출시·성수기 앞두고 팀 리소스·광고 예산·생산량 등을 단기간에 팍팍 늘릴 때 써요.' },
           ] },
       ]
     },
     {
-      n: 4, title: 'Own the Room', subtitle: '주도적으로 이끄는 영어',
+      n: 4, title: 'Execution & Productivity', subtitle: '압도적인 실행력과 생산성 극대화',
       days: [
-        { day: 16, title: '일정 확정/진행', goal_en: "Lock in dates.", goal_kr: '일정을 확정하는 영어.',
+        { day: 16, title: '첫날부터 폭발적으로 치고 나가기', goal_en: "Hit the ground running and go the extra mile.", goal_kr: '출발부터 전력 질주.',
           words: [
-            { en: 'lock this in', pos: 'phrase', def: '확정하다', ex_en: "Let's lock this in before the holiday.", ex_kr: '연휴 전에 확정해버리죠.', syn: ['finalize', 'commit to'] },
-            { en: 'by EOD', pos: 'phrase', def: '오늘 퇴근 전까지', ex_en: "Send the deck by EOD please.", ex_kr: '퇴근 전까지 덱 보내주세요.', syn: ['end of day'] },
-            { en: 'tentative', pos: 'adj', def: '잠정적인', ex_en: "The launch date is tentative.", ex_kr: '런칭 일정은 잠정적이에요.', syn: ['provisional', 'tbd'] },
+            { en: 'Hit the ground running', pos: 'phrase', def: '시작하자마자 지체 없이 전력을 다해 진행하다', ex_en: "I've read all the docs, so I'm ready to hit the ground running on Monday.", ex_kr: '문서는 다 읽어뒀으니, 월요일부터 바로 전력으로 달릴 준비가 되었습니다.', syn: ['Start strong', 'Jump right in'], nuance: '새 직장·프로젝트 맡았을 때 적응기 없이 첫날부터 실전 투입되어 성과를 낼 때 써요.' },
+            { en: 'Go the extra mile', pos: 'phrase', def: '기대 이상으로 더 노력하다', ex_en: "She always goes the extra mile to ensure client satisfaction.", ex_kr: '그녀는 클라이언트 만족을 위해 항상 기대 이상으로 더 노력합니다.', syn: ['Overdeliver', 'Exceed expectations'], nuance: '딱 자기 할 일만 한 게 아니라 기대보다 훨씬 더 정성·디테일을 챙겨 감동적 결과물을 가져왔을 때 써요.' },
+            { en: 'Stay ahead of the pack', pos: 'phrase', def: '경쟁자들 무리보다 항상 한발 앞서 나가다', ex_en: "Continuous innovation helps us stay ahead of the pack.", ex_kr: '지속적인 혁신은 우리가 경쟁자들보다 항상 앞서 나가도록 돕습니다.', syn: ['Lead the way', 'Outperform competitors'], nuance: '우리 회사가 시장 선두 주자로서 트렌드를 이끌거나 경쟁사가 따라오지 못할 기술력을 유지할 때 써요.' },
           ] },
-        { day: 17, title: '논의 보류/우선순위 변경', goal_en: "Table or reprioritize.", goal_kr: '안건 보류/우선순위 바꾸기.',
+        { day: 17, title: '방해물 없이 몰입하기', goal_en: "Block time for deep work and get in the zone.", goal_kr: '산만함 차단, 몰입 만들기.',
           words: [
-            { en: 'table it for now', pos: 'phrase', def: '일단 보류하다', ex_en: "Let's table it for now and revisit in Q3.", ex_kr: '일단 보류하고 Q3에 다시 봐요.', syn: ['park it', 'shelve it'] },
-            { en: 'open items', pos: 'noun', def: '미해결 안건', ex_en: "We still have three open items.", ex_kr: '아직 미해결 안건이 3개 있어요.', syn: ['outstanding items'] },
-            { en: 'deprioritize', pos: 'verb', def: '우선순위를 낮추다', ex_en: "We're deprioritizing the onboarding redesign.", ex_kr: '온보딩 리디자인은 우선순위를 낮출게요.', syn: ['defer', 'push back'] },
+            { en: 'Deep work', pos: 'noun', def: '방해받지 않고 고도로 집중하는 몰입 업무', ex_en: "I have two hours of deep work scheduled for this afternoon.", ex_kr: '오늘 오후에 방해받지 않고 고도로 몰입할 딥워크 시간을 2시간 잡아뒀어요.', syn: ['Focused time', 'Blocked time'], nuance: '메신저·회의·이메일 끄고 기획·코딩처럼 엄청난 집중력이 필요한 핵심 업무에만 파고들 때 써요.' },
+            { en: 'Get in the zone', pos: 'phrase', def: '무아지경에 빠지다 / 극도의 집중 상태에 들어가다', ex_en: "Give me 30 minutes; I'm finally getting in the zone.", ex_kr: '30분만 줘, 나 마침내 무아지경 몰입 상태에 들어갔거든.', syn: ["Find one's flow", 'Be fully immersed'], nuance: '주위 소음도 안 들리고 배고픔도 잊은 채 일이 엄청나게 잘 풀리는 최고의 몰입 상태.' },
+            { en: 'Laser-focused', pos: 'adj', def: '레이저처럼 한 곳에 날카롭게 집중한 상태', ex_en: "The team is laser-focused on hitting the Q3 targets.", ex_kr: '팀 전체가 3분기 목표 달성에 레이저처럼 날카롭게 집중하고 있습니다.', syn: ['Hyper-focused', 'Zeroed in'], nuance: '잡무·산만한 이슈는 다 쳐내고 이번 달 가장 중요한 단 하나의 핵심 목표에만 에너지를 쏟을 때 써요.' },
           ] },
-        { day: 18, title: '근거 기반 말하기', goal_en: "Lay the groundwork with data.", goal_kr: '데이터로 근거 만들기.',
+        { day: 18, title: '복잡한 절차 뚫고 가기', goal_en: "Jump through hoops and cut through red tape.", goal_kr: '까다로운 절차 돌파하기.',
           words: [
-            { en: 'lay the groundwork', pos: 'phrase', def: '기반을 다지다', ex_en: "This experiment lays the groundwork for Q3.", ex_kr: '이 실험이 Q3의 기반이 돼요.', syn: ['set the stage', 'prepare the way'] },
-            { en: 'data point', pos: 'noun', def: '데이터 포인트', ex_en: "That's one data point, not a trend.", ex_kr: '그건 데이터 한 건이지 트렌드는 아니에요.', syn: ['observation', 'evidence'] },
-            { en: 'assumption', pos: 'noun', def: '가정', ex_en: "Our main assumption is D2 retention holds.", ex_kr: '주요 가정은 D2 리텐션이 유지된다는 거예요.', syn: ['hypothesis', 'premise'] },
+            { en: 'Jump through hoops', pos: 'phrase', def: '복잡하고 까다로운 절차들을 다 통과하다', ex_en: "We had to jump through hoops to get this budget approved.", ex_kr: '이 예산을 승인받기 위해 우리는 복잡하고 까다로운 절차들을 다 거쳐야만 했어요.', syn: ['Navigate hurdles', 'Overcome bureaucratic hurdles'], nuance: '부서 승인 여러 번·상사의 까다로운 요구 등 쉬운 길을 온갖 고생하며 통과해야 할 때 써요.' },
+            { en: 'Red tape', pos: 'noun', def: '불필요하고 복잡한 관료주의적 규칙', ex_en: "The startup moves fast because there is very little red tape.", ex_kr: '그 스타트업은 복잡한 서류 작업이나 규제가 거의 없어서 진행이 빠릅니다.', syn: ['Bureaucracy', 'Official strictness'], nuance: '"결재 도장 몇 개나 받아야 돼?" 할 정도의 답답한 행정 절차·형식적 규제를 비판할 때 써요.' },
+            { en: 'Uphill battle', pos: 'noun', def: '힘들고 험난한 싸움 / 엄청난 고생이 예상되는 과정', ex_en: "Convincing the board will be an uphill battle, but we have to try.", ex_kr: '이사회 설득은 엄청 험난한 싸움이 되겠지만, 우린 해봐야 합니다.', syn: ['Tough struggle', 'Hard slog'], nuance: '승리가 불가능한 건 아니지만 경쟁사가 강하거나 상황이 불리해 과정이 험난할 것이 예상될 때.' },
           ] },
-        { day: 19, title: '검토 요청 (더블 체크)', goal_en: "Get a second pair of eyes.", goal_kr: '더블 체크 요청하기.',
+        { day: 19, title: '완벽하게 마무리하기', goal_en: "Put the finishing touches and deliver the goods.", goal_kr: '결승선 앞 마지막 디테일.',
           words: [
-            { en: 'a second pair of eyes', pos: 'phrase', def: '한 번 더 봐줄 사람', ex_en: "Can I get a second pair of eyes on this?", ex_kr: '이거 한 번 더 봐주실 수 있을까요?', syn: ['another set of eyes'] },
-            { en: 'nitpick', pos: 'verb/noun', def: '사소한 것까지 지적하다', ex_en: "Small nitpick — comma after 'however'.", ex_kr: '사소한 거 하나 — however 다음에 콤마요.', syn: ['small note'] },
-            { en: 'low-stakes', pos: 'adj', def: '부담 적은', ex_en: "It's a low-stakes review.", ex_kr: '가볍게 보는 리뷰예요.', syn: ['informal', 'low-pressure'] },
+            { en: 'Cross the finish line', pos: 'phrase', def: '마침내 목표를 달성하다 / 결승선을 넘다', ex_en: "Just one more test phase, and we'll cross the finish line.", ex_kr: '테스트 단계 딱 하나만 더 거치면, 우린 마침내 결승선을 넘는 거예요.', syn: ['Complete the task', 'Reach the goal'], nuance: '몇 달 고생한 대형 프로젝트·긴 협상 막바지에 "고지가 눈앞이다! 끝내자!"며 독려할 때 써요.' },
+            { en: 'Put the finishing touches', pos: 'phrase', def: '마지막 퀄리티를 끌어올리는 마무리 터치를 하다', ex_en: "The code is done; we're just putting the finishing touches on the UI.", ex_kr: '코드는 끝났습니다. UI에 마지막 디테일을 다듬는 마무리 터치 중이에요.', syn: ['Finalize', 'Polish up'], nuance: '일의 95%는 끝났고 제출 직전에 오탈자·픽셀 등 완성도를 극대화하는 마지막 영혼 갈아 넣기 작업.' },
+            { en: 'Deliver the goods', pos: 'phrase', def: '기대했던 성과나 결과물을 확실하게 내놓다', ex_en: "They talk big, but can they actually deliver the goods?", ex_kr: '그들 입만 살았는데, 진짜로 기대했던 성과를 확실히 내놓을 수 있대?', syn: ['Produce results', 'Follow through'], nuance: '구두로만 "잘할게요" 한 게 아니라 목표 매출·핵심 결과물을 보란 듯이 증명해 가져왔을 때 써요.' },
           ] },
-        { day: 20, title: '마무리/정리/다음 액션', goal_en: "Knock out these deliverables.", goal_kr: '챌린지 마무리하고 다음 액션.',
+        { day: 20, title: '과거를 딛고 넥스트 스텝으로 전진하기', goal_en: "Run a post-mortem and connect the dots.", goal_kr: '교훈 남기고 다음으로.',
           words: [
-            { en: 'knock out', pos: 'phrasal verb', def: '빠르게 해치우다', ex_en: "Let's knock out the last two tickets.", ex_kr: '마지막 티켓 두 개 빠르게 처리해버려요.', syn: ['finish', 'power through'] },
-            { en: 'deliverables', pos: 'noun', def: '산출물', ex_en: "What are the deliverables for this sprint?", ex_kr: '이번 스프린트 산출물이 뭐예요?', syn: ['outputs', 'outcomes'] },
-            { en: 'wrap this up', pos: 'phrase', def: '마무리하다', ex_en: "Let's wrap this up and celebrate.", ex_kr: '마무리하고 축하해요.', syn: ['close out', 'finish'] },
+            { en: 'Post-mortem', pos: 'noun', def: '프로젝트 종료 후 실패와 성공 요인을 해부하는 사후 회고', ex_en: "Let's schedule a post-mortem next week to discuss what went wrong.", ex_kr: '무엇이 잘못됐는지 논의하기 위해 다음 주에 사후 회고 미팅을 잡읍시다.', syn: ['Debriefing', 'Review session'], nuance: '프로젝트(주로 실패·이슈 있던 건) 끝난 후 "왜 그랬을까?"를 냉정하게 분석하기 위해 모이는 회고 미팅.' },
+            { en: 'Lessons learned', pos: 'noun', def: '프로젝트를 통해 얻은 찐 교훈 / 배운 점', ex_en: "We need to document our lessons learned for future teams.", ex_kr: '미래의 팀들을 위해 이번에 얻은 뼈아픈 교훈들을 문서로 남겨둬야 합니다.', syn: ['Key takeaways', 'Insights gained'], nuance: '회고 후 이번 경험으로 구체적으로 무엇을 깨달았고 같은 실수를 반복 안 하기 위해 문서로 남길 때.' },
+            { en: 'Connect the dots', pos: 'phrase', def: '점들을 연결하다 / 흩어진 정보로 큰 그림을 도출하다', ex_en: "A good data analyst knows how to connect the dots.", ex_kr: '훌륭한 데이터 분석가는 흩어진 데이터의 점들을 연결해 큰 그림을 볼 줄 압니다.', syn: ['See the big picture', 'Synthesize info'], nuance: '파편화된 데이터·정보 속에서 패턴을 찾아내 하나의 큰 인사이트·전략으로 꿰뚫어 볼 때 써요.' },
           ] },
       ]
     },
@@ -946,10 +954,10 @@ const CHALLENGE = {
   // Premium-only add-ons
   premium: {
     weekly_meetings: [
-      { n: 1, date: '2026-04-30', title: 'Week 1 — Kickoff & Onboarding', desc: 'North Star 정렬 + 오프닝 표현 롤플레이', status: 'upcoming', zoom: 'Zoom' },
-      { n: 2, date: '2026-05-07', title: 'Week 2 — Meetings & Messaging', desc: '상태 업데이트/이슈 공유 시뮬레이션', status: 'upcoming', zoom: 'Zoom' },
-      { n: 3, date: '2026-05-14', title: 'Week 3 — Feedback & Collab', desc: '피드백 주고받기 + 의견 차이 좁히기', status: 'upcoming', zoom: 'Zoom' },
-      { n: 4, date: '2026-05-21', title: 'Week 4 — Own the Room (PPT 발표)', desc: '본인 Industry 맞춤 PPT 발표 + 피드백', status: 'upcoming', zoom: 'Zoom' },
+      { n: 1, date: '2026-04-30', title: 'Week 1 — Setup & Strategy', desc: '판 깔기·기준점 잡기 표현 롤플레이', status: 'upcoming', zoom: 'Zoom' },
+      { n: 2, date: '2026-05-07', title: 'Week 2 — Smart Communication', desc: '건설적 피드백/반대 의견 시뮬레이션', status: 'upcoming', zoom: 'Zoom' },
+      { n: 3, date: '2026-05-14', title: 'Week 3 — Problem Solving & Strategy', desc: 'Value proposition 피칭 + 위기 대응 연습', status: 'upcoming', zoom: 'Zoom' },
+      { n: 4, date: '2026-05-21', title: 'Week 4 — Execution & Productivity (PPT 발표)', desc: '본인 Industry 맞춤 PPT 발표 + Post-mortem', status: 'upcoming', zoom: 'Zoom' },
     ],
     pt_sessions: [
       { date: '2026-05-05', title: '1:1 PT — 약점 진단', desc: '발음·문법·어휘 약점 체크', status: 'upcoming' },
@@ -957,11 +965,11 @@ const CHALLENGE = {
       { date: '2026-05-19', title: '1:1 PT — 최종 리뷰', desc: 'PPT 리허설 + Certification', status: 'upcoming' },
     ],
     quiz: [
-      { q: "\"___ on the timeline — let's revisit after demo.\"", options: ['Lock in', "Let's align", 'Go with', 'Wrap up'], a: 1, hint: '합의 표현' },
-      { q: "What's the best phrase to soften disagreement?", options: ["You're wrong", "I see where you're coming from", "No way", "Whatever"], a: 1, hint: '쿠션어' },
-      { q: "\"Can we ___ on this? I still have open items.\"", options: ['table it', 'kick off', 'wrap up', 'circle back'], a: 3, hint: '나중에 다시' },
-      { q: "\"___ — I want to flag a risk.\"", options: ['ICYMI', 'Quick one', 'Recap', 'On track'], a: 1, hint: '이슈 공유 도입부' },
-      { q: "Which means 'let's finalize'?", options: ['Let it go', 'Lock it in', 'Push back', 'Switch gears'], a: 1, hint: '확정하기' },
+      { q: "\"I'm not going to ___ it — we missed the target this quarter.\"", options: ['sugarcoat', 'anchor', 'timebox', 'unpack'], a: 0, hint: '좋게 포장하지 않겠다' },
+      { q: "What's the best phrase to end a meeting early and return time to the team?", options: ['Cut to the chase', 'Give you time back', 'Read the room', 'Take it offline'], a: 1, hint: '남은 시간 돌려주기' },
+      { q: "\"We need to find a ___ between speed and quality.\"", options: ['pain point', 'middle ground', 'post-mortem', 'key driver'], a: 1, hint: '타협점' },
+      { q: "Which means 'start strong without an adjustment period'?", options: ['Scratch the surface', 'Jump through hoops', 'Hit the ground running', 'Step on toes'], a: 2, hint: '첫날부터 전력 질주' },
+      { q: "\"Let's schedule a ___ next week to discuss what went wrong.\"", options: ['vetting process', 'silver lining', 'post-mortem', 'blank canvas'], a: 2, hint: '사후 회고' },
     ]
   }
 };
@@ -1000,6 +1008,7 @@ const MEMBER_DIRECTORY = [
   { code: '25', id: 'u23', name: '권지선', team: 'A', color: 'ink', tier: 'basic' },
   { code: '1',  id: 'u24', name: '이규태', team: 'B', color: 'cream', tier: 'premium' },
   { code: '2',  id: 'u25', name: '이지흔', team: 'A', color: 'ink', tier: 'basic' },
+  { code: '26', id: 'u26', name: '모모',   team: 'A', color: 'ink',   tier: 'premium' },
 ];
 
 /* 5기 roster used across dashboard/community/profile */
@@ -1119,7 +1128,7 @@ const defaultState = () => ({
   checkpoints: {},                // { "d1-record": true }
   quiz_answers: {},               // { "q0": 1 }
   bookmarks: {},                  // { "d1-0": true }
-  saved_syns: {},                 // { "d1-0::circle back": true } 유의어 북마크
+  saved_syns: {},                 // { "d1-0::Pave the way": true } 유의어 북마크
   community_likes: {},            // { "p1": true }
   community_bookmarks: {},        // { "p1": true }
   community_comments: {},         // { "post-id": [{ text, author, createdAt }] }
@@ -1953,10 +1962,9 @@ function localStreakCount() {
 // Rule (user-facing):
 //   • 'done'      → 정상 인증 (주황): verified on or before the scheduled calendar date
 //   • 'done-late' → 지각 인증 (까망): verified after the scheduled calendar date
-//   • 'today'     → 오늘 (미인증, 주황 링 강조)
-//   • 'open'      → 내일(하루 뒤) 미리 풀 수 있는 슬롯, 미인증 (빈칸)
+//   • 'today'     → 오늘 (미인증, 주황 링 강조) — 인증 가능한 유일한 날
 //   • 'missed'    → 과거 미인증 (빈칸)
-//   • 'locked'    → 모레(D+2) 이후 (점선)
+//   • 'locked'    → 내일(D+1) 이후 — 둘러보기는 가능하지만 인증/제출 불가
 const dayStatus = (d) => {
   if (state.verified['d'+d]) {
     // 인증은 됐지만 원래 일차의 캘린더 날짜보다 늦게 인증했다면 'done-late'.
@@ -1972,9 +1980,8 @@ const dayStatus = (d) => {
     return 'done';
   }
   if (d === state.currentDay) return 'today';
-  if (d === state.currentDay + 1) return 'open';   // 내일만 미리 풀기 가능
   if (d < state.currentDay) return 'missed';
-  return 'locked';                                  // 모레 이후
+  return 'locked';                                  // 내일 이후 — 미리 풀기 없이 둘러보기만
 };
 
 // 오늘 날짜 (member timezone) YYYY-MM-DD
@@ -1991,6 +1998,29 @@ function nowTimeStr() {
   const h = String(t.getHours()).padStart(2,'0');
   const m = String(t.getMinutes()).padStart(2,'0');
   return `${h}:${m}`;
+}
+
+// 인증 스탬프 표시용 — "2026-04-21 23:47 · +0h" 형태로 포맷.
+// 시차가 비어있으면 기본값 '+0h'로 보여줘요. (시차는 항상 본인 기준 값이 박혀있어야 함)
+// vd: YYYY-MM-DD, vt: HH:mm, tzText: "+0h" | "-13h" | "+1:30h"
+function formatVerifyStamp(vd, vt, tzText) {
+  const date = (vd || '').trim();
+  const time = (vt || '').trim();
+  const tz = (tzText || '').trim() || '+0h';
+  const datetime = [date, time].filter(Boolean).join(' ');
+  if (!datetime) return '';
+  return `${datetime} · ${tz}`;
+}
+
+// 내일(D+1) 이후 Day의 체크/제출/인증 차단용 공용 가드.
+// 반환값이 true면 호출부는 바로 return 시키세요. (false면 통과)
+function guardFutureDay(dayN) {
+  const cur = state.currentDay || 1;
+  if (dayN > cur) {
+    showToast('오늘은 Day ' + cur + '이에요. Day ' + dayN + '은(는) 당일에 풀 수 있어요 (미리보기만 가능).');
+    return true;
+  }
+  return false;
 }
 
 /* Compute the calendar date for a given day number based on CHALLENGE.start_date.
@@ -2059,20 +2089,9 @@ function challengeWordRegex(flags = 'i') {
 
 /* Fallback nuance sentences for words that don't have an explicit `nuance` field.
    Keyed by lowercased English word. */
-const NUANCE_MAP = {
-  'north star': '가장 중요한 하나의 기준. 여러 목표 중 "절대 흔들리면 안 되는 것"을 가리킬 때 써요.',
-  'align on': '서로의 해석을 하나로 맞춰서 오해를 줄이는 느낌. "동의"보다 실무적.',
-  'kick off': '프로젝트·회의를 공식적으로 "시작"할 때. 가볍고 에너지 있는 뉘앙스.',
-  'go with': '여러 대안 중 하나를 "택하다". "decide"보다 결정의 부담이 덜한 말투.',
-  'for now': '지금 순간의 결정이라는 가벼운 단서. 나중에 다시 볼 수 있다는 의미 내포.',
-  'at the core': '본질적으로. 복잡한 이슈 안에서 "진짜 이슈는 이거"라고 집중시킬 때.',
-  'just to clarify': '확인/재확인을 부드럽게 요청. 상대방 기분 상하지 않게 짚고 갈 때 유용.',
-  'two main perspectives': '두 관점을 "공정하게" 제시할 때. 편향을 피하는 매니지먼트 말투.',
-  'on that note': '자연스럽게 주제를 이어갈 때. 회의 흐름을 끊지 않는 연결구.',
-  'switch gears': '화제·방향을 의도적으로 바꿀 때. 약간 캐주얼하고 생동감 있음.',
-  'prioritize': '여러 가지 중 무엇을 "먼저" 할지 정한다는 관리자 표현.',
-  'trade-off': '얻는 것과 잃는 것 사이의 의사결정. 양쪽 비용을 인정하는 어른 말투.',
-};
+// 5기부터는 각 단어 객체에 nuance 필드가 직접 박혀있어서 이 맵은 fallback용 빈 객체예요.
+// 필요하면 key(소문자 en)에 문자열 추가해서 override 가능합니다.
+const NUANCE_MAP = {};
 function defaultNuance(w) {
   const k = (w.en || '').toLowerCase();
   if (NUANCE_MAP[k]) return NUANCE_MAP[k];
@@ -3253,6 +3272,7 @@ function HomePage() {
     if (st === 'done') cls = 'on';
     else if (st === 'done-late') cls = 'on late';
     else if (st === 'today') cls = 'today';
+    else if (st === 'missed') cls = 'missed';
     else if (st === 'locked') cls = 'locked';
     dots.appendChild(el('span', { class: cls }));
   }
@@ -3405,23 +3425,28 @@ function Checkboard() {
         if (st === 'done')           cls += ' on';
         else if (st === 'done-late') cls += ' on late';
         else if (st === 'today')     cls += ' today';
+        else if (st === 'missed')    cls += ' missed';
         else if (st === 'locked')    cls += ' locked';
-        // 'open' and 'missed' render as the default (빈칸)
+        // 'open' renders as default (크림 빈 슬롯 = 내일 미리 풀기)
         const vt = state.verified_time && state.verified_time['d'+d];
         if (vt && (st === 'done' || st === 'done-late')) {
-          tooltip = `${m.name} · Day ${d} · ${vt}${st === 'done-late' ? ' (지각)' : ''}`;
+          const tz = state.timezoneOffsetText || '+0h';
+          tooltip = `${m.name} · Day ${d} · ${vt} ${tz}${st === 'done-late' ? ' (지각)' : ''}`;
         }
       } else {
         const on = d <= m.progress;
         if (on) cls += ' on';
-        if (d > state.currentDay + 1) cls += ' locked';
+        else if (d < state.currentDay) cls += ' missed';      // 피어 과거 미인증
+        else if (d > state.currentDay + 1) cls += ' locked';  // 피어 모레 이후
         if (on) {
           // Peer times: look up the server-side RPC cache (keyed by both member_key
           // and member_name). Falls back to just the name if time isn't cached yet.
           const peerMap = (window.__peerVerifyTimes || {})[d] || {};
           const nm = String(m.name || '').trim();
           const hhmm = peerMap[nm] || peerMap[m.member_key || ''] || '';
-          tooltip = hhmm ? `${m.name} · Day ${d} · ${hhmm}` : `${m.name} · Day ${d} 완료`;
+          const peerTz = memberTimezoneText(m);
+          const stamp = hhmm ? (peerTz ? `${hhmm} ${peerTz}` : hhmm) : '';
+          tooltip = stamp ? `${m.name} · Day ${d} · ${stamp}` : `${m.name} · Day ${d} 완료`;
         }
       }
       const attrs = { class: cls };
@@ -3559,16 +3584,23 @@ function WeeksPage() {
         bg = isEmphasized ? 'rgba(251,247,240,0.16)' : 'var(--ink)';
         fg = isEmphasized ? 'var(--cream)' : '#fff';
         dotColor = '#fff'; dotTitle = '지각 인증';
-      } else if (st === 'open' || st === 'missed') {
-        // 둘 다 빈칸 — 단 'open'은 클릭해서 미리 풀 수 있음
+      } else if (st === 'open') {
+        // 내일 — 미리 풀 수 있는 슬롯. 페이퍼 크림 + 실선.
         bg = isEmphasized ? 'rgba(251,247,240,0.06)' : 'var(--paper)';
         fg = isEmphasized ? 'rgba(251,247,240,0.7)' : 'var(--ink-soft)';
         border = '1px solid ' + (isEmphasized ? 'rgba(251,247,240,0.14)' : 'rgba(231,221,200,0.9)');
-        dotTitle = st === 'open' ? '내일 (미리 풀기 가능)' : '놓친 Day';
+        dotTitle = '내일 (미리 풀기 가능)';
+      } else if (st === 'missed') {
+        // 놓친 Day — 무톤 베이지 실선 (open/locked랑 구분).
+        bg = isEmphasized ? 'rgba(251,247,240,0.10)' : 'rgba(154,139,115,0.18)';
+        fg = isEmphasized ? 'rgba(251,247,240,0.55)' : 'var(--muted)';
+        border = '1px solid ' + (isEmphasized ? 'rgba(251,247,240,0.22)' : 'rgba(154,139,115,0.34)');
+        dotTitle = '놓친 Day';
       } else if (st === 'locked') {
-        bg = 'transparent';
+        // 아직 안 열림 — 점선 대신 연한 실선 (모바일에서 덜 지저분).
+        bg = isEmphasized ? 'rgba(251,247,240,0.03)' : 'var(--cream)';
         fg = isEmphasized ? 'rgba(251,247,240,0.32)' : '#C8BFA8';
-        border = '1px dashed ' + (isEmphasized ? 'rgba(251,247,240,0.18)' : '#D7CDB5');
+        border = '1px solid ' + (isEmphasized ? 'rgba(251,247,240,0.12)' : 'rgba(231,221,200,0.45)');
         dotTitle = '아직 안 열림';
       }
 
@@ -3576,9 +3608,9 @@ function WeeksPage() {
         title: `Day ${d.day} — ${d.title}${dotTitle ? ' (' + dotTitle + ')' : ''}`,
         onClick: (e) => {
           e.stopPropagation();
+          // 'locked' (내일 이후) 도 둘러보기 용으로 열어줘요. 인증/제출은 하위 페이지에서 막아요.
           if (st === 'locked') {
-            showToast('아직 안 열린 Day예요. Day ' + (state.currentDay + 1) + '까지만 미리 풀 수 있어요.');
-            return;
+            showToast('미리 보기만 가능해요. Day ' + d.day + ' 인증은 당일에 풀려요.');
           }
           currentWeek = w.n;
           window.__weekPreview[w.n] = d.day;
@@ -3593,7 +3625,7 @@ function WeeksPage() {
           fontSize: '16px',
           fontWeight: '800',
           border: border,
-          cursor: st === 'locked' ? 'not-allowed' : 'pointer',
+          cursor: 'pointer',
           background: bg,
           color: fg,
           transition: 'none',
@@ -3654,10 +3686,10 @@ function WeeksPage() {
       <span style="width:20px;height:20px;border-radius:6px;background:var(--ink);display:inline-block;"></span>지각 인증
     </span>
     <span style="display:inline-flex;align-items:center;gap:6px;">
-      <span style="width:20px;height:20px;border-radius:6px;background:var(--paper);border:1px solid rgba(231,221,200,0.9);display:inline-block;"></span>미인증 / 놓친 Day
+      <span style="width:20px;height:20px;border-radius:6px;background:rgba(154,139,115,0.18);border:1px solid rgba(154,139,115,0.34);display:inline-block;"></span>놓친 Day
     </span>
     <span style="display:inline-flex;align-items:center;gap:6px;">
-      <span style="width:20px;height:20px;border-radius:6px;background:transparent;border:1px dashed #C8BFA8;display:inline-block;"></span>아직 안 열림
+      <span style="width:20px;height:20px;border-radius:6px;background:var(--cream);border:1px solid rgba(231,221,200,0.6);display:inline-block;"></span>아직 안 열림
     </span>`;
   page.appendChild(legend);
 
@@ -3713,6 +3745,30 @@ function blankPatternFor(answer='') {
     .join('');
 }
 
+// 첫 글자 힌트 마스크 — "hit out" → "h__ o__", "go with" → "g_ w___"
+// 알파벳이 아닌 구두점/숫자/하이픈은 그대로 보여줘요 (시각적 단서).
+function buildVerifyHintMask(answer='') {
+  return String(answer)
+    .split(/(\s+)/) // 공백을 유지한 토큰
+    .map((tok) => {
+      if (/^\s+$/.test(tok)) return tok;
+      if (!tok) return tok;
+      let out = '';
+      let seenAlpha = false;
+      for (const ch of tok) {
+        if (/[A-Za-z]/.test(ch)) {
+          if (!seenAlpha) { out += ch; seenAlpha = true; }
+          else { out += '_'; }
+        } else {
+          // 하이픈/어포스트로피/구두점은 그대로
+          out += ch;
+        }
+      }
+      return out;
+    })
+    .join('');
+}
+
 function VerifyPage(dayN) {
   const d = getDay(dayN);
   if (!d) return WeeksPage();
@@ -3730,11 +3786,9 @@ function VerifyPage(dayN) {
     { id: 'copy', label: '오늘의 표현 3번씩 소리 내어 읽기', time: '2분', done: !!state.checkpoints[copyKey] },
     { id: 'sentence', label: '내 문장 3개 제출하기', time: '5분', done: sentenceDone },
     { id: 'capture', label: '단어 시험 바로 풀기', time: '1분', done: !!state.checkpoints[quizKey] },
-    // 녹음 단계는 카톡 제출로 대체 — 자동 완료 처리 (UI는 info-only로 남김)
-    { id: 'record', label: '내 문장 3개 녹음하기 (카톡 제출)', time: '', done: true },
   ];
   const completed = steps.filter((step) => step.done).length;
-  const activeStep = steps.find((step) => !step.done)?.id || 'record';
+  const activeStep = steps.find((step) => !step.done)?.id || 'capture';
   const currentQuestion = questions[ui.idx] || questions[0];
 
   const head = el('div', { class: 'topbar' });
@@ -3749,16 +3803,39 @@ function VerifyPage(dayN) {
   const progress = el('div', { style: { marginTop: '8px', marginBottom: '20px' } });
   progress.innerHTML = `
     <div class="row-between" style="margin-bottom:8px;">
-      <span class="kicker">FINAL CHECK · 4 STEPS</span>
-      <span class="t-small mono">${completed}/4</span>
+      <span class="kicker">FINAL CHECK · 3 STEPS</span>
+      <span class="t-small mono">${completed}/3</span>
     </div>
-    <div class="bar orange"><span style="width:${completed / 4 * 100}%;transition:none;"></span></div>
+    <div class="bar orange"><span style="width:${completed / 3 * 100}%;transition:none;"></span></div>
   `;
   page.appendChild(progress);
 
+  // 내일(D+1) 이후 '미리보기' 배너 — 인증/제출 차단 안내
+  if (dayN > (state.currentDay || 1)) {
+    const previewBanner = el('div', {
+      style: {
+        marginBottom: '18px',
+        padding: '14px 18px',
+        borderRadius: '18px',
+        background: 'rgba(240,125,56,0.08)',
+        border: '1px dashed rgba(240,125,56,0.55)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '12px',
+      },
+    });
+    previewBanner.innerHTML = `
+      <span style="display:inline-grid;place-items:center;width:28px;height:28px;border-radius:10px;background:var(--orange-ghost);color:var(--orange-dark);">${Icon('lock', 14)}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:800;color:var(--ink);font-size:15px;">미리보기 전용 Day</div>
+        <div class="t-small" style="margin-top:4px;color:var(--ink-soft);line-height:1.5;">Day ${dayN}은(는) <b>당일에만 인증</b>할 수 있어요. 지금은 문제·문장만 둘러보세요.</div>
+      </div>`;
+    page.appendChild(previewBanner);
+  }
+
   const panel = el('div', { class: 'card', style: { padding: '22px', background: 'var(--ink)', color: 'var(--cream)', borderColor: 'var(--ink)', borderRadius: '28px' } });
   const activeMeta = steps.find((step) => step.id === activeStep);
-  panel.innerHTML = `<div class="kicker" style="color:rgba(251,247,240,0.6)">STEP ${steps.findIndex((step) => step.id === activeStep) + 1}/4 · ${activeMeta.time}</div><h2 class="h2" style="margin-top:10px;color:var(--cream);font-size:28px;line-height:1.24;">${activeMeta.label}</h2>`;
+  panel.innerHTML = `<div class="kicker" style="color:rgba(251,247,240,0.6)">STEP ${steps.findIndex((step) => step.id === activeStep) + 1}/3 · ${activeMeta.time}</div><h2 class="h2" style="margin-top:10px;color:var(--cream);font-size:28px;line-height:1.24;">${activeMeta.label}</h2>`;
 
   if (activeStep === 'capture') {
     // 70% 이상 맞추면 통과 (예: 6문제 중 5문제 → 83% → 통과)
@@ -3778,7 +3855,10 @@ function VerifyPage(dayN) {
         class: 'btn btn-full',
         style: { marginTop: '12px', background: passed ? 'var(--cream)' : 'rgba(251,247,240,0.16)', color: passed ? 'var(--ink)' : 'rgba(251,247,240,0.5)' },
         disabled: !passed,
-        onClick: () => { state.checkpoints[quizKey] = true; saveState(); render(); },
+        onClick: () => {
+          if (guardFutureDay(dayN)) return;
+          state.checkpoints[quizKey] = true; saveState(); render();
+        },
         html: `${Icon('check', 14)} 시험 결과 제출`
       }));
     } else {
@@ -3802,15 +3882,14 @@ function VerifyPage(dayN) {
             <div style="margin-top:20px;font-size:18px;line-height:1.5;color:#6C6A86;">${escapeHtml(currentQuestion.prompt_kr || '')}</div>
             <div style="margin-top:10px;font-size:16px;line-height:1.5;color:#7D5CFF;font-weight:700;">뜻 · ${escapeHtml(currentQuestion.kr)}</div>
             <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;">
-              <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;" onclick="window.__toggleVerifyAnswer(${dayN})">정답 보기</button>
+              <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;" onclick="window.__toggleVerifyAnswer(${dayN})">${ui.reveal ? '힌트 숨기기' : '힌트 보기'}</button>
               <button class="btn btn-ghost" style="background:#fff;color:#7D7A98;border:1px solid #E1DCF8;" onclick="showToast('음성 답안 기능은 곧 연결돼요.')">음성으로 답하기</button>
             </div>
-            ${ui.reveal ? `<div style="margin-top:14px;font-size:18px;color:#3E3B59;font-weight:800;">정답 · ${escapeHtml(currentQuestion.en)}</div>` : ''}
+            ${ui.reveal ? `<div style="margin-top:14px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);">${escapeHtml(buildVerifyHintMask(currentQuestion.en))}</div>` : ''}
             <div style="display:flex;gap:8px;margin-top:18px;">
-              <button class="btn btn-ghost" style="flex:1;justify-content:center;background:#4F4438;color:#fff;border:none;" onclick="window.__advanceVerifyQuiz(${dayN}, true)">Skip</button>
-              <button class="btn btn-primary" style="flex:2;justify-content:center;background:#F2EBD9;color:#8C7D58;" onclick="window.__advanceVerifyQuiz(${dayN}, false)" ${!ui.value.trim() ? 'disabled' : ''}>${ui.idx === questions.length - 1 ? '제출' : '다음'} ${Icon('arrowRight', 14)}</button>
+              <button class="btn btn-ghost" style="flex:1;justify-content:center;background:#4F4438;color:#fff;border:none;" onclick="window.__advanceVerifyQuiz(${dayN}, true)">${ui.idx === questions.length - 1 ? '모르겠어요 · 제출' : 'Skip'}</button>
             </div>
-            <div class="t-small" style="margin-top:12px;color:#8B84D7;line-height:1.5;">오늘까지 공개된 Day 단어 포함, 그 외에는 랜덤으로 출제돼요.</div>
+            <div class="t-small" style="margin-top:12px;color:#8B84D7;line-height:1.5;">정답을 맞추면 자동으로 다음 문제로 넘어가요. 모르면 <b>힌트</b>를 눌러보세요.</div>
           </div>
         </div>
       `;
@@ -3822,7 +3901,10 @@ function VerifyPage(dayN) {
       row.innerHTML = `<span class="mono" style="font-size:11px;color:rgba(251,247,240,0.4)">0${i+1}</span><span style="font-size:24px;color:var(--orange);font-weight:700;letter-spacing:-0.03em;">${escapeHtml(w.en)}</span><button class="icon-btn" style="margin-left:auto;background:rgba(251,247,240,0.1);border:none;color:var(--cream);" onclick="window.__speakWord(${dayN}, ${i})">${Icon('volume', 14)}</button>`;
       panel.appendChild(row);
     });
-    panel.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, onClick: () => { state.checkpoints[copyKey] = true; saveState(); render(); }, html: `${Icon('check', 14)} 3번씩 소리 내어 읽었어요` }));
+    panel.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, onClick: () => {
+      if (guardFutureDay(dayN)) return;
+      state.checkpoints[copyKey] = true; saveState(); render();
+    }, html: `${Icon('check', 14)} 3번씩 소리 내어 읽었어요` }));
   } else if (activeStep === 'sentence') {
     const info = el('div', { style: { marginTop: '18px', color: 'rgba(251,247,240,0.8)', lineHeight: '1.6' } });
     info.innerHTML = `<div>오늘 배운 표현 3개로 내 상황 문장을 만들고 3개 모두 제출하면 바로 완료돼요.</div><div style="margin-top:12px;padding:14px 16px;border-radius:16px;background:rgba(251,247,240,0.06);"><div class="t-small mono" style="color:rgba(251,247,240,0.5)">현재 상태</div><div style="margin-top:6px;font-size:16px;font-weight:700;color:var(--cream);">${sentenceDone ? '문장 3개 제출 완료' : '아직 Day 화면에서 문장 3개를 제출해야 해요'}</div></div>`;
@@ -3904,13 +3986,14 @@ function VerifyPage(dayN) {
 
   const verified = !!state.verified['d'+dayN];
   const allDone = steps.every((step) => step.done);
-  page.appendChild(el('button', {
+  const finalBtn = el('button', {
     class: 'btn btn-full btn-lg',
-    style: { marginTop: '20px', padding: '22px 24px', fontSize: '18px', background: verified ? 'var(--green-soft)' : (allDone ? 'var(--orange)' : 'var(--paper)'), color: verified ? 'var(--green)' : (allDone ? '#fff' : 'var(--muted)') },
+    style: { marginTop: '20px', padding: '22px 24px', fontSize: '18px', background: verified ? 'var(--green-soft)' : (allDone ? 'var(--orange)' : 'var(--paper)'), color: verified ? 'var(--green)' : (allDone ? '#fff' : 'var(--muted)'), display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', lineHeight: '1.25' },
     disabled: !allDone && !verified,
     onClick: () => {
       if (verified) go('day', { week: d.weekN, day: dayN });
       else {
+        if (guardFutureDay(dayN)) return;
         state.verified['d'+dayN] = true;
         state.verified_at = state.verified_at || {};
         state.verified_at['d'+dayN] = todayStr();
@@ -3924,9 +4007,19 @@ function VerifyPage(dayN) {
         setTimeout(() => go('day', { week: d.weekN, day: dayN }), 1400);
       }
     }
-  }, verified
-    ? `오늘 인증 완료됨${(state.verified_time && state.verified_time['d'+dayN]) ? ' · ' + state.verified_time['d'+dayN] : ''}`
-    : (allDone ? '인증 완료하기 ✓' : `${completed}/4 단계 완료`)));
+  });
+  if (verified) {
+    const vt = (state.verified_time && state.verified_time['d'+dayN]) || '';
+    const vd = (state.verified_at && state.verified_at['d'+dayN]) || '';
+    const stampText = formatVerifyStamp(vd, vt, state.timezoneOffsetText);
+    finalBtn.innerHTML = `
+      <span style="font-size:18px;font-weight:700;">오늘 인증 완료됨</span>
+      ${stampText ? `<span style="font-size:11px;font-weight:500;opacity:0.75;letter-spacing:0.02em;">인증 ${escapeHtml(stampText)}</span>` : ''}
+    `;
+  } else {
+    finalBtn.textContent = allDone ? '인증 완료하기 ✓' : `${completed}/3 단계 완료`;
+  }
+  page.appendChild(finalBtn);
   return page;
 }
 
@@ -4003,6 +4096,29 @@ function DayPage(dayN) {
   page.appendChild(el('h2', {
     style: { margin: '6px 0 0', fontSize: '28px', fontWeight: '800', letterSpacing: '-0.025em', lineHeight: '1.15', color: 'var(--orange)' }
   }, d.title));
+
+  // 내일(D+1) 이후 '미리보기' 배너 — 인증/제출 차단 안내
+  if (dayN > (state.currentDay || 1)) {
+    const previewBanner = el('div', {
+      style: {
+        marginTop: '14px',
+        padding: '14px 18px',
+        borderRadius: '18px',
+        background: 'rgba(240,125,56,0.08)',
+        border: '1px dashed rgba(240,125,56,0.55)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '12px',
+      },
+    });
+    previewBanner.innerHTML = `
+      <span style="display:inline-grid;place-items:center;width:28px;height:28px;border-radius:10px;background:var(--orange-ghost);color:var(--orange-dark);">${Icon('lock', 14)}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:800;color:var(--ink);font-size:15px;">미리보기 전용 Day</div>
+        <div class="t-small" style="margin-top:4px;color:var(--ink-soft);line-height:1.5;">지금은 Day ${state.currentDay || 1}이에요. Day ${dayN}은(는) <b>예습만 가능</b>하고, 인증·문장 제출·단어 시험은 당일에 풀려요.</div>
+      </div>`;
+    page.appendChild(previewBanner);
+  }
 
   // Goal banner
   const banner = el('div', { class: 'target-banner', style: { marginTop: '18px', padding: '20px 22px', borderRadius: '24px' } });
@@ -4221,7 +4337,26 @@ function DayPage(dayN) {
       <span class="translate" style="margin-top:6px;font-size:13px;">${escapeHtml(w.ex_kr)}</span>`;
     card.appendChild(exampleEl);
 
-    // Expandable 유의어·뉘앙스 section
+    // 대표 표현 뉘앙스 — 항상 노출 (접근성 개선)
+    const nuanceText = w.nuance || defaultNuance(w);
+    const nuanceBox = el('div', {
+      style: {
+        marginTop: '14px',
+        padding: '14px 16px',
+        borderRadius: '16px',
+        background: '#FFFDF8',
+        border: '1px solid var(--line-soft)',
+      },
+    });
+    nuanceBox.innerHTML = `
+      <div class="kicker">대표 표현 뉘앙스</div>
+      <div style="margin-top:8px;font-size:13px;line-height:1.6;color:var(--ink);">
+        ${escapeHtml(nuanceText)}
+      </div>
+    `;
+    card.appendChild(nuanceBox);
+
+    // Expandable 유의어 section
     const toggleBtn = el('button', {
       style: {
         marginTop: '14px',
@@ -4236,8 +4371,8 @@ function DayPage(dayN) {
       },
     });
     toggleBtn.innerHTML = isNuanceOpen
-      ? `${Icon('close', 12)} 유의어·뉘앙스 닫기`
-      : `※ 유의어·뉘앙스 보기`;
+      ? `${Icon('close', 12)} 유의어 닫기`
+      : `※ 유의어 보기`;
     card.appendChild(toggleBtn);
 
     if (isNuanceOpen) {
@@ -4265,13 +4400,7 @@ function DayPage(dayN) {
         </div>
       `).join('');
       detail.innerHTML = `
-        <div style="padding:14px 16px;border-radius:16px;background:#FFFDF8;border:1px solid var(--line-soft);">
-          <div class="kicker">대표 표현 뉘앙스</div>
-          <div style="margin-top:8px;font-size:13px;line-height:1.6;color:var(--ink);">
-            ${escapeHtml(nuance)}
-          </div>
-        </div>
-        <div style="margin-top:10px;">
+        <div>
           <div class="kicker" style="margin-bottom:8px;">유의어</div>
           <div style="display:grid;gap:8px;">
             ${synonymPreview || `<div style="padding:12px 14px;border-radius:14px;background:var(--paper);border:1px solid var(--line-soft);font-size:12px;color:var(--muted);">연결된 유의어가 아직 없어요.</div>`}
@@ -4317,6 +4446,7 @@ function DayPage(dayN) {
       fontWeight: '700',
     },
     onClick: () => {
+      if (guardFutureDay(dayN)) return;
       state.checkpoints[copyKey] = !state.checkpoints[copyKey];
       saveState();
       render();
@@ -4379,13 +4509,13 @@ function DayPage(dayN) {
       }
     });
     promptBox.innerHTML = `
-      <div class="kicker" style="font-size:10px;color:var(--orange-dark);">한국어 상황</div>
-      <div style="margin-top:8px;font-size:20px;line-height:1.42;font-weight:700;color:var(--ink);word-break:keep-all;">${escapeHtml(koreanRecallPrompt(w))}</div>
+      <div class="kicker" style="font-size:10px;color:var(--orange-dark);">이런 상황, 내 업무로 바꿔 쓴다면?</div>
+      <div style="margin-top:8px;font-size:18px;line-height:1.45;font-weight:700;color:var(--ink);word-break:keep-all;">${escapeHtml(koreanRecallHint(w))}</div>
+      <div style="margin-top:10px;font-size:12.5px;line-height:1.55;color:var(--muted);word-break:keep-all;">※ 위 예시를 그대로 번역하지 마세요. <b style="color:var(--orange-dark);">내 업무 장면</b>을 떠올려서 <b style="color:var(--orange-dark);">${escapeHtml(w.en)}</b>(${escapeHtml(w.def)})를 자연스럽게 넣은 <b>내 문장</b>을 만들어보세요.</div>
       <div style="margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span class="badge" style="padding:6px 12px;font-size:10px;background:var(--paper);color:var(--ink-soft);font-family:var(--font-mono);">표현 힌트</span>
+        <span class="badge" style="padding:6px 12px;font-size:10px;background:var(--paper);color:var(--ink-soft);font-family:var(--font-mono);">오늘 쓸 표현</span>
         <span style="font-size:13px;color:var(--ink-soft);"><b style="color:var(--orange-dark);">${escapeHtml(w.en)}</b> · ${escapeHtml(w.def)}</span>
       </div>
-      <div style="margin-top:8px;font-size:12.5px;line-height:1.55;color:var(--muted);">예: ${escapeHtml(koreanRecallHint(w))}</div>
     `;
     row.appendChild(promptBox);
 
@@ -4476,6 +4606,7 @@ function DayPage(dayN) {
           render();
           return;
         }
+        if (guardFutureDay(dayN)) return;
         if (!ta.value.trim()) { showToast('문장을 먼저 써주세요.'); return; }
         state.submitted[key] = true;
         saveState();
@@ -4840,8 +4971,14 @@ function DayPage(dayN) {
   // 버튼 문구를 "다음에 할 일" 하나로 명확히 — 이전의 '학습 준비 0/2'는 제출 0/3과 혼동되던 문제 해결
   let ctaLabel;
   if (verified) {
-    const vt = state.verified_time && state.verified_time['d'+dayN];
-    ctaLabel = vt ? `오늘 인증 완료됨 · ${vt}` : '오늘 인증 완료됨';
+    const vt = (state.verified_time && state.verified_time['d'+dayN]) || '';
+    const vd = (state.verified_at && state.verified_at['d'+dayN]) || '';
+    const stampText = formatVerifyStamp(vd, vt, state.timezoneOffsetText);
+    ctaLabel = `
+      <span style="display:flex;flex-direction:column;align-items:center;gap:4px;line-height:1.25;">
+        <span style="font-size:18px;font-weight:700;">오늘 인증 완료됨</span>
+        ${stampText ? `<span style="font-size:11px;font-weight:500;opacity:0.75;letter-spacing:0.02em;">인증 ${escapeHtml(stampText)}</span>` : ''}
+      </span>`;
   } else if (prepDone === 2) {
     ctaLabel = `인증 마무리로 가기 ${Icon('arrowRight', 18)}`;
   } else if (!copyDone) {
@@ -4874,10 +5011,10 @@ function PremiumPage() {
   const aprilMeetings = [30];
   const mayMeetings   = [7, 14, 21];
   const premiumMeetings = [
-    { n: 1, date: '2026-04-30', title: 'Week 1 — Kickoff & Onboarding', desc: 'North Star 정렬 + 오프닝 표현 롤플레이', status: 'upcoming', zoom: 'Zoom' },
-    { n: 2, date: '2026-05-07', title: 'Week 2 — Meetings & Messaging', desc: '상태 업데이트/이슈 공유 시뮬레이션', status: 'upcoming', zoom: 'Zoom' },
-    { n: 3, date: '2026-05-14', title: 'Week 3 — Feedback & Collab', desc: '피드백 주고받기 + 의견 차이 좁히기', status: 'upcoming', zoom: 'Zoom' },
-    { n: 4, date: '2026-05-21', title: 'Week 4 — Own the Room (PPT 발표)', desc: '본인 Industry 맞춤 PPT 발표 + 피드백', status: 'upcoming', zoom: 'Zoom' },
+    { n: 1, date: '2026-04-30', title: 'Week 1 — Setup & Strategy', desc: '판 깔기·기준점 잡기 표현 롤플레이', status: 'upcoming', zoom: 'Zoom' },
+    { n: 2, date: '2026-05-07', title: 'Week 2 — Smart Communication', desc: '건설적 피드백/반대 의견 시뮬레이션', status: 'upcoming', zoom: 'Zoom' },
+    { n: 3, date: '2026-05-14', title: 'Week 3 — Problem Solving & Strategy', desc: 'Value proposition 피칭 + 위기 대응 연습', status: 'upcoming', zoom: 'Zoom' },
+    { n: 4, date: '2026-05-21', title: 'Week 4 — Execution & Productivity (PPT 발표)', desc: '본인 Industry 맞춤 PPT 발표 + Post-mortem', status: 'upcoming', zoom: 'Zoom' },
   ];
   const totalMeetings = aprilMeetings.length + mayMeetings.length;
 
