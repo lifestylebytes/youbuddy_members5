@@ -2,12 +2,13 @@
 -- YOUBUDDY · Supabase hourly snapshot + restore device
 -- ------------------------------------------------------------
 -- PURPOSE
---   Backstop against accidental bulk deletes / resets of the two
+--   Backstop against accidental bulk deletes / resets of the
 --   critical tables in this challenge:
---     (1) challenge_member_state      → 내 학습/진행률/대시보드
---     (2) challenge_community_posts   → 커뮤니티
+--     (1) challenge_member_state         → 내 학습/진행률/대시보드
+--     (2) challenge_community_posts      → 커뮤니티
 --         challenge_community_comments
 --         challenge_community_likes
+--     (3) challenge_verification_events  → 인증(제출) 타임스탬프 이력
 --
 --   Keeps an hourly snapshot for 14 days (tunable). Restore is
 --   row-level and scoped by cohort and/or member_key, so you can
@@ -91,6 +92,10 @@ begin
     -- comments & likes: generally have their own id column. Fall back to id.
     when 'challenge_community_comments'   then 'id'
     when 'challenge_community_likes'      then 'id'
+    -- verification events: has a bigint surrogate `id` primary key AND a
+    -- natural unique on (cohort, member_key, verified_day). Use `id` so
+    -- each per-day row is preserved as its own snapshot entry.
+    when 'challenge_verification_events'  then 'id'
     else 'id'
   end;
 end;
@@ -115,12 +120,12 @@ declare
   v_rowkey_col  text;
   v_count       integer;
   v_sql         text;
-  v_has_cohort  boolean;
   v_tables      text[] := array[
     'challenge_member_state',
     'challenge_community_posts',
     'challenge_community_comments',
-    'challenge_community_likes'
+    'challenge_community_likes',
+    'challenge_verification_events'
   ];
 begin
   foreach v_table in array v_tables loop
@@ -131,22 +136,16 @@ begin
 
     v_rowkey_col := public._challenge_snapshot_rowkey_expr(v_table);
 
-    -- does this table have a cohort column? if yes we can filter, if no we snapshot all
-    select exists (
-      select 1 from information_schema.columns
-      where table_schema = 'public' and table_name = v_table and column_name = 'cohort'
-    ) into v_has_cohort;
-
+    -- All 5 tables are known to have a `cohort` text column, so we can
+    -- always filter+stamp it directly. No runtime detection needed.
     v_sql := format(
       'insert into public.challenge_snapshots (snapshot_at, source_table, cohort, row_key, payload) ' ||
-      'select $1, %L, %s, coalesce((t.%I)::text, ''unknown''), to_jsonb(t.*) ' ||
+      'select $1, %L, t.cohort, coalesce((t.%I)::text, ''unknown''), to_jsonb(t.*) ' ||
       'from public.%I t ' ||
-      'where ($2 is null %s)',
+      'where ($2 is null or t.cohort = $2)',
       v_table,
-      case when v_has_cohort then 't.cohort' else 'null' end,
       v_rowkey_col,
-      v_table,
-      case when v_has_cohort then 'or t.cohort = $2' else '' end
+      v_table
     );
 
     execute v_sql using v_now, p_cohort;
@@ -202,7 +201,8 @@ create or replace function public.restore_challenge_snapshot(
     'challenge_member_state',
     'challenge_community_posts',
     'challenge_community_comments',
-    'challenge_community_likes'
+    'challenge_community_likes',
+    'challenge_verification_events'
   ],
   p_dry_run     boolean default false
 )
@@ -215,12 +215,12 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+#variable_conflict use_column
 declare
   v_table       text;
   v_rowkey_col  text;
-  v_has_cohort  boolean;
-  v_cols        text;
   v_updates     text;
+  v_col         text;
   v_insert_sql  text;
   v_filter_mk   text;
   v_restored    integer;
@@ -234,29 +234,23 @@ begin
 
     v_rowkey_col := public._challenge_snapshot_rowkey_expr(v_table);
 
-    select exists (
-      select 1 from information_schema.columns
-      where table_schema = 'public' and table_name = v_table and column_name = 'cohort'
-    ) into v_has_cohort;
-
-    -- Build the live columns list (ordered, excluding generated id for insert safety)
-    select string_agg(quote_ident(column_name), ', ' order by ordinal_position)
-    into v_cols
-    from information_schema.columns
-    where table_schema = 'public' and table_name = v_table
-      and (is_generated = 'NEVER' and identity_generation is null or column_name <> 'id');
-
     -- Build UPDATE SET clause — update every column except the row-key and id.
-    select string_agg(
-      format('%I = excluded.%I', column_name, column_name),
-      ', '
-      order by ordinal_position
-    )
-    into v_updates
-    from information_schema.columns
-    where table_schema = 'public' and table_name = v_table
-      and column_name <> v_rowkey_col
-      and column_name <> 'id';
+    -- Built via a FOR loop (not SELECT INTO / EXECUTE INTO) so we stay
+    -- clear of any plpgsql variable-vs-relation resolution quirks.
+    v_updates := '';
+    for v_col in
+      select column_name
+      from information_schema.columns c
+      where c.table_schema = 'public'
+        and c.table_name = v_table
+        and c.column_name <> v_rowkey_col
+        and c.column_name <> 'id'
+      order by c.ordinal_position
+    loop
+      v_updates := v_updates
+        || (case when v_updates = '' then '' else ', ' end)
+        || quote_ident(v_col) || ' = excluded.' || quote_ident(v_col);
+    end loop;
 
     -- A restorable snapshot = the most recent snapshot row per row_key
     -- at or before p_snapshot_at, within the optional cohort+member filter.
@@ -266,6 +260,9 @@ begin
       when p_member_key is not null and v_table like 'challenge_community_%'
         -- member_key lives inside payload for community tables — filter on jsonb.
         then format('and (payload->>''member_key'') = %L', p_member_key)
+      when p_member_key is not null and v_table = 'challenge_verification_events'
+        -- verification events also carry member_key inside payload.
+        then format('and (payload->>''member_key'') = %L', p_member_key)
       else ''
     end;
 
@@ -273,23 +270,28 @@ begin
     v_temp_name := format('_restore_%s_%s', v_table,
       regexp_replace(gen_random_uuid()::text, '-', '', 'g'));
 
+    -- All supported tables have a cohort column, so always filter by it.
+    -- Use INSERT INTO ... SELECT (not CREATE TABLE AS) so GET DIAGNOSTICS
+    -- gives us a reliable row_count and we never need EXECUTE ... INTO,
+    -- which has confused plpgsql parser in some Supabase pg builds.
     execute format(
-      'create temp table %I on commit drop as ' ||
+      'create temp table %I (row_key text, payload jsonb) on commit drop',
+      v_temp_name
+    );
+    execute format(
+      'insert into %I (row_key, payload) ' ||
       'select distinct on (row_key) row_key, payload ' ||
       'from public.challenge_snapshots ' ||
       'where source_table = %L ' ||
       '  and snapshot_at <= $1 ' ||
-      '  and ($2 is null %s or cohort = $2) ' ||
+      '  and ($2 is null or cohort = $2) ' ||
       '  %s ' ||
       'order by row_key, snapshot_at desc',
       v_temp_name,
       v_table,
-      case when v_has_cohort then '' else 'or true' end,
       v_filter_mk
     ) using p_snapshot_at, p_cohort;
-
-    -- How many rows are we about to touch?
-    execute format('select count(*) from %I', v_temp_name) into v_restored;
+    get diagnostics v_restored = row_count;
     v_skipped := 0;
 
     if p_dry_run then
@@ -356,27 +358,56 @@ $$;
 
 -- ------------------------------------------------------------
 -- 7. Schedule with pg_cron.
---    If pg_cron isn't available, you can invoke hourly_challenge_snapshot()
---    from a Supabase Edge Function Scheduled Trigger instead.
+--
+--    ⚠️ pg_cron must be enabled in Supabase BEFORE running this block:
+--         Database → Extensions → search "pg_cron" → toggle ON
+--
+--    If it's not enabled, the block below will NO-OP with a NOTICE
+--    instead of aborting the whole script (so your functions still
+--    get created). You can re-run just this block after enabling.
+--
+--    Alternative: skip pg_cron entirely and call
+--    public.hourly_challenge_snapshot() from a Supabase Edge Function
+--    Scheduled Trigger (Dashboard → Functions → Schedules).
 -- ------------------------------------------------------------
 do $$
+declare
+  v_has_ext boolean := false;
+  v_rec     record;
 begin
-  if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
-    create extension if not exists pg_cron;
+  -- Check INSTALLED extension, not just available. `cron.job` only exists
+  -- after `create extension pg_cron`, so reference it only when installed.
+  -- Using FOR loop instead of SELECT INTO to avoid plpgsql variable quirks.
+  for v_rec in select 1 as ok from pg_extension where extname = 'pg_cron' limit 1
+  loop
+    v_has_ext := true;
+  end loop;
 
-    -- Unschedule previous job if it exists (idempotent).
+  if not v_has_ext then
+    raise notice 'pg_cron not installed — skipping schedule. Enable the extension in Supabase (Database → Extensions) and re-run just this DO block.';
+    return;
+  end if;
+
+  -- Unschedule previous job if it exists (idempotent). Wrap in exception
+  -- so a cron catalog mismatch can't roll back the transaction.
+  begin
     perform cron.unschedule(jobid)
     from cron.job
     where jobname = 'youbuddy-challenge-hourly-snapshot';
+  exception when others then
+    raise notice 'cron.unschedule skipped: %', sqlerrm;
+  end;
 
+  begin
     perform cron.schedule(
       'youbuddy-challenge-hourly-snapshot',
       '7 * * * *',    -- HH:07 every hour — stagger off the top of the hour
       $cron$ select public.hourly_challenge_snapshot(); $cron$
     );
-  else
-    raise notice 'pg_cron not available — run public.hourly_challenge_snapshot() from an external scheduler.';
-  end if;
+    raise notice 'scheduled: youbuddy-challenge-hourly-snapshot at HH:07';
+  exception when others then
+    raise notice 'cron.schedule failed: % — set up the schedule manually in Supabase Dashboard.', sqlerrm;
+  end;
 end;
 $$;
 

@@ -1600,6 +1600,10 @@ let navBackStack = Array.isArray(savedRoute.navBackStack) ? savedRoute.navBackSt
 let navForwardStack = Array.isArray(savedRoute.navForwardStack) ? savedRoute.navForwardStack : [];
 let routeScrollPositions = (savedRoute.scrollPositions && typeof savedRoute.scrollPositions === 'object') ? savedRoute.scrollPositions : {};
 let showPremiumGate = false;
+// When set to a dayN (1-20), render() overlays the verification review modal
+// that lets the user re-read their submitted quiz/sentences/story and
+// optionally re-take the word quiz. null = hidden.
+let verificationReviewDay = null;
 let activeMemberCard = null;
 let showSettings = false;
 let toast = null;
@@ -2498,6 +2502,7 @@ function render() {
     if (showPremiumGate) root.appendChild(PremiumGateModal());
     if (activeMemberCard) root.appendChild(MemberCardModal(activeMemberCard));
     if (showSettings) root.appendChild(SettingsModal());
+    if (verificationReviewDay) root.appendChild(VerificationReviewModal(verificationReviewDay));
 
     stopPeerTicker();
   } catch (error) {
@@ -4657,25 +4662,45 @@ function DayPage(dayN) {
 
   // Complete button
   const verified = !!state.verified['d'+dayN];
+
+  // Once verified, don't let users accidentally un-verify themselves.
+  // Instead, give them a way to *review* what they submitted today —
+  // sentences, AI corrections, story hook, and word-quiz answers — and
+  // re-take the word quiz if they want to practice again.
+  if (verified) {
+    const reviewBtn = el('button', {
+      class: 'btn btn-ghost btn-full',
+      style: {
+        marginTop: '20px',
+        borderRadius: '16px',
+        padding: '14px 18px',
+        fontSize: '15px',
+        fontWeight: '700',
+        border: '1px solid var(--line)',
+        background: 'var(--paper)',
+        color: 'var(--ink)',
+      },
+      onClick: () => { verificationReviewDay = dayN; render(); },
+    });
+    reviewBtn.innerHTML = `📋 오늘 인증한 내용 다시 보기 ${Icon('arrowRight', 14)}`;
+    page.appendChild(reviewBtn);
+  }
+
   const cta = el('button', {
     class: 'btn btn-full btn-lg',
     style: {
-      marginTop: '24px',
+      marginTop: '14px',
       borderRadius: '999px',
       padding: '24px 28px',
       fontSize: '20px',
       background: verified ? 'var(--green-soft)' : (prepDone === 2 ? 'var(--orange)' : 'var(--paper)'),
       color: verified ? 'var(--green)' : (prepDone === 2 ? '#fff' : 'var(--muted)'),
+      cursor: verified ? 'default' : 'pointer',
     },
-    disabled: prepDone !== 2 && !verified,
+    disabled: verified || prepDone !== 2,
     onClick: () => {
-      if (verified) {
-        state.verified['d'+dayN] = false;
-        saveState();
-        showToast('인증 취소됨');
-      } else {
-        go('verify', { week: d.weekN, day: dayN });
-      }
+      // verified=true → disabled, no-op. Un-verify is intentionally disabled.
+      if (!verified) go('verify', { week: d.weekN, day: dayN });
     },
   });
   // 버튼 문구를 "다음에 할 일" 하나로 명확히 — 이전의 '학습 준비 0/2'는 제출 0/3과 혼동되던 문제 해결
@@ -6747,6 +6772,156 @@ function PremiumGateModal() {
     </div>`;
   backdrop.appendChild(modal);
   setTimeout(() => { const input = $('#__premium_code'); if (input) input.focus(); }, 80);
+  return backdrop;
+}
+
+/* ============================================================
+   VERIFICATION REVIEW MODAL
+   ------------------------------------------------------------
+   Opens when a user taps "오늘 인증한 내용 다시 보기" on the Day
+   page after they've already verified. Pulls together everything
+   they submitted today so they can re-read without having to
+   un-verify and redo the whole flow:
+     · Word quiz score + per-question answers
+     · 3 sentences (Korean memo + my English + AI correction)
+     · Story hook (if submitted)
+     · Button to re-take the word quiz (clears quiz UI cache)
+   ============================================================ */
+function VerificationReviewModal(dayN) {
+  const d = getDay(dayN);
+  if (!d) return el('div');
+  const backdrop = el('div', {
+    class: 'modal-backdrop',
+    onClick: (e) => { if (e.target === backdrop) { verificationReviewDay = null; render(); } },
+  });
+  const modal = el('div', {
+    class: 'modal',
+    style: {
+      width: 'min(92vw, 560px)',
+      maxHeight: '88vh',
+      overflowY: 'auto',
+      padding: '22px 20px 20px',
+      borderRadius: '26px',
+      background: '#FFFDF7',
+      border: '1px solid var(--line)',
+    },
+  });
+
+  // --- Word quiz state (runtime, not persisted beyond session) ---
+  const quizUi = (window.__verifyUi || {})[dayN];
+  const quizQuestions = (typeof buildVerifyQuestions === 'function') ? buildVerifyQuestions(dayN) : [];
+  const quizDone = !!(quizUi && quizUi.done);
+  const quizScore = quizUi ? (quizUi.score || 0) : 0;
+  const quizTotal = quizQuestions.length || (d.words ? d.words.length : 3);
+
+  // --- Sentences ---
+  const sentenceRows = (d.words || []).map((w, i) => {
+    const key = `d${dayN}-${i}`;
+    const korean = (state.sentence_notes && state.sentence_notes[key]) || '';
+    const mine = (state.sentences && state.sentences[key]) || '';
+    const corrected = (state.ai_feedback && state.ai_feedback[key] && state.ai_feedback[key].corrected) || '';
+    const why = (state.ai_feedback && state.ai_feedback[key] && state.ai_feedback[key].why) || '';
+    const submitted = !!(state.submitted && state.submitted[key]);
+    return { i, word: w.en, def: w.def || '', korean, mine, corrected, why, submitted };
+  });
+
+  // --- Story hook ---
+  const storyKey = `d${dayN}-story`;
+  const storyText = (state.sentences && state.sentences[storyKey]) || '';
+  const storyCorrected = (state.ai_feedback && state.ai_feedback[storyKey] && state.ai_feedback[storyKey].corrected) || '';
+  const storyWhy = (state.ai_feedback && state.ai_feedback[storyKey] && state.ai_feedback[storyKey].why) || '';
+
+  const sentenceHtml = sentenceRows.map((r) => `
+    <div style="margin-top:10px;padding:14px 14px;border-radius:16px;background:var(--paper);border:1px solid var(--line);">
+      <div class="kicker" style="color:var(--muted);">0${r.i + 1} · ${escapeHtml(r.word)}${r.def ? ' <span style="color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0;">· ' + escapeHtml(r.def) + '</span>' : ''}</div>
+      ${r.korean ? `<div style="margin-top:8px;font-size:13.5px;line-height:1.55;color:var(--ink-soft);"><span class="mono" style="color:var(--muted);">KO · </span>${escapeHtml(r.korean)}</div>` : ''}
+      <div style="margin-top:8px;font-size:15px;line-height:1.55;color:var(--ink);font-weight:600;word-break:break-word;">
+        ${r.mine ? escapeHtml(r.mine) : '<span style="color:var(--muted);font-weight:500;">(제출 전)</span>'}
+      </div>
+      ${r.corrected && r.corrected !== r.mine ? `
+        <div style="margin-top:10px;padding:10px 12px;border-radius:12px;background:#FFF7EF;border:1px dashed rgba(240,125,56,0.3);">
+          <div class="kicker" style="color:var(--orange-dark);">AI 교정</div>
+          <div style="margin-top:4px;font-size:14.5px;line-height:1.55;color:var(--ink);">${escapeHtml(r.corrected)}</div>
+          ${r.why ? `<div style="margin-top:6px;font-size:12.5px;line-height:1.5;color:var(--ink-soft);">${escapeHtml(r.why)}</div>` : ''}
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+
+  const storyHtml = (storyText || storyCorrected) ? `
+    <div style="margin-top:20px;">
+      <div class="kicker" style="color:var(--orange-dark);">BONUS · 귀 열기 스토리</div>
+      <div style="margin-top:10px;padding:14px;border-radius:16px;background:#FFF7EF;border:1px solid rgba(240,125,56,0.22);">
+        <div style="font-size:14.5px;line-height:1.6;color:var(--ink);">${escapeHtml(storyText || '(작성 전)')}</div>
+        ${storyCorrected && storyCorrected !== storyText ? `
+          <div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(240,125,56,0.3);">
+            <div class="kicker" style="color:var(--orange-dark);">AI 버전</div>
+            <div style="margin-top:4px;font-size:14px;line-height:1.55;color:var(--ink);">${escapeHtml(storyCorrected)}</div>
+            ${storyWhy ? `<div style="margin-top:6px;font-size:12.5px;line-height:1.5;color:var(--ink-soft);">${escapeHtml(storyWhy)}</div>` : ''}
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  ` : '';
+
+  const quizHtml = `
+    <div style="margin-top:16px;padding:14px 16px;border-radius:16px;background:var(--paper);border:1px solid var(--line);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div>
+          <div class="kicker" style="color:var(--muted);">단어 시험</div>
+          <div style="margin-top:4px;font-size:15px;font-weight:700;color:var(--ink);">
+            ${quizDone ? `${quizScore}/${quizTotal} 맞음` : '아직 기록 없음'}
+          </div>
+        </div>
+        <button id="__vrmRetakeQuiz" class="btn btn-ghost" style="border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700;border:1px solid var(--line);">
+          🔁 단어 시험 다시 보기
+        </button>
+      </div>
+      <div class="t-small" style="margin-top:8px;color:var(--muted);line-height:1.5;">
+        다시 풀어도 오늘의 인증 상태는 유지돼요. 연습용이에요.
+      </div>
+    </div>
+  `;
+
+  modal.innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+      <div>
+        <div class="kicker">DAY ${dayN} · 오늘 인증한 내용</div>
+        <h2 style="margin:6px 0 0;font-size:20px;font-weight:800;letter-spacing:-0.02em;">다시 보기</h2>
+      </div>
+      <button id="__vrmClose" class="icon-btn" style="width:36px;height:36px;border-radius:12px;" title="닫기">✕</button>
+    </div>
+    <p class="t-body" style="margin-top:10px;font-size:13px;color:var(--ink-soft);line-height:1.55;">
+      오늘 ${escapeHtml(state.name || '')}님이 제출한 문장과 스토리, 단어 시험 점수를 한 번에 볼 수 있어요.
+    </p>
+    ${quizHtml}
+    <div style="margin-top:18px;">
+      <div class="kicker">오늘의 3문장</div>
+      ${sentenceHtml || '<div class="t-small" style="margin-top:8px;color:var(--muted);">제출한 문장이 없어요.</div>'}
+    </div>
+    ${storyHtml}
+    <div style="margin-top:20px;">
+      <button id="__vrmDone" class="btn btn-primary btn-full">닫기</button>
+    </div>
+  `;
+
+  const close = () => { verificationReviewDay = null; render(); };
+  backdrop.appendChild(modal);
+  setTimeout(() => {
+    const cx = modal.querySelector('#__vrmClose');
+    const dx = modal.querySelector('#__vrmDone');
+    const rx = modal.querySelector('#__vrmRetakeQuiz');
+    if (cx) cx.addEventListener('click', close);
+    if (dx) dx.addEventListener('click', close);
+    if (rx) rx.addEventListener('click', () => {
+      // Reset the quiz UI and navigate — verified stays true.
+      if (typeof window.__restartVerifyQuiz === 'function') {
+        verificationReviewDay = null;
+        window.__restartVerifyQuiz(dayN);
+        go('verify', { week: d.weekN, day: dayN });
+      }
+    });
+  }, 40);
   return backdrop;
 }
 
