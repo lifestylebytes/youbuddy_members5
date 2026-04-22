@@ -22,67 +22,88 @@ if ! git diff --cached --quiet || ! git diff --quiet; then
   echo "==> 변경 사항 커밋..."
   git add -A
   if ! git diff --cached --quiet; then
-    git commit -m "Nickname privacy + checkboard wall fix + quiz pacing + premium scaffolding
+    git commit -m "Premium 주간 미팅 발표자 선착순 시스템 (v1 풀스택)
 
-영어 닉네임 (풀 롤아웃)
-- applyRemoteMemberSummaries: summary.english_name → member.englishName 복사
-  (본인은 state.englishName 이 canonical 이라 건너뜀). 서버 RPC 가
-  english_name 을 같이 내려주면 체크보드·커뮤니티·멤버 카드에서 peer 도
-  영어 닉네임으로 보임.
-- ProfilePage: 영어 닉네임 카드 신설 + inline 저장 → saveState immediate →
-  Supabase upsert. 기존 멤버도 여기서 세팅 가능.
-- 온보딩 + 프로필 placeholder: Gaby → Buddy.
-- 커뮤니티 글 렌더: memberByRef(post.user) 로 resolve → displayName/safeInitial
-  사용. 옛 글도 자동으로 영어 닉네임으로 보임.
+목적
+- 프리미엄 참가자가 주간 미팅에서 '얻은 게 있다' + '충분히 말했다'
+  라고 느끼게 하기 위한 발표자 중심 개편.
+- 각 주 3명 선착순 7분 발표 + 피드백. 자리를 잡은 순간 준비 공간이
+  열려서 실제로 미팅 전에 1번은 입으로 말해보게 유도.
 
-한국어 본명 프라이버시 (peer 에게 숨김)
-- 멤버 상세 모달: 큰 타이틀은 영어 닉네임 (영어 없으면 한국어 fallback).
-  본명 서브라인은 본인(me) 에게만 '본명 · 이규태' 로 노출. peer 한테는
-  nickname 만 보임.
-- 체크보드 tooltip: displayName(m) 사용 → peer 는 영어 닉네임만.
-- 저장한 커뮤니티 글 리스트: memberByRef 로 resolve → displayName.
+PremiumPage 주간 미팅 카드 (4주 통합)
+- CHALLENGE.premium.weekly_meetings 가 단일 소스. 기존 duplicate
+  premiumMeetings 로컬 배열 제거.
+- 각 카드: 날짜 뱃지 + 타이틀 + 이번주 라벨 + 시나리오 setting +
+  premise 인용 블록 + mustUseVocab 칩 (최대 6개) + 발표자 슬롯 3자리
+  (이니셜 원, 빈 자리는 점선 원) + '{n}자리 남음' 인디케이터 +
+  signed-up 멤버 English nick list.
+- CTA 는 내 상태에 따라 컨텍스트화:
+  · 내가 발표자 → '🎤 발표 준비하기' + '자리 내려놓기'
+  · 자리 남음 (미래) → '🎤 발표 자리 잡기' + '말할 거리' 보조
+  · 마감 (미래) → '📝 말할 거리 준비하기'
+  · 지나간 주 → '📝 내 메모 보기 / 사후 메모 남기기'
+- 베이직 유저는 미리보기 pill 로만 노출 (signup 불가).
+- 이번주 카드에 lilac ring + glow 강조.
 
-체크보드 이름 벽 근본 수정 (PRIO 0)
-- 기존: .checkboard-curtain 이 position:absolute 로 .checkboard-wrap 안에
-  있었음. 하지만 부모가 overflow:auto 스크롤 컨테이너라 absolute 자식이
-  scroll 과 함께 좌로 밀려나면서 벽이 사라지고 sticky 이름이 투명하게
-  Day 타일 위를 지나가 버리는 버그.
-- 수정: curtain DOM 제거. 대신 .cb-name / .cb-header-name 셀 자체를
-  background:#FFFDF7 + border-right + box-shadow 로 각자 불투명한 벽을
-  세움. position:sticky 와 함께 항상 붙어있음.
+PresenterPrepPage (신규 페이지)
+- 내가 자리를 잡은 후 자동 이동. 자리 유지 동안 계속 재진입 가능.
+- 다크 라일락 hero: WEEK n · 날짜 · D-카운트다운.
+- Scenario (setting/premise/flow 3스텝) + 7분 프롬프트 블록.
+- mustUseVocab 중 최대 3개 픽커. 칩 토글로 저장.
+- 스크립트 textarea (자동 저장) + 픽한 어휘가 스크립트에 등장하는지
+  실시간 ✓ / ◯ 인디케이터 ({n}/{total} 사용됨).
+- 🔒 사적 노트 textarea (긴장 포인트 · Q&A · 피드백 요청).
+- ⏱ 7분 연습 타이머 (시작/일시정지/리셋, 종료 시 토스트).
+- 자리 내려놓기 버튼 (미래 주 한정).
+- 진입: state.tier === 'premium' 만. basic 은 premium gate.
 
-이름 칸 폭 축소
-- grid-template-columns name track: 130px → 108px
-- .cb-name / .cb-header-name max-width: 130 → 108
-- 8자 닉네임 (Brandson 등) 에도 꽉 차도록 타이트.
+홈 hero — 이번 주 프리미엄 미팅 카드
+- 프리미엄 유저에게만 노출. requestPresenterSignups() 로 서버 싱크.
+- 상태에 따라 색/카피:
+  · 내가 발표자 → 다크 hero + 'ME' 리본 + '발표 준비하러 →'
+  · 자리 남음 → 라일락 그라데이션 + '{n}자리 남음 · {시나리오}' +
+    '발표 자리 잡기 →'
+  · 마감 → 라일락 그라데이션 + '자리 마감 · {시나리오}' +
+    '말할 거리 준비하기 →'
+- 클릭 → 발표자면 PresenterPrepPage, 아니면 PremiumPage.
 
-단어테스트 정답 페이싱
-- 정답 감지 debounce: 180ms → 220ms
-- flash → advance 간격: 350ms → 950ms
-- correctFlashFade animation: 600ms → 900ms (hold 구간 길게)
-- DOM 제거 timer: 620ms → 920ms
-- 체감: 정답 확인 → 녹색 체크 구경할 시간 → 다음 단어. 약 1.2초.
+플로팅 🎤 버튼 (프리미엄 전용)
+- bottom:88px 에 58px 원형 FAB (탭바 위).
+- 프리미엄 + onboarded + 현재페이지가 presenter-prep/meeting-notes/
+  quiz/certification 이 아닐 때만 노출.
+- 내가 발표자 → dark lilac 그라데이션 + 'ME' 리본. 클릭 시 prep.
+- 자리 남음 → 라일락 + 오렌지 '{n}' 뱃지. 클릭 시 premium.
+- 자리 마감 → 라일락 (뱃지 없음). 클릭 시 premium.
+- 지나간 주 + 내가 발표자 아니면 숨김.
 
-프리미엄 스캐폴딩 (데이터 + 헬퍼만, UI 다음 커밋)
-- CHALLENGE.premium.weekly_meetings: 4주 시나리오 데이터 추가.
-  각 주마다 setting/premise/flow/mustUseVocab/presenterPrompt.
-  Week 1 Anchor & Line of sight, Week 2 Design review push-back,
-  Week 3 Incident triage & blast radius, Week 4 5-slide pitch.
-- state.presenterSignups = {} (week_key → [member_keys])
-- state.presenter_prep = {} (week_key → {vocabPicked, script, privateNotes})
-- state.meeting_notes = {}
-- PERSISTED_STATE_KEYS 에 presenterSignups / presenter_prep 추가.
-- 헬퍼: PRESENTER_KEY(n), weekMeta(n), isMePresenterInWeek(n),
-  presenterSlotsRemaining(n), daysUntilMeeting(dateStr), currentPremiumWeek(),
-  memberByKey(key), applyRemotePresenterSignups, loadPresenterSignups,
-  requestPresenterSignups, signupPresenter(weekN), releasePresenter(weekN).
-- 아직 UI 배선 없음 (PremiumPage 개편 + PresenterPrepPage + 홈 hero +
-  floating 🎤 는 다음 커밋).
+Google Meet 리네임
+- Zoom → Google Meet (CHALLENGE.premium.weekly_meetings 4개 +
+  카드 서브라인 + '주간 Zoom 미팅' 섹션 헤더 + 프로필 '주 1회 Zoom'
+  안내 2곳 + Certification meetup).
+
+커뮤니티 & 피드 버그
+- 댓글 작성자: memberByKey/memberByRef → displayName 으로 resolve.
+  '유버디' 같이 운영 이름 대신 본인 영어 nick 노출.
+- mergePersistedState: sessionKeep (communityDay, communityDayPickerOpen)
+  보존. 15초 리프레시 시 Day 2 보다가 자동으로 Day 3 로 점프하는
+  버그 수정 (session-only UI state 가 PERSISTED_STATE_KEYS 에 없어서
+  snapshot 머지 시 undefined 덮어쓰여지던 root cause).
+
+라우팅
+- 'presenter-prep' 라우트 추가.
+- TabBar 프리미엄 tab match 배열에 presenter-prep / meeting-notes 추가
+  → 서브 페이지에서도 프리미엄 탭이 활성 상태 유지.
+
+상태
+- presenter_prep persistence 는 기존 PERSISTED_STATE_KEYS 에 이미
+  등록됨 (지난 커밋). 스크립트/노트/픽한 어휘 자동 저장.
 
 필수 후속 작업
-- Supabase SQL Editor 에서 supabase_migration_english_name.sql 실행
-  (아직 안 했으면).
-- 프리미엄 관련 RPC migration 은 다음 커밋과 함께."
+- Supabase SQL Editor 에서 다음 순서로 실행:
+  1. supabase_migration_english_name.sql (아직이면)
+  2. supabase_migration_presenter.sql (이번 배포 직후 필수)
+- 미적용 상태에서는 RPC 404 로 failing 하고 오프라인 모드 (로컬만)
+  로 graceful fallback. 타 유저에게는 signup 이 안 보일 수 있음."
   fi
 fi
 
