@@ -22,88 +22,69 @@ if ! git diff --cached --quiet || ! git diff --quiet; then
   echo "==> 변경 사항 커밋..."
   git add -A
   if ! git diff --cached --quiet; then
-    git commit -m "Premium 주간 미팅 발표자 선착순 시스템 (v1 풀스택)
+    git commit -m "발표자 1주 제한 + Personal Quiz 락 + 단어장 통합 + 리치 수료증
 
-목적
-- 프리미엄 참가자가 주간 미팅에서 '얻은 게 있다' + '충분히 말했다'
-  라고 느끼게 하기 위한 발표자 중심 개편.
-- 각 주 3명 선착순 7분 발표 + 피드백. 자리를 잡은 순간 준비 공간이
-  열려서 실제로 미팅 전에 1번은 입으로 말해보게 유도.
+발표자 1주 제한
+- 한 사람이 4주차 중 1주만 발표자로 자리 잡도록.
+- myPresenterWeek() helper → PremiumPage CTA 에 'Week N 에 이미 자리
+  잡음' 락 버튼 분기 추가. 다른 주 카드에서도 signup 버튼 자동 막힘.
+- signup RPC ALREADY_SIGNED_UP 에러 → '이미 Week N 에 자리 잡으셨어요.
+  옮기려면 그 주 자리부터 내려놓기' 토스트.
 
-PremiumPage 주간 미팅 카드 (4주 통합)
-- CHALLENGE.premium.weekly_meetings 가 단일 소스. 기존 duplicate
-  premiumMeetings 로컬 배열 제거.
-- 각 카드: 날짜 뱃지 + 타이틀 + 이번주 라벨 + 시나리오 setting +
-  premise 인용 블록 + mustUseVocab 칩 (최대 6개) + 발표자 슬롯 3자리
-  (이니셜 원, 빈 자리는 점선 원) + '{n}자리 남음' 인디케이터 +
-  signed-up 멤버 English nick list.
-- CTA 는 내 상태에 따라 컨텍스트화:
-  · 내가 발표자 → '🎤 발표 준비하기' + '자리 내려놓기'
-  · 자리 남음 (미래) → '🎤 발표 자리 잡기' + '말할 거리' 보조
-  · 마감 (미래) → '📝 말할 거리 준비하기'
-  · 지나간 주 → '📝 내 메모 보기 / 사후 메모 남기기'
-- 베이직 유저는 미리보기 pill 로만 노출 (signup 불가).
-- 이번주 카드에 lilac ring + glow 강조.
+Personal Quiz 락 (발표 후 스크립트 주입 → 생성)
+- personalQuizState() 4단계 gating: not_signed_up / before_present /
+  waiting_inject / ready.
+- state.personal_quiz = { items, basedOnScript, injectedAt, week } +
+  state.personal_quiz_answers 로 개편. 기존 주별 기본 퀴즈 로직 삭제.
+- PremiumPage 퀴즈 카드 + QuizPage 에 단계별 락 카피 표시.
+- Operator console helpers: window.__injectPersonalQuiz({items,
+  basedOnScript, week}), __clearPersonalQuiz(). state.isOperator 일
+  때 QuizPage 에 inject 텍스트에리어 노출 (셀프 테스트용).
+- Markdown export + ProfilePage quizDone 계산 personal_quiz 기준으로.
 
-PresenterPrepPage (신규 페이지)
-- 내가 자리를 잡은 후 자동 이동. 자리 유지 동안 계속 재진입 가능.
-- 다크 라일락 hero: WEEK n · 날짜 · D-카운트다운.
-- Scenario (setting/premise/flow 3스텝) + 7분 프롬프트 블록.
-- mustUseVocab 중 최대 3개 픽커. 칩 토글로 저장.
-- 스크립트 textarea (자동 저장) + 픽한 어휘가 스크립트에 등장하는지
-  실시간 ✓ / ◯ 인디케이터 ({n}/{total} 사용됨).
-- 🔒 사적 노트 textarea (긴장 포인트 · Q&A · 피드백 요청).
-- ⏱ 7분 연습 타이머 (시작/일시정지/리셋, 종료 시 토스트).
-- 자리 내려놓기 버튼 (미래 주 한정).
-- 진입: state.tier === 'premium' 만. basic 은 premium gate.
+단어장 통합 (pitch_vocab 단일 소스)
+- 데일리 북마크 / 유의어 북마크 / 미팅 chip / 수동 입력 → 전부
+  state.pitch_vocab 로 수렴. 각 엔트리에 source + sourceKey 부여.
+- addToVocabBank/removeFromVocabBank/syncDailyBookmarkToBank/
+  syncSynBookmarkToBank/clearLinkedBookmarksForVocab helper.
+- 토글 훅: 데일리 북마크 on/off, window.__toggleBookmark,
+  window.__toggleSynBookmark 모두 bank 동기화.
+- migrateBookmarksToVocabBank() 1회 마이그레이션 — __vocabMigrated 로
+  가드. boot hydrate 후 실행.
+- VOCAB BANK UI: source 필터 chip (전체/데일리/유의어/미팅/직접) +
+  색상 구분 source 라벨 pill.
 
-홈 hero — 이번 주 프리미엄 미팅 카드
-- 프리미엄 유저에게만 노출. requestPresenterSignups() 로 서버 싱크.
-- 상태에 따라 색/카피:
-  · 내가 발표자 → 다크 hero + 'ME' 리본 + '발표 준비하러 →'
-  · 자리 남음 → 라일락 그라데이션 + '{n}자리 남음 · {시나리오}' +
-    '발표 자리 잡기 →'
-  · 마감 → 라일락 그라데이션 + '자리 마감 · {시나리오}' +
-    '말할 거리 준비하기 →'
-- 클릭 → 발표자면 PresenterPrepPage, 아니면 PremiumPage.
+리치 HTML 수료증 파이프라인
+- 기존 SVG 1장짜리 downloadCertificate 를 buildCertHtml() 로 교체.
+  오렌지 테마, Cormorant Garamond + Noto Sans KR, glass 카드, 4개
+  스탯 pill, topic/strengths/growth/keyVocab 카드 (비었으면 숨김),
+  다크 Final Vocabulary 그리드 (pitch_vocab 중 daily > manual 우선
+  top 10), 서명 footer.
+- 자동 수집: englishName / role / done·total·overall / vocabCount /
+  startDate·endDate·days / finalVocab. 코치 수기 입력은 cert_profile
+  ={topic,strengths,growth,keyVocab,issuedAt} 로 분리.
+- Operator console helpers: window.__injectCertProfile(profile),
+  __clearCertProfile(). state.isOperator 일 때 CertPage 에 inject
+  패널 + 상태 카드 노출.
+- 유저는 HTML 다운로드 후 브라우저 ⌘+P 로 PDF 변환 (외부 라이브러리
+  없음).
 
-플로팅 🎤 버튼 (프리미엄 전용)
-- bottom:88px 에 58px 원형 FAB (탭바 위).
-- 프리미엄 + onboarded + 현재페이지가 presenter-prep/meeting-notes/
-  quiz/certification 이 아닐 때만 노출.
-- 내가 발표자 → dark lilac 그라데이션 + 'ME' 리본. 클릭 시 prep.
-- 자리 남음 → 라일락 + 오렌지 '{n}' 뱃지. 클릭 시 premium.
-- 자리 마감 → 라일락 (뱃지 없음). 클릭 시 premium.
-- 지나간 주 + 내가 발표자 아니면 숨김.
+주간 보드 타일 UX — 오늘 vs 완료 구분
+- 기존 st === 'today' 와 st === 'done' 이 둘 다 주황 풀칠이라 '오늘
+  아직 미인증' Day 가 완료처럼 보이던 버그.
+- 'today' → 크림 배경 + 주황 두꺼운 테두리 (비어있는 느낌).
+- 'done' → 주황 풀칠 + 흰 체크 점.
+- 레전드에도 '오늘 · 미인증' 칸 추가.
 
-Google Meet 리네임
-- Zoom → Google Meet (CHALLENGE.premium.weekly_meetings 4개 +
-  카드 서브라인 + '주간 Zoom 미팅' 섹션 헤더 + 프로필 '주 1회 Zoom'
-  안내 2곳 + Certification meetup).
+State / 지속성
+- PERSISTED_STATE_KEYS 에 personal_quiz, personal_quiz_answers,
+  __vocabMigrated, cert_profile 추가. 모두 app_state JSONB 내부라
+  신규 SQL 마이그레이션 불필요.
 
-커뮤니티 & 피드 버그
-- 댓글 작성자: memberByKey/memberByRef → displayName 으로 resolve.
-  '유버디' 같이 운영 이름 대신 본인 영어 nick 노출.
-- mergePersistedState: sessionKeep (communityDay, communityDayPickerOpen)
-  보존. 15초 리프레시 시 Day 2 보다가 자동으로 Day 3 로 점프하는
-  버그 수정 (session-only UI state 가 PERSISTED_STATE_KEYS 에 없어서
-  snapshot 머지 시 undefined 덮어쓰여지던 root cause).
-
-라우팅
-- 'presenter-prep' 라우트 추가.
-- TabBar 프리미엄 tab match 배열에 presenter-prep / meeting-notes 추가
-  → 서브 페이지에서도 프리미엄 탭이 활성 상태 유지.
-
-상태
-- presenter_prep persistence 는 기존 PERSISTED_STATE_KEYS 에 이미
-  등록됨 (지난 커밋). 스크립트/노트/픽한 어휘 자동 저장.
-
-필수 후속 작업
-- Supabase SQL Editor 에서 다음 순서로 실행:
-  1. supabase_migration_english_name.sql (아직이면)
-  2. supabase_migration_presenter.sql (이번 배포 직후 필수)
-- 미적용 상태에서는 RPC 404 로 failing 하고 오프라인 모드 (로컬만)
-  로 graceful fallback. 타 유저에게는 signup 이 안 보일 수 있음."
+후속
+- 이전 세션부터 밀려있는 2개만 Supabase SQL Editor 에서 돌리면 됨:
+  1. supabase_migration_english_name.sql
+  2. supabase_migration_presenter.sql"
   fi
 fi
 

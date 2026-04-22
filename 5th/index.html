@@ -1054,87 +1054,182 @@ const CHALLENGE = {
     presenter_slots_per_week: 3,  // 주마다 발표자 선착순 3명
     presenter_talk_minutes: 7,
     presenter_feedback_minutes: 3,
+    // 주간 미팅 = 40분 그룹 롤플레이 + 30분 (7분 발표 + 3분 Q&A) × 3명 = 총 70분.
+    // pt_sessions 는 폐지 (미팅 안에서 롤플레이 + 개인 피드백 통합으로 흡수).
     weekly_meetings: [
       {
         n: 1,
         date: '2026-04-30',
         signupCloseDate: '2026-04-29',
-        title: 'Week 1 — Setup & Strategy',
-        desc: '판 깔기·기준점 잡기 표현 롤플레이',
+        title: 'Week 1 — Anchor & Line of sight',
+        desc: '판 깔기·기준점 잡기 — Q3 킥오프 롤플레이',
         status: 'upcoming',
         zoom: 'Google Meet',
+        // Gaby 가 미팅 후 직접 채움 — recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
+        recap: '',
+        pptUrl: '',
         scenario: {
           setting: 'Q3 Kickoff Standup',
-          premise: 'CEO가 각 리드에게 "이번 분기 가장 중요한 한 가지"를 anchor 해달라고 요청. 3분 안에 우선순위 + 2가지 근거.',
+          premise: 'CEO 가 각 팀 리드에게 "이번 분기 우리 팀의 one thing" 을 anchor 해달라고 요청. 5분 안에 우선순위 + 2가지 근거 + 1개 ask.',
           flow: [
             '① Anchor — 내 팀의 북극성 / 이번 분기의 one thing',
             '② Line of sight — 왜 지금인지 (데이터·기회·리스크)',
             '③ Ask — 필요한 리소스 / 다른 팀에 기대하는 것',
           ],
         },
+        roleplay: {
+          duration: 40,
+          roles: [
+            { name: 'CEO / VP', goal: '회의 진행 + 각 리드에게 pushback 질문. "So what\'s your one thing?" 반복.' },
+            { name: 'Product Lead', goal: 'Product team 의 anchor 를 5분 내 발표. 예: "Checkout conversion 을 6% 올리는 게 우리 one thing."' },
+            { name: 'Engineering Lead', goal: 'Eng team 의 anchor 를 5분 내 발표. 예: "Infra cost 를 30% 줄이는 게 우리 one thing."' },
+            { name: 'Marketing Lead', goal: 'Marketing team 의 anchor 를 5분 내 발표. 예: "Q3 브랜드 awareness 를 15% 끌어올리는 게 우리 one thing."' },
+            { name: 'Observer / Skeptic', goal: '각 발표 후 "but what about..." 형태로 question 1개씩. 감정 없이, 데이터 기반.' },
+          ],
+          beats: [
+            { time: '0–5', label: 'CEO 오프닝', body: 'CEO 가 "Let me set the table..." 로 시작. Q2 metric 요약. 각 리드에게 "I want you to anchor one thing" 요청.' },
+            { time: '5–15', label: 'Product Lead anchor', body: 'Product Lead 5분 발표 → Observer 질문 ("Did you think about X?") → 5분 응답/재정비.' },
+            { time: '15–25', label: 'Engineering Lead anchor', body: 'Eng Lead 5분 발표 → pushback → reframe. "Let me walk you through the line of sight."' },
+            { time: '25–35', label: 'Marketing Lead anchor', body: 'Marketing Lead 5분 발표 → Q&A. "What\'s the baseline and what\'s the north star?"' },
+            { time: '35–40', label: 'CEO wrap', body: 'CEO 가 "So our one thing as a company is..." 로 요약 + action items.' },
+          ],
+          props: [
+            { label: 'Q2 metric card (쇼핑몰 예시)', body: 'MAU +12% · Checkout conversion -3% · NPS +4 · Infra cost +18% vs plan' },
+            { label: 'Priority matrix template', body: '① North star (1개) / ② Stretch goals (2개) / ③ Parked (나머지)' },
+            { label: 'Slack snippet', body: '"Recent customer interviews indicate pricing friction at tier-3..." — customer research team' },
+          ],
+        },
         mustUseVocab: [
           'set the table', 'anchor', 'line of sight', 'north star',
           'baseline', 'lay out', 'set expectations', 'scope',
         ],
-        presenterPrompt: '내 팀 / 내 업의 이번 분기 "anchor" 1개를 7분 안에 프레이밍. 시작: "Let me set the table…" / 끝: 구체적 ask 1개.',
+        presenterPrompt: '내 팀 / 내 업의 이번 분기 "anchor" 1개를 7분 안에 프레이밍. 시작: "Let me set the table…" / 끝: 구체적 ask 1개. 3분 Q&A 에서 "what\'s the baseline" 대비.',
+        qaPrompts: [
+          'What\'s the baseline you\'re measuring against?',
+          'How does this anchor tie to the company\'s north star?',
+          'What happens if you miss this by 20%?',
+        ],
       },
       {
         n: 2,
         date: '2026-05-07',
         signupCloseDate: '2026-05-06',
-        title: 'Week 2 — Smart Communication',
-        desc: '건설적 피드백/반대 의견 시뮬레이션',
+        title: 'Week 2 — Push-back & Reframe',
+        desc: '건설적 반대 — Design Review 롤플레이',
         status: 'upcoming',
         zoom: 'Google Meet',
+        // Gaby 가 미팅 후 직접 채움 — recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
+        recap: '',
+        pptUrl: '',
         scenario: {
-          setting: 'Design Review · 반대 의견 내기',
-          premise: 'PM이 제안한 feature 에 내가 반대해야 함. 관계 해치지 않고 "push back" 하는 법 연습. 상대는 defensive 할 수 있음.',
+          setting: 'Design Review · PM 이 제안한 feature 에 팀이 반대',
+          premise: 'PM 이 "Auto-approve checkout for Loyal tier users" feature 를 제안. Eng, Data, Design 이 각자 다른 관점에서 push back. 관계 해치지 않고 반대 → 대안 제시.',
           flow: [
             '① Acknowledge — 상대 의견 먼저 요약 ("If I heard you right…")',
             '② Reframe — 데이터/관점 하나 추가 ("I\'d push back on one thing…")',
             '③ Offer — 내가 제안하는 대안 + 가드레일',
           ],
         },
+        roleplay: {
+          duration: 40,
+          roles: [
+            { name: 'PM (feature 제안자)', goal: 'Auto-approve feature pitch. 자신만만하게. pushback 오면 처음엔 defensive, 점점 open up.' },
+            { name: 'Engineering Lead', goal: '기술 리스크 pushback. "Fraud team 에 의논도 안 했는데..." 에서 시작.' },
+            { name: 'Data Scientist', goal: '데이터 관점 pushback. "Loyal tier 정의가 stale 함. 분석 더 필요."' },
+            { name: 'Design Lead', goal: 'UX 관점 pushback. "사용자가 auto-approve 된 걸 모르면 trust 이슈."' },
+            { name: 'Skip-level Manager', goal: '중재자. meet in the middle 로 대안 도출. "Let\'s take a step back..."' },
+          ],
+          beats: [
+            { time: '0–5', label: 'PM feature pitch', body: 'PM 이 one-pager 발표. "Auto-approve for Loyal tier → +8% conversion, 3주 빌드." 자신만만.' },
+            { time: '5–15', label: '3가지 pushback', body: 'Eng → Data → Design 순서로 각자 3분씩 push back. 반드시 "If I heard you right..." 로 시작, "I\'d push back on..." 로 본론.' },
+            { time: '15–25', label: 'PM 반응', body: 'PM 이 처음엔 defensive. 2번째 pushback 에서 "Let me reframe" 으로 전환. 데이터 인정.' },
+            { time: '25–35', label: 'Skip-level 중재', body: 'Manager 가 "Let\'s take a step back" 으로 개입. meet in the middle 안 제시 (예: phased rollout, guardrails).' },
+            { time: '35–40', label: 'Close', body: '합의된 다음 스텝 2개. "So here\'s where we land..." 로 close.' },
+          ],
+          props: [
+            { label: 'PM one-pager', body: 'Feature: Auto-approve checkout for Loyal tier users (>12 months, >5 orders). Impact: +8% conversion. Build: 3 weeks. Risk: fraud rate.' },
+            { label: 'Eng slack msg', body: '"Fraud team 에 의논도 안 했는데 이 feature 를 어떻게 ship 해? 지난달 fraud rate 0.3% → 0.7%." — Eng Lead' },
+            { label: 'Risk matrix', body: 'Impact (Low/Med/High) × Probability (Low/Med/High) — 각 pushback 을 여기에 plot.' },
+          ],
+        },
         mustUseVocab: [
           'push back', 'play devil\'s advocate', 'respectfully disagree',
           'reframe', 'walk me through', 'take a step back', 'land the plane', 'meet in the middle',
         ],
-        presenterPrompt: '최근 본인이 반대한 / 반대해야 했던 결정 하나를 7분 스토리로. acknowledge → push back → alternative.',
+        presenterPrompt: '최근 본인이 반대한 / 반대해야 했던 결정 하나를 7분 스토리로. acknowledge → push back → alternative. 3분 Q&A 에서 "왜 그때 바로 말 안 했어?" 대비.',
+        qaPrompts: [
+          'Why didn\'t you push back earlier?',
+          'What would you do differently next time?',
+          'How did the other person react?',
+        ],
       },
       {
         n: 3,
         date: '2026-05-14',
         signupCloseDate: '2026-05-13',
-        title: 'Week 3 — Problem Solving & Strategy',
-        desc: 'Value proposition 피칭 + 위기 대응 연습',
+        title: 'Week 3 — Incident Briefing',
+        desc: '위기 대응 — 5분 exec update 롤플레이',
         status: 'upcoming',
         zoom: 'Google Meet',
+        // Gaby 가 미팅 후 직접 채움 — recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
+        recap: '',
+        pptUrl: '',
         scenario: {
-          setting: 'Incident Briefing · 5분 exec update',
-          premise: '런칭 중 장애가 남. exec team 에게 5분 내로 브리핑. panic 없이, 근거 + 조치 + 다음 스텝.',
+          setting: 'Incident Briefing · 런칭 중 장애 발생, exec team 에 5분 브리핑',
+          premise: 'Checkout 장애가 30분째 진행 중. Incident Commander 가 exec team 에게 5분 내로 브리핑. panic 없이 headline → cause → mitigation → next.',
           flow: [
             '① Headline — 한 줄 요약 + blast radius',
             '② Root cause — 알고 있는 것 / 아직 모르는 것 분리',
             '③ Mitigation + Next — 지금까지 조치 / 24시간 plan',
           ],
         },
+        roleplay: {
+          duration: 40,
+          roles: [
+            { name: 'Incident Commander (IC)', goal: '5분 headline briefing 주도. Calm. "We have an ongoing incident. Blast radius: ~18% of checkout."' },
+            { name: 'CEO', goal: '불안한 질문. "How bad is this? When was the last time this happened?"' },
+            { name: 'Support Lead', goal: '고객 관점 update. "We\'re getting 40 tickets per minute. Top complaint: lost cart."' },
+            { name: 'PR / Comms Lead', goal: '외부 커뮤니케이션 질문. "When do we issue a public statement? What channel?"' },
+            { name: 'Legal / Compliance', goal: '규제 리스크 제기. "Are we in breach of any SLA? Data at risk?"' },
+          ],
+          beats: [
+            { time: '0–3', label: 'IC headline', body: 'IC 가 "We have an ongoing incident — blast radius: ~18% of checkout flow, started 11:42 UTC." 로 opens.' },
+            { time: '3–10', label: 'Root cause split', body: '알고 있는 것: payment gateway timeout. 모르는 것: upstream cause. "Here\'s what we know vs what we don\'t know."' },
+            { time: '10–20', label: 'Mitigation timeline', body: 'IC 가 "In the last 30min we have: ① rolled back deploy, ② rerouted 50% traffic, ③ opened war room." 설명.' },
+            { time: '20–30', label: 'Exec Q&A', body: 'CEO, PR, Legal 질문. "Do we go public?" → IC 답변. "Is customer data at risk?" → Legal 답변.' },
+            { time: '30–40', label: '24hr plan', body: 'IC 가 "Course correct by EOD" 로 close. 명확한 owner + deadline × 3. Silver lining 한 줄.' },
+          ],
+          props: [
+            { label: 'Monitoring graph', body: 'Checkout success rate: 94% → 76% at 11:42 UTC. P95 latency: 800ms → 4.2s.' },
+            { label: 'Slack incident channel', body: '#incident-20260514 · 11:48 UTC "rollback initiated" · 11:55 UTC "50% traffic rerouted to canary"' },
+            { label: '고객 불만 snippet', body: '"I just lost my cart of $240. Your checkout keeps failing." — @user_8291 on Twitter (15min ago)' },
+          ],
+        },
         mustUseVocab: [
           'triage', 'root cause', 'blast radius', 'mitigate',
           'buy some time', 'value prop', 'course correct', 'silver lining',
         ],
-        presenterPrompt: '본인 업계의 "작은 위기" 시나리오 하나 (실제 or 가상) 를 7분 briefing 으로. headline → cause → mitigation → next steps.',
+        presenterPrompt: '본인 업계의 "작은 위기" 시나리오 하나 (실제 or 가상) 를 7분 briefing 으로. headline → cause → mitigation → next steps. 3분 Q&A 에서 "How bad is this really?" 대비.',
+        qaPrompts: [
+          'How bad is this really — worst case scenario?',
+          'What do we tell customers right now?',
+          'What did we learn that we\'ll do differently?',
+        ],
       },
       {
         n: 4,
         date: '2026-05-21',
         signupCloseDate: '2026-05-20',
-        title: 'Week 4 — Execution & Productivity (PPT 발표)',
-        desc: '본인 Industry 맞춤 PPT 발표 + Post-mortem',
+        title: 'Week 4 — Final PT (PPT)',
+        desc: '본인 Industry 5-slide PT + 투자자 Q&A',
         status: 'upcoming',
         zoom: 'Google Meet',
+        // Gaby 가 미팅 후 직접 채움 — recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
+        recap: '',
+        pptUrl: '',
         scenario: {
-          setting: 'Final Pitch · 5-slide industry pitch',
-          premise: '당신의 industry 에서 실제 했던 / 하고 싶은 프로젝트를 5장 deck 으로. 마지막 슬라이드는 lessons learned / retrospective.',
+          setting: 'Final Pitch · 5-slide industry pitch + 투자자 panel Q&A',
+          premise: '본인 industry 에서 실제 했던 / 하고 싶은 프로젝트를 5장 deck 으로. 40분 그룹 세션에서는 모두가 "elevator version" + 투자자 panel 질문 연습.',
           flow: [
             '① Problem · one-liner',
             '② Approach · 왜 이 방법인지',
@@ -1143,17 +1238,36 @@ const CHALLENGE = {
             '⑤ Lessons — 다시 한다면',
           ],
         },
+        roleplay: {
+          duration: 40,
+          roles: [
+            { name: 'Presenter (3명 각각)', goal: '5분 elevator version (슬라이드 없이 입으로만). "X for Y that does Z" 형식.' },
+            { name: 'Skeptical Investor', goal: 'kill question 준비. "What\'s your moat?" "Why now?" 로 pushback.' },
+            { name: 'Optimistic Partner', goal: '긍정적 confusion 질문. "I love this, but help me understand X..."' },
+            { name: 'Domain Expert', goal: '업계 지식 기반 tough question. "저 industry 는 이미 X 회사가 하고 있는데?"' },
+          ],
+          beats: [
+            { time: '0–15', label: '3명 elevator version', body: '각 5분 "elevator version" (슬라이드 없이 입으로만). Problem → approach → why now.' },
+            { time: '15–30', label: 'Investor panel 질문', body: 'Panel 이 각 presenter 에게 kill question 1개씩. "What\'s your moat?" "Why now?" "What happens in 18 months?"' },
+            { time: '30–40', label: 'Cross-feedback', body: '다른 presenter 들이 서로 1분씩 피드백. "If I were you I\'d..." 형식. retrospective.' },
+          ],
+          props: [
+            { label: 'One-liner template', body: '"[Product] for [audience] that [does X] by [how]. Unlike [alternative], we [unique edge]."' },
+            { label: '"Why now?" timeline', body: '축: 2020 → 2023 → 2026. "지금이 아니면 왜 안 되는가?" 근거 3개.' },
+            { label: 'Kill questions', body: '"What\'s your moat?" · "Why hasn\'t big player X done this?" · "What\'s your unit economics?" · "What if AI commoditizes this next year?"' },
+          ],
+        },
         mustUseVocab: [
           'ship', 'iterate', 'dogfood', 'table stakes',
           'move the needle', 'retrospective', 'lessons learned', 'close the loop',
         ],
-        presenterPrompt: '5장 PPT 로 본인 real project 발표. 마지막 슬라이드 "lessons learned" 필수. 7분 안에 close the loop.',
+        presenterPrompt: '5장 PPT 로 본인 real project 발표. 마지막 슬라이드 "lessons learned" 필수. 7분 안에 close the loop. 3분 Q&A 에서 kill question 대비.',
+        qaPrompts: [
+          'What\'s your moat?',
+          'Why now — what changed in the market?',
+          'What would you do differently in the next version?',
+        ],
       },
-    ],
-    pt_sessions: [
-      { date: '2026-05-05', title: '1:1 PT — 약점 진단', desc: '발음·문법·어휘 약점 체크', status: 'upcoming' },
-      { date: '2026-05-12', title: '1:1 PT — 맞춤 피드백', desc: '내가 만든 문장 첨삭', status: 'upcoming' },
-      { date: '2026-05-19', title: '1:1 PT — 최종 리뷰', desc: 'PPT 리허설 + Certification', status: 'upcoming' },
     ],
     quiz: [
       { q: "\"I'm not going to ___ it — we missed the target this quarter.\"", options: ['sugarcoat', 'anchor', 'timebox', 'unpack'], a: 0, hint: '좋게 포장하지 않겠다' },
@@ -1327,6 +1441,8 @@ const defaultState = () => ({
   ai_daily_usage: {},             // { "d1": 1 }
   checkpoints: {},                // { "d1-record": true }
   quiz_answers: {},               // { "q0": 1 }
+  personal_quiz: null,            // { items:[{q,options,a,hint}], basedOnScript:'', injectedAt:'...', week:N } — Gaby 가 발표 후 스크립트 기반으로 직접 주입
+  personal_quiz_answers: {},      // { "q0": 1 } — personal_quiz 에 대한 응답 (CHALLENGE.premium.quiz 와 분리)
   bookmarks: {},                  // { "d1-0": true }
   saved_syns: {},                 // { "d1-0::Pave the way": true } 유의어 북마크
   community_likes: {},            // { "p1": true }
@@ -1335,6 +1451,8 @@ const defaultState = () => ({
   meeting_notes: {},              // { "m1": { talk_points:[], meeting_notes: '' } }
   presenterSignups: {},           // { "w1": ["member_key_a", "member_key_b"] } — 주차별 선착순 발표자
   presenter_prep: {},             // { "w1": { vocabPicked:[], script:'', privateNotes:'' } } — 본인 발표 준비
+  pitch_vocab: [],                // [{ word, note, source, savedAt }] — 계속 학습하고 싶은 단어 보관소
+  pitch_scratch: '',              // PT 준비 페이지의 상시 스크래치 노트 (내부 키는 호환성 위해 유지)
   verified_at: {},                // { "d1": "2026-04-20" } 실제 인증한 날짜 (YYYY-MM-DD)
   verified_time: {},              // { "d1": "23:47" }     실제 인증한 시각 (member tz, HH:mm)
   community_edits: {},            // { "post-id": { sentence, translation, editedAt } } 내 문장 수정
@@ -1342,6 +1460,8 @@ const defaultState = () => ({
   submitted_text: {},             // { "d1-0": "제출할 때 문장 스냅샷" } — 현재 textarea 값과 비교해서 dirty 여부 판별 ('제출완료' ↔ '다시 제출하기')
   quiz_results: {},               // { "d1": { score:5, total:6, takenAt:"2026-04-21T10:00:00.000Z" } } 최초 시험 점수만 저장. 다시풀기는 덮어쓰지 않음.
   tierOverride: null,             // 'basic' 으로 설정하면 MEMBER_DIRECTORY 가 premium 이어도 basic 으로 강제 (베이직 프리뷰). null = 비활성.
+  __vocabMigrated: false,          // 기존 bookmarks/saved_syns → pitch_vocab 일회성 이관 플래그.
+  cert_profile: null,              // { topic, strengths: [..], growth: [..], keyVocab: [..], finalVocab: [{en, ko}], issuedAt } — Gaby 가 수료 시점에 주입하는 개인화 데이터. null 이면 자동 데이터만 사용.
 });
 const PERSISTED_STATE_KEYS = [
   'tier',
@@ -1370,6 +1490,8 @@ const PERSISTED_STATE_KEYS = [
   'ai_daily_usage',
   'checkpoints',
   'quiz_answers',
+  'personal_quiz',
+  'personal_quiz_answers',
   'bookmarks',
   'saved_syns',
   'community_likes',
@@ -1378,6 +1500,8 @@ const PERSISTED_STATE_KEYS = [
   'meeting_notes',
   'presenterSignups',
   'presenter_prep',
+  'pitch_vocab',
+  'pitch_scratch',
   'verified_at',
   'verified_time',
   'community_edits',
@@ -1387,6 +1511,8 @@ const PERSISTED_STATE_KEYS = [
   'savedTab',
   'communityFilter',
   'tierOverride',
+  '__vocabMigrated',
+  'cert_profile',
 ];
 
 /* Demo seed — pre-fills a few days (1, 3, 5 late, 7) so the design can be previewed
@@ -2199,7 +2325,7 @@ function premiumGatePage(opts = {}) {
     <div class="lock-icon">🔒</div>
     <div class="kicker">PREMIUM ONLY</div>
     <h2 class="h1" style="margin-top:8px;"><span class="serif">이 페이지는</span> 프리미엄 전용이에요</h2>
-    <p class="t-body" style="margin-top:10px;">${opts.subtitle || 'PT 세션 · 주간 Google Meet 미팅 · 개인 퀴즈 · Certification 은 프리미엄 참여자에게만 열려 있어요. 다음 기수 때 프리미엄으로 참여하시면 만나요!'}</p>
+    <p class="t-body" style="margin-top:10px;">${opts.subtitle || '주간 Google Meet 미팅 (40분 롤플레이 + 7분 발표 × 3명) · 개인 퀴즈 · Certification 은 프리미엄 참여자에게만 열려 있어요. 다음 기수 때 프리미엄으로 참여하시면 만나요!'}</p>
     <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center;">
       <button class="btn btn-lilac btn-lg" onclick="window.__openPremiumGate()">프리미엄 코드 있어요</button>
     </div>`;
@@ -2739,9 +2865,169 @@ function weekSignupsArray(n) {
 function isMePresenterInWeek(n) {
   return weekSignupsArray(n).includes(memberKey());
 }
+// 내가 전체 코호트에서 발표자로 이미 잡아둔 주가 있으면 그 주차 번호, 없으면 null.
+// "한 사람당 한 번만 발표" 룰 enforcement 에 쓰임.
+function myPresenterWeek() {
+  const weeks = CHALLENGE.premium.weekly_meetings || [];
+  for (const w of weeks) {
+    if (isMePresenterInWeek(w.n)) return Number(w.n);
+  }
+  return null;
+}
+// 내가 발표자로 잡은 주의 미팅 날짜가 이미 지났는지 — 퀴즈 gating 용.
+// 발표 자리 잡은 주가 없으면 false.
+function myPresentationHasPassed() {
+  const w = myPresenterWeek();
+  if (w == null) return false;
+  const meta = (CHALLENGE.premium.weekly_meetings || []).find(x => Number(x.n) === Number(w));
+  if (!meta) return false;
+  const d = daysUntilMeeting(meta.date);
+  return d !== null && d < 0; // 미팅일이 오늘 이전
+}
+// Personal Quiz 상태 — gating 용:
+//   not_signed_up : 발표 자리 안 잡음
+//   before_present: 자리 잡았지만 미팅 아직 안 지남
+//   waiting_inject: 미팅 지났지만 Gaby 가 아직 퀴즈 안 넣음
+//   ready         : state.personal_quiz.items 채워져 있음
+function personalQuizState() {
+  const pq = state.personal_quiz;
+  const hasItems = pq && Array.isArray(pq.items) && pq.items.length > 0;
+  if (hasItems) return 'ready';
+  const w = myPresenterWeek();
+  if (w == null) return 'not_signed_up';
+  if (!myPresentationHasPassed()) return 'before_present';
+  return 'waiting_inject';
+}
 function presenterSlotsRemaining(n) {
   const cap = Number(CHALLENGE.premium.presenter_slots_per_week || 3);
   return Math.max(0, cap - weekSignupsArray(n).length);
+}
+
+/* ============================================================
+   VOCAB BANK — 통합 저장소 (state.pitch_vocab) 헬퍼들
+   ------------------------------------------------------------
+   source: 'daily' | 'synonym' | 'meeting' | 'manual'
+   sourceKey: 연결 해제 용 (daily='d{N}-{i}', syn='d{N}-{i}::SynWord')
+   ============================================================ */
+function vocabBankList() {
+  if (!Array.isArray(state.pitch_vocab)) state.pitch_vocab = [];
+  return state.pitch_vocab;
+}
+function isInVocabBank(word) {
+  if (!word) return false;
+  const key = String(word).toLowerCase();
+  return vocabBankList().some(v => String(v.word || '').toLowerCase() === key);
+}
+// 중복 없이 upsert. 동일 단어가 있으면 앞으로 올림.
+function addToVocabBank({ word, note = '', source = 'manual', sourceKey = '' }) {
+  const w = String(word || '').trim();
+  if (!w) return false;
+  const list = vocabBankList();
+  const lc = w.toLowerCase();
+  const existing = list.find(v => String(v.word || '').toLowerCase() === lc);
+  if (existing) {
+    // 이미 있으면 note / source 정보를 덜 덮어쓰되, sourceKey 는 비어있을 때 채워 넣음.
+    if (!existing.note && note) existing.note = note;
+    if (!existing.sourceKey && sourceKey) existing.sourceKey = sourceKey;
+    if (!existing.source || existing.source === 'manual') existing.source = source;
+    state.pitch_vocab = [existing, ...list.filter(v => v !== existing)];
+  } else {
+    state.pitch_vocab = [
+      { word: w, note, source, sourceKey, savedAt: new Date().toISOString() },
+      ...list,
+    ];
+  }
+  return true;
+}
+function removeFromVocabBank({ word, sourceKey }) {
+  const list = vocabBankList();
+  const lc = word ? String(word).toLowerCase() : null;
+  state.pitch_vocab = list.filter(v => {
+    if (sourceKey && v.sourceKey === sourceKey) return false;
+    if (lc && String(v.word || '').toLowerCase() === lc) return false;
+    return true;
+  });
+}
+// daily vocab bookmark → pitch_vocab 동기화.
+// dayN, idx, word{en, def}, on: true면 추가, false면 제거.
+function syncDailyBookmarkToBank(dayN, idx, word, on) {
+  const sourceKey = `d${dayN}-${idx}`;
+  if (on) {
+    addToVocabBank({
+      word: word.en,
+      note: word.def || '',
+      source: 'daily',
+      sourceKey,
+    });
+  } else {
+    removeFromVocabBank({ word: word.en, sourceKey });
+  }
+}
+// synonym 북마크 → pitch_vocab 동기화.
+// synKey 형식: "d{N}-{i}::SynWord"
+function syncSynBookmarkToBank(synKey, on) {
+  const syn = String(synKey || '').split('::')[1];
+  if (!syn) return;
+  if (on) {
+    addToVocabBank({
+      word: syn,
+      note: '',
+      source: 'synonym',
+      sourceKey: synKey,
+    });
+  } else {
+    removeFromVocabBank({ word: syn, sourceKey: synKey });
+  }
+}
+// 제거 시 연결된 북마크 토글도 꺼줌 — VOCAB BANK 에서 지웠을 때 daily 에서도 사라지게.
+function clearLinkedBookmarksForVocab(v) {
+  if (!v) return;
+  const sk = v.sourceKey || '';
+  if (!sk) return;
+  if (v.source === 'daily' && state.bookmarks && state.bookmarks[sk]) {
+    delete state.bookmarks[sk];
+  } else if (v.source === 'synonym' && state.saved_syns && state.saved_syns[sk]) {
+    delete state.saved_syns[sk];
+  }
+}
+// 첫 로드시 기존 state.bookmarks / saved_syns 를 pitch_vocab 으로 한 번만 이관.
+// state.__vocabMigrated == true 이면 skip.
+function migrateBookmarksToVocabBank() {
+  if (state.__vocabMigrated) return;
+  let added = 0;
+  // Daily bookmarks
+  if (state.bookmarks) {
+    Object.keys(state.bookmarks).forEach(key => {
+      if (!state.bookmarks[key]) return;
+      const m = key.match(/^d(\d+)-(\d+)$/);
+      if (!m) return;
+      const dayN = Number(m[1]);
+      const idx = Number(m[2]);
+      const day = (CHALLENGE.weeks || []).flatMap(w => w.days).find(d => d.day === dayN);
+      if (!day) return;
+      const word = day.words?.[idx];
+      if (!word) return;
+      if (!isInVocabBank(word.en)) {
+        addToVocabBank({ word: word.en, note: word.def || '', source: 'daily', sourceKey: key });
+        added++;
+      }
+    });
+  }
+  // Synonym bookmarks
+  if (state.saved_syns) {
+    Object.keys(state.saved_syns).forEach(key => {
+      if (!state.saved_syns[key]) return;
+      const parts = String(key).split('::');
+      if (parts.length !== 2) return;
+      const syn = parts[1];
+      if (!isInVocabBank(syn)) {
+        addToVocabBank({ word: syn, note: '', source: 'synonym', sourceKey: key });
+        added++;
+      }
+    });
+  }
+  state.__vocabMigrated = true;
+  if (added > 0) console.log('[vocab-bank] migrated %d existing bookmarks', added);
 }
 function daysUntilMeeting(dateStr) {
   if (!dateStr) return null;
@@ -2860,6 +3146,12 @@ async function signupPresenter(weekN) {
   if (!meta) return { ok: false, error: 'WEEK_NOT_FOUND' };
   if (isMePresenterInWeek(weekN)) return { ok: true, already: true };
   if (presenterSlotsRemaining(weekN) <= 0) return { ok: false, error: 'FULL' };
+  // 1인 1회 제한: 이미 다른 주에 발표자로 자리 잡았으면 차단.
+  // (옮기려면 기존 주 자리부터 release 해야 함.)
+  const existingWeek = myPresenterWeek();
+  if (existingWeek !== null && Number(existingWeek) !== Number(weekN)) {
+    return { ok: false, error: 'ALREADY_SIGNED_UP', existingWeek };
+  }
   // Optimistic local
   state.presenterSignups = state.presenterSignups || {};
   state.presenterSignups[key] = weekSignupsArray(weekN);
@@ -3425,6 +3717,7 @@ function render() {
     else if (currentPage === 'verify') page = VerifyPage(currentDay);
     else if (currentPage === 'premium') page = PremiumPage();
     else if (currentPage === 'presenter-prep') page = PresenterPrepPage(window.__currentPresenterWeek);
+    else if (currentPage === 'pitch-prep') page = PitchPrepPage();
     else if (currentPage === 'meeting-notes') page = MeetingNotesPage(window.__currentMeetingId);
     else if (currentPage === 'quiz') page = QuizPage();
     else if (currentPage === 'certification') page = CertPage();
@@ -3448,6 +3741,7 @@ function render() {
           && state.onboarded
           && currentPage !== 'presenter-prep'
           && currentPage !== 'meeting-notes'
+          && currentPage !== 'pitch-prep'
           && currentPage !== 'quiz'
           && currentPage !== 'certification') {
         const thisWk = currentPremiumWeek();
@@ -4263,7 +4557,7 @@ function TabBar() {
     { id: 'home',      label: '홈',     icon: 'home' },
     { id: 'weeks',     label: '내 학습', icon: 'book',     match: ['weeks', 'day'] },
     { id: 'community', label: '커뮤니티', icon: 'sparkles' },
-    { id: 'premium',   label: '프리미엄', icon: 'crown', match: ['premium', 'quiz', 'certification', 'presenter-prep', 'meeting-notes'] },
+    { id: 'premium',   label: '프리미엄', icon: 'crown', match: ['premium', 'quiz', 'certification', 'presenter-prep', 'meeting-notes', 'pitch-prep'] },
     { id: 'profile',   label: '나',     icon: 'user',     match: ['profile', 'export', 'scripts'] },
   ];
   for (const t of tabs) {
@@ -4439,6 +4733,28 @@ function HomePage() {
       });
       page.appendChild(pCard);
     }
+
+    // 항상 열려있는 PT 준비 페이지 바로가기 (미팅 카드 바로 아래, 작고 tertiary)
+    const pitchLink = el('button', {
+      style: {
+        marginTop: '8px',
+        width: '100%',
+        padding: '10px 14px',
+        background: 'transparent',
+        border: '1px dashed rgba(169,139,184,0.38)',
+        borderRadius: '12px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        cursor: 'pointer',
+        color: '#7B5E8C',
+        fontSize: '12.5px',
+        fontWeight: '600',
+      },
+      onClick: () => go('pitch-prep')
+    }, '💎 내 PT 스튜디오 (어휘·스크립트) 열기 →');
+    page.appendChild(pitchLink);
   }
 
   // Premium teaser 제거됨 — 5기 도중에는 프리미엄 업그레이드가 불가능해서
@@ -4814,12 +5130,18 @@ function WeeksPage() {
       // Tile colors — 3-state palette unified across all boards:
       //   주황 = 정상 인증 (제때 + 미리), 까망 = 지각, 빈칸 = 미인증/미래
       let bg, fg, border = 'none', dotColor = null, dotTitle = '';
-      if (st === 'today' || st === 'done') {
-        // 오늘 미인증 + 정상 인증 모두 주황으로 통일
+      if (st === 'done') {
+        // 정상 인증 — 주황 풀칠 + 체크 점
         bg = 'var(--orange)';
         fg = '#fff';
-        dotColor = st === 'done' ? '#fff' : null;
-        dotTitle = st === 'done' ? '정상 인증' : '오늘';
+        dotColor = '#fff';
+        dotTitle = '정상 인증';
+      } else if (st === 'today') {
+        // 오늘, 아직 미인증 — 크림 배경 + 주황 테두리로 "비어있음" 을 드러냄
+        bg = isEmphasized ? 'rgba(240,125,56,0.12)' : '#FFF7EC';
+        fg = isEmphasized ? 'var(--cream)' : 'var(--orange-dark)';
+        border = '2px solid var(--orange)';
+        dotTitle = '오늘 (아직 미인증)';
       } else if (st === 'done-late') {
         bg = isEmphasized ? 'rgba(251,247,240,0.16)' : 'var(--ink)';
         fg = isEmphasized ? 'var(--cream)' : '#fff';
@@ -4920,7 +5242,10 @@ function WeeksPage() {
   const legend = el('div', { style: { marginTop: '18px', padding: '14px 16px', borderRadius: '16px', background: 'var(--paper)', display: 'flex', flexWrap: 'wrap', gap: '14px', rowGap: '10px', fontSize: '11.5px', color: 'var(--ink-soft)' } });
   legend.innerHTML = `
     <span style="display:inline-flex;align-items:center;gap:6px;">
-      <span style="width:20px;height:20px;border-radius:6px;background:var(--orange);display:inline-block;"></span>정상 인증 (오늘)
+      <span style="width:20px;height:20px;border-radius:6px;background:var(--orange);display:inline-block;"></span>정상 인증
+    </span>
+    <span style="display:inline-flex;align-items:center;gap:6px;">
+      <span style="width:20px;height:20px;border-radius:6px;background:#FFF7EC;border:2px solid var(--orange);box-sizing:border-box;display:inline-block;"></span>오늘 · 미인증
     </span>
     <span style="display:inline-flex;align-items:center;gap:6px;">
       <span style="width:20px;height:20px;border-radius:6px;background:var(--ink);display:inline-block;"></span>지각 인증
@@ -5548,8 +5873,10 @@ function DayPage(dayN) {
       onClick: (e) => {
         e.stopPropagation();
         state.bookmarks[bookmarkKey] = !state.bookmarks[bookmarkKey];
+        // VOCAB BANK 와 동기화 — ON 이면 추가, OFF 이면 제거.
+        syncDailyBookmarkToBank(dayN, i, w, !!state.bookmarks[bookmarkKey]);
         saveState();
-        showToast(state.bookmarks[bookmarkKey] ? `🔖 "${w.en}" 저장됨` : `북마크 해제됨`);
+        showToast(state.bookmarks[bookmarkKey] ? `🔖 "${w.en}" 단어장에 저장됨` : `단어장에서 제거됨`);
         render();
       },
       title: isBookmarked ? '저장 해제' : '단어 저장',
@@ -6319,14 +6646,46 @@ function PremiumPage() {
   hero.innerHTML = `
     <div class="kicker" style="color:rgba(255,255,255,0.7);">${heroKicker}</div>
     <h1 class="h1" style="color:#fff;margin-top:6px;"><span class="serif">Premium</span> dashboard</h1>
-    <p class="t-body" style="color:rgba(255,255,255,0.85);margin-top:8px;">주간 미팅 · PT 세션 · 퀴즈 · 최종 Certification</p>
+    <p class="t-body" style="color:rgba(255,255,255,0.85);margin-top:8px;">주간 미팅 · 발표자 라이브 피드백 · 퀴즈 · 최종 Certification</p>
     <div style="display:flex;gap:6px;margin-top:14px;flex-wrap:wrap;">
       <span class="badge" style="background:rgba(255,255,255,0.18);color:#fff;">주간 미팅 4회</span>
-      <span class="badge" style="background:rgba(255,255,255,0.18);color:#fff;">PT 3회</span>
+      <span class="badge" style="background:rgba(255,255,255,0.18);color:#fff;">7분 발표 × 3명</span>
       <span class="badge" style="background:rgba(255,255,255,0.18);color:#fff;">어휘 180개</span>
       <span class="badge" style="background:rgba(255,255,255,0.18);color:#fff;">Certification</span>
     </div>`;
   page.appendChild(hero);
+
+  // PT prep 바로가기 카드 — 프리미엄 유저 전용, PT 준비 메인 페이지로 점프
+  if (isPremium) {
+    const vocabCount = Array.isArray(state.pitch_vocab) ? state.pitch_vocab.length : 0;
+    const scriptCount = Object.values(state.presenter_prep || {}).filter(p => p && (p.script || '').trim().length > 0).length;
+    const pitchCta = el('button', {
+      style: {
+        marginTop: '14px',
+        width: '100%',
+        padding: '14px 16px',
+        background: 'linear-gradient(135deg, #fff 0%, rgba(169,139,184,0.06) 100%)',
+        border: '1px solid rgba(169,139,184,0.24)',
+        borderRadius: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        cursor: 'pointer',
+        textAlign: 'left',
+        boxShadow: '0 3px 10px rgba(80,50,100,0.04)',
+      },
+      onClick: () => go('pitch-prep')
+    });
+    pitchCta.innerHTML = `
+      <div style="flex-shrink:0;width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#7B5E8C,#A98BB8);color:#fff;display:grid;place-items:center;font-size:22px;">📝</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:10px;letter-spacing:0.12em;font-weight:700;color:#7B5E8C;">MY PT STUDIO</div>
+        <div style="margin-top:3px;font-size:14px;font-weight:700;color:var(--ink);line-height:1.35;">PT 준비 페이지</div>
+        <div style="margin-top:3px;font-size:11.5px;color:var(--muted);">어휘 ${vocabCount} · 스크립트 ${scriptCount}주차</div>
+      </div>
+      <div style="flex-shrink:0;color:var(--muted);font-size:18px;">→</div>`;
+    page.appendChild(pitchCta);
+  }
 
   // 베이직 전용 안내 — 탭에 들어와서 어떤 컨텐츠가 있는지 볼 수는 있지만 세부 페이지는 잠금.
   if (!isPremium) {
@@ -6433,6 +6792,8 @@ function PremiumPage() {
   page.appendChild(el('p', { class: 't-small', style: { marginBottom: '12px', color: 'var(--ink-soft)', lineHeight: '1.55' } },
     '매주 3명이 7분씩 발표해요. 시나리오 · 필수 어휘 · 발표자 자리 · 나의 준비 상태를 한 번에 봐요.'
   ));
+  // 1인 1회 발표 룰 — 내가 이미 자리 잡은 주가 있으면 다른 주 signup 불가.
+  const myWeekLocked = myPresenterWeek();
   const mstack = el('div', { class: 'stack' });
   premiumMeetings.forEach(m => {
     const [y, mo, da] = m.date.split('-');
@@ -6665,13 +7026,34 @@ function PremiumPage() {
         onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
       }, hasNotes ? `📝 말할 거리 이어쓰기 (${tpCount}개)` : '📝 말할 거리 준비하기');
       ctaRow.appendChild(notesBtn);
+    } else if (myWeekLocked !== null) {
+      // 이미 다른 주에 자리 잡음 — 1인 1회 룰. 이 주는 signup 잠금.
+      const lockedBtn = el('button', {
+        class: 'btn',
+        disabled: true,
+        style: {
+          flex: '1', minWidth: '160px',
+          background: '#F6EEFA',
+          color: 'var(--muted)',
+          border: '1px solid rgba(169,139,184,0.2)',
+          cursor: 'not-allowed',
+        },
+      }, `🔒 Week ${myWeekLocked} 에 이미 자리 잡음`);
+      ctaRow.appendChild(lockedBtn);
+      // 보조 CTA: attendee 메모 (메모는 어느 주든 남길 수 있음).
+      const notesBtn = el('button', {
+        class: 'btn',
+        style: { background: 'transparent', color: 'var(--ink-soft)', border: '1px solid rgba(231,221,200,0.9)', fontSize: '12px' },
+        onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
+      }, '말할 거리');
+      ctaRow.appendChild(notesBtn);
     } else {
       // 자리 남음 + 아직 signup 안함 + 미래 → 메인 CTA 는 발표 자리 잡기.
       const signupBtn = el('button', {
         class: 'btn btn-primary',
         style: { flex: '1', minWidth: '160px' },
         onClick: async () => {
-          const btnLabel = `Week ${m.n} (${monShort} ${parseInt(da,10)}) 발표 자리를 잡을까요?\n\n· 7분 발표 + 3분 피드백\n· 자리 잡고 나서도 내려놓을 수 있어요`;
+          const btnLabel = `Week ${m.n} (${monShort} ${parseInt(da,10)}) 발표 자리를 잡을까요?\n\n· 7분 발표 + 3분 피드백\n· 챌린지 동안 1번만 발표 가능 (다른 주 변경은 내려놓기 후 다시 잡기)\n· 자리 잡고 나서도 내려놓을 수 있어요`;
           if (!confirm(btnLabel)) return;
           const result = await signupPresenter(m.n);
           if (result.ok) {
@@ -6689,6 +7071,7 @@ function PremiumPage() {
             }
           } else {
             if (result.error === 'FULL') showToast('방금 자리가 꽉 찼어요. 다른 주를 확인해주세요.');
+            else if (result.error === 'ALREADY_SIGNED_UP') showToast(`이미 Week ${result.existingWeek} 에 자리 잡으셨어요. 옮기려면 그 주 자리부터 내려놓기.`);
             else showToast('자리 잡기 실패 — 다시 시도해주세요.');
           }
           render();
@@ -6709,53 +7092,40 @@ function PremiumPage() {
   });
   page.appendChild(mstack);
 
-  // PT sessions
-  page.appendChild(el('div', { class: 'kicker', style: { marginTop: '28px' } }, '1:1 PT 세션'));
-  page.appendChild(el('h2', { class: 'h2', style: { marginTop: '6px', marginBottom: '12px' } },
-    (() => { const s = el('span'); s.innerHTML = '<span class="serif">Personal</span> coaching'; return s; })()
-  ));
-  const pstack = el('div', { class: 'stack' });
-  CHALLENGE.premium.pt_sessions.forEach((p, pi) => {
-    const [y, mo, da] = p.date.split('-');
-    const monShort = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][parseInt(mo,10)-1];
-    const meetingId = 'pt' + (pi + 1);
-    const notes = state.meeting_notes[meetingId] || { talk_points: '', meeting_notes: '' };
-    const hasNotes = !!(notes.talk_points || notes.meeting_notes);
-
-    const card = el('button', {
-      class: 'meeting-card ' + p.status,
-      style: { textAlign: 'left', cursor: 'pointer', border: p.status === 'upcoming' ? '1px solid rgba(169,139,184,0.4)' : '', background: 'transparent', width: '100%' },
-      onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
-    });
-    card.innerHTML = `
-      <div class="meeting-date">
-        <div class="md-mon">${monShort}</div>
-        <div class="md-day">${parseInt(da,10)}</div>
-      </div>
-      <div style="flex:1;min-width:0;">
-        <div class="row row-gap-sm" style="flex-wrap:wrap;">
-          <div class="h3">${p.title}</div>
-          ${p.status === 'done' ? '<span class="badge badge-green">✓ 완료</span>' : '<span class="badge badge-lilac">예정</span>'}
-          ${hasNotes ? '<span class="badge" style="background:#FEF3E2;color:#B85C19;">📝 메모</span>' : ''}
-        </div>
-        <div class="t-body" style="margin-top:4px;">${p.desc}</div>
-        <div class="t-small mono" style="margin-top:6px;">⏱ 30분 · 월/화/목 중 선택</div>
-        <div class="t-small" style="margin-top:8px;color:var(--lilac);font-weight:600;">
-          ${hasNotes ? '메모 보기' : 'PT 준비 노트 적기'} →
-        </div>
-      </div>`;
-    pstack.appendChild(card);
-  });
-  page.appendChild(pstack);
+  // 개별 1:1 PT 세션은 폐지됨 — 미팅 안 30분 (7분 발표 + 3분 Q&A × 3명) 으로
+  // 개인 피드백을 통합. 각 발표자는 그 자리에서 라이브 코칭을 받음.
+  // 대신 본인 PT 준비는 PitchPrepPage (= PT 스튜디오) 에서 상시 진행.
 
   // Quiz + Cert cards
   const doubleRow = el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '20px' } });
-  const quizCard = el('button', { class: 'card', style: { textAlign: 'left', cursor: 'pointer', border: 'none', background: 'var(--cream)' }, onClick: () => go('quiz') });
+  const pqState = personalQuizState();
+  const pqLocked = pqState !== 'ready';
+  const pqSubcopy = (() => {
+    if (pqState === 'ready') {
+      const total = (state.personal_quiz?.items || []).length;
+      const answered = Object.keys(state.personal_quiz_answers || {}).length;
+      return `내 스크립트 기반 · ${answered}/${total}문항`;
+    }
+    if (pqState === 'not_signed_up') return '🔒 발표 자리 먼저 잡아요';
+    if (pqState === 'before_present') return '🔒 발표 끝나면 열려요';
+    return '⏳ 스크립트 기반 퀴즈 준비중';
+  })();
+  const quizCard = el('button', {
+    class: 'card',
+    style: {
+      textAlign: 'left',
+      cursor: 'pointer',
+      border: 'none',
+      background: pqLocked ? '#F6EEFA' : 'var(--cream)',
+      opacity: pqLocked ? '0.78' : '1',
+    },
+    onClick: () => go('quiz'),
+  });
   quizCard.innerHTML = `
-    <div style="font-size:22px;">🧩</div>
+    <div style="font-size:22px;">${pqLocked ? '🔒' : '🧩'}</div>
     <div class="kicker" style="margin-top:8px;">PERSONAL QUIZ</div>
     <div class="h3" style="margin-top:4px;">내 약점 퀴즈</div>
-    <div class="t-small" style="margin-top:4px;">PT 진단 기반 · ${CHALLENGE.premium.quiz.length}문항</div>`;
+    <div class="t-small" style="margin-top:4px;">${pqSubcopy}</div>`;
   doubleRow.appendChild(quizCard);
 
   const certCard = el('button', { class: 'card', style: { textAlign: 'left', cursor: 'pointer', border: 'none', background: 'var(--cream)' }, onClick: () => go('certification') });
@@ -6777,27 +7147,17 @@ function PremiumPage() {
 /* ============================================================
    MEETING AI — local draft generators (fallback when Supabase/OpenAI unset)
    ============================================================ */
-function aiGenerateTalkPoints(meta, isPT, existing='') {
+function aiGenerateTalkPoints(meta, existing='') {
   const focus = (meta.desc || '').trim();
   const title = meta.title || '';
-  const common = [
-    `- ${isPT ? '나의 약점: ' : ''}이번 주 가장 자주 막혔던 표현 정리`,
+  const out = [
+    `- "${title}" 핵심 표현 3개를 다음 미팅에서 바로 적용`,
+    '- 롤플레이에서 내가 놓친 reframe 포인트 복기',
+    '- 이번 주 표현 중 Slack/이메일에서 써볼 표현 1개 선정',
     `- ${focus ? focus + ' 관련해서' : '이번 세션에서'} 내 실제 업무 예시로 써먹을 방법`,
     '- 단톡방에서 받은 피드백 중 헷갈리는 것',
     '- 다음 주 적용할 한 가지 목표(Goal) 확정',
   ];
-  const themed = isPT
-    ? [
-        '- 내 발음/인토네이션에서 가장 "한국어스러운" 부분 1개 꼭 짚어달라 요청',
-        '- 지난 주 작성한 문장 중 가장 어색했던 3개 리뷰 요청',
-        `- "${title}"에서 기대하는 구체적 결과 말로 표현`,
-      ]
-    : [
-        `- "${title}" 핵심 표현 3개를 내 업무 상황에 바로 적용`,
-        '- 롤플레이에서 내가 말할 오프닝 문장 1개 준비',
-        '- 이번 주 표현 중 회의에서 꼭 써볼 표현 1개 선정',
-      ];
-  const out = [...themed, ...common];
   const hasExisting = (existing || '').trim();
   return (hasExisting ? '' : '') + out.join('\n');
 }
@@ -7070,7 +7430,6 @@ function PresenterPrepPage(weekN) {
   }, '불렛이나 한두 문장으로 써도 좋아요. 실제 발표 때는 참고만 — 그대로 읽지 말고 대화하듯.'));
 
   const scriptArea = el('textarea', {
-    value: prep.script || '',
     placeholder: 'ex.\n· Anchor: our Q3 one thing is …\n· Line of sight: data / 기회 / 리스크\n· Ask: …',
     style: {
       marginTop: '8px',
@@ -7086,6 +7445,8 @@ function PresenterPrepPage(weekN) {
       resize: 'vertical',
     },
   });
+  // textarea 는 value 어트리뷰트가 아닌 .value 프로퍼티로 초기값 세팅해야 보임.
+  scriptArea.value = prep.script || '';
   scriptArea.addEventListener('input', (e) => {
     prep.script = e.target.value;
     updateVocabHits();
@@ -7137,7 +7498,6 @@ function PresenterPrepPage(weekN) {
   }, '나만 보는 공간이에요. 긴장되는 부분 · 꼭 피할 말 · Q&A 예상 질문 · 피드백 받고 싶은 포인트를 자유롭게.'));
 
   const notesArea = el('textarea', {
-    value: prep.privateNotes || '',
     placeholder: 'ex. 질문 올 수 있는 것 / 떨면 쓸 안전문장 / 발표 후 받고 싶은 피드백',
     style: {
       marginTop: '8px',
@@ -7153,6 +7513,7 @@ function PresenterPrepPage(weekN) {
       resize: 'vertical',
     },
   });
+  notesArea.value = prep.privateNotes || '';
   notesArea.addEventListener('input', (e) => {
     prep.privateNotes = e.target.value;
     saveState({});
@@ -7257,18 +7618,391 @@ function PresenterPrepPage(weekN) {
   return page;
 }
 
+/* ============================================================
+   PT STUDIO PAGE — 본인 PT 준비 메인 (라우트명 'pitch-prep' 은 내부 호환 위해 유지)
+   - 내 스크립트 라이브러리 (4주 회차별 presenter_prep.script)
+   - 계속 학습하고 싶은 단어 보관소 (state.pitch_vocab)
+   - 상시 스크래치 노트 (state.pitch_scratch)
+   - 미팅 회의록에서 chip 으로 저장한 표현 요약
+   - 이번 주 발표자면 PresenterPrepPage 로 바로 이동
+   ============================================================ */
+function PitchPrepPage() {
+  if (state.tier !== 'premium') return premiumGatePage({ titleRest: 'PT 준비' });
+  const page = el('div', { class: 'page' });
+
+  // Ensure state slots
+  if (!Array.isArray(state.pitch_vocab)) state.pitch_vocab = [];
+  if (typeof state.pitch_scratch !== 'string') state.pitch_scratch = '';
+
+  // Top bar
+  const head = el('div', { class: 'topbar' });
+  const back = el('button', { class: 'icon-btn', onClick: () => go('premium') });
+  back.innerHTML = Icon('arrowLeft', 16);
+  head.appendChild(back);
+  head.appendChild(el('div', { class: 'brand-name' }, 'PT STUDIO'));
+  head.appendChild(el('div', { style: { width: '38px' } }));
+  page.appendChild(head);
+
+  // Hero
+  const hero = el('div', { style: {
+    borderRadius: '18px',
+    padding: '22px 20px',
+    color: '#fff',
+    background: 'linear-gradient(135deg, #5D4770 0%, #7B5E8C 55%, #A98BB8 100%)',
+    boxShadow: '0 14px 40px rgba(93,71,112,0.28)',
+    marginTop: '4px',
+  }});
+  hero.innerHTML = `
+    <div style="font-size:10px;letter-spacing:0.18em;font-weight:700;opacity:0.78;">MY PT STUDIO</div>
+    <h1 style="font-size:24px;font-weight:800;margin-top:8px;line-height:1.25;letter-spacing:-0.02em;"><span style="font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:500;">Shape</span> your own voice.</h1>
+    <p style="margin-top:8px;font-size:13px;line-height:1.55;opacity:0.88;">본인 PT·발표를 상시로 준비하는 공간. 어휘 저장, 스크립트 쌓기, 매주 발표 리허설까지.</p>`;
+  page.appendChild(hero);
+
+  // Current week quick-action (if I'm a presenter this week)
+  const thisWeek = currentPremiumWeek();
+  if (thisWeek && isMePresenterInWeek(thisWeek.n)) {
+    const card = el('div', {
+      style: {
+        marginTop: '14px',
+        padding: '14px 16px',
+        background: 'linear-gradient(135deg, rgba(169,139,184,0.16), rgba(169,139,184,0.06))',
+        border: '1.5px solid rgba(169,139,184,0.34)',
+        borderRadius: '14px',
+        display: 'flex',
+        gap: '12px',
+        alignItems: 'center',
+        cursor: 'pointer',
+      },
+      onClick: () => {
+        window.__currentPresenterWeek = thisWeek.n;
+        go('presenter-prep');
+      }
+    });
+    const dLeft = daysUntilMeeting(thisWeek.date);
+    card.innerHTML = `
+      <div style="font-size:28px;flex-shrink:0;">🎤</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:10px;letter-spacing:0.12em;font-weight:700;color:#7B5E8C;">THIS WEEK · ${dLeft === 0 ? 'TODAY' : dLeft > 0 ? 'D-' + dLeft : '지난 주'}</div>
+        <div style="font-size:14px;font-weight:700;color:var(--ink);margin-top:2px;">${escapeHtml(thisWeek.title)}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">발표 자리 잡음 · 지금 준비하기 →</div>
+      </div>`;
+    page.appendChild(card);
+  }
+
+  // ---- Section: Vocab bookmarks ----
+  const vocabSection = el('div', { style: { marginTop: '26px' } });
+  vocabSection.appendChild(el('div', {
+    style: { fontSize: '10px', letterSpacing: '0.14em', fontWeight: '700', color: '#7B5E8C' }
+  }, '💎 VOCAB BANK'));
+  vocabSection.appendChild(el('h2', {
+    style: { fontSize: '20px', fontWeight: '800', color: 'var(--ink)', marginTop: '6px', letterSpacing: '-0.015em' }
+  }, '계속 학습하고 싶은 단어'));
+  vocabSection.appendChild(el('p', {
+    class: 't-small',
+    style: { marginTop: '4px', color: 'var(--muted)' }
+  }, '미팅이나 인증에서 만난 좋은 표현을 여기 모아두면, 내 표현집이 됩니다.'));
+
+  // Add form
+  const addBox = el('div', {
+    style: { marginTop: '14px', padding: '12px', background: '#fff', border: '1px solid rgba(169,139,184,0.18)', borderRadius: '14px', boxShadow: '0 2px 8px rgba(80,50,100,0.04)' }
+  });
+  const wordIn = el('input', { class: 'input', placeholder: '표현 (예: set the table)', style: { fontSize: '13px', padding: '10px 12px' } });
+  const noteIn = el('input', { class: 'input', placeholder: '메모 · 언제 쓰는지 (선택)', style: { fontSize: '12.5px', padding: '10px 12px', marginTop: '8px' } });
+  const addRow = el('div', { style: { display: 'flex', gap: '8px', marginTop: '10px' } });
+  const addVocabBtn = el('button', {
+    class: 'btn btn-lilac',
+    style: { flex: '1', padding: '10px 14px', fontSize: '13px' },
+    onClick: () => {
+      const w = (wordIn.value || '').trim();
+      if (!w) { wordIn.focus(); return; }
+      const note = (noteIn.value || '').trim();
+      addToVocabBank({ word: w, note, source: 'manual' });
+      saveState();
+      wordIn.value = '';
+      noteIn.value = '';
+      showToast('💎 저장됨');
+      render();
+    }
+  }, '＋ 저장');
+  addRow.appendChild(addVocabBtn);
+  addBox.appendChild(wordIn);
+  addBox.appendChild(noteIn);
+  addBox.appendChild(addRow);
+  vocabSection.appendChild(addBox);
+
+  // Harvest chips from meeting timeline
+  const harvested = [];
+  Object.keys(state.meeting_notes || {}).forEach(mid => {
+    const mn = state.meeting_notes[mid];
+    if (!mn || !mn.timeline) return;
+    ['roleplay','s1','s2','s3'].forEach(k => {
+      const row = mn.timeline[k];
+      if (!row || !Array.isArray(row.expressions)) return;
+      row.expressions.forEach(w => {
+        if (!harvested.includes(w)) harvested.push(w);
+      });
+    });
+  });
+  const vocabWords = state.pitch_vocab.map(v => v.word);
+  const harvestedNew = harvested.filter(w => !vocabWords.includes(w));
+  if (harvestedNew.length) {
+    const harvestBox = el('div', { style: { marginTop: '12px', padding: '12px 14px', background: 'rgba(169,139,184,0.06)', borderRadius: '12px' } });
+    harvestBox.appendChild(el('div', { class: 't-small', style: { color: '#7B5E8C', fontWeight: '700' } }, `🎯 미팅에서 저장한 표현 (${harvestedNew.length})`));
+    const hRow = el('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' } });
+    harvestedNew.forEach(w => {
+      const chip = el('button', {
+        class: 'mn-chip',
+        onClick: () => {
+          addToVocabBank({ word: w, note: '', source: 'meeting' });
+          saveState();
+          showToast('💎 보관');
+          render();
+        }
+      }, '+ ' + w);
+      hRow.appendChild(chip);
+    });
+    harvestBox.appendChild(hRow);
+    vocabSection.appendChild(harvestBox);
+  }
+
+  // Saved vocab list — 소스별 필터 + 배지.
+  if (state.pitch_vocab.length) {
+    const activeFilter = window.__vocabFilter || 'all';
+    const counts = { all: state.pitch_vocab.length, daily: 0, synonym: 0, meeting: 0, manual: 0 };
+    state.pitch_vocab.forEach(v => {
+      const s = v.source || 'manual';
+      if (counts[s] != null) counts[s]++;
+    });
+    const filterRow = el('div', {
+      style: { marginTop: '14px', display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }
+    });
+    const filters = [
+      { key: 'all', label: '전체', emoji: '💎' },
+      { key: 'daily', label: '데일리', emoji: '📖' },
+      { key: 'synonym', label: '유의어', emoji: '🔁' },
+      { key: 'meeting', label: '미팅', emoji: '🎯' },
+      { key: 'manual', label: '직접', emoji: '✍️' },
+    ];
+    filters.forEach(f => {
+      if (f.key !== 'all' && counts[f.key] === 0) return;
+      const active = activeFilter === f.key;
+      const btn = el('button', {
+        style: {
+          padding: '6px 11px',
+          borderRadius: '999px',
+          border: '1px solid ' + (active ? 'var(--lilac)' : 'rgba(169,139,184,0.2)'),
+          background: active ? 'var(--lilac)' : '#fff',
+          color: active ? '#fff' : 'var(--ink-soft)',
+          fontSize: '11.5px',
+          fontWeight: '700',
+          cursor: 'pointer',
+        },
+        onClick: () => {
+          window.__vocabFilter = f.key;
+          render();
+        },
+      }, `${f.emoji} ${f.label} · ${counts[f.key]}`);
+      filterRow.appendChild(btn);
+    });
+    vocabSection.appendChild(filterRow);
+
+    const SOURCE_LABELS = {
+      daily: { label: '데일리 인증', color: '#C95721' },
+      synonym: { label: '유의어', color: '#8A5B0E' },
+      meeting: { label: '미팅 표현', color: '#7B5E8C' },
+      manual: { label: '직접 추가', color: '#6B7280' },
+    };
+
+    const list = el('div', { style: { marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '8px' } });
+    const filtered = state.pitch_vocab
+      .map((v, i) => ({ v, i }))
+      .filter(({ v }) => activeFilter === 'all' || (v.source || 'manual') === activeFilter);
+
+    if (filtered.length === 0) {
+      list.appendChild(el('div', {
+        class: 't-small',
+        style: { textAlign: 'center', color: 'var(--muted)', padding: '14px', background: 'rgba(169,139,184,0.04)', borderRadius: '12px' }
+      }, '이 필터에는 저장된 표현이 없어요.'));
+    } else {
+      filtered.forEach(({ v, i }) => {
+      const src = v.source || 'manual';
+      const srcMeta = SOURCE_LABELS[src] || SOURCE_LABELS.manual;
+      const item = el('div', {
+        style: {
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: '10px 12px',
+          background: '#fff',
+          border: '1px solid rgba(169,139,184,0.14)',
+          borderRadius: '12px',
+        }
+      });
+      const body = el('div', { style: { flex: '1', minWidth: '0' } });
+      body.innerHTML = `
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:13.5px;font-weight:700;color:var(--ink);">${escapeHtml(v.word)}</span>
+          <span style="font-size:9.5px;letter-spacing:0.08em;font-weight:700;color:${srcMeta.color};background:${srcMeta.color}15;padding:2px 7px;border-radius:999px;">${srcMeta.label}</span>
+        </div>
+        ${v.note ? `<div style="font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45;">${escapeHtml(v.note)}</div>` : ''}`;
+      item.appendChild(body);
+      const rmBtn = el('button', {
+        class: 'icon-btn',
+        style: { flexShrink: '0', fontSize: '14px', color: 'var(--muted)' },
+        title: '제거',
+        onClick: () => {
+          // 원본 북마크도 함께 해제해서 뷰가 어긋나지 않게.
+          clearLinkedBookmarksForVocab(v);
+          state.pitch_vocab = state.pitch_vocab.filter((_, idx) => idx !== i);
+          saveState();
+          render();
+        }
+      }, '🗑');
+      item.appendChild(rmBtn);
+      list.appendChild(item);
+      });
+    }
+    vocabSection.appendChild(list);
+  } else if (!harvestedNew.length) {
+    vocabSection.appendChild(el('div', {
+      class: 't-small',
+      style: { marginTop: '14px', textAlign: 'center', color: 'var(--muted)', padding: '20px', background: 'rgba(169,139,184,0.04)', borderRadius: '12px' }
+    }, '아직 저장된 표현이 없어요. 데일리에서 북마크 🔖 를 누르거나 위에서 직접 추가해보세요.'));
+  }
+  page.appendChild(vocabSection);
+
+  // ---- Section: Weekly meeting recaps (Gaby 가 직접 채우는 회의록 + PT 자료 링크) ----
+  const recapSection = el('div', { style: { marginTop: '32px' } });
+  recapSection.appendChild(el('div', {
+    style: { fontSize: '10px', letterSpacing: '0.14em', fontWeight: '700', color: '#7B5E8C' }
+  }, '📓 MEETING RECAP'));
+  recapSection.appendChild(el('h2', {
+    style: { fontSize: '20px', fontWeight: '800', color: 'var(--ink)', marginTop: '6px', letterSpacing: '-0.015em' }
+  }, '주차별 회의록'));
+  recapSection.appendChild(el('p', {
+    class: 't-small',
+    style: { marginTop: '4px', color: 'var(--muted)' }
+  }, '매주 미팅 후 정리되는 회의록과 PT 발표자료. 미팅 끝나고 바로 여기서 복습.'));
+
+  const wk = CHALLENGE.premium.weekly_meetings || [];
+  const recapList = el('div', { style: { marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' } });
+  wk.forEach(w => {
+    const recap = (w.recap || '').trim();
+    const pptUrl = (w.pptUrl || '').trim();
+    const mine = isMePresenterInWeek(w.n);
+    const hasContent = !!(recap || pptUrl);
+
+    const card = el('div', {
+      style: {
+        padding: '14px 16px',
+        background: '#fff',
+        border: '1px solid ' + (hasContent ? 'rgba(169,139,184,0.28)' : 'rgba(169,139,184,0.14)'),
+        borderRadius: '12px',
+        boxShadow: hasContent ? '0 4px 14px rgba(169,139,184,0.10)' : '0 1px 6px rgba(80,50,100,0.03)',
+      }
+    });
+
+    // Header row: WEEK N · date · (ME badge)
+    const header = el('div', { style: { display: 'flex', gap: '8px', alignItems: 'center' } });
+    header.innerHTML = `
+      <span style="display:inline-block;padding:3px 8px;border-radius:6px;background:rgba(169,139,184,0.14);color:#7B5E8C;font-size:10px;font-weight:700;letter-spacing:0.08em;">WEEK ${w.n}</span>
+      <span style="font-size:11px;color:var(--muted);">${escapeHtml(w.date)}</span>
+      ${mine ? '<span style="margin-left:auto;padding:3px 8px;border-radius:6px;background:linear-gradient(135deg,#7B5E8C,#5D4770);color:#fff;font-size:9.5px;font-weight:700;letter-spacing:0.08em;">내가 발표</span>' : ''}`;
+    card.appendChild(header);
+
+    card.appendChild(el('div', {
+      style: { marginTop: '8px', fontSize: '13.5px', fontWeight: '700', color: 'var(--ink)', lineHeight: '1.35' }
+    }, w.title));
+
+    if (recap) {
+      // Simple inline render: keep line breaks, allow basic markdown-ish (· bullet)
+      const recapBox = el('div', {
+        style: {
+          marginTop: '10px',
+          padding: '12px 14px',
+          background: 'rgba(169,139,184,0.06)',
+          borderRadius: '10px',
+          fontSize: '12.5px',
+          lineHeight: '1.6',
+          color: 'var(--ink)',
+          whiteSpace: 'pre-wrap',
+        }
+      });
+      recapBox.textContent = recap;
+      card.appendChild(recapBox);
+    }
+
+    if (pptUrl) {
+      const pttBtn = el('a', {
+        href: pptUrl,
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        style: {
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          marginTop: '10px',
+          padding: '8px 14px',
+          background: 'linear-gradient(135deg,#7B5E8C,#A98BB8)',
+          color: '#fff',
+          borderRadius: '999px',
+          fontSize: '12px',
+          fontWeight: '700',
+          textDecoration: 'none',
+          letterSpacing: '0.02em',
+          boxShadow: '0 3px 10px rgba(123,94,140,0.24)',
+        }
+      }, '📎 PT 발표자료 열기 →');
+      card.appendChild(pttBtn);
+    }
+
+    if (!hasContent) {
+      card.appendChild(el('div', {
+        style: { marginTop: '8px', fontSize: '11.5px', color: 'var(--muted)', fontStyle: 'italic' }
+      }, '⏳ 미팅 후 업로드 예정'));
+    }
+
+    recapList.appendChild(card);
+  });
+  recapSection.appendChild(recapList);
+  page.appendChild(recapSection);
+
+  // ---- Section: Scratch ----
+  const scratchSection = el('div', { style: { marginTop: '32px' } });
+  scratchSection.appendChild(el('div', {
+    style: { fontSize: '10px', letterSpacing: '0.14em', fontWeight: '700', color: '#7B5E8C' }
+  }, '🧠 SCRATCH'));
+  scratchSection.appendChild(el('h2', {
+    style: { fontSize: '20px', fontWeight: '800', color: 'var(--ink)', marginTop: '6px', letterSpacing: '-0.015em' }
+  }, '상시 PT 아이디어'));
+  scratchSection.appendChild(el('p', {
+    class: 't-small',
+    style: { marginTop: '4px', color: 'var(--muted)' }
+  }, '갑자기 떠오른 PT 문장, 반복되는 내 업무 예시, 오프닝 후보 — 여기 흘려두세요.'));
+  const scratch = el('textarea', {
+    class: 'mn-editor',
+    placeholder: '예)\n- 우리 제품 한 줄 요약: "We help X get Y in Z minutes."\n- 내 팀 이번 분기 one thing: ...\n- 자주 막히는 오프닝: "Let me set the table..."',
+    style: { minHeight: '180px', marginTop: '12px' }
+  });
+  scratch.value = state.pitch_scratch || '';
+  scratch.addEventListener('input', (e) => {
+    state.pitch_scratch = e.target.value;
+    saveState();
+  });
+  scratchSection.appendChild(scratch);
+  page.appendChild(scratchSection);
+
+  // Footer spacer
+  page.appendChild(el('div', { style: { height: '80px' } }));
+
+  return page;
+}
+
 function MeetingNotesPage(meetingId) {
   if (state.tier !== 'premium') return premiumGatePage({ titleRest: '미팅 노트' });
   const page = el('div', { class: 'page' });
 
-  // Resolve meeting meta
+  // Resolve meeting meta — pt_sessions 가 폐지되어 m* 만 남음.
   let meta = null;
-  let isPT = false;
-  if (meetingId && meetingId.startsWith('pt')) {
-    isPT = true;
-    const idx = parseInt(meetingId.replace('pt', ''), 10) - 1;
-    meta = CHALLENGE.premium.pt_sessions[idx];
-  } else if (meetingId && meetingId.startsWith('m')) {
+  if (meetingId && meetingId.startsWith('m')) {
     const n = parseInt(meetingId.replace('m', ''), 10);
     meta = CHALLENGE.premium.weekly_meetings.find(x => x.n === n);
   }
@@ -7279,27 +8013,47 @@ function MeetingNotesPage(meetingId) {
     return page;
   }
 
-  // Ensure state slots exist
+  // Ensure state slots exist — 기존 talk_points / meeting_notes 는 레거시로 유지하되
+  // 새 timeline 뷰는 state.meeting_notes[mid].timeline 아래서 row 별로 관리.
   if (!state.meeting_notes[meetingId]) {
     state.meeting_notes[meetingId] = { talk_points: '', meeting_notes: '' };
   }
   const notes = state.meeting_notes[meetingId];
+  if (!notes.timeline) {
+    notes.timeline = {
+      roleplay: { notes: '', expressions: [] },
+      s1: { notes: '', expressions: [] },
+      s2: { notes: '', expressions: [] },
+      s3: { notes: '', expressions: [] },
+    };
+  }
+  ['roleplay','s1','s2','s3'].forEach(k => {
+    if (!notes.timeline[k]) notes.timeline[k] = { notes: '', expressions: [] };
+    if (!Array.isArray(notes.timeline[k].expressions)) notes.timeline[k].expressions = [];
+  });
 
-  // Persistent UI state (per-meeting) - segmented tab + AI output
+  // Persistent UI state
   window.__mnTab = window.__mnTab || {};
   window.__mnAi = window.__mnAi || {};
-  window.__mnSync = window.__mnSync || {}; // { [mid]: { status, lastSaved } }
-  if (!window.__mnTab[meetingId]) window.__mnTab[meetingId] = 'talk';
+  window.__mnSync = window.__mnSync || {};
+  if (!window.__mnTab[meetingId]) window.__mnTab[meetingId] = 'timeline';
   const tab = window.__mnTab[meetingId];
   const aiState = window.__mnAi[meetingId] || { output: '', kind: null, loading: false };
   const syncState = window.__mnSync[meetingId] || { status: hasSupabase() ? 'cloud' : 'local', lastSaved: null };
+
+  // Presenters for this week
+  const presenterKeys = weekSignupsArray(meta.n);
+  const presenterMembers = presenterKeys.map(k => memberByKey(k));
+  // Day countdown
+  const dLeft = daysUntilMeeting(meta.date);
+  const dLabel = dLeft === null ? '' : dLeft > 0 ? `D-${dLeft}` : dLeft === 0 ? 'TODAY' : `D+${Math.abs(dLeft)}`;
 
   // Top bar
   const head = el('div', { class: 'topbar' });
   const back = el('button', { class: 'icon-btn', onClick: () => go('premium') });
   back.innerHTML = Icon('arrowLeft', 16);
   head.appendChild(back);
-  head.appendChild(el('div', { class: 'brand-name' }, isPT ? 'PT 노트' : '미팅 회의록'));
+  head.appendChild(el('div', { class: 'brand-name' }, '미팅 타임라인'));
   const saveIconBtn = el('button', {
     class: 'icon-btn',
     title: '☁️ 내 공간에 저장',
@@ -7336,18 +8090,20 @@ function MeetingNotesPage(meetingId) {
       <div class="mn-date-tile">
         <div class="mn-date-mon">${monShort}</div>
         <div class="mn-date-day">${parseInt(da,10)}</div>
-        <div class="mn-date-tag">${isPT ? 'PT' : 'MEET'}</div>
+        <div class="mn-date-tag">WEEK ${meta.n}</div>
       </div>
       <div style="flex:1;min-width:0;">
         <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(169,139,184,0.16);color:#7B5E8C;font-size:10px;letter-spacing:0.14em;font-weight:700;text-transform:uppercase;">
-          ${isPT ? '● PERSONAL COACHING' : '● WEEKLY MEETUP'}
+          ● WEEKLY MEETUP${dLabel ? ' · ' + dLabel : ''}
         </div>
         <div style="margin-top:10px;font-size:22px;font-weight:800;color:var(--ink);line-height:1.25;letter-spacing:-0.02em;">${escapeHtml(meta.title)}</div>
         <div style="margin-top:8px;font-size:14px;line-height:1.55;color:#6E5C46;">${escapeHtml(meta.desc)}</div>
         <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);">
-          <span>${isPT ? '⏱ 30분' : '📍 ' + (meta.zoom || 'Google Meet')}</span>
+          <span>📍 ${escapeHtml(meta.zoom || 'Google Meet')}</span>
           <span>·</span>
-          <span>${isPT ? '월/화/목 중 선택' : '21:00 KST'}</span>
+          <span>21:00 KST</span>
+          <span>·</span>
+          <span>⏱ 총 70분</span>
         </div>
       </div>
     </div>`;
@@ -7365,12 +8121,11 @@ function MeetingNotesPage(meetingId) {
   syncBar.appendChild(el('span', {}, syncMsg));
   page.appendChild(syncBar);
 
-  // Segmented control
+  // Segmented control — Timeline vs AI assist
   const seg = el('div', { class: 'mn-seg' });
   const tabs = [
-    { k: 'talk', label: '🗣 말할 거리' },
-    { k: 'notes', label: '📝 회의록' },
-    { k: 'ai', label: '✨ AI 어시스트' },
+    { k: 'timeline', label: '📋 타임라인' },
+    { k: 'ai', label: '✨ AI 요약' },
   ];
   tabs.forEach(t => {
     const b = el('button', {
@@ -7381,93 +8136,345 @@ function MeetingNotesPage(meetingId) {
   });
   page.appendChild(seg);
 
-  // ------ TAB: Talking points ------
-  if (tab === 'talk') {
-    const wrap = el('div', { style: { marginTop: '18px' } });
-    wrap.appendChild(el('div', { class: 'mn-section-label' }, (isPT ? '🎯 ' : '🗣 ') + (isPT ? 'PT에 물어볼 것' : 'TALKING POINTS')));
-    wrap.appendChild(el('h3', { class: 'h3', style: { marginTop: '10px', marginBottom: '4px' } }, '미리 적어두면 긴장 없이 말할 수 있어요'));
-    wrap.appendChild(el('p', { class: 't-small', style: { marginBottom: '14px' } }, isPT ? '30분이 길지 않아요. 물어볼 것 3~5개만 정리해도 세션이 달라져요.' : 'Meet 들어가기 전 2분만 투자하면 발언권 자신감이 달라져요.'));
+  // ------------------------------------------------------------
+  // TIMELINE ROW helper
+  // time: '0–40' · icon + title · body (brief) · notes textarea · expressions chip picker
+  // ------------------------------------------------------------
+  const mustUse = (meta.mustUseVocab || []).slice();
+  const suggestionsGlobal = mustUse.length ? mustUse : (allChallengeWords() || []).slice(0, 8);
 
-    const __tpFirstWord = allChallengeWords()[0] || '이번 주 표현';
-    const tpTextarea = el('textarea', {
-      class: 'mn-editor',
-      placeholder: `예시)\n- 지난주 발표에서 내가 쓴 표현이 자연스러웠는지\n- "${__tpFirstWord}"을(를) 더 자연스럽게 쓰는 법\n- 회의 마무리 표현 3개`,
-      style: { minHeight: '180px' },
+  function renderTimelineRow(opts) {
+    const { rowKey, timeLabel, minutes, title, subtitle, body, accent, briefing, whoChip, rightChip } = opts;
+    const row = el('div', {
+      class: 'timeline-row',
+      style: {
+        display: 'flex',
+        gap: '12px',
+        margin: '0',
+        position: 'relative',
+      }
     });
-    tpTextarea.value = notes.talk_points || '';
-    tpTextarea.addEventListener('input', (e) => {
-      state.meeting_notes[meetingId].talk_points = e.target.value;
+
+    // Left rail = time column
+    const rail = el('div', {
+      style: {
+        flexShrink: '0',
+        width: '62px',
+        paddingTop: '4px',
+        textAlign: 'right',
+        position: 'relative',
+      }
+    });
+    rail.innerHTML = `
+      <div style="font-size:10px;letter-spacing:0.14em;font-weight:700;color:${accent || '#A98BB8'};">${timeLabel}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;">${minutes}분</div>`;
+    row.appendChild(rail);
+
+    // Dot + vertical line
+    const stem = el('div', {
+      style: {
+        flexShrink: '0',
+        width: '12px',
+        position: 'relative',
+        marginTop: '8px',
+      }
+    });
+    stem.innerHTML = `
+      <div style="width:10px;height:10px;border-radius:50%;background:${accent || '#A98BB8'};box-shadow:0 0 0 3px rgba(169,139,184,0.18);"></div>
+      <div style="position:absolute;top:14px;bottom:-14px;left:4.5px;width:1.5px;background:linear-gradient(to bottom, rgba(169,139,184,0.35), rgba(169,139,184,0.08));"></div>`;
+    row.appendChild(stem);
+
+    // Card
+    const card = el('div', {
+      style: {
+        flex: '1',
+        minWidth: '0',
+        background: '#fff',
+        border: '1px solid rgba(169,139,184,0.18)',
+        borderRadius: '14px',
+        padding: '14px 14px 14px',
+        marginBottom: '14px',
+        boxShadow: '0 2px 10px rgba(80,50,100,0.04)',
+      }
+    });
+
+    // Header row
+    const headerRow = el('div', { style: { display: 'flex', gap: '8px', alignItems: 'flex-start', flexWrap: 'wrap' } });
+    const titleBlock = el('div', { style: { flex: '1', minWidth: '0' } });
+    titleBlock.innerHTML = `
+      <div style="font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-0.01em;">${escapeHtml(title)}</div>
+      ${subtitle ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5;">${escapeHtml(subtitle)}</div>` : ''}`;
+    headerRow.appendChild(titleBlock);
+    if (whoChip) headerRow.appendChild(whoChip);
+    if (rightChip) headerRow.appendChild(rightChip);
+    card.appendChild(headerRow);
+
+    // Briefing (collapsible)
+    if (briefing) {
+      const brief = el('details', { style: { marginTop: '10px' } });
+      const summary = el('summary', {
+        style: {
+          cursor: 'pointer',
+          fontSize: '11px',
+          color: '#7B5E8C',
+          fontWeight: '700',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          listStyle: 'none',
+          display: 'inline-block',
+          padding: '4px 10px',
+          background: 'rgba(169,139,184,0.10)',
+          borderRadius: '999px',
+        }
+      }, '📎 브리핑 · 펼치기');
+      brief.appendChild(summary);
+      const briefBody = el('div', {
+        style: {
+          marginTop: '8px',
+          padding: '10px 12px',
+          background: 'rgba(169,139,184,0.06)',
+          borderRadius: '10px',
+          fontSize: '12px',
+          lineHeight: '1.6',
+          color: 'var(--ink-soft)',
+        }
+      });
+      briefBody.innerHTML = briefing;
+      brief.appendChild(briefBody);
+      card.appendChild(brief);
+    }
+
+    if (body) {
+      const bodyEl = el('div', {
+        style: {
+          marginTop: '10px',
+          fontSize: '12.5px',
+          lineHeight: '1.55',
+          color: 'var(--ink-soft)',
+        }
+      });
+      bodyEl.innerHTML = body;
+      card.appendChild(bodyEl);
+    }
+
+    // Notes textarea
+    const notesLabel = el('div', {
+      style: {
+        marginTop: '12px',
+        fontSize: '10px',
+        letterSpacing: '0.12em',
+        fontWeight: '700',
+        color: 'var(--muted)',
+        textTransform: 'uppercase',
+      }
+    }, '📝 내 노트');
+    card.appendChild(notesLabel);
+    const ta = el('textarea', {
+      class: 'mn-editor',
+      placeholder: opts.placeholder || '여기에 기록하세요...',
+      style: { minHeight: '80px', marginTop: '6px', fontSize: '13px' },
+    });
+    ta.value = (notes.timeline[rowKey] && notes.timeline[rowKey].notes) || '';
+    ta.addEventListener('input', (e) => {
+      notes.timeline[rowKey].notes = e.target.value;
       saveState();
       scheduleCloudSync(meetingId);
     });
-    wrap.appendChild(tpTextarea);
+    card.appendChild(ta);
 
-    wrap.appendChild(el('div', { class: 't-small', style: { marginTop: '14px', marginBottom: '8px', color: 'var(--muted)' } }, '⚡ 빠른 추가'));
-    const chipRow = el('div', { class: 'mn-quick-row' });
-    const quickPoints = isPT
-      ? ['내 약점 진단', '단톡 피드백 리뷰', '발음 교정', '다음 주 목표', '실전 롤플레이', '이력서 표현']
-      : ['지난 주 복습', '이번 주 표현 3개', '롤플레이 시나리오', '궁금한 것', '내 업무 예시', '다음 주 적용'];
-    quickPoints.forEach(txt => {
+    // Expressions chip picker
+    const exprWrap = el('div', { style: { marginTop: '10px' } });
+    exprWrap.appendChild(el('div', {
+      style: {
+        fontSize: '10px',
+        letterSpacing: '0.12em',
+        fontWeight: '700',
+        color: 'var(--muted)',
+        textTransform: 'uppercase',
+      }
+    }, '💎 쓸만했던 표현'));
+    const chipRow = el('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' } });
+    const currentExprs = notes.timeline[rowKey].expressions || [];
+    // Saved chips (removable)
+    currentExprs.forEach(w => {
+      const chip = el('button', {
+        class: 'mn-chip',
+        style: { background: 'var(--lilac)', color: '#fff', borderColor: 'transparent' },
+        onClick: () => {
+          notes.timeline[rowKey].expressions = currentExprs.filter(x => x !== w);
+          saveState();
+          scheduleCloudSync(meetingId);
+          render();
+        }
+      }, w + ' ×');
+      chipRow.appendChild(chip);
+    });
+    // Suggestion chips (addable)
+    suggestionsGlobal.forEach(w => {
+      if (currentExprs.includes(w)) return;
       const chip = el('button', {
         class: 'mn-chip',
         onClick: () => {
-          const cur = (state.meeting_notes[meetingId].talk_points || '').trim();
-          state.meeting_notes[meetingId].talk_points = cur ? cur + '\n- ' + txt : '- ' + txt;
+          notes.timeline[rowKey].expressions = [...currentExprs, w];
           saveState();
           scheduleCloudSync(meetingId);
           render();
         }
-      }, '+ ' + txt);
+      }, '+ ' + w);
       chipRow.appendChild(chip);
     });
-    wrap.appendChild(chipRow);
-    page.appendChild(wrap);
+    // Custom add
+    const addWrap = el('div', { style: { display: 'flex', gap: '6px', marginTop: '8px' } });
+    const addInput = el('input', {
+      class: 'input',
+      placeholder: '새 표현 추가',
+      style: { flex: '1', fontSize: '12px', padding: '8px 10px' },
+    });
+    const addBtn = el('button', {
+      class: 'mn-chip',
+      style: { flexShrink: '0' },
+      onClick: () => {
+        const v = (addInput.value || '').trim();
+        if (!v) return;
+        if (currentExprs.includes(v)) return;
+        notes.timeline[rowKey].expressions = [...currentExprs, v];
+        saveState();
+        scheduleCloudSync(meetingId);
+        render();
+      }
+    }, '＋');
+    addInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); addBtn.click(); }
+    });
+    exprWrap.appendChild(chipRow);
+    addWrap.appendChild(addInput);
+    addWrap.appendChild(addBtn);
+    exprWrap.appendChild(addWrap);
+    card.appendChild(exprWrap);
+
+    row.appendChild(card);
+    return row;
   }
 
-  // ------ TAB: Meeting notes ------
-  if (tab === 'notes') {
+  // ------ TAB: TIMELINE ------
+  if (tab === 'timeline') {
     const wrap = el('div', { style: { marginTop: '18px' } });
-    wrap.appendChild(el('div', { class: 'mn-section-label' }, '📝 MEETING NOTES'));
-    wrap.appendChild(el('h3', { class: 'h3', style: { marginTop: '10px', marginBottom: '4px' } }, '미팅 중/후에 정리하는 공간'));
-    wrap.appendChild(el('p', { class: 't-small', style: { marginBottom: '14px' } }, '배운 표현 · 액션 아이템 · 피드백 · 다음 주 적용 — 네 칸으로만 나눠도 복습이 쉬워져요.'));
 
-    const __mnWords = allChallengeWords();
-    const __mnSample1 = __mnWords[0] || '표현 1';
-    const __mnSample2 = __mnWords[1] || '표현 2';
-    const mnTextarea = el('textarea', {
-      class: 'mn-editor',
-      placeholder: `[배운 표현]\n- ${__mnSample1}\n- ${__mnSample2}\n\n[액션 아이템]\n- 다음 주까지 이메일 샘플 작성\n\n[인상적이었던 피드백]\n- ...\n\n[다음 주 적용]\n- ...`,
-      style: { minHeight: '260px' },
-    });
-    mnTextarea.value = notes.meeting_notes || '';
-    mnTextarea.addEventListener('input', (e) => {
-      state.meeting_notes[meetingId].meeting_notes = e.target.value;
-      saveState();
-      scheduleCloudSync(meetingId);
-    });
-    wrap.appendChild(mnTextarea);
-
-    // Quick template injector
-    wrap.appendChild(el('div', { class: 't-small', style: { marginTop: '14px', marginBottom: '8px', color: 'var(--muted)' } }, '📋 템플릿 · 빈 회의록에 구조 먼저'));
-    const tplRow = el('div', { class: 'mn-quick-row' });
-    const tpl4 = `[배운 표현]\n- \n\n[액션 아이템]\n- \n\n[인상적이었던 피드백]\n- \n\n[다음 주 적용]\n- `;
-    const tplPT = `[내 약점]\n- \n\n[코치 피드백]\n- \n\n[연습할 것]\n- \n\n[다음 세션 준비]\n- `;
-    [
-      { label: '+ 4칸 템플릿', val: tpl4 },
-      ...(isPT ? [{ label: '+ PT 템플릿', val: tplPT }] : []),
-    ].forEach(t => {
-      tplRow.appendChild(el('button', {
-        class: 'mn-chip',
-        onClick: () => {
-          const cur = (state.meeting_notes[meetingId].meeting_notes || '').trim();
-          state.meeting_notes[meetingId].meeting_notes = cur ? cur + '\n\n' + t.val : t.val;
-          saveState();
-          scheduleCloudSync(meetingId);
-          render();
+    // ---- Scenario summary ----
+    if (meta.scenario) {
+      const sumCard = el('div', {
+        style: {
+          background: 'linear-gradient(135deg, rgba(169,139,184,0.10) 0%, rgba(169,139,184,0.04) 100%)',
+          border: '1px solid rgba(169,139,184,0.18)',
+          borderRadius: '14px',
+          padding: '14px',
+          marginBottom: '18px',
         }
-      }, t.label));
+      });
+      sumCard.innerHTML = `
+        <div style="font-size:10px;letter-spacing:0.14em;font-weight:700;color:#7B5E8C;">🎬 SCENARIO</div>
+        <div style="font-size:14px;font-weight:700;color:var(--ink);margin-top:6px;">${escapeHtml(meta.scenario.setting || '')}</div>
+        <div style="font-size:12px;line-height:1.55;color:var(--ink-soft);margin-top:6px;">${escapeHtml(meta.scenario.premise || '')}</div>`;
+      wrap.appendChild(sumCard);
+    }
+
+    // ---- Row 1: Group roleplay (0–40) ----
+    const rp = meta.roleplay || {};
+    const rolesHtml = (rp.roles || []).map(r =>
+      `<div style="margin-bottom:6px;"><b style="color:var(--ink);">${escapeHtml(r.name)}</b> — <span style="color:var(--muted);">${escapeHtml(r.goal || '')}</span></div>`
+    ).join('');
+    const beatsHtml = (rp.beats || []).map(b =>
+      `<div style="margin-bottom:6px;"><span style="display:inline-block;padding:1px 7px;border-radius:999px;background:rgba(169,139,184,0.18);color:#7B5E8C;font-size:10px;font-weight:700;margin-right:6px;">${escapeHtml(b.time)}</span><b style="color:var(--ink);">${escapeHtml(b.label)}</b><div style="margin-top:2px;margin-left:0;color:var(--muted);font-size:11.5px;">${escapeHtml(b.body || '')}</div></div>`
+    ).join('');
+    const propsHtml = (rp.props || []).map(p =>
+      `<div style="margin-bottom:4px;"><b style="color:var(--ink);">${escapeHtml(p.label)}:</b> <span style="color:var(--muted);">${escapeHtml(p.body || '')}</span></div>`
+    ).join('');
+    const roleplayBrief = `
+      <div style="margin-bottom:10px;"><b style="color:#7B5E8C;font-size:11px;letter-spacing:0.08em;">ROLES</b></div>
+      ${rolesHtml}
+      <div style="margin-top:12px;margin-bottom:10px;"><b style="color:#7B5E8C;font-size:11px;letter-spacing:0.08em;">BEATS</b></div>
+      ${beatsHtml}
+      ${propsHtml ? `<div style="margin-top:12px;margin-bottom:10px;"><b style="color:#7B5E8C;font-size:11px;letter-spacing:0.08em;">PROPS</b></div>${propsHtml}` : ''}`;
+    wrap.appendChild(renderTimelineRow({
+      rowKey: 'roleplay',
+      timeLabel: '0–40',
+      minutes: 40,
+      accent: '#A98BB8',
+      title: '🎭 그룹 롤플레이',
+      subtitle: (meta.scenario && meta.scenario.setting) || '전원 참여 · 역할 분담 후 진행',
+      body: `<span style="color:var(--ink);">각자 맡은 역할로 비즈니스 상황을 실제처럼 재현. 대사 외우지 말고, 상황에 반응하세요.</span>`,
+      briefing: roleplayBrief,
+      placeholder: '예) 내가 맡은 역할: Product Lead\n내가 놓친 reframe 포인트: ...\n상대방이 쓴 괜찮은 표현: ...\n다음엔 이렇게 해볼 것: ...',
+    }));
+
+    // ---- Rows 2-4: Presenter slots (7분 발표 + 3분 Q&A) ----
+    const slotMeta = [
+      { key: 's1', time: '40–50', idx: 0, accent: '#A98BB8' },
+      { key: 's2', time: '50–60', idx: 1, accent: '#9B7FAE' },
+      { key: 's3', time: '60–70', idx: 2, accent: '#8D729D' },
+    ];
+    slotMeta.forEach((s, i) => {
+      const pmember = presenterMembers[s.idx];
+      const pname = pmember ? displayName(pmember) : '(아직 지원자 없음)';
+      const isMeHere = pmember && (pmember.memberKey === memberKey() || pmember.uid === state.uid);
+      const whoChip = el('div', {
+        style: {
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '4px 10px',
+          borderRadius: '999px',
+          background: pmember ? (isMeHere ? 'linear-gradient(135deg,#7B5E8C,#5D4770)' : 'rgba(169,139,184,0.18)') : 'rgba(0,0,0,0.04)',
+          color: pmember ? (isMeHere ? '#fff' : '#7B5E8C') : 'var(--muted)',
+          fontSize: '11px',
+          fontWeight: '700',
+          letterSpacing: '0.02em',
+          flexShrink: '0',
+        }
+      });
+      whoChip.innerHTML = pmember
+        ? `${isMeHere ? 'ME' : '🎤'} · ${escapeHtml(pname)}`
+        : '🪑 빈 자리';
+
+      const qaPromptsHtml = (meta.qaPrompts || []).map(q =>
+        `<div style="margin-bottom:4px;color:var(--ink-soft);">• <i>${escapeHtml(q)}</i></div>`
+      ).join('');
+      const slotBriefing = `
+        <div style="margin-bottom:10px;"><b style="color:#7B5E8C;font-size:11px;letter-spacing:0.08em;">PRESENTER PROMPT</b></div>
+        <div style="margin-bottom:10px;color:var(--ink-soft);">${escapeHtml(meta.presenterPrompt || '')}</div>
+        ${qaPromptsHtml ? `<div style="margin-top:10px;margin-bottom:6px;"><b style="color:#7B5E8C;font-size:11px;letter-spacing:0.08em;">LIKELY Q&amp;A</b></div>${qaPromptsHtml}` : ''}`;
+
+      wrap.appendChild(renderTimelineRow({
+        rowKey: s.key,
+        timeLabel: s.time,
+        minutes: 10,
+        accent: s.accent,
+        title: `🎤 발표자 #${i + 1} — 7분 토크 + 3분 Q&A`,
+        subtitle: pmember ? `발표자: ${pname}` : '자리 비어있음 · 당일 즉석 pick-up 가능',
+        body: '',
+        briefing: slotBriefing,
+        whoChip,
+        placeholder: pmember
+          ? `${pname} 의 발표에서 인상적이었던 것: ...\n내가 빌려 쓸 표현: ...\n Q&A 에서 나온 질문: ...`
+          : '발표자 미정. 당일 지원 받으면 여기에 이름 적고 노트.',
+      }));
     });
-    wrap.appendChild(tplRow);
+
+    // ---- Meta footer ----
+    const metaFooter = el('div', {
+      style: {
+        marginTop: '12px',
+        padding: '10px 14px',
+        background: 'rgba(169,139,184,0.06)',
+        borderRadius: '10px',
+        fontSize: '11.5px',
+        color: 'var(--muted)',
+        lineHeight: '1.6',
+      }
+    });
+    metaFooter.innerHTML = `💡 <b style="color:var(--ink-soft);">타임라인 뷰</b> — 세션 동안 각 구간에 기록하고, 끝나면 AI 요약 탭에서 한 장짜리 회의록으로 합칠 수 있어요. 칩으로 저장한 표현은 PT 스튜디오에서 쭉 모아볼 수 있어요.`;
+    wrap.appendChild(metaFooter);
+
     page.appendChild(wrap);
   }
 
@@ -7476,32 +8483,42 @@ function MeetingNotesPage(meetingId) {
     const wrap = el('div', { style: { marginTop: '18px' } });
 
     const aiCard = el('div', { class: 'mn-ai-card' });
-    const head = el('div', { class: 'mn-ai-head' });
-    head.innerHTML = `
+    const headEl = el('div', { class: 'mn-ai-head' });
+    headEl.innerHTML = `
       <div class="mn-ai-badge">✨</div>
       <div>
-        <div class="mn-ai-title">AI 어시스트</div>
+        <div class="mn-ai-title">AI 요약</div>
         <div class="mn-ai-sub">${hasSupabase() ? '온라인 AI가 도와드려요' : '오프라인 템플릿으로 초안을 만들어드려요'}</div>
       </div>`;
-    aiCard.appendChild(head);
+    aiCard.appendChild(headEl);
+
+    // Build a rolled-up raw text from timeline rows so AI helpers still work
+    const rolledRaw = (() => {
+      const parts = [];
+      const tl = notes.timeline || {};
+      if (tl.roleplay && tl.roleplay.notes) parts.push('[그룹 롤플레이 0–40]\n' + tl.roleplay.notes);
+      ['s1','s2','s3'].forEach((k, i) => {
+        if (tl[k] && tl[k].notes) parts.push(`[발표자 #${i+1}]\n` + tl[k].notes);
+      });
+      return parts.join('\n\n');
+    })();
 
     const grid = el('div', { class: 'mn-ai-grid' });
     const buttons = [
-      { k: 'tp', emoji: '🧠', title: '말할 거리 추천', desc: '이번 미팅 주제 기반으로 4~6개' },
-      { k: 'polish', emoji: '✍️', title: '회의록 정리', desc: '배운 것/액션/피드백으로 구조화' },
-      { k: 'kren', emoji: '🇰🇷↔🇺🇸', title: '한 → 영 변환', desc: '한국어 포인트를 영어 질문으로' },
-      { k: 'sum', emoji: '📌', title: '세션 요약', desc: '오늘의 배움 & 다음 적용 TIP' },
+      { k: 'polish', emoji: '✍️', title: '타임라인 → 회의록', desc: '배운 것/액션/피드백으로 구조화' },
+      { k: 'sum', emoji: '📌', title: '한 장 요약', desc: '오늘의 배움 & 다음 적용 TIP' },
+      { k: 'kren', emoji: '🇰🇷↔🇺🇸', title: '한 → 영 변환', desc: '한국어 노트를 영어 표현으로' },
+      { k: 'tp', emoji: '🧠', title: '다음 주 말할 거리', desc: '오늘 놓친 것 바탕으로 4~6개' },
     ];
     const runAi = async (kind) => {
       window.__mnAi[meetingId] = { output: '', kind, loading: true };
       render();
-      // Simulate async (300-500ms) to feel real
       await new Promise(r => setTimeout(r, 420));
       let output = '';
-      if (kind === 'tp') output = aiGenerateTalkPoints(meta, isPT, notes.talk_points);
-      else if (kind === 'polish') output = aiPolishNotes(notes.meeting_notes);
-      else if (kind === 'kren') output = aiKrToEn(notes.talk_points);
-      else if (kind === 'sum') output = aiSummarize(meta, notes);
+      if (kind === 'tp') output = aiGenerateTalkPoints(meta, rolledRaw);
+      else if (kind === 'polish') output = aiPolishNotes(rolledRaw);
+      else if (kind === 'kren') output = aiKrToEn(rolledRaw);
+      else if (kind === 'sum') output = aiSummarize(meta, { meeting_notes: rolledRaw, talk_points: '' });
       window.__mnAi[meetingId] = { output, kind, loading: false };
       render();
     };
@@ -7530,35 +8547,24 @@ function MeetingNotesPage(meetingId) {
       outHead.innerHTML = `
         <span class="mn-ai-output-tag">✨ ${tagMap[aiState.kind] || 'AI DRAFT'}</span>
         <div style="display:flex;gap:6px;">
-          <button class="apply-btn" data-act="append">＋ 이어붙이기</button>
-          <button class="apply-btn" data-act="replace" style="background:var(--orange);">적용</button>
+          <button class="apply-btn" data-act="copy">📋 복사</button>
         </div>`;
       out.appendChild(outHead);
       const body = el('div', {}, aiState.output);
       out.appendChild(body);
       outHead.querySelectorAll('.apply-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-          const act = btn.dataset.act;
-          const target = (aiState.kind === 'polish' || aiState.kind === 'sum') ? 'meeting_notes' : 'talk_points';
-          const cur = state.meeting_notes[meetingId][target] || '';
-          state.meeting_notes[meetingId][target] = act === 'replace' ? aiState.output : (cur ? cur + '\n\n' + aiState.output : aiState.output);
-          saveState();
-          scheduleCloudSync(meetingId);
-          window.__mnAi[meetingId] = { output: '', kind: null, loading: false };
-          window.__mnTab[meetingId] = (target === 'talk_points') ? 'talk' : 'notes';
-          showToast(act === 'replace' ? '✅ 적용됨' : '✅ 이어붙였어요');
-          render();
+          navigator.clipboard.writeText(aiState.output || '').then(() => showToast('📋 복사됨'));
         });
       });
       aiCard.appendChild(out);
     }
     wrap.appendChild(aiCard);
 
-    // Helper text
     wrap.appendChild(el('div', { class: 't-small', style: { marginTop: '14px', color: 'var(--muted)', lineHeight: '1.55' } },
       hasSupabase()
-        ? '💡 버튼을 누르면 AI가 현재 입력한 내용을 바탕으로 초안을 만들어드려요.'
-        : '💡 현재는 오프라인 템플릿 기반으로 빠르게 초안을 만들어드려요. Supabase 연결 시 LLM 기반으로 업그레이드돼요.'));
+        ? '💡 타임라인에 기록한 노트를 모아 초안을 만들어드려요.'
+        : '💡 현재는 오프라인 템플릿 기반 초안. Supabase 연결 시 LLM 기반으로 업그레이드돼요.'));
 
     page.appendChild(wrap);
   }
@@ -7578,7 +8584,7 @@ function MeetingNotesPage(meetingId) {
     class: 'btn btn-primary',
     onClick: () => {
       const md = generateMeetingMarkdown(meetingId);
-      const fname = `${meta.date}-${isPT ? 'PT' : 'Meeting'}-${(meta.title || '').replace(/[^가-힣\w\s-]/g, '').replace(/\s+/g, '-')}.md`;
+      const fname = `${meta.date}-Meeting-${(meta.title || '').replace(/[^가-힣\w\s-]/g, '').replace(/\s+/g, '-')}.md`;
       download(fname, md, 'text/markdown');
       showToast('💾 내보내기 완료');
     }
@@ -7616,18 +8622,12 @@ function scheduleCloudSync(meetingId) {
 
 function generateMeetingMarkdown(meetingId) {
   let meta = null;
-  let isPT = false;
-  if (meetingId.startsWith('pt')) {
-    isPT = true;
-    const idx = parseInt(meetingId.replace('pt', ''), 10) - 1;
-    meta = CHALLENGE.premium.pt_sessions[idx];
-  } else {
-    const n = parseInt(meetingId.replace('m', ''), 10);
-    meta = CHALLENGE.premium.weekly_meetings.find(x => x.n === n);
-  }
+  const n = parseInt(meetingId.replace('m', ''), 10);
+  meta = CHALLENGE.premium.weekly_meetings.find(x => x.n === n);
+  if (!meta) return '';
   const notes = state.meeting_notes[meetingId] || { talk_points: '', meeting_notes: '' };
   const lines = [];
-  lines.push(`# ${isPT ? 'PT' : 'Weekly Meeting'} — ${meta.title}`);
+  lines.push(`# Weekly Meeting — ${meta.title}`);
   lines.push('');
   lines.push(`- **Date**: ${meta.date}`);
   lines.push(`- **Cohort**: ${CHALLENGE.cohort}`);
@@ -7662,20 +8662,141 @@ function QuizPage() {
   page.appendChild(el('div', { class: 'kicker' }, 'PREMIUM · PERSONAL QUIZ'));
   page.appendChild(el('h1', { class: 'h1', style: { marginTop: '6px' } },
     (() => { const s = el('span'); s.innerHTML = '<span class="serif">Pinpoint</span> 내 약점'; return s; })()));
-  page.appendChild(el('p', { class: 't-body', style: { marginTop: '8px' } }, 'PT 진단에서 자주 놓쳤던 표현 위주로 뽑았어요. 틀려도 괜찮아요 — 다시 만나면 기억에 남아요.'));
+
+  const pqStatus = personalQuizState();
+
+  // ---- Gated: 아직 열리지 않은 상태 ----
+  if (pqStatus !== 'ready') {
+    const lockedCopy = {
+      not_signed_up: {
+        icon: '🎤',
+        title: '먼저 발표 자리를 잡아주세요',
+        body: '내 약점 퀴즈는 <b>본인 PT 발표 스크립트</b> 기반으로 제작돼요. 주간 미팅에서 발표 자리를 잡고, 실제로 발표를 끝내면 맞춤 퀴즈를 받을 수 있어요.',
+        cta: '주간 미팅으로 가기',
+        ctaAction: () => go('premium'),
+      },
+      before_present: {
+        icon: '📆',
+        title: '발표가 끝나면 열려요',
+        body: '발표일이 지나면 제가 제출하신 스크립트를 바탕으로 <b>당신만을 위한 퀴즈</b>를 만들어 드릴게요. 발표 준비에 집중해 주세요.',
+        cta: '발표 준비하러 가기',
+        ctaAction: () => {
+          const w = myPresenterWeek();
+          if (w != null) {
+            window.__currentPresenterWeek = w;
+            go('presenter-prep');
+          } else {
+            go('premium');
+          }
+        },
+      },
+      waiting_inject: {
+        icon: '⏳',
+        title: '맞춤 퀴즈 준비 중',
+        body: '발표 스크립트 잘 받았어요. 며칠 안에 <b>당신이 놓쳤던 표현 위주의 퀴즈</b>가 이 페이지에 올라올 거예요. 도착하면 알려드릴게요!',
+        cta: '프리미엄 홈으로',
+        ctaAction: () => go('premium'),
+      },
+    }[pqStatus];
+
+    const lockedCard = el('div', {
+      class: 'card card-flat',
+      style: {
+        marginTop: '24px',
+        padding: '32px 22px',
+        textAlign: 'center',
+        border: '1.5px dashed rgba(169,139,184,0.4)',
+        background: 'linear-gradient(160deg, #FFFDF7 0%, #F6EEFA 100%)',
+      },
+    });
+    const iconEl = el('div', { style: { fontSize: '44px', lineHeight: '1' } }, lockedCopy.icon);
+    lockedCard.appendChild(iconEl);
+    const titleEl = el('h2', { class: 'h2', style: { marginTop: '12px' } }, lockedCopy.title);
+    lockedCard.appendChild(titleEl);
+    const bodyEl = el('p', { class: 't-body', style: { marginTop: '10px', color: 'var(--ink-soft)', lineHeight: '1.6' } });
+    bodyEl.innerHTML = lockedCopy.body;
+    lockedCard.appendChild(bodyEl);
+
+    const ctaBtn = el('button', {
+      class: 'btn btn-lilac',
+      style: { marginTop: '18px' },
+      onClick: lockedCopy.ctaAction,
+    }, lockedCopy.cta);
+    lockedCard.appendChild(ctaBtn);
+
+    page.appendChild(lockedCard);
+
+    // 운영자 전용 — 퀴즈 JSON 붙여넣어서 바로 주입 (자기 계정 한정).
+    if (state.isOperator) {
+      const opCard = el('div', {
+        class: 'card card-flat',
+        style: { marginTop: '14px', padding: '16px 18px', border: '1.5px dashed rgba(0,0,0,0.15)' },
+      });
+      opCard.appendChild(el('div', { class: 'kicker' }, 'OPERATOR · INJECT QUIZ'));
+      opCard.appendChild(el('p', { class: 't-small', style: { marginTop: '6px', color: 'var(--ink-soft)' } },
+        'JSON 형식: {"week":1,"items":[{"q":"...","options":["a","b","c","d"],"a":0,"hint":"문법"}]}'));
+      const ta = el('textarea', {
+        class: 'textarea',
+        style: { width: '100%', minHeight: '120px', marginTop: '8px', fontFamily: 'monospace', fontSize: '12px' },
+        placeholder: '{"week": 1, "items": [...]}'
+      });
+      opCard.appendChild(ta);
+      const btnRow = el('div', { style: { display: 'flex', gap: '8px', marginTop: '10px' } });
+      const injectBtn = el('button', { class: 'btn btn-lilac', onClick: () => {
+        try {
+          const parsed = JSON.parse(ta.value);
+          if (window.__injectPersonalQuiz(parsed)) {
+            showToast('✅ 퀴즈 주입 완료');
+          } else {
+            showToast('JSON 형식 확인해주세요');
+          }
+        } catch (e) {
+          showToast('JSON 파싱 실패: ' + e.message);
+        }
+      } }, '주입');
+      btnRow.appendChild(injectBtn);
+      opCard.appendChild(btnRow);
+      page.appendChild(opCard);
+    }
+
+    // 왜 이렇게 만들었는지 설명 카드 (교육적)
+    const whyCard = el('div', {
+      class: 'card card-flat',
+      style: { marginTop: '14px', padding: '16px 18px', background: '#FFFDF7' },
+    });
+    whyCard.innerHTML = `
+      <div class="kicker">WHY PERSONAL?</div>
+      <p class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.6;">
+        일반 퀴즈 대신 <b>당신의 발표 스크립트에서 뽑은 표현</b>만 가지고 퀴즈를 만들어요.
+        틀리는 곳이 진짜 당신이 영어에서 반복해서 놓치는 패턴이거든요. 발표 후에 가장 기억에 남는 타이밍에 풀어야 뇌에 남아요.
+      </p>`;
+    page.appendChild(whyCard);
+
+    return page;
+  }
+
+  // ---- Ready: state.personal_quiz.items 로 렌더 ----
+  const pq = state.personal_quiz;
+  const items = pq.items || [];
+  const injectedAt = pq.injectedAt ? new Date(pq.injectedAt) : null;
+  const weekN = pq.week != null ? Number(pq.week) : null;
+
+  page.appendChild(el('p', { class: 't-body', style: { marginTop: '8px' } },
+    `${weekN ? `Week ${weekN} 발표 스크립트 기반 · ` : ''}당신이 놓쳤던 표현 위주로 ${items.length}문항 뽑았어요. 틀려도 괜찮아요 — 다시 만나면 기억에 남아요.`
+  ));
 
   const stack = el('div', { class: 'stack', style: { marginTop: '18px' } });
   let correct = 0;
-  CHALLENGE.premium.quiz.forEach((q, qi) => {
+  items.forEach((q, qi) => {
     const card = el('div', { class: 'quiz-card' });
     card.innerHTML = `
       <div class="row-between" style="margin-bottom:6px;">
-        <span class="kicker">Q${qi+1} / ${CHALLENGE.premium.quiz.length}</span>
-        <span class="badge">${q.hint}</span>
+        <span class="kicker">Q${qi+1} / ${items.length}</span>
+        <span class="badge">${q.hint || ''}</span>
       </div>
       <div class="quiz-question">${q.q}</div>`;
-    q.options.forEach((opt, oi) => {
-      const chosen = state.quiz_answers['q'+qi];
+    (q.options || []).forEach((opt, oi) => {
+      const chosen = state.personal_quiz_answers['q'+qi];
       const answered = chosen !== undefined;
       let cls = 'quiz-option';
       if (answered) {
@@ -7687,28 +8808,32 @@ function QuizPage() {
       const b = el('button', {
         class: cls,
         onClick: () => {
-          if (state.quiz_answers['q'+qi] !== undefined) return;
-          state.quiz_answers['q'+qi] = oi;
+          if (state.personal_quiz_answers['q'+qi] !== undefined) return;
+          state.personal_quiz_answers['q'+qi] = oi;
           saveState();
           render();
         }
       }, opt);
       card.appendChild(b);
     });
-    if (state.quiz_answers['q'+qi] === q.a) correct++;
+    if (state.personal_quiz_answers['q'+qi] === q.a) correct++;
     stack.appendChild(card);
   });
   page.appendChild(stack);
 
   const score = el('div', { class: 'card card-flat', style: { marginTop: '20px', textAlign: 'center' } });
-  const answered = Object.keys(state.quiz_answers).length;
+  const answered = Object.keys(state.personal_quiz_answers).length;
   score.innerHTML = `
     <div class="kicker">SCORE</div>
-    <div class="serif" style="font-size:44px;line-height:1;color:var(--orange);margin-top:6px;">${correct}<span style="color:var(--muted);">/${CHALLENGE.premium.quiz.length}</span></div>
-    <div class="t-small" style="margin-top:6px;">${answered === CHALLENGE.premium.quiz.length ? '완료! PT에서 틀린 문항 리뷰해볼게요.' : answered + '문항 풀었어요.'}</div>`;
+    <div class="serif" style="font-size:44px;line-height:1;color:var(--orange);margin-top:6px;">${correct}<span style="color:var(--muted);">/${items.length}</span></div>
+    <div class="t-small" style="margin-top:6px;">${answered === items.length ? '완료! PT에서 틀린 문항 리뷰해볼게요.' : answered + '문항 풀었어요.'}</div>`;
   page.appendChild(score);
 
-  const resetBtn = el('button', { class: 'btn btn-ghost btn-full', style: { marginTop: '14px' }, onClick: () => { state.quiz_answers = {}; saveState(); render(); } }, '다시 풀기');
+  const resetBtn = el('button', {
+    class: 'btn btn-ghost btn-full',
+    style: { marginTop: '14px' },
+    onClick: () => { state.personal_quiz_answers = {}; saveState(); render(); },
+  }, '다시 풀기');
   page.appendChild(resetBtn);
 
   return page;
@@ -7730,10 +8855,23 @@ function CertPage() {
 
   const done = completedCount();
   const total = CHALLENGE.total_days;
-  const quizDone = Object.keys(state.quiz_answers).length >= CHALLENGE.premium.quiz.length;
+  // Personal Quiz done = Gaby 가 personal_quiz 를 주입했고, 모든 문항 응답 완료.
+  const pqItems = (state.personal_quiz && Array.isArray(state.personal_quiz.items))
+    ? state.personal_quiz.items : [];
+  const quizDone = pqItems.length > 0 && Object.keys(state.personal_quiz_answers || {}).length >= pqItems.length;
   const meetingsDone = CHALLENGE.premium.weekly_meetings.filter(m => m.status === 'done').length;
-  const ptDone = CHALLENGE.premium.pt_sessions.filter(p => p.status === 'done').length;
-  const overall = Math.round(((done/total) * 0.5 + (meetingsDone/4) * 0.25 + (ptDone/3) * 0.15 + (quizDone ? 0.1 : 0)) * 100);
+  // 프레젠터 = 각 주차에서 내가 발표자로 자리 잡아 실제 발표한 횟수.
+  const presentedWeeks = (() => {
+    try {
+      const signups = state.presenterSignups || {};
+      return CHALLENGE.premium.weekly_meetings.filter(m => {
+        if (m.status !== 'done') return false;
+        const w = signups['w' + m.n] || [];
+        return w.some(s => s.uid === state.uid || s.memberKey === state.memberKey);
+      }).length;
+    } catch { return 0; }
+  })();
+  const overall = Math.round(((done/total) * 0.5 + (meetingsDone/4) * 0.3 + (quizDone ? 0.15 : 0) + (presentedWeeks > 0 ? 0.05 : 0)) * 100);
 
   page.appendChild(el('div', { class: 'kicker' }, 'PREMIUM · CERTIFICATION'));
   page.appendChild(el('h1', { class: 'h1', style: { marginTop: '6px' } },
@@ -7747,7 +8885,7 @@ function CertPage() {
     <div class="cert-name">${state.name}</div>
     <p class="t-body" style="margin-top:10px;">
       4주 동안 <b>${done}개</b>의 Day를 인증하고,<br>
-      ${meetingsDone}/4 주간 미팅 · ${ptDone}/3 PT 세션 · ${quizDone ? '퀴즈 완료' : '퀴즈 진행 중'}을 함께했어요.
+      ${meetingsDone}/4 주간 미팅 · ${presentedWeeks}회 발표자 참여 · ${quizDone ? '퀴즈 완료' : '퀴즈 진행 중'}을 함께했어요.
     </p>
     <div class="bar lilac" style="margin-top:16px;"><span style="width:${overall}%;"></span></div>
     <div class="cert-progress-text">OVERALL · ${overall}% · ${overall >= 100 ? '🎉 완주!' : '챌린지 진행 중'}</div>`;
@@ -7757,9 +8895,8 @@ function CertPage() {
   const items = [
     { label: `매일 학습 인증 (${done}/20)`, on: done >= 20 },
     { label: `주간 미팅 (${meetingsDone}/4)`, on: meetingsDone >= 4 },
-    { label: `1:1 PT 세션 (${ptDone}/3)`, on: ptDone >= 3 },
+    { label: `발표자로 참여 (${presentedWeeks}/1)`, on: presentedWeeks >= 1 },
     { label: `개인 퀴즈 완료`, on: quizDone },
-    { label: `Industry 맞춤 PPT 발표`, on: false },
   ];
   items.forEach(it => {
     const vs = el('div', { class: 'verify-step' + (it.on ? ' done' : '') });
@@ -7779,6 +8916,61 @@ function CertPage() {
   });
   dl.innerHTML = `${Icon('download', 16)} 인증서 다운로드 ${overall < 80 ? '(80% 완주 시 열림)' : ''}`;
   page.appendChild(dl);
+
+  // ---- Cert profile 상태 표시 (유저에게 "발표 주제/강점/다음스텝" 이 어디서 오는지 안내) ----
+  const cp = state.cert_profile;
+  const hasProfile = !!(cp && (cp.topic || (cp.strengths||[]).length || (cp.growth||[]).length || (cp.keyVocab||[]).length));
+  const infoCard = el('div', {
+    class: 'card card-flat',
+    style: { marginTop: '18px', padding: '14px 16px' },
+  });
+  infoCard.innerHTML = `
+    <div class="kicker">수료증에 들어가는 정보</div>
+    <p class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.6;">
+      <b>자동 수집:</b> 이름 · 닉네임 · 직무 · 인증 ${done}일 · 저장한 어휘 ${(state.pitch_vocab||[]).length}개 · 챌린지 기간 · Final Vocabulary (최대 10개)<br>
+      <b>수동 주입${hasProfile ? '' : ' (미설정)'}:</b> 발표 주제 · 강점 · 다음 스텝 · 핵심 어휘 ${hasProfile ? '✅' : '— Gaby 가 수료 시점에 채워드려요'}
+    </p>`;
+  page.appendChild(infoCard);
+
+  // ---- 운영자 전용 — cert_profile 주입 패널 ----
+  if (state.isOperator) {
+    const opCard = el('div', {
+      class: 'card card-flat',
+      style: { marginTop: '12px', padding: '16px 18px', border: '1.5px dashed rgba(0,0,0,0.15)' },
+    });
+    opCard.appendChild(el('div', { class: 'kicker' }, 'OPERATOR · INJECT CERT PROFILE'));
+    opCard.appendChild(el('p', { class: 't-small', style: { marginTop: '6px', color: 'var(--ink-soft)' } },
+      'JSON: {"topic":"...","strengths":["...","..."],"growth":["..."],"keyVocab":["set the stage","roll out"]}'));
+    const ta = el('textarea', {
+      class: 'textarea',
+      style: { width: '100%', minHeight: '140px', marginTop: '8px', fontFamily: 'monospace', fontSize: '12px' },
+      placeholder: '{"topic":"...","strengths":[...],"growth":[...],"keyVocab":[...]}',
+    });
+    if (cp) ta.value = JSON.stringify(cp, null, 2);
+    opCard.appendChild(ta);
+    const btnRow = el('div', { style: { display: 'flex', gap: '8px', marginTop: '10px' } });
+    const injectBtn = el('button', { class: 'btn btn-lilac', onClick: () => {
+      try {
+        const parsed = JSON.parse(ta.value);
+        if (window.__injectCertProfile(parsed)) {
+          showToast('✅ 수료증 프로필 주입됨');
+        }
+      } catch (e) {
+        showToast('JSON 파싱 실패: ' + e.message);
+      }
+    } }, '주입');
+    btnRow.appendChild(injectBtn);
+    if (cp) {
+      const clearBtn = el('button', { class: 'btn btn-ghost', onClick: () => {
+        if (!confirm('cert_profile 지울까요?')) return;
+        window.__clearCertProfile();
+        showToast('지웠어요');
+      } }, '지우기');
+      btnRow.appendChild(clearBtn);
+    }
+    opCard.appendChild(btnRow);
+    page.appendChild(opCard);
+  }
 
   return page;
 }
@@ -8111,8 +9303,8 @@ function ProfilePage() {
       <li style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:rgba(169,139,184,0.10);border:1px solid rgba(169,139,184,0.22);">
         <span style="flex-shrink:0;width:22px;height:22px;border-radius:7px;background:var(--lilac);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;">2</span>
         <div>
-          <div style="font-size:13px;font-weight:700;color:var(--ink);">1:1 PT 세션 3회</div>
-          <div class="t-small" style="margin-top:3px;color:var(--ink-soft);line-height:1.55;">내 말투·발음·상황별 표현을 맞춤으로 잡아주는 개인 세션.</div>
+          <div style="font-size:13px;font-weight:700;color:var(--ink);">미팅 안 7분 발표 + 3분 Q&A</div>
+          <div class="t-small" style="margin-top:3px;color:var(--ink-soft);line-height:1.55;">매주 3명 선착순. 내 상황 시나리오로 발표하고, 그 자리에서 라이브 피드백을 받아요.</div>
         </div>
       </li>
       <li style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:rgba(169,139,184,0.10);border:1px solid rgba(169,139,184,0.22);">
@@ -9138,7 +10330,7 @@ function PremiumGateModal() {
     <div class="t-small">
       <b>프리미엄</b> 에는 이게 포함돼요:
       <ul style="margin-top:6px;padding-left:16px;line-height:1.7;">
-        <li>주 1회 Google Meet 미팅 4회 + PT 세션 3회</li>
+        <li>주 1회 Google Meet 미팅 4회 (40분 그룹 롤플레이 + 7분 발표 × 3명)</li>
         <li>개인 맞춤 퀴즈 + 최종 Certification</li>
         <li>180개 어휘 + 이전 기수 콘텐츠 전체</li>
         <li>Industry 맞춤 PPT 발표 1회</li>
@@ -9460,9 +10652,12 @@ window.__closeMemberCard = () => {
 window.__toggleSynBookmark = (key) => {
   state.saved_syns = state.saved_syns || {};
   state.saved_syns[key] = !state.saved_syns[key];
-  if (!state.saved_syns[key]) delete state.saved_syns[key];
+  const on = !!state.saved_syns[key];
+  if (!on) delete state.saved_syns[key];
+  // VOCAB BANK 와 동기화.
+  syncSynBookmarkToBank(key, on);
   saveState();
-  showToast(state.saved_syns[key] ? '유의어를 단어장에 저장했어요.' : '단어장에서 빼놨어요.');
+  showToast(on ? '🔖 유의어를 단어장에 저장했어요.' : '단어장에서 빼놨어요.');
   render();
 };
 window.__toggleCommunityBookmark = (postId) => {
@@ -9771,8 +10966,17 @@ window.__submitPremiumCode = () => {
 };
 window.__toggleBookmark = (key) => {
   state.bookmarks[key] = !state.bookmarks[key];
+  // VOCAB BANK 와 동기화 — key 에서 dayN/idx 뽑아 word 룩업.
+  const m = String(key).match(/^d(\d+)-(\d+)$/);
+  if (m) {
+    const dayN = Number(m[1]);
+    const idx = Number(m[2]);
+    const day = (CHALLENGE.weeks || []).flatMap(w => w.days).find(d => d.day === dayN);
+    const word = day?.words?.[idx];
+    if (word) syncDailyBookmarkToBank(dayN, idx, word, !!state.bookmarks[key]);
+  }
   saveState();
-  showToast(state.bookmarks[key] ? '🔖 저장됨' : '해제됨');
+  showToast(state.bookmarks[key] ? '🔖 단어장에 저장됨' : '단어장에서 제거됨');
   render();
 };
 window.__resetTier = () => {
@@ -9929,37 +11133,24 @@ function generateMarkdown() {
       }
     });
     lines.push('');
-    lines.push(`### 1:1 PT Sessions`);
-    lines.push('');
-    CHALLENGE.premium.pt_sessions.forEach((p, pi) => {
-      lines.push(`- [${p.status === 'done' ? 'x' : ' '}] **${p.date}** · ${p.title} — ${p.desc}`);
-      const pid = 'pt' + (pi + 1);
-      const n = state.meeting_notes[pid];
-      if (n && (n.talk_points || n.meeting_notes)) {
-        if (n.talk_points) {
-          lines.push('');
-          lines.push(`  **🎯 Talking points**`);
-          n.talk_points.split('\n').forEach(row => { if (row.trim()) lines.push(`  ${row}`); });
-        }
-        if (n.meeting_notes) {
-          lines.push('');
-          lines.push(`  **📝 Notes**`);
-          n.meeting_notes.split('\n').forEach(row => { if (row.trim()) lines.push(`  ${row}`); });
-        }
-        lines.push('');
-      }
-    });
-    lines.push('');
     lines.push(`### Personal Quiz`);
     lines.push('');
-    CHALLENGE.premium.quiz.forEach((q, qi) => {
-      const chosen = state.quiz_answers['q'+qi];
-      const ok = chosen === q.a ? '✅' : chosen !== undefined ? '❌' : '⏳';
-      lines.push(`${ok} **Q${qi+1}.** ${q.q}`);
-      lines.push(`   - 정답: *${q.options[q.a]}*`);
-      if (chosen !== undefined && chosen !== q.a) lines.push(`   - 내 답: *${q.options[chosen]}*`);
+    const pqItems = (state.personal_quiz && Array.isArray(state.personal_quiz.items))
+      ? state.personal_quiz.items
+      : [];
+    if (pqItems.length === 0) {
+      lines.push('_(발표 스크립트 기반 퀴즈 — 발표 후 주입 예정)_');
       lines.push('');
-    });
+    } else {
+      pqItems.forEach((q, qi) => {
+        const chosen = state.personal_quiz_answers['q'+qi];
+        const ok = chosen === q.a ? '✅' : chosen !== undefined ? '❌' : '⏳';
+        lines.push(`${ok} **Q${qi+1}.** ${q.q}`);
+        lines.push(`   - 정답: *${q.options[q.a]}*`);
+        if (chosen !== undefined && chosen !== q.a) lines.push(`   - 내 답: *${q.options[chosen]}*`);
+        lines.push('');
+      });
+    }
   }
 
   lines.push('---');
@@ -10006,31 +11197,326 @@ async function copyMarkdown() {
   }
 }
 
+// ============================================================
+// 수료증 — 리치 HTML 버전 (5기 주황 테마)
+// 자동 데이터: 이름/닉네임, 직무, 완주 %, 어휘 수, 기간, Final Vocab (from pitch_vocab)
+// 수동 데이터: state.cert_profile (topic, strengths, growth, keyVocab, finalVocab) — Gaby 가 발급 시 주입.
+// 수동 데이터 없으면 해당 섹션은 자연스럽게 숨김.
+// ============================================================
+function buildCertHtml({ name, englishName, role, done, total, overall, vocabCount, startDate, endDate, days, profile, finalVocab }) {
+  const displayName = (englishName || name || '').trim();
+  const koName = (englishName && name && englishName !== name) ? `<span>· ${escapeHtml(name)}</span>` : '';
+  const nameHtml = `${escapeHtml(displayName)}<span>님</span>${koName}`;
+  const roleText = (role || '').trim() || '영어 챌린저';
+  const dateRange = `${startDate} - ${endDate}`;
+  const yearMonth = endDate ? endDate.replace(/-/g, '.') : new Date().toISOString().slice(0,10).replace(/-/g,'.');
+  const issueDate = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 발행`;
+  })();
+  const p = profile || {};
+  const hasTopic = !!(p.topic && String(p.topic).trim());
+  const hasStrengths = Array.isArray(p.strengths) && p.strengths.length > 0;
+  const hasGrowth = Array.isArray(p.growth) && p.growth.length > 0;
+  const hasKeyVocab = Array.isArray(p.keyVocab) && p.keyVocab.length > 0;
+  const finalVocabRows = Array.isArray(finalVocab) ? finalVocab.slice(0, 10) : [];
+
+  const topicHtml = hasTopic ? `
+    <div class="glass-card card-topic">
+      <div class="card-heading">Presentation Topic · 발표 주제</div>
+      <div class="topic-text">${escapeHtml(p.topic)}</div>
+    </div>` : '';
+
+  const strengthsHtml = hasStrengths ? `
+    <div class="glass-card card-strengths">
+      <div class="card-heading">Strengths · 강점 &amp; 칭찬</div>
+      <ul class="bullet-list">
+        ${p.strengths.map(s => `<li>${escapeHtml(s)}</li>`).join('')}
+      </ul>
+    </div>` : '';
+
+  const growthHtml = hasGrowth ? `
+    <div class="glass-card card-growth">
+      <div class="card-heading">Growth Points · 다음 스텝</div>
+      <ul class="bullet-list">
+        ${p.growth.map(g => `<li>${escapeHtml(g)}</li>`).join('')}
+      </ul>
+    </div>` : '';
+
+  const keyVocabHtml = hasKeyVocab ? `
+    <div class="glass-card card-vocab">
+      <div class="card-heading">Key Vocabulary · 이번 챌린지 핵심 어휘</div>
+      <div class="vocab-tags">
+        ${p.keyVocab.map(v => `<span class="vocab-tag">${escapeHtml(v)}</span>`).join('')}
+      </div>
+    </div>` : '';
+
+  const finalVocabHtml = finalVocabRows.length > 0 ? `
+    <div class="dark-card">
+      <div class="card-heading">Final Vocabulary · ${CHALLENGE.cohort} 하이라이트</div>
+      <div class="dark-card-inner">
+        <div class="vocab-grid">
+          ${finalVocabRows.map(v => `<div class="vocab-row"><span class="vocab-en">${escapeHtml(v.en || v.word || '')}</span><span class="vocab-dot">·</span><span class="vocab-ko">${escapeHtml(v.ko || v.note || '')}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>` : '';
+
+  return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouBuddy ${CHALLENGE.cohort} 수료증 — ${displayName}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange-deep:#C95721; --orange-mid:#E8743C; --orange-soft:#F4A678; --orange-lite:#FAE3D1;
+    --gold:#C4986A; --gold-lite:#E8C99A; --cream:#FFFDF7;
+    --ink:#2A1F14; --ink-mid:#6B5540; --ink-lite:#B09A80;
+    --glass-bg:rgba(255,255,255,0.48); --glass-border:rgba(255,255,255,0.72);
+    --f-serif:'Cormorant Garamond',serif; --f-sans:'Noto Sans KR',sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 20px;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, #FFE2CC 0%, transparent 55%),
+      radial-gradient(ellipse 70% 50% at 85% 80%, #FBD0B2 0%, transparent 50%),
+      radial-gradient(ellipse 60% 80% at 60% 40%, #FFEEDB 0%, transparent 60%),
+      #FFF3E6;
+    font-family: var(--f-sans); gap:20px;
+  }
+  .cert { width:794px; background:var(--cream); position:relative; overflow:hidden;
+    box-shadow: 0 30px 80px rgba(201,87,33,0.22), 0 8px 24px rgba(0,0,0,0.08); }
+  .cert::before{content:'';position:absolute;top:-120px;right:-120px;width:420px;height:420px;
+    background:radial-gradient(circle, rgba(232,116,60,0.22) 0%, transparent 70%); border-radius:50%; pointer-events:none;}
+  .cert::after{content:'';position:absolute;bottom:-80px;left:-80px;width:320px;height:320px;
+    background:radial-gradient(circle, rgba(196,152,106,0.14) 0%, transparent 70%); border-radius:50%; pointer-events:none;}
+  .frame-outer{position:absolute; inset:14px; border:1.2px solid var(--orange-soft); pointer-events:none; z-index:1;}
+  .frame-inner{position:absolute; inset:18px; border:0.4px solid var(--orange-lite); pointer-events:none; z-index:1;}
+  .corner{position:absolute; width:28px; height:28px; z-index:2;}
+  .corner::before, .corner::after{content:''; position:absolute; background:var(--orange-deep);}
+  .corner::before{width:100%; height:1.5px; top:0;}
+  .corner::after{width:1.5px; height:100%; left:0;}
+  .corner.tl{top:14px; left:14px;}
+  .corner.tr{top:14px; right:14px; transform:scaleX(-1);}
+  .corner.bl{bottom:14px; left:14px; transform:scaleY(-1);}
+  .corner.br{bottom:14px; right:14px; transform:scale(-1);}
+  .corner-dot{position:absolute; width:5px; height:5px; background:var(--orange-soft); border-radius:50%; z-index:2;}
+  .corner-dot.tl{top:18px; left:18px;}
+  .corner-dot.tr{top:18px; right:18px;}
+  .corner-dot.bl{bottom:18px; left:18px;}
+  .corner-dot.br{bottom:18px; right:18px;}
+  .inner{position:relative; z-index:10; padding:42px 60px 36px 52px; display:flex; flex-direction:column;}
+  header{text-align:center; margin-bottom:20px;}
+  .logo-row{display:flex; align-items:center; justify-content:center; gap:9px; margin-bottom:16px;}
+  .logo-icon{width:26px; height:26px; background:linear-gradient(135deg, #F4A678, #C95721);
+    border-radius:7px; display:flex; align-items:center; justify-content:center; color:white;
+    font-weight:700; font-size:14px; box-shadow:0 3px 10px rgba(201,87,33,0.35);}
+  .logo-text{font-weight:700; font-size:17px; color:var(--ink); letter-spacing:-0.3px;}
+  .logo-text span{color:var(--orange-deep);}
+  .top-badge{display:inline-flex; align-items:center; gap:6px; background:var(--glass-bg); border:1px solid var(--glass-border);
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); padding:5px 14px; border-radius:100px;
+    font-size:11px; color:var(--orange-deep); font-weight:500; letter-spacing:0.3px;
+    margin-bottom:20px; box-shadow:0 2px 12px rgba(201,87,33,0.12);}
+  .top-badge::before{content:''; width:7px; height:7px; background:var(--orange-deep); border-radius:50%;}
+  .cert-title{font-family:var(--f-serif); font-size:46px; font-weight:600; color:var(--ink);
+    letter-spacing:3px; line-height:1; margin-bottom:4px;}
+  .cert-subtitle{font-family:var(--f-serif); font-style:italic; font-size:15px; color:var(--ink-mid);
+    letter-spacing:5px; margin-bottom:14px;}
+  .gold-divider{display:flex; align-items:center; gap:10px; justify-content:center; margin:0 auto; width:260px;}
+  .gold-divider::before{content:''; flex:1; height:0.5px; background:linear-gradient(to right, transparent, var(--gold-lite));}
+  .gold-divider::after{content:''; flex:1; height:0.5px; background:linear-gradient(to left, transparent, var(--gold-lite));}
+  .divider-diamond{width:6px; height:6px; background:var(--gold); transform:rotate(45deg); flex-shrink:0;}
+  .name-section{text-align:center; margin:24px 0 16px;}
+  .awarded-to{font-size:10.5px; color:var(--ink-lite); letter-spacing:3px;
+    text-transform:uppercase; margin-bottom:10px; font-weight:300;}
+  .name-card{display:inline-block; background:rgba(255,255,255,0.55); border:1px solid rgba(255,255,255,0.85);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); padding:16px 48px; border-radius:100px;
+    box-shadow:0 8px 32px rgba(201,87,33,0.12), inset 0 1px 0 rgba(255,255,255,0.9); margin-bottom:10px;}
+  .member-name{font-size:30px; font-weight:700; color:var(--ink); letter-spacing:-0.5px;}
+  .member-name span{font-size:16px; font-weight:400; color:var(--ink-mid); margin-left:4px;}
+  .member-role{font-size:11px; color:var(--ink-mid); font-weight:300; letter-spacing:0.5px; margin-top:4px;}
+  .stats-row{display:flex; gap:10px; justify-content:center; margin:16px 0; flex-wrap:wrap;}
+  .stat-pill{background:var(--glass-bg); border:1px solid var(--glass-border);
+    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); padding:8px 18px; border-radius:100px;
+    text-align:center; box-shadow:0 2px 12px rgba(201,87,33,0.08);}
+  .stat-value{font-size:15px; font-weight:700; color:var(--orange-deep); display:block; line-height:1.2;}
+  .stat-label{font-size:9.5px; color:var(--ink-lite); font-weight:300; display:block; margin-top:1px;}
+  .glass-card{background:rgba(255,255,255,0.5); border:1px solid rgba(255,255,255,0.75);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-radius:14px;
+    padding:16px 20px; margin-bottom:10px;
+    box-shadow:0 4px 20px rgba(201,87,33,0.07), inset 0 1px 0 rgba(255,255,255,0.9);
+    position:relative; overflow:hidden;}
+  .glass-card::before{content:''; position:absolute; top:0; left:0; right:0; height:2px; border-radius:14px 14px 0 0;}
+  .card-topic::before{background:linear-gradient(to right, var(--gold-lite), var(--gold));}
+  .card-strengths::before{background:linear-gradient(to right, #A8DDC8, #5BAF8A);}
+  .card-growth::before{background:linear-gradient(to right, #F4B8A0, #D07050);}
+  .card-vocab::before{background:linear-gradient(to right, var(--orange-lite), var(--orange-deep));}
+  .card-heading{font-size:8.5px; letter-spacing:2.5px; text-transform:uppercase; font-weight:700; margin-bottom:8px;}
+  .card-topic .card-heading{color:var(--gold);}
+  .card-strengths .card-heading{color:#3A9870;}
+  .card-growth .card-heading{color:#B05838;}
+  .card-vocab .card-heading{color:var(--orange-deep);}
+  .topic-text{font-size:12.5px; color:var(--ink); font-weight:500; line-height:1.5;}
+  .bullet-list{list-style:none; display:flex; flex-direction:column; gap:5px;}
+  .bullet-list li{font-size:11.5px; color:var(--ink); line-height:1.55; padding-left:14px; position:relative;}
+  .bullet-list li::before{content:''; position:absolute; left:0; top:7px; width:5px; height:5px; transform:rotate(45deg);}
+  .card-strengths .bullet-list li::before{background:#5BAF8A;}
+  .card-growth .bullet-list li::before{background:#D07050;}
+  .vocab-tags{display:flex; flex-wrap:wrap; gap:7px; margin-top:2px;}
+  .vocab-tag{background:rgba(255,255,255,0.7); border:1px solid rgba(201,87,33,0.32); color:var(--orange-deep);
+    font-size:11px; font-weight:700; padding:4px 12px; border-radius:100px;
+    box-shadow:0 2px 8px rgba(201,87,33,0.1); letter-spacing:0.2px;}
+  .dark-card{background:rgba(42,31,20,0.88); border:1px solid rgba(196,152,106,0.35);
+    border-radius:14px; padding:18px 20px; margin-top:4px; position:relative; overflow:visible;
+    backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+    box-shadow:0 8px 32px rgba(0,0,0,0.18), inset 0 1px 0 rgba(196,152,106,0.25);}
+  .dark-card::before{content:''; position:absolute; top:0; left:0; right:0; height:1.5px; border-radius:14px 14px 0 0;
+    background:linear-gradient(to right, transparent, var(--gold), var(--gold-lite), var(--gold), transparent);}
+  .dark-card .card-heading{color:var(--gold-lite); font-size:8.5px; letter-spacing:2.5px;
+    text-transform:uppercase; font-weight:700; margin-bottom:12px; text-align:center;}
+  .dark-card-inner{display:flex; flex-direction:row; gap:16px; align-items:center;}
+  .vocab-grid{flex:1; display:grid; grid-template-columns:1fr 1fr; gap:5px 12px;}
+  .vocab-row{display:flex; align-items:baseline; gap:6px; background:rgba(255,255,255,0.04);
+    border-radius:6px; padding:4px 8px;}
+  .vocab-en{font-size:11px; font-weight:700; color:var(--gold-lite); white-space:nowrap;}
+  .vocab-dot{color:var(--gold); font-size:9px; flex-shrink:0;}
+  .vocab-ko{font-size:9.5px; color:rgba(232,201,154,0.75); font-weight:300; white-space:nowrap;}
+  footer{margin-top:20px; display:flex; align-items:flex-end; justify-content:space-between;}
+  .sig-block{display:flex; flex-direction:column; gap:2px;}
+  .sig-name{font-family:var(--f-serif); font-style:italic; font-size:18px; color:var(--ink);}
+  .sig-line{width:100px; height:0.5px; background:var(--orange-soft); margin:2px 0;}
+  .sig-role{font-size:9px; color:var(--ink-lite); letter-spacing:1.5px; text-transform:uppercase;}
+  .center-footer{text-align:center;}
+  .issue-date{font-size:9.5px; color:var(--ink-lite); letter-spacing:0.5px; font-weight:300;}
+  .logo-footer{display:flex; flex-direction:column; align-items:flex-end; gap:2px;}
+  .logo-footer .logo-sm{font-weight:700; font-size:12px; color:var(--ink);}
+  .logo-footer .logo-sm span{color:var(--orange-deep);}
+  .logo-footer small{font-size:8.5px; color:var(--ink-lite); font-weight:300;}
+  .note { max-width: 620px; background: #FFFDF7; border: 1px solid #F3E5CF; border-radius: 14px;
+    padding: 14px 18px; color: #5A4A36; font-size: 13px; line-height: 1.7; text-align:center; }
+  .note strong { color: var(--orange-deep); }
+  @media print{ body{ background:none; padding:0; } .cert{ box-shadow:none; width:100%; } .note{ display:none; } }
+</style>
+</head>
+<body>
+<div class="note">
+  <strong>🎓 YouBuddy ${escapeHtml(CHALLENGE.cohort)} 수료증</strong><br>
+  인쇄하려면 <b>⌘+P</b> (Mac) 또는 <b>Ctrl+P</b> (Windows). PDF 로 저장도 가능해요.
+</div>
+
+<div class="cert">
+  <div class="frame-outer"></div><div class="frame-inner"></div>
+  <div class="corner tl"></div><div class="corner tr"></div>
+  <div class="corner bl"></div><div class="corner br"></div>
+  <div class="corner-dot tl"></div><div class="corner-dot tr"></div>
+  <div class="corner-dot bl"></div><div class="corner-dot br"></div>
+  <div class="inner">
+    <header>
+      <div class="logo-row">
+        <div class="logo-icon">y</div>
+        <div class="logo-text">you<span>buddy</span></div>
+      </div>
+      <div class="top-badge">비즈니스 영어 루틴 챌린지 ${escapeHtml(CHALLENGE.cohort)} 프리미엄</div>
+      <div class="cert-title">CERTIFICATION</div>
+      <div class="cert-subtitle">of completion</div>
+      <div class="gold-divider"><div class="divider-diamond"></div></div>
+    </header>
+
+    <div class="name-section">
+      <div class="awarded-to">This certificate is awarded to</div>
+      <div class="name-card">
+        <div class="member-name">${nameHtml}</div>
+        <div class="member-role">${escapeHtml(roleText)}</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-pill"><span class="stat-value">${overall}%</span><span class="stat-label">${overall >= 100 ? '프리미엄 완주' : '전체 진행률'}</span></div>
+        <div class="stat-pill"><span class="stat-value">어휘 ${vocabCount}개</span><span class="stat-label">+ 단어테스트</span></div>
+        <div class="stat-pill"><span class="stat-value">${days} Days</span><span class="stat-label">${dateRange}</span></div>
+        <div class="stat-pill"><span class="stat-value">${done}/${total}</span><span class="stat-label">인증 완료</span></div>
+      </div>
+    </div>
+
+    ${topicHtml}
+    ${strengthsHtml}
+    ${growthHtml}
+    ${keyVocabHtml}
+    ${finalVocabHtml}
+
+    <footer>
+      <div class="sig-block">
+        <div class="sig-name">YouBuddy</div>
+        <div class="sig-line"></div>
+        <div class="sig-role">Director · YouBuddy</div>
+      </div>
+      <div class="center-footer">
+        <div class="issue-date">${issueDate}</div>
+      </div>
+      <div class="logo-footer">
+        <div class="logo-sm">you<span>buddy</span></div>
+        <small>@youbuddy_day</small>
+      </div>
+    </footer>
+  </div>
+</div>
+</body>
+</html>`;
+}
+
 function downloadCertificate(name, done, total, overall) {
-  const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#FFFDF7"/>
-      <stop offset="100%" stop-color="#FAE3D1"/>
-    </linearGradient>
-  </defs>
-  <rect width="800" height="600" fill="url(#bg)"/>
-  <rect x="30" y="30" width="740" height="540" fill="none" stroke="#E8743C" stroke-width="3" rx="20"/>
-  <rect x="40" y="40" width="720" height="520" fill="none" stroke="#FAE3D1" stroke-width="1" rx="16"/>
-  <circle cx="400" cy="160" r="42" fill="#E8743C"/>
-  <text x="400" y="175" text-anchor="middle" font-family="'Plus Jakarta Sans','Noto Sans KR',sans-serif" font-size="36" font-weight="700" fill="#fff">Y</text>
-  <text x="400" y="260" text-anchor="middle" font-family="'Plus Jakarta Sans','Noto Sans KR',sans-serif" font-size="14" letter-spacing="4" fill="#9A8B73">CERTIFICATE OF COMPLETION</text>
-  <text x="400" y="310" text-anchor="middle" font-family="'Plus Jakarta Sans','Noto Sans KR',sans-serif" font-size="42" font-weight="700" fill="#2A1F14">비즈니스 영어 챌린지 ${CHALLENGE.cohort}</text>
-  <line x1="300" y1="340" x2="500" y2="340" stroke="#E7DDC8" stroke-width="1"/>
-  <text x="400" y="380" text-anchor="middle" font-family="'Plus Jakarta Sans','Noto Sans KR',sans-serif" font-size="13" fill="#5A4A36">This certifies that</text>
-  <text x="400" y="420" text-anchor="middle" font-family="'Plus Jakarta Sans','Noto Sans KR',sans-serif" font-weight="700" font-size="30" fill="#C95721">${name}</text>
-  <text x="400" y="460" text-anchor="middle" font-family="'Plus Jakarta Sans','Noto Sans KR',sans-serif" font-size="14" fill="#5A4A36">has completed ${done}/${total} daily learning sessions</text>
-  <text x="400" y="482" text-anchor="middle" font-family="'Plus Jakarta Sans','Noto Sans KR',sans-serif" font-size="14" fill="#5A4A36">with ${overall}% overall completion</text>
-  <text x="400" y="540" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#9A8B73" letter-spacing="2">YOUBUDDY · ${new Date().toISOString().split('T')[0]}</text>
-</svg>`;
-  download(`youbuddy-certificate-${name}.svg`, svg, 'image/svg+xml');
-  showToast('🎓 인증서 다운로드 완료!');
+  // 자동 데이터 수집.
+  const englishName = (state.englishName || '').trim();
+  const role = state.role || '';
+  // pitch_vocab 에서 최종 어휘 10개 추출 — source='daily' | 'manual' 우선.
+  const sortedVocab = [...(state.pitch_vocab || [])]
+    .sort((a, b) => {
+      const sa = a.source === 'daily' ? 0 : a.source === 'manual' ? 1 : 2;
+      const sb = b.source === 'daily' ? 0 : b.source === 'manual' ? 1 : 2;
+      if (sa !== sb) return sa - sb;
+      return (a.savedAt || '').localeCompare(b.savedAt || '');
+    });
+  const vocabCount = sortedVocab.length;
+  const finalVocab = sortedVocab.slice(0, 10).map(v => ({
+    en: v.word,
+    ko: (v.note || '').split(/[·;|]/)[0].trim().slice(0, 20) || '',
+  }));
+
+  // 기간 자동 계산 — 첫 날 / 마지막 날.
+  const allDays = (CHALLENGE.weeks || []).flatMap(w => w.days);
+  const firstDay = allDays[0];
+  const lastDay = allDays[allDays.length - 1];
+  const startDate = firstDay?.date || '';
+  const endDate = lastDay?.date || '';
+  // "30 Days" — 챌린지 기간 계산.
+  let daysSpan = CHALLENGE.total_days || total;
+  if (startDate && endDate) {
+    try {
+      const [sy, sm, sd] = startDate.split('-').map(Number);
+      const [ey, em, ed] = endDate.split('-').map(Number);
+      const diff = Math.round((new Date(ey, em-1, ed).getTime() - new Date(sy, sm-1, sd).getTime()) / (24*60*60*1000)) + 1;
+      daysSpan = diff;
+    } catch (_) {}
+  }
+
+  const html = buildCertHtml({
+    name,
+    englishName,
+    role,
+    done,
+    total,
+    overall,
+    vocabCount,
+    startDate: startDate.replace(/-/g, '.'),
+    endDate: endDate.replace(/-/g, '.'),
+    days: daysSpan,
+    profile: state.cert_profile,
+    finalVocab,
+  });
+  const filename = `youbuddy-certificate-${(englishName || name || 'member').replace(/\s+/g, '_')}.html`;
+  download(filename, html, 'text/html;charset=utf-8');
+  showToast('🎓 인증서 다운로드 완료! HTML 파일 열고 ⌘+P 로 PDF 로 저장하세요.');
 }
 
 /* confetti */
@@ -10130,6 +11616,8 @@ if (!__DEMO_MODE__ && hasSupabase()) {
     finally {
       // Unblock persistStateNow so the user's subsequent edits can sync up.
       stateHydrated = true;
+      // Hydrate 이후 기존 북마크를 pitch_vocab 으로 일회성 이관.
+      try { migrateBookmarksToVocabBank(); } catch (e) { console.warn('vocab migration failed', e); }
       // If anything was queued while we were hydrating, flush it now —
       // but only the latest snapshot (which is now post-remote-merge).
       if (statePersistQueued) {
@@ -10141,6 +11629,7 @@ if (!__DEMO_MODE__ && hasSupabase()) {
 } else {
   // No Supabase / demo mode: mark hydrated immediately so local saves still work.
   stateHydrated = true;
+  try { migrateBookmarksToVocabBank(); } catch (e) { console.warn('vocab migration failed', e); }
 }
 
 if (hasSupabase()) {
@@ -10156,6 +11645,58 @@ window.addEventListener('focus', () => {
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && hasSupabase()) refreshRemoteStateAndCommunity({ force: true });
 });
+// Operator helper — Gaby 가 devtools 에서 직접 수료증 프로필 주입할 때:
+//   __injectCertProfile({ topic: '...', strengths: ['...','...'], growth: [...], keyVocab: [...] })
+// state.cert_profile 에 반영. buildCertHtml 이 자동으로 읽어감.
+window.__injectCertProfile = function(profile) {
+  if (!profile || typeof profile !== 'object') {
+    console.warn('[injectCertProfile] expected an object');
+    return false;
+  }
+  state.cert_profile = {
+    topic: profile.topic || '',
+    strengths: Array.isArray(profile.strengths) ? profile.strengths : [],
+    growth: Array.isArray(profile.growth) ? profile.growth : [],
+    keyVocab: Array.isArray(profile.keyVocab) ? profile.keyVocab : [],
+    issuedAt: new Date().toISOString(),
+  };
+  saveState({ immediate: true });
+  render();
+  console.log('[injectCertProfile] OK', state.cert_profile);
+  return true;
+};
+window.__clearCertProfile = function() {
+  state.cert_profile = null;
+  saveState({ immediate: true });
+  render();
+};
+// Operator helper — Gaby 가 devtools 에서 직접 퀴즈 주입할 때:
+//   __injectPersonalQuiz({ week: 2, basedOnScript: '...', items: [{ q, options, a, hint }, ...] })
+// 로컬 상태에 반영 + Supabase 싱크. 다른 유저에게 주입하려면 서버단 SQL 로 해야 함.
+window.__injectPersonalQuiz = function(quiz) {
+  if (!quiz || !Array.isArray(quiz.items) || quiz.items.length === 0) {
+    console.warn('[injectPersonalQuiz] Expected { items: [...], ...}');
+    return false;
+  }
+  state.personal_quiz = {
+    items: quiz.items,
+    basedOnScript: quiz.basedOnScript || '',
+    injectedAt: new Date().toISOString(),
+    week: quiz.week != null ? Number(quiz.week) : null,
+  };
+  state.personal_quiz_answers = {};
+  saveState({ immediate: true });
+  render();
+  console.log('[injectPersonalQuiz] OK — %d문항 주입됨, week=%s', quiz.items.length, String(quiz.week));
+  return true;
+};
+window.__clearPersonalQuiz = function() {
+  state.personal_quiz = null;
+  state.personal_quiz_answers = {};
+  saveState({ immediate: true });
+  render();
+  console.log('[clearPersonalQuiz] OK');
+};
 render();
 if (currentPage === 'weeks' || currentPage === 'day') {
   restoreCurrentScroll();
