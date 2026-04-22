@@ -22,43 +22,36 @@ if ! git diff --cached --quiet || ! git diff --quiet; then
   echo "==> 변경 사항 커밋..."
   git add -A
   if ! git diff --cached --quiet; then
-    git commit -m "Batch fixes: dirty submit, sentence count, cb-name click, comment CRUD, tier preview, team hide, verified_days warn
+    git commit -m "English nickname rollout + checkboard column fix
 
-UX
-- 제출 버튼 dirty-aware: 제출 후 textarea 수정하면 주황 '다시 제출하기'
-  로 전환, 원본과 같아지면 초록 '제출 완료'로 복귀.
-  (state.submitted_text[key] 스냅샷 비교 + input 이벤트로 실시간)
-- '나' 탭 문장 수 필터: /^d\\d+-\\d+$/ 로 hook-* 키 제외해서 6개 → 3개 정상화.
-- Daily Streak Board cb-name 클릭 → MemberCardModal 열기 (리더보드 삭제
-  이후 다른 멤버 프로필 진입 경로 복구).
-- Team A/B 라벨 전면 제거: ProfilePage hero, CommunityPage 게시글 row,
-  MemberCardModal 까지 '기수만 표기' 로 통일.
+영어 닉네임 (풀 롤아웃)
+- applyRemoteMemberSummaries: summary.english_name → member.englishName 복사
+  (본인은 state.englishName 이 canonical 이라 건너뜀). 서버 RPC 가
+  english_name 을 같이 내려주면 체크보드·커뮤니티·멤버 카드에서 peer 도
+  영어 닉네임으로 보이게 됨.
+- ProfilePage: 영어 닉네임 카드 신설. inline 입력 → 저장 시 state.englishName
+  업데이트 → saveState({immediate:true}) → Supabase upsert. 이미 온보딩을
+  끝낸 기존 멤버 (이지흔/이규태 등) 도 여기서 세팅 가능.
+- 프로필 hero: displayName 우선 노출 (영어 > 한국어), 본인 확인용으로
+  '본명 · 이규태' 작게 노출.
+- 커뮤니티 글 렌더: post.user / post.avatar 대신 memberByRef(post.user) 로
+  찾은 member 의 displayName/safeInitial 사용. 옛 글도 자동으로 영어
+  닉네임으로 보이게 됨 (글 row 자체는 안 건드림 — 렌더 시 resolve).
+- 온보딩 + 프로필 input placeholder: Gaby → Buddy.
 
-커뮤니티 댓글 수정/삭제
-- 본인 댓글(member_key 일치)에만 수정/삭제 버튼 노출.
-- __editCommunityComment / __deleteCommunityComment 핸들러 + RPC
-  (update_community_comment / delete_community_comment) 연결.
-  실패 시 toast 로 에러 표시, 로컬 전용 댓글은 로컬 제거만.
+체크보드 디자인 수정
+- .checkboard grid-template-columns: 96px → 130px (name column)
+- .checkboard-curtain width: 113px → 147px (padding 14 + 130 + gap 3)
+- .cb-name / .cb-header-name: max-width 130px + box-sizing border-box
+  로 sticky 트랙을 강제 클립 (flex content 가 트랙 폭을 넘어
+  P 뱃지가 Day1/Day2 타일로 번지던 현상 방지).
+- Checkboard() innerHTML: 이름 래퍼 flex 체인에 min-width:0 + overflow:hidden
+  + flex:1 1 auto 를 전파시켜 ellipsis 가 실제로 먹히게.
 
-티어 프리뷰
-- state.tierOverride 신설 (+ PERSISTED_STATE_KEYS). 'basic' 으로 설정되면
-  로그인/리프레시/온보딩 이후에도 premium 멤버를 basic 으로 강제.
-- __resetTier → basic 프리뷰 진입, __restoreTier → 원래 티어 복귀.
-- ProfilePage 티어 카드에 '프리미엄으로 복귀' 버튼 노출 (isBasicPreview).
-
-이규태 Day 2 싱크
-- loadMemberSummaries 에 1회성 console.warn 추가:
-  get_cohort_member_summaries RPC 가 verified_days 를 안 돌려주면
-  콘솔에 SQL 마이그레이션 필요 경고 → 운영자가 즉시 인지 가능.
-
-SQL
-- add_community_comment: jsonb intermediate 변수 삭제, INSERT ...
-  RETURNING INTO 스칼라 6개로 교체 → Supabase editor + search_path=''
-  환경에서 발생하던 42P01 (v_result 파서 버그) 회피.
-- update_community_comment 신규: 본인 member_key 가드 + RETURNING INTO
-  스칼라 패턴.
-- delete_community_comment 신규: get diagnostics row_count 로 affected
-  반환, anon/authenticated 에 grant."
+필수 후속 작업
+- Supabase SQL Editor 에서 supabase_migration_english_name.sql 실행
+  (get_cohort_member_summaries 반환에 english_name 추가).
+- 실행 안 하면 '자기 눈에만 영어 닉네임' 상태가 됨."
   fi
 fi
 
