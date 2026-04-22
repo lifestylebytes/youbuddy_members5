@@ -1458,7 +1458,14 @@ function mergePersistedState(snapshot) {
   // 로컬 tierOverride 가 'basic' 이면 basic 프리뷰 유지. 이게 없으면 15초 refresh
   // 마다 서버 tier 로 덮어써져서 프리뷰 즉시 풀림.
   const localTierOverride = state ? state.tierOverride : null;
-  state = { ...defaultState(), ...snapshot };
+  // Session-only UI state (PERSISTED_STATE_KEYS 에 없음 → snapshot 에도 없음).
+  // 이거 보존 안 하면 15초 리프레시 시 사용자가 고른 communityDay 가 undefined 로
+  // 리셋돼서 커뮤니티 피드가 자동으로 오늘로 튄다 (Day 2 보는 중인데 Day 3 로 점프).
+  const sessionKeep = state ? {
+    communityDay: state.communityDay,
+    communityDayPickerOpen: state.communityDayPickerOpen,
+  } : {};
+  state = { ...defaultState(), ...snapshot, ...sessionKeep };
   if (localTierOverride === 'basic') {
     state.tierOverride = 'basic';
     state.tier = 'basic';
@@ -7764,10 +7771,18 @@ function CommunityPage() {
                 </span>` : '';
               const localTag = comment._localOnly
                 ? `<span style="font-size:9.5px;color:var(--muted);margin-left:4px;">(이 기기)</span>` : '';
+              // 댓글 작성자도 포스트처럼 memberByKey/Ref 로 resolve → displayName 으로
+              // 영어 닉네임 노출. (로컬 fallback 댓글은 member_key 없어서 author 이름으로 fallback.)
+              const commentMember = (isMine ? meMember() : null)
+                || memberByKey(comment.member_key)
+                || memberByRef(comment.author);
+              const commentAuthorLabel = commentMember
+                ? displayName(commentMember)
+                : (comment.author || '익명');
               return `
                 <div style="padding:8px 10px;border-radius:10px;background:var(--paper);font-size:11px;line-height:1.45;color:var(--ink-soft);display:flex;gap:6px;align-items:flex-start;">
                   <div style="flex:1;min-width:0;">
-                    <b style="color:var(--ink);font-size:10.5px;">${escapeHtml(comment.author || '익명')}</b>${localTag} ${escapeHtml(comment.text || '')}
+                    <b style="color:var(--ink);font-size:10.5px;">${escapeHtml(commentAuthorLabel)}</b>${localTag} ${escapeHtml(comment.text || '')}
                   </div>
                   ${ctrl}
                 </div>`;
