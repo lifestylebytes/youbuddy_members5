@@ -218,7 +218,10 @@ input, textarea, select { font-family: inherit; }
   color: #fff; font-size: 96px; font-weight: 900;
   pointer-events: none;
   border-radius: inherit;
-  animation: correctFlashFade 600ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+  /* 900ms 로 늘려서 "맞췄다!" flash 가 다음 문제 DOM swap (~950ms 후) 직전까지
+     충분히 눈에 남도록. 이전 600ms 는 flash 가 사라지고 한참 뒤 문제가 바뀌는
+     어색한 갭이 있었음. */
+  animation: correctFlashFade 900ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
 }
 /* Fallback when no quiz card is found — still constrained to center, not full-screen */
 .correct-flash.correct-flash-floating {
@@ -229,8 +232,8 @@ input, textarea, select { font-family: inherit; }
 }
 @keyframes correctFlashFade {
   0%   { opacity: 0; transform: scale(0.85); }
-  25%  { opacity: 1; transform: scale(1); }
-  70%  { opacity: 1; transform: scale(1); }
+  15%  { opacity: 1; transform: scale(1); }
+  80%  { opacity: 1; transform: scale(1); }
   100% { opacity: 0; transform: scale(1.05); }
 }
 
@@ -541,9 +544,10 @@ input, textarea, select { font-family: inherit; }
 .checkboard {
   display: grid;
   /* Fixed-width day cells keep 1-20 visually identical at any screen width.
-     Name column 130px = 한국어 3-4 글자 이름 + 18px avatar + 6px gap + P 배지
-     14-16px + 10px padding-right 까지 안전하게 수용. */
-  grid-template-columns: 130px repeat(20, 24px);
+     Name column 108px = avatar 18 + gap 6 + 영문/한글 8자 (~60-70px) + gap 4
+     + P 배지 14 + padding-right 10 정도. 영문 8자 기준으로 딱 맞음.
+     (130px 이었을 때는 "Brandson" 같이 8자 영문 채워도 오른쪽에 빈 공간이 남음.) */
+  grid-template-columns: 108px repeat(20, 24px);
   gap: 3px;
   align-items: center;
   font-family: var(--font-mono);
@@ -557,29 +561,38 @@ input, textarea, select { font-family: inherit; }
   font-family: var(--font-sans); font-size: 10.5px; font-weight: 500; color: var(--ink);
   /* padding-right keeps the name + P badge from visually touching the Day 1 cell. */
   padding-right: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
-  /* max-width 로 grid track width (130px) 를 명시적으로 강제. sticky + flex 조합에서
+  /* max-width 로 grid track width (108px) 를 명시적으로 강제. sticky + flex 조합에서
      content min-content 가 track 보다 클 때 시각적으로 overflow 되는 현상이 있어서,
      max-width 랑 overflow:hidden 을 둘 다 걸어야 확실히 clip 됨. */
-  max-width: 130px;
+  max-width: 108px;
   box-sizing: border-box;
-  /* Sticky left + z-index:3 places the name ON TOP of the .checkboard-curtain
-     (z-index:1). The curtain itself handles bg coverage for the entire column,
-     so we don't need box-shadow tricks on individual rows. Transparent bg. */
+  /* sticky + z-index:3 이름칸을 자기 자체로 '흰 벽' 으로 만듬.
+     background: #FFFDF7 로 불투명하게 깔고, 오른쪽에 border + 얇은 shadow 를 걸어서
+     Day 1 이상 타일이 가로 스크롤할 때 이 벽 뒤로 사라지는 것처럼 보이게.
+     (이전엔 transparent + .checkboard-curtain 으로 분리했는데, 커튼이 scroll
+     container 안에 absolute 라서 가로 스크롤 시 같이 움직여서 벽이 사라지는
+     버그가 있었음 — sticky 이름칸을 직접 불투명하게 만드는 게 근본 해결.) */
   position: sticky; left: 0; z-index: 3;
-  background: transparent;
+  background: #FFFDF7;
+  border-right: 1px solid var(--line);
+  box-shadow: 2px 0 6px -2px rgba(42, 31, 20, 0.08);
   align-self: stretch;
   min-height: 24px;
 }
 .cb-header-name {
   position: sticky; left: 0; z-index: 4;
-  background: transparent;
+  background: #FFFDF7;
+  border-right: 1px solid var(--line);
+  box-shadow: 2px 0 6px -2px rgba(42, 31, 20, 0.08);
   padding-right: 10px;
   /* Match .cb-name width so 'MEMBER' 헤더도 Day 1 자리로 새지 않게. */
-  max-width: 130px;
+  max-width: 108px;
   box-sizing: border-box;
   overflow: hidden;
   align-self: stretch;
   min-height: 24px;
+  display: flex;
+  align-items: center;
 }
 .cb-name .tiny-av { width: 18px; height: 18px; border-radius: 5px; background: var(--paper); display: grid; place-items: center; font-size: 8px; font-weight: 700; flex-shrink: 0; }
 .cb-name .tiny-av.orange { background: var(--orange); color: #fff; }
@@ -1038,11 +1051,104 @@ const CHALLENGE = {
   ],
   // Premium-only add-ons
   premium: {
+    presenter_slots_per_week: 3,  // 주마다 발표자 선착순 3명
+    presenter_talk_minutes: 7,
+    presenter_feedback_minutes: 3,
     weekly_meetings: [
-      { n: 1, date: '2026-04-30', title: 'Week 1 — Setup & Strategy', desc: '판 깔기·기준점 잡기 표현 롤플레이', status: 'upcoming', zoom: 'Zoom' },
-      { n: 2, date: '2026-05-07', title: 'Week 2 — Smart Communication', desc: '건설적 피드백/반대 의견 시뮬레이션', status: 'upcoming', zoom: 'Zoom' },
-      { n: 3, date: '2026-05-14', title: 'Week 3 — Problem Solving & Strategy', desc: 'Value proposition 피칭 + 위기 대응 연습', status: 'upcoming', zoom: 'Zoom' },
-      { n: 4, date: '2026-05-21', title: 'Week 4 — Execution & Productivity (PPT 발표)', desc: '본인 Industry 맞춤 PPT 발표 + Post-mortem', status: 'upcoming', zoom: 'Zoom' },
+      {
+        n: 1,
+        date: '2026-04-30',
+        signupCloseDate: '2026-04-29',
+        title: 'Week 1 — Setup & Strategy',
+        desc: '판 깔기·기준점 잡기 표현 롤플레이',
+        status: 'upcoming',
+        zoom: 'Zoom',
+        scenario: {
+          setting: 'Q3 Kickoff Standup',
+          premise: 'CEO가 각 리드에게 "이번 분기 가장 중요한 한 가지"를 anchor 해달라고 요청. 3분 안에 우선순위 + 2가지 근거.',
+          flow: [
+            '① Anchor — 내 팀의 북극성 / 이번 분기의 one thing',
+            '② Line of sight — 왜 지금인지 (데이터·기회·리스크)',
+            '③ Ask — 필요한 리소스 / 다른 팀에 기대하는 것',
+          ],
+        },
+        mustUseVocab: [
+          'set the table', 'anchor', 'line of sight', 'north star',
+          'baseline', 'lay out', 'set expectations', 'scope',
+        ],
+        presenterPrompt: '내 팀 / 내 업의 이번 분기 "anchor" 1개를 7분 안에 프레이밍. 시작: "Let me set the table…" / 끝: 구체적 ask 1개.',
+      },
+      {
+        n: 2,
+        date: '2026-05-07',
+        signupCloseDate: '2026-05-06',
+        title: 'Week 2 — Smart Communication',
+        desc: '건설적 피드백/반대 의견 시뮬레이션',
+        status: 'upcoming',
+        zoom: 'Zoom',
+        scenario: {
+          setting: 'Design Review · 반대 의견 내기',
+          premise: 'PM이 제안한 feature 에 내가 반대해야 함. 관계 해치지 않고 "push back" 하는 법 연습. 상대는 defensive 할 수 있음.',
+          flow: [
+            '① Acknowledge — 상대 의견 먼저 요약 ("If I heard you right…")',
+            '② Reframe — 데이터/관점 하나 추가 ("I\'d push back on one thing…")',
+            '③ Offer — 내가 제안하는 대안 + 가드레일',
+          ],
+        },
+        mustUseVocab: [
+          'push back', 'play devil\'s advocate', 'respectfully disagree',
+          'reframe', 'walk me through', 'take a step back', 'land the plane', 'meet in the middle',
+        ],
+        presenterPrompt: '최근 본인이 반대한 / 반대해야 했던 결정 하나를 7분 스토리로. acknowledge → push back → alternative.',
+      },
+      {
+        n: 3,
+        date: '2026-05-14',
+        signupCloseDate: '2026-05-13',
+        title: 'Week 3 — Problem Solving & Strategy',
+        desc: 'Value proposition 피칭 + 위기 대응 연습',
+        status: 'upcoming',
+        zoom: 'Zoom',
+        scenario: {
+          setting: 'Incident Briefing · 5분 exec update',
+          premise: '런칭 중 장애가 남. exec team 에게 5분 내로 브리핑. panic 없이, 근거 + 조치 + 다음 스텝.',
+          flow: [
+            '① Headline — 한 줄 요약 + blast radius',
+            '② Root cause — 알고 있는 것 / 아직 모르는 것 분리',
+            '③ Mitigation + Next — 지금까지 조치 / 24시간 plan',
+          ],
+        },
+        mustUseVocab: [
+          'triage', 'root cause', 'blast radius', 'mitigate',
+          'buy some time', 'value prop', 'course correct', 'silver lining',
+        ],
+        presenterPrompt: '본인 업계의 "작은 위기" 시나리오 하나 (실제 or 가상) 를 7분 briefing 으로. headline → cause → mitigation → next steps.',
+      },
+      {
+        n: 4,
+        date: '2026-05-21',
+        signupCloseDate: '2026-05-20',
+        title: 'Week 4 — Execution & Productivity (PPT 발표)',
+        desc: '본인 Industry 맞춤 PPT 발표 + Post-mortem',
+        status: 'upcoming',
+        zoom: 'Zoom',
+        scenario: {
+          setting: 'Final Pitch · 5-slide industry pitch',
+          premise: '당신의 industry 에서 실제 했던 / 하고 싶은 프로젝트를 5장 deck 으로. 마지막 슬라이드는 lessons learned / retrospective.',
+          flow: [
+            '① Problem · one-liner',
+            '② Approach · 왜 이 방법인지',
+            '③ Execution · 어떻게 ship 했는지',
+            '④ Results · 임팩트 / 숫자',
+            '⑤ Lessons — 다시 한다면',
+          ],
+        },
+        mustUseVocab: [
+          'ship', 'iterate', 'dogfood', 'table stakes',
+          'move the needle', 'retrospective', 'lessons learned', 'close the loop',
+        ],
+        presenterPrompt: '5장 PPT 로 본인 real project 발표. 마지막 슬라이드 "lessons learned" 필수. 7분 안에 close the loop.',
+      },
     ],
     pt_sessions: [
       { date: '2026-05-05', title: '1:1 PT — 약점 진단', desc: '발음·문법·어휘 약점 체크', status: 'upcoming' },
@@ -1227,6 +1333,8 @@ const defaultState = () => ({
   community_bookmarks: {},        // { "p1": true }
   community_comments: {},         // { "post-id": [{ text, author, createdAt }] }
   meeting_notes: {},              // { "m1": { talk_points:[], meeting_notes: '' } }
+  presenterSignups: {},           // { "w1": ["member_key_a", "member_key_b"] } — 주차별 선착순 발표자
+  presenter_prep: {},             // { "w1": { vocabPicked:[], script:'', privateNotes:'' } } — 본인 발표 준비
   verified_at: {},                // { "d1": "2026-04-20" } 실제 인증한 날짜 (YYYY-MM-DD)
   verified_time: {},              // { "d1": "23:47" }     실제 인증한 시각 (member tz, HH:mm)
   community_edits: {},            // { "post-id": { sentence, translation, editedAt } } 내 문장 수정
@@ -1268,6 +1376,8 @@ const PERSISTED_STATE_KEYS = [
   'community_bookmarks',
   'community_comments',
   'meeting_notes',
+  'presenterSignups',
+  'presenter_prep',
   'verified_at',
   'verified_time',
   'community_edits',
@@ -2604,6 +2714,204 @@ function synonymNuance(word, syn) {
 const weekProgress = (w) => w.days.filter(d => state.verified['d'+d.day]).length;
 const hasSupabase = () => !!(SUPABASE_URL && SUPABASE_ANON_KEY);
 const memberKey = () => (state.accountKey || state.email || [state.accessCode, state.name].filter(Boolean).join(':') || state.name || 'anonymous').trim();
+
+/* ============================================================
+   PREMIUM · 주간 발표자 (PRESENTER SIGNUP) 헬퍼
+   - state.presenterSignups[wN] = [memberKey, ...]  (로컬 캐시)
+   - 서버는 challenge_presenter_signups 테이블 + RPC 로 동기화
+   - 3명 선착순. 같은 사람이 같은 주에 중복 signup 불가.
+   ============================================================ */
+const PRESENTER_KEY = (n) => 'w' + Number(n);
+function weekMeta(n) {
+  return (CHALLENGE.premium.weekly_meetings || []).find((w) => Number(w.n) === Number(n)) || null;
+}
+function weekSignupsArray(n) {
+  const raw = (state.presenterSignups || {})[PRESENTER_KEY(n)];
+  return Array.isArray(raw) ? raw.slice() : [];
+}
+function isMePresenterInWeek(n) {
+  return weekSignupsArray(n).includes(memberKey());
+}
+function presenterSlotsRemaining(n) {
+  const cap = Number(CHALLENGE.premium.presenter_slots_per_week || 3);
+  return Math.max(0, cap - weekSignupsArray(n).length);
+}
+function daysUntilMeeting(dateStr) {
+  if (!dateStr) return null;
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const target = new Date(y, m - 1, d).getTime();
+  const now = Date.now();
+  const MS = 24 * 60 * 60 * 1000;
+  const startOfDay = (ms) => {
+    const x = new Date(ms);
+    return new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  };
+  return Math.round((startOfDay(target) - startOfDay(now)) / MS);
+}
+// 오늘 기준 "이번 주 미팅" 한 개 선택: 아직 안 지난 것 중 가장 가까운 week.
+// 전체가 과거면 마지막 주, 전체가 미래면 첫 주.
+function currentPremiumWeek() {
+  const weeks = CHALLENGE.premium.weekly_meetings || [];
+  if (!weeks.length) return null;
+  const now = Date.now();
+  const todays = weeks.map((w) => ({ w, delta: daysUntilMeeting(w.date) }));
+  // 1) 오늘 포함해서 아직 미팅 안 끝난 것 (delta >= 0) 중 가장 가까운
+  const upcoming = todays.filter((x) => x.delta !== null && x.delta >= 0).sort((a, b) => a.delta - b.delta);
+  if (upcoming.length) return upcoming[0].w;
+  // 2) 전부 과거면 마지막 주
+  return weeks[weeks.length - 1];
+}
+// display-name 등을 뽑기 위해 member_key → MEMBERS row 찾기 (서버 summary 에 member_key 있음).
+function memberByKey(key) {
+  if (!key) return null;
+  if (key === memberKey()) return meMember();
+  // memberSummaryCache.rows 에서 먼저 찾기
+  const summary = (memberSummaryCache.rows || []).find((r) => r.member_key === key);
+  if (summary) {
+    const byName = MEMBERS.find((m) => !m.me && m.name === summary.member_name);
+    if (byName) return byName;
+    // 서버엔 있는데 MEMBERS 에 없으면 최소 필드로 반환
+    return {
+      id: 'remote:' + key,
+      name: summary.member_name || key,
+      englishName: summary.english_name || '',
+      tier: summary.tier || 'basic',
+      role: summary.role || '',
+      color: summary.tier === 'premium' ? 'orange' : 'mono',
+    };
+  }
+  // fallback: key 가 "code:이름" 형식일 때 이름 뽑아 MEMBERS 매칭
+  const maybeName = String(key).split(':').pop();
+  return MEMBERS.find((m) => !m.me && m.name === maybeName) || null;
+}
+
+// 서버 → 로컬 병합. remote rows: [{week_n, member_key, member_name, english_name, signed_up_at}]
+const presenterSignupsCache = { loadedAt: 0, rows: [] };
+let presenterSignupsInFlight = null;
+let presenterSignupsRpcUnavailable = false;
+const PRESENTER_REFRESH_MS = 15000;
+
+function applyRemotePresenterSignups(rows) {
+  const bucket = {};
+  (rows || []).forEach((row) => {
+    const n = Number(row.week_n);
+    if (!n) return;
+    const arr = bucket[PRESENTER_KEY(n)] || (bucket[PRESENTER_KEY(n)] = []);
+    if (!arr.includes(row.member_key)) arr.push(row.member_key);
+    // 피어의 영어닉 같이 저장 (캐시에 반영해두면 UI 에서 바로 뽑아 쓸 수 있음)
+    if (row.english_name && row.member_name) {
+      const byName = MEMBERS.find((m) => !m.me && m.name === row.member_name);
+      if (byName && !byName.englishName) byName.englishName = row.english_name;
+    }
+  });
+  state.presenterSignups = bucket;
+}
+
+async function loadPresenterSignups(opts = {}) {
+  if (!hasSupabase() || presenterSignupsRpcUnavailable) return state.presenterSignups || {};
+  const { force = false } = opts;
+  if (!force && presenterSignupsCache.loadedAt && (Date.now() - presenterSignupsCache.loadedAt) < PRESENTER_REFRESH_MS) {
+    return state.presenterSignups || {};
+  }
+  if (presenterSignupsInFlight) return presenterSignupsInFlight;
+  presenterSignupsInFlight = (async () => {
+    try {
+      const payload = await supabaseRpc('get_presenter_signups', { p_cohort: CHALLENGE.cohort });
+      const rows = Array.isArray(payload) ? payload : [];
+      presenterSignupsCache.loadedAt = Date.now();
+      presenterSignupsCache.rows = rows;
+      applyRemotePresenterSignups(rows);
+      return state.presenterSignups || {};
+    } catch (e) {
+      if (/supabase rpc failed: get_presenter_signups/i.test(String(e && e.message || ''))) {
+        presenterSignupsRpcUnavailable = true;
+        console.warn('[presenter] get_presenter_signups RPC 가 아직 없어요. supabase_migration_presenter.sql 을 돌려야 발표자 선착순 기능이 켜져요.');
+      }
+      return state.presenterSignups || {};
+    } finally {
+      presenterSignupsInFlight = null;
+    }
+  })();
+  return presenterSignupsInFlight;
+}
+
+function requestPresenterSignups(opts = {}) {
+  const stale = !presenterSignupsCache.loadedAt || (Date.now() - presenterSignupsCache.loadedAt) >= PRESENTER_REFRESH_MS;
+  if (hasSupabase() && !presenterSignupsRpcUnavailable && (opts.force || stale)) {
+    const before = JSON.stringify(state.presenterSignups || {});
+    loadPresenterSignups({ force: true }).then(() => {
+      const after = JSON.stringify(state.presenterSignups || {});
+      if (before !== after && (currentPage === 'home' || currentPage === 'premium' || currentPage === 'presenter-prep')) render();
+    });
+  }
+  return state.presenterSignups || {};
+}
+
+async function signupPresenter(weekN) {
+  const key = PRESENTER_KEY(weekN);
+  const meta = weekMeta(weekN);
+  if (!meta) return { ok: false, error: 'WEEK_NOT_FOUND' };
+  if (isMePresenterInWeek(weekN)) return { ok: true, already: true };
+  if (presenterSlotsRemaining(weekN) <= 0) return { ok: false, error: 'FULL' };
+  // Optimistic local
+  state.presenterSignups = state.presenterSignups || {};
+  state.presenterSignups[key] = weekSignupsArray(weekN);
+  state.presenterSignups[key].push(memberKey());
+  saveState({ immediate: true });
+  if (!hasSupabase() || presenterSignupsRpcUnavailable) {
+    return { ok: true, offline: true };
+  }
+  try {
+    const result = await supabaseRpc('signup_presenter', {
+      p_cohort: CHALLENGE.cohort,
+      p_week_n: Number(weekN),
+      p_member_key: memberKey(),
+      p_member_name: state.name || '',
+      p_english_name: (state.englishName || '').trim(),
+    });
+    // Server returns { ok, reason, rows } — rows 로 싱크
+    if (result && Array.isArray(result.rows)) {
+      applyRemotePresenterSignups(result.rows);
+      presenterSignupsCache.loadedAt = Date.now();
+      presenterSignupsCache.rows = result.rows;
+    }
+    if (result && result.ok === false) {
+      // 서버가 거절 (예: FULL / DUP) — 로컬에서 되돌림 후 최신 상태 재로딩
+      state.presenterSignups[key] = (state.presenterSignups[key] || []).filter((k) => k !== memberKey());
+      saveState({ immediate: true });
+      return { ok: false, error: result.reason || 'SERVER_REJECT' };
+    }
+    return { ok: true };
+  } catch (e) {
+    // 서버 장애 — 로컬만 유지 (다음 pull 에서 덮어써질 수 있음을 알림)
+    console.warn('[presenter] signup 서버 동기화 실패, 로컬만 유지:', e);
+    return { ok: true, offline: true };
+  }
+}
+
+async function releasePresenter(weekN) {
+  const key = PRESENTER_KEY(weekN);
+  if (!isMePresenterInWeek(weekN)) return { ok: true, noop: true };
+  state.presenterSignups[key] = (state.presenterSignups[key] || []).filter((k) => k !== memberKey());
+  saveState({ immediate: true });
+  if (!hasSupabase() || presenterSignupsRpcUnavailable) return { ok: true, offline: true };
+  try {
+    const result = await supabaseRpc('release_presenter', {
+      p_cohort: CHALLENGE.cohort,
+      p_week_n: Number(weekN),
+      p_member_key: memberKey(),
+    });
+    if (result && Array.isArray(result.rows)) {
+      applyRemotePresenterSignups(result.rows);
+      presenterSignupsCache.loadedAt = Date.now();
+      presenterSignupsCache.rows = result.rows;
+    }
+    return { ok: true };
+  } catch (e) {
+    console.warn('[presenter] release 서버 동기화 실패:', e);
+    return { ok: true, offline: true };
+  }
+}
 
 async function supabaseRpc(fn, payload={}) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
@@ -4101,11 +4409,10 @@ function Checkboard() {
   // 단일 리스트로 한 번에 보이되 정렬은 프리미엄 먼저 → 베이직 순서.
   // 'me' 는 자기 티어 그룹의 맨 위로 고정.
   const wrap = el('div', { class: 'checkboard-wrap' });
-
-  // 왼쪽 MEMBER 칸 전체를 한 덩어리 크림색 커튼으로 덮어버림. day 타일이 좌우
-  // 스크롤될 때 이 커튼 뒤로 지나가기 때문에 행 사이 틈이 원천적으로 없음.
-  // cb-name (z-index:3) 은 커튼(z-index:1) 위에 얹혀서 보임.
-  wrap.appendChild(el('div', { class: 'checkboard-curtain' }));
+  // 이전엔 .checkboard-curtain 한 덩어리로 이름칸 뒤를 덮었는데, absolute 가
+  // 가로 스크롤 컨테이너 안에 있어서 같이 scroll 되어 벽이 사라지는 버그가
+  // 있었음. 이제는 각 sticky .cb-name 이 자체 흰 배경 + 우측 border/shadow 로
+  // 벽 역할을 해서 커튼 자체가 필요 없음. (legacy CSS 는 남겨두지만 여기선 안 씀.)
 
   // 티어 헬퍼 — 'me' 는 state.tier 로 치환.
   const cbTierOf = (m) => (m.me ? (state.tier || 'basic') : (m.tier === 'auto' ? (state.tier || 'basic') : m.tier));
@@ -4182,7 +4489,8 @@ function Checkboard() {
         const vt = state.verified_time && state.verified_time['d'+d];
         if (vt && (st === 'done' || st === 'done-late')) {
           const tz = state.timezoneOffsetText || '+0h';
-          tooltip = `${m.name} · Day ${d} · ${vt} ${tz}${st === 'done-late' ? ' (지각)' : ''}`;
+          // 툴팁도 displayName 으로 — 본명 직접 노출 안 함 (본인 카드라 본인 보기용이지만 통일).
+          tooltip = `${displayName(m)} · Day ${d} · ${vt} ${tz}${st === 'done-late' ? ' (지각)' : ''}`;
         }
       } else {
         // 피어 셀: verifiedDays (서버가 내려주는 실제 인증된 day 번호 배열) 를 최우선으로 사용.
@@ -4207,7 +4515,9 @@ function Checkboard() {
           const hhmm = peerMap[nm] || peerMap[m.member_key || ''] || '';
           const peerTz = memberTimezoneText(m);
           const stamp = hhmm ? (peerTz ? `${hhmm} ${peerTz}` : hhmm) : '';
-          tooltip = stamp ? `${m.name} · Day ${d} · ${stamp}` : `${m.name} · Day ${d} 완료`;
+          // 피어 툴팁: 한국어 본명 직접 노출 안 함 — displayName (닉네임 우선) 으로.
+          const peerDisplay = displayName(m);
+          tooltip = stamp ? `${peerDisplay} · Day ${d} · ${stamp}` : `${peerDisplay} · Day ${d} 완료`;
         }
       }
       const attrs = { class: cls };
@@ -6992,6 +7302,10 @@ function ProfilePage() {
     if (showPosts && savedCommunityPosts.length) {
       if (tab === 'all') list.appendChild(el('div', { class: 'kicker', style: { color: 'var(--muted)', marginTop: '6px' } }, `커뮤니티 문장 · ${savedCommunityPosts.length}`));
       savedCommunityPosts.forEach((post) => {
+        // post.user 는 저장 시점의 한국어 이름 — 지금은 displayName(닉네임 우선)으로 해석.
+        const postMember = memberByRef(post.user) || (post.mine ? meMember() : null);
+        const postUserDisplay = postMember ? displayName(postMember) : post.user;
+        const postAvatarInit = postMember ? safeInitial(postMember) : post.avatar;
         const row = el('div', {
           style: {
             display: 'flex', alignItems: 'flex-start', gap: '12px',
@@ -7001,10 +7315,10 @@ function ProfilePage() {
           onClick: () => go('community'),
         });
         row.innerHTML = `
-          <div class="avatar ${post.avatarClass}" style="width:32px;height:32px;border-radius:11px;font-size:11px;flex-shrink:0;">${post.avatar}</div>
+          <div class="avatar ${post.avatarClass}" style="width:32px;height:32px;border-radius:11px;font-size:11px;flex-shrink:0;">${escapeHtml(postAvatarInit)}</div>
           <div style="flex:1;min-width:0;">
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-              <span style="font-size:12.5px;font-weight:800;color:var(--ink);">${escapeHtml(post.user)}</span>
+              <span style="font-size:12.5px;font-weight:800;color:var(--ink);">${escapeHtml(postUserDisplay)}</span>
               <span class="mono" style="font-size:10px;color:var(--muted);">${escapeHtml(post.word)}</span>
             </div>
             <div style="margin-top:3px;font-size:12.5px;line-height:1.45;color:var(--ink);font-weight:600;">${escapeHtml(post.sentence)}</div>
@@ -7688,16 +8002,23 @@ function MemberCardModal(memberRef) {
     }
   });
   const memberEng = member.me ? (state.englishName || '').trim() : (member.englishName || '').trim();
+  // 영어 닉네임이 있으면 그게 헤드라인. 한국어 본명은:
+  //   - 본인 카드 (me=true) 에선 "본명 · 이규태" 로 작게 (자기 확인용)
+  //   - 피어 카드 에선 아예 안 보임 (프라이버시 — 다른 사람한테 본명 안 노출)
+  //   - 영어 닉네임이 비어있으면 어쩔 수 없이 한국어 이름이 headline 으로 fallback
+  //     (그 사람이 아직 닉네임을 세팅 안 한 상태)
+  const headlineName = memberEng || member.name || '';
+  const showRealNameSubline = !!member.me && !!memberEng && !!member.name && memberEng !== member.name;
   modal.innerHTML = `
     <div style="display:flex;align-items:flex-start;gap:14px;">
       <div class="avatar ${resolveAvatarColor(member)}" style="width:62px;height:62px;border-radius:18px;font-size:22px;">${safeInitial(member)}</div>
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <div style="font-size:24px;font-weight:800;letter-spacing:-0.03em;line-height:1.08;">${escapeHtml(member.name)}</div>
-          ${memberEng ? `<span class="t-small mono" style="color:var(--muted);font-size:12px;">${escapeHtml(memberEng)}</span>` : ''}
+          <div style="font-size:26px;font-weight:800;letter-spacing:-0.03em;line-height:1.08;word-break:break-word;">${escapeHtml(headlineName)}</div>
           ${premiumPill(member)}
           ${member.me ? '<span class="badge badge-orange">ME</span>' : ''}
         </div>
+        ${showRealNameSubline ? `<div class="t-small" style="margin-top:4px;color:var(--muted);">본명 · ${escapeHtml(member.name)}</div>` : ''}
         <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           ${member.role ? `<span class="badge">${escapeHtml(member.role)}</span>` : ''}
           ${member.timezoneText ? `<span class="t-small mono" style="color:var(--muted);">${escapeHtml(member.timezoneText)}</span>` : ''}
@@ -8249,7 +8570,9 @@ window.__flashCorrect = () => {
       overlay.classList.add('correct-flash-floating');
       document.body.appendChild(overlay);
     }
-    setTimeout(() => { try { overlay.remove(); } catch (e) {} }, 620);
+    // Remove the overlay just AFTER the fade animation finishes (900ms) so it
+    // doesn't pop off mid-fade and the user sees the full "맞췄다" moment.
+    setTimeout(() => { try { overlay.remove(); } catch (e) {} }, 920);
   } catch (e) {}
 };
 window.__setVerifyQuizValue = (dayN, value) => {
@@ -8269,10 +8592,12 @@ window.__setVerifyQuizValue = (dayN, value) => {
         // the stale value was visually persisting because render() was deferred.
         try { document.activeElement && document.activeElement.blur(); } catch (e) {}
         window.__flashCorrect();
-        // Give the green flash ~350ms of visible time before the DOM swaps in the next question.
-        setTimeout(() => { window.__advanceVerifyQuiz(dayN, false); }, 350);
+        // 정답 후 "✓" flash 가 눈에 충분히 보이고 학습자가 "맞췄다!" 를 인지할
+        // 시간을 주고 나서 다음 문제로 넘어가요. 이전엔 350ms 였는데 너무 빨라서
+        // "뭐가 지나간거지?" 느낌이라 950ms 로 늘림 (전체 정답→다음 지연 ~1.2s).
+        setTimeout(() => { window.__advanceVerifyQuiz(dayN, false); }, 950);
       }
-    }, 180);
+    }, 220);
   }
 };
 window.__restartVerifyQuiz = (dayN) => {
