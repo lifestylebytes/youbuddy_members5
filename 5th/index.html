@@ -905,8 +905,8 @@ const CHALLENGE = {
   cohort: '5기',
   title: '유버디 비즈니스 영어 챌린지',
   total_days: 20,
-  start_date: '2026-04-20',  // 5기 (베타): 2026/04/20(월) ~ 2026/05/15(금), 총 20 영업일
-  end_date: '2026-05-15',
+  start_date: '2026-04-27',  // 5기 (베타): 2026/04/27(월) ~ 2026/05/22(금), 총 20 영업일
+  end_date: '2026-05-22',
   weeks: [
     {
       n: 1, title: 'Setup & Strategy', subtitle: '일단 판부터 제대로 깔아볼까요?',
@@ -1061,211 +1061,201 @@ const CHALLENGE = {
         n: 1,
         date: '2026-04-30',
         signupCloseDate: '2026-04-29',
-        title: 'Week 1 — Anchor & Line of sight',
-        desc: '판 깔기·기준점 잡기 — Q3 킥오프 롤플레이',
+        noPresenter: true, // Week 1 은 온보딩/자기소개만 — 발표자 선착순 없음
+        title: 'Week 1 — Warm-up & Self-intro',
+        desc: '온보딩 · 자기소개 — 서로 알아가기 (발표 없음)',
         status: 'upcoming',
         zoom: 'Google Meet',
-        // Gaby 가 미팅 후 직접 채움 — recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
+        // 버디가 미팅 후 직접 채움 — recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 없음
         recap: '',
         pptUrl: '',
         scenario: {
-          setting: 'Q3 Kickoff Standup',
-          premise: 'CEO 가 각 팀 리드에게 "이번 분기 우리 팀의 one thing" 을 anchor 해달라고 요청. 5분 안에 우선순위 + 2가지 근거 + 1개 ask.',
+          setting: 'Kickoff meetup · 전원 자기소개 + 목표 공유',
+          premise: '첫 만남. 발표 부담 없이, 각자 짧게 본인 소개하고 이번 챌린지에서 뭘 얻고 싶은지 나누는 자리. 영어로 "warm up" 하는 목적.',
           flow: [
-            '① Anchor — 내 팀의 북극성 / 이번 분기의 one thing',
-            '② Line of sight — 왜 지금인지 (데이터·기회·리스크)',
-            '③ Ask — 필요한 리소스 / 다른 팀에 기대하는 것',
+            '① Hi, I\'m — 이름 · 업 · 역할 3문장',
+            '② Where I\'m at — 요즘 내 일 · 영어 상황 한 장면',
+            '③ What I\'m after — 이 챌린지에서 얻고 싶은 것 + 비슷한 고민인 분 찾기',
           ],
         },
         roleplay: {
           duration: 40,
           roles: [
-            { name: 'CEO / VP', goal: '회의 진행 + 각 리드에게 pushback 질문. "So what\'s your one thing?" 반복.' },
-            { name: 'Product Lead', goal: 'Product team 의 anchor 를 5분 내 발표. 예: "Checkout conversion 을 6% 올리는 게 우리 one thing."' },
-            { name: 'Engineering Lead', goal: 'Eng team 의 anchor 를 5분 내 발표. 예: "Infra cost 를 30% 줄이는 게 우리 one thing."' },
-            { name: 'Marketing Lead', goal: 'Marketing team 의 anchor 를 5분 내 발표. 예: "Q3 브랜드 awareness 를 15% 끌어올리는 게 우리 one thing."' },
-            { name: 'Observer / Skeptic', goal: '각 발표 후 "but what about..." 형태로 question 1개씩. 감정 없이, 데이터 기반.' },
+            { name: 'All participants', goal: '한 명씩 3-4분 자기소개 (위 3가지 flow). 발표 아니고 "편하게 말하는 자리".' },
+            { name: 'Listeners', goal: '상대 발표 끝나면 질문 1개씩. "What brings you here?" / "Who should buddy up with you?"' },
+            { name: 'Host (coach)', goal: '각 자기소개 후 30초 코멘트 — 문법 교정 아닌, 쓸만한 표현 pick-up.' },
           ],
           beats: [
-            { time: '0–5', label: 'CEO 오프닝', body: 'CEO 가 "Let me set the table..." 로 시작. Q2 metric 요약. 각 리드에게 "I want you to anchor one thing" 요청.' },
-            { time: '5–15', label: 'Product Lead anchor', body: 'Product Lead 5분 발표 → Observer 질문 ("Did you think about X?") → 5분 응답/재정비.' },
-            { time: '15–25', label: 'Engineering Lead anchor', body: 'Eng Lead 5분 발표 → pushback → reframe. "Let me walk you through the line of sight."' },
-            { time: '25–35', label: 'Marketing Lead anchor', body: 'Marketing Lead 5분 발표 → Q&A. "What\'s the baseline and what\'s the north star?"' },
-            { time: '35–40', label: 'CEO wrap', body: 'CEO 가 "So our one thing as a company is..." 로 요약 + action items.' },
+            { time: '0–5', label: 'Coach opening', body: 'Coach 가 전체 흐름 + 오늘의 목표 설명. "We\'re not presenting today — we\'re getting to know each other in English."' },
+            { time: '5–25', label: 'Round-robin self-intro', body: '한 명당 3-4분씩. 위 flow 순서로. 이름 → 업/역할 → 요즘 상황 → 챌린지에서 얻고 싶은 것.' },
+            { time: '25–35', label: 'Pairing questions', body: '각자 "내가 buddy up 하고 싶은 1명 + 이유" 공유. "I\'d love to swap notes with ___ because ___."' },
+            { time: '35–40', label: 'Coach wrap', body: 'Coach 가 전체 take-away + Week 2 예고. "다음 주부터 Daily 단어를 실제 롤플레이에 써볼게요."' },
           ],
           props: [
-            { label: 'Q2 metric card (쇼핑몰 예시)', body: 'MAU +12% · Checkout conversion -3% · NPS +4 · Infra cost +18% vs plan' },
-            { label: 'Priority matrix template', body: '① North star (1개) / ② Stretch goals (2개) / ③ Parked (나머지)' },
-            { label: 'Slack snippet', body: '"Recent customer interviews indicate pricing friction at tier-3..." — customer research team' },
+            { label: 'Self-intro template', body: '"Hi, I\'m [name]. I work in [industry] as [role]. Right now I\'m [context]. I\'m here because [goal]."' },
+            { label: '열린 질문 3개', body: '"What\'s a typical Monday look like for you?" / "What\'s one English moment that stresses you out?" / "Who would you love to swap notes with?"' },
+            { label: 'Coach 코멘트 샘플', body: '"Love the phrase \'on my radar\' — that\'ll come back in Week 2. Bookmark it."' },
           ],
         },
         mustUseVocab: [
-          'set the table', 'anchor', 'line of sight', 'north star',
-          'baseline', 'lay out', 'set expectations', 'scope',
+          'I work in', 'based in', 'what brings me here',
+          'looking forward to', 'on my radar', 'swap notes', 'buddy up',
         ],
-        presenterPrompt: '내 팀 / 내 업의 이번 분기 "anchor" 1개를 7분 안에 프레이밍. 시작: "Let me set the table…" / 끝: 구체적 ask 1개. 3분 Q&A 에서 "what\'s the baseline" 대비.',
+        presenterPrompt: '', // 발표자 없음
         qaPrompts: [
-          'What\'s the baseline you\'re measuring against?',
-          'How does this anchor tie to the company\'s north star?',
-          'What happens if you miss this by 20%?',
+          'What\'s a typical day like for you?',
+          'What\'s one English situation that still stresses you out?',
+          'Who would you love to buddy up with here — and why?',
         ],
       },
       {
         n: 2,
         date: '2026-05-07',
         signupCloseDate: '2026-05-06',
-        title: 'Week 2 — Push-back & Reframe',
-        desc: '건설적 반대 — Design Review 롤플레이',
+        title: 'Week 2 — Vocab in action',
+        desc: '그 주 Daily 단어를 실전 롤플레이에 녹이기',
         status: 'upcoming',
         zoom: 'Google Meet',
-        // Gaby 가 미팅 후 직접 채움 — recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
+        // 버디가 미팅 후 직접 채움 — recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
         recap: '',
         pptUrl: '',
         scenario: {
-          setting: 'Design Review · PM 이 제안한 feature 에 팀이 반대',
-          premise: 'PM 이 "Auto-approve checkout for Loyal tier users" feature 를 제안. Eng, Data, Design 이 각자 다른 관점에서 push back. 관계 해치지 않고 반대 → 대안 제시.',
+          setting: 'Cross-team sync · 짧은 status update + 피드백',
+          premise: '이번 주 Daily 에서 학습한 표현을 실제 회의 상황에 녹여 넣기. 주제는 단순 — "지금 내가 하고 있는 일 한 가지 업데이트". 목적은 말하기 전환.',
           flow: [
-            '① Acknowledge — 상대 의견 먼저 요약 ("If I heard you right…")',
-            '② Reframe — 데이터/관점 하나 추가 ("I\'d push back on one thing…")',
-            '③ Offer — 내가 제안하는 대안 + 가드레일',
+            '① Context 깔기 — 지금 하는 일 한 줄',
+            '② Update — 진행 상황 + 막힌 점 (이번 주 단어 3+)',
+            '③ Ask — 필요한 리소스 · 다음 action',
           ],
         },
         roleplay: {
           duration: 40,
           roles: [
-            { name: 'PM (feature 제안자)', goal: 'Auto-approve feature pitch. 자신만만하게. pushback 오면 처음엔 defensive, 점점 open up.' },
-            { name: 'Engineering Lead', goal: '기술 리스크 pushback. "Fraud team 에 의논도 안 했는데..." 에서 시작.' },
-            { name: 'Data Scientist', goal: '데이터 관점 pushback. "Loyal tier 정의가 stale 함. 분석 더 필요."' },
-            { name: 'Design Lead', goal: 'UX 관점 pushback. "사용자가 auto-approve 된 걸 모르면 trust 이슈."' },
-            { name: 'Skip-level Manager', goal: '중재자. meet in the middle 로 대안 도출. "Let\'s take a step back..."' },
+            { name: 'Updater A / B (pair)', goal: '5분씩 본인 업무 상황 업데이트. 이번 주 Daily 단어 3개 이상 의도적으로 사용.' },
+            { name: 'Listener / PM', goal: '자연스러운 질문으로 단어 echo back 유도. "So you said \'on my radar\' — which part specifically?"' },
+            { name: 'Observer', goal: '이번 주 단어 체크리스트 들고 들으면서, 누가 몇 개 썼는지 체크. debrief 때 공유.' },
           ],
           beats: [
-            { time: '0–5', label: 'PM feature pitch', body: 'PM 이 one-pager 발표. "Auto-approve for Loyal tier → +8% conversion, 3주 빌드." 자신만만.' },
-            { time: '5–15', label: '3가지 pushback', body: 'Eng → Data → Design 순서로 각자 3분씩 push back. 반드시 "If I heard you right..." 로 시작, "I\'d push back on..." 로 본론.' },
-            { time: '15–25', label: 'PM 반응', body: 'PM 이 처음엔 defensive. 2번째 pushback 에서 "Let me reframe" 으로 전환. 데이터 인정.' },
-            { time: '25–35', label: 'Skip-level 중재', body: 'Manager 가 "Let\'s take a step back" 으로 개입. meet in the middle 안 제시 (예: phased rollout, guardrails).' },
-            { time: '35–40', label: 'Close', body: '합의된 다음 스텝 2개. "So here\'s where we land..." 로 close.' },
+            { time: '0–5', label: 'Vocab warmup', body: 'Coach 가 이번 주 Daily 단어 빠르게 리뷰. 롤플레이 안에서 "이 중 최소 3개씩 써달라" 요청.' },
+            { time: '5–15', label: 'Pair 1 roleplay', body: 'Updater A 5분 업데이트 → PM/Listener 질문 → A 재응답. 단어 naturally 녹이기.' },
+            { time: '15–25', label: 'Pair 2 roleplay', body: 'Updater B 5분 업데이트 → 동일 패턴.' },
+            { time: '25–35', label: 'Observer debrief', body: 'Observer 가 "누가 어떤 단어 썼다" 공유. 억지스러웠던 예 / 자연스러웠던 예 분리.' },
+            { time: '35–40', label: 'Coach re-drill', body: '자연스럽지 못했던 단어 1-2개만 짧은 재연. "Let\'s try that line again with \'in flux\'."' },
           ],
           props: [
-            { label: 'PM one-pager', body: 'Feature: Auto-approve checkout for Loyal tier users (>12 months, >5 orders). Impact: +8% conversion. Build: 3 weeks. Risk: fraud rate.' },
-            { label: 'Eng slack msg', body: '"Fraud team 에 의논도 안 했는데 이 feature 를 어떻게 ship 해? 지난달 fraud rate 0.3% → 0.7%." — Eng Lead' },
-            { label: 'Risk matrix', body: 'Impact (Low/Med/High) × Probability (Low/Med/High) — 각 pushback 을 여기에 plot.' },
+            { label: '이번 주 단어 체크리스트', body: '그 주 Daily 에서 배운 단어 7-10개를 printable card 로. 롤플레이 중 Observer 가 체크.' },
+            { label: 'Status update template', body: '"Right now I\'m working on X. The timeline is [in flux / time-bound / …]. My ask is [one thing]."' },
+            { label: 'Echo-back 샘플', body: '"You said \'bumping up\' — bumping up what, exactly?" / "Why is it \'on your radar\' right now?"' },
           ],
         },
-        mustUseVocab: [
-          'push back', 'play devil\'s advocate', 'respectfully disagree',
-          'reframe', 'walk me through', 'take a step back', 'land the plane', 'meet in the middle',
-        ],
-        presenterPrompt: '최근 본인이 반대한 / 반대해야 했던 결정 하나를 7분 스토리로. acknowledge → push back → alternative. 3분 Q&A 에서 "왜 그때 바로 말 안 했어?" 대비.',
+        mustUseVocabDynamic: '이번 주 Daily 에서 학습한 단어 · 매주 바뀌어요',
+        mustUseVocab: [], // Week 2 는 그 주 Daily 단어가 동적으로 채워져요 (mustUseVocabDynamic 참고)
+        presenterPrompt: '본인 업무 상황 한 가지를 7분 "status update" 로. 이번 주 Daily 단어 3개 이상 의도적으로 녹여 넣기. 3분 Q&A 에서 단어 echo back 대비.',
         qaPrompts: [
-          'Why didn\'t you push back earlier?',
-          'What would you do differently next time?',
-          'How did the other person react?',
+          'Which of this week\'s words felt most natural?',
+          'Which felt forced — and why?',
+          'What would you swap in if you said this to your actual team?',
         ],
       },
       {
         n: 3,
         date: '2026-05-14',
         signupCloseDate: '2026-05-13',
-        title: 'Week 3 — Incident Briefing',
-        desc: '위기 대응 — 5분 exec update 롤플레이',
+        title: 'Week 3 — Small talk',
+        desc: '회의 전후 · 엘레베이터 · 커피 라인 · 3분 어색한 pause 채우기',
         status: 'upcoming',
         zoom: 'Google Meet',
-        // Gaby 가 미팅 후 직접 채움 — recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
+        // 버디가 미팅 후 직접 채움 — recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
         recap: '',
         pptUrl: '',
         scenario: {
-          setting: 'Incident Briefing · 런칭 중 장애 발생, exec team 에 5분 브리핑',
-          premise: 'Checkout 장애가 30분째 진행 중. Incident Commander 가 exec team 에게 5분 내로 브리핑. panic 없이 headline → cause → mitigation → next.',
+          setting: '회의 전후 small talk · water-cooler chat · 출장 엘레베이터',
+          premise: '본격 업무 대화 "전 3분 / 후 2분" 을 능숙하게 이어가는 연습. 한국어였으면 당연히 하는 대화를, 영어로 하려고 하면 얼어버리는 순간을 구조적으로 연습.',
           flow: [
-            '① Headline — 한 줄 요약 + blast radius',
-            '② Root cause — 알고 있는 것 / 아직 모르는 것 분리',
-            '③ Mitigation + Next — 지금까지 조치 / 24시간 plan',
+            '① Opener — weather / weekend / recent trip / 지나가는 이벤트',
+            '② Transition — "Speaking of…" / "That reminds me…" / "By the way…"',
+            '③ Closer — "Let\'s catch up" / "Ping me when…" / "Safe travels"',
           ],
         },
         roleplay: {
           duration: 40,
           roles: [
-            { name: 'Incident Commander (IC)', goal: '5분 headline briefing 주도. Calm. "We have an ongoing incident. Blast radius: ~18% of checkout."' },
-            { name: 'CEO', goal: '불안한 질문. "How bad is this? When was the last time this happened?"' },
-            { name: 'Support Lead', goal: '고객 관점 update. "We\'re getting 40 tickets per minute. Top complaint: lost cart."' },
-            { name: 'PR / Comms Lead', goal: '외부 커뮤니케이션 질문. "When do we issue a public statement? What channel?"' },
-            { name: 'Legal / Compliance', goal: '규제 리스크 제기. "Are we in breach of any SLA? Data at risk?"' },
+            { name: 'You (회사원 · 출장 중)', goal: '3가지 scenario 에서 small talk 주도. 어색한 pause 허용 안 함.' },
+            { name: 'Counterpart (처음 보는 동료 / 거래처)', goal: '반응 + 1-2개 follow-up 질문만. 대화 주도는 You 에게 맡김.' },
+            { name: 'Coach', goal: '각 scenario 후 30초 — "이 opener 는 natural" / "이 transition 은 robot 같음" 피드백.' },
           ],
           beats: [
-            { time: '0–3', label: 'IC headline', body: 'IC 가 "We have an ongoing incident — blast radius: ~18% of checkout flow, started 11:42 UTC." 로 opens.' },
-            { time: '3–10', label: 'Root cause split', body: '알고 있는 것: payment gateway timeout. 모르는 것: upstream cause. "Here\'s what we know vs what we don\'t know."' },
-            { time: '10–20', label: 'Mitigation timeline', body: 'IC 가 "In the last 30min we have: ① rolled back deploy, ② rerouted 50% traffic, ③ opened war room." 설명.' },
-            { time: '20–30', label: 'Exec Q&A', body: 'CEO, PR, Legal 질문. "Do we go public?" → IC 답변. "Is customer data at risk?" → Legal 답변.' },
-            { time: '30–40', label: '24hr plan', body: 'IC 가 "Course correct by EOD" 로 close. 명확한 owner + deadline × 3. Silver lining 한 줄.' },
+            { time: '0–5', label: 'Intro', body: 'Coach 가 small talk 3-part structure 설명. "Opener → transition → closer. 한국어였다면 자연스럽게 하는 것."' },
+            { time: '5–15', label: 'Scenario 1 — Coffee line', body: '회사 카페 줄 서 있다가 해외 동료 마주침. 3분 대화 → Coach 피드백.' },
+            { time: '15–25', label: 'Scenario 2 — Before standup', body: '해외 팀과 Zoom 연결됐는데 아직 2명 미접속. 5분 pause 를 small talk 로 채우기.' },
+            { time: '25–35', label: 'Scenario 3 — Airport waiting room', body: '출장 중 공항 라운지에서 우연히 거래처 담당자 마주침. 10분 flight 기다리는 동안 관계 쌓기.' },
+            { time: '35–40', label: 'Coach wrap', body: '각자 "본인에게 제일 natural 한 opener 1개" 정리. 다음 주까지 실전에서 써보기 숙제.' },
           ],
           props: [
-            { label: 'Monitoring graph', body: 'Checkout success rate: 94% → 76% at 11:42 UTC. P95 latency: 800ms → 4.2s.' },
-            { label: 'Slack incident channel', body: '#incident-20260514 · 11:48 UTC "rollback initiated" · 11:55 UTC "50% traffic rerouted to canary"' },
-            { label: '고객 불만 snippet', body: '"I just lost my cart of $240. Your checkout keeps failing." — @user_8291 on Twitter (15min ago)' },
+            { label: 'Opener cards', body: '"How was your weekend?" / "Did you catch the [event]?" / "First time in [city]?" / "Long flight?"' },
+            { label: 'Transition cards', body: '"Speaking of…" / "That reminds me…" / "By the way…" / "Anyway — "' },
+            { label: 'Closer cards', body: '"Let\'s catch up properly sometime." / "Ping me when you\'re back in town." / "Safe travels!" / "Let me grab you a coffee next time."' },
           ],
         },
         mustUseVocab: [
-          'triage', 'root cause', 'blast radius', 'mitigate',
-          'buy some time', 'value prop', 'course correct', 'silver lining',
+          'how was your weekend', 'what\'s keeping you busy', 'speaking of',
+          'by the way', 'anyway', 'catch up', 'grab coffee', 'ping me',
         ],
-        presenterPrompt: '본인 업계의 "작은 위기" 시나리오 하나 (실제 or 가상) 를 7분 briefing 으로. headline → cause → mitigation → next steps. 3분 Q&A 에서 "How bad is this really?" 대비.',
+        presenterPrompt: '본인이 자주 맞닥뜨리는 small talk 상황 하나를 7분 롤플레이. Opener → transition → closer 구조로. 3분 Q&A 에서 "이 opener 가 robot 같다 / natural 하다" 피드백 받기.',
         qaPrompts: [
-          'How bad is this really — worst case scenario?',
-          'What do we tell customers right now?',
-          'What did we learn that we\'ll do differently?',
+          'Which opener felt like you — which felt fake?',
+          'What\'s your go-to transition when you want to change topic?',
+          'How do you end a conversation without being awkward?',
         ],
       },
       {
         n: 4,
         date: '2026-05-21',
         signupCloseDate: '2026-05-20',
-        title: 'Week 4 — Final PT (PPT)',
-        desc: '본인 Industry 5-slide PT + 투자자 Q&A',
+        title: 'Week 4 — Full vocab recap',
+        desc: '20일 전체 단어를 한 롤플레이에 녹여내기 — bingo 식 체크',
         status: 'upcoming',
         zoom: 'Google Meet',
-        // Gaby 가 미팅 후 직접 채움 — recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
+        // 버디가 미팅 후 직접 채움 — recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
         recap: '',
         pptUrl: '',
         scenario: {
-          setting: 'Final Pitch · 5-slide industry pitch + 투자자 panel Q&A',
-          premise: '본인 industry 에서 실제 했던 / 하고 싶은 프로젝트를 5장 deck 으로. 40분 그룹 세션에서는 모두가 "elevator version" + 투자자 panel 질문 연습.',
+          setting: 'Quarterly review · 본인 업 상황 briefing + 의견 충돌 + alignment',
+          premise: '4주간 쌓은 전체 단어에서 최대한 많이 녹여 쓰기. 서로 체크리스트 들고 들으면서 누가 몇 개 썼는지 표시 — 마지막 bingo.',
           flow: [
-            '① Problem · one-liner',
-            '② Approach · 왜 이 방법인지',
-            '③ Execution · 어떻게 ship 했는지',
-            '④ Results · 임팩트 / 숫자',
-            '⑤ Lessons — 다시 한다면',
+            '① Briefing — 본인 업무 현황 · 이번 분기 one thing',
+            '② Conflict — 의견 충돌 / pushback 구간',
+            '③ Align — 합의 + 다음 스텝',
           ],
         },
         roleplay: {
           duration: 40,
           roles: [
-            { name: 'Presenter (3명 각각)', goal: '5분 elevator version (슬라이드 없이 입으로만). "X for Y that does Z" 형식.' },
-            { name: 'Skeptical Investor', goal: 'kill question 준비. "What\'s your moat?" "Why now?" 로 pushback.' },
-            { name: 'Optimistic Partner', goal: '긍정적 confusion 질문. "I love this, but help me understand X..."' },
-            { name: 'Domain Expert', goal: '업계 지식 기반 tough question. "저 industry 는 이미 X 회사가 하고 있는데?"' },
+            { name: 'Presenter (3명)', goal: '7분 본인 업무 briefing. 20일 Daily 단어 중 10개 이상 자연스럽게 녹여 넣기.' },
+            { name: 'Skeptic', goal: 'Conflict 구간에서 pushback. "Let me push back on…" / "I\'d reframe that…" 형태.' },
+            { name: 'Aligner', goal: 'Align 구간 담당. "So here\'s where we land…" / "Let\'s meet in the middle…"' },
+            { name: 'Vocab checker (전원)', goal: '체크리스트 들고 경청. 단어 쓸 때마다 체크 — bingo 8개 이상이면 완주.' },
           ],
           beats: [
-            { time: '0–15', label: '3명 elevator version', body: '각 5분 "elevator version" (슬라이드 없이 입으로만). Problem → approach → why now.' },
-            { time: '15–30', label: 'Investor panel 질문', body: 'Panel 이 각 presenter 에게 kill question 1개씩. "What\'s your moat?" "Why now?" "What happens in 18 months?"' },
-            { time: '30–40', label: 'Cross-feedback', body: '다른 presenter 들이 서로 1분씩 피드백. "If I were you I\'d..." 형식. retrospective.' },
+            { time: '0–5', label: '체크리스트 배포', body: 'Coach 가 20일 전체 단어 체크리스트 공유. 각자 "본인이 오늘 꼭 쓸 10개" pre-select.' },
+            { time: '5–15', label: 'Presenter 1 briefing', body: '7분 본인 업무 briefing + 3분 Q&A. Vocab checker 들이 단어 체크.' },
+            { time: '15–25', label: 'Presenter 2 briefing', body: '동일 패턴.' },
+            { time: '25–35', label: 'Presenter 3 briefing', body: '동일 패턴.' },
+            { time: '35–40', label: 'Bingo debrief', body: '누가 몇 개 썼는지 확인. 8+ 달성자 축하. 아직 못 쓴 단어 2-3개 "다음 주부터 실전 숙제" 지정.' },
           ],
           props: [
-            { label: 'One-liner template', body: '"[Product] for [audience] that [does X] by [how]. Unlike [alternative], we [unique edge]."' },
-            { label: '"Why now?" timeline', body: '축: 2020 → 2023 → 2026. "지금이 아니면 왜 안 되는가?" 근거 3개.' },
-            { label: 'Kill questions', body: '"What\'s your moat?" · "Why hasn\'t big player X done this?" · "What\'s your unit economics?" · "What if AI commoditizes this next year?"' },
+            { label: '20일 Vocab bingo 카드', body: '4x5 grid. 각 칸에 Daily 단어 1개. 본인이 롤플레이 중 쓴 단어에 체크.' },
+            { label: 'Briefing template', body: '"Right now my team is [context]. Our one thing this quarter is [anchor]. The timeline is [time-bound / in flux / …]. My biggest ask is [specific]."' },
+            { label: 'Conflict / align 프롬프트', body: 'Skeptic: "Let me play devil\'s advocate — what about X?" · Aligner: "So here\'s where we land — agree on Y, park Z."' },
           ],
         },
-        mustUseVocab: [
-          'ship', 'iterate', 'dogfood', 'table stakes',
-          'move the needle', 'retrospective', 'lessons learned', 'close the loop',
-        ],
-        presenterPrompt: '5장 PPT 로 본인 real project 발표. 마지막 슬라이드 "lessons learned" 필수. 7분 안에 close the loop. 3분 Q&A 에서 kill question 대비.',
+        mustUseVocabDynamic: '4주간 Daily 에서 학습한 전체 단어 · bingo 8+ 달성 목표',
+        mustUseVocab: [], // Week 4 는 전체 4주 단어가 동적 — mustUseVocabDynamic 참고
+        presenterPrompt: '4주간 학습한 단어 중 10개 이상을 녹여서 7분 final 발표. 실제 본인 업무 상황. 3분 Q&A 에서 "어떤 단어가 가장 어색했나 / 자연스러웠나" 피드백.',
         qaPrompts: [
-          'What\'s your moat?',
-          'Why now — what changed in the market?',
-          'What would you do differently in the next version?',
+          'Which word surprised you the most — you didn\'t know it 4 weeks ago?',
+          'Which one still feels forced? What would you replace it with?',
+          'Which 3 words will actually stay in your vocabulary?',
         ],
       },
     ],
@@ -1287,42 +1277,57 @@ const CHALLENGE = {
    - operator flag
 */
 const MEMBER_DIRECTORY = [
-  { code: '00', id: 'op1', name: '유버디', team: 'A', color: 'ink', tier: 'premium', role: '운영팀', isOperator: true },
-  { code: '3',  id: 'u1',  name: '이수진', team: 'A', color: 'ink', tier: 'premium' },
-  { code: '4',  id: 'u2',  name: '정주혜', team: 'B', color: 'cream', tier: 'premium' },
-  { code: '5',  id: 'u3',  name: '이도현', team: 'A', color: 'ink', tier: 'premium' },
-  { code: '6',  id: 'u4',  name: '정지은', team: 'B', color: 'cream', tier: 'premium' },
-  { code: '7',  id: 'u5',  name: '이송아', team: 'A', color: 'ink', tier: 'premium' },
-  { code: '8',  id: 'u6',  name: '고민지', team: 'B', color: 'cream', tier: 'basic' },
-  { code: '9',  id: 'u7',  name: '박연', team: 'A', color: 'ink', tier: 'basic' },
-  { code: '10', id: 'u8',  name: '장희정', team: 'B', color: 'cream', tier: 'basic' },
-  { code: '11', id: 'u9',  name: '이유빈', team: 'A', color: 'ink', tier: 'basic' },
-  { code: '12', id: 'u10', name: '박보름', team: 'B', color: 'cream', tier: 'basic' },
-  { code: '13', id: 'u11', name: '김선영', team: 'A', color: 'ink', tier: 'basic' },
-  { code: '14', id: 'u12', name: '신은선', team: 'B', color: 'cream', tier: 'basic' },
-  { code: '15', id: 'u13', name: '최보라', team: 'A', color: 'ink', tier: 'basic' },
-  { code: '16', id: 'u14', name: '백수지', team: 'B', color: 'cream', tier: 'basic' },
-  { code: '17', id: 'u15', name: '정진송', team: 'A', color: 'ink', tier: 'basic' },
-  { code: '18', id: 'u16', name: '권다희', team: 'B', color: 'cream', tier: 'basic' },
-  { code: '19', id: 'u17', name: '강태윤', team: 'A', color: 'ink', tier: 'basic' },
-  { code: '20', id: 'u18', name: '최수지', team: 'B', color: 'cream', tier: 'basic' },
-  { code: '21', id: 'u19', name: '이정은', team: 'A', color: 'ink', tier: 'basic' },
-  { code: '22', id: 'u20', name: '정송하', team: 'B', color: 'cream', tier: 'basic' },
-  { code: '23', id: 'u21', name: '김수린', team: 'A', color: 'ink', tier: 'basic' },
-  { code: '24', id: 'u22', name: '진여송', team: 'B', color: 'cream', tier: 'basic' },
-  { code: '25', id: 'u23', name: '권지선', team: 'A', color: 'ink', tier: 'basic' },
-  { code: '1',  id: 'u24', name: '이규태', team: 'B', color: 'cream', tier: 'premium' },
-  { code: '2',  id: 'u25', name: '이지흔', team: 'A', color: 'ink', tier: 'basic' },
-  { code: '26', id: 'u26', name: '모모',   team: 'A', color: 'ink',   tier: 'premium' },
+  /* 운영진 */
+  { code: '00', id: 'op1', name: '운영자', color: 'ink', tier: 'premium', role: '운영팀', isOperator: true },
+
+  /* 프리미엄 8명 (code 01~08) */
+  { code: '01', id: 'p1', name: '김소영', color: 'ink', tier: 'premium' },
+  { code: '02', id: 'p2', name: '손미경', color: 'ink', tier: 'premium' },
+  { code: '03', id: 'p3', name: '이수진', color: 'ink', tier: 'premium' },
+  { code: '04', id: 'p4', name: '정주혜', color: 'ink', tier: 'premium' },
+  { code: '05', id: 'p5', name: '이도현', color: 'ink', tier: 'premium' },
+  { code: '06', id: 'p6', name: '이송아', color: 'ink', tier: 'premium' },
+  { code: '07', id: 'p7', name: '정지은', color: 'ink', tier: 'premium' },
+  { code: '08', id: 'p8', name: '김정인', color: 'ink', tier: 'premium' },
+
+  /* 베이직 29명 (code 09~37) */
+  { code: '09', id: 'b1',  name: '고민지', color: 'cream', tier: 'basic' },
+  { code: '10', id: 'b2',  name: '박연',   color: 'cream', tier: 'basic' },
+  { code: '11', id: 'b3',  name: '장희정', color: 'cream', tier: 'basic' },
+  { code: '12', id: 'b4',  name: '이유빈', color: 'cream', tier: 'basic' },
+  { code: '13', id: 'b5',  name: '박보름', color: 'cream', tier: 'basic' },
+  { code: '14', id: 'b6',  name: '김선영', color: 'cream', tier: 'basic' },
+  { code: '15', id: 'b7',  name: '신은선', color: 'cream', tier: 'basic' },
+  { code: '16', id: 'b8',  name: '최보라', color: 'cream', tier: 'basic' },
+  { code: '17', id: 'b9',  name: '백수지', color: 'cream', tier: 'basic' },
+  { code: '18', id: 'b10', name: '정진송', color: 'cream', tier: 'basic' },
+  { code: '19', id: 'b11', name: '권다희', color: 'cream', tier: 'basic' },
+  { code: '20', id: 'b12', name: '강태윤', color: 'cream', tier: 'basic' },
+  { code: '21', id: 'b13', name: '최수지', color: 'cream', tier: 'basic' },
+  { code: '22', id: 'b14', name: '이정은', color: 'cream', tier: 'basic' },
+  { code: '23', id: 'b15', name: '정송하', color: 'cream', tier: 'basic' },
+  { code: '24', id: 'b16', name: '김수린', color: 'cream', tier: 'basic' },
+  { code: '25', id: 'b17', name: '진여송', color: 'cream', tier: 'basic' },
+  { code: '26', id: 'b18', name: '권지선', color: 'cream', tier: 'basic' },
+  { code: '27', id: 'b19', name: '윤수정', color: 'cream', tier: 'basic' },
+  { code: '28', id: 'b20', name: '양은지', color: 'cream', tier: 'basic' },
+  { code: '29', id: 'b21', name: '임혜연', color: 'cream', tier: 'basic' },
+  { code: '30', id: 'b22', name: '조예지', color: 'cream', tier: 'basic' },
+  { code: '31', id: 'b23', name: '고주영', color: 'cream', tier: 'basic' },
+  { code: '32', id: 'b24', name: '신지현', color: 'cream', tier: 'basic' },
+  { code: '33', id: 'b25', name: '김지현', color: 'cream', tier: 'basic' },
+  { code: '34', id: 'b26', name: '신지은', color: 'cream', tier: 'basic' },
+  { code: '35', id: 'b27', name: '임정연', color: 'cream', tier: 'basic' },
+  { code: '36', id: 'b28', name: '허윤형', color: 'cream', tier: 'basic' },
+  { code: '37', id: 'b29', name: '이지유', color: 'cream', tier: 'basic' },
 ];
 
 /* 5기 roster used across dashboard/community/profile */
 const MEMBERS = [
-  { id: 'me', name: '나', team: 'A', color: 'orange', progress: 0, streak: 0, me: true, tier: 'auto' },
+  { id: 'me', name: '나', color: 'orange', progress: 0, streak: 0, me: true, tier: 'auto' },
   ...MEMBER_DIRECTORY.map((member) => ({
     id: member.id,
     name: member.name,
-    team: member.team,
     color: member.color,
     progress: 0,
     streak: 0,
@@ -1461,7 +1466,9 @@ const defaultState = () => ({
   quiz_results: {},               // { "d1": { score:5, total:6, takenAt:"2026-04-21T10:00:00.000Z" } } 최초 시험 점수만 저장. 다시풀기는 덮어쓰지 않음.
   tierOverride: null,             // 'basic' 으로 설정하면 MEMBER_DIRECTORY 가 premium 이어도 basic 으로 강제 (베이직 프리뷰). null = 비활성.
   __vocabMigrated: false,          // 기존 bookmarks/saved_syns → pitch_vocab 일회성 이관 플래그.
-  cert_profile: null,              // { topic, strengths: [..], growth: [..], keyVocab: [..], finalVocab: [{en, ko}], issuedAt } — Gaby 가 수료 시점에 주입하는 개인화 데이터. null 이면 자동 데이터만 사용.
+  cert_profile: null,              // { topic, strengths: [..], growth: [..], keyVocab: [..], finalVocab: [{en, ko}], issuedAt } — Buddy 가 수료 시점에 주입하는 개인화 데이터. null 이면 자동 데이터만 사용.
+  tour_done: false,                // 가입 후 최초 1회 tier 별 온보딩 튜어 완료 여부. Basic/Premium 분기 (showOnboardingTour 참고).
+  tour_started_tier: null,         // 튜어를 시작한 시점의 tier — 중간에 tier 가 바뀌어도 완결은 시작 시점 시퀀스로.
 });
 const PERSISTED_STATE_KEYS = [
   'tier',
@@ -1513,6 +1520,8 @@ const PERSISTED_STATE_KEYS = [
   'tierOverride',
   '__vocabMigrated',
   'cert_profile',
+  'tour_done',
+  'tour_started_tier',
 ];
 
 /* Demo seed — pre-fills a few days (1, 3, 5 late, 7) so the design can be previewed
@@ -2902,6 +2911,12 @@ function presenterSlotsRemaining(n) {
   const cap = Number(CHALLENGE.premium.presenter_slots_per_week || 3);
   return Math.max(0, cap - weekSignupsArray(n).length);
 }
+// Week 에 발표자 시트가 있는지 — Week 1 같은 "온보딩/자기소개" 주는 noPresenter:true 라서 false.
+function weekHasPresenter(n) {
+  const meta = (CHALLENGE.premium.weekly_meetings || []).find(x => Number(x.n) === Number(n));
+  if (!meta) return false;
+  return !meta.noPresenter;
+}
 
 /* ============================================================
    VOCAB BANK — 통합 저장소 (state.pitch_vocab) 헬퍼들
@@ -3343,7 +3358,7 @@ async function loadMemberSummaries(opts = {}) {
         if (missing) {
           console.warn(
             '[sync] get_cohort_member_summaries RPC 가 verified_days 를 반환하지 않아요. ' +
-            'Supabase SQL editor 에서 최신 마이그레이션을 돌려야 이규태 Day 2 싱크 버그가 완전히 고쳐져요.'
+            'Supabase SQL editor 에서 최신 마이그레이션을 돌려야 멤버별 Day 싱크가 정확해져요.'
           );
           window.__verifiedDaysWarned = true;
         }
@@ -3838,6 +3853,9 @@ function render() {
       } catch (e) {}
     }
 
+    // Onboarding tour — 가입 완료 후 최초 1회만. tier 별 시퀀스 분기.
+    try { ensureOnboardingTour(); } catch (_tourErr) { console.warn('[tour] render hook', _tourErr); }
+
     stopPeerTicker();
   } catch (error) {
     console.error('render failed', error);
@@ -3859,6 +3877,275 @@ function render() {
     root.appendChild(app);
   }
 }
+
+/* ============================================================
+   ONBOARDING TOUR — 가입 완료 후 최초 1회 tier 별 튜어
+   ------------------------------------------------------------
+   트리거: state.onboarded === true && state.tour_done === false
+   종료 조건: 마지막 스텝의 '시작하기' 또는 건너뛰기 → tour_done=true + cloud save
+   테스트: window.__resetTour() 콘솔에 치면 다시 뜸
+   ============================================================ */
+
+// 튜어 스텝 정의 — tier 별 독립 시퀀스
+function onboardingTourSteps(tier) {
+  const displayName = (state.englishName || state.name || 'buddy');
+  if (tier === 'premium') {
+    return [
+      {
+        emoji: '💎',
+        kicker: 'Welcome, Premium',
+        title: `${displayName} 님, 환영해요!`,
+        body: `5기 프리미엄은 <b>20일 데일리 루틴 + 주 1회 Zoom 미팅 + 4주 중 1주 발표자</b> 로 굴러가요. 30초만 같이 둘러보고 시작해요.`,
+      },
+      {
+        emoji: '📖',
+        kicker: 'Step 1 · Daily',
+        title: '매일 3단어, 하루 15분',
+        body: `Day 1 ~ 20 까지 매일 새로운 3단어 + 짧은 퀴즈 + 문장 작성. 알림 놓친 날은 <b>지각 인증</b> 도 OK, 내일 것도 <b>미리 풀기</b> 가능. 꾸준함이 핵심이에요.`,
+      },
+      {
+        emoji: '🎭',
+        kicker: 'Step 2 · Weekly',
+        title: '주 1회 Zoom 실전 미팅',
+        body: `매주 40분 그룹 롤플레이 + 30분 발표자 3명 × (7분 토크 + 3분 Q&amp;A). 그 주 배운 표현을 실제로 입으로 굴리는 자리예요.`,
+      },
+      {
+        emoji: '🎤',
+        kicker: 'Step 3 · Presenter',
+        title: '4주 중 1주는 내가 발표자',
+        body: `프리미엄의 핵심. <b>한 사람 당 1주</b> 만 발표자로 자리 잡을 수 있어서, 원하는 주차는 <b>일찍 잡아두는 게</b> 안전해요. 스크립트 초안 → 코치 피드백 → 당일 7분 발표.`,
+      },
+      {
+        emoji: '📝',
+        kicker: 'Step 4 · Pitch Studio',
+        title: '내 발표 준비 공간',
+        body: `PT STUDIO 에서 스크립트, 어휘, 준비 노트를 한곳에 모아요. 미팅이나 데일리에서 저장한 단어는 <b>단어장</b> 에 자동으로 쌓입니다.`,
+      },
+      {
+        emoji: '🎓',
+        kicker: 'Step 5 · Wrap',
+        title: 'Personal Quiz + 수료증',
+        body: `발표 끝나고 나면 buddy 가 <b>내 스크립트 기반 퍼스널 퀴즈</b> 를 넣어드려요. 20일 중 18일 인증하면 수료증도 발급 — 준비 끝, 시작할게요!`,
+      },
+    ];
+  }
+  // Basic (기본)
+  return [
+    {
+      emoji: '👋',
+      kicker: 'Welcome, Basic',
+      title: `${displayName} 님, 환영해요!`,
+      body: `5기 베이직은 <b>20일 데일리 루틴</b> 으로 굴러가요. 매일 3단어 + 짧은 퀴즈 + 짧은 문장 작성. 30초만 같이 둘러보고 시작해요.`,
+    },
+    {
+      emoji: '📖',
+      kicker: 'Step 1 · Daily',
+      title: '매일 3단어, 하루 15분',
+      body: `Day 1 ~ 20 까지 매일 새 단어가 열려요. 알림 놓친 날은 <b>지각 인증</b>, 내일 것도 <b>미리 풀기</b> 가능. 완벽한 하루보다 <b>끊기지 않는 루틴</b> 을 챙기세요.`,
+    },
+    {
+      emoji: '📅',
+      kicker: 'Step 2 · Board',
+      title: '주간 보드에서 한눈에',
+      body: `오늘 미인증 Day 는 <b>주황 테두리</b>, 완료한 Day 는 <b>주황 풀칠 + 체크</b>, 지각 인증은 <b>까만색</b> 으로 달라요. 어디에 와 있는지 한눈에 보여요.`,
+    },
+    {
+      emoji: '💬',
+      kicker: 'Step 3 · Community',
+      title: '함께하는 버디들',
+      body: `같은 기수 분들이 올린 문장을 보면서 표현을 저장해보세요. 저장 → <b>내 단어장 (나만 보여요!)</b> 으로 쌓인답니다.`,
+    },
+    {
+      emoji: '🎁',
+      kicker: 'Step 4 · Wrap',
+      title: '완주 기준은 18/20',
+      body: `20일 중 <b>18일 이상 인증</b> 하면 완주. 완주한 버디에게는 <b>이번 기수 단어장 PDF + 완주 배지 + 6기 얼리버드 쿠폰</b> 을 보내드려요. 준비 끝 — 시작할게요!`,
+    },
+  ];
+}
+
+// Overlay DOM builder — 현재 스텝만 렌더
+function buildOnboardingTourOverlay() {
+  const tier = state.tour_started_tier || state.tier || 'basic';
+  const steps = onboardingTourSteps(tier);
+  let idx = Math.min(Math.max(window.__tourStepIdx || 0, 0), steps.length - 1);
+  const step = steps[idx];
+  const last = idx === steps.length - 1;
+
+  const overlay = el('div', {
+    class: 'onboarding-tour-overlay',
+    style: {
+      position: 'fixed', inset: '0', zIndex: '200',
+      background: 'rgba(26,18,10,0.72)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '20px',
+    },
+  });
+
+  const card = el('div', {
+    style: {
+      width: '100%', maxWidth: '480px',
+      background: 'var(--cream, #FFFDF7)', color: 'var(--ink, #2A1F14)',
+      borderRadius: '28px', padding: '32px 28px 28px',
+      boxShadow: '0 24px 70px rgba(0,0,0,0.35)',
+      position: 'relative',
+    },
+  });
+
+  // Top row: step counter + skip
+  const top = el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' } });
+  const counter = el('div', {
+    style: {
+      display: 'flex', gap: '6px', alignItems: 'center',
+      fontSize: '11px', fontWeight: '800', letterSpacing: '0.12em', color: 'var(--muted, #8A7A5C)', textTransform: 'uppercase',
+    },
+  });
+  counter.innerHTML = `<span style="color:var(--orange, #F07D38);">${idx + 1}</span> / ${steps.length}`;
+  const skipBtn = el('button', {
+    onClick: () => completeOnboardingTour(false),
+    style: {
+      background: 'transparent', border: 'none', color: 'var(--muted, #8A7A5C)',
+      fontSize: '12px', fontWeight: '600', cursor: 'pointer', padding: '6px 8px',
+    },
+  }, '건너뛰기');
+  top.appendChild(counter);
+  top.appendChild(skipBtn);
+  card.appendChild(top);
+
+  // Emoji hero
+  const emoji = el('div', {
+    style: {
+      fontSize: '56px', lineHeight: '1', margin: '14px 0 20px',
+    },
+  }, step.emoji);
+  card.appendChild(emoji);
+
+  // Kicker
+  const kicker = el('div', {
+    style: {
+      fontSize: '11px', fontWeight: '800', letterSpacing: '0.16em',
+      color: 'var(--orange-dark, #C95721)', textTransform: 'uppercase', marginBottom: '8px',
+    },
+  }, step.kicker);
+  card.appendChild(kicker);
+
+  // Title
+  const title = el('h2', {
+    style: { fontSize: '24px', fontWeight: '900', letterSpacing: '-0.02em', margin: '0 0 14px', lineHeight: '1.25' },
+  }, step.title);
+  card.appendChild(title);
+
+  // Body (innerHTML — includes <b> tags)
+  const body = el('div', {
+    style: { fontSize: '15px', lineHeight: '1.65', color: 'var(--ink-soft, #5B4A32)', minHeight: '92px' },
+  });
+  body.innerHTML = step.body;
+  card.appendChild(body);
+
+  // Progress dots
+  const dots = el('div', {
+    style: { display: 'flex', gap: '6px', justifyContent: 'center', margin: '28px 0 20px' },
+  });
+  for (let i = 0; i < steps.length; i++) {
+    dots.appendChild(el('span', {
+      style: {
+        width: i === idx ? '24px' : '8px', height: '8px', borderRadius: '999px',
+        background: i === idx ? 'var(--orange, #F07D38)' : 'rgba(154,139,115,0.3)',
+        transition: 'width 0.22s ease, background 0.22s ease',
+      },
+    }));
+  }
+  card.appendChild(dots);
+
+  // CTA row
+  const ctaRow = el('div', { style: { display: 'flex', gap: '10px' } });
+  if (idx > 0) {
+    const back = el('button', {
+      class: 'btn',
+      onClick: () => { window.__tourStepIdx = idx - 1; refreshOnboardingTour(); },
+      style: {
+        flex: '0 0 auto', padding: '14px 20px', borderRadius: '999px',
+        background: 'transparent', border: '1.5px solid var(--line, #E7DDC8)', color: 'var(--ink, #2A1F14)',
+        fontWeight: '700', fontSize: '14px', cursor: 'pointer',
+      },
+    }, '이전');
+    ctaRow.appendChild(back);
+  }
+  const next = el('button', {
+    class: 'btn btn-primary',
+    onClick: () => {
+      if (last) { completeOnboardingTour(true); }
+      else { window.__tourStepIdx = idx + 1; refreshOnboardingTour(); }
+    },
+    style: {
+      flex: '1', padding: '14px 22px', borderRadius: '999px',
+      background: 'var(--orange, #F07D38)', color: '#fff', border: 'none',
+      fontWeight: '800', fontSize: '14.5px', cursor: 'pointer',
+      boxShadow: '0 8px 22px rgba(240,125,56,0.3)',
+    },
+  }, last ? '시작하기 →' : '다음 →');
+  ctaRow.appendChild(next);
+  card.appendChild(ctaRow);
+
+  overlay.appendChild(card);
+  return overlay;
+}
+
+function refreshOnboardingTour() {
+  const existing = document.querySelector('.onboarding-tour-overlay');
+  if (existing) existing.remove();
+  const next = buildOnboardingTourOverlay();
+  document.body.appendChild(next);
+}
+
+function ensureOnboardingTour() {
+  const existing = document.querySelector('.onboarding-tour-overlay');
+  // 조건: 가입 완료 + 튜어 미완료 + 데모 모드 아님
+  const shouldShow = state.onboarded === true
+    && state.tour_done !== true
+    && !__DEMO_MODE__
+    && (state.tier === 'basic' || state.tier === 'premium');
+
+  if (!shouldShow) {
+    if (existing) existing.remove();
+    return;
+  }
+  // 이미 떠있으면 유지 (render 때마다 다시 만들면 Next 눌러서 진행한 스텝이 리셋됨)
+  if (existing) return;
+  // 튜어 시작 시 tier 고정 (중간에 tier 바뀌어도 시작한 시퀀스로 완결)
+  if (!state.tour_started_tier) {
+    state.tour_started_tier = state.tier;
+    try { saveState(); } catch (e) {}
+  }
+  window.__tourStepIdx = 0;
+  document.body.appendChild(buildOnboardingTourOverlay());
+}
+
+function completeOnboardingTour(reachedEnd) {
+  state.tour_done = true;
+  // tour_started_tier 는 감사용으로 유지 (어떤 tier 시퀀스로 튜어를 봤는지 기록)
+  // Operator preview 모드면 원래 tier 복구 (튜어 보려고 임시로 'basic'/'premium' 세팅했던 걸 되돌림)
+  if (state.isOperator && window.__operatorOriginalTier) {
+    state.tier = window.__operatorOriginalTier;
+    delete window.__operatorOriginalTier;
+  }
+  try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch(_){} }
+  const existing = document.querySelector('.onboarding-tour-overlay');
+  if (existing) existing.remove();
+  if (reachedEnd) {
+    try { showToast('시작해볼까요 ☕'); } catch (e) {}
+  }
+}
+
+// 콘솔 테스트용 — buddy 가 다시 튜어를 보고 싶을 때
+window.__resetTour = function() {
+  state.tour_done = false;
+  state.tour_started_tier = null;
+  window.__tourStepIdx = 0;
+  try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch(_){} }
+  render();
+  console.log('[resetTour] tour_done=false, render()');
+};
 
 /* ============================================================
    PEER TICKER — floating "방금 문장이 추가됐어요" notification
@@ -4082,12 +4369,20 @@ function TopBar(title='') {
 // Code → { name, role?, tier? } binding.
 // Participant codes are derived from MEMBER_DIRECTORY above.
 const ONBOARD_CODE_MAP = MEMBER_DIRECTORY.reduce((acc, member) => {
-  acc[String(member.code)] = {
+  const entry = {
     name: member.name,
     role: member.role || '',
     tier: member.tier || 'basic',
     isOperator: !!member.isOperator,
   };
+  // 코드 자체 ('01') + 숫자로 변환한 unpadded ('1') 둘 다 등록 —
+  // 회원이 "01" 이든 "1" 이든 입력해도 로그인 되도록.
+  const raw = String(member.code);
+  acc[raw] = entry;
+  const asNum = Number(raw);
+  if (!Number.isNaN(asNum) && String(asNum) !== raw) {
+    acc[String(asNum)] = entry;
+  }
   return acc;
 }, {
   // Generic codes keep original behavior (user types name themselves)
@@ -4194,7 +4489,7 @@ function OnboardingPage() {
       </p>
       <label style="display:grid;gap:6px;margin-bottom:12px;">
         <span class="kicker" style="color:var(--muted);">이름</span>
-        <input id="__obName" class="input" type="text" placeholder="유버디" value="${escapeHtml(__onboardDraft.name)}" autocomplete="name" />
+        <input id="__obName" class="input" type="text" placeholder="예: 홍길동" value="${escapeHtml(__onboardDraft.name)}" autocomplete="name" />
       </label>
       <label style="display:grid;gap:6px;margin-bottom:12px;">
         <span class="kicker" style="color:var(--muted);">영어 닉네임 <span style="color:var(--muted);font-weight:400;">(선택 · 8자 이내)</span></span>
@@ -4279,6 +4574,12 @@ function OnboardingPage() {
         <textarea id="__obIssue" class="input" rows="4" placeholder="예: 미팅에서 아이디어는 있는데 타이밍을 못 잡아서 끼어들질 못해요" style="font-size:13.5px;line-height:1.55;resize:vertical;">${escapeHtml(__onboardDraft.currentIssue)}</textarea>
       </label>
       <p style="margin:8px 0 0;font-size:11px;color:var(--muted);line-height:1.5;">비워둬도 넘어갈 수 있어요. 나중에 프로필에서 수정할 수 있어요.</p>
+      <div style="margin-top:18px;padding:12px 14px;border-radius:12px;background:rgba(66,48,28,0.04);border:1px solid rgba(66,48,28,0.08);">
+        <div class="kicker" style="color:var(--muted);margin-bottom:4px;">© COPYRIGHT · IP</div>
+        <p style="margin:0;font-size:10.5px;color:var(--muted);line-height:1.6;">
+          이 챌린지는 유버디가 개인적으로 기획·개발한 콘텐츠입니다. 구성·단어 큐레이션·워크플로를 유사하게 복제·재배포할 경우 법적 조치 대상이 될 수 있어요.
+        </p>
+      </div>
     `;
   }
   page.appendChild(card);
@@ -4980,7 +5281,7 @@ function Checkboard() {
       } else {
         // 피어 셀: verifiedDays (서버가 내려주는 실제 인증된 day 번호 배열) 를 최우선으로 사용.
         // RPC 가 구버전이라 verifiedDays 가 비어있으면 progress 카운트로 fallback (Day 1..progress 를 on 으로).
-        // 전 버그: progress 를 "최대 Day 번호" 로 오해해서, 이규태가 Day 2 만 인증하면
+        // 전 버그: progress 를 "최대 Day 번호" 로 오해해서, 멤버가 Day 2 만 인증하면
         // progress=1 → Day 1 을 on 으로 표시하고 Day 2 는 today 링으로 표시됨.
         const verifiedSet = Array.isArray(m.verifiedDays) && m.verifiedDays.length
           ? new Set(m.verifiedDays.map(Number))
@@ -5990,13 +6291,7 @@ function DayPage(dayN) {
               ${premiumDetail || `<div style="padding:12px 14px;border-radius:14px;background:rgba(255,255,255,0.82);border:1px solid rgba(169,139,184,0.22);font-size:12px;color:#765d87;">상세 유의어 설명이 곧 추가돼요.</div>`}
             </div>
           </div>
-        ` : `
-          <div style="margin-top:12px;padding:15px 16px;border-radius:18px;background:linear-gradient(135deg, rgba(238,230,243,0.96) 0%, rgba(255,248,255,0.98) 100%);border:1px solid rgba(169,139,184,0.3);">
-            <div class="kicker" style="color:var(--lilac);">PREMIUM ONLY</div>
-            <div style="margin-top:8px;font-size:14px;line-height:1.55;color:var(--ink);font-weight:700;">유의어 상세 설명과 상황별 뉘앙스 차이는 프리미엄에서만 볼 수 있어요.</div>
-            <div class="t-small" style="margin-top:6px;color:#765d87;line-height:1.55;">같은 뜻처럼 보여도 회의 톤, 강도, 써도 자연스러운 장면이 달라져요. 다음 기수에 프리미엄으로 참여하시면 열어드려요.</div>
-          </div>
-        `}
+        ` : ''}
       `;
       card.appendChild(detail);
     }
@@ -6491,7 +6786,7 @@ function DayPage(dayN) {
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
             <div style="width:32px;height:32px;border-radius:10px;background:var(--paper);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--ink);">${escapeHtml(p.avatar || '')}</div>
             <div style="flex:1;min-width:0;">
-              <div style="font-size:13px;font-weight:700;color:var(--ink);">${escapeHtml(p.user)} <span class="t-small mono" style="color:var(--muted);font-weight:500;">· ${p.team}</span></div>
+              <div style="font-size:13px;font-weight:700;color:var(--ink);">${escapeHtml(p.user)}</div>
               <div class="t-small mono" style="font-size:10px;color:var(--muted);">${escapeHtml(p.time || '')}</div>
             </div>
             <span class="syn-chip" style="font-size:10px;padding:4px 10px;">${escapeHtml(word.toUpperCase())}</span>
@@ -9867,6 +10162,14 @@ function SettingsModal() {
         <div class="kicker" style="color:var(--orange-dark);">OPERATOR ONLY</div>
         <div style="margin-top:6px;font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">가입 화면부터 다시 확인할 수 있어요.</div>
         <button id="__settingsResetApp" class="btn btn-ghost btn-full" style="margin-top:12px;border-color:rgba(240,125,56,0.24);">가입부터 다시 시작</button>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
+          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">온보딩 팝업 플레이해보기</div>
+          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">실제 멤버들이 가입 직후 보는 팝업 튜어를 그대로 미리 볼 수 있어요.</div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button id="__settingsPlayTourBasic" class="btn btn-ghost" style="flex:1;border-color:rgba(240,125,56,0.24);font-size:12.5px;padding:10px 8px;">Basic 로 플레이 (5스텝)</button>
+            <button id="__settingsPlayTourPremium" class="btn btn-ghost" style="flex:1;border-color:rgba(192,132,252,0.3);color:var(--lilac, #9A6FD9);font-size:12.5px;padding:10px 8px;">Premium 로 플레이 (6스텝)</button>
+          </div>
+        </div>
       </div>
     ` : ''}
     <div style="display:flex;gap:8px;margin-top:20px;">
@@ -9914,6 +10217,27 @@ function SettingsModal() {
       render();
     };
     if (resetBtn) resetBtn.onclick = () => window.__resetForSignup();
+
+    // Operator-only: onboarding 팝업 튜어 미리보기 (실제 멤버가 보는 오버레이)
+    const playBasicBtn = document.getElementById('__settingsPlayTourBasic');
+    const playPremiumBtn = document.getElementById('__settingsPlayTourPremium');
+    const playTourAs = (tier) => {
+      // 원래 tier 기억 → 튜어 끝나면 운영자 본인 tier 로 복귀
+      if (!window.__operatorOriginalTier) {
+        window.__operatorOriginalTier = state.tier;
+      }
+      state.tier = tier;
+      state.tour_done = false;
+      state.tour_started_tier = tier;
+      window.__tourStepIdx = 0;
+      showSettings = false;
+      try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch(_){} }
+      render();
+      // tourStart fires in ensureOnboardingTour() on next render tick
+    };
+    if (playBasicBtn) playBasicBtn.onclick = () => playTourAs('basic');
+    if (playPremiumBtn) playPremiumBtn.onclick = () => playTourAs('premium');
+
     modal.querySelectorAll('.role-chip').forEach((chip) => {
       chip.onclick = () => {
         const r = chip.getAttribute('data-role') || '';
@@ -9952,7 +10276,7 @@ function MemberCardModal(memberRef) {
   });
   const memberEng = member.me ? (state.englishName || '').trim() : (member.englishName || '').trim();
   // 영어 닉네임이 있으면 그게 헤드라인. 한국어 본명은:
-  //   - 본인 카드 (me=true) 에선 "본명 · 이규태" 로 작게 (자기 확인용)
+  //   - 본인 카드 (me=true) 에선 "본명 · 홍길동" 로 작게 (자기 확인용)
   //   - 피어 카드 에선 아예 안 보임 (프라이버시 — 다른 사람한테 본명 안 노출)
   //   - 영어 닉네임이 비어있으면 어쩔 수 없이 한국어 이름이 headline 으로 fallback
   //     (그 사람이 아직 닉네임을 세팅 안 한 상태)
@@ -11541,7 +11865,7 @@ function fireConfetti() {
    BOOT
    ============================================================ */
 // 0) ?reset=1 URL param — wipes local cache for a clean re-onboarding.
-//    Use this to reset a specific device (e.g., 유버디/이규태/이지흔 test accounts).
+//    Use this to reset a specific device (test accounts, 중복 로그인 디바이스 등).
 //    Nukes BOTH LS_KEY and any stray demoMode flag, then strips the query so
 //    refreshes don't keep wiping. Intentionally fires BEFORE hydrate so there
 //    is no cached state left for mergePersistedState() to restore.

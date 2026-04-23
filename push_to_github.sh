@@ -1,6 +1,8 @@
 #!/bin/bash
 # YOUBUDDY 5기 베타 - 커밋 + 푸시 스크립트
 # 실행: bash /Users/gyo/Downloads/youbuddy-challenge-claude/push_to_github.sh
+#
+# ⚠️  landing page (/index.html) 은 buddy 명시 허락 전까지 커밋에서 제외.
 set -e
 
 REPO="/Users/gyo/Downloads/youbuddy-challenge-claude"
@@ -16,76 +18,72 @@ echo "==> 현재 상태:"
 git status --short
 git log --oneline -3
 
-# 변경분이 있으면 전부 stage 후 자동 커밋.
-if ! git diff --cached --quiet || ! git diff --quiet; then
+# 5th/index.html + push_to_github.sh 만 stage. 루트 index.html 은 제외.
+echo ""
+echo "==> 5th/index.html + push_to_github.sh stage..."
+git add 5th/index.html push_to_github.sh
+
+if ! git diff --cached --quiet; then
   echo ""
   echo "==> 변경 사항 커밋..."
-  git add -A
-  if ! git diff --cached --quiet; then
-    git commit -m "발표자 1주 제한 + Personal Quiz 락 + 단어장 통합 + 리치 수료증
+  git commit -m "5기 실명단 + 팀 제거 + IP 경고 + 완주 선물 카피 + 온보딩 미리보기
 
-발표자 1주 제한
-- 한 사람이 4주차 중 1주만 발표자로 자리 잡도록.
-- myPresenterWeek() helper → PremiumPage CTA 에 'Week N 에 이미 자리
-  잡음' 락 버튼 분기 추가. 다른 주 카드에서도 signup 버튼 자동 막힘.
-- signup RPC ALREADY_SIGNED_UP 에러 → '이미 Week N 에 자리 잡으셨어요.
-  옮기려면 그 주 자리부터 내려놓기' 토스트.
+5기 실명단 (37명)
+- Premium 8명 (code 01~08): 김소영, 손미경, 이수진, 정주혜,
+  이도현, 이송아, 정지은, 김정인.
+- Basic 29명 (code 09~37): 고민지, 박연, 장희정, 이유빈, 박보름,
+  김선영, 신은선, 최보라, 백수지, 정진송, 권다희, 강태윤, 최수지,
+  이정은, 정송하, 김수린, 진여송, 권지선, 윤수정, 양은지, 임혜연,
+  조예지, 고주영, 신지현, 김지현, 신지은, 임정연, 허윤형, 이지유.
+- 운영자(op1) 이름 '유버디' → '운영자'.
+- 테스트 흔적 (이규태 u24, 이지흔 u25, 모모 u26) 제거.
+- 코드 lookup: '01' / '1' 둘 다 로그인 되게 정규화.
 
-Personal Quiz 락 (발표 후 스크립트 주입 → 생성)
-- personalQuizState() 4단계 gating: not_signed_up / before_present /
-  waiting_inject / ready.
-- state.personal_quiz = { items, basedOnScript, injectedAt, week } +
-  state.personal_quiz_answers 로 개편. 기존 주별 기본 퀴즈 로직 삭제.
-- PremiumPage 퀴즈 카드 + QuizPage 에 단계별 락 카피 표시.
-- Operator console helpers: window.__injectPersonalQuiz({items,
-  basedOnScript, week}), __clearPersonalQuiz(). state.isOperator 일
-  때 QuizPage 에 inject 텍스트에리어 노출 (셀프 테스트용).
-- Markdown export + ProfilePage quizDone 계산 personal_quiz 기준으로.
+팀 A/B 제거
+- MEMBER_DIRECTORY 에서 team 필드 삭제.
+- 커뮤니티 포스트 헤더 '· A' 꼬리표 제거.
+- myTeam() 내부 fallback 은 'A' 고정 (데이터 호환).
 
-단어장 통합 (pitch_vocab 단일 소스)
-- 데일리 북마크 / 유의어 북마크 / 미팅 chip / 수동 입력 → 전부
-  state.pitch_vocab 로 수렴. 각 엔트리에 source + sourceKey 부여.
-- addToVocabBank/removeFromVocabBank/syncDailyBookmarkToBank/
-  syncSynBookmarkToBank/clearLinkedBookmarksForVocab helper.
-- 토글 훅: 데일리 북마크 on/off, window.__toggleBookmark,
-  window.__toggleSynBookmark 모두 bank 동기화.
-- migrateBookmarksToVocabBank() 1회 마이그레이션 — __vocabMigrated 로
-  가드. boot hydrate 후 실행.
-- VOCAB BANK UI: source 필터 chip (전체/데일리/유의어/미팅/직접) +
-  색상 구분 source 라벨 pill.
+IP / 저작권 경고
+- 5th 온보딩 STEP 4 하단에 'COPYRIGHT · IP' 박스 추가:
+  '이 챌린지는 유버디가 개인적으로 기획·개발한 콘텐츠입니다.
+  구성·단어 큐레이션·워크플로를 유사하게 복제·재배포할 경우
+  법적 조치 대상이 될 수 있어요.'
 
-리치 HTML 수료증 파이프라인
-- 기존 SVG 1장짜리 downloadCertificate 를 buildCertHtml() 로 교체.
-  오렌지 테마, Cormorant Garamond + Noto Sans KR, glass 카드, 4개
-  스탯 pill, topic/strengths/growth/keyVocab 카드 (비었으면 숨김),
-  다크 Final Vocabulary 그리드 (pitch_vocab 중 daily > manual 우선
-  top 10), 서명 footer.
-- 자동 수집: englishName / role / done·total·overall / vocabCount /
-  startDate·endDate·days / finalVocab. 코치 수기 입력은 cert_profile
-  ={topic,strengths,growth,keyVocab,issuedAt} 로 분리.
-- Operator console helpers: window.__injectCertProfile(profile),
-  __clearCertProfile(). state.isOperator 일 때 CertPage 에 inject
-  패널 + 상태 카드 노출.
-- 유저는 HTML 다운로드 후 브라우저 ⌘+P 로 PDF 변환 (외부 라이브러리
-  없음).
+완주 선물 카피 (Basic Step 4 팝업 튜어)
+- '수료증 발급' → '완주 기준 18/20 · 이번 기수 단어장 PDF +
+  완주 배지 + 6기 얼리버드 쿠폰'.
+- 아이콘 🎓 → 🎁.
 
-주간 보드 타일 UX — 오늘 vs 완료 구분
-- 기존 st === 'today' 와 st === 'done' 이 둘 다 주황 풀칠이라 '오늘
-  아직 미인증' Day 가 완료처럼 보이던 버그.
-- 'today' → 크림 배경 + 주황 두꺼운 테두리 (비어있는 느낌).
-- 'done' → 주황 풀칠 + 흰 체크 점.
-- 레전드에도 '오늘 · 미인증' 칸 추가.
+Basic Step 3 팝업 튜어
+- '같이 도는 버디들' → '함께하는 버디들'.
+- '표현을 훔쳐가세요. 저장 → 내 단어장으로 쌓이고, 수료증까지
+  따라와요.' → '표현을 저장해보세요. 저장 → 내 단어장(나만
+  보여요!)으로 쌓인답니다.'
 
-State / 지속성
-- PERSISTED_STATE_KEYS 에 personal_quiz, personal_quiz_answers,
-  __vocabMigrated, cert_profile 추가. 모두 app_state JSONB 내부라
-  신규 SQL 마이그레이션 불필요.
+운영자 전용 — 온보딩 팝업 미리보기
+- 설정 모달 OPERATOR ONLY 섹션에 'Basic 로 플레이 (5스텝)' /
+  'Premium 로 플레이 (6스텝)' 버튼 추가.
+- 클릭 시 state.tier 를 임시로 flip + tour_done=false → 설정 모달
+  닫고 실제 멤버가 보는 오버레이 그대로 재생.
+- completeOnboardingTour 에서 운영자 원본 tier 복구 (window.
+  __operatorOriginalTier 임시 저장).
+
+챌린지 일정 이동
+- start_date 2026-04-20 → 2026-04-27 (월), end_date 2026-05-15
+  → 2026-05-22 (금). 주간 미팅 Thursday 4/30·5/7·5/14·5/21 그대로.
+
+기타 UI 문자열 정리
+- 온보딩 이름 placeholder '유버디' → '예: 홍길동'.
+- get_cohort_member_summaries 콘솔 경고 / 본명 서브라인 주석 /
+  ?reset=1 주석 등 이규태·이지흔·유버디 멤버 흔적 중립화.
 
 후속
-- 이전 세션부터 밀려있는 2개만 Supabase SQL Editor 에서 돌리면 됨:
-  1. supabase_migration_english_name.sql
-  2. supabase_migration_presenter.sql"
-  fi
+- supabase_migration_english_name.sql 과
+  supabase_migration_presenter.sql 은 여전히 SQL Editor 에서 실행
+  필요 (이전 커밋 후속).
+- 메인 index.html (IP 경고 띠 + 샘플 단어 섹션) 은 buddy 지시
+  전까지 커밋 보류."
 fi
 
 echo ""
