@@ -2470,7 +2470,35 @@ function formatVerifyStamp(vd, vt, tzText) {
 
 // 내일(D+1) 이후 Day의 체크/제출/인증 차단용 공용 가드.
 // 반환값이 true면 호출부는 바로 return 시키세요. (false면 통과)
+/* Pre-start gate — 챌린지 시작 전에는 모든 Day 가 미리보기 전용.
+   state.currentDay 는 Day 1 계산 식으로 항상 >=1 이라 pre-start 를 직접 표현하지 못하니
+   캘린더를 기준으로 별도 판단한다. */
+function challengeStarted() {
+  const today = todayStr();
+  return today >= CHALLENGE.start_date;
+}
+function daysUntilStart() {
+  if (challengeStarted()) return 0;
+  const today = todayStr();
+  const [ty, tm, td] = today.split('-').map(Number);
+  const [sy, sm, sd] = CHALLENGE.start_date.split('-').map(Number);
+  const t = Date.UTC(ty, tm - 1, td);
+  const s = Date.UTC(sy, sm - 1, sd);
+  return Math.max(0, Math.round((s - t) / 86400000));
+}
+function startDateKR() {
+  const [y, m, d] = CHALLENGE.start_date.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  const dayNames = ['일','월','화','수','목','금','토'];
+  return `${m}월 ${d}일 (${dayNames[dt.getDay()]})`;
+}
+
 function guardFutureDay(dayN) {
+  // Pre-start: 전체 차단 — 아직 챌린지 시작 전이면 어떤 Day 도 제출 못함.
+  if (!challengeStarted()) {
+    showToast('챌린지는 ' + startDateKR() + '에 시작돼요. 지금은 미리보기만 가능해요.');
+    return true;
+  }
   const cur = state.currentDay || 1;
   if (dayN > cur) {
     showToast('오늘은 Day ' + cur + '이에요. Day ' + dayN + '은(는) 당일에 풀 수 있어요 (미리보기만 가능).');
@@ -5207,9 +5235,12 @@ function HomePage() {
   // Stats strip — 오늘 인증률 / 베이직 인증률 / 프리미엄 인증률
   // "me"의 tier는 MEMBERS 시드에서 'auto'이므로 실제 state.tier로 치환해서 집계.
   // (Daily Streak Board 바로 위에 배치 — 보드 스캔하기 전에 오늘의 숫자를 먼저 인지하도록.)
+  // 통계는 paidMembers (실참가자 38명) 기준으로 집계 — 운영팀/ghost 제외해서
+  // 분모가 30 / 8 로 깔끔하게 떨어지도록. 보드는 visibleMembers 로 그대로 노출.
   const effectiveTier = (m) => (m.me ? (state.tier || 'basic') : m.tier);
-  const basicList = sorted.filter((m) => effectiveTier(m) === 'basic');
-  const premiumList = sorted.filter((m) => effectiveTier(m) === 'premium');
+  const paidSorted = [...statsPool].sort((a,b) => b.progress - a.progress || b.streak - a.streak);
+  const basicList = paidSorted.filter((m) => effectiveTier(m) === 'basic');
+  const premiumList = paidSorted.filter((m) => effectiveTier(m) === 'premium');
   const basicVerified = basicList.filter(isVerifiedToday).length;
   const premiumVerified = premiumList.filter(isVerifiedToday).length;
   const basicRate = basicList.length ? Math.round((basicVerified / basicList.length) * 100) : 0;
@@ -6111,8 +6142,9 @@ function DayPage(dayN) {
     style: { margin: '6px 0 0', fontSize: '28px', fontWeight: '800', letterSpacing: '-0.025em', lineHeight: '1.15', color: 'var(--orange)' }
   }, d.title));
 
-  // 내일(D+1) 이후 '미리보기' 배너 — 인증/제출 차단 안내
-  if (dayN > (state.currentDay || 1)) {
+  // Pre-start (챌린지 시작 전) 또는 D+1 이후 — 인증/제출 차단 안내 배너
+  const preStart = !challengeStarted();
+  if (preStart || dayN > (state.currentDay || 1)) {
     const previewBanner = el('div', {
       style: {
         marginTop: '14px',
@@ -6125,11 +6157,15 @@ function DayPage(dayN) {
         gap: '12px',
       },
     });
+    const titleText = preStart ? '챌린지 시작 전 · 미리보기' : '미리보기 전용 Day';
+    const bodyText = preStart
+      ? `챌린지는 <b>${startDateKR()}</b> (D-${daysUntilStart()}) 에 시작돼요. 지금은 Day 1 ~ 20 <b>전부 미리보기만</b> 가능하고, 문장 제출·AI 리뷰·단어 시험은 <b>${startDateKR()} 부터</b> 풀려요.`
+      : `지금은 Day ${state.currentDay || 1}이에요. Day ${dayN}은(는) <b>예습만 가능</b>하고, 인증·문장 제출·단어 시험은 당일에 풀려요.`;
     previewBanner.innerHTML = `
       <span style="display:inline-grid;place-items:center;width:28px;height:28px;border-radius:10px;background:var(--orange-ghost);color:var(--orange-dark);">${Icon('lock', 14)}</span>
       <div style="flex:1;min-width:0;">
-        <div style="font-weight:800;color:var(--ink);font-size:15px;">미리보기 전용 Day</div>
-        <div class="t-small" style="margin-top:4px;color:var(--ink-soft);line-height:1.5;">지금은 Day ${state.currentDay || 1}이에요. Day ${dayN}은(는) <b>예습만 가능</b>하고, 인증·문장 제출·단어 시험은 당일에 풀려요.</div>
+        <div style="font-weight:800;color:var(--ink);font-size:15px;">${titleText}</div>
+        <div class="t-small" style="margin-top:4px;color:var(--ink-soft);line-height:1.5;">${bodyText}</div>
       </div>`;
     page.appendChild(previewBanner);
   }
