@@ -594,6 +594,12 @@ input, textarea, select { font-family: inherit; }
   display: flex;
   align-items: center;
 }
+/* Unregistered members — 아직 앱 한 번도 안 연 멤버는 이름/아바타 모두 회색 톤.
+   get_cohort_member_summaries 로 row 존재 여부 확인해서 .is-unreg 클래스 토글.
+   처음 로드 전까지는 __registeredLoaded=false 라서 이 클래스 안 붙음 (플래시 방지). */
+.cb-name.is-unreg { color: rgba(42, 31, 20, 0.32); }
+.cb-name.is-unreg .tiny-av { opacity: 0.45; filter: grayscale(0.6); }
+.cb-name.is-unreg .premium-pill { opacity: 0.4; }
 .cb-name .tiny-av { width: 18px; height: 18px; border-radius: 5px; background: var(--paper); display: grid; place-items: center; font-size: 8px; font-weight: 700; flex-shrink: 0; }
 .cb-name .tiny-av.orange { background: var(--orange); color: #fff; }
 .cb-name .tiny-av.ink { background: var(--ink); color: var(--cream); }
@@ -1375,6 +1381,7 @@ function bindMeToMembers() {
     placeholder.me = true;
     placeholder.progress = myProgress;
     placeholder.streak = myStreak;
+    placeholder.registered = true;   // 본인은 앱 쓰는 중 = 무조건 가입완료
     return;
   }
 
@@ -1385,6 +1392,7 @@ function bindMeToMembers() {
     real.englishName = myEng;
     real.progress = myProgress;
     real.streak = myStreak;
+    real.registered = true;          // 본인 row 는 항상 registered
     placeholder.me = false;
     placeholder.hidden = true;
     placeholder.name = nm;
@@ -1397,6 +1405,7 @@ function bindMeToMembers() {
   placeholder.me = true;
   placeholder.progress = myProgress;
   placeholder.streak = myStreak;
+  placeholder.registered = true;
   if (state.isOperator) {
     placeholder.isOperator = true;
   }
@@ -3329,6 +3338,11 @@ function applyRemoteMemberSummaries(rows = []) {
     if (!member || !member.name) return;
     const summary = byName.get(String(member.name).trim());
     if (!summary) return;
+    // 서버에 row 존재 = "온보딩 완료 → 대시보드 진입" 한 멤버. 이름 회색 해제.
+    if (!member.registered) {
+      member.registered = true;
+      changed = true;
+    }
     const nextProgress = Number(summary.progress || 0);
     const nextStreak = Number(summary.streak || 0);
     // verifiedDays — exact day numbers the peer has verified. The board reads this
@@ -3415,6 +3429,9 @@ async function loadMemberSummaries(opts = {}) {
         }
       }
       applyRemoteMemberSummaries(rows);
+      // 첫 응답 들어온 뒤부터 "가입 회색" UI 를 믿을 수 있음. 이전엔 페이지 깜빡일때마다
+      // 모두 회색 → 다시 까맣게 flip 하는 flash 가 있었는데 이걸로 방지.
+      window.__registeredLoaded = true;
       return rows;
     } catch (e) {
       if (/supabase rpc failed: get_cohort_member_summaries/i.test(String(e && e.message || ''))) {
@@ -5414,7 +5431,11 @@ function Checkboard() {
     return 0;
   });
   orderedMembers.forEach((m) => {
-    const name = el('div', { class: 'cb-name' + (m.me ? ' cb-row-me' : '') });
+    // 가입(온보딩 완료 → 대시보드 진입) 안 한 멤버는 이름 회색.
+    // __registeredLoaded 가 true 가 되고나서만 판정 — 초기 로드 flash 방지.
+    const isUnreg = !!(window.__registeredLoaded && !m.me && !m.registered && !m.isStaff);
+    const nameCls = 'cb-name' + (m.me ? ' cb-row-me' : '') + (isUnreg ? ' is-unreg' : '');
+    const name = el('div', { class: nameCls });
     // 리더보드를 치우고 나니 다른 멤버 프로필 카드를 열 진입점이 부족 — 이름 탭하면
     // MemberCardModal (이미 존재하는 애) 이 뜨도록 클릭 핸들러 연결.
     // 내 row 는 눌러도 '내 카드' 가 뜨므로 괜찮음.
