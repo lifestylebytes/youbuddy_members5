@@ -1277,8 +1277,14 @@ const CHALLENGE = {
    - operator flag
 */
 const MEMBER_DIRECTORY = [
-  /* 운영진 */
-  { code: '00', id: 'op1', name: '운영자', color: 'ink', tier: 'premium', role: '운영팀', isOperator: true },
+  /* 운영진 / 유령
+     - isOperator: 설정 모달 OPERATOR ONLY 섹션 접근 권한 (유버디 본인만)
+     - isStaff:   통계 (완주율·인증률·"5기 38명") 에서 제외, 보드에는 보임, 운영팀 배지는 UI 에서 숨김
+     - hidden:    보드/랭킹/커뮤니티 어디에도 안 보임 (본인 로그인해도 '나' 슬롯만 보임, 다른 사람 눈엔 없음) */
+  { code: '00', id: 'op1', name: '유버디', color: 'ink',   tier: 'premium', role: '운영팀', isOperator: true,  isStaff: true },
+  { code: '42', id: 'op2', name: '이규태', color: 'ink',   tier: 'premium', role: '운영팀', isStaff: true },
+  { code: '43', id: 'op3', name: '이지흔', color: 'cream', tier: 'basic',   role: '운영팀', isStaff: true },
+  { code: '44', id: 'ghost1', name: '모모', color: 'cream', tier: 'basic',  hidden: true, ghost: true, isStaff: true },
 
   /* 프리미엄 8명 (code 01~08) */
   { code: '01', id: 'p1', name: '김소영', color: 'ink', tier: 'premium' },
@@ -1320,6 +1326,7 @@ const MEMBER_DIRECTORY = [
   { code: '35', id: 'b27', name: '임정연', color: 'cream', tier: 'basic' },
   { code: '36', id: 'b28', name: '허윤형', color: 'cream', tier: 'basic' },
   { code: '37', id: 'b29', name: '이지유', color: 'cream', tier: 'basic' },
+  { code: '38', id: 'b30', name: '김하은', color: 'cream', tier: 'basic' },
 ];
 
 /* 5기 roster used across dashboard/community/profile */
@@ -1334,6 +1341,9 @@ const MEMBERS = [
     tier: member.tier,
     role: member.role || '',
     isOperator: !!member.isOperator,
+    isStaff: !!member.isStaff,
+    ghost: !!member.ghost,
+    hidden: !!member.hidden,
   })),
 ];
 
@@ -1388,11 +1398,16 @@ function bindMeToMembers() {
   }
 }
 
-/* Visible roster — filters out hidden rows (placeholder when already bound to a real member)
-   AND operator accounts (운영자 등) — 멤버 화면에서는 운영자 카드를 보여주지 않음.
-   단, 현재 로그인한 사람이 운영자 본인이면 me 로 표시되니 보임. */
+/* Visible roster — 보드/랭킹/커뮤니티에 노출되는 기본 명단.
+   - hidden:true  → 아예 노출 안 함 (유령회원 모모, 바인딩된 placeholder)
+   - isStaff:true → 노출은 함 (유버디/이규태/이지흔도 streak 쌓는 모습 보임)
+   단, ghost (본인이 me 인 경우에도 다른 사람한텐 안 보여야 함) 은 self view 에서만 보이고 others view 에서는 hidden:true 덕분에 자동으로 빠짐. */
 function visibleMembers() {
-  return MEMBERS.filter((m) => !m.hidden && !(m.isOperator && !m.me));
+  return MEMBERS.filter((m) => !m.hidden);
+}
+/* 통계 (완주율·인증률·"5기 38명") 용 — staff/ghost 제외, 실제 참가자 38 명만 */
+function paidMembers() {
+  return MEMBERS.filter((m) => !m.hidden && !m.isStaff && !m.ghost);
 }
 function meMember() {
   return MEMBERS.find((m) => m.me) || MEMBERS[0];
@@ -3541,7 +3556,7 @@ async function refreshDashboardStats() {
     const data = await supabaseRpc('get_hourly_completion_delta', {
       p_cohort: CHALLENGE.cohort,
       p_verified_day: state.currentDay,
-      p_total_members: visibleMembers().length,
+      p_total_members: paidMembers().length,
     });
     const row = Array.isArray(data) ? data[0] : data;
     dashboardStats = {
@@ -3746,6 +3761,8 @@ function render() {
     else page = HomePage();
 
     app.appendChild(page);
+    // 상시 IP 각주 — 온보딩 끝난 유저에게만. 작은 폰트, TabBar 위로 살짝.
+    try { app.appendChild(buildPersistentIpFooter()); } catch (e) {}
     app.appendChild(TabBar());
     root.appendChild(app);
 
@@ -4365,6 +4382,75 @@ function setupHistoryGuard() {
   });
 }
 
+// 상시 IP / 저작권 각주 — 모든 로그인 페이지 맨 아래 (TabBar 위쪽 여백 확보).
+// 작고 조용하게 깔리지만 언제든 눈에 들어오도록. 탭하면 전문 팝업.
+function buildPersistentIpFooter() {
+  const wrap = el('div', {
+    style: {
+      maxWidth: '440px',
+      margin: '24px auto 96px',   // bottom: TabBar(14px fixed + ~60 높이) + 여유
+      padding: '0 20px',
+      textAlign: 'center',
+    },
+  });
+  const btn = el('button', {
+    class: 'ip-footer-btn',
+    style: {
+      background: 'transparent',
+      border: 'none',
+      color: 'var(--muted)',
+      fontSize: '10px',
+      lineHeight: '1.5',
+      letterSpacing: '0.02em',
+      cursor: 'pointer',
+      padding: '4px 8px',
+      opacity: '0.78',
+    },
+    onClick: () => {
+      try { openIpDetailModal(); } catch (e) { alert('이 챌린지는 유버디가 개인적으로 기획·개발한 콘텐츠입니다. 구성·단어 큐레이션·워크플로를 유사하게 복제·재배포할 경우 법적 조치 대상이 될 수 있어요.'); }
+    },
+  }, '© 유버디 · 구성·단어·워크플로 복제 금지 · 자세히');
+  wrap.appendChild(btn);
+  return wrap;
+}
+
+function openIpDetailModal() {
+  const existing = document.querySelector('.__ipDetailBackdrop');
+  if (existing) existing.remove();
+  const backdrop = el('div', {
+    class: 'modal-backdrop __ipDetailBackdrop',
+    onClick: (e) => { if (e.target === backdrop) backdrop.remove(); },
+  });
+  const modal = el('div', {
+    class: 'modal',
+    style: {
+      width: 'min(92vw, 420px)',
+      padding: '22px 20px 18px',
+      borderRadius: '22px',
+      background: '#FFFDF7',
+      border: '1px solid var(--line)',
+    },
+  });
+  modal.innerHTML = `
+    <div class="kicker" style="color:var(--muted);">© COPYRIGHT · IP</div>
+    <h3 style="margin:6px 0 10px;font-size:17px;font-weight:800;letter-spacing:-0.01em;">콘텐츠 저작권 안내</h3>
+    <p style="margin:0;font-size:13px;color:var(--ink-soft);line-height:1.65;">
+      이 챌린지는 <b>유버디가 개인적으로 기획·개발한 콘텐츠</b>입니다.
+      구성·단어 큐레이션·워크플로·미팅 포맷을 유사하게 복제·재배포할 경우
+      <b>법적 조치 대상</b>이 될 수 있어요.
+    </p>
+    <p style="margin:10px 0 0;font-size:11.5px;color:var(--muted);line-height:1.55;">
+      개인 학습·복습 용도의 캡처·메모는 괜찮아요. 다른 커뮤니티·수업·서비스에
+      그대로 가져다 쓰는 것만 조심해주세요.
+    </p>
+    <button class="btn btn-ghost btn-full" id="__ipDetailClose" style="margin-top:16px;">확인</button>
+  `;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  const closeBtn = document.getElementById('__ipDetailClose');
+  if (closeBtn) closeBtn.onclick = () => backdrop.remove();
+}
+
 // Clean up timer when tab is hidden
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
@@ -4951,7 +5037,10 @@ function HomePage() {
     }
     return m.progress >= state.currentDay;
   };
-  const fallbackTodayRate = Math.round((visible.filter(isVerifiedToday).length / Math.max(1, visible.length)) * 100);
+  // 인증률은 실제 참가자 (paidMembers, staff/ghost 제외) 38명 기준으로 계산해
+  // 운영팀/ghost 가 숫자를 흐리지 않도록. 보드 자체는 visibleMembers 로 그대로 노출.
+  const statsPool = paidMembers();
+  const fallbackTodayRate = Math.round((statsPool.filter(isVerifiedToday).length / Math.max(1, statsPool.length)) * 100);
   const todayRate = dashboardStats.todayRate ?? fallbackTodayRate;
 
   // Hero progress
@@ -5043,13 +5132,13 @@ function HomePage() {
       if (!weekHasP) {
         // Week 1 같은 noPresenter 주 — 전원 자기소개 / 아이스브레이킹 주간.
         statusLine = `✨ 발표 없음 · 전원 자기소개 · ${thisWk.scenario?.setting || thisWk.title}`;
-        ctaLabel = '말할 거리 준비하기 →';
+        ctaLabel = '미팅 노트 준비하기 →';
       } else if (iAmP) {
         statusLine = '🎤 내가 이번 주 발표자';
         ctaLabel = '발표 준비하러 →';
       } else if (rem === 0) {
         statusLine = `자리 마감 · ${thisWk.scenario?.setting || thisWk.title}`;
-        ctaLabel = '말할 거리 준비하기 →';
+        ctaLabel = '미팅 노트 준비하기 →';
       } else {
         statusLine = `${rem}자리 남음 · ${thisWk.scenario?.setting || thisWk.title}`;
         ctaLabel = '발표 자리 잡기 →';
@@ -7251,73 +7340,76 @@ function PremiumPage() {
     }
 
     // 발표자 슬롯 3자리 — 채워진 건 이니셜 원, 빈 건 점선 원.
-    const slotsRow = el('div', { style: { marginTop: '14px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' } });
-    const slotsLabel = el('div', {
-      style: { fontSize: '12px', fontWeight: '700', color: 'var(--muted)', letterSpacing: '0.04em', textTransform: 'uppercase', marginRight: '2px' }
-    }, '발표자');
-    slotsRow.appendChild(slotsLabel);
-    const slotWrap = el('div', { style: { display: 'flex', gap: '6px' } });
-    for (let i = 0; i < cap; i++) {
-      const key = signups[i];
-      if (key) {
-        const mem = memberByKey(key);
-        const isMe = key === memberKey();
-        const initial = mem ? safeInitial(mem) : '?';
-        const label = mem ? displayName(mem) : key;
-        const chip = el('div', {
-          title: label,
-          style: {
-            width: '30px', height: '30px', borderRadius: '50%',
-            background: isMe ? 'var(--lilac)' : 'rgba(169,139,184,0.18)',
-            color: isMe ? '#fff' : 'var(--lilac)',
-            fontSize: '12px', fontWeight: '800',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: isMe ? '2px solid #fff' : '1px solid rgba(169,139,184,0.28)',
-            boxShadow: isMe ? '0 2px 8px rgba(169,139,184,0.4)' : 'none',
-          }
-        }, initial);
-        slotWrap.appendChild(chip);
+    // Week 1 (noPresenter) 은 발표자 자체가 없으니 슬롯 UI 전부 skip.
+    if (weekHasPresenter(m.n)) {
+      const slotsRow = el('div', { style: { marginTop: '14px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' } });
+      const slotsLabel = el('div', {
+        style: { fontSize: '12px', fontWeight: '700', color: 'var(--muted)', letterSpacing: '0.04em', textTransform: 'uppercase', marginRight: '2px' }
+      }, '발표자');
+      slotsRow.appendChild(slotsLabel);
+      const slotWrap = el('div', { style: { display: 'flex', gap: '6px' } });
+      for (let i = 0; i < cap; i++) {
+        const key = signups[i];
+        if (key) {
+          const mem = memberByKey(key);
+          const isMe = key === memberKey();
+          const initial = mem ? safeInitial(mem) : '?';
+          const label = mem ? displayName(mem) : key;
+          const chip = el('div', {
+            title: label,
+            style: {
+              width: '30px', height: '30px', borderRadius: '50%',
+              background: isMe ? 'var(--lilac)' : 'rgba(169,139,184,0.18)',
+              color: isMe ? '#fff' : 'var(--lilac)',
+              fontSize: '12px', fontWeight: '800',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: isMe ? '2px solid #fff' : '1px solid rgba(169,139,184,0.28)',
+              boxShadow: isMe ? '0 2px 8px rgba(169,139,184,0.4)' : 'none',
+            }
+          }, initial);
+          slotWrap.appendChild(chip);
+        } else {
+          slotWrap.appendChild(el('div', {
+            style: {
+              width: '30px', height: '30px', borderRadius: '50%',
+              border: '1.5px dashed rgba(169,139,184,0.42)',
+              background: 'transparent',
+            }
+          }));
+        }
+      }
+      slotsRow.appendChild(slotWrap);
+
+      let slotStatus = '';
+      if (isPast) {
+        slotStatus = `${cap - remaining}/${cap} 발표 완료`;
+      } else if (remaining === 0) {
+        slotStatus = '마감';
       } else {
-        slotWrap.appendChild(el('div', {
-          style: {
-            width: '30px', height: '30px', borderRadius: '50%',
-            border: '1.5px dashed rgba(169,139,184,0.42)',
-            background: 'transparent',
-          }
-        }));
+        slotStatus = `${remaining}자리 남음`;
       }
-    }
-    slotsRow.appendChild(slotWrap);
+      slotsRow.appendChild(el('div', {
+        style: {
+          marginLeft: 'auto',
+          fontSize: '12px',
+          fontWeight: '700',
+          color: remaining === 0 && !isPast ? 'var(--muted)' : 'var(--lilac)',
+        }
+      }, slotStatus));
+      card.appendChild(slotsRow);
 
-    let slotStatus = '';
-    if (isPast) {
-      slotStatus = `${cap - remaining}/${cap} 발표 완료`;
-    } else if (remaining === 0) {
-      slotStatus = '마감';
-    } else {
-      slotStatus = `${remaining}자리 남음`;
-    }
-    slotsRow.appendChild(el('div', {
-      style: {
-        marginLeft: 'auto',
-        fontSize: '12px',
-        fontWeight: '700',
-        color: remaining === 0 && !isPast ? 'var(--muted)' : 'var(--lilac)',
-      }
-    }, slotStatus));
-    card.appendChild(slotsRow);
-
-    // Names of signed-up presenters (작게, English nick 우선)
-    if (signups.length) {
-      const names = signups.map((key) => {
-        const mem = memberByKey(key);
-        return mem ? displayName(mem) : '';
-      }).filter(Boolean);
-      if (names.length) {
-        card.appendChild(el('div', {
-          class: 't-small',
-          style: { marginTop: '6px', color: 'var(--ink-soft)', fontSize: '12px', lineHeight: '1.5' }
-        }, names.join(' · ')));
+      // Names of signed-up presenters (작게, English nick 우선)
+      if (signups.length) {
+        const names = signups.map((key) => {
+          const mem = memberByKey(key);
+          return mem ? displayName(mem) : '';
+        }).filter(Boolean);
+        if (names.length) {
+          card.appendChild(el('div', {
+            class: 't-small',
+            style: { marginTop: '6px', color: 'var(--ink-soft)', fontSize: '12px', lineHeight: '1.5' }
+          }, names.join(' · ')));
+        }
       }
     }
 
@@ -7366,13 +7458,36 @@ function PremiumPage() {
         onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
       }, hasNotes ? `📝 내 메모 보기 (${tpCount}개)` : '📝 사후 메모 남기기');
       ctaRow.appendChild(notesBtn);
+    } else if (!weekHasPresenter(m.n)) {
+      // 이 주는 발표가 없는 주 (Week 1 온보딩/자기소개). signup/lock 체크보다 먼저
+      // 처리해서, 이미 다른 주에 자리 잡은 유저도 이 주 카드엔 '🔒 이미 자리 잡음'
+      // 이 아니라 '✨ 발표 없음 · 전원 자기소개' 가 보이도록.
+      const noPresenterPill = el('button', {
+        class: 'btn',
+        disabled: true,
+        style: {
+          flex: '1', minWidth: '160px',
+          background: 'rgba(240,125,56,0.08)',
+          color: 'var(--orange-dark)',
+          border: '1px solid rgba(240,125,56,0.22)',
+          cursor: 'default',
+          fontWeight: '600',
+        },
+      }, '✨ 발표 없음 · 전원 자기소개');
+      ctaRow.appendChild(noPresenterPill);
+      const notesBtn = el('button', {
+        class: 'btn',
+        style: { background: 'transparent', color: 'var(--ink-soft)', border: '1px solid rgba(231,221,200,0.9)', fontSize: '12px' },
+        onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
+      }, '미팅 노트');
+      ctaRow.appendChild(notesBtn);
     } else if (remaining === 0) {
       // 마감 — attendee flow: 미팅 노트만.
       const notesBtn = el('button', {
         class: 'btn',
         style: { flex: '1', minWidth: '160px', background: '#fff', color: 'var(--ink)', border: '1px solid rgba(231,221,200,0.9)' },
         onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
-      }, hasNotes ? `📝 말할 거리 이어쓰기 (${tpCount}개)` : '📝 말할 거리 준비하기');
+      }, hasNotes ? `📝 미팅 노트 이어쓰기 (${tpCount}개)` : '📝 미팅 노트 준비하기');
       ctaRow.appendChild(notesBtn);
     } else if (myWeekLocked !== null) {
       // 이미 다른 주에 자리 잡음 — 1인 1회 룰. 이 주는 signup 잠금.
@@ -7393,29 +7508,7 @@ function PremiumPage() {
         class: 'btn',
         style: { background: 'transparent', color: 'var(--ink-soft)', border: '1px solid rgba(231,221,200,0.9)', fontSize: '12px' },
         onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
-      }, '말할 거리');
-      ctaRow.appendChild(notesBtn);
-    } else if (!weekHasPresenter(m.n)) {
-      // 이 주는 발표가 없는 주 (Week 1 온보딩/자기소개). signup 대신 '전원 참여' 중립 라벨 + 말할 거리 버튼.
-      const noPresenterPill = el('button', {
-        class: 'btn',
-        disabled: true,
-        style: {
-          flex: '1', minWidth: '160px',
-          background: 'rgba(240,125,56,0.08)',
-          color: 'var(--orange-dark)',
-          border: '1px solid rgba(240,125,56,0.22)',
-          cursor: 'default',
-          fontWeight: '600',
-        },
-      }, '✨ 발표 없음 · 전원 자기소개');
-      ctaRow.appendChild(noPresenterPill);
-      // 보조 CTA: 이 주에 하고 싶은 이야기 메모.
-      const notesBtn = el('button', {
-        class: 'btn',
-        style: { background: 'transparent', color: 'var(--ink-soft)', border: '1px solid rgba(231,221,200,0.9)', fontSize: '12px' },
-        onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
-      }, '말할 거리');
+      }, '미팅 노트');
       ctaRow.appendChild(notesBtn);
     } else {
       // 자리 남음 + 아직 signup 안함 + 미래 → 메인 CTA 는 발표 자리 잡기.
@@ -7453,7 +7546,7 @@ function PremiumPage() {
         class: 'btn',
         style: { background: 'transparent', color: 'var(--ink-soft)', border: '1px solid rgba(231,221,200,0.9)', fontSize: '12px' },
         onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
-      }, '말할 거리');
+      }, '미팅 노트');
       ctaRow.appendChild(notesBtn);
     }
 
@@ -7610,7 +7703,7 @@ function aiSummarize(meta, notes) {
   lines.push('');
   if (tp) {
     const count = tp.split('\n').filter(s => s.trim()).length;
-    lines.push(`• 말할 거리 ${count}개 준비됨`);
+    lines.push(`• 미팅 노트 ${count}개 준비됨`);
   }
   if (mn) {
     const len = mn.length;
@@ -7793,7 +7886,7 @@ function PresenterPrepPage(weekN) {
   page.appendChild(vocabWrap);
 
   // Script textarea + live highlight preview
-  page.appendChild(el('div', { class: 'kicker', style: { marginTop: '24px' } }, '스크립트 / 말할 거리'));
+  page.appendChild(el('div', { class: 'kicker', style: { marginTop: '24px' } }, '스크립트 / 미팅 노트'));
   page.appendChild(el('p', {
     class: 't-small',
     style: { marginTop: '4px', color: 'var(--ink-soft)', lineHeight: '1.5' }
@@ -8878,7 +8971,7 @@ function MeetingNotesPage(meetingId) {
       { k: 'polish', emoji: '✍️', title: '타임라인 → 회의록', desc: '배운 것/액션/피드백으로 구조화' },
       { k: 'sum', emoji: '📌', title: '한 장 요약', desc: '오늘의 배움 & 다음 적용 TIP' },
       { k: 'kren', emoji: '🇰🇷↔🇺🇸', title: '한 → 영 변환', desc: '한국어 노트를 영어 표현으로' },
-      { k: 'tp', emoji: '🧠', title: '다음 주 말할 거리', desc: '오늘 놓친 것 바탕으로 4~6개' },
+      { k: 'tp', emoji: '🧠', title: '다음 주 미팅 노트', desc: '오늘 놓친 것 바탕으로 4~6개' },
     ];
     const runAi = async (kind) => {
       window.__mnAi[meetingId] = { output: '', kind, loading: true };
@@ -10368,7 +10461,7 @@ function MemberCardModal(memberRef) {
         </div>
         ${showRealNameSubline ? `<div class="t-small" style="margin-top:4px;color:var(--muted);">본명 · ${escapeHtml(member.name)}</div>` : ''}
         <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          ${member.role ? `<span class="badge">${escapeHtml(member.role)}</span>` : ''}
+          ${(member.role && !member.isStaff) ? `<span class="badge">${escapeHtml(member.role)}</span>` : ''}
           ${member.timezoneText ? `<span class="t-small mono" style="color:var(--muted);">${escapeHtml(member.timezoneText)}</span>` : ''}
           <span class="t-small mono" style="color:var(--muted);">${member.progress}/20</span>
           <span class="t-small mono" style="color:var(--orange);display:inline-flex;align-items:center;gap:4px;">${Icon('flame', 11)} ${member.streak}d</span>

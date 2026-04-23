@@ -26,7 +26,29 @@ git add 5th/index.html push_to_github.sh
 if ! git diff --cached --quiet; then
   echo ""
   echo "==> 변경 사항 커밋..."
-  git commit -m "5기 실명단 + 팀 제거 + IP 경고 + 완주 선물 카피 + 온보딩 미리보기 + Week1 발표 제외 + swipe/back 가드
+  git commit -m "운영팀 + 유령회원 + 통계 pool 분리 + 5기 실명단 + 팀 제거 + IP 경고 + Week1 발표 제외 + swipe/back 가드
+
+운영팀 (isStaff) + 유령회원 (hidden/ghost) 계정
+- MEMBER_DIRECTORY 상단에 운영 계정 4개 추가:
+  • code 00 · 유버디 (Premium, isOperator+isStaff) — 실제 참여, 보드 노출
+  • code 42 · 이규태 (Premium, isStaff) — 실제 참여, 보드 노출
+  • code 43 · 이지흔 (Basic,   isStaff) — 실제 참여, 보드 노출
+  • code 44 · 모모    (Basic,   hidden+ghost+isStaff) — 로그인만, 보드·통계 어디에도 안 보임
+- MEMBERS 매핑에 isStaff/ghost/hidden 필드 전파.
+- visibleMembers() 에서 기존 'operator 를 me 아니면 숨김' 필터 제거 →
+  이제 hidden:true 만 빠짐. 운영팀(유버디/이규태/이지흔) 도 보드에 streak 쌓는 모습 노출.
+- paidMembers() 헬퍼 신설 (!hidden && !isStaff && !ghost) — 실제 참가자 38 명.
+- 통계 (인증률 · get_hourly_completion_delta p_total_members) 는 paidMembers 기준 →
+  운영팀/ghost 가 숫자를 흐리지 않음. 보드 sort/display 는 visibleMembers 그대로.
+- 멤버 카드 역할 배지: isStaff 계정은 '운영팀' role 값이 있어도 badge 안 렌더
+  (`member.role && !member.isStaff`).
+
+IP / 저작권 상시 각주 (5th 앱 내부)
+- 로그인 후 모든 페이지 맨 아래 (TabBar 위) 에 작고 조용한 IP 각주:
+  '© 유버디 · 구성·단어·워크플로 복제 금지 · 자세히'.
+- 탭하면 모달로 전문 노출: 이 챌린지는 유버디가 개인적으로
+  기획·개발한 콘텐츠 + 법적 조치 대상 + 개인 학습용 캡처는 허용.
+- buildPersistentIpFooter() / openIpDetailModal() 헬퍼 추가.
 
 브라우저 back 가드 (native back gesture 가 페이지를 꺼트리는 문제)
 - setupHistoryGuard: history.pushState 로 'active' 센티널 엔트리를
@@ -46,13 +68,28 @@ Week 1 발표자 선착순 제외
 - 온보딩 튜어 Step 3 (Presenter): '4주 중 1주' → 'Week 2~4 중 1주',
   'Week 1 은 전원 자기소개 주간' 문구 추가.
 
-5기 실명단 (37명)
+'말할 거리' → '미팅 노트' 용어 통일
+- 7군데 (주차 카드 CTA · Home hero 라벨 · Daily 리뷰 카드 · ExportPage
+  · ProfilePage 섹션 헤더 등) 모두 '미팅 노트' 로 변경. 목적지 페이지
+  이름 (MeetingNotesPage = '미팅 노트') 과 용어 맞춤.
+
+Week 1 카드 잔여 UI 정리 (추가)
+- PremiumPage 주차 카드 — Week 1 (noPresenter) 에서 여전히 노출되던
+  '발표자' 슬롯 (점선 원 3개) + '3자리 남음' 상태 + 참여자 이름 줄
+  전체를 weekHasPresenter(m.n) 가드 뒤로 넣어 완전 숨김.
+- CTA 분기 순서 수정: 기존에 myWeekLocked 체크 ('🔒 Week 4 에 이미 자리
+  잡음') 가 먼저 적용돼서, 다른 주에 자리 잡은 유저의 Week 1 카드에도
+  'Week 4 에 이미 자리 잡음' 이 뜨던 문제. !weekHasPresenter 분기를
+  isPast 직후로 올려서 Week 1 은 항상 '✨ 발표 없음 · 전원 자기소개'.
+
+5기 실명단 (38명)
 - Premium 8명 (code 01~08): 김소영, 손미경, 이수진, 정주혜,
   이도현, 이송아, 정지은, 김정인.
-- Basic 29명 (code 09~37): 고민지, 박연, 장희정, 이유빈, 박보름,
+- Basic 30명 (code 09~38): 고민지, 박연, 장희정, 이유빈, 박보름,
   김선영, 신은선, 최보라, 백수지, 정진송, 권다희, 강태윤, 최수지,
   이정은, 정송하, 김수린, 진여송, 권지선, 윤수정, 양은지, 임혜연,
-  조예지, 고주영, 신지현, 김지현, 신지은, 임정연, 허윤형, 이지유.
+  조예지, 고주영, 신지현, 김지현, 신지은, 임정연, 허윤형, 이지유,
+  김하은.
 - 운영자(op1) 이름 '유버디' → '운영자'.
 - 테스트 흔적 (이규태 u24, 이지흔 u25, 모모 u26) 제거.
 - 코드 lookup: '01' / '1' 둘 다 로그인 되게 정규화.
