@@ -26,7 +26,25 @@ git add 5th/index.html push_to_github.sh
 if ! git diff --cached --quiet; then
   echo ""
   echo "==> 변경 사항 커밋..."
-  git commit -m "5기 실명단 + 팀 제거 + IP 경고 + 완주 선물 카피 + 온보딩 미리보기
+  git commit -m "5기 실명단 + 팀 제거 + IP 경고 + 완주 선물 카피 + 온보딩 미리보기 + Week1 발표 제외 + swipe/back 가드
+
+브라우저 back 가드 (native back gesture 가 페이지를 꺼트리는 문제)
+- setupHistoryGuard: history.pushState 로 'active' 센티널 엔트리를
+  항상 1개 추가 유지. 사용자가 네이티브 back 제스처 (iOS/안드로이드/
+  맥 트랙패드) 를 쓰면 'base' 로 떨어지며 popstate 발생 → SPA 내부
+  goBackRoute() 실행 + 'active' 센티널 재주입.
+- 설정 모달 / 멤버 카드 / 프리미엄 게이트가 열려있으면 그것부터 닫기.
+- 기존 setupSwipeNavigation (터치/포인터) 은 그대로 유지.
+
+Week 1 발표자 선착순 제외
+- Week 1 은 전원 자기소개 / 아이스브레이킹 주 → noPresenter: true.
+- signupPresenter RPC guard + weekHasPresenter(n) helper.
+- PremiumPage 주차 카드 → '✨ 발표 없음 · 전원 자기소개' + '말할 거리'.
+- Home 이번 주 hero → noPresenter 주는 '발표 없음' 상태로 렌더링,
+  클릭시 meeting-notes 로 바로 이동.
+- Floating 🎤 FAB → noPresenter 주 동안은 숨김 처리.
+- 온보딩 튜어 Step 3 (Presenter): '4주 중 1주' → 'Week 2~4 중 1주',
+  'Week 1 은 전원 자기소개 주간' 문구 추가.
 
 5기 실명단 (37명)
 - Premium 8명 (code 01~08): 김소영, 손미경, 이수진, 정주혜,

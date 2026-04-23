@@ -1388,10 +1388,11 @@ function bindMeToMembers() {
   }
 }
 
-/* Visible roster — filters out hidden rows (placeholder when already bound to a real member).
-   Operators (유버디) are NOT hidden — they learn alongside everyone and show on the board. */
+/* Visible roster — filters out hidden rows (placeholder when already bound to a real member)
+   AND operator accounts (운영자 등) — 멤버 화면에서는 운영자 카드를 보여주지 않음.
+   단, 현재 로그인한 사람이 운영자 본인이면 me 로 표시되니 보임. */
 function visibleMembers() {
-  return MEMBERS.filter((m) => !m.hidden);
+  return MEMBERS.filter((m) => !m.hidden && !(m.isOperator && !m.me));
 }
 function meMember() {
   return MEMBERS.find((m) => m.me) || MEMBERS[0];
@@ -3159,6 +3160,8 @@ async function signupPresenter(weekN) {
   const key = PRESENTER_KEY(weekN);
   const meta = weekMeta(weekN);
   if (!meta) return { ok: false, error: 'WEEK_NOT_FOUND' };
+  // Week 1 같은 '발표 없음' 주는 아예 signup 자체를 막음.
+  if (!weekHasPresenter(weekN)) return { ok: false, error: 'NO_PRESENTER_WEEK' };
   if (isMePresenterInWeek(weekN)) return { ok: true, already: true };
   if (presenterSlotsRemaining(weekN) <= 0) return { ok: false, error: 'FULL' };
   // 1인 1회 제한: 이미 다른 주에 발표자로 자리 잡았으면 차단.
@@ -3767,7 +3770,8 @@ function render() {
           const isPastWk = dTo !== null && dTo < 0;
 
           // 지나간 주 + 내가 발표자가 아니었다면 버튼 숨김 (재click 거리 없음).
-          const shouldShow = iAmP || !isPastWk;
+          // Week 1 (noPresenter) 은 발표 자체가 없는 주라서 🎤 FAB 자체를 숨김.
+          const shouldShow = weekHasPresenter(thisWk.n) && (iAmP || !isPastWk);
           if (shouldShow) {
             const fab = el('button', {
               style: {
@@ -3895,7 +3899,7 @@ function onboardingTourSteps(tier) {
         emoji: '💎',
         kicker: 'Welcome, Premium',
         title: `${displayName} 님, 환영해요!`,
-        body: `5기 프리미엄은 <b>20일 데일리 루틴 + 주 1회 Zoom 미팅 + 4주 중 1주 발표자</b> 로 굴러가요. 30초만 같이 둘러보고 시작해요.`,
+        body: `5기 프리미엄은 <b>20일 데일리 루틴 + 주 1회 Zoom 미팅 + Week 2~4 중 1주 발표자</b> 로 굴러가요. 30초만 같이 둘러보고 시작해요.`,
       },
       {
         emoji: '📖',
@@ -3912,8 +3916,8 @@ function onboardingTourSteps(tier) {
       {
         emoji: '🎤',
         kicker: 'Step 3 · Presenter',
-        title: '4주 중 1주는 내가 발표자',
-        body: `프리미엄의 핵심. <b>한 사람 당 1주</b> 만 발표자로 자리 잡을 수 있어서, 원하는 주차는 <b>일찍 잡아두는 게</b> 안전해요. 스크립트 초안 → 코치 피드백 → 당일 7분 발표.`,
+        title: 'Week 2~4 중 1주는 내가 발표자',
+        body: `프리미엄의 핵심. <b>Week 1 은 전원 자기소개</b> 주간이고, <b>Week 2 ~ 4 중 한 사람 당 1주</b> 만 발표자로 자리 잡을 수 있어요. 원하는 주차는 <b>일찍 잡아두는 게</b> 안전해요. 스크립트 초안 → 코치 피드백 → 당일 7분 발표.`,
       },
       {
         emoji: '📝',
@@ -4320,6 +4324,45 @@ function setupScrollMemory() {
     if (frame) return;
     frame = requestAnimationFrame(save);
   }, { passive: true });
+}
+
+// 브라우저 네이티브 back 제스처 (iOS/안드로이드/맥 트랙패드) 가 SPA 를
+// 벗어나 페이지를 꺼트리지 않도록, history 에 'active' 센티널 엔트리를
+// 항상 유지한다. 사용자가 back 하면 'base' 로 이동 → popstate 발생 →
+// 앱 내에서 goBackRoute() 실행 + 'active' 센티널 재주입.
+function setupHistoryGuard() {
+  if (window.__ybHistoryInit) return;
+  window.__ybHistoryInit = true;
+  try {
+    history.replaceState({ __ybTag: 'base' }, '');
+    history.pushState({ __ybTag: 'active' }, '');
+  } catch (e) {
+    console.warn('history pushState failed', e);
+    return;
+  }
+  window.addEventListener('popstate', (event) => {
+    const tag = event && event.state && event.state.__ybTag;
+    // 'base' 로 떨어졌다 = 사용자가 back 제스처를 한 번 썼다.
+    if (tag === 'base' || !tag) {
+      // 모달/설정 열려있으면 그것부터 닫기
+      try {
+        if (typeof showSettings !== 'undefined' && showSettings) {
+          showSettings = false;
+          try { render(); } catch (_) {}
+        } else if (typeof activeMemberCard !== 'undefined' && activeMemberCard) {
+          activeMemberCard = null;
+          try { render(); } catch (_) {}
+        } else if (typeof showPremiumGate !== 'undefined' && showPremiumGate) {
+          showPremiumGate = false;
+          try { render(); } catch (_) {}
+        } else if (Array.isArray(navBackStack) && navBackStack.length > 0) {
+          goBackRoute();
+        }
+      } catch (err) { console.warn('history back handler failed', err); }
+      // 다시 active 센티널 주입 → 다음 back 도 SPA 내부에서 처리.
+      try { history.pushState({ __ybTag: 'active' }, ''); } catch (_) {}
+    }
+  });
 }
 
 // Clean up timer when tab is hidden
@@ -4996,7 +5039,12 @@ function HomePage() {
         : `D-${dTo}`;
 
       let statusLine, ctaLabel;
-      if (iAmP) {
+      const weekHasP = weekHasPresenter(thisWk.n);
+      if (!weekHasP) {
+        // Week 1 같은 noPresenter 주 — 전원 자기소개 / 아이스브레이킹 주간.
+        statusLine = `✨ 발표 없음 · 전원 자기소개 · ${thisWk.scenario?.setting || thisWk.title}`;
+        ctaLabel = '말할 거리 준비하기 →';
+      } else if (iAmP) {
         statusLine = '🎤 내가 이번 주 발표자';
         ctaLabel = '발표 준비하러 →';
       } else if (rem === 0) {
@@ -5025,7 +5073,12 @@ function HomePage() {
         </div>`;
 
       pCard.addEventListener('click', () => {
-        if (iAmP) {
+        if (!weekHasP) {
+          // noPresenter 주 — 미팅 노트 페이지로 바로 이동 (말할 거리 준비).
+          const meetingId = `week${thisWk.n}-${thisWk.date}`;
+          window.__currentMeetingId = meetingId;
+          go('meeting-notes');
+        } else if (iAmP) {
           window.__currentPresenterWeek = thisWk.n;
           go('presenter-prep');
         } else {
@@ -7336,6 +7389,28 @@ function PremiumPage() {
       }, `🔒 Week ${myWeekLocked} 에 이미 자리 잡음`);
       ctaRow.appendChild(lockedBtn);
       // 보조 CTA: attendee 메모 (메모는 어느 주든 남길 수 있음).
+      const notesBtn = el('button', {
+        class: 'btn',
+        style: { background: 'transparent', color: 'var(--ink-soft)', border: '1px solid rgba(231,221,200,0.9)', fontSize: '12px' },
+        onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
+      }, '말할 거리');
+      ctaRow.appendChild(notesBtn);
+    } else if (!weekHasPresenter(m.n)) {
+      // 이 주는 발표가 없는 주 (Week 1 온보딩/자기소개). signup 대신 '전원 참여' 중립 라벨 + 말할 거리 버튼.
+      const noPresenterPill = el('button', {
+        class: 'btn',
+        disabled: true,
+        style: {
+          flex: '1', minWidth: '160px',
+          background: 'rgba(240,125,56,0.08)',
+          color: 'var(--orange-dark)',
+          border: '1px solid rgba(240,125,56,0.22)',
+          cursor: 'default',
+          fontWeight: '600',
+        },
+      }, '✨ 발표 없음 · 전원 자기소개');
+      ctaRow.appendChild(noPresenterPill);
+      // 보조 CTA: 이 주에 하고 싶은 이야기 메모.
       const notesBtn = el('button', {
         class: 'btn',
         style: { background: 'transparent', color: 'var(--ink-soft)', border: '1px solid rgba(231,221,200,0.9)', fontSize: '12px' },
@@ -11904,6 +11979,7 @@ if (!__DEMO_MODE__) {
 try { bindMeToMembers(); } catch (e) { console.warn('bindMeToMembers failed', e); }
 try { setupSwipeNavigation(); } catch (e) { console.warn('setupSwipeNavigation failed', e); }
 try { setupScrollMemory(); } catch (e) { console.warn('setupScrollMemory failed', e); }
+try { setupHistoryGuard(); } catch (e) { console.warn('setupHistoryGuard failed', e); }
 
 // 3) Sync currentDay to today's calendar (skip in demo mode so seed stays visible)
 if (!__DEMO_MODE__) {
