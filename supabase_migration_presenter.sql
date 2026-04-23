@@ -98,12 +98,11 @@ create or replace function public.signup_presenter(
 returns jsonb
 language plpgsql
 security definer
-set search_path = ''
 as $$
 declare
-  v_count   integer;
-  v_already integer;
-  v_rows    jsonb;
+  cur_count   integer;
+  cur_already integer;
+  cur_rows    jsonb;
 begin
   if p_week_n not between 1 and 4 then
     return jsonb_build_object('ok', false, 'reason', 'WEEK_OUT_OF_RANGE', 'rows', '[]'::jsonb);
@@ -112,59 +111,61 @@ begin
     return jsonb_build_object('ok', false, 'reason', 'NO_MEMBER_KEY', 'rows', '[]'::jsonb);
   end if;
 
-  -- 같은 주의 signup 로우들을 먼저 잠그고 (FOR UPDATE) 카운트.
-  -- 이렇게 해야 두 유저가 동시에 signup 해서 4자리가 되는 race 를 막을 수 있어요.
-  select count(*)
-    into v_count
-    from public.challenge_presenter_signups s
-   where s.cohort = p_cohort
-     and s.week_n = p_week_n
-   for update;
+  -- 동시성 가드: (cohort, week) 단위 advisory 트랜잭션 락.
+  -- FOR UPDATE + count 조합은 Postgres 에서 까다로워서 advisory lock 으로 대체.
+  perform pg_advisory_xact_lock(hashtextextended(p_cohort || ':' || p_week_n::text, 42));
 
   -- 이미 내가 등록돼있는지 체크.
   select count(*)
-    into v_already
-    from public.challenge_presenter_signups s
-   where s.cohort = p_cohort
-     and s.week_n = p_week_n
-     and s.member_key = p_member_key;
+    into cur_already
+    from public.challenge_presenter_signups
+   where cohort = p_cohort
+     and week_n = p_week_n
+     and member_key = p_member_key;
 
-  if v_already > 0 then
+  if cur_already > 0 then
     -- 중복 — 이미 등록됐으면 신규 insert 없이 현재 rows 만 반환.
     select coalesce(jsonb_agg(r order by r->>'signed_up_at'), '[]'::jsonb)
-      into v_rows
+      into cur_rows
       from (
         select jsonb_build_object(
-          'week_n', s.week_n,
-          'member_key', s.member_key,
-          'member_name', s.member_name,
-          'english_name', s.english_name,
-          'signed_up_at', s.signed_up_at
+          'week_n', week_n,
+          'member_key', member_key,
+          'member_name', member_name,
+          'english_name', english_name,
+          'signed_up_at', signed_up_at
         ) as r
-        from public.challenge_presenter_signups s
-        where s.cohort = p_cohort
-        order by s.week_n asc, s.signed_up_at asc
+        from public.challenge_presenter_signups
+        where cohort = p_cohort
+        order by week_n asc, signed_up_at asc
       ) t;
-    return jsonb_build_object('ok', true, 'reason', 'ALREADY', 'rows', v_rows);
+    return jsonb_build_object('ok', true, 'reason', 'ALREADY', 'rows', cur_rows);
   end if;
 
-  if v_count >= 3 then
+  -- 이 주차 현재 인원 카운트.
+  select count(*)
+    into cur_count
+    from public.challenge_presenter_signups
+   where cohort = p_cohort
+     and week_n = p_week_n;
+
+  if cur_count >= 3 then
     -- 자리 없음.
     select coalesce(jsonb_agg(r order by r->>'signed_up_at'), '[]'::jsonb)
-      into v_rows
+      into cur_rows
       from (
         select jsonb_build_object(
-          'week_n', s.week_n,
-          'member_key', s.member_key,
-          'member_name', s.member_name,
-          'english_name', s.english_name,
-          'signed_up_at', s.signed_up_at
+          'week_n', week_n,
+          'member_key', member_key,
+          'member_name', member_name,
+          'english_name', english_name,
+          'signed_up_at', signed_up_at
         ) as r
-        from public.challenge_presenter_signups s
-        where s.cohort = p_cohort
-        order by s.week_n asc, s.signed_up_at asc
+        from public.challenge_presenter_signups
+        where cohort = p_cohort
+        order by week_n asc, signed_up_at asc
       ) t;
-    return jsonb_build_object('ok', false, 'reason', 'FULL', 'rows', v_rows);
+    return jsonb_build_object('ok', false, 'reason', 'FULL', 'rows', cur_rows);
   end if;
 
   -- 실제 insert.
@@ -178,39 +179,39 @@ begin
 
   -- 최신 rows 반환.
   select coalesce(jsonb_agg(r order by r->>'signed_up_at'), '[]'::jsonb)
-    into v_rows
+    into cur_rows
     from (
       select jsonb_build_object(
-        'week_n', s.week_n,
-        'member_key', s.member_key,
-        'member_name', s.member_name,
-        'english_name', s.english_name,
-        'signed_up_at', s.signed_up_at
+        'week_n', week_n,
+        'member_key', member_key,
+        'member_name', member_name,
+        'english_name', english_name,
+        'signed_up_at', signed_up_at
       ) as r
-      from public.challenge_presenter_signups s
-      where s.cohort = p_cohort
-      order by s.week_n asc, s.signed_up_at asc
+      from public.challenge_presenter_signups
+      where cohort = p_cohort
+      order by week_n asc, signed_up_at asc
     ) t;
 
-  return jsonb_build_object('ok', true, 'reason', null, 'rows', v_rows);
+  return jsonb_build_object('ok', true, 'reason', null, 'rows', cur_rows);
 exception
   when unique_violation then
     -- UNIQUE 가 걸리는 극히 드문 race — ALREADY 로 취급.
     select coalesce(jsonb_agg(r order by r->>'signed_up_at'), '[]'::jsonb)
-      into v_rows
+      into cur_rows
       from (
         select jsonb_build_object(
-          'week_n', s.week_n,
-          'member_key', s.member_key,
-          'member_name', s.member_name,
-          'english_name', s.english_name,
-          'signed_up_at', s.signed_up_at
+          'week_n', week_n,
+          'member_key', member_key,
+          'member_name', member_name,
+          'english_name', english_name,
+          'signed_up_at', signed_up_at
         ) as r
-        from public.challenge_presenter_signups s
-        where s.cohort = p_cohort
-        order by s.week_n asc, s.signed_up_at asc
+        from public.challenge_presenter_signups
+        where cohort = p_cohort
+        order by week_n asc, signed_up_at asc
       ) t;
-    return jsonb_build_object('ok', true, 'reason', 'ALREADY', 'rows', v_rows);
+    return jsonb_build_object('ok', true, 'reason', 'ALREADY', 'rows', cur_rows);
 end;
 $$;
 
@@ -231,10 +232,9 @@ create or replace function public.release_presenter(
 returns jsonb
 language plpgsql
 security definer
-set search_path = ''
 as $$
 declare
-  v_rows jsonb;
+  cur_rows jsonb;
 begin
   if p_week_n not between 1 and 4 then
     return jsonb_build_object('ok', false, 'reason', 'WEEK_OUT_OF_RANGE', 'rows', '[]'::jsonb);
@@ -246,21 +246,21 @@ begin
      and member_key = p_member_key;
 
   select coalesce(jsonb_agg(r order by r->>'signed_up_at'), '[]'::jsonb)
-    into v_rows
+    into cur_rows
     from (
       select jsonb_build_object(
-        'week_n', s.week_n,
-        'member_key', s.member_key,
-        'member_name', s.member_name,
-        'english_name', s.english_name,
-        'signed_up_at', s.signed_up_at
+        'week_n', week_n,
+        'member_key', member_key,
+        'member_name', member_name,
+        'english_name', english_name,
+        'signed_up_at', signed_up_at
       ) as r
-      from public.challenge_presenter_signups s
-      where s.cohort = p_cohort
-      order by s.week_n asc, s.signed_up_at asc
+      from public.challenge_presenter_signups
+      where cohort = p_cohort
+      order by week_n asc, signed_up_at asc
     ) t;
 
-  return jsonb_build_object('ok', true, 'reason', null, 'rows', v_rows);
+  return jsonb_build_object('ok', true, 'reason', null, 'rows', cur_rows);
 end;
 $$;
 

@@ -1070,31 +1070,35 @@ const CHALLENGE = {
         recap: '',
         pptUrl: '',
         scenario: {
-          setting: 'Kickoff meetup · 전원 자기소개 + 목표 공유',
-          premise: '첫 만남. 발표 부담 없이, 각자 짧게 본인 소개하고 이번 챌린지에서 뭘 얻고 싶은지 나누는 자리. 영어로 "warm up" 하는 목적.',
+          setting: '오리엔테이션 · 챌린지 소개 + 유버디 소개 + 1분 자기소개 + PT 방식 안내 + Q&A',
+          premise: '첫 주는 발표 없음. 이 챌린지가 어떻게 굴러가는지 · 유버디가 누구인지 · 멤버 서로 가볍게 알아가기 · PT 어떻게 진행되는지 · 다음 주부터 할 롤플레이 방식. 편하게 듣고 궁금한 거 물어보는 자리.',
           flow: [
-            '① Hi, I\'m — 이름 · 업 · 역할 3문장',
-            '② Where I\'m at — 요즘 내 일 · 영어 상황 한 장면',
-            '③ What I\'m after — 이 챌린지에서 얻고 싶은 것 + 비슷한 고민인 분 찾기',
+            '① 챌린지 소개 — 4주 구조 · Daily · 주간 미팅 · 완주 기준',
+            '② 유버디 소개 — 누가 · 왜 이 챌린지를 만들었는지',
+            '③ 각자 1분 자기소개 — 이름 · 업/역할 · 이번에 얻고 싶은 것',
+            '④ PT 진행 방식 안내 — Week 2~4 발표자 슬롯 · 7분 토크 + 3분 Q&A · 선착순 3명',
+            '⑤ 다음 주 롤플레이 방식 안내 — 그룹 롤플레이 · 역할 · Daily 단어 녹여 쓰기',
+            '⑥ Q&A — 궁금한 거 다 물어보기',
           ],
         },
         roleplay: {
-          duration: 40,
+          duration: 70,
           roles: [
-            { name: 'All participants', goal: '한 명씩 3-4분 자기소개 (위 3가지 flow). 발표 아니고 "편하게 말하는 자리".' },
-            { name: 'Listeners', goal: '상대 발표 끝나면 질문 1개씩. "What brings you here?" / "Who should buddy up with you?"' },
-            { name: 'Host (coach)', goal: '각 자기소개 후 30초 코멘트 — 문법 교정 아닌, 쓸만한 표현 pick-up.' },
+            { name: '유버디 (호스트)', goal: '챌린지 소개 · 본인 소개 · PT 진행 방식 · 다음 주 롤플레이 방식 설명. Q&A 진행.' },
+            { name: '모든 멤버', goal: '1분 자기소개 (이름 · 업/역할 · 이번 챌린지에서 얻고 싶은 것). 궁금한 거 자유롭게 질문.' },
           ],
           beats: [
-            { time: '0–5', label: 'Coach opening', body: 'Coach 가 전체 흐름 + 오늘의 목표 설명. "We\'re not presenting today — we\'re getting to know each other in English."' },
-            { time: '5–25', label: 'Round-robin self-intro', body: '한 명당 3-4분씩. 위 flow 순서로. 이름 → 업/역할 → 요즘 상황 → 챌린지에서 얻고 싶은 것.' },
-            { time: '25–35', label: 'Pairing questions', body: '각자 "내가 buddy up 하고 싶은 1명 + 이유" 공유. "I\'d love to swap notes with ___ because ___."' },
-            { time: '35–40', label: 'Coach wrap', body: 'Coach 가 전체 take-away + Week 2 예고. "다음 주부터 Daily 단어를 실제 롤플레이에 써볼게요."' },
+            { time: '0–10',  label: '챌린지 소개',                body: '유버디가 4주 구조 (Daily 20일 + 주간 미팅 4회) · 완주 기준 · 선물 · 앱 사용법 훑기.' },
+            { time: '10–20', label: '유버디 소개',                body: '누구인지 · 왜 이 챌린지를 만들었는지 · 어떤 마음으로 설계했는지.' },
+            { time: '20–45', label: '1분 자기소개 (전원)',        body: '한 명당 1분씩. 이름 · 업 · 역할 · 이번 챌린지에서 얻고 싶은 것 한 줄.' },
+            { time: '45–55', label: 'PT 진행 방식 안내',          body: 'Week 2~4 에 선착순 3명씩 발표자. 7분 토크 + 3분 Q&A. 앱 내 발표자 탭 · 자리 잡는 법 · 자료 준비 가이드.' },
+            { time: '55–65', label: '다음 주 롤플레이 방식 안내',  body: 'Week 2 부터 40분 그룹 롤플레이 시작. 역할 분담 · Daily 단어를 실전에 녹이는 법 · 코치 피드백 포인트.' },
+            { time: '65–70', label: 'Q&A',                         body: '궁금한 거 자유롭게. 답 모르는 건 유버디가 받아 적고 다음 주에 공유.' },
           ],
           props: [
-            { label: 'Self-intro template', body: '"Hi, I\'m [name]. I work in [industry] as [role]. Right now I\'m [context]. I\'m here because [goal]."' },
-            { label: '열린 질문 3개', body: '"What\'s a typical Monday look like for you?" / "What\'s one English moment that stresses you out?" / "Who would you love to swap notes with?"' },
-            { label: 'Coach 코멘트 샘플', body: '"Love the phrase \'on my radar\' — that\'ll come back in Week 2. Bookmark it."' },
+            { label: '1분 자기소개 템플릿', body: '"Hi, I\'m [name]. I work in [industry] as [role]. This challenge, I want to [goal]."' },
+            { label: 'PT 자리 잡는 법',     body: '앱 → 프리미엄 탭 → 이번 주 카드 → "발표자로 지원" 버튼. 선착순 3명. 한 사람이 여러 주 자리 못 잡음.' },
+            { label: '질문 모음 아이디어', body: '"완주 기준은 어떻게 되나요?" · "Daily 어디서 확인해요?" · "발표 자료 포맷 정해져 있어요?"' },
           ],
         },
         mustUseVocab: [
@@ -1103,9 +1107,9 @@ const CHALLENGE = {
         ],
         presenterPrompt: '', // 발표자 없음
         qaPrompts: [
-          'What\'s a typical day like for you?',
-          'What\'s one English situation that still stresses you out?',
-          'Who would you love to buddy up with here — and why?',
+          '완주 기준이 정확히 어떻게 되나요?',
+          'Daily 단어는 언제 업데이트되고, 어디서 인증해요?',
+          'Week 2~4 발표 자료는 어떤 포맷으로 준비하면 좋아요?',
         ],
       },
       {
@@ -2367,8 +2371,9 @@ function premiumGatePage(opts = {}) {
    ============================================================ */
 function resolveAvatarColor(member) {
   if (!member) return 'mono';
-  // 'me' 는 MEMBERS 시드에서 이미 'orange' 로 세팅돼 있어요 (bindMeToMembers 와 연동).
-  if (member.me) return member.color || 'orange';
+  // 'me' 는 항상 주황 (본인 강조) — 유버디/운영팀으로 로그인해도 본인 카드 프사는
+  // 프리미엄 주황. bindMeToMembers 로 실제 멤버에 매칭돼도 강제로 orange 반환.
+  if (member.me) return 'orange';
   if (member.isOperator) return 'ink';
   const tier = member.tier === 'auto' ? (state.tier || 'basic') : member.tier;
   if (tier !== 'premium') return 'mono';
@@ -8870,8 +8875,9 @@ function MeetingNotesPage(meetingId) {
           marginBottom: '18px',
         }
       });
+      const scenarioLabel = meta.noPresenter ? '📋 오늘의 안건' : '🎬 SCENARIO';
       sumCard.innerHTML = `
-        <div style="font-size:10px;letter-spacing:0.14em;font-weight:700;color:#7B5E8C;">🎬 SCENARIO</div>
+        <div style="font-size:10px;letter-spacing:0.14em;font-weight:700;color:#7B5E8C;">${scenarioLabel}</div>
         <div style="font-size:14px;font-weight:700;color:var(--ink);margin-top:6px;">${escapeHtml(meta.scenario.setting || '')}</div>
         <div style="font-size:12px;line-height:1.55;color:var(--ink-soft);margin-top:6px;">${escapeHtml(meta.scenario.premise || '')}</div>`;
       wrap.appendChild(sumCard);
@@ -8894,20 +8900,26 @@ function MeetingNotesPage(meetingId) {
       <div style="margin-top:12px;margin-bottom:10px;"><b style="color:#7B5E8C;font-size:11px;letter-spacing:0.08em;">BEATS</b></div>
       ${beatsHtml}
       ${propsHtml ? `<div style="margin-top:12px;margin-bottom:10px;"><b style="color:#7B5E8C;font-size:11px;letter-spacing:0.08em;">PROPS</b></div>${propsHtml}` : ''}`;
+    // Week 1 (noPresenter) 은 '오리엔테이션' 자리 — 롤플레이 아님.
     wrap.appendChild(renderTimelineRow({
       rowKey: 'roleplay',
-      timeLabel: '0–40',
-      minutes: 40,
+      timeLabel: meta.noPresenter ? '0–70' : '0–40',
+      minutes: meta.noPresenter ? 70 : 40,
       accent: '#A98BB8',
-      title: '🎭 그룹 롤플레이',
+      title: meta.noPresenter ? '👋 오리엔테이션 & 자기소개' : '🎭 그룹 롤플레이',
       subtitle: (meta.scenario && meta.scenario.setting) || '전원 참여 · 역할 분담 후 진행',
-      body: `<span style="color:var(--ink);">각자 맡은 역할로 비즈니스 상황을 실제처럼 재현. 대사 외우지 말고, 상황에 반응하세요.</span>`,
+      body: meta.noPresenter
+        ? `<span style="color:var(--ink);">첫 주는 발표 없음. 챌린지 / 유버디 소개 → 각자 1분 자기소개 → PT 진행 방식 → 다음 주 롤플레이 방식 → Q&A.</span>`
+        : `<span style="color:var(--ink);">각자 맡은 역할로 비즈니스 상황을 실제처럼 재현. 대사 외우지 말고, 상황에 반응하세요.</span>`,
       briefing: roleplayBrief,
-      placeholder: '예) 내가 맡은 역할: Product Lead\n내가 놓친 reframe 포인트: ...\n상대방이 쓴 괜찮은 표현: ...\n다음엔 이렇게 해볼 것: ...',
+      placeholder: meta.noPresenter
+        ? '예) 챌린지에서 제일 기대되는 것: ...\n내 1분 자기소개 핵심 문장: ...\n다음 주 롤플레이 때 시도해볼 것: ...\n질문으로 남긴 것: ...'
+        : '예) 내가 맡은 역할: Product Lead\n내가 놓친 reframe 포인트: ...\n상대방이 쓴 괜찮은 표현: ...\n다음엔 이렇게 해볼 것: ...',
     }));
 
     // ---- Rows 2-4: Presenter slots (7분 발표 + 3분 Q&A) ----
-    const slotMeta = [
+    // Week 1 (noPresenter) 은 발표 자체가 없는 주 — presenter slot UI 전부 skip.
+    const slotMeta = meta.noPresenter ? [] : [
       { key: 's1', time: '40–50', idx: 0, accent: '#A98BB8' },
       { key: 's2', time: '50–60', idx: 1, accent: '#9B7FAE' },
       { key: 's3', time: '60–70', idx: 2, accent: '#8D729D' },

@@ -18,127 +18,54 @@ echo "==> 현재 상태:"
 git status --short
 git log --oneline -3
 
-# 5th/index.html + push_to_github.sh 만 stage. 루트 index.html 은 제외.
+# 5th/index.html + SQL 파일 + push_to_github.sh 만 stage. 루트 index.html 은 제외.
 echo ""
-echo "==> 5th/index.html + push_to_github.sh stage..."
-git add 5th/index.html push_to_github.sh
+echo "==> 5th/index.html + SQL 마이그레이션 + push_to_github.sh stage..."
+git add 5th/index.html push_to_github.sh supabase_migration_presenter.sql supabase_reset_staff.sql
 
 if ! git diff --cached --quiet; then
   echo ""
   echo "==> 변경 사항 커밋..."
-  git commit -m "운영팀 + 유령회원 + 통계 pool 분리 + 5기 실명단 + 팀 제거 + IP 경고 + Week1 발표 제외 + swipe/back 가드
+  git commit -m "Week1 미팅노트 OT 구조 + 내 아바타 주황 고정 + signup_presenter advisory lock
 
-운영팀 (isStaff) + 유령회원 (hidden/ghost) 계정
-- MEMBER_DIRECTORY 상단에 운영 계정 4개 추가:
-  • code 00 · 유버디 (Premium, isOperator+isStaff) — 실제 참여, 보드 노출
-  • code 42 · 이규태 (Premium, isStaff) — 실제 참여, 보드 노출
-  • code 43 · 이지흔 (Basic,   isStaff) — 실제 참여, 보드 노출
-  • code 44 · 모모    (Basic,   hidden+ghost+isStaff) — 로그인만, 보드·통계 어디에도 안 보임
-- MEMBERS 매핑에 isStaff/ghost/hidden 필드 전파.
-- visibleMembers() 에서 기존 'operator 를 me 아니면 숨김' 필터 제거 →
-  이제 hidden:true 만 빠짐. 운영팀(유버디/이규태/이지흔) 도 보드에 streak 쌓는 모습 노출.
-- paidMembers() 헬퍼 신설 (!hidden && !isStaff && !ghost) — 실제 참가자 38 명.
-- 통계 (인증률 · get_hourly_completion_delta p_total_members) 는 paidMembers 기준 →
-  운영팀/ghost 가 숫자를 흐리지 않음. 보드 sort/display 는 visibleMembers 그대로.
-- 멤버 카드 역할 배지: isStaff 계정은 '운영팀' role 값이 있어도 badge 안 렌더
-  (`member.role && !member.isStaff`).
+Week 1 미팅 노트 = OT (발표 없음)
+- MeetingNotesPage presenter slot 렌더링을 meta.noPresenter 체크 뒤로.
+  Week 1 에서는 3개 presenter slot UI 가 전부 사라짐.
+- 'roleplay' 행을 meta.noPresenter 면 '👋 오리엔테이션 & 자기소개' 로 타이틀/본문/
+  placeholder 재렌더. 70분 자리 전부 OT 가 차지.
+- Scenario 헤더도 noPresenter 면 '🎬 SCENARIO' → '📋 오늘의 안건' 으로 전환.
 
-IP / 저작권 상시 각주 (5th 앱 내부)
-- 로그인 후 모든 페이지 맨 아래 (TabBar 위) 에 작고 조용한 IP 각주:
-  '© 유버디 · 구성·단어·워크플로 복제 금지 · 자세히'.
-- 탭하면 모달로 전문 노출: 이 챌린지는 유버디가 개인적으로
-  기획·개발한 콘텐츠 + 법적 조치 대상 + 개인 학습용 캡처는 허용.
-- buildPersistentIpFooter() / openIpDetailModal() 헬퍼 추가.
+Week 1 실제 안건 반영 (weekly_meetings[0])
+- scenario.setting/premise/flow → 챌린지 소개 · 유버디 소개 · 1분 자기소개 ·
+  PT 진행 방식 안내 · 다음주 롤플레이 방식 안내 · Q&A.
+- roleplay.duration 40 → 70, roles 2개 (유버디 호스트 / 모든 멤버),
+  beats 6개 (0–10 챌린지 소개 / 10–20 유버디 소개 / 20–45 1분 자기소개 /
+  45–55 PT 안내 / 55–65 롤플레이 안내 / 65–70 Q&A).
+- props 3개 (1분 자기소개 템플릿 · PT 자리 잡는 법 · 질문 모음 아이디어).
+- qaPrompts 도 실질 질문 (완주 기준 · Daily 시점 · 자료 포맷) 으로 갈아끼움.
 
-브라우저 back 가드 (native back gesture 가 페이지를 꺼트리는 문제)
-- setupHistoryGuard: history.pushState 로 'active' 센티널 엔트리를
-  항상 1개 추가 유지. 사용자가 네이티브 back 제스처 (iOS/안드로이드/
-  맥 트랙패드) 를 쓰면 'base' 로 떨어지며 popstate 발생 → SPA 내부
-  goBackRoute() 실행 + 'active' 센티널 재주입.
-- 설정 모달 / 멤버 카드 / 프리미엄 게이트가 열려있으면 그것부터 닫기.
-- 기존 setupSwipeNavigation (터치/포인터) 은 그대로 유지.
+내 아바타 주황 고정
+- resolveAvatarColor: member.me 면 member.color 참조 없이 무조건 'orange' 반환.
+  유버디/운영팀으로 로그인해도 본인 카드 프사는 프리미엄 주황. 보드에서
+  남이 볼 때는 isOperator 분기로 여전히 ink.
 
-Week 1 발표자 선착순 제외
-- Week 1 은 전원 자기소개 / 아이스브레이킹 주 → noPresenter: true.
-- signupPresenter RPC guard + weekHasPresenter(n) helper.
-- PremiumPage 주차 카드 → '✨ 발표 없음 · 전원 자기소개' + '말할 거리'.
-- Home 이번 주 hero → noPresenter 주는 '발표 없음' 상태로 렌더링,
-  클릭시 meeting-notes 로 바로 이동.
-- Floating 🎤 FAB → noPresenter 주 동안은 숨김 처리.
-- 온보딩 튜어 Step 3 (Presenter): '4주 중 1주' → 'Week 2~4 중 1주',
-  'Week 1 은 전원 자기소개 주간' 문구 추가.
+supabase_migration_presenter.sql — v_count 에러 수정
+- signup_presenter / release_presenter 에서 'set search_path = ''' 제거.
+  (plpgsql 변수 해석이 이 세팅이랑 충돌하면서 'relation v_count does not exist'
+  에러 재현). 변수명도 v_* → cur_* 로 이름 충돌 가능성 완전 제거.
+- 'SELECT count(*) FROM (... FOR UPDATE)' 서브쿼리 패턴 폐기.
+  대신 pg_advisory_xact_lock(hashtextextended(cohort||':'||week, 42)) 로
+  (cohort, week) 단위 트랜잭션 락. 3자리 hard limit race 는 그대로 방지.
+- 모든 내부 쿼리에서 's.' alias 참조 제거 (단일 테이블에서 불필요).
 
-'말할 거리' → '미팅 노트' 용어 통일
-- 7군데 (주차 카드 CTA · Home hero 라벨 · Daily 리뷰 카드 · ExportPage
-  · ProfilePage 섹션 헤더 등) 모두 '미팅 노트' 로 변경. 목적지 페이지
-  이름 (MeetingNotesPage = '미팅 노트') 과 용어 맞춤.
-
-Week 1 카드 잔여 UI 정리 (추가)
-- PremiumPage 주차 카드 — Week 1 (noPresenter) 에서 여전히 노출되던
-  '발표자' 슬롯 (점선 원 3개) + '3자리 남음' 상태 + 참여자 이름 줄
-  전체를 weekHasPresenter(m.n) 가드 뒤로 넣어 완전 숨김.
-- CTA 분기 순서 수정: 기존에 myWeekLocked 체크 ('🔒 Week 4 에 이미 자리
-  잡음') 가 먼저 적용돼서, 다른 주에 자리 잡은 유저의 Week 1 카드에도
-  'Week 4 에 이미 자리 잡음' 이 뜨던 문제. !weekHasPresenter 분기를
-  isPast 직후로 올려서 Week 1 은 항상 '✨ 발표 없음 · 전원 자기소개'.
-
-5기 실명단 (38명)
-- Premium 8명 (code 01~08): 김소영, 손미경, 이수진, 정주혜,
-  이도현, 이송아, 정지은, 김정인.
-- Basic 30명 (code 09~38): 고민지, 박연, 장희정, 이유빈, 박보름,
-  김선영, 신은선, 최보라, 백수지, 정진송, 권다희, 강태윤, 최수지,
-  이정은, 정송하, 김수린, 진여송, 권지선, 윤수정, 양은지, 임혜연,
-  조예지, 고주영, 신지현, 김지현, 신지은, 임정연, 허윤형, 이지유,
-  김하은.
-- 운영자(op1) 이름 '유버디' → '운영자'.
-- 테스트 흔적 (이규태 u24, 이지흔 u25, 모모 u26) 제거.
-- 코드 lookup: '01' / '1' 둘 다 로그인 되게 정규화.
-
-팀 A/B 제거
-- MEMBER_DIRECTORY 에서 team 필드 삭제.
-- 커뮤니티 포스트 헤더 '· A' 꼬리표 제거.
-- myTeam() 내부 fallback 은 'A' 고정 (데이터 호환).
-
-IP / 저작권 경고
-- 5th 온보딩 STEP 4 하단에 'COPYRIGHT · IP' 박스 추가:
-  '이 챌린지는 유버디가 개인적으로 기획·개발한 콘텐츠입니다.
-  구성·단어 큐레이션·워크플로를 유사하게 복제·재배포할 경우
-  법적 조치 대상이 될 수 있어요.'
-
-완주 선물 카피 (Basic Step 4 팝업 튜어)
-- '수료증 발급' → '완주 기준 18/20 · 이번 기수 단어장 PDF +
-  완주 배지 + 6기 얼리버드 쿠폰'.
-- 아이콘 🎓 → 🎁.
-
-Basic Step 3 팝업 튜어
-- '같이 도는 버디들' → '함께하는 버디들'.
-- '표현을 훔쳐가세요. 저장 → 내 단어장으로 쌓이고, 수료증까지
-  따라와요.' → '표현을 저장해보세요. 저장 → 내 단어장(나만
-  보여요!)으로 쌓인답니다.'
-
-운영자 전용 — 온보딩 팝업 미리보기
-- 설정 모달 OPERATOR ONLY 섹션에 'Basic 로 플레이 (5스텝)' /
-  'Premium 로 플레이 (6스텝)' 버튼 추가.
-- 클릭 시 state.tier 를 임시로 flip + tour_done=false → 설정 모달
-  닫고 실제 멤버가 보는 오버레이 그대로 재생.
-- completeOnboardingTour 에서 운영자 원본 tier 복구 (window.
-  __operatorOriginalTier 임시 저장).
-
-챌린지 일정 이동
-- start_date 2026-04-20 → 2026-04-27 (월), end_date 2026-05-15
-  → 2026-05-22 (금). 주간 미팅 Thursday 4/30·5/7·5/14·5/21 그대로.
-
-기타 UI 문자열 정리
-- 온보딩 이름 placeholder '유버디' → '예: 홍길동'.
-- get_cohort_member_summaries 콘솔 경고 / 본명 서브라인 주석 /
-  ?reset=1 주석 등 이규태·이지흔·유버디 멤버 흔적 중립화.
+기타 (이전 커밋에 미포함)
+- supabase_reset_staff.sql: 운영팀/유령 계정 (유버디·이규태·이지흔·모모·
+  '운영자') 의 challenge_member_state / verification_events / presenter_signups /
+  community_posts/comments/likes 데이터를 to_regclass 가드로 안전 리셋.
 
 후속
-- supabase_migration_english_name.sql 과
-  supabase_migration_presenter.sql 은 여전히 SQL Editor 에서 실행
-  필요 (이전 커밋 후속).
-- 메인 index.html (IP 경고 띠 + 샘플 단어 섹션) 은 buddy 지시
-  전까지 커밋 보류."
+- supabase_migration_presenter.sql 과 supabase_reset_staff.sql 은
+  여전히 SQL Editor 에서 Run 필요 (v_count 에러 fix 된 버전)."
 fi
 
 echo ""
