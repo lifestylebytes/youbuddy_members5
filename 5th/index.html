@@ -2096,6 +2096,10 @@ let showGoalEditor = false;
 // 프리미엄 미팅 녹화/분석 사전 동의 모달. MeetingNotesPage 진입 시 본인이 아직 동의 안 했으면 자동 오픈.
 // 버튼 두 개: '동의하고 계속' → state.meeting_consent 기록 + 진입 · '나중에' → 모달만 닫음 (진입 자체를 차단하진 않음 — 부담 줄이되 페이지 상단 안내 배너로 재유도).
 let showMeetingConsent = false;
+// '나중에' 로 닫거나 백드롭 클릭으로 닫은 세션 플래그. true 면 PremiumPage/MeetingNotesPage
+// 가 자동 재오픈 안 함 (무한 루프 방지). 페이지 상단 배너 클릭 / 설정에서 다시 열 수 있음.
+// 탭 새로고침하면 리셋돼서 다음 세션엔 다시 한 번 뜸 (동의 안 받은 상태 유지 동안).
+let consentDismissedThisSession = false;
 // Operator 용 미팅 동의 감사 모달. 누가 언제 동의했는지 확인.
 let showConsentAudit = false;
 let consentAuditRows = null; // 비동기 fetch 결과 캐시
@@ -7261,9 +7265,9 @@ function PremiumPage() {
   // 반드시 동의를 받을 수 있도록 최상위 프리미엄 탭에서 한 번 더 가드.
   // - 프리미엄 티어만 트리거 (basic 프리뷰 중이면 건너뜀)
   // - 이미 동의했거나 모달 열려있으면 건너뜀
-  if (state.tier === 'premium' && !isMeetingConsentCurrent() && !showMeetingConsent) {
+  if (state.tier === 'premium' && !isMeetingConsentCurrent() && !showMeetingConsent && !consentDismissedThisSession) {
     setTimeout(() => {
-      if (currentPage === 'premium' && state.tier === 'premium' && !isMeetingConsentCurrent() && !showMeetingConsent) {
+      if (currentPage === 'premium' && state.tier === 'premium' && !isMeetingConsentCurrent() && !showMeetingConsent && !consentDismissedThisSession) {
         showMeetingConsent = true;
         render();
       }
@@ -8776,9 +8780,9 @@ function MeetingNotesPage(meetingId) {
   // 이미 오픈된 상태면 중복 트리거 안 함. 운영자/스태프 포함 전원 한 번은 봐야함
   // (본인도 프리미엄 참가자라 녹화됨 + QA 확인용). 한 번 동의하면 다시 안 뜸,
   // 테스트로 다시 보고 싶으면 설정 > OPERATOR ONLY > '내 미팅 동의 초기화' 클릭.
-  if (!isMeetingConsentCurrent() && !showMeetingConsent) {
+  if (!isMeetingConsentCurrent() && !showMeetingConsent && !consentDismissedThisSession) {
     setTimeout(() => {
-      if (currentPage === 'meeting-notes' && !isMeetingConsentCurrent() && !showMeetingConsent) {
+      if (currentPage === 'meeting-notes' && !isMeetingConsentCurrent() && !showMeetingConsent && !consentDismissedThisSession) {
         showMeetingConsent = true;
         render();
       }
@@ -8943,7 +8947,7 @@ function MeetingNotesPage(meetingId) {
         alignItems: 'center',
         cursor: 'pointer',
       },
-      onClick: () => { showMeetingConsent = true; render(); },
+      onClick: () => { consentDismissedThisSession = false; showMeetingConsent = true; render(); },
     });
     consentBanner.innerHTML = `
       <div style="flex-shrink:0;width:28px;height:28px;border-radius:50%;background:rgba(155,127,174,0.22);display:flex;align-items:center;justify-content:center;">🎥</div>
@@ -10881,6 +10885,8 @@ function SettingsModal() {
     if (resetMyConsentBtn) resetMyConsentBtn.onclick = () => {
       if (!confirm('내 미팅 동의 기록을 초기화할까요?\n(다음 미팅 노트 페이지에서 팝업이 다시 떠요.)')) return;
       state.meeting_consent = null;
+      // 이번 세션 '나중에' 무시 플래그도 같이 리셋 → 바로 다시 팝업 뜨게.
+      consentDismissedThisSession = false;
       saveState({ immediate: true });
       showToast('내 동의 기록을 초기화했어요.');
       showSettings = false;
@@ -11376,7 +11382,7 @@ function isMeetingConsentCurrent() {
 function MeetingConsentModal() {
   const backdrop = el('div', {
     class: 'modal-backdrop',
-    onClick: (e) => { if (e.target === backdrop) { showMeetingConsent = false; render(); } },
+    onClick: (e) => { if (e.target === backdrop) { showMeetingConsent = false; consentDismissedThisSession = true; render(); } },
   });
   const modal = el('div', {
     class: 'modal',
@@ -11441,7 +11447,9 @@ function MeetingConsentModal() {
     const acceptBtn = document.getElementById('__consentAccept');
     const chkBio = document.getElementById('__consentChkBio');
     const chkDeleg = document.getElementById('__consentChkDeleg');
-    const close = () => { showMeetingConsent = false; render(); };
+    // X 버튼 / '나중에' 로 닫으면 이번 세션엔 자동 재오픈 안 함 (무한 루프 방지).
+    // 다음 탭 새로고침시 다시 한 번 뜨고, 그 전에 다시 보고싶으면 상단 배너 클릭.
+    const close = () => { showMeetingConsent = false; consentDismissedThisSession = true; render(); };
     const syncBtn = () => {
       const ok = !!(chkBio && chkBio.checked && chkDeleg && chkDeleg.checked);
       if (!acceptBtn) return;
