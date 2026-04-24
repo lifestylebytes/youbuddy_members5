@@ -3,35 +3,1427 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>YOUBUDDY · 비즈니스 영어 챌린지</title>
-<meta http-equiv="refresh" content="0; url=/5th/" />
-<link rel="canonical" href="/5th/" />
+<title>YOUBUDDY · 혼자 안 해도 되는 영어 챌린지</title>
+<meta name="description" content="영어 공부가 매번 무너지는 이유는 혼자라서예요. Youbuddy 는 20일 챌린지 + 그룹 미팅 + 발표로 영어를 갓생 루틴으로 박아주는 커뮤니티 챌린지입니다." />
+<meta property="og:title" content="YOUBUDDY · 혼자 안 해도 되는 영어 챌린지" />
+<meta property="og:description" content="20일 챌린지 + 그룹 미팅 + 발표. 영어가 루틴이 되는 4주." />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <style>
-  html, body { margin:0; padding:0; background:#FFFDF7; font-family: -apple-system, BlinkMacSystemFont, "Noto Sans KR", sans-serif; color:#2A1F14; }
-  .wrap { min-height:100vh; display:grid; place-items:center; text-align:center; padding:24px; }
-  .card { padding:28px 24px; border:1px solid #E7DDC8; border-radius:20px; background:#fff; max-width:360px; }
-  .badge { display:inline-block; padding:6px 12px; border-radius:999px; background:#FCE4D0; color:#C95721; font-size:11px; font-weight:700; letter-spacing:0.1em; }
-  h1 { margin:14px 0 8px; font-size:22px; letter-spacing:-0.02em; }
-  p { margin:6px 0 0; font-size:13px; color:#6B5A40; line-height:1.5; }
-  a { margin-top:16px; display:inline-block; padding:12px 22px; background:#F07D38; color:#FFFDF7; text-decoration:none; border-radius:999px; font-weight:700; font-size:13px; }
+  :root{
+    --cream:#FFFDF7;
+    --paper:#F7EFDE;
+    --paper-2:#F1E6CF;
+    --ink:#2A1F14;
+    --ink-soft:#5B4A32;
+    --muted:#8A7A5C;
+    --line:#E7DDC8;
+    --line-soft:#EFE6D1;
+    --orange:#F07D38;
+    --orange-dark:#C95721;
+    --orange-ghost:rgba(240,125,56,0.14);
+    --cream-warm:#FBF2DD;
+    --ink-hi:#1C140B;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--cream);color:var(--ink);
+    font-family:'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-feature-settings:"ss01","cv11"; -webkit-font-smoothing:antialiased;}
+  a{color:inherit;text-decoration:none}
+  .serif{font-family:'Cormorant Garamond', 'Noto Serif KR', Georgia, serif;font-weight:600;letter-spacing:-0.01em}
+  .kicker{font-size:11px;letter-spacing:0.18em;font-weight:700;color:var(--muted);text-transform:uppercase}
+  .container{max-width:1120px;margin:0 auto;padding:0 24px}
+
+  /* ---------- 상단 리본: 5기 분 오인 입장 구제 ---------- */
+  .ribbon{
+    position:sticky;top:0;z-index:40;
+    background:var(--ink);color:var(--cream);
+    padding:10px 16px;font-size:13px;
+    display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .ribbon b{color:#fff;font-weight:800}
+  .ribbon a.cta{
+    background:var(--orange);color:#fff;padding:6px 14px;border-radius:999px;
+    font-weight:800;font-size:12px;display:inline-flex;align-items:center;gap:4px;
+    transition:transform 0.15s ease, background 0.15s ease;
+  }
+  .ribbon a.cta:hover{background:var(--orange-dark);transform:translateY(-1px)}
+
+  /* ---------- Nav ---------- */
+  .nav{padding:22px 0;display:flex;align-items:center;justify-content:space-between}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:0.02em;font-size:18px}
+  .logo-dot{width:10px;height:10px;border-radius:50%;background:var(--orange);box-shadow:0 0 0 3px var(--orange-ghost)}
+  .nav-links{display:flex;gap:22px;font-size:13.5px;color:var(--ink-soft);font-weight:500}
+  .nav-links a:hover{color:var(--orange-dark)}
+  .nav-cta{
+    padding:9px 16px;border-radius:999px;background:var(--ink);color:var(--cream);
+    font-size:12.5px;font-weight:700;letter-spacing:0.02em;
+  }
+  @media (max-width:720px){ .nav-links{display:none} }
+
+  /* ---------- Hero ---------- */
+  .hero{padding:60px 0 80px;position:relative;overflow:hidden}
+  .hero-eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--cream-warm);border:1px solid var(--line);
+    padding:8px 14px;border-radius:999px;
+    font-size:12px;font-weight:600;color:var(--ink-soft);letter-spacing:0.02em;
+  }
+  .hero-eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--orange);animation:pulse 1.8s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.55;transform:scale(0.85)}}
+  .hero h1{
+    font-family:'Cormorant Garamond', 'Noto Serif KR', Georgia, serif;
+    font-weight:700;
+    font-size:clamp(48px, 7.5vw, 96px);
+    line-height:0.98;
+    letter-spacing:-0.035em;
+    margin:22px 0 0;
+    color:var(--ink-hi);
+  }
+  .hero h1 .kr{
+    font-family:'Noto Sans KR', sans-serif;
+    font-weight:900;
+    letter-spacing:-0.025em;
+    display:block;
+  }
+  .hero h1 em{
+    font-style:italic;font-weight:600;color:var(--orange-dark);
+    position:relative;display:inline-block;
+  }
+  .hero .sub{
+    margin-top:28px;font-size:clamp(15px,1.4vw,18px);line-height:1.7;
+    color:var(--ink-soft);max-width:620px;font-weight:500;
+  }
+  .hero-ctas{margin-top:36px;display:flex;gap:14px;flex-wrap:wrap}
+  .btn-primary{
+    padding:16px 30px;border-radius:999px;background:var(--orange);color:#fff;
+    font-weight:800;font-size:14.5px;letter-spacing:0.02em;
+    display:inline-flex;align-items:center;gap:10px;
+    transition:transform 0.15s, background 0.15s, box-shadow 0.15s;
+    box-shadow:0 8px 24px rgba(240,125,56,0.25);
+  }
+  .btn-primary:hover{background:var(--orange-dark);transform:translateY(-2px);box-shadow:0 12px 32px rgba(240,125,56,0.32)}
+  .btn-ghost{
+    padding:16px 28px;border-radius:999px;background:transparent;
+    border:1.5px solid var(--line);color:var(--ink);
+    font-weight:700;font-size:14px;
+    display:inline-flex;align-items:center;gap:8px;
+    transition:border-color 0.15s, background 0.15s;
+  }
+  .btn-ghost:hover{border-color:var(--ink);background:#FFF8EA}
+  .hero-meta{
+    margin-top:44px;display:flex;gap:28px;font-size:12px;color:var(--muted);
+    letter-spacing:0.04em;font-weight:600;text-transform:uppercase;flex-wrap:wrap;
+  }
+  .hero-meta span{position:relative;padding-left:14px}
+  .hero-meta span::before{
+    content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+    width:6px;height:6px;border-radius:50%;background:var(--orange);
+  }
+
+  /* soft corner graphic */
+  .hero-art{
+    position:absolute;top:-40px;right:-60px;width:520px;height:520px;
+    background:radial-gradient(closest-side, rgba(240,125,56,0.14), transparent 70%);
+    pointer-events:none;z-index:0;
+  }
+  @media (max-width:720px){ .hero-art{width:320px;height:320px;right:-80px;top:-10px} }
+
+  /* ---------- Problem ---------- */
+  .section{padding:90px 0;border-top:1px solid var(--line)}
+  .section-eyebrow{font-size:11px;letter-spacing:0.22em;font-weight:700;color:var(--orange-dark);text-transform:uppercase}
+  .section-title{
+    font-family:'Cormorant Garamond', 'Noto Serif KR', Georgia, serif;
+    font-weight:700;
+    font-size:clamp(34px,4.5vw,56px);line-height:1.05;letter-spacing:-0.025em;
+    margin:14px 0 0;color:var(--ink-hi);
+  }
+  .section-title .kr{font-family:'Noto Sans KR';font-weight:900;letter-spacing:-0.02em}
+  .section-lead{margin-top:20px;font-size:16px;color:var(--ink-soft);line-height:1.65;max-width:680px}
+
+  .problem-grid{
+    margin-top:48px;display:grid;grid-template-columns:repeat(3, 1fr);gap:20px;
+  }
+  @media (max-width:820px){ .problem-grid{grid-template-columns:1fr} }
+  .problem-card{
+    padding:30px 26px 30px;
+    background:#FFFDF7;border:1px solid var(--line);border-radius:22px;
+    position:relative;
+  }
+  .problem-num{
+    font-family:'Cormorant Garamond', serif;font-weight:600;font-style:italic;
+    font-size:40px;color:var(--orange);line-height:1;
+  }
+  .problem-card h3{margin:16px 0 10px;font-size:19px;font-weight:800;letter-spacing:-0.02em}
+  .problem-card p{font-size:14px;color:var(--ink-soft);line-height:1.65;margin:0}
+
+  /* ---------- How it works ---------- */
+  .how-steps{margin-top:56px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media (max-width:820px){ .how-steps{grid-template-columns:1fr} }
+  .step{
+    background:var(--ink);color:var(--cream);padding:32px 26px;border-radius:26px;
+    display:flex;flex-direction:column;min-height:260px;position:relative;overflow:hidden;
+  }
+  .step.warm{background:var(--orange);color:#fff}
+  .step.cream{background:var(--cream-warm);color:var(--ink);border:1px solid var(--line)}
+  .step-index{
+    font-family:'Cormorant Garamond', serif;font-style:italic;font-weight:600;
+    font-size:15px;letter-spacing:0.04em;opacity:0.75;
+  }
+  .step-title{
+    font-family:'Cormorant Garamond', serif;font-weight:700;
+    font-size:30px;line-height:1.1;letter-spacing:-0.02em;margin-top:14px;
+  }
+  .step-title .kr{font-family:'Noto Sans KR';font-weight:900;display:block;margin-top:6px;letter-spacing:-0.02em;font-size:22px;font-style:normal}
+  .step p{margin-top:auto;font-size:14px;line-height:1.6;opacity:0.88}
+  .step .chip{
+    display:inline-block;padding:5px 10px;border-radius:999px;
+    background:rgba(255,255,255,0.14);font-size:10.5px;font-weight:700;letter-spacing:0.08em;
+    margin-bottom:14px;width:fit-content;
+  }
+  .step.cream .chip{background:var(--orange-ghost);color:var(--orange-dark)}
+
+  /* ---------- Meet buddy ---------- */
+  .buddy-section{background:var(--paper);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .buddy-wrap{display:grid;grid-template-columns:1fr 1.1fr;gap:56px;align-items:center;padding:90px 0}
+  @media (max-width:820px){ .buddy-wrap{grid-template-columns:1fr;gap:32px} }
+  .buddy-card{
+    background:#fff;border:1px solid var(--line);border-radius:28px;padding:36px 30px;
+    position:relative;
+  }
+  .buddy-avatar{
+    width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,#FFE4C7,#F07D38);
+    display:grid;place-items:center;font-size:44px;color:#fff;font-weight:900;
+    font-family:'Cormorant Garamond', serif;font-style:italic;letter-spacing:-0.03em;
+    margin-bottom:18px;
+  }
+  .buddy-card h3{font-size:26px;font-weight:800;margin:0 0 6px;letter-spacing:-0.02em}
+  .buddy-card .handle{color:var(--muted);font-size:13px;font-weight:600}
+  .buddy-card p{font-size:14.5px;line-height:1.7;color:var(--ink-soft);margin:16px 0 0}
+  .buddy-tags{margin-top:20px;display:flex;flex-wrap:wrap;gap:8px}
+  .buddy-tags span{
+    padding:6px 12px;border-radius:999px;background:var(--cream-warm);
+    font-size:11.5px;font-weight:700;color:var(--orange-dark);letter-spacing:0.02em;
+  }
+  .buddy-quote{
+    font-family:'Cormorant Garamond', serif;font-weight:600;font-style:italic;
+    font-size:clamp(30px,4vw,46px);line-height:1.15;letter-spacing:-0.02em;
+    color:var(--ink-hi);
+  }
+  .buddy-quote::before{content:'\201C';color:var(--orange);font-size:1.3em;line-height:0;vertical-align:-0.2em;margin-right:0.1em}
+  .buddy-quote::after{content:'\201D';color:var(--orange);font-size:1.3em;line-height:0;vertical-align:-0.5em;margin-left:0.04em}
+  .buddy-quote-kr{margin-top:22px;font-size:16px;color:var(--ink-soft);line-height:1.7;max-width:520px}
+
+  /* ---------- Cohorts ---------- */
+  .cohorts{margin-top:48px;display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+  @media (max-width:820px){ .cohorts{grid-template-columns:repeat(2,1fr)} }
+  .cohort{
+    background:#FFFDF7;border:1px solid var(--line);border-radius:18px;padding:20px 18px;
+    text-align:left;
+  }
+  .cohort .num{
+    font-family:'Cormorant Garamond', serif;font-weight:600;font-style:italic;
+    font-size:36px;color:var(--ink);letter-spacing:-0.02em;line-height:1;
+  }
+  .cohort .lbl{font-size:11px;letter-spacing:0.12em;color:var(--muted);font-weight:700;margin-top:8px;text-transform:uppercase}
+  .cohort .meta{margin-top:10px;font-size:12.5px;color:var(--ink-soft);font-weight:600}
+  .cohort.active{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+  .cohort.active .num{color:var(--orange)}
+  .cohort.active .lbl{color:rgba(251,247,240,0.55)}
+  .cohort.active .meta{color:rgba(251,247,240,0.75)}
+
+  /* ---------- Voices ---------- */
+  .voices{margin-top:48px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media (max-width:820px){ .voices{grid-template-columns:1fr} }
+  .voice{
+    padding:28px 24px;background:#FFFDF7;border:1px solid var(--line);border-radius:22px;
+    display:flex;flex-direction:column;
+  }
+  .voice-stars{color:var(--orange);letter-spacing:2px;font-size:13px}
+  .voice p{font-size:14.5px;line-height:1.7;color:var(--ink);margin:14px 0 18px;flex:1}
+  .voice .author{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--ink-soft)}
+  .voice .author .dot{width:32px;height:32px;border-radius:50%;background:var(--cream-warm);display:grid;place-items:center;font-weight:800;color:var(--orange-dark);font-size:13px}
+  .voice .author b{font-weight:800;color:var(--ink)}
+  .voice .author span{opacity:0.6}
+
+  /* ---------- FAQ ---------- */
+  .faq{margin-top:48px;display:flex;flex-direction:column;gap:12px;max-width:780px}
+  .faq details{
+    background:#FFFDF7;border:1px solid var(--line);border-radius:18px;padding:22px 24px;
+    transition:border-color 0.15s, background 0.15s;
+  }
+  .faq details[open]{border-color:var(--ink-soft);background:#fff}
+  .faq summary{
+    list-style:none;cursor:pointer;font-weight:700;font-size:15.5px;letter-spacing:-0.01em;
+    display:flex;justify-content:space-between;align-items:center;gap:14px;
+  }
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary::after{
+    content:'+';color:var(--orange);font-weight:400;font-size:24px;line-height:1;
+    transition:transform 0.2s;
+  }
+  .faq details[open] summary::after{content:'−'}
+  .faq p{margin:14px 0 0;font-size:14.5px;color:var(--ink-soft);line-height:1.7}
+
+  /* ---------- Waitlist ---------- */
+  .waitlist{
+    background:linear-gradient(135deg, var(--ink) 0%, #3A2B1C 100%);
+    color:var(--cream);border-radius:32px;padding:64px 48px;margin:90px 0;
+    display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;
+  }
+  @media (max-width:820px){ .waitlist{grid-template-columns:1fr;padding:48px 28px;margin:60px 0} }
+  .waitlist h2{
+    font-family:'Cormorant Garamond', serif;font-weight:700;
+    font-size:clamp(32px,4vw,48px);line-height:1.05;letter-spacing:-0.025em;margin:0;
+  }
+  .waitlist h2 .kr{font-family:'Noto Sans KR';font-weight:900;display:block;margin-top:6px;letter-spacing:-0.02em}
+  .waitlist .warm{color:var(--orange)}
+  .waitlist p{margin-top:18px;font-size:15px;line-height:1.7;color:rgba(251,247,240,0.75);max-width:440px}
+
+  .email-form{display:flex;gap:8px;margin-top:0;flex-wrap:wrap}
+  .email-form input{
+    flex:1;min-width:220px;padding:16px 20px;border-radius:999px;
+    background:rgba(251,247,240,0.08);border:1px solid rgba(251,247,240,0.2);
+    color:var(--cream);font-size:14.5px;font-family:inherit;outline:none;
+    transition:border-color 0.15s, background 0.15s;
+  }
+  .email-form input:focus{border-color:var(--orange);background:rgba(251,247,240,0.12)}
+  .email-form input::placeholder{color:rgba(251,247,240,0.4)}
+  .email-form button{
+    padding:16px 28px;border-radius:999px;background:var(--orange);color:#fff;border:none;
+    font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;
+    transition:background 0.15s, transform 0.15s;
+  }
+  .email-form button:hover{background:var(--orange-dark);transform:translateY(-1px)}
+  .waitlist .note{margin-top:14px;font-size:12px;color:rgba(251,247,240,0.5);letter-spacing:0.02em}
+
+  /* ---------- Footer ---------- */
+  .ip-band{padding:18px 0;border-top:1px solid var(--line);background:rgba(66,48,28,0.035)}
+  .ip-band-inner{max-width:1120px;margin:0 auto;padding:0 28px;display:flex;align-items:flex-start;gap:14px}
+  .ip-band-tag{flex:0 0 auto;font-size:10px;font-weight:700;letter-spacing:0.12em;color:var(--orange-dark);padding:4px 9px;border-radius:999px;background:rgba(240,125,56,0.1);margin-top:1px}
+  .ip-band-txt{margin:0;font-size:11.5px;line-height:1.7;color:var(--muted);letter-spacing:-0.005em}
+  @media (max-width:720px){
+    .ip-band-inner{flex-direction:column;gap:8px;padding:0 20px}
+    .ip-band-txt{font-size:11px;line-height:1.65}
+  }
+  .footer{padding:60px 0 80px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+  .footer-top{display:flex;justify-content:space-between;align-items:flex-start;gap:32px;flex-wrap:wrap}
+  .footer .logo{font-size:20px}
+  .footer-links{display:flex;gap:24px;font-weight:500}
+  .footer-links a:hover{color:var(--ink)}
+  .footer-bottom{margin-top:40px;display:flex;justify-content:space-between;gap:14px;font-size:11.5px;letter-spacing:0.04em;flex-wrap:wrap}
+
+  /* ---------- Plans / Pricing ---------- */
+  .promo-strip{
+    margin-top:34px;padding:18px 22px;border-radius:20px;
+    background:var(--cream-warm);border:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;font-size:13.5px;color:var(--ink-soft);
+  }
+  .promo-strip .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:8px 14px;border-radius:999px;background:#fff;border:1px solid var(--line);
+    font-size:12.5px;font-weight:700;color:var(--orange-dark);letter-spacing:0.01em;
+  }
+  .promo-strip .note{flex:1;min-width:240px;font-size:13px;line-height:1.6;color:var(--ink-soft)}
+
+  .plans{margin-top:36px;display:grid;grid-template-columns:1fr 1.1fr;gap:20px}
+  @media(max-width:820px){ .plans{grid-template-columns:1fr} }
+  .plan{
+    position:relative;background:#fff;border:1.5px solid var(--line);border-radius:26px;
+    padding:36px 32px;display:flex;flex-direction:column;
+  }
+  .plan.basic{border-color:rgba(240,125,56,0.28)}
+  .plan.premium{
+    border-color:var(--ink);
+    background:linear-gradient(155deg, #fff 0%, #FFF4E4 100%);
+    box-shadow:0 14px 40px rgba(42,31,20,0.08);
+  }
+  .plan-badge{
+    position:absolute;top:-12px;right:26px;padding:6px 14px;border-radius:999px;
+    background:var(--ink);color:var(--cream);font-size:10.5px;font-weight:800;letter-spacing:0.12em;
+  }
+  .plan.premium .plan-badge{background:var(--orange)}
+  .plan-tier{font-size:11.5px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:var(--orange-dark)}
+  .plan.basic .plan-tier{color:var(--ink-soft)}
+  .plan-price{
+    margin-top:8px;
+    font-family:'Cormorant Garamond', serif;font-weight:700;
+    font-size:48px;line-height:1;letter-spacing:-0.03em;color:var(--ink-hi);
+  }
+  .plan-price small{font-size:15px;font-weight:500;color:var(--muted);margin-left:4px}
+  .plan-meta{margin-top:6px;font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:0.02em}
+  .plan-tag{margin-top:18px;font-size:14.5px;color:var(--ink-soft);line-height:1.65;min-height:44px}
+  .plan hr{border:none;border-top:1px dashed var(--line);margin:22px 0}
+  .plan-features{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;flex:1}
+  .plan-features li{font-size:14px;color:var(--ink);line-height:1.55;display:flex;gap:10px;align-items:flex-start}
+  .plan-features li::before{
+    content:'';display:inline-block;width:16px;height:16px;border-radius:50%;
+    background:var(--orange-ghost) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path d='M3.5 8.5L6.5 11.5L12.5 5.5' stroke='%23C95721' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>") center/12px no-repeat;
+    flex-shrink:0;margin-top:3px;
+  }
+  .plan.premium .plan-features li::before{
+    background-color:var(--orange);
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path d='M3.5 8.5L6.5 11.5L12.5 5.5' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>");
+  }
+  .plan-cta{
+    margin-top:26px;display:block;text-align:center;padding:15px 20px;
+    border-radius:999px;font-weight:800;font-size:14px;letter-spacing:0.02em;
+    transition:transform 0.15s, background 0.15s, border-color 0.15s;
+  }
+  .plan.basic .plan-cta{
+    background:transparent;border:1.5px solid var(--ink);color:var(--ink);
+  }
+  .plan.basic .plan-cta:hover{background:var(--ink);color:var(--cream);transform:translateY(-2px)}
+  .plan.premium .plan-cta{
+    background:var(--orange);color:#fff;box-shadow:0 8px 22px rgba(240,125,56,0.28);
+  }
+  .plan.premium .plan-cta:hover{background:var(--orange-dark);transform:translateY(-2px)}
+  .plan-completion{
+    margin-top:14px;padding:12px 14px;border-radius:14px;background:#fff;border:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700;color:var(--ink)
+  }
+  .plan-completion .bar{flex:1;height:6px;border-radius:999px;background:var(--paper);margin:0 12px;overflow:hidden}
+  .plan-completion .bar span{display:block;height:100%;width:100%;background:var(--orange);border-radius:999px}
+  .plans-note{
+    margin-top:26px;padding:18px 22px;border-radius:18px;background:var(--paper);border:1px solid var(--line);
+    font-size:13.2px;color:var(--ink-soft);line-height:1.7;
+  }
+  .plans-note b{color:var(--ink)}
+
+  /* ---------- Match Quiz ---------- */
+  .quiz{
+    margin-top:36px;background:#FFFDF7;border:1px solid var(--line);border-radius:28px;
+    padding:32px 32px 28px;position:relative;overflow:hidden;
+  }
+  @media(max-width:700px){ .quiz{padding:26px 22px} }
+  .quiz-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+  .quiz-head h3{
+    margin:0;font-family:'Cormorant Garamond', serif;font-weight:700;
+    font-size:30px;line-height:1.1;letter-spacing:-0.02em;color:var(--ink-hi);
+  }
+  .quiz-head h3 .kr{display:block;font-family:'Noto Sans KR';font-weight:900;font-size:18px;margin-top:4px;color:var(--ink)}
+  .quiz-reset{
+    padding:7px 14px;border-radius:999px;background:transparent;border:1px solid var(--line);
+    font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;
+    transition:border-color 0.15s, color 0.15s;
+  }
+  .quiz-reset:hover{border-color:var(--ink-soft);color:var(--ink)}
+
+  .quiz-q{
+    padding:20px 0;border-top:1px dashed var(--line);
+  }
+  .quiz-q:first-of-type{border-top:0;padding-top:8px}
+  .quiz-q-label{
+    display:flex;align-items:baseline;gap:10px;margin-bottom:12px;
+    font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.45;
+  }
+  .quiz-q-num{
+    font-family:'Cormorant Garamond', serif;font-weight:600;font-style:italic;
+    font-size:20px;color:var(--orange);line-height:1;flex-shrink:0;
+  }
+  .quiz-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:640px){ .quiz-opts{grid-template-columns:1fr} }
+  .quiz-opt{
+    padding:14px 16px;border-radius:14px;background:#fff;border:1.5px solid var(--line);
+    font-size:13.5px;line-height:1.5;color:var(--ink-soft);cursor:pointer;text-align:left;
+    font-family:inherit;font-weight:500;
+    transition:all 0.18s ease;
+  }
+  .quiz-opt:hover{border-color:var(--ink-soft);background:#FFF8EA;color:var(--ink)}
+  .quiz-opt.selected{
+    border-color:var(--orange);background:var(--orange-ghost);color:var(--ink);font-weight:700;
+    box-shadow:0 0 0 3px rgba(240,125,56,0.1);
+  }
+
+  .quiz-result{
+    margin-top:24px;padding:22px 24px;border-radius:20px;
+    background:linear-gradient(135deg, var(--ink) 0%, #3A2B1C 100%);
+    color:var(--cream);
+    display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center;
+  }
+  @media(max-width:640px){ .quiz-result{grid-template-columns:1fr;gap:14px} }
+  .quiz-result-label{font-size:11px;letter-spacing:0.22em;font-weight:800;color:rgba(251,247,240,0.55);text-transform:uppercase}
+  .quiz-result-verdict{
+    margin-top:6px;font-family:'Cormorant Garamond', serif;font-weight:700;
+    font-size:28px;line-height:1.2;letter-spacing:-0.01em;
+  }
+  .quiz-result-verdict em{color:var(--orange);font-style:italic;font-weight:700}
+  .quiz-result-sub{margin-top:4px;font-size:13px;color:rgba(251,247,240,0.7);line-height:1.55}
+  .quiz-bars{
+    min-width:200px;display:flex;flex-direction:column;gap:10px;font-size:12px;font-weight:700;letter-spacing:0.02em;
+  }
+  .quiz-bar-row{display:flex;align-items:center;gap:10px}
+  .quiz-bar-row .lbl{width:66px;color:rgba(251,247,240,0.6);font-size:11.5px}
+  .quiz-bar-row .track{flex:1;height:8px;border-radius:999px;background:rgba(251,247,240,0.12);overflow:hidden}
+  .quiz-bar-row .fill{display:block;height:100%;border-radius:999px;transition:width 0.4s cubic-bezier(0.4,0,0.2,1)}
+  .quiz-bar-row.basic .fill{background:#F5C842}
+  .quiz-bar-row.premium .fill{background:var(--orange)}
+  .quiz-bar-row .score{width:26px;text-align:right;color:var(--cream);font-variant-numeric:tabular-nums}
+
+  .plan.recommended{
+    border-color:var(--orange) !important;
+    box-shadow:0 18px 48px rgba(240,125,56,0.28);
+    transform:translateY(-4px);transition:box-shadow 0.3s, transform 0.3s;
+  }
+  .plan.recommended::before{
+    content:'🎯 Your match';
+    position:absolute;top:-14px;left:26px;
+    padding:6px 14px;border-radius:999px;background:var(--orange);color:#fff;
+    font-size:10.5px;font-weight:800;letter-spacing:0.12em;
+  }
+  .plan.recommended .plan-badge{display:none}
+
+  /* ---------- Vocab Sample ---------- */
+  .sample-head{
+    margin-top:48px;padding:26px 28px;border-radius:24px;
+    background:linear-gradient(135deg, rgba(240,125,56,0.08), rgba(240,125,56,0.02));
+    border:1px solid rgba(240,125,56,0.24);
+    display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between;
+  }
+  .sample-head-txt{flex:1;min-width:260px}
+  .sample-head-txt .eyebrow{
+    font-size:11px;letter-spacing:0.22em;font-weight:700;color:var(--orange-dark);
+    text-transform:uppercase;margin-bottom:10px;
+  }
+  .sample-head-txt h3{
+    font-family:'Cormorant Garamond', serif;font-size:26px;font-weight:600;line-height:1.25;
+    color:var(--ink);margin:0 0 6px;
+  }
+  .sample-head-txt h3 em{font-style:italic;color:var(--orange-dark);font-weight:600}
+  .sample-head-txt p{font-size:13.5px;color:var(--ink-soft);line-height:1.6;margin:0}
+  .sample-head-count{
+    display:flex;align-items:baseline;gap:4px;padding:14px 20px;border-radius:16px;
+    background:#fff;border:1px solid var(--line);
+  }
+  .sample-head-count .num{
+    font-family:'Cormorant Garamond', serif;font-size:42px;font-weight:600;
+    color:var(--orange);line-height:1;
+  }
+  .sample-head-count .of{font-size:12px;color:var(--muted);letter-spacing:0.05em}
+
+  .vocab-grid{
+    margin-top:22px;display:grid;grid-template-columns:repeat(2,1fr);gap:14px;
+  }
+  @media(max-width:820px){ .vocab-grid{grid-template-columns:1fr} }
+  .vocab-card{
+    background:#fff;border:1px solid var(--line);border-radius:20px;
+    padding:22px 22px 18px;display:flex;flex-direction:column;gap:10px;
+    transition:border-color 0.2s, transform 0.2s;
+  }
+  .vocab-card:hover{border-color:rgba(240,125,56,0.35);transform:translateY(-2px)}
+  .vocab-card-top{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    font-size:10.5px;letter-spacing:0.16em;font-weight:700;
+    color:var(--muted);text-transform:uppercase;
+  }
+  .vocab-day{color:var(--orange-dark)}
+  .vocab-word{
+    font-family:'Cormorant Garamond', serif;font-size:28px;font-weight:600;
+    color:var(--ink);letter-spacing:-0.005em;line-height:1.15;
+  }
+  .vocab-mean{
+    font-size:13.5px;color:var(--ink-soft);line-height:1.55;
+    padding-bottom:12px;border-bottom:1px dashed rgba(42,31,20,0.12);
+  }
+  .vocab-ex{
+    font-family:'Courier New', monospace;font-size:13px;color:var(--ink);line-height:1.55;
+    background:var(--cream-warm);padding:11px 14px;border-radius:10px;
+    letter-spacing:0.01em;
+  }
+  .vocab-tr{font-size:12.5px;color:var(--muted);line-height:1.55}
+  .vocab-card-actions{
+    margin-top:6px;display:flex;justify-content:flex-end;
+  }
+  .vocab-copy-btn{
+    padding:8px 14px;border-radius:999px;background:transparent;
+    border:1px solid rgba(240,125,56,0.35);color:var(--orange-dark);
+    font-size:11.5px;font-weight:700;letter-spacing:0.04em;cursor:pointer;
+    transition:all 0.18s;font-family:inherit;
+  }
+  .vocab-copy-btn:hover{background:rgba(240,125,56,0.08);border-color:var(--orange)}
+  .vocab-copy-btn.copied{background:var(--orange);color:#fff;border-color:var(--orange)}
+
+  .sample-footer{
+    margin-top:26px;padding:26px 28px;border-radius:22px;
+    background:var(--ink);color:var(--cream);
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;
+  }
+  .sample-footer-txt{flex:1;min-width:260px}
+  .sample-footer-txt b{color:var(--orange)}
+  .sample-footer-txt .line1{
+    font-family:'Cormorant Garamond', serif;font-size:22px;font-weight:600;
+    line-height:1.3;margin-bottom:4px;
+  }
+  .sample-footer-txt .line2{
+    font-size:13px;color:rgba(251,247,240,0.72);line-height:1.55;
+  }
+  .sample-footer-actions{display:flex;flex-wrap:wrap;gap:10px}
+  .sample-copy-all{
+    padding:14px 22px;border-radius:999px;background:#fff;color:var(--ink);
+    border:0;font-size:13.5px;font-weight:700;cursor:pointer;letter-spacing:0.01em;
+    font-family:inherit;transition:transform 0.15s, box-shadow 0.2s;
+  }
+  .sample-copy-all:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(0,0,0,0.25)}
+  .sample-copy-all.copied{background:var(--orange);color:#fff}
+  .sample-join{
+    padding:14px 22px;border-radius:999px;background:var(--orange);color:#fff;
+    border:0;font-size:13.5px;font-weight:700;cursor:pointer;letter-spacing:0.01em;
+    font-family:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+    transition:transform 0.15s, box-shadow 0.2s;
+  }
+  .sample-join:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(240,125,56,0.45)}
+  .sample-help{
+    margin-top:14px;font-size:11.5px;color:var(--muted);letter-spacing:0.02em;text-align:center;
+  }
+  .sample-help kbd{
+    padding:2px 6px;border-radius:4px;background:#fff;border:1px solid var(--line);
+    font-family:inherit;font-size:11px;font-weight:700;color:var(--ink);
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="card">
-    <div class="badge">YOUBUDDY · 5기 베타</div>
-    <h1>5기 챌린지 페이지로 이동 중…</h1>
-    <p>자동으로 이동하지 않으면 아래 버튼을 눌러주세요.</p>
-    <a href="/5th/">5기 챌린지 바로가기 →</a>
-  </div>
+
+<!-- ===== 상단 리본: 5기 실수 입장 대응 ===== -->
+<div class="ribbon">
+  <span>👋 <b>YOUBUDDY 5기</b> 참여자이신가요? 챌린지는 여기서 진행돼요 —</span>
+  <a class="cta" href="/5th/">5기 챌린지 입장 →</a>
 </div>
+
+<div class="container">
+
+  <!-- ===== Nav ===== -->
+  <nav class="nav">
+    <a class="logo" href="/">
+      <span class="logo-dot"></span>
+      <span>YOUBUDDY</span>
+    </a>
+    <div class="nav-links">
+      <a href="#how">어떻게 돼요?</a>
+      <a href="#buddy">버디 소개</a>
+      <a href="#voices">후기</a>
+      <a href="#sample">샘플 단어</a>
+      <a href="#plans">Plans</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <a class="nav-cta" href="#waitlist">6기 알림받기</a>
+  </nav>
+
+  <!-- ===== Hero ===== -->
+  <section class="hero">
+    <div class="hero-art"></div>
+    <div style="position:relative;z-index:1;">
+      <div class="hero-eyebrow">
+        <span class="dot"></span>
+        <span>현재 <b style="color:var(--ink)">5기</b> 진행 중 · 6기 대기자 모집 오픈</span>
+      </div>
+      <h1>
+        <em>Alone</em> is why<br>
+        it keeps failing.<br>
+        <span class="kr">혼자 해서 안 되는 거였어요.</span>
+      </h1>
+      <p class="sub">
+        영어 앱을 다섯 번 지우셨다면, 문제는 의지가 아니라 구조예요.
+        Youbuddy 는 <b>20일 챌린지 · 매주 그룹 미팅 · 4주 후 발표</b> 라는
+        단단한 틀 안에서, 영어를 갓생 루틴으로 박아주는 커뮤니티 챌린지입니다.
+      </p>
+      <div class="hero-ctas">
+        <a class="btn-primary" href="#waitlist">6기 알림받기 →</a>
+        <a class="btn-ghost" href="#how">어떻게 돌아가요?</a>
+      </div>
+      <div class="hero-meta">
+        <span>20일 · 매일 3단어</span>
+        <span>주 1회 그룹 미팅</span>
+        <span>4주 후 내 목소리로 발표</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Problem ===== -->
+  <section class="section" id="why">
+    <div class="section-eyebrow">Why it keeps failing</div>
+    <h2 class="section-title">
+      <span class="kr">영어 공부가 매번 무너지는</span>
+      <em style="font-style:italic;font-weight:600;color:var(--orange-dark);">세 가지 이유.</em>
+    </h2>
+    <p class="section-lead">
+      혼자서, 써먹을 데 없이, 점검 없이 하는 공부는 3주를 못 버텨요.
+      우리가 만든 건 그 세 고리를 끊는 구조입니다.
+    </p>
+
+    <div class="problem-grid">
+      <div class="problem-card">
+        <div class="problem-num">01.</div>
+        <h3>혼자 하면 안 일어나요</h3>
+        <p>알람 꺼놓고 잠들죠. 동료가 있어야 "어제까지 어디 했지?" 가 생기고, 그게 진짜 동력이에요. Youbuddy 의 버디 시스템이 이 고리를 만들어 드려요.</p>
+      </div>
+      <div class="problem-card">
+        <div class="problem-num">02.</div>
+        <h3>써먹을 데가 없으면 잊어버려요</h3>
+        <p>단어장 1000개 외워도 입에서 안 나오면 소용없어요. 매주 그룹 미팅에서 실제로 그 표현을 쓰는 상황을 만들어요. 롤플레이, 토론, 발표까지.</p>
+      </div>
+      <div class="problem-card">
+        <div class="problem-num">03.</div>
+        <h3>혼자 점검하면 대충 넘겨요</h3>
+        <p>"이만하면 됐지" 하고 다음날로 넘어가요. 우리는 매주 자기 목소리를 녹음해서 들어보고, 4주 끝에 한 번은 무조건 발표를 해요. 부끄럽지만 남아요.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== How it works ===== -->
+  <section class="section" id="how">
+    <div class="section-eyebrow">How it works</div>
+    <h2 class="section-title">
+      <span class="kr">4주 · 3단계로</span>
+      <em style="font-style:italic;font-weight:600;color:var(--orange-dark);">완성되는 구조.</em>
+    </h2>
+    <p class="section-lead">
+      복잡한 커리큘럼보다 <b>단순한 루틴</b> 이 이깁니다.
+      하루 15분 × 20일 + 주 1회 90분 미팅.
+    </p>
+
+    <div class="how-steps">
+      <div class="step cream">
+        <span class="chip">DAILY · 15min</span>
+        <span class="step-index">Step 01</span>
+        <div class="step-title">Daily Reps.<span class="kr">매일 3단어 × 20일</span></div>
+        <p>하루 3단어 + 짧은 퀴즈. 알림 놓쳐도 미리 풀기 / 지각 인증 다 허용. "오늘 뭐라도 했다" 의 감각을 깨지 않는 설계.</p>
+      </div>
+      <div class="step warm">
+        <span class="chip">WEEKLY · 90min</span>
+        <span class="step-index">Step 02</span>
+        <div class="step-title">Live Reps.<span class="kr">주 1회 그룹 미팅</span></div>
+        <p>그 주 배운 표현으로 40분 롤플레이 + 30분 발표자 3명 × 7분 피치 + 3분 Q&amp;A. 한 자리에서 듣고, 말하고, 피드백받아요.</p>
+      </div>
+      <div class="step">
+        <span class="chip">FINAL · YOUR TURN</span>
+        <span class="step-index">Step 03</span>
+        <div class="step-title">Your Voice.<span class="kr">4주 중 1주는 내가 발표</span></div>
+        <p>4주 중 한 주는 무조건 내가 발표자. 스크립트 초안 → 코치 피드백 → 당일 7분 토크. 끝나고 퍼스널 퀴즈까지 받아봐요.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Meet buddy ===== -->
+  <section class="buddy-section" id="buddy">
+    <div class="container buddy-wrap">
+      <div>
+        <div class="section-eyebrow">Your host</div>
+        <div class="buddy-quote">I don't sell English. I sell the <span style="color:var(--orange-dark);">daily habit</span> of showing up.</div>
+        <p class="buddy-quote-kr">
+          영어를 파는 게 아니라, 매일 나타나는 감각을 팝니다.
+          자기계발 · 루틴 · 갓생 · 영어 — 이 네 단어가 한 덩어리라고 믿는 사람입니다.
+          혼자서 5번째 영어 앱을 깔고 있는 분, 이번엔 같이 가요.
+        </p>
+      </div>
+      <div class="buddy-card">
+        <div class="buddy-avatar">B</div>
+        <h3>buddy</h3>
+        <div class="handle">@youbuddy.co.kr · Founder</div>
+        <p>
+          6년차 갓생러. 영어로 커리어 갈아타고, 그 과정을 그대로 챌린지로
+          만들었습니다. 혼자 못 해본 사람들을 위한 구조를 짜요.
+        </p>
+        <div class="buddy-tags">
+          <span>#자기계발</span>
+          <span>#영어</span>
+          <span>#갓생</span>
+          <span>#루틴</span>
+          <span>#커뮤니티</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Cohorts ===== -->
+  <section class="section">
+    <div class="section-eyebrow">Cohorts so far</div>
+    <h2 class="section-title">
+      <span class="kr">지금까지</span>
+      <em style="font-style:italic;font-weight:600;color:var(--orange-dark);">5 cohorts.</em>
+    </h2>
+    <p class="section-lead">
+      매 기수 소수 인원으로 운영해요. 얼굴 익히고, 이름 외우고, 진짜 피드백 주고받을 수 있는 규모.
+    </p>
+
+    <div class="cohorts">
+      <div class="cohort"><div class="num">1st</div><div class="lbl">Pilot</div><div class="meta">2024 · 완료</div></div>
+      <div class="cohort"><div class="num">2nd</div><div class="lbl">Cohort</div><div class="meta">2024 · 완료</div></div>
+      <div class="cohort"><div class="num">3rd</div><div class="lbl">Cohort</div><div class="meta">2025 · 완료</div></div>
+      <div class="cohort"><div class="num">4th</div><div class="lbl">Cohort</div><div class="meta">2025 · 완료</div></div>
+      <div class="cohort active"><div class="num">5th</div><div class="lbl">Current</div><div class="meta">진행 중 ·  <a href="/5th/" style="text-decoration:underline;text-underline-offset:3px;">입장 →</a></div></div>
+    </div>
+  </section>
+
+  <!-- ===== Voices ===== -->
+  <section class="section" id="voices">
+    <div class="section-eyebrow">Voices · 3기 실제 후기</div>
+    <h2 class="section-title">
+      <em style="font-style:italic;font-weight:600;color:var(--orange-dark);">먼저 해본</em>
+      <span class="kr">버디들의 말.</span>
+    </h2>
+    <p class="section-lead">
+      과장 없이 그대로 옮겼어요. 3기 참여자분들이 남겨주신 실제 후기입니다.
+    </p>
+
+    <div class="voices">
+      <div class="voice">
+        <div class="voice-stars">★★★★★</div>
+        <p>"<b>이 챌린지가 아니었으면 영어 공부를 아예 안 했을 거예요.</b> 국내 기업에만 있으면 감각을 익히기 어려운데, <b>외국계에서 쓰는 실제 표현 감각</b>을 익힐 수 있어서 좋았어요."</p>
+        <div class="author">
+          <div class="dot">정</div>
+          <div><b>정*혜 님</b><br><span>3기 · 프리미엄</span></div>
+        </div>
+      </div>
+      <div class="voice">
+        <div class="voice-stars">★★★★★</div>
+        <p>"기존 것들과는 확연히 다르게 효능을 느꼈다. <b>복습이 진짜 중요함.</b> 학습 기록 / 단어 챌린지로 귀찮은 것들은 <b>시스템화가 다 되어있어서, 끝나도 남는 게 좋다.</b>"</p>
+        <div class="author">
+          <div class="dot">신</div>
+          <div><b>신*림 님</b><br><span>3기 수료</span></div>
+        </div>
+      </div>
+      <div class="voice">
+        <div class="voice-stars">★★★★★</div>
+        <p>"<b>좋은 표현을 수집하는 것에서 나만의 대화로 바뀌었어요.</b> 막연히 표현만 쌓는 게 아니라, <b>당장 오늘 내일 쓸 표현</b>을 공부하게 되는 점이 가장 크게 달라졌습니다."</p>
+        <div class="author">
+          <div class="dot">이</div>
+          <div><b>이*나 님</b><br><span>3기 수료</span></div>
+        </div>
+      </div>
+      <div class="voice">
+        <div class="voice-stars">★★★★★</div>
+        <p>"단어테스트는 맞추지 않으면 안 넘어가서 하던 틀리던 <b>계속 리뷰할 수밖에 없어서 좋았고,</b> 비슷한 영어 고민을 가진 사람들끼리 줌으로 미팅하면서 대화하는 것도 <b>너무 좋은 경험이었다.</b>"</p>
+        <div class="author">
+          <div class="dot">김</div>
+          <div><b>김*미 님</b><br><span>3기 · 프리미엄</span></div>
+        </div>
+      </div>
+      <div class="voice">
+        <div class="voice-stars">★★★★★</div>
+        <p>"평소 알지 못했던 표현을 접하고 <b>내 상황에 대입해서 대본을 만들고 연습하는 부분이 기대치 이상으로 알찬 커리큘럼이라 너무 좋습니다.</b>"</p>
+        <div class="author">
+          <div class="dot">김</div>
+          <div><b>김*윤 님</b><br><span>3기 수료</span></div>
+        </div>
+      </div>
+      <div class="voice">
+        <div class="voice-stars">★★★★★</div>
+        <p>"<b>영어 너무 범위가 많아서 닿아있는 것부터 하자</b>고 생각했어요. 여기서는 알려주는 표현이 있어서 좋았고, <b>업무에 바로 연결해서 생각하게 되는 점</b>이 가장 좋았어요."</p>
+        <div class="author">
+          <div class="dot">고</div>
+          <div><b>고*지 님</b><br><span>3기 수료</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 추가 후기 3개 — 접혀있는 보조 섹션 -->
+    <details style="margin-top:18px;">
+      <summary style="cursor:pointer;padding:14px 20px;background:var(--cream-warm);border:1px solid var(--line);border-radius:14px;font-size:13.5px;font-weight:700;color:var(--ink-soft);list-style:none;">
+        후기 더 보기 (+3)
+      </summary>
+      <div class="voices" style="margin-top:18px;">
+        <div class="voice">
+          <div class="voice-stars">★★★★★</div>
+          <p>"실무에서 많이 사용할 단어들을 알려주고, <b>나만의 패턴으로 만드는 것으로 도와주어 큰 도움이 됩니다.</b> 강제성 있게 짧지만 매일 영어 공부한다는 것에 만족합니다."</p>
+          <div class="author">
+            <div class="dot">고</div>
+            <div><b>고*지 님</b><br><span>3기 수료</span></div>
+          </div>
+        </div>
+        <div class="voice">
+          <div class="voice-stars">★★★★★</div>
+          <p>"특히 <b>비즈니스적인 표현들, 약어들을 많이 익히고</b> 영작 직접해보고 speaking 도 연습할 수 있어서 좋습니다. <b>무엇보다 routinely word test 가 복습에 도움이 됐어요.</b>"</p>
+          <div class="author">
+            <div class="dot">진</div>
+            <div><b>진*송 님</b><br><span>3기 수료</span></div>
+          </div>
+        </div>
+        <div class="voice">
+          <div class="voice-stars">★★★★★</div>
+          <p>"일상에서 영어로 표현을 쉽게 하길 원하는 분, <b>의지가 약한 분에게 도움이 될 것 같아요.</b> 영어와 가까워지는 습관 형성하기!"</p>
+          <div class="author">
+            <div class="dot">김</div>
+            <div><b>김*지 님</b><br><span>3기 수료</span></div>
+          </div>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- ===== Vocab Sample ===== -->
+  <section class="section" id="sample">
+    <div class="section-eyebrow">Sample · 단어 미리보기</div>
+    <h2 class="section-title">
+      <span class="kr">매일 이런 식으로 도착합니다.</span>
+      <em style="font-style:italic;font-weight:600;color:var(--orange-dark);">직접 맛보기.</em>
+    </h2>
+    <p class="section-lead">
+      실전 미팅에서 진짜로 나오는 표현 + 예문 + 해석. 혼자 외우기 힘든 건,
+      <b>구조가 짜여 있어야</b> 남거든요. 아래는 30일 중 10개 샘플이에요.
+    </p>
+
+    <div class="sample-head">
+      <div class="sample-head-txt">
+        <div class="eyebrow">Free preview</div>
+        <h3>30일 중 10개, <em>미리 담아봤어요.</em></h3>
+        <p>
+          카드별로 <b>내 Notion 에 복사</b> 해 갈 수 있어요.
+          챌린지 참여하면 이런 단어가 <b>매일 1개씩 30일</b> 동안 나만의 페이지로 도착합니다.
+        </p>
+      </div>
+      <div class="sample-head-count">
+        <span class="num">10</span>
+        <span class="of">/ 30</span>
+      </div>
+    </div>
+
+    <div class="vocab-grid" id="vocab-grid"></div>
+
+    <div class="sample-footer">
+      <div class="sample-footer-txt">
+        <div class="line1">이건 <b>10개 맛보기.</b> 나머지 20개 + 랜덤 테스트 + 1:1 트래킹은?</div>
+        <div class="line2">
+          챌린지 합류하면 매일 1개씩 도착하고, 월말엔 전 단어 랜덤 테스트 페이지로 복습까지.
+        </div>
+      </div>
+      <div class="sample-footer-actions">
+        <button class="sample-copy-all" id="copy-all-vocab" type="button">📋 10개 전부 복사</button>
+        <a class="sample-join" href="#plans">합류하기 →</a>
+      </div>
+    </div>
+    <div class="sample-help">
+      복사한 뒤 Notion · 메모장 · 노션 페이지에 <kbd>⌘V</kbd> (Windows: <kbd>Ctrl+V</kbd>) 로 붙여넣으면 정리된 형태로 들어가요.
+    </div>
+  </section>
+
+  <!-- ===== Plans ===== -->
+  <section class="section" id="plans">
+    <div class="section-eyebrow">Plans</div>
+    <h2 class="section-title">
+      <span class="kr">나에게 맞는 코스를</span>
+      <em style="font-style:italic;font-weight:600;color:var(--orange-dark);">고르세요.</em>
+    </h2>
+    <p class="section-lead">
+      두 코스 모두 같은 커리큘럼에서 출발합니다. 차이는 <b>업무용 표현에 집중하느냐</b> 와
+      <b>시뮬레이션까지 통해 실제로 말하는 데 익숙해지느냐</b> 예요.
+    </p>
+
+    <div class="promo-strip">
+      <span class="pill">🎉 기존 회원 10% 할인</span>
+      <span class="pill">🔥 3회 연속 참여 시 +10% 할인</span>
+      <div class="note">
+        참여 수요가 늘어나는 만큼, 가격은 기수별로 순차 인상됩니다.
+        <b>가장 낮은 가격은 늘 이번 기수</b> 예요. ☺️
+      </div>
+    </div>
+
+    <!-- Self-check Quiz -->
+    <div class="quiz" id="match-quiz">
+      <div class="quiz-head">
+        <h3>
+          Which one is for me?
+          <span class="kr">30초 자가체크 — 답만 골라도 결과가 실시간으로 바뀌어요.</span>
+        </h3>
+        <button type="button" class="quiz-reset" onclick="resetMatchQuiz()">초기화</button>
+      </div>
+
+      <div id="quiz-qs"></div>
+
+      <div class="quiz-result" id="quiz-result">
+        <div>
+          <div class="quiz-result-label">Your match</div>
+          <div class="quiz-result-verdict" id="quiz-verdict">
+            <em>질문에 답해보세요</em>
+          </div>
+          <div class="quiz-result-sub" id="quiz-sub">
+            5개 중 하나라도 답하면 결과가 실시간으로 업데이트돼요.
+          </div>
+        </div>
+        <div class="quiz-bars">
+          <div class="quiz-bar-row basic">
+            <span class="lbl">🎓 Basic</span>
+            <div class="track"><span class="fill" id="quiz-bar-basic" style="width:0%"></span></div>
+            <span class="score" id="quiz-score-basic">0</span>
+          </div>
+          <div class="quiz-bar-row premium">
+            <span class="lbl">⭐ Premium</span>
+            <div class="track"><span class="fill" id="quiz-bar-premium" style="width:0%"></span></div>
+            <span class="score" id="quiz-score-premium">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="plans">
+      <!-- BASIC -->
+      <div class="plan basic" id="plan-basic">
+        <div class="plan-tier">🎓 Basic</div>
+        <div class="plan-price">₩59,000</div>
+        <div class="plan-meta">한정 20명 · 평생 소장</div>
+        <div class="plan-tag">
+          외국계에서 쓰는 표현을 익혀,<br>
+          메일·메신저·문서 작업을 더 능숙하게 하고 싶다면.
+        </div>
+        <hr>
+        <ul class="plan-features">
+          <li>4주 완성 학습 프로그램 (Day 1~20)</li>
+          <li>매일 다른 공부법 제공</li>
+          <li>실전 영어 표현 4주 워크시트</li>
+          <li>커뮤니티 참여 &amp; 인증 시스템</li>
+          <li>평생 소장 가능 · 언제든 복습</li>
+          <li>공용 단톡방 + 주 1회 동기 메시지</li>
+        </ul>
+        <a class="plan-cta" href="https://www.latpeed.com/products/en0l_" target="_blank" rel="noopener noreferrer">베이직 신청하기 →</a>
+      </div>
+
+      <!-- PREMIUM -->
+      <div class="plan premium" id="plan-premium">
+        <div class="plan-badge">BEST</div>
+        <div class="plan-tier">⭐ Premium</div>
+        <div class="plan-price">₩169,000</div>
+        <div class="plan-meta">한정 10명 · 소수정예 운영</div>
+        <div class="plan-tag">
+          어휘량을 늘리고 시뮬레이션으로,<br>
+          실제로 말하는 데 더 익숙해지고 싶다면.
+        </div>
+
+        <div class="plan-completion">
+          <span>3기 완주율</span>
+          <div class="bar"><span></span></div>
+          <strong style="color:var(--orange-dark)">100%</strong>
+        </div>
+
+        <hr>
+        <ul class="plan-features">
+          <li><b>베이직의 모든 혜택 포함</b></li>
+          <li>전용 카카오톡 단톡방 &amp; 1:1 학습 페이지</li>
+          <li>주 1회 Zoom 실전 미팅 시뮬레이션 (총 4회)</li>
+          <li>본인 Industry 맞춤 PPT 발표 1회 + 피드백</li>
+          <li>이전 챌린지 단어 복습 세션 80개+ 포함</li>
+          <li>전용 팟캐스트 (주간 어휘 &amp; 미팅 기반)</li>
+        </ul>
+        <a class="plan-cta" href="https://www.latpeed.com/products/en0l_" target="_blank" rel="noopener noreferrer">프리미엄 신청하기 →</a>
+      </div>
+    </div>
+
+    <div class="plans-note">
+      <b>인증 완료 기준</b> · 20일 중 18일 이상 인증.
+      완료 기준을 충족한 분들은 운영진이 확인 후 완료로 안내드립니다.
+    </div>
+  </section>
+
+  <!-- ===== FAQ ===== -->
+  <section class="section" id="faq">
+    <div class="section-eyebrow">FAQ</div>
+    <h2 class="section-title">
+      <span class="kr">자주 묻는 질문.</span>
+    </h2>
+
+    <div class="faq">
+      <details>
+        <summary>프로그램 사용이 처음인데 괜찮을까요?</summary>
+        <p>네! 이전 기수까지는 노션으로 진행했고, 이번 기수부터는 노션 구조를 그대로 옮긴 자체제작 프로그램으로 진행합니다. 차근차근 따라할 수 있는 OT 영상을 함께 제공합니다.</p>
+      </details>
+      <details>
+        <summary>프리미엄과 베이직 중 어떤 걸 선택해야 할까요?</summary>
+        <p>외국계에서 쓰는 표현을 익혀 메일·메신저·문서 작업을 더 능숙하게 하고 싶다면 <b>베이직</b> 이 맞습니다. 어휘량을 더 넓히고, 시뮬레이션을 통해 실제로 말하는 데 익숙해지고 싶다면 <b>프리미엄</b> 이 맞아요.</p>
+      </details>
+      <details>
+        <summary>챌린지가 끝난 후에도 자료를 볼 수 있나요?</summary>
+        <p>네! <b>평생 소장</b> 가능합니다. 언제든 돌아와 복습하실 수 있고, 원하면 다음 챌린지에 다시 참여해 동기부여를 재충전할 수 있어요.</p>
+      </details>
+      <details>
+        <summary>학습 내용을 따로 보관할 수 있나요?</summary>
+        <p>네. 챌린지는 자체제작 프로그램으로 진행되지만, 다 끝난 뒤 원하시면 학습 내용을 노션으로 가져가실 수 있습니다.</p>
+      </details>
+      <details>
+        <summary>모바일에서도 볼 수 있나요?</summary>
+        <p>네, 모바일에서도 동일하게 이용 가능합니다. 자주 들어가는 페이지는 즐겨찾기 해두시면 편리해요.</p>
+      </details>
+      <details>
+        <summary>중간에 참여해도 괜찮나요?</summary>
+        <p>중간 참여는 불가능합니다. 챌린지는 마감일이 정해져 있으며, 한정 인원이 차면 조기 마감됩니다.</p>
+      </details>
+      <details>
+        <summary>해외 거주중이에요. 결제 가능할까요?</summary>
+        <p>따로 DM 주시면 바로 해결해드립니다. 인스타그램 <b>@youbuddy_day</b></p>
+      </details>
+      <details>
+        <summary>학습증 (수료증) 발급이 가능한가요?</summary>
+        <p>공식 기관에서 발급하는 공식 학습증은 아니지만, 보통 회사 제출 시 필요한 기본 정보 (이름, 프로그램명, 학습 기간, 수료 여부 등) 가 포함된 수료 확인용 학습증은 발급해드립니다.<br><br>다만 회사마다 인정 기준이 다르기 때문에, 해당 문서가 회사 제출용으로 인정되는지 여부는 회사 측에 확인해주셔야 합니다.</p>
+      </details>
+      <details>
+        <summary>환불 정책이 궁금해요.</summary>
+        <p>✔️ <b>단톡방 초대 전까지</b> 부분 환불 가능<br>단, 그 전에 단어장 등 일부 정보가 공개된 경우 해당 금액은 차감 후 환불됩니다. 환불은 DM 또는 오픈채팅방 문의 후 24시간 이내에 처리됩니다. (카드사 및 결제 방식에 따라 며칠 소요될 수 있습니다)<br><br>✔️ <b>단톡방 초대 후에는 환불 불가</b><br>디지털 콘텐츠 이용이 개시되므로 환불이 불가능합니다.<br><br>환불 요청 마감: 챌린지 시작 1일 전까지</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- ===== Waitlist ===== -->
+  <section class="waitlist" id="waitlist">
+    <div>
+      <h2>
+        <em style="font-style:italic;font-weight:600;">This time</em>, <span class="warm">together.</span>
+        <span class="kr">6기, 같이 갈 사람.</span>
+      </h2>
+      <p>
+        6기 오픈 1주 전에 가장 먼저 알려드려요. 이메일 하나로 충분해요.
+        스팸 안 보내요 — 버디 뉴스레터 (매주 표현 3개 + 짧은 에세이) 하나만 갑니다.
+      </p>
+    </div>
+    <div>
+      <form class="email-form" onsubmit="event.preventDefault(); alert('대기자 등록! (placeholder — Supabase / Mailchimp 연결 예정)');">
+        <input type="email" required placeholder="이메일 주소" />
+        <button type="submit">알림받기 →</button>
+      </form>
+      <div class="note">언제든 구독 해지 가능 · 타인에게 공유되지 않아요</div>
+    </div>
+  </section>
+
+  <!-- ===== IP / Copyright band ===== -->
+  <section class="ip-band" aria-label="Copyright notice">
+    <div class="ip-band-inner">
+      <div class="ip-band-tag">© COPYRIGHT · IP</div>
+      <p class="ip-band-txt">
+        이 챌린지는 유버디가 개인적으로 기획·개발한 콘텐츠입니다.
+        구성·단어 큐레이션·워크플로를 유사하게 복제·재배포할 경우 법적 조치 대상이 될 수 있어요.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===== Footer ===== -->
+  <footer class="footer">
+    <div class="footer-top">
+      <div>
+        <div class="logo"><span class="logo-dot"></span>YOUBUDDY</div>
+        <div style="margin-top:10px;font-size:12.5px;max-width:320px;line-height:1.65;">
+          혼자 안 해도 되는 영어.<br>
+          20일 챌린지 × 주간 미팅 × 발표.
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="/5th/">5기 입장</a>
+        <a href="#how">어떻게 돼요?</a>
+        <a href="#buddy">버디 소개</a>
+        <a href="#faq">FAQ</a>
+        <a href="mailto:hello@youbuddy.co.kr">문의</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>© 2026 YOUBUDDY · Lifestyle Bytes</div>
+      <div>MADE WITH ☕ IN SEOUL</div>
+    </div>
+  </footer>
+
+</div>
+
+<!-- ============ Match Quiz Logic ============ -->
 <script>
-  // Belt-and-suspenders: JS redirect if <meta refresh> is blocked.
-  // Only redirect from exact root paths — never from /5th/* (prevents the
-  // infinite-loop bug we hit when /5th/ also had an auto-redirect).
-  if (location.pathname === '/' || location.pathname === '/index.html') {
-    location.replace('/5th/');
+(function(){
+  // 5문항. 각 문항은 두 옵션 (basic / premium 성향) + score weight.
+  // weight=1 기본, 정말 결정적인 질문은 2 로 두면 결과가 빨리 기울어짐.
+  const Q = [
+    {
+      label: '하루 중 영어에 쓸 수 있는 시간?',
+      w: 1,
+      basic:   { label: '하루 15분 · 자투리 시간', note: 'daily-rep' },
+      premium: { label: '주 1회 90분 정도는 따로 낼 수 있음', note: 'weekly-meet' },
+    },
+    {
+      label: '지금 가장 답답한 영어는 뭐예요?',
+      w: 2,
+      basic:   { label: '메일 · 메신저 · 문서 작성', note: 'written' },
+      premium: { label: '화상회의 · 전화 · 대면 미팅', note: 'spoken' },
+    },
+    {
+      label: '혼자 공부하는 스타일?',
+      w: 1,
+      basic:   { label: '계획 세우고 혼자서도 꽤 잘 함', note: 'self-driven' },
+      premium: { label: '혼자서는 계속 밀림 · 밀착 관리 있어야 함', note: 'need-accountability' },
+    },
+    {
+      label: '한 번쯤 영어로 발표해보는 건?',
+      w: 2,
+      basic:   { label: '부담스러워요. 일단 읽기 · 쓰기 감각부터.', note: 'no-pitch' },
+      premium: { label: '궁금해요. 실제로 한번 해보고 싶음.', note: 'want-pitch' },
+    },
+    {
+      label: '투자 가능한 금액?',
+      w: 1,
+      basic:   { label: '5~6만 원대가 적당', note: 'budget' },
+      premium: { label: '15만 원대 투자 가능', note: 'premium-budget' },
+    },
+  ];
+
+  // 상태: 각 Q 의 선택값 — null | 'basic' | 'premium'
+  const answers = Q.map(() => null);
+
+  function renderQuestions(){
+    const host = document.getElementById('quiz-qs');
+    host.innerHTML = Q.map((q, i) => `
+      <div class="quiz-q">
+        <div class="quiz-q-label">
+          <span class="quiz-q-num">Q${i+1}.</span>
+          <span>${q.label}</span>
+        </div>
+        <div class="quiz-opts">
+          <button type="button" class="quiz-opt" data-i="${i}" data-side="basic">
+            🎓 ${q.basic.label}
+          </button>
+          <button type="button" class="quiz-opt" data-i="${i}" data-side="premium">
+            ⭐ ${q.premium.label}
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+    host.querySelectorAll('.quiz-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = Number(btn.dataset.i);
+        const side = btn.dataset.side;
+        // 같은 버튼 다시 누르면 토글 해제
+        answers[i] = (answers[i] === side) ? null : side;
+        applySelection();
+        recalc();
+      });
+    });
   }
+
+  function applySelection(){
+    document.querySelectorAll('.quiz-opt').forEach(btn => {
+      const i = Number(btn.dataset.i);
+      const side = btn.dataset.side;
+      btn.classList.toggle('selected', answers[i] === side);
+    });
+  }
+
+  function recalc(){
+    let basic = 0, premium = 0;
+    answers.forEach((a, i) => {
+      if (a === 'basic')   basic   += Q[i].w;
+      if (a === 'premium') premium += Q[i].w;
+    });
+    const total = basic + premium;
+
+    // 스코어 & 바
+    document.getElementById('quiz-score-basic').textContent = basic;
+    document.getElementById('quiz-score-premium').textContent = premium;
+    const maxPossible = Q.reduce((s,q) => s+q.w, 0);
+    document.getElementById('quiz-bar-basic').style.width   = (basic/maxPossible*100) + '%';
+    document.getElementById('quiz-bar-premium').style.width = (premium/maxPossible*100) + '%';
+
+    // 버딕트 & 하이라이트
+    const verdictEl = document.getElementById('quiz-verdict');
+    const subEl = document.getElementById('quiz-sub');
+    const basicCard   = document.getElementById('plan-basic');
+    const premiumCard = document.getElementById('plan-premium');
+    basicCard.classList.remove('recommended');
+    premiumCard.classList.remove('recommended');
+
+    const answeredCount = answers.filter(a => a !== null).length;
+
+    if (answeredCount === 0) {
+      verdictEl.innerHTML = '<em>질문에 답해보세요</em>';
+      subEl.textContent = '5개 중 하나라도 답하면 결과가 실시간으로 업데이트돼요.';
+      return;
+    }
+
+    if (basic > premium) {
+      verdictEl.innerHTML = '<em>Basic</em> 이 맞아요';
+      subEl.textContent = '업무용 표현을 내 것으로 만드는 코스. 자기 주도 학습이 편한 분들께.';
+      basicCard.classList.add('recommended');
+      scrollToCards();
+    } else if (premium > basic) {
+      verdictEl.innerHTML = '<em>Premium</em> 이 맞아요';
+      subEl.textContent = '어휘량을 늘리고 실제 말하기까지 연결하는 코스. 밀착 관리 + Zoom 미팅 + 발표 포함.';
+      premiumCard.classList.add('recommended');
+      scrollToCards();
+    } else {
+      verdictEl.innerHTML = '정확히 <em>반반</em> 이에요';
+      subEl.textContent = '남은 질문 마저 답하거나, 두 카드 중 끌리는 쪽으로 선택하셔도 돼요.';
+    }
+  }
+
+  let scrolled = false;
+  function scrollToCards(){
+    // 첫 선택 시 한 번만 slide 로 보여주기
+    if (scrolled) return;
+    scrolled = true;
+    setTimeout(() => {
+      const el = document.querySelector('.plan.recommended');
+      if (el && typeof el.scrollIntoView === 'function') {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 280);
+  }
+
+  window.resetMatchQuiz = function(){
+    for (let i = 0; i < answers.length; i++) answers[i] = null;
+    scrolled = false;
+    applySelection();
+    recalc();
+    // 퀴즈 상단으로
+    const quiz = document.getElementById('match-quiz');
+    if (quiz) quiz.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  renderQuestions();
+  recalc();
+})();
 </script>
+
+<!-- ============ Vocab Sample Logic ============ -->
+<script>
+(function(){
+  const VOCAB = [
+    {day:1, word:'on my radar', mean:'인지하고 있어요 (알고 있어요)',
+     ex:"Yeap, it's __ __ _____.",
+     tr:'네, 인지하고 있어요.',
+     answer:'on my radar'},
+    {day:2, word:'dialed in', mean:'(사람) 컨디션 좋다 / (상황) 작업이 정교하게 맞춰진',
+     ex:"Let's get ______ __ before we proceed.",
+     tr:'진행하기 전에 컨디션/세팅을 제대로 맞추자.',
+     answer:'dialed in'},
+    {day:3, word:'take ownership', mean:'주도적으로 맡다 / 책임지고 끝까지 챙기다',
+     ex:"I can ____ _________ of this and follow it through.",
+     tr:'제가 이건 맡아서 끝까지 챙길게요.',
+     answer:'take ownership'},
+    {day:4, word:'in flux', mean:'아직 확정되지 않은',
+     ex:"The timeline is still __ ____, so nothing is confirmed yet.",
+     tr:'일정이 아직 계속 변동 중이라 확정된 건 없어요.',
+     answer:'in flux'},
+    {day:5, word:'time-bound', mean:'명확한 기한이 정해진',
+     ex:"This task is ____ _____, so we can't delay it.",
+     tr:'이 업무는 기한이 정해져 있어서 미룰 수 없어요.',
+     answer:'time-bound'},
+    {day:6, word:'ducks in a row', mean:'사전에 준비를 다 끝내다',
+     ex:"Let's get our _____ __ _ ___ before the meeting.",
+     tr:'미팅 전에 준비를 다 정리해두죠.',
+     answer:'ducks in a row'},
+    {day:7, word:'bumping up', mean:'중요도를 높이다 / 일정 앞당기다',
+     ex:"I'm _______ __ due to the deadline.",
+     tr:'마감 때문에 이걸 우선순위로 올릴게요.',
+     answer:'bumping up'},
+    {day:8, word:'at face value', mean:'겉으로 보이는 대로 / 깊이 따지지 않고',
+     ex:"Let's not take this feedback __ ____ _____.",
+     tr:'이 피드백을 그대로만 받아들이지는 맙시다.',
+     answer:'at face value'},
+    {day:9, word:'play it by ear', mean:'상황 보면서 결정하다',
+     ex:"Let's ____ __ __ ___ and adjust as needed.",
+     tr:'상황 보면서 필요하면 조정하죠.',
+     answer:'play it by ear'},
+    {day:10, word:'raise a red flag', mean:'문제 가능성을 알리다 / 경고 신호를 보내다',
+     ex:"We can't start until we get approval, which ______ _ ___ ____ for the timeline.",
+     tr:'승인이 나와야 시작할 수 있어서 일정에 문제가 생길 수 있어요.',
+     answer:'raise a red flag'},
+  ];
+
+  function esc(s){
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  const grid = document.getElementById('vocab-grid');
+  if (grid) {
+    grid.innerHTML = VOCAB.map((v, i) => `
+      <div class="vocab-card" data-idx="${i}">
+        <div class="vocab-card-top">
+          <span class="vocab-day">Day ${v.day}</span>
+          <span>Business English · Real talk</span>
+        </div>
+        <div class="vocab-word">${esc(v.word)}</div>
+        <div class="vocab-mean">${esc(v.mean)}</div>
+        <div class="vocab-ex">${esc(v.ex)}</div>
+        <div class="vocab-tr">${esc(v.tr)}</div>
+        <div class="vocab-card-actions">
+          <button type="button" class="vocab-copy-btn" data-idx="${i}">📋 Notion 에 복사</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function formatOne(v){
+    return (
+      v.word + '\n' +
+      '  • 뜻: ' + v.mean + '\n' +
+      '  • 예문: ' + v.ex + '\n' +
+      '  • 해석: ' + v.tr + '\n' +
+      '  • 정답: ' + v.answer
+    );
+  }
+
+  function formatAll(){
+    const lines = [];
+    lines.push('🏆 유버디 비즈니스 영어 샘플 표현 10개');
+    lines.push('');
+    VOCAB.forEach((v, i) => {
+      lines.push((i+1) + '. ' + formatOne(v));
+      lines.push('');
+    });
+    lines.push('— 매일 1개씩 30일 받아보기');
+    lines.push('https://www.latpeed.com/products/en0l_');
+    return lines.join('\n');
+  }
+
+  async function copyText(text){
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch(e){ /* fall through */ }
+    // fallback for older browsers
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.top = '-9999px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch(e){ return false; }
+  }
+
+  function flashCopied(btn, origHtml, okText){
+    const prev = btn.innerHTML;
+    btn.innerHTML = okText;
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.innerHTML = prev;
+      btn.classList.remove('copied');
+    }, 1600);
+  }
+
+  // per-card copy
+  if (grid) {
+    grid.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.vocab-copy-btn');
+      if (!btn) return;
+      const idx = parseInt(btn.getAttribute('data-idx'), 10);
+      if (isNaN(idx) || !VOCAB[idx]) return;
+      const text = (idx+1) + '. ' + formatOne(VOCAB[idx]) +
+        '\n\n— via YOUBUDDY sample (https://www.latpeed.com/products/en0l_)';
+      const ok = await copyText(text);
+      flashCopied(btn, btn.innerHTML, ok ? '✓ 복사됨' : '✗ 실패');
+    });
+  }
+
+  // copy all
+  const copyAllBtn = document.getElementById('copy-all-vocab');
+  if (copyAllBtn) {
+    copyAllBtn.addEventListener('click', async () => {
+      const ok = await copyText(formatAll());
+      flashCopied(copyAllBtn, copyAllBtn.innerHTML, ok ? '✓ 10개 복사됨' : '✗ 복사 실패');
+    });
+  }
+})();
+</script>
+
 </body>
 </html>

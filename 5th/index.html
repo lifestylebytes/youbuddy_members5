@@ -1509,6 +1509,7 @@ const defaultState = () => ({
   community_comments: {},         // { "post-id": [{ text, author, createdAt }] }
   meeting_notes: {},              // { "m1": { talk_points:[], meeting_notes: '' } }
   meeting_consent: null,          // { accepted: true, at: ISO, version: 1, tz: '+0h' } — 프리미엄 미팅 녹화/분석 사전 동의 기록. operator 가 감사용으로 열람.
+  operatorPreviewUnlock: false,   // OPERATOR only — 챌린지 시작 전(D-?) 에도 제출/AI/시험 풀어서 전체 플로우 테스트. 운영자 본인한테만 적용됨 (멤버 영향 X).
   presenterSignups: {},           // { "w1": ["member_key_a", "member_key_b"] } — 주차별 선착순 발표자
   presenter_prep: {},             // { "w1": { vocabPicked:[], script:'', privateNotes:'' } } — 본인 발표 준비
   pitch_vocab: [],                // [{ word, note, source, savedAt }] — 계속 학습하고 싶은 단어 보관소
@@ -2070,7 +2071,14 @@ function saveRoute() {
   } catch (e) {}
 }
 const savedRoute = loadRoute();
-let currentPage = savedRoute.page || 'home';
+// URL hash 로 페이지 점프 지원 (현재는 operator 용 #screenshot-guide 만).
+// 일반 페이지는 saveRoute / loadRoute 에서 관리됨.
+let __initialHashPage = null;
+try {
+  const h = (window.location && window.location.hash || '').replace(/^#/, '').trim();
+  if (h === 'screenshot-guide') __initialHashPage = 'screenshot-guide';
+} catch (e) {}
+let currentPage = __initialHashPage || savedRoute.page || 'home';
 let currentWeek = savedRoute.week || 1;   // the week being viewed
 let currentDay = savedRoute.day || 1;
 let lastLearningPage = savedRoute.lastLearningPage || ((savedRoute.page === 'day' || savedRoute.page === 'weeks') ? savedRoute.page : 'weeks');
@@ -2552,8 +2560,15 @@ function formatVerifyStamp(vd, vt, tzText) {
 // 반환값이 true면 호출부는 바로 return 시키세요. (false면 통과)
 /* Pre-start gate — 챌린지 시작 전에는 모든 Day 가 미리보기 전용.
    state.currentDay 는 Day 1 계산 식으로 항상 >=1 이라 pre-start 를 직접 표현하지 못하니
-   캘린더를 기준으로 별도 판단한다. */
+   캘린더를 기준으로 별도 판단한다.
+
+   Operator 테스트용 override:
+   state.operatorPreviewUnlock === true 면 start_date 이전이어도 제출·AI·시험 다 열림.
+   Operator 본인 계정(유버디)에만 토글 보임. 다른 멤버는 영향 없음.
+   공식 출발 날짜(4/27) 되면 자동으로 다 열리므로 그 전 테스트용 플래그. */
 function challengeStarted() {
+  // Operator preview unlock — 출시 전 동의 팝업 / 제출 / AI / 단어시험 전체 흐름 검증용.
+  if (state.operatorPreviewUnlock === true && (state.isOperator || state.isStaff)) return true;
   const today = todayStr();
   return today >= CHALLENGE.start_date;
 }
@@ -3972,6 +3987,7 @@ function render() {
     else if (currentPage === 'profile') page = ProfilePage();
     else if (currentPage === 'scripts') page = ScriptsPage();
     else if (currentPage === 'export') page = ExportPage();
+    else if (currentPage === 'screenshot-guide') page = ScreenshotGuidePage();
     else page = HomePage();
 
     app.appendChild(page);
@@ -10829,6 +10845,11 @@ function SettingsModal() {
           </div>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
+          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📸 4/27 공지용 스크린샷 가이드</div>
+          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">베이직/프리미엄 단톡방 공지에 넣을 스크린샷 7장을 한 페이지에서 순서대로 캡처할 수 있어요. 각 섹션마다 [이 화면으로] 버튼 하나만 누르면 됨.</div>
+          <button id="__settingsOpenScreenshotGuide" class="btn btn-ghost btn-full" style="margin-top:10px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);">📸 스크린샷 가이드 열기</button>
+        </div>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
           <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🎥 미팅 동의 감사 (Consent Audit)</div>
           <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">프리미엄 멤버별로 미팅 녹화/분석 동의를 누가 언제 했는지 확인. ${state.meeting_consent && state.meeting_consent.accepted ? `<span style="color:#16A34A;font-weight:700;">· 내 상태: 동의 (${new Date(state.meeting_consent.at).toLocaleString('ko-KR', { hour12: false })})</span>` : `<span style="color:var(--muted);font-weight:600;">· 내 상태: 미동의</span>`}</div>
           <div style="display:flex;gap:8px;margin-top:10px;">
@@ -10895,6 +10916,13 @@ function SettingsModal() {
     if (openAuditBtn) openAuditBtn.onclick = () => {
       showSettings = false;
       window.__openConsentAudit();
+    };
+
+    // Operator: 📸 스크린샷 가이드 페이지 열기 (4/27 공지용)
+    const openScreenshotGuideBtn = document.getElementById('__settingsOpenScreenshotGuide');
+    if (openScreenshotGuideBtn) openScreenshotGuideBtn.onclick = () => {
+      showSettings = false;
+      go('screenshot-guide');
     };
 
     // Operator: 내 동의 초기화 (테스트용 — 팝업 다시 보고 싶을 때)
@@ -11261,6 +11289,163 @@ async function __exportScriptsAsMarkdown(onlyDay) {
   } else {
     showToast('클립보드 접근이 막혀있어요. 수동 복사해주세요.');
   }
+}
+
+/* ============================================================
+   SCREENSHOT GUIDE (OPERATOR ONLY)
+   ------------------------------------------------------------
+   4/27 단톡방 공지에 첨부할 스크린샷을 한 페이지에서 정리.
+   섹션마다 "이 화면으로" 버튼 하나 누르면 해당 페이지로 이동,
+   캡처 후 뒤로가기로 돌아오면 됨.
+   주소창에 #screenshot-guide 붙이면 바로 열림.
+   ============================================================ */
+function ScreenshotGuidePage() {
+  const page = el('div', { class: 'page' });
+
+  // Operator 가드 — 일반 멤버한테는 홈으로 리다이렉트
+  if (!state.isOperator && !state.isStaff) {
+    setTimeout(() => { try { showToast('운영자 전용 페이지예요.'); } catch(e){} go('home'); }, 0);
+    return page;
+  }
+
+  // Top bar
+  const head = el('div', { class: 'topbar' });
+  const back = el('button', { class: 'icon-btn', onClick: () => go('home') });
+  back.innerHTML = Icon('arrowLeft', 16);
+  head.appendChild(back);
+  head.appendChild(el('div', { class: 'brand-name' }, '📸 Screenshot Guide'));
+  head.appendChild(el('div', { style: { width: '38px' } }));
+  page.appendChild(head);
+
+  page.appendChild(el('div', { class: 'kicker', style: { color: 'var(--orange-dark)' } }, 'OPERATOR ONLY · 4/27 공지용'));
+  page.appendChild(el('h1', { class: 'h1', style: { marginTop: '6px' } },
+    (() => { const s = el('span'); s.innerHTML = '<span class="serif">Capture</span> the right screens'; return s; })()
+  ));
+  page.appendChild(el('p', { class: 't-body', style: { marginTop: '8px' } },
+    '아래 섹션마다 [이 화면으로] 버튼을 누르면 해당 화면으로 이동해요. 캡처한 뒤 뒤로 가기로 돌아와서 다음 항목 캡처하면 돼요. 각 섹션은 어떤 부분을 찍어야 하는지 힌트를 줘요.'
+  ));
+
+  // Helper: render one capture row
+  const makeRow = (opts) => {
+    const card = el('div', { class: 'card card-flat', style: { marginTop: '14px' } });
+    const tag = opts.tier === 'premium'
+      ? '<span style="display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(192,132,252,0.18);color:var(--lilac, #7C3AED);font-size:10.5px;font-weight:700;letter-spacing:0.04em;">PREMIUM</span>'
+      : opts.tier === 'basic'
+        ? '<span style="display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(240,125,56,0.18);color:var(--orange-dark);font-size:10.5px;font-weight:700;letter-spacing:0.04em;">BASIC</span>'
+        : '<span style="display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(100,116,139,0.18);color:#334155;font-size:10.5px;font-weight:700;letter-spacing:0.04em;">BOTH</span>';
+
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="mono" style="font-size:11px;color:var(--muted);font-weight:700;">#${opts.idx}</span>
+        ${tag}
+      </div>
+      <div style="margin-top:8px;font-size:16px;font-weight:700;color:var(--ink);line-height:1.35;">${opts.title}</div>
+      <div style="margin-top:6px;font-size:13px;color:var(--muted);line-height:1.55;">${opts.hint}</div>
+      <div style="margin-top:10px;padding:10px;border-radius:10px;background:#FFF7EF;border:1px dashed rgba(240,125,56,0.32);font-size:12px;color:var(--orange-dark);line-height:1.5;">
+        👁 <b>캡처 포인트:</b> ${opts.capture}
+      </div>
+    `;
+    const btn = el('button', {
+      class: 'btn btn-ink btn-full',
+      style: { marginTop: '12px' },
+      onClick: opts.action,
+    });
+    btn.innerHTML = `📱 이 화면으로`;
+    card.appendChild(btn);
+    return card;
+  };
+
+  // 1 — Today's learning (BOTH)
+  page.appendChild(makeRow({
+    idx: 1,
+    tier: 'both',
+    title: '오늘의 학습 열기',
+    hint: '홈 화면에서 가장 눈에 띄는 주황색 버튼. 멤버들이 매일 처음 누르게 될 진입점.',
+    capture: '홈 화면 상단 + [오늘의 학습 열기] 버튼이 보이게. 스크롤 안 내린 상태.',
+    action: () => { go('home'); },
+  }));
+
+  // 2 — Community tab (BOTH)
+  page.appendChild(makeRow({
+    idx: 2,
+    tier: 'both',
+    title: '커뮤니티 탭',
+    hint: '하단 네비의 [커뮤니티] 탭. 기수 피드와 🔥 반응 버튼이 보이는 상태.',
+    capture: '피드 카드 1~2개 + 하단 네비에서 커뮤니티 탭이 활성화된 상태.',
+    action: () => { go('community'); },
+  }));
+
+  // 3 — My scripts + export (BOTH)
+  page.appendChild(makeRow({
+    idx: 3,
+    tier: 'both',
+    title: '내대본 + 내보내기',
+    hint: '[내대본] 페이지. 우측 상단 [내보내기] 버튼을 꼭 포함해서 캡처.',
+    capture: '페이지 상단 제목 + 우측 상단의 Notion 내보내기 진입 버튼.',
+    action: () => { go('scripts'); },
+  }));
+
+  // 4 — Verify button (PREMIUM)
+  page.appendChild(makeRow({
+    idx: 4,
+    tier: 'premium',
+    title: '인증하기 버튼',
+    hint: '오늘 학습 끝난 뒤 뜨는 [인증하기] 버튼. Day 페이지 맨 아래.',
+    capture: 'Day 1 페이지 하단 [인증하기] CTA 영역. 스크롤 아래쪽.',
+    action: () => { go('day', { day: 1 }); },
+  }));
+
+  // 5 — Consent popup (PREMIUM)
+  page.appendChild(makeRow({
+    idx: 5,
+    tier: 'premium',
+    title: '미팅 녹화/분석 사전 동의 팝업',
+    hint: '프리미엄 탭 첫 진입 시 뜨는 팝업. 개인정보보호법 관련 고지 화면.',
+    capture: '팝업 전체 (제목 + 본문 + [동의하고 계속] 버튼까지).',
+    action: () => {
+      // 팝업 강제 오픈 — 동의 리셋 + 세션 플래그 리셋 후 premium 으로 이동
+      try { state.meeting_consent = null; } catch(e){}
+      try { consentDismissedThisSession = false; } catch(e){}
+      try { showMeetingConsent = true; } catch(e){}
+      try { saveState({ immediate: true }); } catch(e){ try { saveState(); } catch(_){} }
+      go('premium');
+    },
+  }));
+
+  // 6 — PT prep page (PREMIUM)
+  page.appendChild(makeRow({
+    idx: 6,
+    tier: 'premium',
+    title: 'PT 준비 페이지',
+    hint: '프리미엄 전용. 밋업 발표 준비용 도구들이 모여있는 화면.',
+    capture: '페이지 상단 (제목 + 상단 카드 1~2개) 위주로.',
+    action: () => { go('pitch-prep'); },
+  }));
+
+  // 7 — Presenter signup button (PREMIUM)
+  page.appendChild(makeRow({
+    idx: 7,
+    tier: 'premium',
+    title: '발표 자리 잡기',
+    hint: '프리미엄 홈 or [이번 주] 화면의 [발표 자리 잡기] 버튼. 7분 발표 슬롯 선착순 예약.',
+    capture: '버튼이 포함된 섹션 전체 (주차 카드 or 홈 히어로 영역).',
+    action: () => { go('premium'); },
+  }));
+
+  // Footer note
+  const note = el('div', { class: 'card card-flat', style: { marginTop: '20px', background: '#FFFBF5', borderColor: 'rgba(240,125,56,0.2)' } });
+  note.innerHTML = `
+    <div class="kicker" style="color:var(--orange-dark);">🛎 공지 원고 위치</div>
+    <div style="margin-top:8px;font-size:13px;color:var(--ink);line-height:1.6;">
+      베이직/프리미엄 두 개 단톡방 원고는 <code style="background:rgba(240,125,56,0.12);padding:2px 6px;border-radius:6px;font-size:12px;">kakao_announcements_4_27.md</code> 파일에 정리해놨어요. 복붙해서 올리고 <b>[📸 스크린샷: ...]</b> 플레이스홀더 자리에 방금 캡처한 이미지 넣으면 돼요.
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:var(--muted);line-height:1.55;">
+      💡 팁: 5번 (미팅 동의 팝업) 은 버튼 누르면 자동으로 내 동의 기록을 리셋하고 팝업을 띄워줘요. 캡처 끝나면 [동의하고 계속] 눌러서 평소대로 되돌려놓으면 됨.
+    </div>
+  `;
+  page.appendChild(note);
+
+  return page;
 }
 
 /* ============================================================
