@@ -7292,28 +7292,10 @@ function PremiumPage() {
     page.appendChild(pitchCta);
   }
 
-  // 베이직 전용 안내 — 탭에 들어와서 어떤 컨텐츠가 있는지 볼 수는 있지만 세부 페이지는 잠금.
-  if (!isPremium) {
-    const basicNotice = el('div', {
-      class: 'card',
-      style: {
-        marginTop: '14px',
-        padding: '14px 16px',
-        background: 'rgba(169,139,184,0.10)',
-        borderColor: 'rgba(169,139,184,0.28)',
-        borderRadius: '16px',
-      },
-    });
-    basicNotice.innerHTML = `
-      <div class="kicker" style="color:var(--lilac);">PREMIUM ONLY</div>
-      <div style="margin-top:6px;font-size:14px;font-weight:700;color:var(--ink);line-height:1.5;">
-        미팅 노트 · 퀴즈 · Certification 은 프리미엄 전용이에요.
-      </div>
-      <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.6;">
-        5기 도중에는 업그레이드가 열려있지 않아요. 아래 미팅/퀴즈 목록은 다음 기수 프리미엄에서 어떤 걸 하는지 미리 보여드리는 용도예요.
-      </div>`;
-    page.appendChild(basicNotice);
-  }
+  // '미팅 노트·퀴즈·Certification 은 프리미엄 전용…' basicNotice 카드 삭제됨.
+  // 유저 피드백: '너무 의도가 뻔히 보여서'. 베이직 유저가 프리미엄 탭에 들어와도
+  // 각 세부 페이지 (MeetingNotesPage / QuizPage / CertificationPage) 진입 시
+  // premiumGatePage() 가 이미 개별로 잠금 + 설명해주니까 중복 안내 제거.
 
   page.appendChild(el('div', { class: 'kicker', style: { marginTop: '24px' } }, '2026년 5월 · 목요일 미팅'));
   page.appendChild(el('h2', { class: 'h2', style: { marginTop: '6px', marginBottom: '12px' } },
@@ -7961,11 +7943,26 @@ async function cloudSaveMeetingNote(meetingId) {
       p_meeting_id: meetingId,
       p_talk_points: notes.talk_points || '',
       p_meeting_notes: notes.meeting_notes || '',
+      // 새 timeline 구조 (roleplay + presenters + 레거시 s1/s2/s3) 를 그대로
+      // 올려서, 추후 supabase_migration_meeting_notes.sql 에서 jsonb 컬럼으로
+      // 받으면 크로스 디바이스 복구 가능해짐. 현재 RPC 미배포 상태라도 페이로드
+      // 형태는 미리 맞춰둠.
+      p_timeline: notes.timeline || {},
       p_updated_at: new Date().toISOString(),
     });
     return { ok: true };
   } catch (e) {
-    return { ok: false, reason: 'error', error: String(e.message || e) };
+    // "function upsert_meeting_note(...) does not exist" (PGRST202) 같은 케이스 —
+    // RPC 가 아직 배포 안 된 상태면 유저 입장에선 실패가 아니라 '클라우드 미지원'.
+    // localStorage 는 매 키스트로크마다 saveState() 로 이미 persisted 되어 있으니
+    // 사실상 로컬 전용 모드로 취급하는 게 정확함. UX 도 '저장 실패' 공포 문구
+    // 대신 '이 기기에 저장됨' 으로 안심 가능.
+    const msg = String(e && (e.message || e) || '');
+    const rpcMissing = /does not exist|PGRST202|function\s+.*\s+does not exist/i.test(msg)
+      || /schema cache|Could not find the function/i.test(msg)
+      || /404|Not Found/i.test(msg);
+    if (rpcMissing) return { ok: false, reason: 'local-only' };
+    return { ok: false, reason: 'error', error: msg };
   }
 }
 
@@ -8802,7 +8799,9 @@ function MeetingNotesPage(meetingId) {
   back.innerHTML = Icon('arrowLeft', 16);
   head.appendChild(back);
   head.appendChild(el('div', { class: 'brand-name' }, '미팅 타임라인'));
-  // 저장 버튼 — 라벨 있는 버튼으로 올려서 눈에 띄게. 기록이 클라우드에 남아야 안심됨.
+  // 저장 버튼 — 미팅 노트는 '개인 노트' 성격이라 클라우드 동기화가 필요 없음.
+  // 매 키스트로크 saveState() 가 이미 localStorage 에 저장 중이라, 이 버튼은
+  // '지금까지 적은 게 저장됐다' 는 확인용 역할만 함. 명시적 확정 + 안심용.
   const saveBtn = el('button', {
     style: {
       padding: '8px 14px',
@@ -8818,29 +8817,25 @@ function MeetingNotesPage(meetingId) {
       gap: '6px',
       letterSpacing: '-0.01em',
     },
-    title: '기록을 클라우드에 저장 (어디서 열어도 유지)',
-    onClick: async () => {
+    title: '이 기기에 저장됨 (적을 때마다 자동으로 저장되고 있어요)',
+    onClick: () => {
       if (saveBtn.dataset.busy === '1') return;
       saveBtn.dataset.busy = '1';
       const orig = saveBtn.innerHTML;
       saveBtn.innerHTML = '저장 중...';
       saveBtn.style.opacity = '0.6';
-      const res = await cloudSaveMeetingNote(meetingId);
+      // saveState() 는 동기 — localStorage 쓰기뿐. 그래도 UX 가 너무 빨리
+      // 끝나면 '뭐 한 거지?' 라는 착각이 오니까 약간의 딜레이만 둠.
+      try { saveState(); } catch (_e) {}
       const now = new Date();
       const when = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-      if (res.ok) {
-        window.__mnSync[meetingId] = { status: 'cloud', lastSaved: when };
-        showToast('저장 완료 · ' + when);
-      } else if (res.reason === 'local-only') {
-        window.__mnSync[meetingId] = { status: 'local', lastSaved: when };
-        showToast('이 기기에 저장됨 · ' + when);
-      } else {
-        window.__mnSync[meetingId] = { status: 'local', lastSaved: when };
-        showToast('저장 실패 — 기기에만 백업됨');
-      }
-      saveBtn.dataset.busy = '';
-      saveBtn.innerHTML = orig;
-      saveBtn.style.opacity = '1';
+      window.__mnSync[meetingId] = { status: 'local', lastSaved: when };
+      setTimeout(() => {
+        showToast('저장됨 · ' + when);
+        saveBtn.dataset.busy = '';
+        saveBtn.innerHTML = orig;
+        saveBtn.style.opacity = '1';
+      }, 260);
     }
   });
   saveBtn.innerHTML = '💾 저장';
@@ -9107,6 +9102,49 @@ function MeetingNotesPage(meetingId) {
     addWrap.appendChild(addBtn);
     exprWrap.appendChild(addWrap);
     card.appendChild(exprWrap);
+
+    // Per-section save button — 개인 노트라 localStorage 에 자동 저장되고 있지만,
+    // 유저가 명시적으로 '지금 저장됐어' 를 확인하고 싶어해서 섹션마다 버튼 둠.
+    // saveState() 호출 + '저장됨 · HH:MM' 토스트 + 버튼 잠깐 ✓ 플래시.
+    const saveRow = el('div', { style: { marginTop: '12px', display: 'flex', justifyContent: 'flex-end' } });
+    const perSaveBtn = el('button', {
+      style: {
+        padding: '6px 14px',
+        borderRadius: '999px',
+        border: '1px solid rgba(169,139,184,0.32)',
+        background: '#FFFDF7',
+        color: 'var(--ink)',
+        fontSize: '12px',
+        fontWeight: '700',
+        cursor: 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        letterSpacing: '-0.01em',
+      },
+      title: '지금까지 적은 내용 저장 (자동 저장도 같이 돌아가요)',
+      onClick: () => {
+        if (perSaveBtn.dataset.busy === '1') return;
+        perSaveBtn.dataset.busy = '1';
+        const orig = perSaveBtn.innerHTML;
+        try { saveState(); } catch (_e) {}
+        const now = new Date();
+        const when = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        perSaveBtn.innerHTML = '✓ 저장됨 · ' + when;
+        perSaveBtn.style.color = '#3B8F5F';
+        perSaveBtn.style.borderColor = 'rgba(59,143,95,0.35)';
+        showToast('저장됨 · ' + when);
+        setTimeout(() => {
+          perSaveBtn.innerHTML = orig;
+          perSaveBtn.style.color = 'var(--ink)';
+          perSaveBtn.style.borderColor = 'rgba(169,139,184,0.32)';
+          perSaveBtn.dataset.busy = '';
+        }, 1600);
+      }
+    });
+    perSaveBtn.innerHTML = '💾 이 섹션 저장';
+    saveRow.appendChild(perSaveBtn);
+    card.appendChild(saveRow);
 
     row.appendChild(card);
     return row;
@@ -9409,23 +9447,10 @@ function MeetingNotesPage(meetingId) {
   return page;
 }
 
-// Debounced cloud sync — fires 1.5s after last edit
-function scheduleCloudSync(meetingId) {
-  window.__mnSyncTimers = window.__mnSyncTimers || {};
-  if (window.__mnSyncTimers[meetingId]) clearTimeout(window.__mnSyncTimers[meetingId]);
-  if (!hasSupabase()) return; // local-only — no background sync
-  window.__mnSyncTimers[meetingId] = setTimeout(async () => {
-    window.__mnSync = window.__mnSync || {};
-    const prev = window.__mnSync[meetingId] || { status: 'cloud' };
-    window.__mnSync[meetingId] = { status: 'syncing', lastSaved: prev.lastSaved };
-    if (currentPage === 'meeting-notes' && window.__currentMeetingId === meetingId) render();
-    const res = await cloudSaveMeetingNote(meetingId);
-    const now = new Date();
-    const when = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-    window.__mnSync[meetingId] = { status: res.ok ? 'cloud' : 'local', lastSaved: when };
-    if (currentPage === 'meeting-notes' && window.__currentMeetingId === meetingId) render();
-  }, 1500);
-}
+// 미팅 노트 = 개인 노트. 크로스 디바이스 동기화 불필요 → 백그라운드 클라우드
+// sync 중단. 매 키스트로크 saveState() 가 이미 localStorage 에 저장하고 있으니
+// 데이터 손실 없음. 호출부는 건드리지 않고 함수만 no-op 로 두어 안전하게 제거.
+function scheduleCloudSync(_meetingId) { /* no-op — 개인 노트라 클라우드 sync 안 함 */ }
 
 function generateMeetingMarkdown(meetingId) {
   let meta = null;
