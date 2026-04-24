@@ -645,6 +645,9 @@ input, textarea, select { font-family: inherit; }
   position: fixed; inset: 0; background: rgba(42,31,20,0.48);
   display: grid; place-items: center; z-index: 100; padding: 20px;
   animation: fadeIn 200ms;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .modal {
@@ -652,7 +655,13 @@ input, textarea, select { font-family: inherit; }
   max-width: 420px; width: 100%; padding: 24px;
   box-shadow: var(--shadow-l);
   animation: popIn 260ms cubic-bezier(.2,.9,.3,1.1);
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
+body.modal-open { overflow: hidden; touch-action: none; }
 @keyframes popIn { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
 .input {
   width: 100%; background: var(--cream);
@@ -1076,8 +1085,8 @@ const CHALLENGE = {
         recap: '',
         pptUrl: '',
         scenario: {
-          setting: '오리엔테이션 · 챌린지 소개 + 유버디 소개 + 1분 자기소개 + PT 방식 안내 + Q&A',
-          premise: '첫 주는 발표 없음. 이 챌린지가 어떻게 굴러가는지 · 유버디가 누구인지 · 멤버 서로 가볍게 알아가기 · PT 어떻게 진행되는지 · 다음 주부터 할 롤플레이 방식. 편하게 듣고 궁금한 거 물어보는 자리.',
+          setting: '첫 주는 오리엔테이션 및 자기소개가 있습니다',
+          premise: '이 챌린지가 어떻게 굴러가는지 · 유버디가 누구인지 · 멤버 서로 가볍게 알아가기 · PT 어떻게 진행되는지 · 다음 주부터 할 롤플레이 방식. 편하게 듣고 궁금한 거 물어보는 자리.',
           flow: [
             '① 챌린지 소개 — 4주 구조 · Daily · 주간 미팅 · 완주 기준',
             '② 유버디 소개 — 누가 · 왜 이 챌린지를 만들었는지',
@@ -2317,6 +2326,18 @@ function formatShiftValue(minutes) {
   return mins ? `${sign}${hours}:${String(mins).padStart(2, '0')}h` : `${sign}${hours}h`;
 }
 
+// 브라우저의 현재 UTC offset → KST 대비 시차 텍스트. 해외 유저 온보딩 pre-fill 용.
+function detectBrowserShiftText() {
+  try {
+    // getTimezoneOffset: UTC minus local, 분 단위. (Seoul = -540, NYC = +300)
+    const localOffsetFromUtc = -new Date().getTimezoneOffset();
+    const diffFromKst = localOffsetFromUtc - DEFAULT_TIMEZONE_OFFSET;
+    return formatShiftValue(diffFromKst);
+  } catch (e) {
+    return '+0h';
+  }
+}
+
 function timezoneShiftLabel(offsetMinutes = effectiveTimezoneOffsetMinutes()) {
   return formatShiftValue(offsetMinutes - DEFAULT_TIMEZONE_OFFSET);
 }
@@ -2984,6 +3005,13 @@ function weekHasPresenter(n) {
    locked 상태일 때는 PremiumPage CTA 에서 signup/notes 버튼 자리에
    '🔒 Week N-1 미팅 후 열려요' pill 만 뜨고, meeting-notes / presenter-prep
    라우트도 guard 로 진입 차단. */
+// 유저 본인 타임존 기준으로 unlock 타임스탬프 계산. 해외에서 보면 그 나라 금요일 0시에 풀림.
+// 이전 주 미팅(y, mo, d) 다음 날(+1) 00:00 in user tz 를 UTC ms 로 환산.
+function _userTzUnlockMs(y, mo, d) {
+  const userOffsetMin = effectiveTimezoneOffsetMinutes();
+  // user tz 의 (y, mo, d+1) 00:00 = UTC 상 같은 calendar moment - userOffset 분.
+  return Date.UTC(y, mo - 1, d + 1, 0, 0, 0) - userOffsetMin * 60000;
+}
 function isWeekUnlocked(weekN) {
   const n = Number(weekN);
   if (!n || n <= 1) return true;
@@ -2991,9 +3019,7 @@ function isWeekUnlocked(weekN) {
   const prev = meetings.find((x) => Number(x.n) === n - 1);
   if (!prev || !prev.date) return true;   // 데이터 없으면 잠그지 않음 (fail-open).
   const [y, mo, d] = prev.date.split('-').map(Number);
-  // unlock 시점 = 이전 주 미팅 다음 날 자정 (로컬 시간). Thu 미팅 → Fri 00:00 open.
-  const unlockAt = new Date(y, mo - 1, d + 1, 0, 0, 0, 0).getTime();
-  return Date.now() >= unlockAt;
+  return Date.now() >= _userTzUnlockMs(y, mo, d);
 }
 function weekUnlockDateLabel(weekN) {
   const n = Number(weekN);
@@ -3002,8 +3028,18 @@ function weekUnlockDateLabel(weekN) {
   const prev = meetings.find((x) => Number(x.n) === n - 1);
   if (!prev || !prev.date) return '';
   const [y, mo, d] = prev.date.split('-').map(Number);
-  const unlockAt = new Date(y, mo - 1, d + 1);
-  return `${unlockAt.getMonth() + 1}/${unlockAt.getDate()}(금)`;
+  // label 은 유저 로컬 기준 날짜 표시. 월 롤오버(4/30 → 5/1) 안전하게 UTC Date 경유.
+  const nextLocal = new Date(Date.UTC(y, mo - 1, d + 1));
+  const mm = nextLocal.getUTCMonth() + 1;
+  const dd = nextLocal.getUTCDate();
+  return `${mm}/${dd}(금) 내 시간 00시`;
+}
+// 주어진 Day 번호가 속한 Week 번호 반환. 찾지 못하면 null.
+function weekOfDay(dayN) {
+  const n = Number(dayN);
+  if (!n) return null;
+  const w = (CHALLENGE.weeks || []).find((wk) => (wk.days || []).some((d) => Number(d.day) === n));
+  return w ? Number(w.n) : null;
 }
 
 /* ============================================================
@@ -3826,34 +3862,35 @@ function render() {
     }
     if (currentPage === 'home') page = HomePage();
     else if (currentPage === 'weeks') page = WeeksPage();
-    else if (currentPage === 'day') page = DayPage(currentDay);
-    else if (currentPage === 'verify') page = VerifyPage(currentDay);
+    else if (currentPage === 'day') {
+      // 내 학습 (Day) 주차 잠금 가드 — Week 2~4 는 이전 주 미팅 다음 날 (금) 부터 열림.
+      // NB: render() 안이라 showToast()는 재귀 호출이니 setTimeout 으로 다음 틱에 미룸.
+      const dw = weekOfDay(currentDay);
+      if (dw && !isWeekUnlocked(dw)) {
+        const msg = `🔒 Week ${dw} 는 ${weekUnlockDateLabel(dw) || '다음 주'} 에 열려요`;
+        setTimeout(() => { try { showToast(msg); } catch (e) {} }, 0);
+        currentPage = 'weeks';
+        page = WeeksPage();
+      } else {
+        page = DayPage(currentDay);
+      }
+    }
+    else if (currentPage === 'verify') {
+      // verify 도 주차 잠금 가드
+      const dw = weekOfDay(currentDay);
+      if (dw && !isWeekUnlocked(dw)) {
+        const msg = `🔒 Week ${dw} 는 ${weekUnlockDateLabel(dw) || '다음 주'} 에 열려요`;
+        setTimeout(() => { try { showToast(msg); } catch (e) {} }, 0);
+        currentPage = 'weeks';
+        page = WeeksPage();
+      } else {
+        page = VerifyPage(currentDay);
+      }
+    }
     else if (currentPage === 'premium') page = PremiumPage();
-    else if (currentPage === 'presenter-prep') {
-      // 주차 잠금 가드 — 아직 unlock 안된 주차 presenter-prep 는 PremiumPage 로 리다이렉트.
-      const pw = Number(window.__currentPresenterWeek);
-      if (pw && !isWeekUnlocked(pw)) {
-        showToast && showToast(`🔒 Week ${pw} 는 ${weekUnlockDateLabel(pw) || '다음 주'} 에 열려요`);
-        currentPage = 'premium';
-        page = PremiumPage();
-      } else {
-        page = PresenterPrepPage(window.__currentPresenterWeek);
-      }
-    }
+    else if (currentPage === 'presenter-prep') page = PresenterPrepPage(window.__currentPresenterWeek);
     else if (currentPage === 'pitch-prep') page = PitchPrepPage();
-    else if (currentPage === 'meeting-notes') {
-      // meeting-notes 도 주차 잠금 가드. meetingId = 'week{N}-{YYYY-MM-DD}' 또는 'm{N}'.
-      const mid = String(window.__currentMeetingId || '');
-      const mt = mid.match(/^(?:week|m)(\d+)/);
-      const mw = mt ? Number(mt[1]) : null;
-      if (mw && !isWeekUnlocked(mw)) {
-        showToast && showToast(`🔒 Week ${mw} 는 ${weekUnlockDateLabel(mw) || '다음 주'} 에 열려요`);
-        currentPage = 'premium';
-        page = PremiumPage();
-      } else {
-        page = MeetingNotesPage(window.__currentMeetingId);
-      }
-    }
+    else if (currentPage === 'meeting-notes') page = MeetingNotesPage(window.__currentMeetingId);
     else if (currentPage === 'quiz') page = QuizPage();
     else if (currentPage === 'certification') page = CertPage();
     else if (currentPage === 'community') page = CommunityPage();
@@ -3963,6 +4000,15 @@ function render() {
     if (showSettings) root.appendChild(SettingsModal());
     if (showGoalEditor) root.appendChild(GoalModal());
     if (verificationReviewDay) root.appendChild(VerificationReviewModal(verificationReviewDay));
+
+    // Mobile modal scroll fix: lock body scroll while any modal is open so the
+    // modal's own overflow-y:auto picks up touch scrolling instead of the page
+    // behind it bubbling. 취소/저장 버튼이 모바일에서 안 닿던 문제.
+    try {
+      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay);
+      if (anyModalOpen) document.body.classList.add('modal-open');
+      else document.body.classList.remove('modal-open');
+    } catch (_lockErr) {}
 
     // Restore Daily Streak Board horizontal scroll after the re-render (15-second
     // community refresh otherwise yanks it back to Day 1). Uses the pre-render
@@ -4659,7 +4705,10 @@ function OnboardingPage() {
   if (!__onboardDraft.yearsOfExperience && state.yearsOfExperience) __onboardDraft.yearsOfExperience = state.yearsOfExperience;
   if ((!__onboardDraft.focusAreas || __onboardDraft.focusAreas.length === 0) && Array.isArray(state.focusAreas) && state.focusAreas.length > 0) __onboardDraft.focusAreas = [...state.focusAreas];
   if (!__onboardDraft.currentIssue && state.currentIssue) __onboardDraft.currentIssue = state.currentIssue;
-  if (!__onboardDraft.timezoneOffsetText && state.timezoneOffsetText) __onboardDraft.timezoneOffsetText = state.timezoneOffsetText;
+  // 시차는 가입 시 저장 후 본인은 못 바꿈. 미설정이면 브라우저 감지값 → state → fallback '+0h'.
+  if (!__onboardDraft.timezoneOffsetText) {
+    __onboardDraft.timezoneOffsetText = state.timezoneOffsetText || detectBrowserShiftText() || '+0h';
+  }
 
   const page = el('div', {
     class: 'page',
@@ -4733,7 +4782,8 @@ function OnboardingPage() {
       </label>
       <label style="display:grid;gap:6px;margin-top:12px;">
         <span class="kicker" style="color:var(--muted);">한국 대비 시차</span>
-        <input id="__obTimezone" class="input" type="text" placeholder="예: +0h, -13h, +1:30h" value="${escapeHtml(__onboardDraft.timezoneOffsetText || '+0h')}" autocomplete="off" />
+        <input id="__obTimezone" class="input" type="text" placeholder="예: +0h, -13h, +1:30h" value="${escapeHtml(__onboardDraft.timezoneOffsetText || detectBrowserShiftText())}" autocomplete="off" />
+        <span style="font-size:10.5px;color:var(--muted);line-height:1.5;">📍 지금 계신 지역 기준. 위 값은 브라우저에서 자동 감지된 시차예요 — 맞으면 그대로, 다르면 수정. <b>가입 후에는 본인이 수정할 수 없어요</b> (Day 인증 기준점이라 고정). 이사·여행 등으로 변경 필요하면 운영팀에 문의해주세요.</span>
       </label>
       <p id="__obCodeHint" style="margin:6px 0 0;font-size:11px;color:var(--muted);">코드는 운영팀이 전달한 값을 입력해주세요.</p>
     `;
@@ -7373,10 +7423,9 @@ function PremiumPage() {
     const iAmPresenter = isMePresenterInWeek(m.n);
     const daysTo = daysUntilMeeting(m.date);
     const isPast = daysTo !== null && daysTo < 0;
-    const isLocked = isPremium && !isWeekUnlocked(m.n) && !isPast;
     const cap = Number(CHALLENGE.premium.presenter_slots_per_week || 3);
 
-    // 카드 껍데기 — 이번 주면 lilac ring, 지나간 주면 연하게, 잠긴 주면 더 흐리게.
+    // 카드 껍데기 — 이번 주면 lilac ring, 지나간 주면 연하게.
     const card = el('div', {
       class: 'card',
       style: {
@@ -7387,7 +7436,7 @@ function PremiumPage() {
           : (isPast ? '1px solid rgba(231,221,200,0.7)' : '1px solid rgba(231,221,200,0.9)'),
         background: isThisWeek ? 'linear-gradient(160deg, #FFFDF7 0%, #F6EEFA 100%)' : '#FFFDF7',
         boxShadow: isThisWeek ? '0 18px 40px -26px rgba(169,139,184,0.6)' : 'none',
-        opacity: isLocked ? '0.55' : (isPast && !iAmPresenter ? '0.82' : '1'),
+        opacity: isPast && !iAmPresenter ? '0.82' : '1',
       }
     });
 
@@ -7555,23 +7604,6 @@ function PremiumPage() {
         }
       }, '프리미엄 전용 · 다음 기수 프리뷰');
       ctaRow.appendChild(previewPill);
-    } else if (!isWeekUnlocked(m.n) && !isPast) {
-      // Week 2~4 잠금 — 이전 주 미팅 다음 날 (금) 부터 열림.
-      // isPast 가드는 혹시 데이터 꼬여서 과거 주가 잠긴 것처럼 판정되는 엣지케이스 방지.
-      const unlockLabel = weekUnlockDateLabel(m.n);
-      const lockedBtn = el('button', {
-        class: 'btn',
-        disabled: true,
-        style: {
-          flex: '1', minWidth: '160px',
-          background: '#F6EEFA',
-          color: 'var(--muted)',
-          border: '1px solid rgba(169,139,184,0.22)',
-          cursor: 'not-allowed',
-          fontWeight: '600',
-        },
-      }, unlockLabel ? `🔒 ${unlockLabel} 열림` : `🔒 Week ${m.n - 1} 미팅 후 열림`);
-      ctaRow.appendChild(lockedBtn);
     } else if (iAmPresenter) {
       // 내가 발표자 → 준비하러 가기 + 자리 내려놓기.
       const prepBtn = el('button', {
@@ -8385,7 +8417,8 @@ function PitchPrepPage() {
   Object.keys(state.meeting_notes || {}).forEach(mid => {
     const mn = state.meeting_notes[mid];
     if (!mn || !mn.timeline) return;
-    ['roleplay','s1','s2','s3'].forEach(k => {
+    // 새 키 = presenters, 레거시 = s1/s2/s3 도 같이 훑어서 모음.
+    ['roleplay','presenters','s1','s2','s3'].forEach(k => {
       const row = mn.timeline[k];
       if (!row || !Array.isArray(row.expressions)) return;
       row.expressions.forEach(w => {
@@ -8580,6 +8613,49 @@ function PitchPrepPage() {
       card.appendChild(recapBox);
     }
 
+    // Link row — 내 미팅 노트 + (있으면) PT 발표자료.
+    // 같은 주차의 MeetingNotesPage 로 바로 점프. 유저가 미팅 중에 적은 내용과
+    // Gaby 가 올린 공식 회의록이 한 페이지에서 겹쳐 보이게.
+    const linkRow = el('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' } });
+
+    const meetingId = 'm' + w.n;
+    const myNotes = (state.meeting_notes && state.meeting_notes[meetingId]) || null;
+    const hasMyNotes = (() => {
+      if (!myNotes) return false;
+      const tl = myNotes.timeline || {};
+      return !!(
+        (myNotes.talk_points || '').trim() ||
+        (myNotes.meeting_notes || '').trim() ||
+        (tl.roleplay && ((tl.roleplay.notes || '').trim() || (tl.roleplay.expressions || []).length)) ||
+        (tl.presenters && ((tl.presenters.notes || '').trim() || (tl.presenters.expressions || []).length)) ||
+        ['s1','s2','s3'].some(k => tl[k] && ((tl[k].notes || '').trim() || (tl[k].expressions || []).length))
+      );
+    })();
+
+    const myNotesBtn = el('button', {
+      style: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '8px 14px',
+        background: hasMyNotes ? '#fff' : 'rgba(169,139,184,0.08)',
+        color: hasMyNotes ? '#7B5E8C' : 'var(--muted)',
+        border: '1px solid ' + (hasMyNotes ? 'rgba(123,94,140,0.36)' : 'rgba(169,139,184,0.20)'),
+        borderRadius: '999px',
+        fontSize: '12px',
+        fontWeight: '700',
+        cursor: 'pointer',
+        letterSpacing: '0.02em',
+      },
+      onClick: () => {
+        window.__currentMeetingId = meetingId;
+        go('meeting-notes');
+      },
+      title: '미팅 중에 내가 적은 노트 + 표현 칩을 이어서 열어요',
+    });
+    myNotesBtn.innerHTML = hasMyNotes ? '📝 내 미팅 노트 →' : '📝 빈 노트 열기 →';
+    linkRow.appendChild(myNotesBtn);
+
     if (pptUrl) {
       const pttBtn = el('a', {
         href: pptUrl,
@@ -8589,7 +8665,6 @@ function PitchPrepPage() {
           display: 'inline-flex',
           alignItems: 'center',
           gap: '6px',
-          marginTop: '10px',
           padding: '8px 14px',
           background: 'linear-gradient(135deg,#7B5E8C,#A98BB8)',
           color: '#fff',
@@ -8600,14 +8675,16 @@ function PitchPrepPage() {
           letterSpacing: '0.02em',
           boxShadow: '0 3px 10px rgba(123,94,140,0.24)',
         }
-      }, '📎 PT 발표자료 열기 →');
-      card.appendChild(pttBtn);
+      }, '📎 PT 발표자료 →');
+      linkRow.appendChild(pttBtn);
     }
+
+    card.appendChild(linkRow);
 
     if (!hasContent) {
       card.appendChild(el('div', {
         style: { marginTop: '8px', fontSize: '11.5px', color: 'var(--muted)', fontStyle: 'italic' }
-      }, '⏳ 미팅 후 업로드 예정'));
+      }, '⏳ 미팅 후 공식 회의록 업로드 예정 · 위 "내 미팅 노트" 는 지금도 쓸 수 있어요'));
     }
 
     recapList.appendChild(card);
@@ -8672,15 +8749,34 @@ function MeetingNotesPage(meetingId) {
   if (!notes.timeline) {
     notes.timeline = {
       roleplay: { notes: '', expressions: [] },
-      s1: { notes: '', expressions: [] },
-      s2: { notes: '', expressions: [] },
-      s3: { notes: '', expressions: [] },
+      presenters: { notes: '', expressions: [] },
     };
   }
-  ['roleplay','s1','s2','s3'].forEach(k => {
+  ['roleplay','presenters'].forEach(k => {
     if (!notes.timeline[k]) notes.timeline[k] = { notes: '', expressions: [] };
     if (!Array.isArray(notes.timeline[k].expressions)) notes.timeline[k].expressions = [];
   });
+  // Legacy s1/s2/s3 → presenters 자동 이관. 기존 5기 초반 유저 중 이미
+  // 개별 슬롯에 노트/표현 쌓아둔 사람이 있으면 합쳐서 'presenters' 로 옮김.
+  // 충돌 방지: presenters.notes 가 비어있을 때만 초기화 (두 번 실행돼도 안전).
+  (() => {
+    const tl = notes.timeline;
+    const hasLegacy = ['s1','s2','s3'].some(k => tl[k] && ((tl[k].notes || '').trim() || (tl[k].expressions || []).length));
+    if (!hasLegacy) return;
+    const mergedNotes = [];
+    const mergedExprs = new Set(tl.presenters.expressions || []);
+    ['s1','s2','s3'].forEach((k, i) => {
+      const row = tl[k];
+      if (!row) return;
+      if ((row.notes || '').trim()) mergedNotes.push(`[발표자 #${i+1}]\n${row.notes.trim()}`);
+      (row.expressions || []).forEach(x => { if (x) mergedExprs.add(x); });
+    });
+    if (!(tl.presenters.notes || '').trim() && mergedNotes.length) {
+      tl.presenters.notes = mergedNotes.join('\n\n');
+    }
+    tl.presenters.expressions = Array.from(mergedExprs);
+    // 레거시 키는 남겨둠 (revert 대비). 다음 마이그레이션 라운드에서 제거 고려.
+  })();
 
   // Persistent UI state
   window.__mnTab = window.__mnTab || {};
@@ -8704,31 +8800,49 @@ function MeetingNotesPage(meetingId) {
   back.innerHTML = Icon('arrowLeft', 16);
   head.appendChild(back);
   head.appendChild(el('div', { class: 'brand-name' }, '미팅 타임라인'));
-  const saveIconBtn = el('button', {
-    class: 'icon-btn',
-    title: '☁️ 내 공간에 저장',
+  // 저장 버튼 — 라벨 있는 버튼으로 올려서 눈에 띄게. 기록이 클라우드에 남아야 안심됨.
+  const saveBtn = el('button', {
+    style: {
+      padding: '8px 14px',
+      borderRadius: '999px',
+      border: '1px solid rgba(169,139,184,0.35)',
+      background: '#FFFDF7',
+      color: 'var(--ink)',
+      fontSize: '13px',
+      fontWeight: '700',
+      cursor: 'pointer',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
+      letterSpacing: '-0.01em',
+    },
+    title: '기록을 클라우드에 저장 (어디서 열어도 유지)',
     onClick: async () => {
-      window.__mnSync[meetingId] = { status: 'syncing', lastSaved: syncState.lastSaved };
-      render();
+      if (saveBtn.dataset.busy === '1') return;
+      saveBtn.dataset.busy = '1';
+      const orig = saveBtn.innerHTML;
+      saveBtn.innerHTML = '저장 중...';
+      saveBtn.style.opacity = '0.6';
       const res = await cloudSaveMeetingNote(meetingId);
       const now = new Date();
       const when = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
       if (res.ok) {
         window.__mnSync[meetingId] = { status: 'cloud', lastSaved: when };
-        showToast('☁️ 내 공간에 저장됐어요');
+        showToast('저장 완료 · ' + when);
       } else if (res.reason === 'local-only') {
         window.__mnSync[meetingId] = { status: 'local', lastSaved: when };
-        showToast('💾 기기에 저장 (클라우드 설정 시 자동 동기화)');
+        showToast('이 기기에 저장됨 · ' + when);
       } else {
         window.__mnSync[meetingId] = { status: 'local', lastSaved: when };
-        showToast('⚠️ 클라우드 저장 실패 — 기기에 백업됨');
+        showToast('저장 실패 — 기기에만 백업됨');
       }
-      render();
+      saveBtn.dataset.busy = '';
+      saveBtn.innerHTML = orig;
+      saveBtn.style.opacity = '1';
     }
   });
-  saveIconBtn.innerHTML = '☁️';
-  saveIconBtn.style.fontSize = '14px';
-  head.appendChild(saveIconBtn);
+  saveBtn.innerHTML = '💾 저장';
+  head.appendChild(saveBtn);
   page.appendChild(head);
 
   // Hero card
@@ -8759,17 +8873,7 @@ function MeetingNotesPage(meetingId) {
     </div>`;
   page.appendChild(hero);
 
-  // Sync bar
-  const syncBar = el('div', { class: 'mn-sync-bar', style: { marginTop: '14px' } });
-  const dot = el('span', { class: 'mn-sync-dot ' + syncState.status });
-  syncBar.appendChild(dot);
-  const syncMsg = syncState.status === 'syncing'
-    ? '내 공간에 저장 중...'
-    : syncState.status === 'cloud'
-      ? `☁️ 클라우드 자동 동기화 중${syncState.lastSaved ? ' · ' + syncState.lastSaved + ' 저장' : ''}`
-      : `💾 이 기기에 저장 · 온라인 동기화하려면 우측 ☁️ 버튼${syncState.lastSaved ? ' · ' + syncState.lastSaved + ' 저장' : ''}`;
-  syncBar.appendChild(el('span', {}, syncMsg));
-  page.appendChild(syncBar);
+  // (Sync bar 제거 — 상단 "💾 저장" 버튼으로 통합. 자동 저장은 입력할 때마다 뒤에서 돌아감.)
 
   // Segmented control — Timeline vs AI assist
   const seg = el('div', { class: 'mn-seg' });
@@ -9063,59 +9167,85 @@ function MeetingNotesPage(meetingId) {
         : '예) 내가 맡은 역할: Product Lead\n내가 놓친 reframe 포인트: ...\n상대방이 쓴 괜찮은 표현: ...\n다음엔 이렇게 해볼 것: ...',
     }));
 
-    // ---- Rows 2-4: Presenter slots (7분 발표 + 3분 Q&A) ----
-    // Week 1 (noPresenter) 은 발표 자체가 없는 주 — presenter slot UI 전부 skip.
-    const slotMeta = meta.noPresenter ? [] : [
-      { key: 's1', time: '40–50', idx: 0, accent: '#A98BB8' },
-      { key: 's2', time: '50–60', idx: 1, accent: '#9B7FAE' },
-      { key: 's3', time: '60–70', idx: 2, accent: '#8D729D' },
-    ];
-    slotMeta.forEach((s, i) => {
-      const pmember = presenterMembers[s.idx];
-      const pname = pmember ? displayName(pmember) : '(아직 지원자 없음)';
-      const isMeHere = pmember && (pmember.memberKey === memberKey() || pmember.uid === state.uid);
-      const whoChip = el('div', {
-        style: {
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '4px 10px',
-          borderRadius: '999px',
-          background: pmember ? (isMeHere ? 'linear-gradient(135deg,#7B5E8C,#5D4770)' : 'rgba(169,139,184,0.18)') : 'rgba(0,0,0,0.04)',
-          color: pmember ? (isMeHere ? '#fff' : '#7B5E8C') : 'var(--muted)',
-          fontSize: '11px',
-          fontWeight: '700',
-          letterSpacing: '0.02em',
-          flexShrink: '0',
-        }
+    // ---- Row 2: Unified presenter slot (40–70, 세 명 합본) ----
+    // 예전엔 발표자 #1/#2/#3 마다 빈칸이 3개였는데 실제 사용해보면 발표 들으면서
+    // 한 번에 죽 적는 게 편함 → 하나의 노트 영역으로 통합. 발표자 이름은 상단
+    // 칩으로 표시해두고, 본문에 자연스럽게 "[1] 박지혜" 같이 구획 지어 적게.
+    if (!meta.noPresenter) {
+      const presenterPills = el('div', {
+        style: { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '2px' }
       });
-      whoChip.innerHTML = pmember
-        ? `${isMeHere ? 'ME' : '🎤'} · ${escapeHtml(pname)}`
-        : '🪑 빈 자리';
+      [0, 1, 2].forEach((idx) => {
+        const pmember = presenterMembers[idx];
+        const pname = pmember ? displayName(pmember) : null;
+        const isMeHere = pmember && (pmember.memberKey === memberKey() || pmember.uid === state.uid);
+        const pill = el('span', {
+          style: {
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '4px 10px',
+            borderRadius: '999px',
+            background: pmember ? (isMeHere ? 'linear-gradient(135deg,#7B5E8C,#5D4770)' : 'rgba(169,139,184,0.14)') : 'rgba(0,0,0,0.04)',
+            color: pmember ? (isMeHere ? '#fff' : '#7B5E8C') : 'var(--muted)',
+            fontSize: '11px',
+            fontWeight: '700',
+            letterSpacing: '0.02em',
+          }
+        });
+        pill.innerHTML = pmember
+          ? `${isMeHere ? 'ME' : `#${idx + 1}`} · ${escapeHtml(pname)}`
+          : `🪑 #${idx + 1} 빈 자리`;
+        presenterPills.appendChild(pill);
+      });
 
       const qaPromptsHtml = (meta.qaPrompts || []).map(q =>
         `<div style="margin-bottom:4px;color:var(--ink-soft);">• <i>${escapeHtml(q)}</i></div>`
       ).join('');
-      const slotBriefing = `
-        <div style="margin-bottom:10px;"><b style="color:#7B5E8C;font-size:11px;letter-spacing:0.08em;">PRESENTER PROMPT</b></div>
+      const unifiedBriefing = `
+        <div style="margin-bottom:10px;"><b style="color:#7B5E8C;font-size:11px;letter-spacing:0.08em;">PRESENTER PROMPT</b> <span style="font-size:10px;color:var(--muted);">· 세 명 공통</span></div>
         <div style="margin-bottom:10px;color:var(--ink-soft);">${escapeHtml(meta.presenterPrompt || '')}</div>
         ${qaPromptsHtml ? `<div style="margin-top:10px;margin-bottom:6px;"><b style="color:#7B5E8C;font-size:11px;letter-spacing:0.08em;">LIKELY Q&amp;A</b></div>${qaPromptsHtml}` : ''}`;
 
-      wrap.appendChild(renderTimelineRow({
-        rowKey: s.key,
-        timeLabel: s.time,
-        minutes: 10,
-        accent: s.accent,
-        title: `🎤 발표자 #${i + 1} — 7분 토크 + 3분 Q&A`,
-        subtitle: pmember ? `발표자: ${pname}` : '자리 비어있음 · 당일 즉석 pick-up 가능',
+      const row = renderTimelineRow({
+        rowKey: 'presenters',
+        timeLabel: '40–70',
+        minutes: 30,
+        accent: '#9B7FAE',
+        title: '🎤 발표자 3명 — 각 7분 토크 + 3분 Q&A',
+        subtitle: '한 페이지에서 세 발표 연달아. 아래에 순서대로 받아쓰고, 좋은 표현은 칩으로 저장.',
         body: '',
-        briefing: slotBriefing,
-        whoChip,
-        placeholder: pmember
-          ? `${pname} 의 발표에서 인상적이었던 것: ...\n내가 빌려 쓸 표현: ...\n Q&A 에서 나온 질문: ...`
-          : '발표자 미정. 당일 지원 받으면 여기에 이름 적고 노트.',
-      }));
-    });
+        briefing: unifiedBriefing,
+        placeholder: [
+          '[1] 발표자 이름',
+          '- 인상 깊었던 포인트: ...',
+          '- 빌려 쓸 표현: ...',
+          '- Q&A 에서 나온 질문: ...',
+          '',
+          '[2] 발표자 이름',
+          '- ...',
+          '',
+          '[3] 발표자 이름',
+          '- ...',
+        ].join('\n'),
+      });
+      // 타이틀 밑에 발표자 pills 삽입 — renderTimelineRow 는 subtitle 문자열만 받으니까,
+      // 렌더 후 DOM 에서 header card 찾아 pills 를 꽂음.
+      try {
+        const card = row.querySelector('div > div > div');
+        // card 구조: row > [rail] > [stem] > [card]. card 의 첫 child = headerRow.
+        // headerRow 의 titleBlock 다음에 pills 끼움.
+        const cardEl = row.children[2];
+        if (cardEl) {
+          const headerRow = cardEl.children[0];
+          if (headerRow) {
+            const titleBlock = headerRow.children[0];
+            if (titleBlock) titleBlock.appendChild(presenterPills);
+          }
+        }
+      } catch (_pillErr) {}
+      wrap.appendChild(row);
+    }
 
     // ---- Meta footer ----
     const metaFooter = el('div', {
@@ -9154,8 +9284,10 @@ function MeetingNotesPage(meetingId) {
       const parts = [];
       const tl = notes.timeline || {};
       if (tl.roleplay && tl.roleplay.notes) parts.push('[그룹 롤플레이 0–40]\n' + tl.roleplay.notes);
+      if (tl.presenters && tl.presenters.notes) parts.push('[발표자 3명 40–70]\n' + tl.presenters.notes);
+      // Legacy 키 backfill — 구 유저 데이터가 아직 s1/s2/s3 에 남아있을 수 있음.
       ['s1','s2','s3'].forEach((k, i) => {
-        if (tl[k] && tl[k].notes) parts.push(`[발표자 #${i+1}]\n` + tl[k].notes);
+        if (tl[k] && tl[k].notes) parts.push(`[발표자 #${i+1} (legacy)]\n` + tl[k].notes);
       });
       return parts.join('\n\n');
     })();
@@ -9226,15 +9358,31 @@ function MeetingNotesPage(meetingId) {
     page.appendChild(wrap);
   }
 
-  // Action row (always visible)
-  const actionRow = el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '22px' } });
+  // Action row — 내보내기 섹션. "여기 적은 노트를 Notion 에 옮기기" 목적을 위로 표시.
+  const exportSection = el('div', { style: { marginTop: '24px' } });
+  exportSection.appendChild(el('div', {
+    style: {
+      fontSize: '11px',
+      fontWeight: '700',
+      letterSpacing: '0.14em',
+      color: 'var(--muted)',
+      textTransform: 'uppercase',
+      marginBottom: '6px',
+    }
+  }, '📤 Notion 으로 옮기기'));
+  exportSection.appendChild(el('div', {
+    style: { fontSize: '12.5px', color: 'var(--ink-soft)', lineHeight: '1.55', marginBottom: '10px' }
+  }, '이 페이지에 적은 노트를 내 Notion 으로 옮기고 싶을 때 사용해요. Notion 에 붙여넣으면 제목·구분선까지 그대로 들어가요.'));
+
+  const actionRow = el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' } });
   const copyBtn = el('button', {
     class: 'btn btn-ghost',
     onClick: () => {
       const md = generateMeetingMarkdown(meetingId);
-      navigator.clipboard.writeText(md).then(() => showToast('📋 Notion에 붙여넣기 가능!'));
-    }
-  }, '📋 Notion 복사');
+      navigator.clipboard.writeText(md).then(() => showToast('복사됨 · Notion 에 붙여넣으세요'));
+    },
+    title: '노트를 복사 → Notion 페이지에 Cmd/Ctrl+V',
+  }, '📋 복사해서 붙여넣기');
   actionRow.appendChild(copyBtn);
 
   const downloadBtn = el('button', {
@@ -9243,18 +9391,18 @@ function MeetingNotesPage(meetingId) {
       const md = generateMeetingMarkdown(meetingId);
       const fname = `${meta.date}-Meeting-${(meta.title || '').replace(/[^가-힣\w\s-]/g, '').replace(/\s+/g, '-')}.md`;
       download(fname, md, 'text/markdown');
-      showToast('💾 내보내기 완료');
-    }
-  }, '💾 .md 내보내기');
+      showToast('다운로드 완료 · Notion → Import 에서 이 파일 선택');
+    },
+    title: 'Notion > Import > Markdown 선택 시 그대로 올라감 (.md 파일)',
+  }, '⬇️ 파일로 받기');
   actionRow.appendChild(downloadBtn);
-  page.appendChild(actionRow);
+  exportSection.appendChild(actionRow);
 
-  // Footer note
-  const notice = el('div', { class: 't-small', style: { marginTop: '14px', textAlign: 'center', color: 'var(--muted)' } },
-    hasSupabase()
-      ? '✓ 자동 저장 + 클라우드 동기화 중'
-      : '✓ 이 기기에 자동 저장 · 온라인 동기화는 ☁️ 버튼으로');
-  page.appendChild(notice);
+  exportSection.appendChild(el('div', {
+    style: { fontSize: '11.5px', color: 'var(--muted)', lineHeight: '1.55', marginTop: '8px' }
+  }, '📋 복사 = Notion 페이지 열고 붙여넣기 · ⬇️ 파일 = Notion > Import > Markdown 선택 (.md 파일)'));
+
+  page.appendChild(exportSection);
 
   return page;
 }
@@ -9584,8 +9732,7 @@ function CertPage() {
   infoCard.innerHTML = `
     <div class="kicker">수료증에 들어가는 정보</div>
     <p class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.6;">
-      <b>자동 수집:</b> 이름 · 닉네임 · 직무 · 인증 ${done}일 · 저장한 어휘 ${(state.pitch_vocab||[]).length}개 · 챌린지 기간 · Final Vocabulary (최대 10개)<br>
-      <b>수동 주입${hasProfile ? '' : ' (미설정)'}:</b> 발표 주제 · 강점 · 다음 스텝 · 핵심 어휘 ${hasProfile ? '✅' : '— Gaby 가 수료 시점에 채워드려요'}
+      이름 · 닉네임 · 직무 · 인증 ${done}일 · 저장한 어휘 ${(state.pitch_vocab||[]).length}개 · 챌린지 기간 · Final Vocabulary (최대 10개)${hasProfile ? ' · 발표 요약 ✅' : ''}
     </p>`;
   page.appendChild(infoCard);
 
@@ -10497,7 +10644,7 @@ function SettingsModal() {
       </div>
       <button id="__settingsClose" class="icon-btn" style="width:36px;height:36px;border-radius:12px;" title="닫기">✕</button>
     </div>
-    <p class="t-body" style="margin-top:10px;font-size:13px;color:var(--ink-soft);line-height:1.5;">이름은 코드 기준으로 유지되고, 직무와 시차는 언제든 바꿀 수 있어요.</p>
+    <p class="t-body" style="margin-top:10px;font-size:13px;color:var(--ink-soft);line-height:1.5;">이름·시차는 가입 시 고정돼요. 직무·닉네임은 언제든 바꿀 수 있어요.</p>
     <div style="margin-top:16px;">
       <div class="kicker" style="color:var(--muted);">이름 (수정 불가)</div>
       <div style="margin-top:6px;padding:12px 14px;border-radius:12px;background:var(--paper);color:var(--ink-soft);font-size:14px;font-weight:600;">${escapeHtml(state.name || '박지혜')}</div>
@@ -10516,8 +10663,12 @@ function SettingsModal() {
       <input id="__settingsRoleInput" class="input" type="text" placeholder="예: 프로덕트 디자이너" value="${escapeHtml(currentRole)}" style="margin-top:8px;" />
     </div>
     <div style="margin-top:14px;">
-      <div class="kicker" style="color:var(--muted);">한국 대비 시차</div>
-      <input id="__settingsTimezoneInput" class="input" type="text" placeholder="예: +0h, -13h, +1:30h" value="${escapeHtml(currentTimezone)}" style="margin-top:8px;" />
+      <div class="kicker" style="color:var(--muted);">한국 대비 시차 ${state.isOperator ? '<span style=\"color:var(--orange-dark);font-weight:700;\">· OPERATOR 편집 가능</span>' : '<span style=\"color:var(--muted);font-weight:400;\">(수정 불가 — 가입 시 고정)</span>'}</div>
+      ${state.isOperator
+        ? `<input id="__settingsTimezoneInput" class="input" type="text" placeholder="예: +0h, -13h, +1:30h" value="${escapeHtml(currentTimezone)}" style="margin-top:8px;" />`
+        : `<div style="margin-top:8px;padding:12px 14px;border-radius:12px;background:var(--paper);color:var(--ink-soft);font-size:14px;font-weight:600;">${escapeHtml(currentTimezone)}</div>
+           <div style="margin-top:6px;font-size:10.5px;color:var(--muted);line-height:1.5;">Day 인증 롤오버 기준점이라 가입 후에는 고정돼요. 이사·여행 등으로 변경 필요하면 운영팀에 문의해주세요.</div>`
+      }
     </div>
     ${state.isOperator ? `
       <div style="margin-top:14px;padding:14px;border-radius:14px;background:#FFF7EF;border:1px solid rgba(240,125,56,0.18);">
@@ -10561,16 +10712,22 @@ function SettingsModal() {
     }
     if (saveBtn) saveBtn.onclick = () => {
       const next = (input && input.value || '').trim();
-      const timezone = parseTimezoneShift(timezoneInput && timezoneInput.value);
-      if (!timezone.ok) {
-        showToast('시차 형식이 맞지 않아요. 예: +0h, -13h, +1:30h');
-        return;
+      // 시차: 운영자만 편집 가능. 일반 유저는 timezoneInput 자체가 DOM 에 없음.
+      let timezone = null;
+      if (state.isOperator && timezoneInput) {
+        timezone = parseTimezoneShift(timezoneInput.value);
+        if (!timezone.ok) {
+          showToast('시차 형식이 맞지 않아요. 예: +0h, -13h, +1:30h');
+          return;
+        }
       }
       const nextEng = engInput ? (engInput.value || '').trim().slice(0, 8) : (state.englishName || '');
       state.role = next;
       state.englishName = nextEng;
-      state.timezoneOffsetText = timezone.text;
-      state.timezoneOffsetMinutes = timezone.offsetMinutes;
+      if (timezone && timezone.ok) {
+        state.timezoneOffsetText = timezone.text;
+        state.timezoneOffsetMinutes = timezone.offsetMinutes;
+      }
       state.currentDay = computeCurrentDay();
       try { bindMeToMembers(); } catch (e) {}
       saveState({ immediate: true });

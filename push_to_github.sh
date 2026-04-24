@@ -26,39 +26,60 @@ git add 5th/index.html push_to_github.sh supabase_migration_presenter.sql supaba
 if ! git diff --cached --quiet; then
   echo ""
   echo "==> 변경 사항 커밋..."
-  git commit -m "체크보드 회색 처리 + Week 2~4 잠금 + Basic Weekly dim
+  git commit -m "모바일 모달 스크롤 픽스 + 발표자 3명 노트 통합 + 주차별 회의록↔내 노트 연결 + 주차 잠금 타임존 보정
 
-체크보드 회색 처리
-- '가입 완료' = challenge_member_state 에 row 존재 (온보딩 끝내고 대시보드 진입).
-  모두가 서로 누가 아직 앱 안 깐지 보이게. RPC 추가 없이 기존
-  get_cohort_member_summaries 응답으로 판정.
-- bindMeToMembers: 본인 row registered=true 고정 (앱 쓰는 중 = 항상 까맣).
-- applyRemoteMemberSummaries: 매치되는 멤버마다 registered=true + changed 플래그.
-- loadMemberSummaries: 첫 응답 성공시 window.__registeredLoaded=true (플래시 방지).
-- .cb-name.is-unreg CSS: color 0.32 + 아바타 opacity 0.45 + grayscale 0.6.
-- Checkboard row: isUnreg = __registeredLoaded && !me && !registered (staff
-  제외 빠짐 — 이규태/이지흔 도 로그인해야 까맣게. me 만 예외).
+(A) 모바일 모달 스크롤 픽스 — 설정 팝업 저장/취소 버튼 못 누르던 버그
+- .modal-backdrop: overflow-y:auto + overscroll-behavior:contain
+  + -webkit-overflow-scrolling:touch.
+- .modal: max-height: calc(100dvh - 40px) + 자체 overflow-y:auto
+  (100vh 폴백 포함 · iOS Safari 대응).
+- body.modal-open 클래스 추가 (overflow:hidden + touch-action:none).
+- render(): 모달 (settings/goal/premium-gate/member-card/verification-review)
+  열려있으면 body.modal-open 자동 토글. 뒷 페이지 스크롤 잠겨서
+  모달 내부 스크롤이 터치 이벤트 가져감.
 
-Week 2~4 주차 잠금
-- isWeekUnlocked(n): Week 1 항상 열림. Week N 은 Week N-1 미팅 다음 날 (금)
-  00:00 부터 열림. (Week 2 → 5/1, Week 3 → 5/8, Week 4 → 5/15.)
-- weekUnlockDateLabel(n): '5/1(금)' 포맷 for 버튼 레이블.
-- PremiumPage CTA 체인: 베이직 preview 뒤, iAmPresenter 전에 locked 브랜치
-  추가. '🔒 5/1(금) 열림' disabled 버튼. 카드 opacity 0.55 로 dim.
-- 라우터 가드: 'presenter-prep' 과 'meeting-notes' 진입 시 주차 추출해서
-  isWeekUnlocked false 면 토스트 + PremiumPage 리다이렉트. meetingId 포맷
-  'week{N}-{date}' 또는 'm{N}' 둘 다 파싱.
+(B) MeetingNotesPage 발표자 3명 → 단일 통합 슬롯
+- state.meeting_notes[mid].timeline 구조 재편: roleplay/s1/s2/s3 →
+  roleplay/presenters. 40~70 30분 구간을 한 row 로.
+- 카드 상단 발표자 pills 3개 (ME / 이름 / 🪑 빈 자리) — 시각적으로
+  누가 발표하는지 보이되, 입력은 하나의 textarea.
+- placeholder 에 [1]/[2]/[3] 구획 예시. 발표 연달아 듣는 중에 한
+  페이지에 받아쓰게. 표현 칩도 세 명 공통 통합.
+- 데이터 마이그레이션: 기존 s1/s2/s3 에 적어둔 거 있으면
+  '[발표자 #1]... [발표자 #2]...' 식으로 합쳐서 presenters.notes 로 이관.
+  중복 safe 가드. 레거시 키는 복구 대비 보존.
+- rolledRaw(AI) + 표현 harvesting + PitchPrepPage '노트 있음' 체크도
+  새 키 + 레거시 둘 다 훑음.
 
-Basic 의 Premium 탭 Weekly meetup 섹션 blur
-- 베이직 사용자는 주간 미팅 섹션 전체 (타이틀 + 미팅 카드 스택) 를
-  filter: blur(9px) + saturate 0.85 로 읽히지 않게 블러 + pointerEvents none.
-- absolute overlay 로 '🔒 PREMIUM ONLY · 주간 미팅은 프리미엄 전용 ·
-  다음 기수에서 만나요' 배지를 가운데에 선명하게 띄움 (backdrop-filter
-  blur 4px 로 배경 살짝 더 흐리게).
-- Personal Quiz / Certification 카드는 블러 바깥에 별도 렌더 → 베이직도
-  정상 접근 가능.
+(C) PitchPrepPage 주차별 회의록 ↔ 내 미팅 노트 연결
+- 각 주차 recap 카드에 '📝 내 미팅 노트 →' 버튼 추가. 클릭시
+  window.__currentMeetingId = m\${n} 후 go('meeting-notes').
+- 본인 노트 있으면 강조 톤 (흰 배경 + 퍼플 테두리), 없으면 연한 톤
+  + '빈 노트 열기'. '📎 PT 발표자료 →' 와 한 줄 pill 배치.
+- 공식 회의록 미업로드 주차 footer 문구: '내 미팅 노트는 지금도 쓸 수 있어요'.
 
-(이전 커밋 f4681f6 = SQL v5 := assignment fix 도 이 푸시에 함께 올라감.)"
+(D) 내 학습 주차 잠금 타임존 보정
+- _kstUnlockMs → _userTzUnlockMs: effectiveTimezoneOffsetMinutes() 로
+  유저 본인 시차 기준 다음날 00:00 unlock 계산.
+- weekUnlockDateLabel: '한국시간 00시' → '내 시간 00시'.
+- Day 인증/미인증/오픈 + Week 언락 모두 유저 로컬 시간 기준 통일
+  (해외 거주 멤버 대응).
+
+(E) Settings — 시차 가입시 고정, Operator 만 편집 가능
+- 일반 유저: readonly 박스 + '가입 후에는 고정' 안내.
+- Operator: 편집 input + '· OPERATOR 편집 가능' 배지.
+- Save 핸들러 operator 가드 — 비운영자는 timezone 업데이트 skip.
+- Onboarding: 브라우저 자동 감지 pre-fill + '본인이 수정할 수 없어요' 고지.
+
+(F) UX 다듬기
+- MeetingNotesPage 상단 '💾 저장' 라벨 버튼 (☁️ 작은 아이콘 대체),
+  하단 sync bar 제거.
+- .md 내보내기 섹션: 'Notion 으로 옮기기' 목적 설명 + 📋 복사 / ⬇️
+  파일 받기 두 버튼 (.md 모르는 프리미엄 유저 배려).
+- Cert 페이지 info 에서 'Gaby' 언급 제거.
+- Premium Week 잠금은 원복 유지 (잠금은 '내 학습' 경로만).
+
+(이전 커밋들 + SQL v5 assignment fix 도 함께 올라감.)"
 fi
 
 echo ""
