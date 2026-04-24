@@ -1488,6 +1488,8 @@ const defaultState = () => ({
   timezoneOffsetMinutes: DEFAULT_TIMEZONE_OFFSET,
   email: '',
   isOperator: false,              // true for 운영팀 (e.g., 유버디)
+  isStaff: false,                 // true for 운영팀 전체 (유버디/이규태/이지흔/모모) — 통계 제외 + 티어 자유 토글
+  ghost: false,                   // true for 유령 멤버 (모모) — 보드/커뮤니티 어디에도 안 보임
   onboarded: false,               // has completed first-run onboarding (this session / device)
   signedUp: false,                // 영속 가입 플래그. __finishOnboarding 한번이라도 완료하면 true — 로그아웃 이후 재로그인 판별에 사용
   currentDay: 1,                  // today marker (Day 1 of cohort)
@@ -1539,6 +1541,8 @@ const PERSISTED_STATE_KEYS = [
   'timezoneOffsetMinutes',
   'email',
   'isOperator',
+  'isStaff',
+  'ghost',
   'onboarded',
   'signedUp',
   'currentDay',
@@ -1656,6 +1660,10 @@ function mergePersistedState(snapshot) {
   if (localTierOverride === 'basic') {
     state.tierOverride = 'basic';
     state.tier = 'basic';
+  } else if (localTierOverride === 'premium') {
+    // isStaff/ghost 가 basic 디렉토리지만 '프리미엄 뷰' 로 강제 전환한 상태 보존.
+    state.tierOverride = 'premium';
+    state.tier = 'premium';
   }
   if (!state.accountKey && (state.accessCode || state.name)) {
     state.accountKey = [state.accessCode || 'guest', state.name || 'member'].join(':');
@@ -1738,11 +1746,20 @@ async function persistStateNow() {
   statePersistInFlight = true;
   statePersistQueued = false;
   try {
+    // 서버에는 '진짜 티어' 를 보냄 — MEMBER_DIRECTORY 의 값이 soul of truth.
+    // tierOverride (staff/ghost/operator 가 뷰만 토글한 상태) 는 로컬 전용.
+    // 안 그러면 예: 이지흔(basic)이 'premium 뷰' 로 보면 그 값이 서버에 올라가서
+    // 다른 멤버들 보드에선 이지흔이 premium(orange) 아바타로 잘못 뜸.
+    let publicTier = state.tier || 'basic';
+    try {
+      const dir = state.accessCode ? lookupCode(state.accessCode) : null;
+      if (dir && dir.tier) publicTier = dir.tier;
+    } catch (_) {}
     await supabaseRpc('upsert_member_app_state', {
       p_cohort: CHALLENGE.cohort,
       p_member_key: memberKey(),
       p_member_name: state.name || '',
-      p_tier: state.tier || 'basic',
+      p_tier: publicTier,
       p_app_state: snapshot,
     });
     stateLastSavedJson = snapshotJson;
@@ -2409,8 +2426,7 @@ function premiumGatePage(opts = {}) {
 /* ============================================================
    AVATAR COLOR · DISPLAY NAME 해석기
    - basic 멤버: 전부 'mono' (무채톤 통일)
-   - premium 멤버: 전원 단일 주황색 (브랜드 톤 통일)
-   - 운영팀(유버디): 'ink' (검정) 특별 고정
+   - premium 멤버: 전원 단일 주황색 (브랜드 톤 통일, 운영팀 포함)
    - 'me' 는 그대로 본인 color 유지 (me 는 항상 주황 강조)
    ============================================================ */
 function resolveAvatarColor(member) {
@@ -2418,10 +2434,9 @@ function resolveAvatarColor(member) {
   // 'me' 는 항상 주황 (본인 강조) — 유버디/운영팀으로 로그인해도 본인 카드 프사는
   // 프리미엄 주황. bindMeToMembers 로 실제 멤버에 매칭돼도 강제로 orange 반환.
   if (member.me) return 'orange';
-  if (member.isOperator) return 'ink';
   const tier = member.tier === 'auto' ? (state.tier || 'basic') : member.tier;
   if (tier !== 'premium') return 'mono';
-  // 프리미엄은 전원 단일 주황색으로 통일
+  // 프리미엄은 전원 단일 주황색으로 통일 (운영팀도 프리미엄이면 주황, basic 이면 mono).
   return 'orange';
 }
 
@@ -3443,8 +3458,15 @@ function applyRemoteMemberSummaries(rows = []) {
       member.streak = nextStreak;
       changed = true;
     }
-    if (summary.tier && member.tier !== summary.tier) {
-      member.tier = summary.tier;
+    // summary.tier 가 MEMBER_DIRECTORY 의 캐노니컬 tier 를 override 하지 않도록 보정.
+    // 이유: staff/ghost 가 tierOverride 로 뷰를 뒤집은 상태가 과거에 서버에 올라간 적 있으면
+    // 그 값이 summary.tier 로 내려와 보드에서 엉뚱한 색(주황)으로 표시됨.
+    // 디렉토리에 등록된 멤버는 디렉토리 tier 가 진실.
+    const dirEntry = MEMBER_DIRECTORY.find((d) => d.id === member.id);
+    const canonicalTier = dirEntry && dirEntry.tier ? dirEntry.tier : null;
+    const nextTier = canonicalTier || summary.tier || member.tier;
+    if (nextTier && member.tier !== nextTier) {
+      member.tier = nextTier;
       changed = true;
     }
     if (summary.role && member.role !== summary.role) {
@@ -5005,12 +5027,16 @@ async function __onboardAdvance() {
         //  - state.tierOverride 가 'basic' 이면 위 규칙을 무시하고 basic 강제 (프리미엄 → 베이직 프리뷰)
         if (state.tierOverride === 'basic') {
           state.tier = 'basic';
+        } else if (state.tierOverride === 'premium') {
+          state.tier = 'premium';
         } else if (match && match.tier) {
           state.tier = match.tier;
         } else {
           state.tier = 'basic';
         }
         state.isOperator = !!(match && match.isOperator);
+        state.isStaff = !!(match && match.isStaff);
+        state.ghost = !!(match && match.ghost);
         state.onboarded = true;
         state.signedUp = true; // 서버에 가입 기록이 있으면 로컬에도 플래그 보정
         state.currentDay = computeCurrentDay();
@@ -5076,10 +5102,14 @@ function __finishOnboarding() {
   // tierOverride 가 설정돼 있으면 우선 적용 (베이직 프리뷰). 아니면 MEMBER_DIRECTORY 기준.
   if (state.tierOverride === 'basic') {
     state.tier = 'basic';
+  } else if (state.tierOverride === 'premium') {
+    state.tier = 'premium';
   } else {
     state.tier = (m && m.tier) ? m.tier : 'basic';
   }
   state.isOperator = !!(m && m.isOperator);
+  state.isStaff = !!(m && m.isStaff);
+  state.ghost = !!(m && m.ghost);
   state.currentDay = computeCurrentDay();
   bindMeToMembers();
   saveState({ immediate: true });
@@ -10659,6 +10689,17 @@ function SettingsModal() {
            <div style="margin-top:6px;font-size:10.5px;color:var(--muted);line-height:1.5;">Day 인증 롤오버 기준점이라 가입 후에는 고정돼요. 이사·여행 등으로 변경 필요하면 운영팀에 문의해주세요.</div>`
       }
     </div>
+    ${(state.isStaff || state.ghost || state.isOperator) ? `
+      <div style="margin-top:14px;padding:14px;border-radius:14px;background:#F5F1FA;border:1px solid rgba(155,127,174,0.22);">
+        <div class="kicker" style="color:#7B5E8C;">STAFF · 티어 자유 토글</div>
+        <div style="margin-top:6px;font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">지금 <span style="color:${state.tier === 'premium' ? '#7B5E8C' : 'var(--ink-soft)'};">${state.tier === 'premium' ? '프리미엄' : '베이직'}</span> 뷰로 보고 있어요.</div>
+        <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">운영팀·유령 멤버 전용. 일반 참가자 눈엔 안 보이는 메뉴예요.</div>
+        <button class="btn btn-ghost btn-full" style="margin-top:10px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;" onclick="window.__staffToggleTier()">
+          ${state.tier === 'premium' ? '→ 베이직 뷰로 전환' : '→ 프리미엄 뷰로 전환'}
+        </button>
+        ${state.tierOverride ? `<div style="margin-top:6px;font-size:10.5px;color:var(--muted);line-height:1.5;">현재 <b>override</b> 상태 (<code>${escapeHtml(state.tierOverride)}</code>). 원래 티어로 돌아가려면 <button style="background:none;border:none;padding:0;color:#6B4F7D;font-weight:700;cursor:pointer;text-decoration:underline;" onclick="window.__restoreTier()">여기 클릭</button>.</div>` : ''}
+      </div>
+    ` : ''}
     ${state.isOperator ? `
       <div style="margin-top:14px;padding:14px;border-radius:14px;background:#FFF7EF;border:1px solid rgba(240,125,56,0.18);">
         <div class="kicker" style="color:var(--orange-dark);">OPERATOR ONLY</div>
@@ -11842,6 +11883,39 @@ window.__restoreTier = () => {
   showToast(state.tier === 'premium' ? '프리미엄으로 복귀했어요.' : '원래 티어로 돌아갔어요.');
   go('home');
 };
+// Staff/Ghost 전용 — basic 디렉토리 멤버 (이지흔·모모) 도 프리미엄 뷰로 전환 가능하게.
+// tierOverride='premium' 으로 고정 → 로그인/리프레시 후에도 유지됨.
+window.__promoteTier = () => {
+  if (!(state.isOperator || state.isStaff || state.ghost)) {
+    showToast('운영팀/유령 멤버만 사용할 수 있어요.');
+    return;
+  }
+  if (!confirm('프리미엄 뷰로 전환할까요? 프리미엄 콘텐츠를 볼 수 있어요. (언제든 복귀 가능)')) return;
+  state.tierOverride = 'premium';
+  state.tier = 'premium';
+  saveState({ immediate: true });
+  showToast('프리미엄 뷰로 전환했어요. (복귀: 설정 · 원래 티어로)');
+  go('home');
+};
+// 통합 토글 — 현재 tier 의 반대로 전환. 운영팀/유령 멤버 전용.
+window.__staffToggleTier = () => {
+  if (!(state.isOperator || state.isStaff || state.ghost)) {
+    showToast('운영팀/유령 멤버만 사용할 수 있어요.');
+    return;
+  }
+  if (state.tier === 'premium') {
+    state.tierOverride = 'basic';
+    state.tier = 'basic';
+    saveState({ immediate: true });
+    showToast('베이직 뷰로 전환했어요.');
+  } else {
+    state.tierOverride = 'premium';
+    state.tier = 'premium';
+    saveState({ immediate: true });
+    showToast('프리미엄 뷰로 전환했어요.');
+  }
+  go('home');
+};
 window.__resetForSignup = () => {
   if (!state.isOperator) return;
   if (!confirm('가입 화면부터 다시 시작할까요? 이 기기에서 저장된 로그인 상태가 초기화돼요.')) return;
@@ -12414,6 +12488,19 @@ if (!__DEMO_MODE__) {
     if (cached) mergePersistedState(cached);
   } catch (e) { console.warn('hydrate state failed', e); }
 }
+
+// 2a) Backfill staff/ghost/operator flags from MEMBER_DIRECTORY on app init —
+//     기존에 로그인된 운영팀/유령 멤버가 재로그인 없이도 Settings 티어 토글 보게.
+try {
+  if (state.accessCode) {
+    const meDir = lookupCode(state.accessCode);
+    if (meDir) {
+      if (meDir.isOperator && !state.isOperator) state.isOperator = true;
+      if (meDir.isStaff && !state.isStaff) state.isStaff = true;
+      if (meDir.ghost && !state.ghost) state.ghost = true;
+    }
+  }
+} catch (e) { console.warn('staff flag backfill failed', e); }
 
 // 2) Bind the logged-in user to the right MEMBERS row (or keep placeholder renamed).
 try { bindMeToMembers(); } catch (e) { console.warn('bindMeToMembers failed', e); }
