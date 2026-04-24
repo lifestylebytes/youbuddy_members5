@@ -7338,14 +7338,15 @@ function PremiumPage() {
   page.appendChild(calendarCard);
 
   // Weekly meetings — 발표자 선착순 3명 중심의 통합 카드.
-  // Basic 사용자에겐 전체 섹션 (타이틀 + 미팅 카드 스택) 을 흐리게 dim 처리.
-  // Personal Quiz / Certification 은 dim 바깥에 별도 렌더돼서 정상 노출.
+  // Basic 사용자에겐 전체 섹션 (타이틀 + 미팅 카드 스택) 을 blur 처리 + 가운데
+  // 'PREMIUM ONLY' 오버레이. Personal Quiz / Certification 은 이 블러 바깥에
+  // 별도 렌더돼서 정상 노출.
   const weeklySection = el('div', {
     style: isPremium ? {} : {
-      opacity: '0.5',
-      filter: 'grayscale(0.25)',
-      pointerEvents: 'none',         // 카드 터치/클릭도 전부 차단 (preview pill 마저 안 눌림).
+      filter: 'blur(9px) saturate(0.85)',
+      pointerEvents: 'none',        // 카드 터치/클릭 전부 차단.
       userSelect: 'none',
+      opacity: '0.85',
     },
   });
   weeklySection.appendChild(el('div', { class: 'kicker', style: { marginTop: '24px' } }, '주간 Google Meet 미팅 · 4회'));
@@ -7698,7 +7699,48 @@ function PremiumPage() {
     mstack.appendChild(card);
   });
   weeklySection.appendChild(mstack);
-  page.appendChild(weeklySection);
+
+  if (isPremium) {
+    page.appendChild(weeklySection);
+  } else {
+    // Basic — weeklySection 을 blur wrap 에 넣고, 가운데에 'PREMIUM ONLY'
+    // 오버레이를 absolute 로 올려서 클릭 유도 없이 "이 섹션은 프리미엄" 이라는
+    // 메시지만 선명하게. blur 자체는 weeklySection 내부에만 걸려서 overlay
+    // 는 선명하게 렌더됨.
+    const blurWrap = el('div', { style: { position: 'relative', marginTop: '0' } });
+    blurWrap.appendChild(weeklySection);
+    const overlay = el('div', {
+      style: {
+        position: 'absolute',
+        inset: '0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        pointerEvents: 'none',
+      },
+    });
+    const badge = el('div', {
+      style: {
+        padding: '14px 22px',
+        borderRadius: '18px',
+        background: 'rgba(255,253,247,0.92)',
+        border: '1.5px solid rgba(169,139,184,0.55)',
+        boxShadow: '0 18px 40px -18px rgba(80,50,100,0.35)',
+        textAlign: 'center',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
+        maxWidth: '280px',
+      },
+    });
+    badge.innerHTML = `
+      <div style="font-size:22px;">🔒</div>
+      <div style="font-size:10px;letter-spacing:0.12em;font-weight:700;color:var(--lilac);margin-top:6px;">PREMIUM ONLY</div>
+      <div style="font-size:14px;font-weight:700;color:var(--ink);margin-top:4px;line-height:1.4;">주간 미팅은 프리미엄 전용</div>
+      <div style="font-size:11.5px;color:var(--ink-soft);margin-top:4px;line-height:1.5;">다음 기수에서 만나요</div>`;
+    overlay.appendChild(badge);
+    blurWrap.appendChild(overlay);
+    page.appendChild(blurWrap);
+  }
 
   // 개별 1:1 PT 세션은 폐지됨 — 미팅 안 30분 (7분 발표 + 3분 Q&A × 3명) 으로
   // 개인 피드백을 통합. 각 발표자는 그 자리에서 라이브 코칭을 받음.

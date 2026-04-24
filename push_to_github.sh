@@ -49,10 +49,13 @@ Week 2~4 주차 잠금
   isWeekUnlocked false 면 토스트 + PremiumPage 리다이렉트. meetingId 포맷
   'week{N}-{date}' 또는 'm{N}' 둘 다 파싱.
 
-Basic 의 Premium 탭 Weekly meetup 섹션 dim
+Basic 의 Premium 탭 Weekly meetup 섹션 blur
 - 베이직 사용자는 주간 미팅 섹션 전체 (타이틀 + 미팅 카드 스택) 를
-  opacity 0.5 + grayscale 0.25 + pointerEvents none 으로 dim.
-- Personal Quiz / Certification 카드는 dim 바깥에 별도 렌더 → 베이직도
+  filter: blur(9px) + saturate 0.85 로 읽히지 않게 블러 + pointerEvents none.
+- absolute overlay 로 '🔒 PREMIUM ONLY · 주간 미팅은 프리미엄 전용 ·
+  다음 기수에서 만나요' 배지를 가운데에 선명하게 띄움 (backdrop-filter
+  blur 4px 로 배경 살짝 더 흐리게).
+- Personal Quiz / Certification 카드는 블러 바깥에 별도 렌더 → 베이직도
   정상 접근 가능.
 
 (이전 커밋 f4681f6 = SQL v5 := assignment fix 도 이 푸시에 함께 올라감.)"
