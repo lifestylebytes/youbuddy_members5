@@ -2100,6 +2100,9 @@ let showMeetingConsent = false;
 // 가 자동 재오픈 안 함 (무한 루프 방지). 페이지 상단 배너 클릭 / 설정에서 다시 열 수 있음.
 // 탭 새로고침하면 리셋돼서 다음 세션엔 다시 한 번 뜸 (동의 안 받은 상태 유지 동안).
 let consentDismissedThisSession = false;
+// 자동 트리거 setTimeout 단일 큐 — render 여러 번 연속 호출되면 setTimeout 여러 개
+// 쌓여서 '두번씩 띡띡' 플래시 되는 버그 방지. 하나만 유지.
+let pendingConsentTimer = null;
 // Operator 용 미팅 동의 감사 모달. 누가 언제 동의했는지 확인.
 let showConsentAudit = false;
 let consentAuditRows = null; // 비동기 fetch 결과 캐시
@@ -4072,7 +4075,17 @@ function render() {
     if (showSettings) root.appendChild(SettingsModal());
     if (showGoalEditor) root.appendChild(GoalModal());
     if (verificationReviewDay) root.appendChild(VerificationReviewModal(verificationReviewDay));
-    if (showMeetingConsent) root.appendChild(MeetingConsentModal());
+    // MeetingConsent 모달은 body 에 싱글턴으로 마운트 → root.innerHTML='' 재렌더 영향 차단
+    // → '두번씩 띡띡' 플래시 버그 방지. 이미 DOM 에 있으면 스킵. (닫힐 때는 핸들러가 직접 제거)
+    if (showMeetingConsent) {
+      if (!document.querySelector('[data-consent-modal]')) {
+        document.body.appendChild(MeetingConsentModal());
+      }
+    } else {
+      // showMeetingConsent=false 인데 잔존하는 모달이 있으면 정리 (edge case)
+      const stale = document.querySelector('[data-consent-modal]');
+      if (stale) stale.remove();
+    }
     if (showConsentAudit) root.appendChild(ConsentAuditModal());
 
     // Mobile modal scroll fix: lock body scroll while any modal is open so the
@@ -7266,7 +7279,9 @@ function PremiumPage() {
   // - 프리미엄 티어만 트리거 (basic 프리뷰 중이면 건너뜀)
   // - 이미 동의했거나 모달 열려있으면 건너뜀
   if (state.tier === 'premium' && !isMeetingConsentCurrent() && !showMeetingConsent && !consentDismissedThisSession) {
-    setTimeout(() => {
+    if (pendingConsentTimer) { clearTimeout(pendingConsentTimer); pendingConsentTimer = null; }
+    pendingConsentTimer = setTimeout(() => {
+      pendingConsentTimer = null;
       if (currentPage === 'premium' && state.tier === 'premium' && !isMeetingConsentCurrent() && !showMeetingConsent && !consentDismissedThisSession) {
         showMeetingConsent = true;
         render();
@@ -8781,7 +8796,9 @@ function MeetingNotesPage(meetingId) {
   // (본인도 프리미엄 참가자라 녹화됨 + QA 확인용). 한 번 동의하면 다시 안 뜸,
   // 테스트로 다시 보고 싶으면 설정 > OPERATOR ONLY > '내 미팅 동의 초기화' 클릭.
   if (!isMeetingConsentCurrent() && !showMeetingConsent && !consentDismissedThisSession) {
-    setTimeout(() => {
+    if (pendingConsentTimer) { clearTimeout(pendingConsentTimer); pendingConsentTimer = null; }
+    pendingConsentTimer = setTimeout(() => {
+      pendingConsentTimer = null;
       if (currentPage === 'meeting-notes' && !isMeetingConsentCurrent() && !showMeetingConsent && !consentDismissedThisSession) {
         showMeetingConsent = true;
         render();
@@ -11382,7 +11399,8 @@ function isMeetingConsentCurrent() {
 function MeetingConsentModal() {
   const backdrop = el('div', {
     class: 'modal-backdrop',
-    onClick: (e) => { if (e.target === backdrop) { showMeetingConsent = false; consentDismissedThisSession = true; render(); } },
+    'data-consent-modal': '1',
+    onClick: (e) => { if (e.target === backdrop) { showMeetingConsent = false; consentDismissedThisSession = true; backdrop.remove(); render(); } },
   });
   const modal = el('div', {
     class: 'modal',
@@ -11449,7 +11467,8 @@ function MeetingConsentModal() {
     const chkDeleg = document.getElementById('__consentChkDeleg');
     // X 버튼 / '나중에' 로 닫으면 이번 세션엔 자동 재오픈 안 함 (무한 루프 방지).
     // 다음 탭 새로고침시 다시 한 번 뜨고, 그 전에 다시 보고싶으면 상단 배너 클릭.
-    const close = () => { showMeetingConsent = false; consentDismissedThisSession = true; render(); };
+    // body 싱글턴 모달이라 backdrop.remove() 로 즉시 DOM 에서 내림.
+    const close = () => { showMeetingConsent = false; consentDismissedThisSession = true; backdrop.remove(); render(); };
     const syncBtn = () => {
       const ok = !!(chkBio && chkBio.checked && chkDeleg && chkDeleg.checked);
       if (!acceptBtn) return;
@@ -11482,6 +11501,7 @@ function MeetingConsentModal() {
       };
       saveState({ immediate: true });
       showMeetingConsent = false;
+      backdrop.remove();
       showToast('동의가 기록됐어요. 편하게 참여해요 🙌');
       render();
     };
