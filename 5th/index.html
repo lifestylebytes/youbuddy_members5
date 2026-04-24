@@ -1508,6 +1508,7 @@ const defaultState = () => ({
   community_bookmarks: {},        // { "p1": true }
   community_comments: {},         // { "post-id": [{ text, author, createdAt }] }
   meeting_notes: {},              // { "m1": { talk_points:[], meeting_notes: '' } }
+  meeting_consent: null,          // { accepted: true, at: ISO, version: 1, tz: '+0h' } — 프리미엄 미팅 녹화/분석 사전 동의 기록. operator 가 감사용으로 열람.
   presenterSignups: {},           // { "w1": ["member_key_a", "member_key_b"] } — 주차별 선착순 발표자
   presenter_prep: {},             // { "w1": { vocabPicked:[], script:'', privateNotes:'' } } — 본인 발표 준비
   pitch_vocab: [],                // [{ word, note, source, savedAt }] — 계속 학습하고 싶은 단어 보관소
@@ -1561,6 +1562,7 @@ const PERSISTED_STATE_KEYS = [
   'community_bookmarks',
   'community_comments',
   'meeting_notes',
+  'meeting_consent',
   'presenterSignups',
   'presenter_prep',
   'pitch_vocab',
@@ -2091,6 +2093,13 @@ let showSettings = false;
 // Goal editor modal — 프로필에서 '수정' / '+ 추가' 버튼 눌렀을 때 켜짐.
 // window.prompt() 기본 팝업은 디자인이 깨지고 모바일에서 포커스가 어색해서 자체 모달로 대체.
 let showGoalEditor = false;
+// 프리미엄 미팅 녹화/분석 사전 동의 모달. MeetingNotesPage 진입 시 본인이 아직 동의 안 했으면 자동 오픈.
+// 버튼 두 개: '동의하고 계속' → state.meeting_consent 기록 + 진입 · '나중에' → 모달만 닫음 (진입 자체를 차단하진 않음 — 부담 줄이되 페이지 상단 안내 배너로 재유도).
+let showMeetingConsent = false;
+// Operator 용 미팅 동의 감사 모달. 누가 언제 동의했는지 확인.
+let showConsentAudit = false;
+let consentAuditRows = null; // 비동기 fetch 결과 캐시
+let consentAuditLoading = false;
 let toast = null;
 let confettiTimer = null;
 let dashboardStats = {
@@ -4036,12 +4045,14 @@ function render() {
     if (showSettings) root.appendChild(SettingsModal());
     if (showGoalEditor) root.appendChild(GoalModal());
     if (verificationReviewDay) root.appendChild(VerificationReviewModal(verificationReviewDay));
+    if (showMeetingConsent) root.appendChild(MeetingConsentModal());
+    if (showConsentAudit) root.appendChild(ConsentAuditModal());
 
     // Mobile modal scroll fix: lock body scroll while any modal is open so the
     // modal's own overflow-y:auto picks up touch scrolling instead of the page
     // behind it bubbling. 취소/저장 버튼이 모바일에서 안 닿던 문제.
     try {
-      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay);
+      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay || showMeetingConsent || showConsentAudit);
       if (anyModalOpen) document.body.classList.add('modal-open');
       else document.body.classList.remove('modal-open');
     } catch (_lockErr) {}
@@ -4489,7 +4500,13 @@ function setupHistoryGuard() {
       // navBackStack 에 남아있을 수 있는 오래된 경로로 점프하지 않음
       // (유저 복합 피드백: 엣지 스와이프 했더니 '아예 다른 페이지' 떴다).
       try {
-        if (typeof showSettings !== 'undefined' && showSettings) {
+        if (typeof showMeetingConsent !== 'undefined' && showMeetingConsent) {
+          showMeetingConsent = false;
+          try { render(); } catch (_) {}
+        } else if (typeof showConsentAudit !== 'undefined' && showConsentAudit) {
+          showConsentAudit = false;
+          try { render(); } catch (_) {}
+        } else if (typeof showSettings !== 'undefined' && showSettings) {
           showSettings = false;
           try { render(); } catch (_) {}
         } else if (typeof activeMemberCard !== 'undefined' && activeMemberCard) {
@@ -7215,6 +7232,20 @@ function DayPage(dayN) {
 function PremiumPage() {
   const page = el('div', { class: 'page' });
   page.appendChild(TopBar());
+
+  // 프리미엄 탭 진입시 미팅 녹화/분석 동의 팝업 자동 오픈.
+  // 미팅 노트 페이지 방문 없이 바로 Google Meet 링크로 들어가는 멤버도
+  // 반드시 동의를 받을 수 있도록 최상위 프리미엄 탭에서 한 번 더 가드.
+  // - 프리미엄 티어만 트리거 (basic 프리뷰 중이면 건너뜀)
+  // - 이미 동의했거나 모달 열려있으면 건너뜀
+  if (state.tier === 'premium' && !isMeetingConsentCurrent() && !showMeetingConsent) {
+    setTimeout(() => {
+      if (currentPage === 'premium' && state.tier === 'premium' && !isMeetingConsentCurrent() && !showMeetingConsent) {
+        showMeetingConsent = true;
+        render();
+      }
+    }, 250);
+  }
   // Calendar spans 4/26 (Sun) — 5/31 (Sun): April tail + full May.
   // 4/30 (Thu) is Week 1 kickoff, then 5/7, 5/14, 5/21 for weeks 2-4.
   const aprilMeetings = [30];
@@ -8718,6 +8749,19 @@ function MeetingNotesPage(meetingId) {
   if (state.tier !== 'premium') return premiumGatePage({ titleRest: '미팅 노트' });
   const page = el('div', { class: 'page' });
 
+  // Meeting recording/analysis consent — 본인이 아직 동의 안 했으면 모달 자동 오픈.
+  // 이미 오픈된 상태면 중복 트리거 안 함. 운영자/스태프 포함 전원 한 번은 봐야함
+  // (본인도 프리미엄 참가자라 녹화됨 + QA 확인용). 한 번 동의하면 다시 안 뜸,
+  // 테스트로 다시 보고 싶으면 설정 > OPERATOR ONLY > '내 미팅 동의 초기화' 클릭.
+  if (!isMeetingConsentCurrent() && !showMeetingConsent) {
+    setTimeout(() => {
+      if (currentPage === 'meeting-notes' && !isMeetingConsentCurrent() && !showMeetingConsent) {
+        showMeetingConsent = true;
+        render();
+      }
+    }, 220);
+  }
+
   // Resolve meeting meta — pt_sessions 가 폐지되어 m* 만 남음.
   let meta = null;
   if (meetingId && meetingId.startsWith('m')) {
@@ -8861,6 +8905,33 @@ function MeetingNotesPage(meetingId) {
       </div>
     </div>`;
   page.appendChild(hero);
+
+  // Consent banner — 모달을 '나중에' 로 닫은 사용자를 위해 상단에 잔잔하게 재유도.
+  if (!isMeetingConsentCurrent()) {
+    const consentBanner = el('div', {
+      style: {
+        margin: '12px 0 0',
+        padding: '11px 14px',
+        borderRadius: '14px',
+        background: 'linear-gradient(180deg, #F7F3FB 0%, #F3EDFA 100%)',
+        border: '1px solid rgba(155,127,174,0.28)',
+        display: 'flex',
+        gap: '10px',
+        alignItems: 'center',
+        cursor: 'pointer',
+      },
+      onClick: () => { showMeetingConsent = true; render(); },
+    });
+    consentBanner.innerHTML = `
+      <div style="flex-shrink:0;width:28px;height:28px;border-radius:50%;background:rgba(155,127,174,0.22);display:flex;align-items:center;justify-content:center;">🎥</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12.5px;font-weight:700;color:var(--ink);letter-spacing:-0.01em;">미팅 녹화/분석 동의가 아직 없어요</div>
+        <div style="font-size:11px;color:var(--ink-soft);margin-top:2px;line-height:1.45;">피드백 분석을 받고 싶다면 동의해주세요. 기수 종료 시 폐기돼요.</div>
+      </div>
+      <div style="flex-shrink:0;font-size:11px;font-weight:700;color:#7B5E8C;">자세히 →</div>
+    `;
+    page.appendChild(consentBanner);
+  }
 
   // (Sync bar 제거 — 상단 "💾 저장" 버튼으로 통합. 자동 저장은 입력할 때마다 뒤에서 돌아감.)
 
@@ -10713,6 +10784,14 @@ function SettingsModal() {
             <button id="__settingsPlayTourPremium" class="btn btn-ghost" style="flex:1;border-color:rgba(192,132,252,0.3);color:var(--lilac, #9A6FD9);font-size:12.5px;padding:10px 8px;">Premium 로 플레이 (6스텝)</button>
           </div>
         </div>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
+          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🎥 미팅 동의 감사 (Consent Audit)</div>
+          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">프리미엄 멤버별로 미팅 녹화/분석 동의를 누가 언제 했는지 확인. ${state.meeting_consent && state.meeting_consent.accepted ? `<span style="color:#16A34A;font-weight:700;">· 내 상태: 동의 (${new Date(state.meeting_consent.at).toLocaleString('ko-KR', { hour12: false })})</span>` : `<span style="color:var(--muted);font-weight:600;">· 내 상태: 미동의</span>`}</div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button id="__settingsOpenConsentAudit" class="btn btn-ghost" style="flex:1;border-color:rgba(155,127,174,0.3);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">동의 현황 열기</button>
+            <button id="__settingsResetMyConsent" class="btn btn-ghost" style="flex:1;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">내 동의 초기화 (테스트용)</button>
+          </div>
+        </div>
       </div>
     ` : ''}
     <div style="display:flex;gap:8px;margin-top:20px;">
@@ -10766,6 +10845,24 @@ function SettingsModal() {
       render();
     };
     if (resetBtn) resetBtn.onclick = () => window.__resetForSignup();
+
+    // Operator: 미팅 동의 감사 모달 열기
+    const openAuditBtn = document.getElementById('__settingsOpenConsentAudit');
+    if (openAuditBtn) openAuditBtn.onclick = () => {
+      showSettings = false;
+      window.__openConsentAudit();
+    };
+
+    // Operator: 내 동의 초기화 (테스트용 — 팝업 다시 보고 싶을 때)
+    const resetMyConsentBtn = document.getElementById('__settingsResetMyConsent');
+    if (resetMyConsentBtn) resetMyConsentBtn.onclick = () => {
+      if (!confirm('내 미팅 동의 기록을 초기화할까요?\n(다음 미팅 노트 페이지에서 팝업이 다시 떠요.)')) return;
+      state.meeting_consent = null;
+      saveState({ immediate: true });
+      showToast('내 동의 기록을 초기화했어요.');
+      showSettings = false;
+      render();
+    };
 
     // Operator-only: onboarding 팝업 튜어 미리보기 (실제 멤버가 보는 오버레이)
     const playBasicBtn = document.getElementById('__settingsPlayTourBasic');
@@ -11220,6 +11317,308 @@ function PremiumGateModal() {
   setTimeout(() => { const input = $('#__premium_code'); if (input) input.focus(); }, 80);
   return backdrop;
 }
+
+/* ============================================================
+   MEETING CONSENT MODAL
+   ------------------------------------------------------------
+   프리미엄 미팅은 Google Meet 녹화 + AI 분석으로 피드백이 나감.
+   GDPR/개인정보 관점에서 참가자 본인에게 "얼굴/음성이 녹음될 수 있고,
+   피드백용으로 분석되며, 이 기수 종료 시 폐기된다" 는 점을 명시적으로
+   알리고 동의를 받아 기록으로 남긴다.
+
+   동작:
+   · MeetingNotesPage 진입시 state.meeting_consent 없거나 version 이
+     낮으면 자동 오픈.
+   · 동의 → state.meeting_consent = { accepted, at, version, tz } 로 기록.
+     upsert_member_app_state 로 서버 동기화됨 (operator 가 감사 RPC 나
+     get_member_app_state 로 조회 가능).
+   · '나중에' → 이번 세션만 모달 닫음. 다음 미팅 페이지 진입시 재오픈.
+     (엄격하게 차단하진 않고, 페이지 상단에 파란 배너로 재유도.)
+
+   현재 동의 버전:
+   CONSENT_VERSION 을 올리면 기존 동의자들도 다시 모달을 봄.
+   ============================================================ */
+// v2: 한국 개인정보보호법 (제15조 / 제23조 민감정보 / 제26조 처리위탁) 준수 문구.
+// · 수집 항목 / 목적 / 보유기간 / 거부권 명시
+// · 얼굴·음성 = 생체정보(민감정보) → 별도 체크박스 + 처리위탁 체크박스 (각각 필수)
+// · 처리위탁 수탁자 공개 (Google Meet / Anthropic)
+// · 개인정보 보호책임자: youbuddy.co@gmail.com
+const CONSENT_VERSION = 2;
+
+function isMeetingConsentCurrent() {
+  const c = state.meeting_consent;
+  return !!(c && c.accepted === true && Number(c.version || 0) >= CONSENT_VERSION);
+}
+
+function MeetingConsentModal() {
+  const backdrop = el('div', {
+    class: 'modal-backdrop',
+    onClick: (e) => { if (e.target === backdrop) { showMeetingConsent = false; render(); } },
+  });
+  const modal = el('div', {
+    class: 'modal',
+    style: {
+      width: 'min(92vw, 520px)',
+      maxHeight: 'calc(100dvh - 40px)',
+    },
+  });
+  modal.innerHTML = `
+    <div class="row-between" style="margin-bottom:14px;">
+      <div class="kicker" style="color:#7B5E8C;">MEETING CONSENT · v${CONSENT_VERSION}</div>
+      <button class="icon-btn" id="__consentClose">${Icon('close', 14)}</button>
+    </div>
+    <h2 class="h1" style="margin-top:4px;font-size:22px;letter-spacing:-0.02em;"><span class="serif">Before</span> the meeting</h2>
+    <p class="t-body" style="margin-top:10px;line-height:1.6;">프리미엄 Google Meet 미팅은 피드백 제공을 위해 녹화 및 AI 분석을 진행합니다. 법적 고지 사항을 확인하고 동의해주세요.</p>
+
+    <div style="margin-top:16px;padding:14px;border-radius:14px;background:#F7F3FB;border:1px solid rgba(155,127,174,0.24);font-size:12.5px;line-height:1.7;color:var(--ink);">
+
+      <div style="font-size:10.5px;letter-spacing:0.14em;font-weight:800;color:#7B5E8C;">── 수집 항목 ──</div>
+      <div style="margin-top:4px;">Google Meet 화상/음성 녹화본 (얼굴 영상, 음성, 발화 내용)</div>
+
+      <div style="margin-top:12px;font-size:10.5px;letter-spacing:0.14em;font-weight:800;color:#7B5E8C;">── 수집·이용 목적 ──</div>
+      <div style="margin-top:4px;">개인별 발음·표현·발표 구조 피드백 생성</div>
+
+      <div style="margin-top:12px;font-size:10.5px;letter-spacing:0.14em;font-weight:800;color:#7B5E8C;">── 보유·이용 기간 ──</div>
+      <div style="margin-top:4px;">2026년 5기 종료 후 30일 이내 원본 녹화 전량 삭제. 피드백 결과(텍스트)만 본인에게 제공.</div>
+
+      <div style="margin-top:12px;font-size:10.5px;letter-spacing:0.14em;font-weight:800;color:#7B5E8C;">── 처리 위탁 ──</div>
+      <div style="margin-top:4px;">
+        · Google LLC — Google Meet 녹화 인프라<br>
+        · Anthropic, PBC — 발표 스크립트 AI 분석 (녹음 텍스트화 후 전달)
+      </div>
+
+      <div style="margin-top:12px;font-size:10.5px;letter-spacing:0.14em;font-weight:800;color:#7B5E8C;">── 동의 거부 권리 ──</div>
+      <div style="margin-top:4px;">본 동의를 <b>거부할 권리가 있으며</b>, 거부 시 미팅 참여는 가능하나 녹화 기반 피드백은 제공되지 않습니다.</div>
+    </div>
+
+    <div style="margin-top:14px;padding:12px;border-radius:12px;background:#fff;border:1px solid rgba(0,0,0,0.08);">
+      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:12.5px;line-height:1.55;color:var(--ink);">
+        <input type="checkbox" id="__consentChkBio" style="margin-top:3px;width:16px;height:16px;flex-shrink:0;cursor:pointer;">
+        <span><b style="color:#C2410C;">(필수)</b> 위 <b>얼굴·음성(생체정보)</b> 수집·이용에 동의합니다.</span>
+      </label>
+      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:12.5px;line-height:1.55;color:var(--ink);margin-top:10px;">
+        <input type="checkbox" id="__consentChkDeleg" style="margin-top:3px;width:16px;height:16px;flex-shrink:0;cursor:pointer;">
+        <span><b style="color:#C2410C;">(필수)</b> 위 <b>처리 위탁 내용</b>(Google / Anthropic) 에 동의합니다.</span>
+      </label>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-ghost" style="flex:1;" id="__consentLater">나중에</button>
+      <button class="btn btn-primary" style="flex:1.4;opacity:0.5;pointer-events:none;" id="__consentAccept" disabled>두 항목 모두 동의하고 계속</button>
+    </div>
+    <div style="margin-top:10px;font-size:10.5px;color:var(--muted);text-align:center;line-height:1.55;">
+      개인정보 보호책임자: 유버디 · youbuddy.co@gmail.com<br>
+      동의 기록(시각·본인 이름)은 운영팀 감사 자료로만 사용됩니다.
+    </div>
+  `;
+  backdrop.appendChild(modal);
+  setTimeout(() => {
+    const closeBtn = document.getElementById('__consentClose');
+    const laterBtn = document.getElementById('__consentLater');
+    const acceptBtn = document.getElementById('__consentAccept');
+    const chkBio = document.getElementById('__consentChkBio');
+    const chkDeleg = document.getElementById('__consentChkDeleg');
+    const close = () => { showMeetingConsent = false; render(); };
+    const syncBtn = () => {
+      const ok = !!(chkBio && chkBio.checked && chkDeleg && chkDeleg.checked);
+      if (!acceptBtn) return;
+      if (ok) {
+        acceptBtn.disabled = false;
+        acceptBtn.style.opacity = '1';
+        acceptBtn.style.pointerEvents = 'auto';
+      } else {
+        acceptBtn.disabled = true;
+        acceptBtn.style.opacity = '0.5';
+        acceptBtn.style.pointerEvents = 'none';
+      }
+    };
+    if (chkBio) chkBio.addEventListener('change', syncBtn);
+    if (chkDeleg) chkDeleg.addEventListener('change', syncBtn);
+    if (closeBtn) closeBtn.onclick = close;
+    if (laterBtn) laterBtn.onclick = close;
+    if (acceptBtn) acceptBtn.onclick = () => {
+      if (!(chkBio && chkBio.checked && chkDeleg && chkDeleg.checked)) return;
+      const now = new Date();
+      state.meeting_consent = {
+        accepted: true,
+        at: now.toISOString(),
+        version: CONSENT_VERSION,
+        tz: state.timezoneOffsetText || '+0h',
+        memberKey: (typeof memberKey === 'function' ? memberKey() : null),
+        memberName: state.name || '',
+        englishName: state.englishName || '',
+        consents: { biometric: true, delegation: true },
+      };
+      saveState({ immediate: true });
+      showMeetingConsent = false;
+      showToast('동의가 기록됐어요. 편하게 참여해요 🙌');
+      render();
+    };
+  }, 60);
+  return backdrop;
+}
+
+/* ============================================================
+   CONSENT AUDIT MODAL — Operator 전용
+   ------------------------------------------------------------
+   프리미엄 멤버별로 미팅 녹화/분석 동의 상태를 한눈에 확인.
+   get_member_app_state RPC 를 프리미엄 멤버별로 순차 호출해
+   app_state.meeting_consent 를 읽어옴 (서버 summary RPC 가 이 필드를
+   노출하진 않으므로 직접 pull).
+   ============================================================ */
+function ConsentAuditModal() {
+  const backdrop = el('div', {
+    class: 'modal-backdrop',
+    onClick: (e) => { if (e.target === backdrop) { showConsentAudit = false; render(); } },
+  });
+  const modal = el('div', {
+    class: 'modal',
+    style: {
+      width: 'min(92vw, 560px)',
+      maxHeight: 'calc(100dvh - 40px)',
+    },
+  });
+
+  const premiumDir = MEMBER_DIRECTORY.filter((d) => d && d.tier === 'premium');
+
+  const rowsHtml = (() => {
+    if (consentAuditLoading) {
+      return `<div style="padding:24px 8px;text-align:center;color:var(--muted);font-size:13px;">불러오는 중...</div>`;
+    }
+    if (!consentAuditRows || !consentAuditRows.length) {
+      return `<div style="padding:24px 8px;text-align:center;color:var(--muted);font-size:13px;">데이터 없음. '새로고침' 눌러보세요.</div>`;
+    }
+    const order = premiumDir.map((d) => d.name);
+    const sorted = consentAuditRows.slice().sort((a, b) => {
+      const ai = order.indexOf(a.name); const bi = order.indexOf(b.name);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
+    return sorted.map((r) => {
+      const ok = !!(r.consent && r.consent.accepted);
+      const when = ok ? formatKstTs(r.consent.at) : '—';
+      const v = ok ? `v${r.consent.version || 1}` : '';
+      return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 12px;border-bottom:1px solid rgba(0,0,0,0.05);">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+            <div style="flex-shrink:0;width:8px;height:8px;border-radius:50%;background:${ok ? '#4ADE80' : '#E5E7EB'};"></div>
+            <div style="min-width:0;">
+              <div style="font-size:13.5px;font-weight:700;color:var(--ink);">${escapeHtml(r.name || '?')}${r.englishName ? `<span style=\"color:var(--muted);font-weight:500;font-size:12px;\"> · ${escapeHtml(r.englishName)}</span>` : ''}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;">${ok ? when + ' · ' + v : '미동의'}</div>
+            </div>
+          </div>
+          <div style="flex-shrink:0;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;${ok ? 'background:rgba(74,222,128,0.14);color:#16A34A;' : 'background:rgba(0,0,0,0.06);color:var(--muted);'}">
+            ${ok ? '동의' : '대기'}
+          </div>
+        </div>`;
+    }).join('');
+  })();
+
+  const totalN = premiumDir.length;
+  const agreedN = (consentAuditRows || []).filter((r) => r.consent && r.consent.accepted).length;
+
+  modal.innerHTML = `
+    <div class="row-between" style="margin-bottom:14px;">
+      <div>
+        <div class="kicker" style="color:var(--orange-dark);">OPERATOR · CONSENT AUDIT</div>
+        <div style="margin-top:4px;font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;">미팅 녹화/분석 동의 현황</div>
+      </div>
+      <button class="icon-btn" id="__auditClose">${Icon('close', 14)}</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;font-size:12px;color:var(--ink-soft);">
+      <div><b style="color:var(--ink);">${agreedN}</b> / ${totalN} 프리미엄 동의</div>
+      <div style="flex:1;"></div>
+      <button id="__auditRefresh" class="btn btn-ghost" style="padding:6px 12px;font-size:11.5px;">새로고침</button>
+    </div>
+    <div style="border:1px solid rgba(0,0,0,0.06);border-radius:12px;background:#fff;max-height:50vh;overflow-y:auto;">
+      ${rowsHtml}
+    </div>
+    <div style="margin-top:12px;font-size:10.5px;color:var(--muted);line-height:1.55;">
+      동의 기록은 각 멤버의 단말기 → 서버(upsert_member_app_state) 동기화본을 그대로 읽어와요. 직접 수정 불가 — 본인이 '동의하고 계속' 눌러야만 기록됩니다.
+    </div>
+  `;
+  backdrop.appendChild(modal);
+  setTimeout(() => {
+    const closeBtn = document.getElementById('__auditClose');
+    const refreshBtn = document.getElementById('__auditRefresh');
+    if (closeBtn) closeBtn.onclick = () => { showConsentAudit = false; render(); };
+    if (refreshBtn) refreshBtn.onclick = () => { window.__loadConsentAudit(true); };
+    if (!consentAuditRows && !consentAuditLoading) {
+      window.__loadConsentAudit(false);
+    }
+  }, 60);
+  return backdrop;
+}
+
+function formatKstTs(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch (_) { return iso; }
+}
+
+window.__openConsentAudit = () => {
+  if (!state.isOperator) { showToast('운영자 전용이에요.'); return; }
+  showConsentAudit = true;
+  consentAuditRows = null;
+  render();
+};
+
+window.__loadConsentAudit = async (force) => {
+  if (!state.isOperator) return;
+  if (consentAuditLoading) return;
+  if (!hasSupabase()) {
+    consentAuditRows = [];
+    render();
+    return;
+  }
+  consentAuditLoading = true;
+  render();
+  try {
+    // 전용 RPC: get_cohort_consent_audit (supabase_migration_meeting_consent.sql).
+    // app_state->'meeting_consent' 을 펼쳐서 flat row 로 반환.
+    const payload = await supabaseRpc('get_cohort_consent_audit', {
+      p_cohort: CHALLENGE.cohort,
+    });
+    const raw = Array.isArray(payload) ? payload : [];
+    // 프리미엄 멤버만 필터 (MEMBER_DIRECTORY 기준).
+    const premiumNames = new Set(
+      MEMBER_DIRECTORY.filter((d) => d && d.tier === 'premium').map((d) => String(d.name).trim())
+    );
+    const rows = [];
+    const seen = new Set();
+    raw.forEach((r) => {
+      const name = String(r.member_name || '').trim();
+      if (!name || !premiumNames.has(name)) return;
+      seen.add(name);
+      rows.push({
+        name,
+        englishName: r.english_name || '',
+        consent: r.consent_accepted ? {
+          accepted: true,
+          at: r.consent_at || '',
+          version: Number(r.consent_version || 1),
+        } : null,
+      });
+    });
+    // 서버에 아직 app_state 올리지 않은 멤버는 대기 (회색) 로 표시.
+    MEMBER_DIRECTORY.filter((d) => d && d.tier === 'premium').forEach((d) => {
+      if (!seen.has(String(d.name).trim())) {
+        rows.push({ name: d.name, englishName: '', consent: null });
+      }
+    });
+    consentAuditRows = rows;
+  } catch (e) {
+    // RPC 없거나 에러 → fallback 안내 메시지
+    console.warn('consent audit RPC failed', e);
+    consentAuditRows = [];
+    showToast('RPC 미적용 — supabase_migration_meeting_consent.sql 을 Supabase 에 돌려주세요.');
+  } finally {
+    consentAuditLoading = false;
+    render();
+  }
+};
 
 /* ============================================================
    VERIFICATION REVIEW MODAL
