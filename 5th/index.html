@@ -453,6 +453,19 @@ input, textarea, select { font-family: inherit; }
   }
 }
 
+/* MeetingNotesPage timeline rail — 모바일에서 좌측 여백 줄여서 카드 넓게. */
+.timeline-row .tl-rail { width: 62px; }
+.timeline-row .tl-stem { width: 12px; }
+@media (max-width: 480px) {
+  /* 페이지 자체 패딩도 살짝 좁혀서 컨텐츠 가독성 확보. */
+  .page { padding: 20px 14px 24px; }
+  .timeline-row { gap: 8px !important; }
+  .timeline-row .tl-rail { width: 40px; }
+  .timeline-row .tl-stem { width: 10px; }
+  .timeline-row .tl-rail-time { font-size: 9.5px !important; letter-spacing: 0.08em !important; }
+  .timeline-row .tl-rail-mins { font-size: 10px !important; }
+}
+
 /* quiz */
 .quiz-card {
   background: var(--cream); border: 1px solid var(--line);
@@ -1298,14 +1311,14 @@ const CHALLENGE = {
 const MEMBER_DIRECTORY = [
   /* 운영진 / 유령
      - isOperator: 설정 모달 OPERATOR ONLY 섹션 접근 권한 (유버디 본인만)
-     - isStaff:   통계 (완주율·인증률·"5기 38명") 에서 제외, 보드에는 보임, 운영팀 배지는 UI 에서 숨김
+     - isStaff:   통계 (완주율·인증률·"5기 39명") 에서 제외, 보드에는 보임, 운영팀 배지는 UI 에서 숨김
      - hidden:    보드/랭킹/커뮤니티 어디에도 안 보임 (본인 로그인해도 '나' 슬롯만 보임, 다른 사람 눈엔 없음) */
   { code: '00', id: 'op1', name: '유버디', color: 'ink',   tier: 'premium', role: '운영팀', isOperator: true,  isStaff: true },
   { code: '42', id: 'op2', name: '이규태', color: 'ink',   tier: 'premium', role: '운영팀', isStaff: true },
   { code: '43', id: 'op3', name: '이지흔', color: 'cream', tier: 'basic',   role: '운영팀', isStaff: true },
   { code: '44', id: 'ghost1', name: '모모', color: 'cream', tier: 'basic',  hidden: true, ghost: true, isStaff: true },
 
-  /* 프리미엄 8명 (code 01~08) */
+  /* 프리미엄 9명 (code 01~08, 45) */
   { code: '01', id: 'p1', name: '김소영', color: 'ink', tier: 'premium' },
   { code: '02', id: 'p2', name: '손미경', color: 'ink', tier: 'premium' },
   { code: '03', id: 'p3', name: '이수진', color: 'ink', tier: 'premium' },
@@ -1314,6 +1327,7 @@ const MEMBER_DIRECTORY = [
   { code: '06', id: 'p6', name: '이송아', color: 'ink', tier: 'premium' },
   { code: '07', id: 'p7', name: '정지은', color: 'ink', tier: 'premium' },
   { code: '08', id: 'p8', name: '김정인', color: 'ink', tier: 'premium' },
+  { code: '45', id: 'p9', name: '권다은', color: 'ink', tier: 'premium' },  // 추가 (2026-04-24)
 
   /* 베이직 29명 (code 09~37) */
   { code: '09', id: 'b1',  name: '고민지', color: 'cream', tier: 'basic' },
@@ -1427,7 +1441,7 @@ function bindMeToMembers() {
 function visibleMembers() {
   return MEMBERS.filter((m) => !m.hidden);
 }
-/* 통계 (완주율·인증률·"5기 38명") 용 — staff/ghost 제외, 실제 참가자 38 명만 */
+/* 통계 (완주율·인증률·"5기 39명") 용 — staff/ghost 제외, 실제 참가자 39 명만 */
 function paidMembers() {
   return MEMBERS.filter((m) => !m.hidden && !m.isStaff && !m.ghost);
 }
@@ -4407,73 +4421,13 @@ function shouldIgnoreSwipeTarget(target) {
 }
 
 function setupSwipeNavigation() {
-  if (window.__ybSwipeInit) return;
-  window.__ybSwipeInit = true;
-  let startX = 0;
-  let startY = 0;
-  let startTime = 0;
-  let tracking = false;
-  let trackingPointerId = null;
-
-  const beginSwipe = (target, clientX, clientY) => {
-    if (shouldIgnoreSwipeTarget(target)) {
-      tracking = false;
-      trackingPointerId = null;
-      return;
-    }
-    startX = clientX;
-    startY = clientY;
-    startTime = Date.now();
-    tracking = true;
-  };
-
-  const finishSwipe = (clientX, clientY) => {
-    if (!tracking) return;
-    tracking = false;
-    trackingPointerId = null;
-    if (showPremiumGate || activeMemberCard || showSettings) return;
-    const deltaX = clientX - startX;
-    const deltaY = clientY - startY;
-    const elapsed = Date.now() - startTime;
-    const absX = Math.abs(deltaX);
-    const absY = Math.abs(deltaY);
-    if (elapsed > 650 || absX < 72 || absY > 56 || absX < absY * 1.35) return;
-    if (deltaX > 0) {
-      goBackRoute();
-    } else {
-      goForwardRoute();
-    }
-  };
-
-  document.addEventListener('touchstart', (event) => {
-    if (!event.touches || event.touches.length !== 1) return;
-    const touch = event.touches[0];
-    beginSwipe(event.target, touch.clientX, touch.clientY);
-  }, { passive: true });
-
-  document.addEventListener('touchend', (event) => {
-    if (!event.changedTouches || !event.changedTouches.length) return;
-    const touch = event.changedTouches[0];
-    finishSwipe(touch.clientX, touch.clientY);
-  }, { passive: true });
-
-  document.addEventListener('pointerdown', (event) => {
-    if (!event.isPrimary) return;
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
-    trackingPointerId = event.pointerId;
-    beginSwipe(event.target, event.clientX, event.clientY);
-  }, { passive: true });
-
-  document.addEventListener('pointerup', (event) => {
-    if (!event.isPrimary) return;
-    if (trackingPointerId !== null && event.pointerId !== trackingPointerId) return;
-    finishSwipe(event.clientX, event.clientY);
-  }, { passive: true });
-
-  document.addEventListener('pointercancel', () => {
-    tracking = false;
-    trackingPointerId = null;
-  }, { passive: true });
+  // 비활성화됨. 이유:
+  //   (1) 웹 마우스 드래그 → 의도치 않게 전/후 페이지로 휙휙 전환되는 문제.
+  //   (2) iOS 터치 스와이프 → 브라우저 네이티브 back 제스처와 충돌, navBackStack
+  //       의 오래된 경로로 점프해버림.
+  // 앱 내 back/forward 는 상단바 뒤로가기 + 브라우저 back(iOS 엣지 스와이프) 만
+  // 사용. 브라우저 back 은 setupHistoryGuard 에서 처리.
+  return;
 }
 
 function setupScrollMemory() {
@@ -4507,9 +4461,11 @@ function setupHistoryGuard() {
   }
   window.addEventListener('popstate', (event) => {
     const tag = event && event.state && event.state.__ybTag;
-    // 'base' 로 떨어졌다 = 사용자가 back 제스처를 한 번 썼다.
+    // 'base' 로 떨어졌다 = 사용자가 back 제스처를 한 번 썼다 (iOS 엣지 스와이프 등).
     if (tag === 'base' || !tag) {
-      // 모달/설정 열려있으면 그것부터 닫기
+      // 열려있는 모달/설정 우선 닫기. 그게 없으면 제자리 유지 —
+      // navBackStack 에 남아있을 수 있는 오래된 경로로 점프하지 않음
+      // (유저 복합 피드백: 엣지 스와이프 했더니 '아예 다른 페이지' 떴다).
       try {
         if (typeof showSettings !== 'undefined' && showSettings) {
           showSettings = false;
@@ -4520,11 +4476,10 @@ function setupHistoryGuard() {
         } else if (typeof showPremiumGate !== 'undefined' && showPremiumGate) {
           showPremiumGate = false;
           try { render(); } catch (_) {}
-        } else if (Array.isArray(navBackStack) && navBackStack.length > 0) {
-          goBackRoute();
         }
+        // else: stay put. 앱 내부 back 은 상단바 '← 뒤로' 버튼으로만.
       } catch (err) { console.warn('history back handler failed', err); }
-      // 다시 active 센티널 주입 → 다음 back 도 SPA 내부에서 처리.
+      // 다시 active 센티널 주입 → 다음 back 도 같은 가드로 잡음.
       try { history.pushState({ __ybTag: 'active' }, ''); } catch (_) {}
     }
   });
@@ -4783,7 +4738,14 @@ function OnboardingPage() {
       <label style="display:grid;gap:6px;margin-top:12px;">
         <span class="kicker" style="color:var(--muted);">한국 대비 시차</span>
         <input id="__obTimezone" class="input" type="text" placeholder="예: +0h, -13h, +1:30h" value="${escapeHtml(__onboardDraft.timezoneOffsetText || detectBrowserShiftText())}" autocomplete="off" />
-        <span style="font-size:10.5px;color:var(--muted);line-height:1.5;">📍 지금 계신 지역 기준. 위 값은 브라우저에서 자동 감지된 시차예요 — 맞으면 그대로, 다르면 수정. <b>가입 후에는 본인이 수정할 수 없어요</b> (Day 인증 기준점이라 고정). 이사·여행 등으로 변경 필요하면 운영팀에 문의해주세요.</span>
+        <div style="margin-top:4px;padding:10px 12px;border-radius:10px;background:rgba(240,125,56,0.07);border:1px solid rgba(240,125,56,0.18);font-size:11.5px;color:var(--ink-soft);line-height:1.6;">
+          <b style="color:var(--ink);">📍 한국(서울) = 기준선 +0h</b><br>
+          • 한국보다 <b>빠르면 +</b>, <b>느리면 −</b> 를 붙여요.<br>
+          • 예) 시드니(1시간 빠름) → <code>+1h</code> · 베이징(1시간 느림) → <code>-1h</code><br>
+          • 예) LA(17시간 느림) → <code>-17h</code> · 뉴욕(14시간 느림) → <code>-14h</code><br>
+          <span style="color:var(--muted);">위 값은 브라우저 자동 감지값이에요 — 맞으면 그대로, 다르면 수정하세요.</span>
+        </div>
+        <span style="font-size:10.5px;color:var(--muted);line-height:1.5;"><b>가입 후에는 본인이 수정할 수 없어요</b> (Day 인증 기준점이라 고정). 이사·여행 등으로 변경 필요하면 운영팀에 문의해주세요.</span>
       </label>
       <p id="__obCodeHint" style="margin:6px 0 0;font-size:11px;color:var(--muted);">코드는 운영팀이 전달한 값을 입력해주세요.</p>
     `;
@@ -5189,7 +5151,7 @@ function HomePage() {
     }
     return m.progress >= state.currentDay;
   };
-  // 인증률은 실제 참가자 (paidMembers, staff/ghost 제외) 38명 기준으로 계산해
+  // 인증률은 실제 참가자 (paidMembers, staff/ghost 제외) 39명 기준으로 계산해
   // 운영팀/ghost 가 숫자를 흐리지 않도록. 보드 자체는 visibleMembers 로 그대로 노출.
   const statsPool = paidMembers();
   const fallbackTodayRate = Math.round((statsPool.filter(isVerifiedToday).length / Math.max(1, statsPool.length)) * 100);
@@ -5361,8 +5323,8 @@ function HomePage() {
   // Stats strip — 오늘 인증률 / 베이직 인증률 / 프리미엄 인증률
   // "me"의 tier는 MEMBERS 시드에서 'auto'이므로 실제 state.tier로 치환해서 집계.
   // (Daily Streak Board 바로 위에 배치 — 보드 스캔하기 전에 오늘의 숫자를 먼저 인지하도록.)
-  // 통계는 paidMembers (실참가자 38명) 기준으로 집계 — 운영팀/ghost 제외해서
-  // 분모가 30 / 8 로 깔끔하게 떨어지도록. 보드는 visibleMembers 로 그대로 노출.
+  // 통계는 paidMembers (실참가자 39명) 기준으로 집계 — 운영팀/ghost 제외해서
+  // 분모가 30 / 9 로 깔끔하게 떨어지도록. 보드는 visibleMembers 로 그대로 노출.
   const effectiveTier = (m) => (m.me ? (state.tier || 'basic') : m.tier);
   const paidSorted = [...statsPool].sort((a,b) => b.progress - a.progress || b.streak - a.streak);
   const basicList = paidSorted.filter((m) => effectiveTier(m) === 'basic');
@@ -8908,24 +8870,24 @@ function MeetingNotesPage(meetingId) {
 
     // Left rail = time column
     const rail = el('div', {
+      class: 'tl-rail',
       style: {
         flexShrink: '0',
-        width: '62px',
         paddingTop: '4px',
         textAlign: 'right',
         position: 'relative',
       }
     });
     rail.innerHTML = `
-      <div style="font-size:10px;letter-spacing:0.14em;font-weight:700;color:${accent || '#A98BB8'};">${timeLabel}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px;">${minutes}분</div>`;
+      <div class="tl-rail-time" style="font-size:10px;letter-spacing:0.14em;font-weight:700;color:${accent || '#A98BB8'};">${timeLabel}</div>
+      <div class="tl-rail-mins" style="font-size:11px;color:var(--muted);margin-top:2px;">${minutes}분</div>`;
     row.appendChild(rail);
 
     // Dot + vertical line
     const stem = el('div', {
+      class: 'tl-stem',
       style: {
         flexShrink: '0',
-        width: '12px',
         position: 'relative',
         marginTop: '8px',
       }
@@ -10823,11 +10785,18 @@ function MemberCardModal(memberRef) {
   const memberEng = member.me ? (state.englishName || '').trim() : (member.englishName || '').trim();
   // 영어 닉네임이 있으면 그게 헤드라인. 한국어 본명은:
   //   - 본인 카드 (me=true) 에선 "본명 · 홍길동" 로 작게 (자기 확인용)
-  //   - 피어 카드 에선 아예 안 보임 (프라이버시 — 다른 사람한테 본명 안 노출)
+  //   - 유버디(operator) 로 로그인한 경우엔 피어 카드에도 본명 노출 (운영자 동명 확인용)
+  //   - 그 외 피어 카드 에선 아예 안 보임 (프라이버시 — 다른 사람한테 본명 안 노출)
   //   - 영어 닉네임이 비어있으면 어쩔 수 없이 한국어 이름이 headline 으로 fallback
   //     (그 사람이 아직 닉네임을 세팅 안 한 상태)
+  const viewerIsOperator = !!state.isOperator;
   const headlineName = memberEng || member.name || '';
-  const showRealNameSubline = !!member.me && !!memberEng && !!member.name && memberEng !== member.name;
+  const showRealNameSubline = (
+    (!!member.me || viewerIsOperator)
+    && !!memberEng
+    && !!member.name
+    && memberEng !== member.name
+  );
   modal.innerHTML = `
     <div style="display:flex;align-items:flex-start;gap:14px;">
       <div class="avatar ${resolveAvatarColor(member)}" style="width:62px;height:62px;border-radius:18px;font-size:22px;">${safeInitial(member)}</div>

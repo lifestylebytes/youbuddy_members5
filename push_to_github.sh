@@ -26,7 +26,7 @@ git add 5th/index.html push_to_github.sh supabase_migration_presenter.sql supaba
 if ! git diff --cached --quiet; then
   echo ""
   echo "==> 변경 사항 커밋..."
-  git commit -m "모바일 모달 스크롤 픽스 + 발표자 3명 노트 통합 + 주차별 회의록↔내 노트 연결 + 주차 잠금 타임존 보정
+  git commit -m "프리미엄 9명 (권다은 추가) + 모바일 모달 스크롤 + 타임라인 여백 축소 + 스와이프 네비 비활성화 + 발표자 3명 노트 통합 + 주차별 회의록↔내 노트 연결 + 주차 잠금 타임존 보정
 
 (A) 모바일 모달 스크롤 픽스 — 설정 팝업 저장/취소 버튼 못 누르던 버그
 - .modal-backdrop: overflow-y:auto + overscroll-behavior:contain
@@ -70,6 +70,31 @@ if ! git diff --cached --quiet; then
 - Operator: 편집 input + '· OPERATOR 편집 가능' 배지.
 - Save 핸들러 operator 가드 — 비운영자는 timezone 업데이트 skip.
 - Onboarding: 브라우저 자동 감지 pre-fill + '본인이 수정할 수 없어요' 고지.
+
+(G) 프리미엄 추가 — 권다은 (kde120184@gmail.com)
+- MEMBER_DIRECTORY 에 { code: '45', id: 'p9', name: '권다은', tier: 'premium' } 추가.
+- 프리미엄 8명 → 9명. 실참가자 총원 주석 38 → 39 (paidMembers 는 동적이라 자동).
+- 접속코드 45. ONBOARD_CODE_MAP 은 MEMBER_DIRECTORY 에서 파생돼 자동 등록.
+
+(H) Operator 전용 피어 카드 본명 노출 + 시차 가입 안내 강화
+- MemberCardModal: viewer 가 state.isOperator=true 면 피어 카드에도
+  '본명 · ○○○' subline 표시. 일반 유저는 기존대로 프라이버시 유지.
+- Onboarding 시차 input: 방향(±) 자주 헷갈려서 안내 박스 추가 —
+  '한국 = +0h, 빠르면 +, 느리면 −' + 시드니/베이징/LA/뉴욕 예시.
+
+(F-1) MeetingNotesPage 모바일 타임라인 좌측 여백 축소
+- .tl-rail / .tl-stem 클래스 도입. 기본 62px/12px.
+- @media (max-width:480px): rail 62→40, stem 12→10, row gap 12→8,
+  .page padding 좌우 20→14. 시간 라벨 폰트도 살짝 축소 (10→9.5).
+- 좁은 아이폰 화면에서 카드 가로폭 약 30~40px 더 확보 → 가독성 ↑.
+
+(F-2) 커스텀 스와이프 네비게이션 비활성화
+- setupSwipeNavigation → early return (no-op).
+- 이유: (a) 웹 마우스 드래그시 전/후 페이지 휙휙 전환, (b) iOS 터치
+  스와이프시 브라우저 네이티브 back 과 충돌 → navBackStack 의 오래된
+  경로로 점프.
+- setupHistoryGuard 의 popstate: 모달 있으면 모달만 닫고, 없으면 제자리
+  유지 (navBackStack pop 안 함). 앱 내 back 은 상단바 버튼으로만.
 
 (F) UX 다듬기
 - MeetingNotesPage 상단 '💾 저장' 라벨 버튼 (☁️ 작은 아이콘 대체),
