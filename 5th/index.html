@@ -2976,6 +2976,36 @@ function weekHasPresenter(n) {
   return !meta.noPresenter;
 }
 
+/* 주차별 페이지 잠금 — Week 1 은 항상 열림 (OT). Week N (N>=2) 은 Week N-1 미팅
+   다음날 (금요일) 00:00 KST 부터 열림. 예:
+     · Week 2 → Week 1 목요일 미팅(4/30) 다음날 5/1 금요일부터
+     · Week 3 → Week 2 목요일 미팅(5/7)  다음날 5/8 금요일부터
+     · Week 4 → Week 3 목요일 미팅(5/14) 다음날 5/15 금요일부터
+   locked 상태일 때는 PremiumPage CTA 에서 signup/notes 버튼 자리에
+   '🔒 Week N-1 미팅 후 열려요' pill 만 뜨고, meeting-notes / presenter-prep
+   라우트도 guard 로 진입 차단. */
+function isWeekUnlocked(weekN) {
+  const n = Number(weekN);
+  if (!n || n <= 1) return true;
+  const meetings = CHALLENGE.premium.weekly_meetings || [];
+  const prev = meetings.find((x) => Number(x.n) === n - 1);
+  if (!prev || !prev.date) return true;   // 데이터 없으면 잠그지 않음 (fail-open).
+  const [y, mo, d] = prev.date.split('-').map(Number);
+  // unlock 시점 = 이전 주 미팅 다음 날 자정 (로컬 시간). Thu 미팅 → Fri 00:00 open.
+  const unlockAt = new Date(y, mo - 1, d + 1, 0, 0, 0, 0).getTime();
+  return Date.now() >= unlockAt;
+}
+function weekUnlockDateLabel(weekN) {
+  const n = Number(weekN);
+  if (!n || n <= 1) return '';
+  const meetings = CHALLENGE.premium.weekly_meetings || [];
+  const prev = meetings.find((x) => Number(x.n) === n - 1);
+  if (!prev || !prev.date) return '';
+  const [y, mo, d] = prev.date.split('-').map(Number);
+  const unlockAt = new Date(y, mo - 1, d + 1);
+  return `${unlockAt.getMonth() + 1}/${unlockAt.getDate()}(금)`;
+}
+
 /* ============================================================
    VOCAB BANK — 통합 저장소 (state.pitch_vocab) 헬퍼들
    ------------------------------------------------------------
@@ -3799,9 +3829,31 @@ function render() {
     else if (currentPage === 'day') page = DayPage(currentDay);
     else if (currentPage === 'verify') page = VerifyPage(currentDay);
     else if (currentPage === 'premium') page = PremiumPage();
-    else if (currentPage === 'presenter-prep') page = PresenterPrepPage(window.__currentPresenterWeek);
+    else if (currentPage === 'presenter-prep') {
+      // 주차 잠금 가드 — 아직 unlock 안된 주차 presenter-prep 는 PremiumPage 로 리다이렉트.
+      const pw = Number(window.__currentPresenterWeek);
+      if (pw && !isWeekUnlocked(pw)) {
+        showToast && showToast(`🔒 Week ${pw} 는 ${weekUnlockDateLabel(pw) || '다음 주'} 에 열려요`);
+        currentPage = 'premium';
+        page = PremiumPage();
+      } else {
+        page = PresenterPrepPage(window.__currentPresenterWeek);
+      }
+    }
     else if (currentPage === 'pitch-prep') page = PitchPrepPage();
-    else if (currentPage === 'meeting-notes') page = MeetingNotesPage(window.__currentMeetingId);
+    else if (currentPage === 'meeting-notes') {
+      // meeting-notes 도 주차 잠금 가드. meetingId = 'week{N}-{YYYY-MM-DD}' 또는 'm{N}'.
+      const mid = String(window.__currentMeetingId || '');
+      const mt = mid.match(/^(?:week|m)(\d+)/);
+      const mw = mt ? Number(mt[1]) : null;
+      if (mw && !isWeekUnlocked(mw)) {
+        showToast && showToast(`🔒 Week ${mw} 는 ${weekUnlockDateLabel(mw) || '다음 주'} 에 열려요`);
+        currentPage = 'premium';
+        page = PremiumPage();
+      } else {
+        page = MeetingNotesPage(window.__currentMeetingId);
+      }
+    }
     else if (currentPage === 'quiz') page = QuizPage();
     else if (currentPage === 'certification') page = CertPage();
     else if (currentPage === 'community') page = CommunityPage();
@@ -5433,7 +5485,9 @@ function Checkboard() {
   orderedMembers.forEach((m) => {
     // 가입(온보딩 완료 → 대시보드 진입) 안 한 멤버는 이름 회색.
     // __registeredLoaded 가 true 가 되고나서만 판정 — 초기 로드 flash 방지.
-    const isUnreg = !!(window.__registeredLoaded && !m.me && !m.registered && !m.isStaff);
+    // Staff (이규태/이지흔/유버디) 도 실제로 앱에 로그인해야 하는 사람들이라
+    // 회색 판정에 포함. 본인 (me) 만 예외 (앱 쓰는 중 = 무조건 까맣).
+    const isUnreg = !!(window.__registeredLoaded && !m.me && !m.registered);
     const nameCls = 'cb-name' + (m.me ? ' cb-row-me' : '') + (isUnreg ? ' is-unreg' : '');
     const name = el('div', { class: nameCls });
     // 리더보드를 치우고 나니 다른 멤버 프로필 카드를 열 진입점이 부족 — 이름 탭하면
@@ -7283,12 +7337,22 @@ function PremiumPage() {
   calendarCard.appendChild(legend);
   page.appendChild(calendarCard);
 
-  // Weekly meetings — 발표자 선착순 3명 중심의 통합 카드
-  page.appendChild(el('div', { class: 'kicker', style: { marginTop: '24px' } }, '주간 Google Meet 미팅 · 4회'));
-  page.appendChild(el('h2', { class: 'h2', style: { marginTop: '6px', marginBottom: '6px' } },
+  // Weekly meetings — 발표자 선착순 3명 중심의 통합 카드.
+  // Basic 사용자에겐 전체 섹션 (타이틀 + 미팅 카드 스택) 을 흐리게 dim 처리.
+  // Personal Quiz / Certification 은 dim 바깥에 별도 렌더돼서 정상 노출.
+  const weeklySection = el('div', {
+    style: isPremium ? {} : {
+      opacity: '0.5',
+      filter: 'grayscale(0.25)',
+      pointerEvents: 'none',         // 카드 터치/클릭도 전부 차단 (preview pill 마저 안 눌림).
+      userSelect: 'none',
+    },
+  });
+  weeklySection.appendChild(el('div', { class: 'kicker', style: { marginTop: '24px' } }, '주간 Google Meet 미팅 · 4회'));
+  weeklySection.appendChild(el('h2', { class: 'h2', style: { marginTop: '6px', marginBottom: '6px' } },
     (() => { const s = el('span'); s.innerHTML = '<span class="serif">Weekly</span> meetup'; return s; })()
   ));
-  page.appendChild(el('p', { class: 't-small', style: { marginBottom: '12px', color: 'var(--ink-soft)', lineHeight: '1.55' } },
+  weeklySection.appendChild(el('p', { class: 't-small', style: { marginBottom: '12px', color: 'var(--ink-soft)', lineHeight: '1.55' } },
     '매주 3명이 7분씩 발표해요. 시나리오 · 필수 어휘 · 발표자 자리 · 나의 준비 상태를 한 번에 봐요.'
   ));
   // 1인 1회 발표 룰 — 내가 이미 자리 잡은 주가 있으면 다른 주 signup 불가.
@@ -7308,9 +7372,10 @@ function PremiumPage() {
     const iAmPresenter = isMePresenterInWeek(m.n);
     const daysTo = daysUntilMeeting(m.date);
     const isPast = daysTo !== null && daysTo < 0;
+    const isLocked = isPremium && !isWeekUnlocked(m.n) && !isPast;
     const cap = Number(CHALLENGE.premium.presenter_slots_per_week || 3);
 
-    // 카드 껍데기 — 이번 주면 lilac ring, 지나간 주면 연하게.
+    // 카드 껍데기 — 이번 주면 lilac ring, 지나간 주면 연하게, 잠긴 주면 더 흐리게.
     const card = el('div', {
       class: 'card',
       style: {
@@ -7321,7 +7386,7 @@ function PremiumPage() {
           : (isPast ? '1px solid rgba(231,221,200,0.7)' : '1px solid rgba(231,221,200,0.9)'),
         background: isThisWeek ? 'linear-gradient(160deg, #FFFDF7 0%, #F6EEFA 100%)' : '#FFFDF7',
         boxShadow: isThisWeek ? '0 18px 40px -26px rgba(169,139,184,0.6)' : 'none',
-        opacity: isPast && !iAmPresenter ? '0.82' : '1',
+        opacity: isLocked ? '0.55' : (isPast && !iAmPresenter ? '0.82' : '1'),
       }
     });
 
@@ -7489,6 +7554,23 @@ function PremiumPage() {
         }
       }, '프리미엄 전용 · 다음 기수 프리뷰');
       ctaRow.appendChild(previewPill);
+    } else if (!isWeekUnlocked(m.n) && !isPast) {
+      // Week 2~4 잠금 — 이전 주 미팅 다음 날 (금) 부터 열림.
+      // isPast 가드는 혹시 데이터 꼬여서 과거 주가 잠긴 것처럼 판정되는 엣지케이스 방지.
+      const unlockLabel = weekUnlockDateLabel(m.n);
+      const lockedBtn = el('button', {
+        class: 'btn',
+        disabled: true,
+        style: {
+          flex: '1', minWidth: '160px',
+          background: '#F6EEFA',
+          color: 'var(--muted)',
+          border: '1px solid rgba(169,139,184,0.22)',
+          cursor: 'not-allowed',
+          fontWeight: '600',
+        },
+      }, unlockLabel ? `🔒 ${unlockLabel} 열림` : `🔒 Week ${m.n - 1} 미팅 후 열림`);
+      ctaRow.appendChild(lockedBtn);
     } else if (iAmPresenter) {
       // 내가 발표자 → 준비하러 가기 + 자리 내려놓기.
       const prepBtn = el('button', {
@@ -7615,7 +7697,8 @@ function PremiumPage() {
     card.appendChild(ctaRow);
     mstack.appendChild(card);
   });
-  page.appendChild(mstack);
+  weeklySection.appendChild(mstack);
+  page.appendChild(weeklySection);
 
   // 개별 1:1 PT 세션은 폐지됨 — 미팅 안 30분 (7분 발표 + 3분 Q&A × 3명) 으로
   // 개인 피드백을 통합. 각 발표자는 그 자리에서 라이브 코칭을 받음.
