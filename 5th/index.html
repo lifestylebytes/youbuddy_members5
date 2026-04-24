@@ -5316,8 +5316,10 @@ function HomePage() {
       pCard.addEventListener('click', () => {
         if (!weekHasP) {
           // noPresenter 주 — 미팅 노트 페이지로 바로 이동 (말할 거리 준비).
-          const meetingId = `week${thisWk.n}-${thisWk.date}`;
-          window.__currentMeetingId = meetingId;
+          // MeetingNotesPage 는 'm{n}' 형식만 resolve 함 ('week1-2026-04-30' 같은 구
+          // 포맷을 쓰면 "미팅 정보를 찾을 수 없어요" 로 튕김). 주차별 recap 카드/
+          // PremiumPage 의 기존 링크들과 동일한 ID 체계로 통일.
+          window.__currentMeetingId = `m${thisWk.n}`;
           go('meeting-notes');
         } else if (iAmP) {
           window.__currentPresenterWeek = thisWk.n;
