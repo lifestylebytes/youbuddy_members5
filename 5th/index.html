@@ -1581,6 +1581,7 @@ const PERSISTED_STATE_KEYS = [
   'cert_profile',
   'tour_done',
   'tour_started_tier',
+  'operatorPreviewUnlock',  // OPERATOR-only D-? 우회 플래그. 새로고침/15초 리프레시 후에도 살아남게.
 ];
 
 /* Demo seed — pre-fills a few days (1, 3, 5 late, 7) so the design can be previewed
@@ -8048,67 +8049,50 @@ async function cloudSaveMeetingNote(meetingId) {
 }
 
 /* ============================================================
-   PRESENTER PREP PAGE
-   7분 발표 준비 도구. 시나리오 · 필수 어휘 픽 · 스크립트 · 사적 노트 · 연습 타이머.
-   진입 조건: 내가 그 주의 발표자 (isMePresenterInWeek(n)).
+   PRESENTER PREP — week-specific 풍부한 준비 블록 (재사용)
+   ------------------------------------------------------------
+   PT 준비 페이지(PitchPrepPage) 와 발표 준비 페이지(PresenterPrepPage)
+   양쪽에서 같은 콘텐츠를 보여주도록 추출된 헬퍼.
+   - 시나리오 / 발표 프롬프트
+   - 필수 어휘 3개 픽 + 스크립트 사용 추적
+   - 스크립트 textarea
+   - 사적 노트 textarea
+   - 7분 연습 타이머
+   - 자리 내려놓기 버튼 (옵션)
    ============================================================ */
-function PresenterPrepPage(weekN) {
-  if (state.tier !== 'premium') return premiumGatePage({ titleRest: '발표 준비' });
-  const n = Number(weekN || window.__currentPresenterWeek || 1);
-  const meta = weekMeta(n);
-  const page = el('div', { class: 'page' });
-  page.appendChild(TopBar());
-
-  if (!meta) {
-    page.appendChild(el('div', { class: 'card', style: { marginTop: '20px', padding: '20px' } },
-      '해당 주 정보를 찾을 수 없어요.'
-    ));
-    const back = el('button', { class: 'btn', style: { marginTop: '12px' }, onClick: () => go('premium') }, '프리미엄으로 돌아가기');
-    page.appendChild(back);
-    return page;
+function appendPresenterPrepBlock(page, meta, n, opts = {}) {
+  // 섹션 헤딩 (PT 준비 페이지에 인라인될 때만 보임. 단독 페이지에선 hero 가 헤딩 역할)
+  if (opts.showSectionHeading) {
+    const daysTo = daysUntilMeeting(meta.date);
+    const countdown = daysTo === 0
+      ? '오늘 미팅!'
+      : daysTo === 1
+      ? 'D-1 · 내일 미팅'
+      : daysTo > 1
+      ? `D-${daysTo}`
+      : `D+${Math.abs(daysTo)}`;
+    const heading = el('div', {
+      id: 'presenter-prep-anchor',
+      style: {
+        marginTop: '24px',
+        padding: '18px 18px 16px',
+        borderRadius: '18px',
+        background: 'linear-gradient(160deg, #1F1630 0%, #3A2A52 100%)',
+        color: '#fff',
+        boxShadow: '0 14px 40px -22px rgba(58,42,82,0.7)',
+      }
+    });
+    heading.innerHTML = `
+      <div style="font-size:11px;letter-spacing:0.14em;font-weight:700;color:rgba(255,255,255,0.72);">🎤 PRESENTER · WEEK ${n}</div>
+      <div style="font-size:20px;font-weight:800;margin-top:8px;line-height:1.3;">${escapeHtml(meta.title)}</div>
+      <div style="font-size:12.5px;color:rgba(255,255,255,0.82);margin-top:6px;">
+        ${escapeHtml(meta.date)} · 21:00 KST · ${escapeHtml(meta.zoom || 'Google Meet')}
+      </div>
+      <div style="margin-top:12px;display:inline-flex;padding:6px 12px;border-radius:999px;background:rgba(252,232,178,0.25);color:#FCE8B2;font-size:12.5px;font-weight:700;">
+        ⏳ ${countdown}
+      </div>`;
+    page.appendChild(heading);
   }
-
-  // Back button
-  const backRow = el('div', { style: { marginTop: '4px', marginBottom: '10px' } });
-  const backBtn = el('button', {
-    class: 'btn',
-    style: { background: 'transparent', border: 'none', color: 'var(--ink-soft)', fontSize: '13px', padding: '4px 0' },
-    onClick: () => go('premium'),
-  }, '← 주간 미팅');
-  backRow.appendChild(backBtn);
-  page.appendChild(backRow);
-
-  // Hero
-  const [y, mo, da] = meta.date.split('-');
-  const monShort = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][parseInt(mo,10)-1];
-  const daysTo = daysUntilMeeting(meta.date);
-  const countdown = daysTo === 0
-    ? '오늘 미팅!'
-    : daysTo === 1
-    ? 'D-1 · 내일 미팅'
-    : daysTo > 1
-    ? `D-${daysTo}`
-    : `D+${Math.abs(daysTo)}`;
-
-  const hero = el('div', {
-    style: {
-      padding: '18px 18px 16px',
-      borderRadius: '20px',
-      background: 'linear-gradient(160deg, #1F1630 0%, #3A2A52 100%)',
-      color: '#fff',
-      boxShadow: '0 24px 50px -30px rgba(58,42,82,0.7)',
-    }
-  });
-  hero.innerHTML = `
-    <div style="font-size:11px;letter-spacing:0.14em;font-weight:700;color:rgba(255,255,255,0.72);">🎤 PRESENTER · WEEK ${n}</div>
-    <div style="font-size:22px;font-weight:800;margin-top:8px;line-height:1.3;">${escapeHtml(meta.title)}</div>
-    <div style="font-size:13px;color:rgba(255,255,255,0.82);margin-top:6px;">
-      ${monShort} ${parseInt(da,10)} · 21:00 KST · ${escapeHtml(meta.zoom || 'Google Meet')}
-    </div>
-    <div style="margin-top:12px;display:inline-flex;padding:6px 12px;border-radius:999px;background:rgba(252,232,178,0.25);color:#FCE8B2;font-size:13px;font-weight:700;">
-      ⏳ ${countdown}
-    </div>`;
-  page.appendChild(hero);
 
   // Scenario block
   page.appendChild(el('div', { class: 'kicker', style: { marginTop: '22px' } }, 'SCENARIO'));
@@ -8356,9 +8340,9 @@ function PresenterPrepPage(weekN) {
   timerCard.appendChild(resetBtn);
   page.appendChild(timerCard);
 
-  // Release slot
+  // Release slot — opts.hideRelease 가 true 면 (PT 준비 페이지 인라인) 생략.
   const daysToNow = daysUntilMeeting(meta.date);
-  if (daysToNow === null || daysToNow >= 0) {
+  if (!opts.hideRelease && (daysToNow === null || daysToNow >= 0)) {
     page.appendChild(el('div', { style: { marginTop: '28px', paddingTop: '18px', borderTop: '1px dashed rgba(231,221,200,0.9)' } }));
     const releaseBtn = el('button', {
       class: 'btn',
@@ -8376,17 +8360,38 @@ function PresenterPrepPage(weekN) {
     }, '자리 내려놓기');
     page.appendChild(releaseBtn);
   }
+}
 
-  return page;
+/* ============================================================
+   PRESENTER PREP PAGE
+   ------------------------------------------------------------
+   라우트 'presenter-prep' 진입점. 내부적으로는 PitchPrepPage 와
+   같은 콘텐츠를 보여주기 위해 PT 준비 페이지로 리다이렉트.
+   호환성을 위해 함수는 유지하되, 단순히 PitchPrepPage 를 호출 +
+   `window.__currentPresenterWeek` 힌트를 살려서 발표 블록으로
+   스크롤 점프 시킴.
+   ============================================================ */
+function PresenterPrepPage(weekN) {
+  const n = Number(weekN || window.__currentPresenterWeek || myPresenterWeek() || 1);
+  // 힌트 저장 — PitchPrepPage 가 어느 주차의 발표 블록을 인라인할지 결정.
+  window.__currentPresenterWeek = n;
+  // PitchPrepPage 마운트 후 발표 블록으로 스크롤 (다음 틱).
+  setTimeout(() => {
+    try {
+      const anchor = document.getElementById('presenter-prep-anchor');
+      if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) {}
+  }, 60);
+  return PitchPrepPage();
 }
 
 /* ============================================================
    PT STUDIO PAGE — 본인 PT 준비 메인 (라우트명 'pitch-prep' 은 내부 호환 위해 유지)
-   - 내 스크립트 라이브러리 (4주 회차별 presenter_prep.script)
+   - 내가 잡은 발표 주의 풍부한 prep 블록 (시나리오/어휘/스크립트/노트/타이머)
    - 계속 학습하고 싶은 단어 보관소 (state.pitch_vocab)
    - 상시 스크래치 노트 (state.pitch_scratch)
-   - 미팅 회의록에서 chip 으로 저장한 표현 요약
-   - 이번 주 발표자면 PresenterPrepPage 로 바로 이동
+   - 주차별 회의록 + PT 자료
+   - 발표 준비하기 페이지(presenter-prep)도 여기로 합쳐짐.
    ============================================================ */
 function PitchPrepPage() {
   if (state.tier !== 'premium') return premiumGatePage({ titleRest: 'PT 준비' });
@@ -8420,35 +8425,45 @@ function PitchPrepPage() {
     <p style="margin-top:8px;font-size:13px;line-height:1.55;opacity:0.88;">본인 PT·발표를 상시로 준비하는 공간. 어휘 저장, 스크립트 쌓기, 매주 발표 리허설까지.</p>`;
   page.appendChild(hero);
 
-  // Current week quick-action (if I'm a presenter this week)
-  const thisWeek = currentPremiumWeek();
-  if (thisWeek && isMePresenterInWeek(thisWeek.n)) {
-    const card = el('div', {
-      style: {
-        marginTop: '14px',
-        padding: '14px 16px',
-        background: 'linear-gradient(135deg, rgba(169,139,184,0.16), rgba(169,139,184,0.06))',
-        border: '1.5px solid rgba(169,139,184,0.34)',
-        borderRadius: '14px',
-        display: 'flex',
-        gap: '12px',
-        alignItems: 'center',
-        cursor: 'pointer',
-      },
-      onClick: () => {
-        window.__currentPresenterWeek = thisWeek.n;
-        go('presenter-prep');
-      }
-    });
-    const dLeft = daysUntilMeeting(thisWeek.date);
-    card.innerHTML = `
-      <div style="font-size:28px;flex-shrink:0;">🎤</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:10px;letter-spacing:0.12em;font-weight:700;color:#7B5E8C;">THIS WEEK · ${dLeft === 0 ? 'TODAY' : dLeft > 0 ? 'D-' + dLeft : '지난 주'}</div>
-        <div style="font-size:14px;font-weight:700;color:var(--ink);margin-top:2px;">${escapeHtml(thisWeek.title)}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px;">발표 자리 잡음 · 지금 준비하기 →</div>
-      </div>`;
-    page.appendChild(card);
+  // 내가 발표자로 잡은 주가 있으면 풍부한 prep 블록을 인라인으로 렌더.
+  // 우선순위: window.__currentPresenterWeek 힌트 → myPresenterWeek() → null.
+  // 두 라우트('presenter-prep', 'pitch-prep') 가 같은 페이지를 가리키게 됨.
+  const myPrepWeek = (() => {
+    const hint = Number(window.__currentPresenterWeek || 0);
+    if (hint && isMePresenterInWeek(hint)) return hint;
+    const found = myPresenterWeek();
+    return found ? Number(found) : null;
+  })();
+  if (myPrepWeek) {
+    const meta = weekMeta(myPrepWeek);
+    if (meta) {
+      // showSectionHeading: PT STUDIO 페이지에 인라인되니까 dark hero 미니버전을 띄워줌.
+      // hideRelease: 자리 내려놓기 버튼은 유지 (이 페이지에서도 직접 내려놓을 수 있게).
+      appendPresenterPrepBlock(page, meta, myPrepWeek, { showSectionHeading: true });
+      // 인라인 블록과 아래 VOCAB BANK 사이에 시각적 구분
+      page.appendChild(el('div', {
+        style: { marginTop: '28px', height: '1px', background: 'rgba(169,139,184,0.18)' }
+      }));
+    }
+  } else {
+    // 발표자 아님 — 안내 카드 (기존 'this week' 카드 대신 더 일반적인 톤)
+    const thisWeek = currentPremiumWeek();
+    if (thisWeek) {
+      const hint = el('div', {
+        style: {
+          marginTop: '14px',
+          padding: '12px 14px',
+          background: 'rgba(169,139,184,0.06)',
+          border: '1px dashed rgba(169,139,184,0.22)',
+          borderRadius: '12px',
+          fontSize: '12.5px',
+          lineHeight: '1.55',
+          color: 'var(--muted)',
+        }
+      });
+      hint.innerHTML = `<b style="color:#7B5E8C;">발표 자리</b>를 잡으면 여기에 시나리오·어휘 픽·스크립트·연습 타이머가 한 번에 펼쳐져요. <span style="color:var(--ink-soft);">[프리미엄] 탭 → 주차 카드 → 발표 자리 잡기.</span>`;
+      page.appendChild(hint);
+    }
   }
 
   // ---- Section: Vocab bookmarks ----
@@ -10845,6 +10860,11 @@ function SettingsModal() {
           </div>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
+          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🧪 챌린지 프리뷰 언락 (테스트용)</div>
+          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">출시 전(D-?) 에도 운영자 본인만 Day 1 학습·제출·AI·단어시험 전체 흐름을 미리 풀어볼 수 있어요. <b>다른 멤버에게는 영향 없음.</b> ${state.operatorPreviewUnlock ? `<span style="color:#16A34A;font-weight:700;">· 현재 ON (제출 가능)</span>` : `<span style="color:var(--muted);font-weight:600;">· 현재 OFF (잠금)</span>`}</div>
+          <button id="__settingsTogglePreviewUnlock" class="btn btn-ghost btn-full" style="margin-top:10px;border-color:${state.operatorPreviewUnlock ? 'rgba(22,163,74,0.32)' : 'rgba(240,125,56,0.28)'};color:${state.operatorPreviewUnlock ? '#16A34A' : 'var(--orange-dark)'};">${state.operatorPreviewUnlock ? '✅ 프리뷰 언락 중 — 끄기' : '🔓 프리뷰 언락 켜기'}</button>
+        </div>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
           <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📸 4/27 공지용 스크린샷 가이드</div>
           <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">베이직/프리미엄 단톡방 공지에 넣을 스크린샷 7장을 한 페이지에서 순서대로 캡처할 수 있어요. 각 섹션마다 [이 화면으로] 버튼 하나만 누르면 됨.</div>
           <button id="__settingsOpenScreenshotGuide" class="btn btn-ghost btn-full" style="margin-top:10px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);">📸 스크린샷 가이드 열기</button>
@@ -10923,6 +10943,27 @@ function SettingsModal() {
     if (openScreenshotGuideBtn) openScreenshotGuideBtn.onclick = () => {
       showSettings = false;
       go('screenshot-guide');
+    };
+
+    // Operator: 🧪 챌린지 프리뷰 언락 토글 (D-? 에도 본인만 제출/AI/시험 풀게)
+    const togglePreviewUnlockBtn = document.getElementById('__settingsTogglePreviewUnlock');
+    if (togglePreviewUnlockBtn) togglePreviewUnlockBtn.onclick = () => {
+      const wasOff = !state.operatorPreviewUnlock;
+      state.operatorPreviewUnlock = !state.operatorPreviewUnlock;
+      // 언락 켤 때 currentDay 도 1 로 맞춰줌 (없으면 첫 진입에서 헷갈림)
+      if (state.operatorPreviewUnlock && (!state.currentDay || state.currentDay < 1)) {
+        state.currentDay = 1;
+      }
+      try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
+      showToast(state.operatorPreviewUnlock ? '프리뷰 언락 ON · Day 1 풀어봐요 🚀' : '프리뷰 언락 OFF · 다시 잠금 상태');
+      showSettings = false;
+      // 켜는 순간엔 바로 Day 1 학습 화면으로 점프해서 풀 수 있게
+      if (wasOff && state.operatorPreviewUnlock) {
+        currentDay = 1;
+        go('day', { day: 1 });
+      } else {
+        render();
+      }
     };
 
     // Operator: 내 동의 초기화 (테스트용 — 팝업 다시 보고 싶을 때)
