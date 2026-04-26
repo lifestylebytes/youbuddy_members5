@@ -927,6 +927,46 @@ body.modal-open { overflow: hidden; touch-action: none; }
 
 <script>
 /* ============================================================
+   REWARD VIDEOS — Day 1~20 인증 완료 시 노출되는 "오늘의 귀 열기 영상"
+   ------------------------------------------------------------
+   사용법: 운영하면서 영상 URL 받는 대로 여기에 채우면 됨.
+   비어있는 day 는 기존처럼 "준비 중" 토스트가 뜸.
+   YouTube/Vimeo/구글드라이브 공유링크 등 새 탭에서 열리는 모든 URL OK.
+   ============================================================ */
+const REWARD_VIDEOS = {
+  // Day 1 — Sarah Ellis & Helen Tupper <Squiggly career path> · TED 2021 · 12min
+  1: 'https://www.youtube.com/watch?v=1ALfKWG2nmw',
+  // Day 2 — Hrund Gunnsteinsdóttir <Listen to your intuition> · TED 2024 · 12min
+  2: 'https://www.youtube.com/watch?v=YKufhUZRJ1E',
+  // Day 3 — 22 Tiny Habits That Save Me 25+ Hours Every Week (front-load)
+  3: 'https://www.youtube.com/watch?v=_K9ECAYrU2Q',
+  // Day 4 — Advait Sarkar <How to Stop AI from Killing Your Critical Thinking> · TED (drill down)
+  4: 'https://www.youtube.com/watch?v=3lPnN8omdPA',
+  // Day 5 — Adam Grant <How to stop languishing and start finding flow> · TED 2021 · 13min
+  5: 'https://www.youtube.com/watch?v=a3zPgyvCiJI',
+  // Day 6 — How to Communicate Like a Leader (피드백)
+  6: 'https://www.youtube.com/watch?v=VY0r0WV0GAQ',
+  // Day 7 — Tessa West <The Surprisingly Simple Reason Teams Fail> · TED (push back)
+  7: 'https://www.youtube.com/watch?v=7IYKojMhBy4',
+  // Day 8 — Email in Real Life · 5min · 코미디 (cut to the chase)
+  8: 'https://www.youtube.com/watch?v=HTgYHHKs0Zw',
+  // Day 9 — Anne Morriss <5 Steps to Fix Any Problem at Work> · TED (heavy lifting)
+  9: 'https://www.youtube.com/watch?v=V7pf3oT2_dE',
+  // Day 10 — Let Them Gossip About You · Mel Robbins × Jay Shetty (read the room)
+  10: 'https://www.youtube.com/watch?v=E6VGBEaemPE',
+  // 11: 'https://youtu.be/XXXX',
+  // 12: 'https://youtu.be/XXXX',
+  // 13: 'https://youtu.be/XXXX',
+  // 14: 'https://youtu.be/XXXX',
+  // 15: 'https://youtu.be/XXXX',
+  // 16: 'https://youtu.be/XXXX',
+  // 17: 'https://youtu.be/XXXX',
+  // 18: 'https://youtu.be/XXXX',
+  // 19: 'https://youtu.be/XXXX',
+  // 20: 'https://youtu.be/XXXX',
+};
+
+/* ============================================================
    DATA — challenge content (4 weeks × 5 days = 20 days)
    ============================================================ */
 const CHALLENGE = {
@@ -6113,7 +6153,7 @@ function VerifyPage(dayN) {
           <div data-verify-quiz-card="1" style="margin-top:18px;padding:28px 18px;border-radius:24px;background:rgba(255,255,255,0.68);text-align:center;box-shadow:inset 0 0 0 1px rgba(236,232,255,0.9);position:relative;overflow:hidden;">
             <div style="font-size:19px;line-height:1.7;font-weight:600;color:#35344A;word-break:keep-all;">
               ${escapeHtml(parts[0] || '')}
-              <input class="input" data-quiz-idx="${ui.idx}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="display:inline-block;width:${answerWidth}ch;max-width:72%;margin:0 8px;padding:2px 4px;text-align:center;font-size:24px;font-weight:700;line-height:1.3;letter-spacing:-0.02em;background:transparent;border:none;border-bottom:2px solid #B7AEDF;border-radius:0;color:#35344A;vertical-align:baseline;caret-color:#7D5CFF;" placeholder="" value="${escapeHtml(ui.value)}" oninput="window.__setVerifyQuizValue(${dayN}, this.value)" />
+              <input class="input" data-quiz-idx="${ui.idx}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ${ui.revealAnswer ? 'disabled' : ''} style="display:inline-block;width:${answerWidth}ch;max-width:72%;margin:0 8px;padding:2px 4px;text-align:center;font-size:24px;font-weight:700;line-height:1.3;letter-spacing:-0.02em;background:transparent;border:none;border-bottom:2px solid #B7AEDF;border-radius:0;color:${ui.revealAnswer ? '#B0B0C0' : '#35344A'};vertical-align:baseline;caret-color:#7D5CFF;${ui.revealAnswer ? 'pointer-events:none;opacity:0.6;' : ''}" placeholder="" value="${escapeHtml(ui.value)}" oninput="window.__setVerifyQuizValue(${dayN}, this.value)" />
               ${escapeHtml(parts[1] || '')}
             </div>
             <div style="margin-top:20px;font-size:18px;line-height:1.5;color:#6C6A86;">${escapeHtml(currentQuestion.prompt_kr || '')}</div>
@@ -6416,8 +6456,13 @@ function DayPage(dayN) {
         cursor: 'pointer',
       },
       onClick: () => {
-        // TODO: route to actual bonus video — placeholder toast for now
-        try { showToast('🎬 보너스 영상 준비 중이에요'); } catch (e) {}
+        // 보상 영상 — REWARD_VIDEOS[dayN] 채워져 있으면 새 탭에서 오픈, 아니면 안내 토스트.
+        const url = (typeof REWARD_VIDEOS !== 'undefined') ? REWARD_VIDEOS[dayN] : null;
+        if (url) {
+          try { window.open(url, '_blank', 'noopener,noreferrer'); } catch (e) {}
+        } else {
+          try { showToast('🎬 보너스 영상 준비 중이에요'); } catch (e) {}
+        }
       },
     });
     bonusTop.innerHTML = `
@@ -12086,6 +12131,12 @@ window.__setVerifyQuizValue = (dayN, value) => {
   window.__verifyUi[dayN] = window.__verifyUi[dayN] || { idx: 0, value: '', done: false, score: 0 };
   const ui = window.__verifyUi[dayN];
   ui.value = value;
+  // Skip 으로 정답 공개된 상태에선 자동 정답 처리 차단 — 답을 보고 따라 치는 우회를 막음.
+  // (이 단계에서 진행 버튼은 항상 skipped=true 로 호출돼서 score 0 처리됨.)
+  if (ui.revealAnswer) {
+    clearTimeout(window.__verifyAutoAdvanceTimers[dayN]);
+    return;
+  }
   const current = questions[ui.idx];
   clearTimeout(window.__verifyAutoAdvanceTimers[dayN]);
   if (current && normalizeQuizAnswer(value) === normalizeQuizAnswer(current.en)) {

@@ -76,17 +76,26 @@
   .hero h1{
     font-family:'Cormorant Garamond', 'Noto Serif KR', Georgia, serif;
     font-weight:700;
-    font-size:clamp(48px, 7.5vw, 96px);
-    line-height:0.98;
+    font-size:clamp(44px, 6.6vw, 84px);
+    line-height:1.02;
     letter-spacing:-0.035em;
     margin:22px 0 0;
     color:var(--ink-hi);
+    max-width:14ch; /* 영문 라인이 너무 길게 늘어지지 않게 */
   }
   .hero h1 .kr{
     font-family:'Noto Sans KR', sans-serif;
-    font-weight:900;
-    letter-spacing:-0.025em;
+    font-weight:800;
+    /* 한국어 글리프는 라틴보다 시각적 무게가 커서 영문보다 70% 정도가 균형 좋음 */
+    font-size:0.7em;
+    line-height:1.18;
+    letter-spacing:-0.03em;
     display:block;
+    margin-top:14px;
+    /* 한국어는 단어(어절) 단위로 줄바꿈 — '거였어/요.' 처럼 음절 끊김 방지 */
+    word-break:keep-all;
+    overflow-wrap:break-word;
+    max-width:18ch;
   }
   .hero h1 em{
     font-style:italic;font-weight:600;color:var(--orange-dark);
@@ -140,7 +149,7 @@
     font-size:clamp(34px,4.5vw,56px);line-height:1.05;letter-spacing:-0.025em;
     margin:14px 0 0;color:var(--ink-hi);
   }
-  .section-title .kr{font-family:'Noto Sans KR';font-weight:900;letter-spacing:-0.02em}
+  .section-title .kr{font-family:'Noto Sans KR';font-weight:900;letter-spacing:-0.02em;word-break:keep-all;overflow-wrap:break-word}
   .section-lead{margin-top:20px;font-size:16px;color:var(--ink-soft);line-height:1.65;max-width:680px}
 
   .problem-grid{
@@ -278,7 +287,7 @@
     font-family:'Cormorant Garamond', serif;font-weight:700;
     font-size:clamp(32px,4vw,48px);line-height:1.05;letter-spacing:-0.025em;margin:0;
   }
-  .waitlist h2 .kr{font-family:'Noto Sans KR';font-weight:900;display:block;margin-top:6px;letter-spacing:-0.02em}
+  .waitlist h2 .kr{font-family:'Noto Sans KR';font-weight:900;display:block;margin-top:6px;letter-spacing:-0.02em;word-break:keep-all;overflow-wrap:break-word}
   .waitlist .warm{color:var(--orange)}
   .waitlist p{margin-top:18px;font-size:15px;line-height:1.7;color:rgba(251,247,240,0.75);max-width:440px}
 
