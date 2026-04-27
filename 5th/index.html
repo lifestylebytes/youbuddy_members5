@@ -4930,6 +4930,11 @@ const ONBOARD_CODE_MAP = MEMBER_DIRECTORY.reduce((acc, member) => {
     role: member.role || '',
     tier: member.tier || 'basic',
     isOperator: !!member.isOperator,
+    // 운영팀 (유버디/이규태/이지흔) 은 isStaff: true 로 표시 — Settings 티어 토글 +
+    // 다른 멤버 프로필에서 본명 노출 + 통계 분모 제외 등에 쓰임. ONBOARD_CODE_MAP 에서
+    // 빠지면 lookupCode → backfill 이 안 잡혀서 state.isStaff 가 영영 false 로 남는 버그.
+    isStaff: !!member.isStaff,
+    ghost: !!member.ghost,
   };
   // 코드 자체 ('01') + 숫자로 변환한 unpadded ('1') 둘 다 등록 —
   // 회원이 "01" 이든 "1" 이든 입력해도 로그인 되도록.
