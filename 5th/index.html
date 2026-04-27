@@ -1550,6 +1550,7 @@ const defaultState = () => ({
   meeting_notes: {},              // { "m1": { talk_points:[], meeting_notes: '' } }
   meeting_consent: null,          // { accepted: true, at: ISO, version: 1, tz: '+0h' } — 프리미엄 미팅 녹화/분석 사전 동의 기록. operator 가 감사용으로 열람.
   operatorPreviewUnlock: false,   // OPERATOR only — 챌린지 시작 전(D-?) 에도 제출/AI/시험 풀어서 전체 플로우 테스트. 운영자 본인한테만 적용됨 (멤버 영향 X).
+  operatorDayOverride: null,      // OPERATOR only — 운영자가 원하는 Day 번호로 currentDay 강제 점프 (테스트용). null 이면 캘린더 기준.
   presenterSignups: {},           // { "w1": ["member_key_a", "member_key_b"] } — 주차별 선착순 발표자
   presenter_prep: {},             // { "w1": { vocabPicked:[], script:'', privateNotes:'' } } — 본인 발표 준비
   pitch_vocab: [],                // [{ word, note, source, savedAt }] — 계속 학습하고 싶은 단어 보관소
@@ -1622,6 +1623,7 @@ const PERSISTED_STATE_KEYS = [
   'tour_done',
   'tour_started_tier',
   'operatorPreviewUnlock',  // OPERATOR-only D-? 우회 플래그. 새로고침/15초 리프레시 후에도 살아남게.
+  'operatorDayOverride',    // OPERATOR-only Day 점프 (테스트용).
 ];
 
 /* Demo seed — pre-fills a few days (1, 3, 5 late, 7) so the design can be previewed
@@ -2685,6 +2687,14 @@ function dayDate(dayN) {
 /* Compute which cohort day number today is.
    Clamped to [1, 20]. Before start = 1, after end = 20. */
 function computeCurrentDay() {
+  // Operator 본인 Day 점프 override — 다른 멤버 영향 없음.
+  // operatorDayOverride 가 1~20 이면 그 값을 우선. (운영자/staff 만)
+  try {
+    if ((state.isOperator || state.isStaff) && Number.isFinite(Number(state.operatorDayOverride))) {
+      const n = Number(state.operatorDayOverride);
+      if (n >= 1 && n <= 20) return n;
+    }
+  } catch (e) {}
   const today = todayStr();
   for (let n = 1; n <= 20; n++) {
     const d = dayDate(n);
@@ -5865,12 +5875,16 @@ function Checkboard() {
     });
     // Hide tz on the checkboard so all rows stay uniform height (we don't have
     // tz for other members yet — showing it only on "me" looks inconsistent).
+    // 한국 (+0h) 외 멤버에겐 시차 작게 회색으로. KST 기준 표시.
+    const memberTz = (memberTimezoneText(m) || '').trim();
+    const showTz = memberTz && memberTz !== '+0h';
     name.innerHTML = `
       <div class="tiny-av ${resolveAvatarColor(m)}">${safeInitial(m)}</div>
       <div style="min-width:0;overflow:hidden;flex:1 1 auto;">
         <div style="display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden;">
           <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto;">${escapeHtml(displayName(m))}</span>
           ${premiumPill(m)}
+          ${showTz ? `<span style="font-size:9.5px;font-family:var(--font-mono);color:var(--muted);font-weight:500;flex-shrink:0;letter-spacing:-0.02em;" title="한국(KST) 대비 시차">${escapeHtml(memberTz)}</span>` : ''}
         </div>
       </div>`;
     grid.appendChild(name);
@@ -11195,6 +11209,16 @@ function SettingsModal() {
           <button id="__settingsTogglePreviewUnlock" class="btn btn-ghost btn-full" style="margin-top:10px;border-color:${state.operatorPreviewUnlock ? 'rgba(22,163,74,0.32)' : 'rgba(240,125,56,0.28)'};color:${state.operatorPreviewUnlock ? '#16A34A' : 'var(--orange-dark)'};">${state.operatorPreviewUnlock ? '✅ 프리뷰 언락 중 — 끄기' : '🔓 프리뷰 언락 켜기'}</button>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
+          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">⏩ Day 점프 (운영자 전용)</div>
+          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">운영자 본인의 currentDay 를 임의 점프시켜서 Day N 콘텐츠 미리 풀어볼 때 쓰는 거. 다른 멤버한텐 영향 없음. ${Number.isFinite(Number(state.operatorDayOverride)) ? `<span style="color:#16A34A;font-weight:700;">· 현재 Day ${state.operatorDayOverride} 로 점프 중</span>` : `<span style="color:var(--muted);font-weight:600;">· 캘린더 기준 (override 없음)</span>`}</div>
+          <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+            <button id="__settingsDayJumpDown" class="btn btn-ghost" style="flex:0 0 auto;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);min-width:56px;">−</button>
+            <div style="flex:1;text-align:center;font-size:18px;font-weight:800;color:var(--ink);background:rgba(240,125,56,0.08);border-radius:12px;padding:8px;">Day ${Number.isFinite(Number(state.operatorDayOverride)) ? state.operatorDayOverride : computeCurrentDay()}</div>
+            <button id="__settingsDayJumpUp" class="btn btn-ghost" style="flex:0 0 auto;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);min-width:56px;">+</button>
+          </div>
+          <button id="__settingsDayJumpReset" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12px;">${Number.isFinite(Number(state.operatorDayOverride)) ? '↺ 캘린더 기준으로 되돌리기' : '캘린더 기준 (override 없음)'}</button>
+        </div>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
           <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📸 4/27 공지용 스크린샷 가이드</div>
           <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">베이직/프리미엄 단톡방 공지에 넣을 스크린샷 7장을 한 페이지에서 순서대로 캡처할 수 있어요. 각 섹션마다 [이 화면으로] 버튼 하나만 누르면 됨.</div>
           <button id="__settingsOpenScreenshotGuide" class="btn btn-ghost btn-full" style="margin-top:10px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);">📸 스크린샷 가이드 열기</button>
@@ -11294,6 +11318,34 @@ function SettingsModal() {
       } else {
         render();
       }
+    };
+
+    // Operator: ⏩ Day 점프 (테스트용 — Day 2 미리 풀어보기 등)
+    const dayJumpDownBtn = document.getElementById('__settingsDayJumpDown');
+    const dayJumpUpBtn = document.getElementById('__settingsDayJumpUp');
+    const dayJumpResetBtn = document.getElementById('__settingsDayJumpReset');
+    const setOperatorDay = (n) => {
+      const clamped = Math.max(1, Math.min(20, Number(n)));
+      state.operatorDayOverride = clamped;
+      state.currentDay = clamped;
+      try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
+      showToast(`Day ${clamped} 로 점프했어요 🚀`);
+      render();
+    };
+    if (dayJumpDownBtn) dayJumpDownBtn.onclick = () => {
+      const cur = Number.isFinite(Number(state.operatorDayOverride)) ? Number(state.operatorDayOverride) : computeCurrentDay();
+      setOperatorDay(cur - 1);
+    };
+    if (dayJumpUpBtn) dayJumpUpBtn.onclick = () => {
+      const cur = Number.isFinite(Number(state.operatorDayOverride)) ? Number(state.operatorDayOverride) : computeCurrentDay();
+      setOperatorDay(cur + 1);
+    };
+    if (dayJumpResetBtn) dayJumpResetBtn.onclick = () => {
+      state.operatorDayOverride = null;
+      state.currentDay = computeCurrentDay();
+      try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
+      showToast('캘린더 기준으로 돌렸어요.');
+      render();
     };
 
     // Operator: 내 동의 초기화 (테스트용 — 팝업 다시 보고 싶을 때)
