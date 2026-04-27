@@ -1723,6 +1723,19 @@ function mergePersistedState(snapshot) {
       if (real) state.currentDay = real;
     }
   } catch (e) {}
+  // 디렉토리 권한 flag (isStaff/isOperator/ghost) 강제 동기화 — server snapshot 에 false 로
+  // 저장돼있어도 ONBOARD_CODE_MAP 의 정의가 soul of truth. 매 merge 마다 다시 박아줌.
+  // 이거 없으면 15초 server sync 가 isStaff: true 를 false 로 덮어써서 본명 노출 권한 사라짐.
+  try {
+    if (state.accessCode && typeof lookupCode === 'function') {
+      const meDir = lookupCode(state.accessCode);
+      if (meDir) {
+        if (meDir.isOperator) state.isOperator = true;
+        if (meDir.isStaff) state.isStaff = true;
+        if (meDir.ghost) state.ghost = true;
+      }
+    }
+  } catch (e) {}
 }
 
 function loadCachedState() {
