@@ -10452,7 +10452,10 @@ function ProfilePage() {
         word: post.word,
         sentence: post.sentence,
         avatar: (post.user || '').slice(0, 2),
-        avatarClass: post.member_key === memberKey() ? 'orange' : 'cream',
+        // me orange, premium peer orange, basic peer cream — community feed 와 통일.
+        avatarClass: post.member_key === memberKey()
+          ? 'orange'
+          : (post.tier === 'premium' ? 'orange' : 'cream'),
       })),
       ...COMMUNITY_POSTS,
     ]
@@ -10811,14 +10814,26 @@ function CommunityPage() {
     <h1 style="margin:10px 0 0;font-size:26px;line-height:1.12;letter-spacing:-0.03em;font-weight:700;">다같이 제출한 문장</h1>`;
   page.appendChild(hero);
 
-  // Storage policy mini-banner
+  // 제출 카운트 mini-banner — 이 day 에 코호트가 지금까지 몇 문장 제출했는지.
+  // (서버 캐시 기준이라 약간 lag 있을 수 있지만, 새로고침 / 15초 sync 마다 갱신됨.)
+  const submissionCount = (() => {
+    if (hasSupabase()) {
+      const remoteRows = (communityFeedCache[selectedDay]?.rows || []);
+      return remoteRows.length;
+    }
+    // Supabase 없을 땐 로컬 본인 제출만 카운트
+    return (selDayObj?.words || []).reduce((acc, _w, i) => {
+      const submitted = !!state.submitted?.[`d${selectedDay}-${i}`];
+      return acc + (submitted ? 1 : 0);
+    }, 0);
+  })();
   const policyNote = el('div', {
     style: {
       marginTop: '4px',
       padding: '10px 12px',
       borderRadius: '12px',
       background: 'var(--paper)',
-      fontSize: '11px',
+      fontSize: '12px',
       lineHeight: '1.5',
       color: 'var(--ink-soft)',
       display: 'flex',
@@ -10826,7 +10841,7 @@ function CommunityPage() {
       gap: '8px',
     }
   });
-  policyNote.innerHTML = `<span style="font-size:13px;">💡</span><span>제출 시 저장되는 건 <b>영어 원문 1줄</b>뿐이에요. AI 리뷰본은 내 기록실에만 남아요.</span>`;
+  policyNote.innerHTML = `<span style="font-size:14px;">📝</span><span>지금까지 <b style="color:var(--orange-dark);">${submissionCount}개</b>의 문장이 제출됐어요.</span>`;
   page.appendChild(policyNote);
 
   // Filter chips derive from the selected day's 3 words so content swaps (Day 1~20 rewrites) flow through automatically.
@@ -10867,7 +10882,11 @@ function CommunityPage() {
       user: post.user,
       team: post.team || 'A',
       avatar: (post.user || '').slice(0, 2),
-      avatarClass: post.member_key === memberKey() ? 'orange' : 'cream',
+      // me 는 항상 orange. 다른 멤버는 tier 기준 — premium 은 orange, basic 은 cream.
+      // (예전엔 무조건 cream 으로 떨어져서 프리미엄 멤버가 베이직처럼 보이던 버그)
+      avatarClass: post.member_key === memberKey()
+        ? 'orange'
+        : (post.tier === 'premium' ? 'orange' : 'cream'),
       word: post.word || '',
       time: '방금',
       sentence: post.sentence,
