@@ -2612,6 +2612,38 @@ function nowTimeStr() {
   return `${h}:${m}`;
 }
 
+/* 커뮤니티 게시글 타임스탬프 — created_at 기준으로:
+   - < 5 분: "방금"
+   - < 60 분: "N분 전"
+   - 같은 날 (사용자 tz): "HH:MM"
+   - 그 이전: "M/D HH:MM"
+   사용자 timezone 으로 표시. UTC ms 에 user offset 더하고 getUTC* 로 추출.  */
+function formatPostTime(createdAt) {
+  if (!createdAt) return '방금';
+  const created = new Date(createdAt);
+  if (Number.isNaN(created.getTime())) return '방금';
+  const diffMs = Date.now() - created.getTime();
+  if (diffMs < 5 * 60 * 1000) return '방금';
+  if (diffMs < 60 * 60 * 1000) return `${Math.floor(diffMs / 60000)}분 전`;
+  const tzOffsetMin = (typeof effectiveTimezoneOffsetMinutes === 'function')
+    ? effectiveTimezoneOffsetMinutes()
+    : 540;
+  // UTC 기준 ms 에 사용자 offset 더해서 user-timezone 시각 만들기 → getUTC* 로 뽑음.
+  const shifted = new Date(created.getTime() + tzOffsetMin * 60000);
+  const hh = String(shifted.getUTCHours()).padStart(2, '0');
+  const mm = String(shifted.getUTCMinutes()).padStart(2, '0');
+  const nowShifted = new Date(Date.now() + tzOffsetMin * 60000);
+  const sameDay = (
+    nowShifted.getUTCFullYear() === shifted.getUTCFullYear()
+    && nowShifted.getUTCMonth() === shifted.getUTCMonth()
+    && nowShifted.getUTCDate() === shifted.getUTCDate()
+  );
+  if (sameDay) return `${hh}:${mm}`;
+  const M = shifted.getUTCMonth() + 1;
+  const D = shifted.getUTCDate();
+  return `${M}/${D} ${hh}:${mm}`;
+}
+
 // 인증 스탬프 표시용 — "2026-04-21 23:47 · +0h" 형태로 포맷.
 // 시차가 비어있으면 기본값 '+0h'로 보여줘요. (시차는 항상 본인 기준 값이 박혀있어야 함)
 // vd: YYYY-MM-DD, vt: HH:mm, tzText: "+0h" | "-13h" | "+1:30h"
@@ -4095,7 +4127,7 @@ function peerSentencesFor(day) {
           wordIdx,
           sentence: post.sentence,
           translation: post.translation || '',
-          time: '방금',
+          time: formatPostTime(post.created_at),
           likes: Number(post.likes_count || 0),
         };
       });
@@ -10888,7 +10920,7 @@ function CommunityPage() {
         ? 'orange'
         : (post.tier === 'premium' ? 'orange' : 'cream'),
       word: post.word || '',
-      time: '방금',
+      time: formatPostTime(post.created_at),
       sentence: post.sentence,
       translation: post.translation || '',
       likesCount: Number(post.likes_count || 0),
