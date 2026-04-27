@@ -11326,14 +11326,15 @@ function MemberCardModal(memberRef) {
   const memberEng = member.me ? (state.englishName || '').trim() : (member.englishName || '').trim();
   // 영어 닉네임이 있으면 그게 헤드라인. 한국어 본명은:
   //   - 본인 카드 (me=true) 에선 "본명 · 홍길동" 로 작게 (자기 확인용)
-  //   - 유버디(operator) 로 로그인한 경우엔 피어 카드에도 본명 노출 (운영자 동명 확인용)
+  //   - 운영팀(isStaff: 유버디 / 이규태 / 이지흔) 로 로그인한 경우엔 피어 카드에도 본명 노출
+  //     (운영팀 동명 확인용 — 본인+공동운영자 모두 같은 권한)
   //   - 그 외 피어 카드 에선 아예 안 보임 (프라이버시 — 다른 사람한테 본명 안 노출)
   //   - 영어 닉네임이 비어있으면 어쩔 수 없이 한국어 이름이 headline 으로 fallback
   //     (그 사람이 아직 닉네임을 세팅 안 한 상태)
-  const viewerIsOperator = !!state.isOperator;
+  const viewerIsStaff = !!(state.isOperator || state.isStaff);
   const headlineName = memberEng || member.name || '';
   const showRealNameSubline = (
-    (!!member.me || viewerIsOperator)
+    (!!member.me || viewerIsStaff)
     && !!memberEng
     && !!member.name
     && memberEng !== member.name
