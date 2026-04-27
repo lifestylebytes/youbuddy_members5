@@ -3387,7 +3387,7 @@ function requestPresenterSignups(opts = {}) {
     loadPresenterSignups({ force: true }).then(() => {
       const after = JSON.stringify(state.presenterSignups || {});
       // 모달 열려있을 땐 렌더 건너뜀 — 재마운트 깜빡임 + 입력 상태 유실 방지.
-      const modalOpen = !!(showMeetingConsent || showConsentAudit || showGoalEditor || showSettings || verificationReviewDay || activeCommentDraft);
+      const modalOpen = !!(showMeetingConsent || showConsentAudit || showGoalEditor || showSettings || verificationReviewDay || activeCommentDraft || activeMemberCard || document.querySelector('[data-presenter-script-modal]') || document.querySelector('[data-consent-modal]'));
       if (before !== after && !modalOpen && (currentPage === 'home' || currentPage === 'premium' || currentPage === 'presenter-prep')) render();
     });
   }
@@ -3800,6 +3800,9 @@ async function refreshRemoteStateAndCommunity(opts = {}) {
     || (typeof showSettings !== 'undefined' && showSettings)
     || (typeof verificationReviewDay !== 'undefined' && verificationReviewDay)
     || (typeof activeCommentDraft !== 'undefined' && activeCommentDraft)
+    || (typeof activeMemberCard !== 'undefined' && activeMemberCard) // 프로필 카드 깜빡임 방지
+    || !!document.querySelector('[data-presenter-script-modal]') // PT 대본 모달
+    || !!document.querySelector('[data-consent-modal]') // 동의 모달
   );
   if (changed && !interactiveModalOpen) render();
   return changed;
@@ -3833,6 +3836,9 @@ async function refreshDashboardStats() {
       || (typeof showSettings !== 'undefined' && showSettings)
       || (typeof verificationReviewDay !== 'undefined' && verificationReviewDay)
       || (typeof activeCommentDraft !== 'undefined' && activeCommentDraft)
+      || (typeof activeMemberCard !== 'undefined' && activeMemberCard)
+      || !!document.querySelector('[data-presenter-script-modal]')
+      || !!document.querySelector('[data-consent-modal]')
     );
     if (currentPage === 'home' && !modalOpenForDash) render();
   } catch (e) {
@@ -6332,17 +6338,23 @@ function VerifyPage(dayN) {
             <div class="kicker" style="color:#8B84D7;">단어 시험 · 총 ${questions.length}문제</div>
             <span class="badge" style="background:#ECE8FF;color:#5C53A5;">${ui.idx + 1} / ${questions.length}</span>
           </div>
-          <div data-verify-quiz-card="1" style="margin-top:18px;padding:28px 18px;border-radius:24px;background:rgba(255,255,255,0.68);text-align:center;box-shadow:inset 0 0 0 1px rgba(236,232,255,0.9);position:relative;overflow:hidden;">
+          ${!ui.revealAnswer ? `
+            <div style="margin-top:14px;padding:10px 14px;border-radius:12px;background:#FFF8E1;border:1px solid rgba(255,193,7,0.32);font-size:13px;color:#7A5800;line-height:1.55;display:flex;align-items:center;gap:8px;">
+              <span style="font-size:16px;flex-shrink:0;">✍️</span>
+              <span><b>주황색 빈칸을 탭하고 직접 타이핑</b>하세요. 정답을 입력하면 자동으로 다음 문제로 넘어가요.</span>
+            </div>
+          ` : ''}
+          <div data-verify-quiz-card="1" style="margin-top:14px;padding:28px 18px;border-radius:24px;background:rgba(255,255,255,0.68);text-align:center;box-shadow:inset 0 0 0 1px rgba(236,232,255,0.9);position:relative;overflow:hidden;">
             <div style="font-size:19px;line-height:1.7;font-weight:600;color:#35344A;word-break:keep-all;">
               ${escapeHtml(parts[0] || '')}
-              <input class="input" data-quiz-idx="${ui.idx}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ${ui.revealAnswer ? 'disabled' : ''} style="display:inline-block;width:${answerWidth}ch;max-width:72%;margin:0 8px;padding:2px 4px;text-align:center;font-size:24px;font-weight:700;line-height:1.3;letter-spacing:-0.02em;background:transparent;border:none;border-bottom:2px solid #B7AEDF;border-radius:0;color:${ui.revealAnswer ? '#B0B0C0' : '#35344A'};vertical-align:baseline;caret-color:#7D5CFF;${ui.revealAnswer ? 'pointer-events:none;opacity:0.6;' : ''}" placeholder="" value="${escapeHtml(ui.value)}" oninput="window.__setVerifyQuizValue(${dayN}, this.value)" />
+              <input class="input" data-quiz-idx="${ui.idx}" data-quiz-input="1" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ${ui.revealAnswer ? 'disabled' : ''} style="display:inline-block;width:${answerWidth}ch;max-width:72%;margin:0 8px;padding:6px 10px;text-align:center;font-size:24px;font-weight:700;line-height:1.3;letter-spacing:-0.02em;background:${ui.revealAnswer ? 'rgba(176,176,192,0.08)' : '#FFF7E0'};border:none;border-bottom:3px solid ${ui.revealAnswer ? '#D0CADF' : '#F0AC3D'};border-radius:8px 8px 0 0;color:${ui.revealAnswer ? '#B0B0C0' : '#35344A'};vertical-align:baseline;caret-color:#F07D38;box-shadow:${ui.revealAnswer ? 'none' : '0 2px 8px rgba(240,125,56,0.16)'};${ui.revealAnswer ? 'pointer-events:none;opacity:0.6;' : ''}" placeholder="${ui.revealAnswer ? '' : '여기 탭'}" value="${escapeHtml(ui.value)}" oninput="window.__setVerifyQuizValue(${dayN}, this.value)" />
               ${escapeHtml(parts[1] || '')}
             </div>
             <div style="margin-top:20px;font-size:18px;line-height:1.5;color:#6C6A86;">${escapeHtml(currentQuestion.prompt_kr || '')}</div>
             <div style="margin-top:10px;font-size:16px;line-height:1.5;color:#7D5CFF;font-weight:700;">뜻 · ${escapeHtml(currentQuestion.kr)}</div>
             <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;">
               <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;${ui.revealAnswer ? 'opacity:0.45;pointer-events:none;' : ''}" onclick="window.__toggleVerifyAnswer(${dayN})">${ui.reveal ? '힌트 숨기기' : '힌트 보기'}</button>
-              <button class="btn btn-ghost" style="background:#fff;color:#7D7A98;border:1px solid #E1DCF8;" onclick="showToast('음성 답안 기능은 곧 연결돼요.')">음성으로 답하기</button>
+              <button data-voice-btn="1" class="btn btn-ghost" style="background:#fff;color:#7D7A98;border:1px solid #E1DCF8;${ui.revealAnswer ? 'opacity:0.45;pointer-events:none;' : ''}" onclick="window.__startVoiceQuiz(${dayN}, this)">🎤 음성으로 답하기</button>
             </div>
             ${ui.revealAnswer ? `
               <div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:#FFF0E2;border:1px solid rgba(232,116,60,0.35);text-align:left;">
@@ -6358,6 +6370,15 @@ function VerifyPage(dayN) {
           </div>
         </div>
       `;
+      // 자동 포커스 — 사용자가 빈칸 못 찾는 걸 한 번 더 방지. revealAnswer 상태일 땐 skip.
+      if (!ui.revealAnswer) {
+        setTimeout(() => {
+          try {
+            const input = wrap.querySelector('[data-quiz-input="1"]');
+            if (input && document.activeElement !== input) input.focus({ preventScroll: true });
+          } catch (e) {}
+        }, 60);
+      }
     }
     panel.appendChild(wrap);
   } else if (activeStep === 'copy') {
@@ -6760,7 +6781,9 @@ function DayPage(dayN) {
     const bookmarkKey = `d${dayN}-${i}`;
     const isBookmarked = !!state.bookmarks[bookmarkKey];
     const nuanceKey = `nuance-${dayN}-${i}`;
-    const isNuanceOpen = !!(window.__nuanceOpen && window.__nuanceOpen[nuanceKey]);
+    // 기본값 = 열림. 사용자가 명시적으로 닫으면 그제서야 false 로 저장됨.
+    const __storedNuance = (window.__nuanceOpen || {})[nuanceKey];
+    const isNuanceOpen = __storedNuance === undefined ? true : !!__storedNuance;
 
     const card = el('div', { class: 'vocab-card', id: `vocab-anchor-${dayN}-${i}`, style: { padding: '22px 22px 18px', borderRadius: '26px', position: 'relative', scrollMarginTop: '18px' } });
 
@@ -6843,7 +6866,8 @@ function DayPage(dayN) {
       },
       onClick: () => {
         window.__nuanceOpen = window.__nuanceOpen || {};
-        window.__nuanceOpen[nuanceKey] = !window.__nuanceOpen[nuanceKey];
+        // 현재 표시 상태를 기준으로 토글 (기본값 open 보정 포함).
+        window.__nuanceOpen[nuanceKey] = !isNuanceOpen;
         render();
       },
     });
@@ -12369,6 +12393,173 @@ window.__flashCorrect = () => {
     setTimeout(() => { try { overlay.remove(); } catch (e) {} }, 920);
   } catch (e) {}
 };
+/* 단어 시험 — 음성 답안 (Web Speech API).
+   브라우저 SpeechRecognition 으로 영어 음성 → 텍스트 변환 → input 에 표시 →
+   1.4초 후 자동 정답 체크. 사용자가 자기 말이 어떻게 인식됐는지 볼 시간 줌.
+   iOS Safari / 일부 모바일에선 미지원 → 안내 후 타이핑 유도. */
+window.__activeRecognition = null;
+window.__voicePermissionPrompted = window.__voicePermissionPrompted || false;
+window.__startVoiceQuiz = async (dayN, btnEl) => {
+  // 토글: 이미 진행 중이면 stop.
+  if (window.__activeRecognition) {
+    try { window.__activeRecognition.stop(); } catch (_) {}
+    window.__activeRecognition = null;
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    showToast('이 브라우저는 음성 입력 미지원이에요. Chrome/Edge 사용하시거나 빈칸에 직접 타이핑해주세요 ✍️');
+    return;
+  }
+  const input = document.querySelector('[data-quiz-input="1"]');
+  if (!input || input.disabled) {
+    showToast('빈칸 활성 후 다시 눌러주세요.');
+    return;
+  }
+
+  // 권한 상태 체크 — 첫 시도면 안내 토스트 띄움 (사용자가 매번 권한창 나오는 줄 알고 짜증나는 케이스 대비).
+  // navigator.permissions 미지원 브라우저에선 그냥 진행.
+  let permissionState = 'unknown';
+  try {
+    if (navigator.permissions && navigator.permissions.query) {
+      const status = await navigator.permissions.query({ name: 'microphone' });
+      permissionState = status.state; // 'granted' | 'prompt' | 'denied'
+      if (permissionState === 'denied') {
+        showToast('마이크가 차단돼있어요. 주소창 🔒 아이콘 → 사이트 설정 → 마이크 → 허용 으로 바꿔주세요.');
+        return;
+      }
+    }
+  } catch (e) {}
+
+  // 첫 사용 시 한 번만 안내 — 다음 시도부턴 권한 한 번만 허용하면 매번 안 떠야 정상.
+  if (!window.__voicePermissionPrompted && permissionState !== 'granted') {
+    window.__voicePermissionPrompted = true;
+    showToast('🎤 마이크 권한을 한 번만 허용해주세요. (매번 묻지 않아요)');
+  }
+
+  let recognition;
+  try {
+    recognition = new SR();
+  } catch (e) {
+    showToast('음성 인식을 시작할 수 없어요. 직접 타이핑해주세요 ✍️');
+    return;
+  }
+  recognition.lang = 'en-US';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 3;
+
+  // 버튼 시각 피드백 — 빨강 + "🎙 듣는 중..."
+  const originalHTML = btnEl ? btnEl.innerHTML : '';
+  const originalBg = btnEl ? btnEl.style.background : '';
+  const originalColor = btnEl ? btnEl.style.color : '';
+  if (btnEl) {
+    btnEl.innerHTML = '🎙 듣는 중... (탭하면 중지)';
+    btnEl.style.background = '#E64545';
+    btnEl.style.color = '#fff';
+    btnEl.style.borderColor = '#E64545';
+  }
+
+  const restoreBtn = () => {
+    if (btnEl) {
+      btnEl.innerHTML = originalHTML;
+      btnEl.style.background = originalBg;
+      btnEl.style.color = originalColor;
+      btnEl.style.borderColor = '';
+    }
+  };
+
+  // 인식된 텍스트를 시각적으로 명확히 보여주는 floating 카드 — 1.4초 후 자동 사라지고
+  // 그 동안 사용자가 "내가 말한 게 이렇게 들렸구나" 확인할 수 있게.
+  const showHeardCard = (heard, target) => {
+    try {
+      document.querySelectorAll('[data-voice-heard-card]').forEach((n) => n.remove());
+      const isMatch = (heard || '').toLowerCase().trim() === (target || '').toLowerCase().trim();
+      const card = el('div', {
+        'data-voice-heard-card': '1',
+        style: {
+          position: 'fixed',
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: '#fff',
+          borderRadius: '20px',
+          padding: '22px 28px',
+          minWidth: '240px',
+          maxWidth: '85vw',
+          boxShadow: '0 24px 60px rgba(20,15,10,0.32)',
+          border: `2px solid ${isMatch ? '#22B36A' : '#F0AC3D'}`,
+          zIndex: '99999',
+          textAlign: 'center',
+          animation: 'popIn 200ms cubic-bezier(.2,.9,.3,1.1)',
+        },
+      });
+      card.innerHTML = `
+        <div style="font-size:11px;font-weight:800;color:${isMatch ? '#22B36A' : '#7A5800'};letter-spacing:0.14em;text-transform:uppercase;">
+          ${isMatch ? '✓ 정답이에요' : '🎙 들은 답'}
+        </div>
+        <div style="margin-top:8px;font-size:24px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.2;">
+          ${escapeHtml(heard)}
+        </div>
+        ${target ? `<div style="margin-top:8px;font-size:11.5px;color:var(--muted);">정답: <b style="color:#3E3B59;">${escapeHtml(target)}</b></div>` : ''}
+      `;
+      document.body.appendChild(card);
+      setTimeout(() => { try { card.remove(); } catch (e) {} }, 1400);
+    } catch (e) {}
+  };
+
+  recognition.onresult = (event) => {
+    const results = event.results[0];
+    // 여러 alternative 중 "정답에 가까운 것" 우선 선택. (속어, 동음이의 보정)
+    const questions = (window.__verifyQuestionsCache || {})[dayN] || [];
+    const ui = (window.__verifyUi || {})[dayN] || {};
+    const target = (questions[ui.idx]?.en || '').trim();
+    const targetLower = target.toLowerCase();
+    let best = (results[0]?.transcript || '').trim();
+    for (let i = 0; i < results.length; i++) {
+      const t = (results[i].transcript || '').trim();
+      if (targetLower && t.toLowerCase() === targetLower) { best = t; break; }
+    }
+    if (best) {
+      // 1) input 에 즉시 텍스트 채우기 (사용자가 자기 입력으로 본 것)
+      input.value = best;
+      try { input.focus({ preventScroll: true }); } catch (e) {}
+      // 2) 인식 결과 카드를 띄워서 "이렇게 들렸어요" 명시
+      showHeardCard(best, target);
+      // 3) 1.4초 후에 정답 체크 dispatch — 사용자가 카드 보고 인지할 시간 확보
+      setTimeout(() => {
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }, 1400);
+    } else {
+      showToast('음성을 알아듣지 못했어요. 다시 시도하거나 직접 타이핑해주세요.');
+    }
+  };
+
+  recognition.onerror = (event) => {
+    if (event.error === 'no-speech') {
+      showToast('음성이 감지되지 않았어요. 마이크 가까이서 다시 말씀해주세요.');
+    } else if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+      showToast('마이크 권한이 차단됐어요. 브라우저 주소창의 🔒 아이콘에서 "마이크 → 허용" 으로 바꿔주세요.');
+    } else if (event.error === 'audio-capture') {
+      showToast('마이크를 찾을 수 없어요. 마이크가 연결돼 있는지 확인해주세요.');
+    } else if (event.error !== 'aborted') {
+      showToast('음성 인식 오류가 났어요. 직접 타이핑해주세요 ✍️');
+    }
+  };
+
+  recognition.onend = () => {
+    restoreBtn();
+    window.__activeRecognition = null;
+  };
+
+  try {
+    recognition.start();
+    window.__activeRecognition = recognition;
+  } catch (e) {
+    restoreBtn();
+    showToast('음성 인식을 시작할 수 없어요. 잠시 후 다시 시도해주세요.');
+  }
+};
+
 window.__setVerifyQuizValue = (dayN, value) => {
   const questions = buildVerifyQuestions(dayN);
   window.__verifyUi = window.__verifyUi || {};
