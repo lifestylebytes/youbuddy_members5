@@ -1832,6 +1832,18 @@ function saveState(opts = {}) {
 
 function patch(k, v) { state[k] = v; saveState(); render(); }
 
+// 사용자가 input/textarea/select 에 입력 중인 시각을 전역 추적.
+// refreshRemoteStateAndCommunity 가 이 시각 기준 1.5초 이내면 sync 건너뛰어서
+// in-flight 키스트로크 (직무 상황, PT 대본 등) 가 server merge 로 덮이는 race 방지.
+window.__lastTypingAt = window.__lastTypingAt || 0;
+if (!window.__typingTrackerInstalled) {
+  window.__typingTrackerInstalled = true;
+  document.addEventListener('input', () => { window.__lastTypingAt = Date.now(); }, true);
+  // blur 직후에도 잠시 보호 — 사용자가 input 떠난 직후 클릭하는 짧은 윈도우에서
+  // 15초 sync 가 끼어드는 경우 대비.
+  document.addEventListener('blur', () => { window.__lastTypingAt = Date.now(); }, true);
+}
+
 // Copy text to clipboard. Falls back to a temporary textarea for
 // iOS Safari / old browsers where navigator.clipboard.writeText is blocked.
 function copyToClipboard(text, sourceBtn) {
@@ -3729,6 +3741,18 @@ async function deleteCommunityPost(dayN, idx) {
 async function refreshRemoteStateAndCommunity(opts = {}) {
   if (!hasSupabase() || !state.onboarded) return false;
   const { force = false } = opts;
+  // 사용자가 input/textarea 에 입력 중이거나 직전에 입력했으면 15초 sync 건너뜀.
+  // mergePersistedState 가 미저장 키스트로크를 덮어쓰는 race 를 막음.
+  // (예: PT 준비 페이지의 직무 상황 / PT 발표주제 / PT 대본 텍스트가 사라지는 버그)
+  // force=true (visibility/focus change) 일 땐 그래도 진행.
+  if (!force) {
+    const ae = document.activeElement;
+    if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return false;
+    const since = Date.now() - (window.__lastTypingAt || 0);
+    if (since < 1500) return false;
+    // 진행 중인 save 가 있으면 끝날 때까지 기다림.
+    if (statePersistInFlight || statePersistQueued) return false;
+  }
   let changed = false;
   try {
     const remote = await loadRemoteState();
@@ -3875,6 +3899,151 @@ async function loadPeerVerificationTimes(day, opts = {}) {
   })();
   return window.__peerVerifyLoads[day];
 }
+/* ============================================================
+   COHORT PRESENTER SCRIPTS — 다른 멤버의 PT 대본 fetch
+   ------------------------------------------------------------
+   Supabase RPC 'get_cohort_presenter_scripts' (migration 파일 참고).
+   결과는 window 캐시에 보관, 한 세션에 한 번만 fetch (force=true 로 갱신).
+   각 row: { member_key, member_name, english_name, week_n,
+            job_context, presentation_topic, vocab_picked, script }
+   ============================================================ */
+window.__cohortPresenterScripts = window.__cohortPresenterScripts || null;
+window.__cohortPresenterScriptsLoading = null;
+let presenterScriptsRpcUnavailable = false;
+async function loadCohortPresenterScripts(opts = {}) {
+  if (!hasSupabase() || presenterScriptsRpcUnavailable) return [];
+  const force = !!opts.force;
+  if (!force && window.__cohortPresenterScripts) return window.__cohortPresenterScripts;
+  if (window.__cohortPresenterScriptsLoading) return window.__cohortPresenterScriptsLoading;
+  window.__cohortPresenterScriptsLoading = (async () => {
+    try {
+      const rows = await supabaseRpc('get_cohort_presenter_scripts', { p_cohort: CHALLENGE.cohort });
+      window.__cohortPresenterScripts = Array.isArray(rows) ? rows : [];
+      return window.__cohortPresenterScripts;
+    } catch (e) {
+      if (/get_cohort_presenter_scripts|schema cache|Could not find the function/i.test(String(e && e.message || ''))) {
+        presenterScriptsRpcUnavailable = true;
+      }
+      return window.__cohortPresenterScripts || [];
+    } finally {
+      window.__cohortPresenterScriptsLoading = null;
+    }
+  })();
+  return window.__cohortPresenterScriptsLoading;
+}
+function findPresenterScript(memberKey, weekN) {
+  const all = window.__cohortPresenterScripts || [];
+  return all.find((r) =>
+    String(r.member_key) === String(memberKey) &&
+    Number(r.week_n) === Number(weekN)
+  ) || null;
+}
+
+/* PT 대본 모달 — 발표자 아바타 클릭 시 노출. body 싱글턴 마운트.
+   본인이면 state.presenter_prep 우선 (lag-free), 다른 멤버면 RPC 결과. */
+async function openPresenterScriptModal(targetKey, weekN) {
+  // 중복 모달 방지
+  document.querySelectorAll('[data-presenter-script-modal]').forEach((n) => n.remove());
+
+  // 백드롭: 강한 dim + blur 로 페이지 content 가 비치지 않도록.
+  // 인라인 스타일로 강제 — class 안 잡히는 환경 대비.
+  const backdrop = el('div', {
+    'data-presenter-script-modal': '1',
+    style: {
+      position: 'fixed',
+      inset: '0',
+      background: 'rgba(20,15,10,0.72)',
+      backdropFilter: 'blur(6px)',
+      WebkitBackdropFilter: 'blur(6px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: '9999',
+      padding: '20px',
+      overflowY: 'auto',
+      animation: 'fadeIn 200ms',
+    },
+    onClick: (e) => { if (e.target === backdrop) backdrop.remove(); },
+  });
+  const modal = el('div', {
+    style: {
+      background: '#FFFDF7',
+      borderRadius: '24px',
+      maxWidth: '540px',
+      width: '100%',
+      maxHeight: '85vh',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+      boxShadow: '0 28px 70px rgba(20,15,10,0.42), 0 4px 18px rgba(20,15,10,0.18)',
+      border: '1px solid rgba(231,221,200,0.6)',
+      animation: 'popIn 260ms cubic-bezier(.2,.9,.3,1.1)',
+      position: 'relative',
+      zIndex: '10000',
+    },
+  });
+  modal.innerHTML = `<div style="padding:60px 24px;text-align:center;color:var(--muted);font-size:13px;">불러오는 중...</div>`;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  document.body.classList.add('modal-open');
+
+  // 모달 닫힘 hook — body class 도 같이 정리.
+  const closeModal = () => {
+    document.body.classList.remove('modal-open');
+    backdrop.remove();
+  };
+  backdrop.onclick = (e) => { if (e.target === backdrop) closeModal(); };
+
+  // 본인이면 로컬 state 즉시 사용 (서버 lag 무시)
+  let entry = null;
+  const isMe = String(targetKey) === String(memberKey());
+  if (isMe) {
+    const prep = (state.presenter_prep || {})[PRESENTER_KEY(weekN)] || {};
+    entry = {
+      member_key: memberKey(),
+      member_name: state.name || '',
+      english_name: state.englishName || '',
+      week_n: Number(weekN),
+      job_context: prep.jobContext || '',
+      presentation_topic: prep.presentationTopic || '',
+      vocab_picked: Array.isArray(prep.vocabPicked) ? prep.vocabPicked : [],
+      script: prep.script || '',
+    };
+  } else {
+    await loadCohortPresenterScripts();
+    entry = findPresenterScript(targetKey, weekN);
+  }
+
+  const mem = memberByKey(targetKey);
+  const name = mem ? displayName(mem) : (entry?.english_name || entry?.member_name || '발표자');
+  const vocab = (entry && Array.isArray(entry.vocab_picked)) ? entry.vocab_picked : [];
+  const hasContent = !!(entry && (entry.job_context || entry.presentation_topic || entry.script || vocab.length));
+
+  modal.innerHTML = `
+    <div style="padding:22px 24px 18px;border-bottom:1px solid rgba(231,221,200,0.7);background:linear-gradient(180deg,#FFFDF7 0%,#F8F2FA 100%);position:relative;flex-shrink:0;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:10.5px;letter-spacing:0.16em;font-weight:800;color:var(--lilac);text-transform:uppercase;">🎤 WEEK ${weekN} · 발표자 대본</div>
+          <div style="margin-top:6px;font-size:22px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.2;">${escapeHtml(name)}${isMe ? ' <span style="font-size:11px;font-weight:700;color:var(--lilac);background:rgba(169,139,184,0.18);padding:2px 8px;border-radius:999px;margin-left:4px;vertical-align:middle;">나</span>' : ''}</div>
+        </div>
+        <button data-close-presenter-modal="1" aria-label="닫기" style="flex-shrink:0;background:rgba(0,0,0,0.06);border:none;width:36px;height:36px;border-radius:999px;font-size:20px;line-height:1;color:var(--ink);cursor:pointer;display:grid;place-items:center;transition:background 0.15s;">×</button>
+      </div>
+    </div>
+    <div style="padding:20px 24px 24px;overflow-y:auto;flex:1;background:#fff;">
+      ${!hasContent ? `<div style="padding:32px 8px;text-align:center;"><div style="font-size:32px;margin-bottom:10px;opacity:0.4;">📝</div><p style="color:var(--muted);font-size:13.5px;line-height:1.65;margin:0;">아직 <b>${escapeHtml(name)}</b> 님이 PT 대본을 작성하지 않았어요.<br>발표자가 PT 준비 페이지에서 대본을 적어두면 여기서 볼 수 있어요.</p></div>` : `
+        ${entry.job_context ? `<div><div style="font-size:10.5px;font-weight:800;color:var(--lilac);letter-spacing:0.12em;text-transform:uppercase;">직무 상황</div><div style="margin-top:6px;font-size:14.5px;color:var(--ink);line-height:1.6;">${escapeHtml(entry.job_context)}</div></div>` : ''}
+        ${entry.presentation_topic ? `<div style="margin-top:18px;"><div style="font-size:10.5px;font-weight:800;color:var(--lilac);letter-spacing:0.12em;text-transform:uppercase;">PT 발표주제</div><div style="margin-top:6px;font-size:14.5px;color:var(--ink);line-height:1.6;">${escapeHtml(entry.presentation_topic)}</div></div>` : ''}
+        ${vocab.length ? `<div style="margin-top:18px;"><div style="font-size:10.5px;font-weight:800;color:var(--lilac);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">필수 어휘 ${vocab.length}/3</div><div style="display:flex;gap:6px;flex-wrap:wrap;">${vocab.map((v) => `<span style="padding:5px 11px;border-radius:999px;background:rgba(169,139,184,0.18);color:var(--lilac);font-size:12px;font-weight:700;">${escapeHtml(v)}</span>`).join('')}</div></div>` : ''}
+        ${entry.script ? `<div style="margin-top:22px;"><div style="font-size:10.5px;font-weight:800;color:var(--lilac);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">PT 대본</div><div style="padding:16px 18px;background:#FFFDF7;border-radius:14px;border:1px solid rgba(231,221,200,0.9);font-size:14.5px;line-height:1.75;color:var(--ink);white-space:pre-wrap;word-break:keep-all;overflow-wrap:break-word;">${escapeHtml(entry.script)}</div></div>` : '<div style="margin-top:18px;padding:14px;background:rgba(169,139,184,0.06);border-radius:12px;color:var(--muted);font-size:13px;text-align:center;">아직 대본 본문은 비어있어요.</div>'}
+      `}
+    </div>
+  `;
+  // close 버튼 wire
+  const closeBtn = modal.querySelector('[data-close-presenter-modal]');
+  if (closeBtn) closeBtn.onclick = closeModal;
+}
+window.__openPresenterScript = openPresenterScriptModal;
+
 // Curated community posts — empty for beta launch. Real participants populate the feed.
 const COMMUNITY_POSTS = [];
 
@@ -4703,7 +4872,20 @@ document.addEventListener('visibilitychange', () => {
    ============================================================ */
 function TopBar(title='') {
   const topbar = el('div', { class: 'topbar' });
-  const brand = el('div', { class: 'brand' });
+  // 로고 → 홈 점프. 이미 홈에 있으면 살짝 fade scroll-to-top.
+  const brand = el('button', {
+    class: 'brand',
+    type: 'button',
+    title: '홈으로',
+    style: { background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left' },
+    onClick: () => {
+      if (currentPage === 'home') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        go('home');
+      }
+    },
+  });
   brand.appendChild(el('div', { class: 'logo-mark' }, 'Y'));
   const bn = el('div', { class: 'brand-name' }, 'YouBuddy');
   const small = el('small', {}, CHALLENGE.cohort + ' · 비즈니스 영어');
@@ -7643,8 +7825,8 @@ function PremiumPage() {
           const isMe = key === memberKey();
           const initial = mem ? safeInitial(mem) : '?';
           const label = mem ? displayName(mem) : key;
-          const chip = el('div', {
-            title: label,
+          const chip = el('button', {
+            title: `${label} · 클릭해서 PT 대본 보기`,
             style: {
               width: '30px', height: '30px', borderRadius: '50%',
               background: isMe ? 'var(--lilac)' : 'rgba(169,139,184,0.18)',
@@ -7653,7 +7835,10 @@ function PremiumPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               border: isMe ? '2px solid #fff' : '1px solid rgba(169,139,184,0.28)',
               boxShadow: isMe ? '0 2px 8px rgba(169,139,184,0.4)' : 'none',
-            }
+              cursor: 'pointer',
+              padding: 0,
+            },
+            onClick: (e) => { e.stopPropagation(); openPresenterScriptModal(key, m.n); },
           }, initial);
           slotWrap.appendChild(chip);
         } else {
@@ -7686,18 +7871,28 @@ function PremiumPage() {
       }, slotStatus));
       card.appendChild(slotsRow);
 
-      // Names of signed-up presenters (작게, English nick 우선)
+      // Names of signed-up presenters (작게, English nick 우선) — 클릭하면 PT 대본 모달 열림.
       if (signups.length) {
-        const names = signups.map((key) => {
+        const namesRow = el('div', {
+          class: 't-small',
+          style: { marginTop: '6px', color: 'var(--ink-soft)', fontSize: '12px', lineHeight: '1.5', display: 'flex', flexWrap: 'wrap', gap: '4px 8px' }
+        });
+        signups.forEach((key, idx) => {
           const mem = memberByKey(key);
-          return mem ? displayName(mem) : '';
-        }).filter(Boolean);
-        if (names.length) {
-          card.appendChild(el('div', {
-            class: 't-small',
-            style: { marginTop: '6px', color: 'var(--ink-soft)', fontSize: '12px', lineHeight: '1.5' }
-          }, names.join(' · ')));
-        }
+          const label = mem ? displayName(mem) : '';
+          if (!label) return;
+          if (idx > 0) namesRow.appendChild(el('span', { style: { color: 'var(--muted)' } }, '·'));
+          const link = el('button', {
+            title: `${label} 의 PT 대본 보기`,
+            style: {
+              background: 'transparent', border: 'none', padding: 0, font: 'inherit',
+              color: 'var(--lilac)', fontWeight: '700', cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(169,139,184,0.4)', textUnderlineOffset: '3px',
+            },
+            onClick: (e) => { e.stopPropagation(); openPresenterScriptModal(key, m.n); },
+          }, label);
+          namesRow.appendChild(link);
+        });
+        card.appendChild(namesRow);
       }
     }
 
@@ -8094,14 +8289,54 @@ async function cloudSaveMeetingNote(meetingId) {
 }
 
 /* ============================================================
+   필수 어휘 — Week 2/4 dynamic 계산
+   ------------------------------------------------------------
+   Week 1, 3 은 mustUseVocab 가 직접 박혀 있음.
+   Week 2 는 그 주 Daily 단어 (CHALLENGE.weeks[1].days[*].words.en).
+   Week 4 는 4주간 전체 Daily 단어 (bingo 8+ 달성용).
+   meta.mustUseVocab 가 비어있을 때만 자동 계산.
+   ============================================================ */
+function getEffectiveMustUseVocab(meta, n) {
+  // 오늘까지 공개된 day 만 — currentDay 보다 큰 day 는 스포일러라 제외.
+  const today = Number(state.currentDay || 1);
+  if (Array.isArray(meta.mustUseVocab) && meta.mustUseVocab.length > 0) {
+    // Static 리스트 (Week 1/3) — 그 주차가 currentDay 기준 도달했을 때만 노출.
+    // 도달 전이면 dynamic fallback (전체 day≤today 단어) 으로 대체해서 "오늘 공개된 단어"
+    // 컨셉을 일관되게 유지.
+    const weekObj = (CHALLENGE.weeks || []).find((w) => Number(w.n) === Number(n));
+    const weekFirstDay = weekObj?.days?.[0]?.day || (Number(n) - 1) * 5 + 1;
+    if (today >= weekFirstDay) return meta.mustUseVocab.slice();
+    // Fall through to dynamic mode below.
+  }
+  // Dynamic — 1일차부터 currentDay 까지 공개된 모든 단어 (week-agnostic).
+  // (1일차 끝 → 3개, 6일차 끝 → 21개, 11일차 끝 → 39개 ...)
+  const days = (CHALLENGE.weeks || [])
+    .flatMap((w) => (w.days || []))
+    .filter((d) => Number(d.day) <= today);
+  const vocab = [];
+  const seen = new Set();
+  days.forEach((d) => {
+    (d.words || []).forEach((w) => {
+      const en = (w.en || '').trim();
+      const key = en.toLowerCase();
+      if (en && !seen.has(key)) {
+        seen.add(key);
+        vocab.push(en);
+      }
+    });
+  });
+  return vocab;
+}
+
+/* ============================================================
    PRESENTER PREP — week-specific 풍부한 준비 블록 (재사용)
    ------------------------------------------------------------
    PT 준비 페이지(PitchPrepPage) 와 발표 준비 페이지(PresenterPrepPage)
    양쪽에서 같은 콘텐츠를 보여주도록 추출된 헬퍼.
-   - 시나리오 / 발표 프롬프트
-   - 필수 어휘 3개 픽 + 스크립트 사용 추적
-   - 스크립트 textarea
-   - 사적 노트 textarea
+   - SCENARIO: 직무 상황 / PT 발표주제 (본인이 직접 입력)
+   - 7분 발표 프롬프트 (meta 에서 자동)
+   - 필수 어휘 3개 픽 + PT 대본 사용 추적
+   - PT 대본 textarea
    - 7분 연습 타이머
    - 자리 내려놓기 버튼 (옵션)
    ============================================================ */
@@ -8139,27 +8374,52 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
     page.appendChild(heading);
   }
 
-  // Scenario block
+  // ---- SCENARIO — 본인 직무 상황 + PT 발표주제 (직접 입력) ----
+  const prepKey = PRESENTER_KEY(n);
+  state.presenter_prep = state.presenter_prep || {};
+  const prep = state.presenter_prep[prepKey] || {
+    vocabPicked: [], script: '',
+    jobContext: '', presentationTopic: '',
+  };
+  state.presenter_prep[prepKey] = prep;
+
   page.appendChild(el('div', { class: 'kicker', style: { marginTop: '22px' } }, 'SCENARIO'));
-  page.appendChild(el('h3', { class: 'h3', style: { marginTop: '6px' } }, meta.scenario?.setting || ''));
-  if (meta.scenario?.premise) {
-    page.appendChild(el('p', {
-      class: 't-body',
-      style: { marginTop: '8px', padding: '12px 14px', borderRadius: '12px', background: 'rgba(254,243,226,0.7)', borderLeft: '3px solid #E4A853', lineHeight: '1.6' }
-    }, meta.scenario.premise));
-  }
+  page.appendChild(el('p', {
+    class: 't-small',
+    style: { marginTop: '4px', color: 'var(--ink-soft)', lineHeight: '1.5' }
+  }, '내 PT 가 어떤 자리에서 진행되는지 짧게 적어두면, 미팅 때 다른 멤버들도 맥락을 잡고 들어요. 자동으로 저장돼요.'));
 
-  if (Array.isArray(meta.scenario?.flow) && meta.scenario.flow.length) {
-    const flowList = el('div', { style: { marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' } });
-    meta.scenario.flow.forEach((step) => {
-      flowList.appendChild(el('div', {
-        style: { padding: '10px 12px', borderRadius: '10px', background: '#FFFDF7', border: '1px solid rgba(231,221,200,0.8)', fontSize: '13px', lineHeight: '1.5' }
-      }, step));
-    });
-    page.appendChild(flowList);
-  }
+  // 직무 상황 입력
+  const jobLabel = el('div', { style: { marginTop: '14px', fontSize: '11px', fontWeight: '700', color: 'var(--ink-soft)', letterSpacing: '0.06em', textTransform: 'uppercase' } }, '직무 상황');
+  page.appendChild(jobLabel);
+  const jobInput = el('input', {
+    class: 'input',
+    placeholder: '예) Series-B 핀테크 PM. 분기 기획 회의에서 새 기능 제안 중',
+    style: { display: 'block', width: '100%', marginTop: '4px', padding: '12px 14px', borderRadius: '12px', background: '#FFFDF7', border: '1px solid rgba(231,221,200,0.9)', fontSize: '14px', fontFamily: 'inherit' },
+  });
+  jobInput.value = prep.jobContext || '';
+  jobInput.addEventListener('input', (e) => {
+    prep.jobContext = e.target.value;
+    saveState({});
+  });
+  page.appendChild(jobInput);
 
-  // Presenter prompt
+  // PT 발표주제 입력
+  const topicLabel = el('div', { style: { marginTop: '12px', fontSize: '11px', fontWeight: '700', color: 'var(--ink-soft)', letterSpacing: '0.06em', textTransform: 'uppercase' } }, 'PT 발표주제');
+  page.appendChild(topicLabel);
+  const topicInput = el('input', {
+    class: 'input',
+    placeholder: '예) Q3 신규 결제 플로우 도입 제안',
+    style: { display: 'block', width: '100%', marginTop: '4px', padding: '12px 14px', borderRadius: '12px', background: '#FFFDF7', border: '1px solid rgba(231,221,200,0.9)', fontSize: '14px', fontFamily: 'inherit' },
+  });
+  topicInput.value = prep.presentationTopic || '';
+  topicInput.addEventListener('input', (e) => {
+    prep.presentationTopic = e.target.value;
+    saveState({});
+  });
+  page.appendChild(topicInput);
+
+  // Presenter prompt — meta 에서 자동 (있을 때만)
   if (meta.presenterPrompt) {
     page.appendChild(el('div', { class: 'kicker', style: { marginTop: '22px', color: 'var(--lilac)' } }, '7분 발표 프롬프트'));
     page.appendChild(el('p', {
@@ -8167,21 +8427,21 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
     }, meta.presenterPrompt));
   }
 
-  // Vocab picker — pick up to 3 from mustUseVocab
-  const prepKey = PRESENTER_KEY(n);
-  state.presenter_prep = state.presenter_prep || {};
-  const prep = state.presenter_prep[prepKey] || { vocabPicked: [], script: '', privateNotes: '' };
-  state.presenter_prep[prepKey] = prep;
+  // ---- Vocab picker — Week 2/4 는 dynamic 으로 계산 ----
+  const effectiveVocab = getEffectiveMustUseVocab(meta, n);
   const MAX_PICK = 3;
 
   page.appendChild(el('div', { class: 'kicker', style: { marginTop: '24px' } }, `필수 어휘 · ${prep.vocabPicked.length}/${MAX_PICK} 고르기`));
   page.appendChild(el('p', {
     class: 't-small',
     style: { marginTop: '4px', color: 'var(--ink-soft)', lineHeight: '1.5' }
-  }, '발표에서 꼭 쓰고 싶은 표현 3개를 골라요. 아래 스크립트에 쓸 때마다 초록색으로 하이라이트돼요.'));
+  }, effectiveVocab.length
+    ? '발표에서 꼭 쓰고 싶은 표현 3개를 골라요. 아래 PT 대본에 쓸 때마다 초록색으로 하이라이트돼요.'
+    : '아직 이번 주 학습이 시작되지 않아 어휘 리스트가 비어있어요. Daily 학습이 시작되면 그 주차에 학습한 단어가 자동으로 채워져요.'
+  ));
 
   const vocabWrap = el('div', { style: { marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap' } });
-  (meta.mustUseVocab || []).forEach((v) => {
+  effectiveVocab.forEach((v) => {
     const picked = prep.vocabPicked.includes(v);
     const chip = el('button', {
       style: {
@@ -8213,8 +8473,8 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
   });
   page.appendChild(vocabWrap);
 
-  // Script textarea + live highlight preview
-  page.appendChild(el('div', { class: 'kicker', style: { marginTop: '24px' } }, '스크립트 / 미팅 노트'));
+  // PT 대본 textarea + live highlight preview
+  page.appendChild(el('div', { class: 'kicker', style: { marginTop: '24px' } }, 'PT 대본'));
   page.appendChild(el('p', {
     class: 't-small',
     style: { marginTop: '4px', color: 'var(--ink-soft)', lineHeight: '1.5' }
@@ -8281,35 +8541,8 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
   }
   updateVocabHits();
 
-  // Private notes
-  page.appendChild(el('div', { class: 'kicker', style: { marginTop: '24px' } }, '🔒 내 사적 노트'));
-  page.appendChild(el('p', {
-    class: 't-small',
-    style: { marginTop: '4px', color: 'var(--ink-soft)', lineHeight: '1.5' }
-  }, '나만 보는 공간이에요. 긴장되는 부분 · 꼭 피할 말 · Q&A 예상 질문 · 피드백 받고 싶은 포인트를 자유롭게.'));
-
-  const notesArea = el('textarea', {
-    placeholder: 'ex. 질문 올 수 있는 것 / 떨면 쓸 안전문장 / 발표 후 받고 싶은 피드백',
-    style: {
-      marginTop: '8px',
-      width: '100%',
-      minHeight: '120px',
-      padding: '14px 16px',
-      borderRadius: '14px',
-      border: '1px solid rgba(231,221,200,0.9)',
-      background: '#FFF9EF',
-      fontSize: '14px',
-      lineHeight: '1.65',
-      fontFamily: 'inherit',
-      resize: 'vertical',
-    },
-  });
-  notesArea.value = prep.privateNotes || '';
-  notesArea.addEventListener('input', (e) => {
-    prep.privateNotes = e.target.value;
-    saveState({});
-  });
-  page.appendChild(notesArea);
+  // (사적 노트 섹션 제거됨 — PT 대본 자체가 모든 멤버에게 공유돼서, 따로 비공개
+  //  공간이 필요하다는 피드백이 처음엔 있었지만 5기에선 멤버 간 대본 공유로 변경.)
 
   // 7-minute practice timer
   page.appendChild(el('div', { class: 'kicker', style: { marginTop: '26px' } }, '⏱ 7분 말해보기'));
@@ -8552,11 +8785,23 @@ function PitchPrepPage() {
   addBox.appendChild(addRow);
   vocabSection.appendChild(addBox);
 
-  // Harvest chips from meeting timeline
+  // Harvest chips from meeting timeline — 단, 아직 미팅이 일어나지 않은 주차는 제외.
+  // 운영자 프리뷰로 미팅 노트 페이지를 미리 클릭한 흔적이 "미팅에서 저장한 표현" 으로
+  // 잘못 노출되던 버그 방지. (미팅 dates 가 미래면 그 mid 의 expressions 는 무시.)
   const harvested = [];
   Object.keys(state.meeting_notes || {}).forEach(mid => {
     const mn = state.meeting_notes[mid];
     if (!mn || !mn.timeline) return;
+    // 미래 미팅인지 체크 — 'm{n}' 형식의 mid 만 검사.
+    const m = String(mid).match(/^m(\d+)$/);
+    if (m) {
+      const meetingNum = Number(m[1]);
+      const meeting = (CHALLENGE.premium.weekly_meetings || []).find(x => Number(x.n) === meetingNum);
+      if (meeting && meeting.date) {
+        const daysTo = daysUntilMeeting(meeting.date);
+        if (daysTo !== null && daysTo > 0) return; // 미팅이 아직 안 일어남 → 스킵
+      }
+    }
     // 새 키 = presenters, 레거시 = s1/s2/s3 도 같이 훑어서 모음.
     ['roleplay','presenters','s1','s2','s3'].forEach(k => {
       const row = mn.timeline[k];
@@ -8588,12 +8833,33 @@ function PitchPrepPage() {
     vocabSection.appendChild(harvestBox);
   }
 
+  // 분류 보정 — 단어 자체가 CHALLENGE Daily 단어 목록에 있으면 'daily' 로 자동 재분류.
+  // (예전엔 미팅 노트에서 칩으로 저장한 daily 단어가 'meeting' 으로 잘못 표시됨)
+  // 저장된 v.source 자체는 안 건드리고, 표시·필터 단계에서만 보정.
+  const __dailyVocabSet = (() => {
+    const s = new Set();
+    (CHALLENGE.weeks || []).forEach(w => {
+      (w.days || []).forEach(d => {
+        (d.words || []).forEach(dw => {
+          const en = (dw.en || '').toLowerCase().trim();
+          if (en) s.add(en);
+        });
+      });
+    });
+    return s;
+  })();
+  const __classifyVocabSource = (v) => {
+    const w = (v.word || '').toLowerCase().trim();
+    if (w && __dailyVocabSet.has(w)) return 'daily';
+    return v.source || 'manual';
+  };
+
   // Saved vocab list — 소스별 필터 + 배지.
   if (state.pitch_vocab.length) {
     const activeFilter = window.__vocabFilter || 'all';
     const counts = { all: state.pitch_vocab.length, daily: 0, synonym: 0, meeting: 0, manual: 0 };
     state.pitch_vocab.forEach(v => {
-      const s = v.source || 'manual';
+      const s = __classifyVocabSource(v);
       if (counts[s] != null) counts[s]++;
     });
     const filterRow = el('div', {
@@ -8639,7 +8905,7 @@ function PitchPrepPage() {
     const list = el('div', { style: { marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '8px' } });
     const filtered = state.pitch_vocab
       .map((v, i) => ({ v, i }))
-      .filter(({ v }) => activeFilter === 'all' || (v.source || 'manual') === activeFilter);
+      .filter(({ v }) => activeFilter === 'all' || __classifyVocabSource(v) === activeFilter);
 
     if (filtered.length === 0) {
       list.appendChild(el('div', {
@@ -8648,7 +8914,7 @@ function PitchPrepPage() {
       }, '이 필터에는 저장된 표현이 없어요.'));
     } else {
       filtered.forEach(({ v, i }) => {
-      const src = v.source || 'manual';
+      const src = __classifyVocabSource(v);
       const srcMeta = SOURCE_LABELS[src] || SOURCE_LABELS.manual;
       const item = el('div', {
         style: {
@@ -8832,30 +9098,7 @@ function PitchPrepPage() {
   recapSection.appendChild(recapList);
   page.appendChild(recapSection);
 
-  // ---- Section: Scratch ----
-  const scratchSection = el('div', { style: { marginTop: '32px' } });
-  scratchSection.appendChild(el('div', {
-    style: { fontSize: '10px', letterSpacing: '0.14em', fontWeight: '700', color: '#7B5E8C' }
-  }, '🧠 SCRATCH'));
-  scratchSection.appendChild(el('h2', {
-    style: { fontSize: '20px', fontWeight: '800', color: 'var(--ink)', marginTop: '6px', letterSpacing: '-0.015em' }
-  }, '상시 PT 아이디어'));
-  scratchSection.appendChild(el('p', {
-    class: 't-small',
-    style: { marginTop: '4px', color: 'var(--muted)' }
-  }, '갑자기 떠오른 PT 문장, 반복되는 내 업무 예시, 오프닝 후보 — 여기 흘려두세요.'));
-  const scratch = el('textarea', {
-    class: 'mn-editor',
-    placeholder: '예)\n- 우리 제품 한 줄 요약: "We help X get Y in Z minutes."\n- 내 팀 이번 분기 one thing: ...\n- 자주 막히는 오프닝: "Let me set the table..."',
-    style: { minHeight: '180px', marginTop: '12px' }
-  });
-  scratch.value = state.pitch_scratch || '';
-  scratch.addEventListener('input', (e) => {
-    state.pitch_scratch = e.target.value;
-    saveState();
-  });
-  scratchSection.appendChild(scratch);
-  page.appendChild(scratchSection);
+  // (SCRATCH "상시 PT 아이디어" 섹션 제거됨 — PT 대본 + 어휘 뱅크에 흡수.)
 
   // Footer spacer
   page.appendChild(el('div', { style: { height: '80px' } }));
