@@ -5796,7 +5796,11 @@ function HomePage() {
   // footer
   page.appendChild(el('div', { style: { textAlign: 'center', padding: '24px 12px 40px', color: 'var(--muted)' } },
     (() => { const d = el('div');
-      d.innerHTML = `<div class="kicker">YOUBUDDY BUSINESS ENGLISH · ${CHALLENGE.cohort}</div><div class="t-small" style="margin-top:6px;">매일 20분, 20일이면 말하기가 달라져요</div>`;
+      // 티어별 카피: 베이직은 어휘·표현 중심, 프리미엄은 미팅 발화 중심으로 차별화.
+      const footerTagline = state.tier === 'premium'
+        ? '매일 20분, 20일이면 회의 영어가 달라져요'
+        : '매일 20분, 20일이면 비즈니스 어휘 폭이 넓어져요';
+      d.innerHTML = `<div class="kicker">YOUBUDDY BUSINESS ENGLISH · ${CHALLENGE.cohort}</div><div class="t-small" style="margin-top:6px;">${escapeHtml(footerTagline)}</div>`;
       return d; })()));
 
   return page;
@@ -13566,7 +13570,11 @@ function generateMarkdown() {
 
   lines.push('---');
   lines.push('');
-  lines.push(`*Exported from YouBuddy 비즈니스 영어 챌린지 ${CHALLENGE.cohort} · 매일 20분, 20일이면 말하기가 달라져요.*`);
+  // 티어별 카피 — 베이직은 어휘 중심, 프리미엄은 미팅 발화 중심.
+  const __exportTagline = state.tier === 'premium'
+    ? '매일 20분, 20일이면 회의 영어가 달라져요'
+    : '매일 20분, 20일이면 비즈니스 어휘 폭이 넓어져요';
+  lines.push(`*Exported from YouBuddy 비즈니스 영어 챌린지 ${CHALLENGE.cohort} · ${__exportTagline}.*`);
   return lines.join('\n');
 }
 
