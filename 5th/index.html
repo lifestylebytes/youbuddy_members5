@@ -989,9 +989,9 @@ const CHALLENGE = {
             { en: 'Vetting process', pos: 'noun', def: '철저한 검증/심사 과정', ex_en: "They have to go through a strict vetting process.", ex_kr: '그들은 엄격한 검증 과정을 거쳐야 합니다.', syn: ['Screening', 'Due diligence'], nuance: '새 파트너·중요 솔루션 도입 시 리스크가 없는지 깐깐하고 철저하게 심사하는 과정을 말해요.' },
             { en: 'Viability', pos: 'noun', def: '실행 가능성 / 수익 가능성', ex_en: "We need to assess the commercial viability of this product.", ex_kr: '이 제품의 상업적 수익 가능성을 평가해야 합니다.', syn: ['Feasibility', 'Workability'], nuance: '아이디어는 좋은데 실제로 돈이 되거나 시장에 런칭할 수 있는지 냉정하게 따져볼 때 써요.' },
           ] },
-        { day: 3, title: '일단 쉬운 것부터 빨리 끝낼까요?', goal_en: "Go quick and dirty and front-load the heavy parts.", goal_kr: '속도 우선, 초반에 몰아치기.',
+        { day: 3, title: '일단 쉬운 것부터 빨리 끝낼까요?', goal_en: "Take a first pass and front-load the heavy parts.", goal_kr: '속도 우선, 초반에 몰아치기.',
           words: [
-            { en: 'Quick and dirty', pos: 'phrase', def: '빠르고 거칠게 / 일단 임시로', ex_en: "Let's put together a quick and dirty prototype for the meeting.", ex_kr: '회의를 위해 일단 빠르고 거칠게 프로토타입 하나 뚝딱 만들어봅시다.', syn: ['Rough and ready', 'Scrappy'], nuance: '완벽함보다 속도가 생명일 때, 투박해도 일단 빠르게 결과물을 뽑아내야 할 때 쓰는 실무 찐표현.' },
+            { en: 'First pass', pos: 'noun phrase', def: '첫 시도 / 초안 — 일단 빠르게', ex_en: "Let me do a first pass on the deck and we can iterate from there.", ex_kr: '일단 제가 덱 초안 한 번 잡아볼게요, 거기서부터 다듬으면 돼요.', syn: ['Rough draft', 'First cut'], nuance: '완벽 노리지 말고 일단 빠르게 첫 시도를 만들어 함께 다듬는 톤. "이거 한 번 던져볼게요" 같은 협업 친화적 실무 표현.' },
             { en: 'Get it over the line', pos: 'phrase', def: '어렵사리 완수시키다 / 마침내 넘기다', ex_en: "We worked all weekend to get this project over the line.", ex_kr: '이 프로젝트를 무사히 완수시키기 위해 주말 내내 일했어요.', syn: ['Bring it home', 'Wrap it up'], nuance: '지지부진하던 프로젝트·아슬아슬했던 계약을 우여곡절 끝에 마침내 최종 성사시켰을 때 쾌감 담아 써요.' },
             { en: 'Front-load', pos: 'verb', def: '업무나 리소스를 초반에 몰아서 하다', ex_en: "Let's front-load the heavy tasks this week so we have breathing room later.", ex_kr: '나중에 숨통 좀 트이게 이번 주에 빡센 일들을 몰아서 해둡시다.', syn: ['Tackle early', 'Prioritize heavily at the start'], nuance: '후반부 바빠질 걸 대비해 무거운 업무·리소스를 초반 일정에 빡세게 밀어 넣는 전략을 말해요.' },
           ] },
@@ -1615,6 +1615,7 @@ const PERSISTED_STATE_KEYS = [
   'quiz_results',
   'savedTab',
   'communityFilter',
+  'communitySort',
   'tierOverride',
   '__vocabMigrated',
   'cert_profile',
@@ -2802,8 +2803,8 @@ const SYNONYM_GLOSSARY = {
   'feasibility': '기술·실행 측면의 실현 가능성',
   'workability': '일단 돌아가기는 하는지 여부',
   // Day 3
-  'rough and ready': '투박하지만 현장에서 써먹을 수 있는',
-  'scrappy': '리소스 없이도 악착같이 해내는 태도',
+  'rough draft': '다듬기 전의 빠른 초안',
+  'first cut': '첫 시도/추출본 — 다듬기 전 raw 버전',
   'bring it home': '결승까지 몰아쳐 기어코 마무리하다',
   'wrap it up': '일단 깔끔하게 마무리 짓다',
   'tackle early': '문제를 초반에 손대기 시작하다',
@@ -2947,9 +2948,9 @@ const SYNONYM_NUANCE = {
   'Viability::Feasibility': '"Viability"는 시장에서 실제로 돈이 될지까지 보는 것, "Feasibility"는 기술적·운영적으로 실행 가능한지에 방점을 둬요.',
   'Viability::Workability': '"Viability"는 비즈니스 생존 가능성을 따지는 전략 용어, "Workability"는 "그래서 일단 돌아가긴 해?" 정도의 가벼운 구어예요.',
 
-  // Day 3 - Quick and dirty / Get it over the line / Front-load
-  'Quick and dirty::Rough and ready': '"Quick and dirty"는 속도 위해 지저분해도 OK, "Rough and ready"는 투박해도 바로 실전 투입 가능하다는 "쓸만함"에 방점이 있어요.',
-  'Quick and dirty::Scrappy': '"Quick and dirty"는 결과물의 상태를, "Scrappy"는 부족한 리소스를 악착같이 쥐어짜내는 팀의 태도·문화를 묘사해요.',
+  // Day 3 - First pass / Get it over the line / Front-load
+  'First pass::Rough draft': '"First pass"는 빠르게 만든 첫 시도 — iteration 전제. "Rough draft"는 좀 더 글/문서 맥락에서 다듬기 전 초고를 가리켜요.',
+  'First pass::First cut': '"First pass"가 더 일반적인 PM/eng 표현이고, "First cut"은 데이터 분석·편집·디자인에서 첫 추출/컷을 뜻하는 살짝 좁은 톤이에요.',
   'Get it over the line::Bring it home': '"Get it over the line"은 겨우 결승선을 넘긴 안도감, "Bring it home"은 홈까지 몰아치는 추진력·승부 근성이 더 강해요.',
   'Get it over the line::Wrap it up': '"Get it over the line"에는 우여곡절 끝의 성취감이 있지만 "Wrap it up"은 단순히 "이쯤에서 깔끔히 끝내자"는 정리 뉘앙스예요.',
   'Front-load::Tackle early': '"Front-load"는 업무량·리소스를 초반에 몰아 넣는 배분 전략, "Tackle early"는 단순히 "일찍 손대자"는 시점 강조라 범위가 좁아요.',
@@ -4123,6 +4124,10 @@ function peerSentencesFor(day) {
         const wordIdx = Math.max(0, dayData?.words?.findIndex((w) => (w.en || '').toUpperCase() === (post.word || '').toUpperCase()) ?? 0);
         return {
           user: post.user,
+          // member_key 같이 보존 — Day 페이지 렌더 시 displayName(닉네임 우선) 으로 변환하기 위함.
+          member_key: post.member_key,
+          tier: post.tier,
+          english_name: post.english_name,
           team: post.team || 'A',
           avatar: (post.user || '').slice(0, 2),
           wordIdx,
@@ -4752,12 +4757,18 @@ function showPeerTicker(peer) {
   const existing = document.querySelector('.peer-ticker');
   if (existing) existing.remove();
 
+  // peer.user 는 한국 이름 — 영어 닉네임 우선으로 표기 (커뮤니티 / Day 페이지와 통일).
+  const peerMember = (typeof memberByRef === 'function' ? memberByRef(peer.user) : null)
+    || (peer.member_key && typeof memberByKey === 'function' ? memberByKey(peer.member_key) : null);
+  const peerDisplay = peerMember ? displayName(peerMember) : (peer.user || '');
+  const peerInitial = peerMember ? safeInitial(peerMember) : ((peer.avatar || peer.user || '').slice(0,1));
+
   const node = el('div', { class: 'peer-ticker' });
   node.innerHTML = `
     <span class="pt-pulse"></span>
-    <div class="pt-avatar">${(peer.avatar || peer.user || '').slice(0,1)}</div>
+    <div class="pt-avatar">${escapeHtml(peerInitial)}</div>
     <div class="pt-text">
-      <span class="pt-label">${escapeHtml(peer.user || '')}님 문장 올림</span>
+      <span class="pt-label">${escapeHtml(peerDisplay)}님 문장 올림</span>
     </div>`;
   node.addEventListener('click', () => {
     // Scroll to peer sentences section if present
@@ -6967,15 +6978,8 @@ function DayPage(dayN) {
           </div>
         </div>
       `;}).join('');
-      const premiumDetail = (w.syn || []).map((s) => `
-        <div style="padding:13px 14px;border-radius:16px;background:rgba(255,255,255,0.82);border:1px solid rgba(169,139,184,0.22);">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span class="badge badge-lilac">${escapeHtml(s)}</span>
-            <span style="font-size:12px;color:#765d87;">${escapeHtml(synonymMeaning(s))}</span>
-          </div>
-          <div style="margin-top:8px;font-size:12.5px;line-height:1.6;color:var(--ink);">${escapeHtml(synonymNuance(w, s))}</div>
-        </div>
-      `).join('');
+      // PREMIUM DETAIL 박스는 위쪽 vocab card 에서 제거됨 — 정보 중복 + 결정 시점이 아닌 곳.
+      // 같은 정보가 prompt box (문장 쓸 때) 에 라일락 박스로 노출됨 = just-in-time learning.
       detail.innerHTML = `
         <div>
           <div class="kicker" style="margin-bottom:8px;">유의어</div>
@@ -6983,18 +6987,6 @@ function DayPage(dayN) {
             ${synonymPreview || `<div style="padding:12px 14px;border-radius:14px;background:var(--paper);border:1px solid var(--line-soft);font-size:12px;color:var(--muted);">연결된 유의어가 아직 없어요.</div>`}
           </div>
         </div>
-        ${state.tier === 'premium' ? `
-          <div style="margin-top:12px;padding:15px 16px;border-radius:18px;background:linear-gradient(135deg, rgba(238,230,243,0.96) 0%, rgba(255,248,255,0.98) 100%);border:1px solid rgba(169,139,184,0.34);">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-              <div class="kicker" style="color:var(--lilac);">PREMIUM DETAIL</div>
-              <span class="badge badge-lilac">${Icon('crown', 10)} PREMIUM</span>
-            </div>
-            <div style="margin-top:8px;font-size:14px;line-height:1.55;color:var(--ink);font-weight:700;">유의어별 쓰임 차이와 톤 차이를 더 자세히 볼 수 있어요.</div>
-            <div style="margin-top:10px;display:grid;gap:8px;">
-              ${premiumDetail || `<div style="padding:12px 14px;border-radius:14px;background:rgba(255,255,255,0.82);border:1px solid rgba(169,139,184,0.22);font-size:12px;color:#765d87;">상세 유의어 설명이 곧 추가돼요.</div>`}
-            </div>
-          </div>
-        ` : ''}
       `;
       card.appendChild(detail);
     }
@@ -7095,6 +7087,25 @@ function DayPage(dayN) {
         <span class="badge" style="padding:6px 12px;font-size:10px;background:var(--paper);color:var(--ink-soft);font-family:var(--font-mono);">오늘 쓸 표현</span>
         <span style="font-size:13px;color:var(--ink-soft);"><b style="color:var(--orange-dark);">${escapeHtml(w.en)}</b> · ${escapeHtml(w.def)}</span>
       </div>
+      ${state.tier === 'premium' && Array.isArray(w.syn) && w.syn.length ? `
+        <div style="margin-top:12px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg, rgba(238,230,243,0.96) 0%, rgba(255,248,255,0.98) 100%);border:1px solid rgba(169,139,184,0.34);">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:var(--lilac);color:#fff;font-size:9.5px;font-weight:800;letter-spacing:0.06em;">${Icon('crown', 9)} PREMIUM</span>
+            <span style="font-size:11px;font-weight:700;color:var(--lilac);letter-spacing:0.04em;">유의어 한 끗 차이</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            ${w.syn.map((s) => `
+              <div style="padding:8px 12px;border-radius:10px;background:rgba(255,255,255,0.7);">
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                  <span style="font-size:12.5px;font-weight:800;color:#7B5E8C;">${escapeHtml(s)}</span>
+                  <span style="font-size:11.5px;color:#765d87;">— ${escapeHtml(synonymMeaning(s))}</span>
+                </div>
+                <div style="margin-top:4px;font-size:11.5px;line-height:1.5;color:var(--ink);">${escapeHtml(synonymNuance(w, s))}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
     `;
     row.appendChild(promptBox);
 
@@ -7281,6 +7292,12 @@ function DayPage(dayN) {
     const fb = state.ai_feedback[key];
     if (fb && isSubmitted) {
       const hasDiff = /<del>|<ins>/i.test(fb.diff_html || '');
+      // AI 가 "수정 없음" 류 메시지 보냈는데 실제 diff 가 있으면 → 일관성 깨진 케이스.
+      // diff 가 정답이라 가정하고 why 를 덮어써서 학습자 혼란 방지.
+      const __whyClaimsNoChange = /수정할? 부분.*없|이미.*자연|그대로.*가셔도|잘 쓰셨|수정 ?없|변경 ?없/i.test(fb.why || '');
+      const reconciledWhy = (hasDiff && __whyClaimsNoChange)
+        ? '문장 거의 자연스러웠고, 흐름·표현을 살짝만 다듬었어요.'
+        : (fb.why || '');
       const result = el('div', { class: 'ai-feedback', style: { marginTop: '18px', padding: '20px 22px', borderRadius: '28px' } });
       result.innerHTML = `
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
@@ -7294,7 +7311,7 @@ function DayPage(dayN) {
         ${hasDiff
           ? `<div style="font-size:13px;margin:8px 0;line-height:1.55;">${fb.diff_html}</div>`
           : `<div class="t-small" style="margin:8px 0;color:var(--green);">고칠 부분이 없어요 — 자연스럽게 잘 썼어요!</div>`}
-        <div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(fb.why)}</div>
+        <div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(reconciledWhy)}</div>
         <div class="t-small" style="margin-top:8px;color:var(--muted);font-size:11.5px;line-height:1.5;">이걸 복사해서 다시 붙여넣고 제출하면 수정돼 올라가요.</div>`;
       // Wire up the copy button after innerHTML is set.
       const copyBtn = result.querySelector('.btn-copy-ai');
@@ -7331,55 +7348,161 @@ function DayPage(dayN) {
       <div class="kicker" style="color:var(--orange-dark);">bonus · story hook</div>
       <h3 class="h3" style="margin-top:6px;">오늘 3문장을 하나의 짧은 흐름으로 이어볼까요?</h3>
       <p class="t-body" style="margin-top:6px;font-size:13px;line-height:1.55;">실제 미팅 시나리오 1분 상황극 — 세 표현을 자연스럽게 엮으면 기억에 더 오래 남아요. 아래 문장에 단어가 들어가면 ✓ 로 체크돼요.</p>`;
-    const hookWords = el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' } });
-    // 칩 reference 보관 — textarea input 마다 색·체크 토글하기 위해.
+    // 단어 영역 — 카드 per main word. 메인 = 강조 (큰 mono + 체크 동그라미),
+    // 유의어 = 카드 하단 점선 구분 후 작게 인라인. 프리미엄 배지는 영역 위 한 번만.
     const hookChips = [];
+    const synChips = [];
+    const isPremium = state.tier === 'premium';
+
+    if (isPremium) {
+      const premiumHint = el('div', {
+        style: { display: 'flex', alignItems: 'center', gap: '6px', marginTop: '12px', marginBottom: '4px' }
+      });
+      premiumHint.innerHTML = `
+        <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:999px;background:var(--lilac);color:#fff;font-size:9px;font-weight:800;letter-spacing:0.06em;">${Icon('crown', 8)} PREMIUM</span>
+        <span style="font-size:10.5px;color:var(--lilac);font-weight:600;">유의어 응용도 같이 트래킹돼요 (선택)</span>
+      `;
+      hook.appendChild(premiumHint);
+    }
+
+    const hookWords = el('div', {
+      style: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }
+    });
     d.words.forEach((word, idx) => {
-      const chip = el('span', {
-        class: 'badge',
-        'data-word': (word.en || '').toLowerCase(),
+      // 메인 단어 카드
+      const card = el('div', {
         style: {
-          padding: '8px 12px',
-          borderRadius: '999px',
-          background: '#FFF7ED',
-          color: 'var(--orange-dark)',
+          padding: '12px 14px',
+          borderRadius: '14px',
+          background: '#FFFDF7',
           border: '1px solid var(--orange-soft)',
-          fontSize: '12px',
-          fontFamily: 'var(--font-mono)',
-          fontWeight: '600',
-          transition: 'all 0.18s',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '5px',
+          transition: 'all 0.2s',
         }
       });
-      chip.dataset.idx = String(idx);
-      chip.dataset.word = word.en;
-      // 초기 라벨 (소문자, hit 상태는 updateHookHits 가 덧칠).
-      chip.innerHTML = `<span data-mark>○</span><span>0${idx + 1}</span><span>${escapeHtml((word.en || '').toLowerCase())}</span>`;
-      hookWords.appendChild(chip);
-      hookChips.push({ el: chip, en: word.en });
+
+      const mainRow = el('div', {
+        style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }
+      });
+
+      // 번호 배지
+      const numBadge = el('span', {
+        style: {
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          minWidth: '24px', height: '22px', padding: '0 6px',
+          borderRadius: '7px',
+          background: 'rgba(240,125,56,0.14)', color: 'var(--orange-dark)',
+          fontSize: '11px', fontWeight: '800', fontFamily: 'var(--font-mono)',
+          flexShrink: '0',
+        }
+      }, `0${idx + 1}`);
+      mainRow.appendChild(numBadge);
+
+      // 체크 동그라미
+      const checkMark = el('span', {
+        'data-main-mark': '1',
+        style: {
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: '20px', height: '20px', borderRadius: '50%',
+          background: 'rgba(231,221,200,0.7)', color: 'var(--muted)',
+          fontSize: '11px', fontWeight: '800',
+          flexShrink: '0', transition: 'all 0.2s',
+        }
+      }, '○');
+      mainRow.appendChild(checkMark);
+
+      // 메인 단어 텍스트
+      const mainWord = el('span', {
+        'data-main-text': '1',
+        style: {
+          fontSize: '15px', fontWeight: '800',
+          color: 'var(--ink)',
+          fontFamily: 'var(--font-mono)',
+          letterSpacing: '-0.01em',
+          transition: 'color 0.2s',
+        }
+      }, (word.en || '').toLowerCase());
+      mainRow.appendChild(mainWord);
+
+      card.appendChild(mainRow);
+      hookChips.push({ el: card, mark: checkMark, text: mainWord, en: word.en });
+
+      // 프리미엄 — 카드 하단 점선 구분 후 유의어 작게 인라인
+      if (isPremium && Array.isArray(word.syn) && word.syn.length) {
+        const synRow = el('div', {
+          style: {
+            marginTop: '8px', paddingTop: '8px',
+            borderTop: '1px dashed rgba(231,221,200,0.8)',
+            display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
+            fontSize: '11.5px',
+          }
+        });
+        synRow.appendChild(el('span', {
+          style: { fontSize: '9.5px', color: 'var(--muted)', fontWeight: '700', letterSpacing: '0.08em', flexShrink: '0' }
+        }, '응용 →'));
+
+        word.syn.forEach((s, sIdx) => {
+          if (sIdx > 0) {
+            synRow.appendChild(el('span', {
+              style: { fontSize: '11px', color: 'rgba(169,139,184,0.4)', flexShrink: '0' }
+            }, '·'));
+          }
+          const synEl = el('span', {
+            style: {
+              display: 'inline-flex', alignItems: 'center', gap: '4px',
+              fontSize: '11.5px', color: '#7B5E8C', fontWeight: '600',
+              fontFamily: 'var(--font-mono)',
+              transition: 'all 0.2s',
+            }
+          });
+          synEl.innerHTML = `<span data-mark style="color:rgba(169,139,184,0.5);font-weight:700;">○</span><span data-text>${escapeHtml((s || '').toLowerCase())}</span>`;
+          synRow.appendChild(synEl);
+          synChips.push({ el: synEl, syn: s });
+        });
+
+        card.appendChild(synRow);
+      }
+
+      hookWords.appendChild(card);
     });
     hook.appendChild(hookWords);
 
-    // 힛 카운터 (3개 중 N개 사용됨)
+    // 힛 카운터 (3개 중 N개 사용됨) — 메인 단어 기준만, 유의어는 카운트에 안 들어감
     const hookHitCounter = el('div', {
-      style: { marginTop: '8px', fontSize: '12px', fontWeight: '700', color: 'var(--muted)' }
+      style: { marginTop: '10px', fontSize: '12px', fontWeight: '700', color: 'var(--muted)' }
     }, '');
     hook.appendChild(hookHitCounter);
 
     function updateHookHits() {
       const text = (hookTa.value || '').toLowerCase();
       let hitCount = 0;
+      // 메인 단어 카드 — hit 시 카드 배경/테두리 + 체크 동그라미 + 단어 색 다 같이 토글.
       hookChips.forEach((c) => {
         const hit = text.includes((c.en || '').toLowerCase());
         if (hit) hitCount += 1;
+        c.el.style.background = hit ? 'rgba(74,160,124,0.06)' : '#FFFDF7';
+        c.el.style.borderColor = hit ? 'rgba(74,160,124,0.4)' : 'var(--orange-soft)';
+        if (c.mark) {
+          c.mark.textContent = hit ? '✓' : '○';
+          c.mark.style.background = hit ? '#22B36A' : 'rgba(231,221,200,0.7)';
+          c.mark.style.color = hit ? '#fff' : 'var(--muted)';
+        }
+        if (c.text) {
+          c.text.style.color = hit ? '#2E7D5A' : 'var(--ink)';
+        }
+      });
+      // 프리미엄 유의어 — 텍스트만 변형 (chip 형태 아님)
+      synChips.forEach((c) => {
+        const hit = text.includes((c.syn || '').toLowerCase());
         const mark = c.el.querySelector('[data-mark]');
-        if (mark) mark.textContent = hit ? '✓' : '○';
-        // 색상 토글: hit 시 초록 계열, miss 시 주황 페이드.
-        c.el.style.background = hit ? 'rgba(74,160,124,0.16)' : '#FFF7ED';
-        c.el.style.color = hit ? '#2E7D5A' : 'var(--orange-dark)';
-        c.el.style.borderColor = hit ? 'rgba(74,160,124,0.42)' : 'var(--orange-soft)';
+        const txt = c.el.querySelector('[data-text]');
+        if (mark) {
+          mark.textContent = hit ? '✓' : '○';
+          mark.style.color = hit ? '#22B36A' : 'rgba(169,139,184,0.5)';
+        }
+        if (txt) {
+          txt.style.color = hit ? '#2E7D5A' : '#7B5E8C';
+          txt.style.fontWeight = hit ? '700' : '600';
+        }
       });
       hookHitCounter.textContent = `${hitCount}/3 단어 사용됨`;
       hookHitCounter.style.color = hitCount === 3 ? '#2E7D5A' : 'var(--muted)';
@@ -7456,6 +7579,11 @@ function DayPage(dayN) {
 
     if (hookFeedback) {
       const hasHookDiff = /<del>|<ins>/i.test(hookFeedback.diff_html || '');
+      // AI 일관성 가드 — diff 있는데 "수정 없음" 류로 말하면 reconcile.
+      const __hookWhyClaimsNoChange = /수정할? 부분.*없|이미.*자연|그대로.*가셔도|잘 쓰셨|수정 ?없|변경 ?없/i.test(hookFeedback.why || '');
+      const reconciledHookWhy = (hasHookDiff && __hookWhyClaimsNoChange)
+        ? '흐름은 자연스러웠고, 표현 몇 군데를 살짝 다듬었어요.'
+        : (hookFeedback.why || '');
       const result = el('div', { class: 'ai-feedback', style: { marginTop: '14px', padding: '18px 20px', borderRadius: '24px' } });
       result.innerHTML = `
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
@@ -7469,7 +7597,7 @@ function DayPage(dayN) {
         ${hasHookDiff
           ? `<div style="font-size:13px;margin:8px 0;line-height:1.55;">${hookFeedback.diff_html}</div>`
           : `<div class="t-small" style="margin:8px 0;color:var(--green);">흐름이 자연스러워요 — 그대로 써도 좋아요!</div>`}
-        <div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(hookFeedback.why || '')}</div>`;
+        <div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(reconciledHookWhy)}</div>`;
       const copyBtn = result.querySelector('.btn-copy-ai');
       if (copyBtn) {
         copyBtn.addEventListener('click', (ev) => {
@@ -7528,12 +7656,16 @@ function DayPage(dayN) {
         const word = (d.words[p.wordIdx] || d.words[0]).en;
         const wordRe = new RegExp('(' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'i');
         const highlighted = (p.sentence || '').replace(wordRe, '<b style="color:var(--orange-dark);">$1</b>');
+        // p.user 는 저장 시점의 한국 이름이라, 영어 닉네임 우선으로 변환 (커뮤니티 피드와 통일).
+        const peerMember = memberByRef(p.user) || (p.member_key ? memberByKey(p.member_key) : null);
+        const peerDisplay = peerMember ? displayName(peerMember) : p.user;
+        const peerInitial = peerMember ? safeInitial(peerMember) : (p.avatar || '');
         const item = el('div', { class: 'card', style: { padding: '14px 16px', borderRadius: '20px', background: 'var(--cream)' } });
         item.innerHTML = `
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-            <div style="width:32px;height:32px;border-radius:10px;background:var(--paper);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--ink);">${escapeHtml(p.avatar || '')}</div>
+            <div style="width:32px;height:32px;border-radius:10px;background:var(--paper);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--ink);">${escapeHtml(peerInitial)}</div>
             <div style="flex:1;min-width:0;">
-              <div style="font-size:13px;font-weight:700;color:var(--ink);">${escapeHtml(p.user)}</div>
+              <div style="font-size:13px;font-weight:700;color:var(--ink);">${escapeHtml(peerDisplay)}</div>
               <div class="t-small mono" style="font-size:10px;color:var(--muted);">${escapeHtml(p.time || '')}</div>
             </div>
             <span class="syn-chip" style="font-size:10px;padding:4px 10px;">${escapeHtml(word)}</span>
@@ -10381,6 +10513,17 @@ function CertPage() {
    ============================================================ */
 function ProfilePage() {
   const page = el('div', { class: 'page' });
+  // 백그라운드로 모든 day 의 community feed 를 fetch — 단어장 카드의 "저장한 문장"
+  // 이 day 별 cache 의존이라, day 1 안 들어가본 멤버는 그 day 북마크가 비어 보였음.
+  // 한 번 lazy fetch 해두면 다음 render 에서 자동으로 보임.
+  if (hasSupabase()) {
+    for (let d = 1; d <= 20; d++) {
+      const cached = communityFeedCache && communityFeedCache[d];
+      if (!cached || !cached.rows) {
+        try { loadCommunityPosts(d); } catch (e) {}
+      }
+    }
+  }
   const head = el('div', { class: 'topbar' });
   const back = el('button', { class: 'icon-btn', onClick: () => go('home') });
   back.innerHTML = Icon('arrowLeft', 16);
@@ -10599,9 +10742,37 @@ function ProfilePage() {
     const showSyns = tab === 'all' || tab === 'syn';
     const showPosts = tab === 'all' || tab === 'post';
 
+    // 섹션별 페이지네이션 — 기본 10개씩만 보여주고, "더 보기" 누르면 전체 펼침.
+    // 섹션 펼침 상태는 window 변수에 보관 (state 안 건드림).
+    window.__savedExpanded = window.__savedExpanded || { word: false, syn: false, post: false };
+    const SAVED_PAGE_SIZE = 10;
+    const sliceFor = (key, arr) => {
+      if (window.__savedExpanded[key]) return arr;
+      return arr.slice(0, SAVED_PAGE_SIZE);
+    };
+    const makeMoreBtn = (key, total, shown) => {
+      if (total <= shown) return null;
+      const remain = total - shown;
+      const moreBtn = el('button', {
+        class: 'btn btn-ghost btn-full',
+        style: {
+          marginTop: '4px',
+          background: 'transparent',
+          border: '1px dashed rgba(240,125,56,0.32)',
+          color: 'var(--orange-dark)',
+          fontSize: '12.5px',
+          fontWeight: '700',
+          padding: '10px 12px',
+          borderRadius: '12px',
+        },
+        onClick: () => { window.__savedExpanded[key] = true; render(); },
+      }, `+ ${remain}개 더 보기`);
+      return moreBtn;
+    };
+
     if (showWords && bookmarkedEntries.length) {
       if (tab === 'all') list.appendChild(el('div', { class: 'kicker', style: { color: 'var(--muted)' } }, `단어 · ${bookmarkedEntries.length}`));
-      bookmarkedEntries.forEach(({ key, day, weekN, word }) => {
+      sliceFor('word', bookmarkedEntries).forEach(({ key, day, weekN, word }) => {
         const row = el('div', {
           style: {
             display: 'flex', alignItems: 'center', gap: '12px',
@@ -10619,11 +10790,13 @@ function ProfilePage() {
           <button class="icon-btn" style="width:30px;height:30px;border-radius:10px;background:transparent;border:none;color:var(--orange);" onclick="event.stopPropagation(); window.__toggleBookmark('${key}')">${Icon('bookmarkFill', 13)}</button>`;
         list.appendChild(row);
       });
+      const moreWordBtn = makeMoreBtn('word', bookmarkedEntries.length, sliceFor('word', bookmarkedEntries).length);
+      if (moreWordBtn) list.appendChild(moreWordBtn);
     }
 
     if (showSyns && synonymEntries.length) {
       if (tab === 'all') list.appendChild(el('div', { class: 'kicker', style: { color: 'var(--muted)', marginTop: '6px' } }, `유의어 · ${synonymEntries.length}`));
-      synonymEntries.forEach(({ key, day, weekN, parent, syn }) => {
+      sliceFor('syn', synonymEntries).forEach(({ key, day, weekN, parent, syn }) => {
         const row = el('div', {
           style: {
             display: 'flex', alignItems: 'center', gap: '12px',
@@ -10642,11 +10815,13 @@ function ProfilePage() {
           <button class="icon-btn" style="width:30px;height:30px;border-radius:10px;background:transparent;border:none;color:var(--orange);" onclick="event.stopPropagation(); window.__toggleSynBookmark('${key}')">${Icon('bookmarkFill', 13)}</button>`;
         list.appendChild(row);
       });
+      const moreSynBtn = makeMoreBtn('syn', synonymEntries.length, sliceFor('syn', synonymEntries).length);
+      if (moreSynBtn) list.appendChild(moreSynBtn);
     }
 
     if (showPosts && savedCommunityPosts.length) {
       if (tab === 'all') list.appendChild(el('div', { class: 'kicker', style: { color: 'var(--muted)', marginTop: '6px' } }, `커뮤니티 문장 · ${savedCommunityPosts.length}`));
-      savedCommunityPosts.forEach((post) => {
+      sliceFor('post', savedCommunityPosts).forEach((post) => {
         // post.user 는 저장 시점의 한국어 이름 — 지금은 displayName(닉네임 우선)으로 해석.
         const postMember = memberByRef(post.user) || (post.mine ? meMember() : null);
         const postUserDisplay = postMember ? displayName(postMember) : post.user;
@@ -10671,6 +10846,8 @@ function ProfilePage() {
           <button class="icon-btn" style="width:30px;height:30px;border-radius:10px;background:transparent;border:none;color:var(--orange);flex-shrink:0;" onclick="event.stopPropagation(); window.__toggleCommunityBookmark('${post.id}')">${Icon('bookmarkFill', 13)}</button>`;
         list.appendChild(row);
       });
+      const morePostBtn = makeMoreBtn('post', savedCommunityPosts.length, sliceFor('post', savedCommunityPosts).length);
+      if (morePostBtn) list.appendChild(morePostBtn);
     }
 
     bookmarkCard.appendChild(list);
@@ -11039,6 +11216,50 @@ function CommunityPage() {
   }
   if (activeFilter !== 'all') basePosts = basePosts.filter((p) => (p.word || '').toUpperCase() === activeFilter);
 
+  // 정렬 — 'recent' (기본) | 'popular' (저장 많이된 순)
+  const sortKey = state.communitySort || 'recent';
+  if (sortKey === 'popular') {
+    basePosts = [...basePosts].sort((a, b) => {
+      const ac = Number(a.likesCount || 0);
+      const bc = Number(b.likesCount || 0);
+      if (bc !== ac) return bc - ac;
+      // 동률 시 최근순
+      return (b.created_at_ts || 0) - (a.created_at_ts || 0);
+    });
+  } else {
+    // 'recent' = 최근 제출된 순. server 정렬이 이미 desc 라 그대로 사용되지만,
+    // myPosts/curated 가 prepend 돼서 섞일 수 있어 한번 더 정렬 보장.
+    basePosts = [...basePosts]; // 그대로 — server 가 created_at desc 정렬해서 내려줌
+  }
+
+  // 정렬 토글 UI — chips row 뒤에 작게.
+  const sortBar = el('div', {
+    style: { display: 'flex', gap: '6px', marginBottom: '10px', alignItems: 'center' }
+  });
+  const sortLabel = el('span', { style: { fontSize: '11px', color: 'var(--muted)', fontWeight: '600', marginRight: '4px' } }, '정렬');
+  sortBar.appendChild(sortLabel);
+  [
+    { key: 'recent', label: '최근순' },
+    { key: 'popular', label: '저장 많이된 순' },
+  ].forEach((s) => {
+    const active = sortKey === s.key;
+    const sBtn = el('button', {
+      style: {
+        background: active ? 'var(--ink)' : 'transparent',
+        color: active ? 'var(--cream)' : 'var(--ink-soft)',
+        border: '1px solid ' + (active ? 'var(--ink)' : 'var(--line)'),
+        borderRadius: '999px',
+        padding: '5px 11px',
+        fontSize: '11px',
+        fontWeight: active ? '700' : '500',
+        cursor: 'pointer',
+      },
+      onClick: () => { state.communitySort = s.key; saveState(); render(); },
+    }, s.label);
+    sortBar.appendChild(sBtn);
+  });
+  page.appendChild(sortBar);
+
   const stack = el('div', { style: { marginTop: '4px' } });
   basePosts.forEach((post) => {
     // post.user 는 글 작성 시점의 한국어 이름이 DB 에 박혀 있어서, 영어 닉네임 롤아웃 후에도
@@ -11103,10 +11324,9 @@ function CommunityPage() {
         <p style="margin:5px 0 0;font-size:13.5px;line-height:1.5;color:var(--ink);letter-spacing:-0.01em;">${highlighted}</p>
         ${post.translation ? `<p style="margin:3px 0 0;font-size:11.5px;line-height:1.45;color:var(--ink-soft);word-break:keep-all;">${escapeHtml(post.translation)}</p>` : ''}
         <div style="display:flex;gap:12px;margin-top:6px;align-items:center;">
-          <button onclick="window.__toggleCommunityLike(${postIdArg})" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:${liked ? 'var(--orange-dark)' : 'var(--muted)'};font-size:11px;font-weight:${liked ? '700' : '500'};">${Icon('flame', 10)} ${likeCount}</button>
+          <button onclick="window.__toggleCommunitySave(${postIdArg})" title="${liked ? '저장 해제' : '저장'}" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:${liked ? 'var(--orange-dark)' : 'var(--muted)'};font-size:11px;font-weight:${liked ? '700' : '500'};">${Icon(liked ? 'bookmarkFill' : 'bookmark', 10)} ${likeCount}</button>
           <button onclick="window.__openCommentComposer(${postIdArg})" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:${commentCount ? 'var(--orange-dark)' : 'var(--muted)'};font-size:11px;font-weight:${commentCount ? '700' : '500'};">${Icon('messageCircle', 10)} ${commentCount}</button>
           <button onclick="window.__speakText(${sentenceArg})" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:var(--muted);font-size:11px;">${Icon('volume', 10)} 듣기</button>
-          <button onclick="window.__toggleCommunityBookmark(${postIdArg})" style="background:transparent;border:none;padding:0;display:inline-flex;align-items:center;gap:3px;color:${saved ? 'var(--orange-dark)' : 'var(--muted)'};font-size:11px;margin-left:auto;">${Icon(saved ? 'bookmarkFill' : 'bookmark', 10)}</button>
           ${mineEditBtn}
         </div>
         ${localComments.length ? `
@@ -12995,32 +13215,53 @@ window.__advanceVerifyQuiz = (dayN, skipped) => {
   render();
 };
 window.__toggleCommunityLike = async (postId) => {
+  // 레거시 alias — 이제 저장 버튼이 같은 일을 함.
+  return window.__toggleCommunitySave(postId);
+};
+// 새 통합 액션: 저장 = 서버 카운트 증가 + 본인 단어장에도 추가.
+// 기존 set_community_like RPC 재사용 (DB 컬럼명만 likes_count 인 것 — 의미는 'saved' 로 사용).
+window.__toggleCommunitySave = async (postId) => {
+  // 본인 글은 저장 못 하게 (자기가 자기 거 저장하는 건 의미 없음 + 카운트 부풀림 방지)
+  const allPosts = Object.values(communityFeedCache).flatMap((entry) => entry?.rows || []);
+  const current = allPosts.find((post) => post.id === postId);
+  if (current && current.member_key === memberKey()) {
+    showToast('내 글은 저장할 수 없어요.');
+    return;
+  }
   if (hasSupabase()) {
-    const current = Object.values(communityFeedCache).flatMap((entry) => entry?.rows || []).find((post) => post.id === postId);
-    const nextLiked = !(current?.liked_by_me);
+    const nextSaved = !(current?.liked_by_me);
     try {
-      const likesCount = await supabaseRpc('set_community_like', {
+      const savesCount = await supabaseRpc('set_community_like', {
         p_cohort: CHALLENGE.cohort,
         p_post_id: postId,
         p_member_key: memberKey(),
-        p_liked: nextLiked,
+        p_liked: nextSaved,
       });
       patchCachedCommunityPost(postId, (post) => ({
         ...post,
-        liked_by_me: nextLiked,
-        likes_count: Number(likesCount || 0),
+        liked_by_me: nextSaved,
+        likes_count: Number(savesCount || 0),
       }));
-      showToast(nextLiked ? '좋아요를 남겼어요.' : '좋아요를 취소했어요.');
+      // 로컬 단어장에도 동기화 — '저장 = 내 deck 에도 추가' 통합 동작.
+      state.community_bookmarks = state.community_bookmarks || {};
+      if (nextSaved) state.community_bookmarks[postId] = true;
+      else delete state.community_bookmarks[postId];
+      saveState();
+      showToast(nextSaved ? '🔖 단어장에 저장했어요.' : '저장을 해제했어요.');
       render();
       return;
     } catch (e) {
-      showToast('좋아요 동기화에 실패했어요.');
+      showToast('저장 동기화에 실패했어요.');
       return;
     }
   }
+  // Offline fallback — 로컬만.
+  state.community_likes = state.community_likes || {};
   state.community_likes[postId] = !state.community_likes[postId];
+  state.community_bookmarks = state.community_bookmarks || {};
+  state.community_bookmarks[postId] = state.community_likes[postId];
   saveState();
-  showToast(state.community_likes[postId] ? '좋아요를 남겼어요.' : '좋아요를 취소했어요.');
+  showToast(state.community_likes[postId] ? '🔖 단어장에 저장했어요.' : '저장을 해제했어요.');
   render();
 };
 window.__openMemberCard = (memberRef) => {
