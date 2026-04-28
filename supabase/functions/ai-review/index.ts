@@ -52,13 +52,24 @@ const SYSTEM_PROMPT = `You are a warm, encouraging business English coach for Ko
 You ALWAYS reply with a single valid JSON object and nothing else.
 The JSON must have exactly two string fields: "corrected" and "why".
 
-CRITICAL RULE — DO NOT INVENT CHANGES:
+CRITICAL RULE 1 — DO NOT INVENT CHANGES:
 If the student's sentence is already grammatical, natural, and clearly conveys the intended meaning (especially when matched against the Korean source if provided), return the sentence VERBATIM in "corrected" — character for character, including punctuation. In "why", explicitly say in friendly Korean that no changes were needed (e.g. "이미 잘 쓰셨어요! 자연스러운 비즈니스 영어예요." or "수정할 부분 없어요. 그대로 좋아요 :)").
 
 Korean learners run AI review multiple times on the same sentence. If you keep "stylistically tweaking" already-correct sentences, the output keeps shifting and confuses them. Be conservative: only edit when there is a CLEAR grammar error, unnatural phrasing, or a meaning mismatch with the Korean intent. Stylistic preferences alone are NOT a reason to edit.
 
+CRITICAL RULE 2 — PRESERVE THE TARGET WORD/PHRASE:
+The "Phrase being practiced" is the whole point of this exercise. The corrected sentence MUST contain that exact phrase (or its closest natural inflection — e.g. "anchor" → "anchored" / "anchoring" if grammar requires). DO NOT swap it for a synonym, even if a synonym sounds slightly more natural. The student is here to drill THIS phrase. Build the sentence around it; don't replace it.
+
+CRITICAL RULE 3 — PROFESSIONAL BUSINESS TONE:
+Default to a polished, professional business register suitable for cross-functional meetings, emails, and Slack with colleagues at a B2B/SaaS/finance/consulting workplace. Avoid:
+- Casual fillers ("kinda", "stuff", "like"), slang, or texting style
+- Overly stiff/archaic phrasing ("Dear Sir", "I beseech you")
+- Vague hedging ("I just wanted to maybe...") — use crisp executive phrasing instead
+Aim for: clear, confident, concise, polite. Think McKinsey deck speaker or senior PM in standup.
+If the Korean intent is casual (e.g., 1:1 chat with a peer), match that tone — don't over-formalize. Use the Korean source as your tone anchor.
+
 Field rules:
-- "corrected": natural, minimally-edited business English. If no edits needed, return the ORIGINAL verbatim (no whitespace/punctuation changes either).
+- "corrected": natural, minimally-edited business English that contains the target phrase. If no edits needed, return the ORIGINAL verbatim (no whitespace/punctuation changes either).
 - "why": 1-2 sentences in Korean, friendly tone, under 140 characters. If no changes were made, say so explicitly so the learner can move on without doubt.
 
 Do not include markdown, code fences, or any prose outside the JSON.`;
@@ -74,12 +85,12 @@ function buildSentenceUserMessage(
   const koreanBlock = (korean || '').trim()
     ? `Korean sentence the student wrote (source of intent — match this meaning): "${korean!.trim()}"\n`
     : '';
-  return `${koreanBlock}Phrase being practiced: "${word.en}" (${word.def || ''})
+  return `${koreanBlock}Phrase being practiced (THE WHOLE POINT — keep this in the output): "${word.en}" (${word.def || ''})
 Student's English attempt: "${sentence}"
 
 Return JSON:
-- "corrected": a natural business-English sentence that MUST naturally contain "${word.en}". The corrected version MUST convey the same meaning/intent as the Korean sentence above (if provided). Keep the learner's voice; change as little as possible. **If the student's sentence is already correct and natural, return it VERBATIM with zero changes.**
-- "why": 1-2 Korean sentences (≤140 chars). **If you returned the sentence unchanged, say so explicitly (e.g. "이미 자연스러워요! 그대로 가셔도 됩니다.")** — otherwise explain what changed and why.`;
+- "corrected": a polished, professional business-English sentence. **MUST contain "${word.en}" verbatim** (or a minimal grammatical inflection if needed: e.g. "${word.en}d" / "${word.en}ing" / pluralized — but do NOT replace it with a synonym). MUST convey the same meaning/intent as the Korean sentence above (if provided). Tone: business-meeting / professional Slack / email-ready. Avoid casual slang AND avoid stiff/archaic phrasing. Keep the learner's voice; change as little as possible. **If the student's sentence is already correct, natural, and uses the target phrase, return it VERBATIM with zero changes.**
+- "why": 1-2 Korean sentences (≤140 chars). **If unchanged, say so explicitly (e.g. "이미 자연스러워요! 그대로 가셔도 됩니다.")** — otherwise explain what changed and why (e.g. "톤을 살짝 비즈니스 미팅 풍으로 다듬었어요.").`;
 }
 
 function buildStoryUserMessage(
@@ -92,13 +103,13 @@ function buildStoryUserMessage(
     ? `Korean context (what the student meant, in their own words): "${korean!.trim()}"\n`
     : '';
   return `${koreanBlock}The student is tying today's 3 expressions into ONE short business-scenario mini story (1-3 sentences).
-Expressions to use:
+Expressions to use (THE WHOLE POINT — keep ALL 3 in the output, do NOT swap for synonyms):
 ${lines}
 Student's English attempt: "${text}"
 
 Return JSON:
-- "corrected": a natural business-English mini story (1-3 sentences) that uses ALL 3 expressions in a believable flow that matches the Korean context above (if provided). **If the student's text is already natural and uses all 3 expressions correctly, return it VERBATIM.**
-- "why": 1-2 Korean sentences (≤140 chars). **If unchanged, explicitly say so (e.g. "이미 흐름 좋아요! 수정할 부분 없어요.")** — otherwise explain the flow/logic fix.`;
+- "corrected": a polished business-English mini story (1-3 sentences). **MUST use ALL 3 expressions verbatim** (minimal inflection only — e.g. tense/plural — never substitute synonyms). Believable cross-functional / executive flow that matches the Korean context above (if provided). Tone: professional business — clear, confident, concise. Avoid casual slang and stiff/archaic phrasing. **If the student's text is already natural and uses all 3 expressions correctly, return it VERBATIM.**
+- "why": 1-2 Korean sentences (≤140 chars). **If unchanged, explicitly say so (e.g. "이미 흐름 좋아요! 수정할 부분 없어요.")** — otherwise explain the flow/logic/tone fix.`;
 }
 
 function extractJson(raw: string): any {
