@@ -68,7 +68,7 @@ input, textarea, select { font-family: inherit; }
 .page { padding: 20px 20px 24px; }
 
 /* typography */
-.kicker { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.kicker { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--muted); font-weight: 500; }
 .serif { font-family: var(--font-serif); font-style: normal; font-weight: 700; letter-spacing: -0.01em; }
 .h1 { font-size: 24px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; margin: 0; word-break: keep-all; }
 .h2 { font-size: 19px; font-weight: 700; line-height: 1.25; letter-spacing: -0.015em; margin: 0; word-break: keep-all; }
@@ -135,7 +135,7 @@ input, textarea, select { font-family: inherit; }
   display: inline-flex; align-items: center; gap: 5px;
   padding: 4px 10px; border-radius: 999px;
   font-family: var(--font-mono); font-size: 10px; font-weight: 500;
-  letter-spacing: 0.04em; text-transform: uppercase;
+  letter-spacing: 0.02em;
   background: var(--paper); color: var(--ink-soft);
 }
 .badge-orange { background: var(--orange-ghost); color: var(--orange-dark); }
@@ -359,7 +359,7 @@ input, textarea, select { font-family: inherit; }
 }
 .ai-head {
   display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
-  font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: 11px; letter-spacing: 0.04em;
   color: var(--orange-dark); font-weight: 600;
 }
 .ai-corrected {
@@ -427,7 +427,7 @@ input, textarea, select { font-family: inherit; }
   background: var(--paper); border-radius: var(--radius-m);
   padding: 8px 4px;
 }
-.meeting-date .md-mon { font-family: var(--font-mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.meeting-date .md-mon { font-family: var(--font-mono); font-size: 10px; color: var(--muted); letter-spacing: 0.04em; }
 .meeting-date .md-day { font-family: var(--font-serif); font-style: normal; font-size: 22px; color: var(--ink); }
 .meeting-card.upcoming .meeting-date { background: #fff; }
 .meeting-card.upcoming .meeting-date .md-day { color: var(--lilac); }
@@ -743,8 +743,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   display: inline-flex; align-items: center; gap: 8px;
   padding: 6px 12px; border-radius: 999px;
   background: rgba(255,253,247,0.9); border: 1px solid rgba(231,221,200,0.7);
-  font-size: 11px; letter-spacing: 0.12em; font-weight: 700; color: var(--orange-dark);
-  text-transform: uppercase;
+  font-size: 11px; letter-spacing: 0.04em; font-weight: 700; color: var(--orange-dark);
 }
 
 .mn-editor {
@@ -819,8 +818,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   margin-bottom: 8px;
 }
 .mn-ai-output-tag {
-  font-size: 10px; letter-spacing: 0.12em; font-weight: 700; color: var(--orange-dark);
-  text-transform: uppercase;
+  font-size: 10px; letter-spacing: 0.04em; font-weight: 700; color: var(--orange-dark);
 }
 .mn-ai-output .apply-btn {
   appearance: none; border: none;
@@ -3211,7 +3209,7 @@ function weekOfDay(dayN) {
 }
 
 /* ============================================================
-   VOCAB BANK — 통합 저장소 (state.pitch_vocab) 헬퍼들
+   vocab bank — 통합 저장소 (state.pitch_vocab) 헬퍼들
    ------------------------------------------------------------
    source: 'daily' | 'synonym' | 'meeting' | 'manual'
    sourceKey: 연결 해제 용 (daily='d{N}-{i}', syn='d{N}-{i}::SynWord')
@@ -3286,7 +3284,7 @@ function syncSynBookmarkToBank(synKey, on) {
     removeFromVocabBank({ word: syn, sourceKey: synKey });
   }
 }
-// 제거 시 연결된 북마크 토글도 꺼줌 — VOCAB BANK 에서 지웠을 때 daily 에서도 사라지게.
+// 제거 시 연결된 북마크 토글도 꺼줌 — vocab bank 에서 지웠을 때 daily 에서도 사라지게.
 function clearLinkedBookmarksForVocab(v) {
   if (!v) return;
   const sk = v.sourceKey || '';
@@ -4084,7 +4082,7 @@ async function openPresenterScriptModal(targetKey, weekN) {
     <div style="padding:22px 24px 18px;border-bottom:1px solid rgba(231,221,200,0.7);background:linear-gradient(180deg,#FFFDF7 0%,#F8F2FA 100%);position:relative;flex-shrink:0;">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
         <div style="flex:1;min-width:0;">
-          <div style="font-size:10.5px;letter-spacing:0.16em;font-weight:800;color:var(--lilac);text-transform:uppercase;">🎤 WEEK ${weekN} · 발표자 대본</div>
+          <div style="font-size:10.5px;letter-spacing:0.16em;font-weight:800;color:var(--lilac);">🎤 WEEK ${weekN} · 발표자 대본</div>
           <div style="margin-top:6px;font-size:22px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.2;">${escapeHtml(name)}${isMe ? ' <span style="font-size:11px;font-weight:700;color:var(--lilac);background:rgba(169,139,184,0.18);padding:2px 8px;border-radius:999px;margin-left:4px;vertical-align:middle;">나</span>' : ''}</div>
         </div>
         <button data-close-presenter-modal="1" aria-label="닫기" style="flex-shrink:0;background:rgba(0,0,0,0.06);border:none;width:36px;height:36px;border-radius:999px;font-size:20px;line-height:1;color:var(--ink);cursor:pointer;display:grid;place-items:center;transition:background 0.15s;">×</button>
@@ -4092,10 +4090,10 @@ async function openPresenterScriptModal(targetKey, weekN) {
     </div>
     <div style="padding:20px 24px 24px;overflow-y:auto;flex:1;background:#fff;">
       ${!hasContent ? `<div style="padding:32px 8px;text-align:center;"><div style="font-size:32px;margin-bottom:10px;opacity:0.4;">📝</div><p style="color:var(--muted);font-size:13.5px;line-height:1.65;margin:0;">아직 <b>${escapeHtml(name)}</b> 님이 PT 대본을 작성하지 않았어요.<br>발표자가 PT 준비 페이지에서 대본을 적어두면 여기서 볼 수 있어요.</p></div>` : `
-        ${entry.job_context ? `<div><div style="font-size:10.5px;font-weight:800;color:var(--lilac);letter-spacing:0.12em;text-transform:uppercase;">직무 상황</div><div style="margin-top:6px;font-size:14.5px;color:var(--ink);line-height:1.6;">${escapeHtml(entry.job_context)}</div></div>` : ''}
-        ${entry.presentation_topic ? `<div style="margin-top:18px;"><div style="font-size:10.5px;font-weight:800;color:var(--lilac);letter-spacing:0.12em;text-transform:uppercase;">PT 발표주제</div><div style="margin-top:6px;font-size:14.5px;color:var(--ink);line-height:1.6;">${escapeHtml(entry.presentation_topic)}</div></div>` : ''}
-        ${vocab.length ? `<div style="margin-top:18px;"><div style="font-size:10.5px;font-weight:800;color:var(--lilac);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">필수 어휘 ${vocab.length}/3</div><div style="display:flex;gap:6px;flex-wrap:wrap;">${vocab.map((v) => `<span style="padding:5px 11px;border-radius:999px;background:rgba(169,139,184,0.18);color:var(--lilac);font-size:12px;font-weight:700;">${escapeHtml(v)}</span>`).join('')}</div></div>` : ''}
-        ${entry.script ? `<div style="margin-top:22px;"><div style="font-size:10.5px;font-weight:800;color:var(--lilac);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">PT 대본</div><div style="padding:16px 18px;background:#FFFDF7;border-radius:14px;border:1px solid rgba(231,221,200,0.9);font-size:14.5px;line-height:1.75;color:var(--ink);white-space:pre-wrap;word-break:keep-all;overflow-wrap:break-word;">${escapeHtml(entry.script)}</div></div>` : '<div style="margin-top:18px;padding:14px;background:rgba(169,139,184,0.06);border-radius:12px;color:var(--muted);font-size:13px;text-align:center;">아직 대본 본문은 비어있어요.</div>'}
+        ${entry.job_context ? `<div><div style="font-size:10.5px;font-weight:800;color:var(--lilac);letter-spacing:0.12em;">직무 상황</div><div style="margin-top:6px;font-size:14.5px;color:var(--ink);line-height:1.6;">${escapeHtml(entry.job_context)}</div></div>` : ''}
+        ${entry.presentation_topic ? `<div style="margin-top:18px;"><div style="font-size:10.5px;font-weight:800;color:var(--lilac);letter-spacing:0.12em;">PT 발표주제</div><div style="margin-top:6px;font-size:14.5px;color:var(--ink);line-height:1.6;">${escapeHtml(entry.presentation_topic)}</div></div>` : ''}
+        ${vocab.length ? `<div style="margin-top:18px;"><div style="font-size:10.5px;font-weight:800;color:var(--lilac);letter-spacing:0.12em;margin-bottom:8px;">필수 어휘 ${vocab.length}/3</div><div style="display:flex;gap:6px;flex-wrap:wrap;">${vocab.map((v) => `<span style="padding:5px 11px;border-radius:999px;background:rgba(169,139,184,0.18);color:var(--lilac);font-size:12px;font-weight:700;">${escapeHtml(v)}</span>`).join('')}</div></div>` : ''}
+        ${entry.script ? `<div style="margin-top:22px;"><div style="font-size:10.5px;font-weight:800;color:var(--lilac);letter-spacing:0.12em;margin-bottom:8px;">PT 대본</div><div style="padding:16px 18px;background:#FFFDF7;border-radius:14px;border:1px solid rgba(231,221,200,0.9);font-size:14.5px;line-height:1.75;color:var(--ink);white-space:pre-wrap;word-break:keep-all;overflow-wrap:break-word;">${escapeHtml(entry.script)}</div></div>` : '<div style="margin-top:18px;padding:14px;background:rgba(169,139,184,0.06);border-radius:12px;color:var(--muted);font-size:13px;text-align:center;">아직 대본 본문은 비어있어요.</div>'}
       `}
     </div>
   `;
@@ -4462,7 +4460,7 @@ function onboardingTourSteps(tier) {
         emoji: '📝',
         kicker: 'Step 4 · Pitch Studio',
         title: '내 발표 준비 공간',
-        body: `PT STUDIO 에서 스크립트, 어휘, 준비 노트를 한곳에 모아요. 미팅이나 데일리에서 저장한 단어는 <b>단어장</b> 에 자동으로 쌓입니다.`,
+        body: `pt studio 에서 스크립트, 어휘, 준비 노트를 한곳에 모아요. 미팅이나 데일리에서 저장한 단어는 <b>단어장</b> 에 자동으로 쌓입니다.`,
       },
       {
         emoji: '🎓',
@@ -4959,7 +4957,7 @@ function TopBar(title='') {
     class: 'badge ' + (state.tier === 'premium' ? 'badge-lilac' : 'badge-orange'),
     style: { marginRight: '4px' }
   });
-  tierBadge.innerHTML = (state.tier === 'premium' ? Icon('crown', 10) + ' ' : '') + state.tier.toUpperCase();
+  tierBadge.innerHTML = (state.tier === 'premium' ? Icon('crown', 10) + ' ' : '') + (state.tier === 'premium' ? 'Premium' : 'Basic');
   actions.appendChild(tierBadge);
 
   const settings = el('button', { class: 'icon-btn', onClick: () => go('profile'), title: 'Profile' });
@@ -5101,7 +5099,7 @@ function OnboardingPage() {
 
   if (__onboardStep === 0) {
     card.innerHTML = `
-      <div class="kicker">STEP 1 · 시작하기</div>
+      <div class="kicker">step 1 · 시작하기</div>
       <h2 style="margin:6px 0 12px;font-size:20px;font-weight:800;letter-spacing:-0.02em;">이름, 접속 코드, 시차를 입력해요</h2>
       <p class="t-body" style="font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:16px;">
         이름은 커뮤니티에 보이고, 시차는 한국 기준으로 적어요. 한국이면 <b>+0h</b>예요.
@@ -5135,7 +5133,7 @@ function OnboardingPage() {
     `;
   } else if (__onboardStep === 1) {
     card.innerHTML = `
-      <div class="kicker">STEP 2 · 이번 챌린지 목표</div>
+      <div class="kicker">step 2 · 이번 챌린지 목표</div>
       <h2 style="margin:6px 0 12px;font-size:20px;font-weight:800;letter-spacing:-0.02em;">${escapeHtml(__onboardDraft.name || '내')} 님, 4주 뒤 어떤 모습이면 좋을까요?</h2>
       <p class="t-body" style="font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:12px;">
         한 줄이면 충분해요. 나중에 설정에서 수정할 수 있어요.
@@ -5152,7 +5150,7 @@ function OnboardingPage() {
     `;
   } else if (__onboardStep === 2) {
     card.innerHTML = `
-      <div class="kicker">STEP 3 · 직무 · 연차 (선택)</div>
+      <div class="kicker">step 3 · 직무 · 연차 (선택)</div>
       <h2 style="margin:6px 0 12px;font-size:20px;font-weight:800;letter-spacing:-0.02em;">어떤 일을 하세요?</h2>
       <div style="display:flex;gap:10px;margin-bottom:12px;padding:10px 12px;border-radius:12px;background:var(--orange-ghost);border:1px solid rgba(240,125,56,0.22);">
         <span style="font-size:16px;line-height:1;">🧡</span>
@@ -5558,7 +5556,7 @@ function HomePage() {
   hero.appendChild(glow);
 
   const top = el('div', { class: 'row-between' },
-    el('div', { class: 'kicker', style: { color: 'rgba(251,247,240,0.55)' } }, `MY PROGRESS · DAY ${state.currentDay}/${totalDays}`),
+    el('div', { class: 'kicker', style: { color: 'rgba(251,247,240,0.55)' } }, `my progress · day ${state.currentDay}/${totalDays}`),
     el('span', { class: 'badge badge-orange' }, `Today · Day ${state.currentDay}`),
   );
   hero.appendChild(top);
@@ -6074,7 +6072,7 @@ function WeeksPage() {
     card.innerHTML = `
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;">
         <div style="min-width:0;flex:1;">
-          <div class="kicker" style="color:${isEmphasized ? 'rgba(251,247,240,0.55)' : 'var(--muted)'};">WEEK ${w.n} · ${w.title.toUpperCase()}</div>
+          <div class="kicker" style="color:${isEmphasized ? 'rgba(251,247,240,0.55)' : 'var(--muted)'};">week ${w.n} · ${w.title}</div>
           <h3 style="margin:10px 0 0;font-size:22px;line-height:1.22;letter-spacing:-0.025em;font-weight:800;color:${isEmphasized ? 'var(--cream)' : (notStarted ? 'var(--ink)' : 'var(--ink)')};word-break:keep-all;">${w.subtitle}</h3>
         </div>
         <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
@@ -6332,7 +6330,7 @@ function VerifyPage(dayN) {
   const progress = el('div', { style: { marginTop: '8px', marginBottom: '20px' } });
   progress.innerHTML = `
     <div class="row-between" style="margin-bottom:8px;">
-      <span class="kicker">FINAL CHECK · 3 STEPS</span>
+      <span class="kicker">final check · 3 steps</span>
       <span class="t-small mono">${completed}/3</span>
     </div>
     <div class="bar orange"><span style="width:${completed / 3 * 100}%;transition:none;"></span></div>
@@ -6364,7 +6362,7 @@ function VerifyPage(dayN) {
 
   const panel = el('div', { class: 'card', style: { padding: '22px', background: 'var(--ink)', color: 'var(--cream)', borderColor: 'var(--ink)', borderRadius: '28px' } });
   const activeMeta = steps.find((step) => step.id === activeStep);
-  panel.innerHTML = `<div class="kicker" style="color:rgba(251,247,240,0.6)">STEP ${steps.findIndex((step) => step.id === activeStep) + 1}/3 · ${activeMeta.time}</div><h2 class="h2" style="margin-top:10px;color:var(--cream);font-size:28px;line-height:1.24;">${activeMeta.label}</h2>`;
+  panel.innerHTML = `<div class="kicker" style="color:rgba(251,247,240,0.6)">step ${steps.findIndex((step) => step.id === activeStep) + 1}/3 · ${activeMeta.time}</div><h2 class="h2" style="margin-top:10px;color:var(--cream);font-size:28px;line-height:1.24;">${activeMeta.label}</h2>`;
 
   if (activeStep === 'capture') {
     // 70% 이상 맞추면 통과 (예: 6문제 중 5문제 → 83% → 통과)
@@ -6470,7 +6468,7 @@ function VerifyPage(dayN) {
     const guide = el('div', {
       style: { padding: '14px 16px', borderRadius: '16px', background: 'rgba(251,247,240,0.06)', border: '1px solid rgba(232,116,60,0.28)' }
     });
-    guide.innerHTML = `<div class="t-small mono" style="color:rgba(251,247,240,0.45)">RECORDING GUIDE · 카톡 제출</div><div style="margin-top:8px;font-size:14.5px;line-height:1.55;color:rgba(251,247,240,0.85);">아래 내 문장 3개를 소리 내어 녹음한 뒤 <b>유버디 카톡방에 올려주세요.</b> 입으로 나와야 내 표현이 돼요.</div>`;
+    guide.innerHTML = `<div class="t-small mono" style="color:rgba(251,247,240,0.45)">recording guide · 카톡 제출</div><div style="margin-top:8px;font-size:14.5px;line-height:1.55;color:rgba(251,247,240,0.85);">아래 내 문장 3개를 소리 내어 녹음한 뒤 <b>유버디 카톡방에 올려주세요.</b> 입으로 나와야 내 표현이 돼요.</div>`;
     box.appendChild(guide);
     if (!hasAny) {
       const empty = el('div', {
@@ -6760,7 +6758,7 @@ function DayPage(dayN) {
       overflow: 'hidden',
     }
   });
-  overview.innerHTML = `<span class="kicker" style="font-size:10px;color:var(--muted);letter-spacing:0.1em;flex:0 0 auto;">TODAY'S 3</span>`;
+  overview.innerHTML = `<span class="kicker" style="font-size:10px;color:var(--muted);letter-spacing:0.1em;flex:0 0 auto;">today's 3</span>`;
   const overviewScroll = el('div', {
     style: {
       display: 'flex',
@@ -6864,7 +6862,7 @@ function DayPage(dayN) {
       onClick: (e) => {
         e.stopPropagation();
         state.bookmarks[bookmarkKey] = !state.bookmarks[bookmarkKey];
-        // VOCAB BANK 와 동기화 — ON 이면 추가, OFF 이면 제거.
+        // vocab bank 와 동기화 — ON 이면 추가, OFF 이면 제거.
         syncDailyBookmarkToBank(dayN, i, w, !!state.bookmarks[bookmarkKey]);
         saveState();
         showToast(state.bookmarks[bookmarkKey] ? `🔖 "${w.en}" 단어장에 저장됨` : `단어장에서 제거됨`);
@@ -6888,7 +6886,7 @@ function DayPage(dayN) {
 
     const defRow = el('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '4px' } });
     defRow.innerHTML = `
-      <span class="badge" style="padding:6px 12px;font-size:10px;font-weight:700;background:var(--paper);color:var(--ink-soft);letter-spacing:0.08em;font-family:var(--font-mono);">${escapeHtml(w.pos.toUpperCase())}</span>
+      <span class="badge" style="padding:6px 12px;font-size:10px;font-weight:700;background:var(--paper);color:var(--ink-soft);letter-spacing:0.04em;font-family:var(--font-mono);">${escapeHtml(w.pos)}</span>
       <span style="font-size:14px;color:var(--ink-soft);">${escapeHtml(w.def)}</span>
       <button class="icon-btn" style="margin-left:auto;width:36px;height:36px;border-radius:12px;background:var(--orange-ghost);border-color:var(--orange-soft);color:var(--orange-dark);" onclick="window.__speakWord(${dayN}, ${i})" title="발음 듣기">${Icon('volume', 16)}</button>`;
     card.appendChild(defRow);
@@ -7051,7 +7049,7 @@ function DayPage(dayN) {
     const label = el('div', { class: 'row row-gap-sm', style: { marginBottom: '14px', alignItems: 'center' } });
     label.innerHTML = `
       <span class="kicker" style="font-size:10px;">0${i + 1}</span>
-      <span class="syn-chip" style="padding:8px 18px;font-size:12px;">${w.en.toUpperCase()}</span>
+      <span class="syn-chip" style="padding:8px 18px;font-size:12px;">${escapeHtml(w.en)}</span>
       <span class="t-small" style="font-size:15px;color:var(--ink-soft);">${escapeHtml(w.def)}</span>
       ${hasCorrection ? '<span class="badge badge-green" style="margin-left:auto;font-size:10px;padding:4px 10px;white-space:nowrap;">리뷰 완료</span>' : ''}
     `;
@@ -7316,7 +7314,7 @@ function DayPage(dayN) {
       }
     });
     hook.innerHTML = `
-      <div class="kicker" style="color:var(--orange-dark);">BONUS · STORY HOOK</div>
+      <div class="kicker" style="color:var(--orange-dark);">bonus · story hook</div>
       <h3 class="h3" style="margin-top:6px;">오늘 3문장을 하나의 짧은 흐름으로 이어볼까요?</h3>
       <p class="t-body" style="margin-top:6px;font-size:13px;line-height:1.55;">실제 미팅 시나리오 1분 상황극 — 세 표현을 자연스럽게 엮으면 기억에 더 오래 남아요. 아래 문장에 단어가 들어가면 ✓ 로 체크돼요.</p>`;
     const hookWords = el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' } });
@@ -7344,7 +7342,7 @@ function DayPage(dayN) {
       chip.dataset.idx = String(idx);
       chip.dataset.word = word.en;
       // 초기 라벨 (소문자, hit 상태는 updateHookHits 가 덧칠).
-      chip.innerHTML = `<span data-mark>○</span><span>0${idx + 1}</span><span>${escapeHtml(word.en)}</span>`;
+      chip.innerHTML = `<span data-mark>○</span><span>0${idx + 1}</span><span>${escapeHtml((word.en || '').toLowerCase())}</span>`;
       hookWords.appendChild(chip);
       hookChips.push({ el: chip, en: word.en });
     });
@@ -7524,7 +7522,7 @@ function DayPage(dayN) {
               <div style="font-size:13px;font-weight:700;color:var(--ink);">${escapeHtml(p.user)}</div>
               <div class="t-small mono" style="font-size:10px;color:var(--muted);">${escapeHtml(p.time || '')}</div>
             </div>
-            <span class="syn-chip" style="font-size:10px;padding:4px 10px;">${escapeHtml(word.toUpperCase())}</span>
+            <span class="syn-chip" style="font-size:10px;padding:4px 10px;">${escapeHtml(word)}</span>
           </div>
           <div style="font-size:13px;line-height:1.55;color:var(--ink);">${highlighted}</div>
           <div class="t-small" style="margin-top:6px;color:var(--ink-soft);font-size:11.5px;line-height:1.5;">${escapeHtml(p.translation || '')}</div>
@@ -7725,7 +7723,7 @@ function PremiumPage() {
     pitchCta.innerHTML = `
       <div style="flex-shrink:0;width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#7B5E8C,#A98BB8);color:#fff;display:grid;place-items:center;font-size:22px;">📝</div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:10px;letter-spacing:0.12em;font-weight:700;color:#7B5E8C;">MY PT STUDIO</div>
+        <div style="font-size:10px;letter-spacing:0.12em;font-weight:700;color:#7B5E8C;">my pt studio</div>
         <div style="margin-top:3px;font-size:14px;font-weight:700;color:var(--ink);line-height:1.35;">PT 준비 페이지</div>
         <div style="margin-top:3px;font-size:11.5px;color:var(--muted);">어휘 ${vocabCount} · 스크립트 ${scriptCount}주차</div>
       </div>
@@ -8461,11 +8459,11 @@ function getEffectiveMustUseVocab(meta, n) {
 }
 
 /* ============================================================
-   PRESENTER PREP — week-specific 풍부한 준비 블록 (재사용)
+   presenter prep — week-specific 풍부한 준비 블록 (재사용)
    ------------------------------------------------------------
    PT 준비 페이지(PitchPrepPage) 와 발표 준비 페이지(PresenterPrepPage)
    양쪽에서 같은 콘텐츠를 보여주도록 추출된 헬퍼.
-   - SCENARIO: 직무 상황 / PT 발표주제 (본인이 직접 입력)
+   - scenario: 직무 상황 / PT 발표주제 (본인이 직접 입력)
    - 7분 발표 프롬프트 (meta 에서 자동)
    - 필수 어휘 3개 픽 + PT 대본 사용 추적
    - PT 대본 textarea
@@ -8495,7 +8493,7 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
       }
     });
     heading.innerHTML = `
-      <div style="font-size:11px;letter-spacing:0.14em;font-weight:700;color:rgba(255,255,255,0.72);">🎤 PRESENTER · WEEK ${n}</div>
+      <div style="font-size:11px;letter-spacing:0.14em;font-weight:700;color:rgba(255,255,255,0.72);">🎤 presenter · week ${n}</div>
       <div style="font-size:20px;font-weight:800;margin-top:8px;line-height:1.3;">${escapeHtml(meta.title)}</div>
       <div style="font-size:12.5px;color:rgba(255,255,255,0.82);margin-top:6px;">
         ${escapeHtml(meta.date)} · 21:00 KST · ${escapeHtml(meta.zoom || 'Google Meet')}
@@ -8506,7 +8504,7 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
     page.appendChild(heading);
   }
 
-  // ---- SCENARIO — 본인 직무 상황 + PT 발표주제 (직접 입력) ----
+  // ---- scenario — 본인 직무 상황 + PT 발표주제 (직접 입력) ----
   const prepKey = PRESENTER_KEY(n);
   state.presenter_prep = state.presenter_prep || {};
   const prep = state.presenter_prep[prepKey] || {
@@ -8515,7 +8513,7 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
   };
   state.presenter_prep[prepKey] = prep;
 
-  page.appendChild(el('div', { class: 'kicker', style: { marginTop: '22px' } }, 'SCENARIO'));
+  page.appendChild(el('div', { class: 'kicker', style: { marginTop: '22px' } }, 'scenario'));
   page.appendChild(el('p', {
     class: 't-small',
     style: { marginTop: '4px', color: 'var(--ink-soft)', lineHeight: '1.5' }
@@ -8773,7 +8771,7 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
 }
 
 /* ============================================================
-   PRESENTER PREP PAGE
+   presenter prep PAGE
    ------------------------------------------------------------
    라우트 'presenter-prep' 진입점. 내부적으로는 PitchPrepPage 와
    같은 콘텐츠를 보여주기 위해 PT 준비 페이지로 리다이렉트.
@@ -8796,7 +8794,7 @@ function PresenterPrepPage(weekN) {
 }
 
 /* ============================================================
-   PT STUDIO PAGE — 본인 PT 준비 메인 (라우트명 'pitch-prep' 은 내부 호환 위해 유지)
+   pt studio PAGE — 본인 PT 준비 메인 (라우트명 'pitch-prep' 은 내부 호환 위해 유지)
    - 내가 잡은 발표 주의 풍부한 prep 블록 (시나리오/어휘/스크립트/노트/타이머)
    - 계속 학습하고 싶은 단어 보관소 (state.pitch_vocab)
    - 상시 스크래치 노트 (state.pitch_scratch)
@@ -8816,7 +8814,7 @@ function PitchPrepPage() {
   const back = el('button', { class: 'icon-btn', onClick: () => go('premium') });
   back.innerHTML = Icon('arrowLeft', 16);
   head.appendChild(back);
-  head.appendChild(el('div', { class: 'brand-name' }, 'PT STUDIO'));
+  head.appendChild(el('div', { class: 'brand-name' }, 'pt studio'));
   head.appendChild(el('div', { style: { width: '38px' } }));
   page.appendChild(head);
 
@@ -8830,7 +8828,7 @@ function PitchPrepPage() {
     marginTop: '4px',
   }});
   hero.innerHTML = `
-    <div style="font-size:10px;letter-spacing:0.18em;font-weight:700;opacity:0.78;">MY PT STUDIO</div>
+    <div style="font-size:10px;letter-spacing:0.18em;font-weight:700;opacity:0.78;">my pt studio</div>
     <h1 style="font-size:24px;font-weight:800;margin-top:8px;line-height:1.25;letter-spacing:-0.02em;"><span style="font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:500;">Shape</span> your own voice.</h1>
     <p style="margin-top:8px;font-size:13px;line-height:1.55;opacity:0.88;">본인 PT·발표를 상시로 준비하는 공간. 어휘 저장, 스크립트 쌓기, 매주 발표 리허설까지.</p>`;
   page.appendChild(hero);
@@ -8847,10 +8845,10 @@ function PitchPrepPage() {
   if (myPrepWeek) {
     const meta = weekMeta(myPrepWeek);
     if (meta) {
-      // showSectionHeading: PT STUDIO 페이지에 인라인되니까 dark hero 미니버전을 띄워줌.
+      // showSectionHeading: pt studio 페이지에 인라인되니까 dark hero 미니버전을 띄워줌.
       // hideRelease: 자리 내려놓기 버튼은 유지 (이 페이지에서도 직접 내려놓을 수 있게).
       appendPresenterPrepBlock(page, meta, myPrepWeek, { showSectionHeading: true });
-      // 인라인 블록과 아래 VOCAB BANK 사이에 시각적 구분
+      // 인라인 블록과 아래 vocab bank 사이에 시각적 구분
       page.appendChild(el('div', {
         style: { marginTop: '28px', height: '1px', background: 'rgba(169,139,184,0.18)' }
       }));
@@ -8880,7 +8878,7 @@ function PitchPrepPage() {
   const vocabSection = el('div', { style: { marginTop: '26px' } });
   vocabSection.appendChild(el('div', {
     style: { fontSize: '10px', letterSpacing: '0.14em', fontWeight: '700', color: '#7B5E8C' }
-  }, '💎 VOCAB BANK'));
+  }, '💎 vocab bank'));
   vocabSection.appendChild(el('h2', {
     style: { fontSize: '20px', fontWeight: '800', color: 'var(--ink)', marginTop: '6px', letterSpacing: '-0.015em' }
   }, '계속 학습하고 싶은 단어'));
@@ -9094,7 +9092,7 @@ function PitchPrepPage() {
   const recapSection = el('div', { style: { marginTop: '32px' } });
   recapSection.appendChild(el('div', {
     style: { fontSize: '10px', letterSpacing: '0.14em', fontWeight: '700', color: '#7B5E8C' }
-  }, '📓 MEETING RECAP'));
+  }, '📓 meeting recap'));
   recapSection.appendChild(el('h2', {
     style: { fontSize: '20px', fontWeight: '800', color: 'var(--ink)', marginTop: '6px', letterSpacing: '-0.015em' }
   }, '주차별 회의록'));
@@ -9230,7 +9228,7 @@ function PitchPrepPage() {
   recapSection.appendChild(recapList);
   page.appendChild(recapSection);
 
-  // (SCRATCH "상시 PT 아이디어" 섹션 제거됨 — PT 대본 + 어휘 뱅크에 흡수.)
+  // (scratch "상시 PT 아이디어" 섹션 제거됨 — PT 대본 + 어휘 뱅크에 흡수.)
 
   // Footer spacer
   page.appendChild(el('div', { style: { height: '80px' } }));
@@ -9322,7 +9320,7 @@ function MeetingNotesPage(meetingId) {
   const presenterMembers = presenterKeys.map(k => memberByKey(k));
   // Day countdown
   const dLeft = daysUntilMeeting(meta.date);
-  const dLabel = dLeft === null ? '' : dLeft > 0 ? `D-${dLeft}` : dLeft === 0 ? 'TODAY' : `D+${Math.abs(dLeft)}`;
+  const dLabel = dLeft === null ? '' : dLeft > 0 ? `D-${dLeft}` : dLeft === 0 ? 'today' : `D+${Math.abs(dLeft)}`;
 
   // Top bar
   const head = el('div', { class: 'topbar' });
@@ -9385,7 +9383,7 @@ function MeetingNotesPage(meetingId) {
         <div class="mn-date-tag">WEEK ${meta.n}</div>
       </div>
       <div style="flex:1;min-width:0;">
-        <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(169,139,184,0.16);color:#7B5E8C;font-size:10px;letter-spacing:0.14em;font-weight:700;text-transform:uppercase;">
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(169,139,184,0.16);color:#7B5E8C;font-size:10px;letter-spacing:0.14em;font-weight:700;">
           ● WEEKLY MEETUP${dLabel ? ' · ' + dLabel : ''}
         </div>
         <div style="margin-top:10px;font-size:22px;font-weight:800;color:var(--ink);line-height:1.25;letter-spacing:-0.02em;">${escapeHtml(meta.title)}</div>
@@ -9723,7 +9721,7 @@ function MeetingNotesPage(meetingId) {
           marginBottom: '18px',
         }
       });
-      const scenarioLabel = meta.noPresenter ? '📋 오늘의 안건' : '🎬 SCENARIO';
+      const scenarioLabel = meta.noPresenter ? '📋 오늘의 안건' : '🎬 scenario';
       sumCard.innerHTML = `
         <div style="font-size:10px;letter-spacing:0.14em;font-weight:700;color:#7B5E8C;">${scenarioLabel}</div>
         <div style="font-size:14px;font-weight:700;color:var(--ink);margin-top:6px;">${escapeHtml(meta.scenario.setting || '')}</div>
@@ -10652,7 +10650,7 @@ function ProfilePage() {
           <div style="flex:1;min-width:0;">
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
               <span style="font-size:12.5px;font-weight:800;color:var(--ink);">${escapeHtml(postUserDisplay)}</span>
-              <span class="mono" style="font-size:10px;color:var(--muted);">${escapeHtml(post.word)}</span>
+              <span class="mono" style="font-size:10px;color:var(--muted);">${escapeHtml((post.word || '').toLowerCase())}</span>
             </div>
             <div style="margin-top:3px;font-size:12.5px;line-height:1.45;color:var(--ink);font-weight:600;">${escapeHtml(post.sentence)}</div>
           </div>
@@ -10886,7 +10884,7 @@ function CommunityPage() {
   const hero = el('div', { style: { padding: '24px 8px 12px' } });
   const dateStr = formatDateKR(dayDate(selectedDay));
   hero.innerHTML = `
-    <div class="kicker">${selectedDay === state.currentDay ? 'TODAY' : 'LOOKING BACK'} · DAY ${selectedDay} · ${dateStr}</div>
+    <div class="kicker">${selectedDay === state.currentDay ? 'today' : 'looking back'} · DAY ${selectedDay} · ${dateStr}</div>
     <h1 style="margin:10px 0 0;font-size:26px;line-height:1.12;letter-spacing:-0.03em;font-weight:700;">다같이 제출한 문장</h1>`;
   page.appendChild(hero);
 
@@ -10938,12 +10936,11 @@ function CommunityPage() {
         fontSize: '11px',
         lineHeight: '1',
         flexShrink: '0',
-        letterSpacing: '0.06em',
-        textTransform: 'uppercase',
+        letterSpacing: '0.02em',
       },
       onClick: () => { state.communityFilter = f; saveState(); render(); },
     });
-    chip.innerHTML = f === 'all' ? '전체' : `<span style="font-size:11px;color:${active ? 'var(--cream)' : 'var(--orange)'};font-weight:700;">${f}</span>`;
+    chip.innerHTML = f === 'all' ? '전체' : `<span style="font-size:11px;color:${active ? 'var(--cream)' : 'var(--orange)'};font-weight:700;">${escapeHtml(f.toLowerCase())}</span>`;
     chips.appendChild(chip);
   });
   page.appendChild(chips);
@@ -11086,7 +11083,7 @@ function CommunityPage() {
           ${role ? `<span style="font-size:10px;color:var(--ink-soft);">${escapeHtml(role)}</span>` : ''}
           ${tz ? `<span style="font-size:10px;color:var(--muted);" class="mono">${escapeHtml(tz)}</span>` : ''}
           <span style="font-size:10px;color:var(--muted);">· ${post.time}</span>
-          <span style="font-size:9.5px;font-weight:700;letter-spacing:0.08em;color:var(--orange-dark);background:var(--orange-ghost);padding:2px 6px;border-radius:4px;">${escapeHtml(post.word)}</span>
+          <span style="font-size:9.5px;font-weight:700;letter-spacing:0.02em;color:var(--orange-dark);background:var(--orange-ghost);padding:2px 6px;border-radius:4px;">${escapeHtml((post.word || '').toLowerCase())}</span>
           ${editTag}
         </div>
         <p style="margin:5px 0 0;font-size:13.5px;line-height:1.5;color:var(--ink);letter-spacing:-0.01em;">${highlighted}</p>
@@ -11721,11 +11718,11 @@ function ScriptsPage() {
       });
       row.innerHTML = `
         <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
-          <span style="font-size:10.5px;font-weight:700;letter-spacing:0.08em;color:var(--orange-dark);background:var(--orange-ghost);padding:2px 6px;border-radius:4px;text-transform:uppercase;">${escapeHtml(r.wordEn)}</span>
+          <span style="font-size:10.5px;font-weight:700;letter-spacing:0.08em;color:var(--orange-dark);background:var(--orange-ghost);padding:2px 6px;border-radius:4px;">${escapeHtml(r.wordEn)}</span>
           <span style="font-size:11px;color:var(--muted);">${escapeHtml(r.wordDef)}</span>
           ${r.submitted ? '<span style="font-size:10px;color:var(--green);margin-left:auto;">● 제출됨</span>' : '<span style="font-size:10px;color:var(--muted);margin-left:auto;">초안</span>'}
         </div>
-        ${r.note ? `<div style="margin:8px 0 0;padding:8px 10px;border-radius:10px;background:rgba(255,253,247,0.85);border:1px dashed rgba(231,221,200,0.7);"><div style="font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--muted);text-transform:uppercase;">📝 내 한국어 문장</div><p style="margin:4px 0 0;font-size:12.5px;line-height:1.5;color:var(--ink-soft);">${escapeHtml(r.note)}</p></div>` : ''}
+        ${r.note ? `<div style="margin:8px 0 0;padding:8px 10px;border-radius:10px;background:rgba(255,253,247,0.85);border:1px dashed rgba(231,221,200,0.7);"><div style="font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--muted);">📝 내 한국어 문장</div><p style="margin:4px 0 0;font-size:12.5px;line-height:1.5;color:var(--ink-soft);">${escapeHtml(r.note)}</p></div>` : ''}
         <p style="margin:8px 0 0;font-size:14px;line-height:1.5;color:var(--ink);letter-spacing:-0.01em;">${escapeHtml(r.sentence)}</p>
         ${r.corrected && r.corrected !== r.sentence ? `<p style="margin:4px 0 0;font-size:12px;line-height:1.45;color:var(--ink-soft);"><span style="color:var(--green);font-weight:700;">AI 교정 →</span> ${escapeHtml(r.corrected)}</p>` : ''}
       `;
@@ -12659,7 +12656,7 @@ window.__startVoiceQuiz = async (dayN, btnEl) => {
         },
       });
       card.innerHTML = `
-        <div style="font-size:11px;font-weight:800;color:${isMatch ? '#22B36A' : '#7A5800'};letter-spacing:0.14em;text-transform:uppercase;">
+        <div style="font-size:11px;font-weight:800;color:${isMatch ? '#22B36A' : '#7A5800'};letter-spacing:0.14em;">
           ${isMatch ? '✓ 정답이에요' : '🎙 들은 답'}
         </div>
         <div style="margin-top:8px;font-size:24px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.2;">
@@ -12861,7 +12858,7 @@ window.__toggleSynBookmark = (key) => {
   state.saved_syns[key] = !state.saved_syns[key];
   const on = !!state.saved_syns[key];
   if (!on) delete state.saved_syns[key];
-  // VOCAB BANK 와 동기화.
+  // vocab bank 와 동기화.
   syncSynBookmarkToBank(key, on);
   saveState();
   showToast(on ? '🔖 유의어를 단어장에 저장했어요.' : '단어장에서 빼놨어요.');
@@ -13173,7 +13170,7 @@ window.__submitPremiumCode = () => {
 };
 window.__toggleBookmark = (key) => {
   state.bookmarks[key] = !state.bookmarks[key];
-  // VOCAB BANK 와 동기화 — key 에서 dayN/idx 뽑아 word 룩업.
+  // vocab bank 와 동기화 — key 에서 dayN/idx 뽑아 word 룩업.
   const m = String(key).match(/^d(\d+)-(\d+)$/);
   if (m) {
     const dayN = Number(m[1]);
@@ -13571,7 +13568,7 @@ function buildCertHtml({ name, englishName, role, done, total, overall, vocabCou
   .divider-diamond{width:6px; height:6px; background:var(--gold); transform:rotate(45deg); flex-shrink:0;}
   .name-section{text-align:center; margin:24px 0 16px;}
   .awarded-to{font-size:10.5px; color:var(--ink-lite); letter-spacing:3px;
-    text-transform:uppercase; margin-bottom:10px; font-weight:300;}
+     margin-bottom:10px; font-weight:300;}
   .name-card{display:inline-block; background:rgba(255,255,255,0.55); border:1px solid rgba(255,255,255,0.85);
     backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); padding:16px 48px; border-radius:100px;
     box-shadow:0 8px 32px rgba(201,87,33,0.12), inset 0 1px 0 rgba(255,255,255,0.9); margin-bottom:10px;}
@@ -13594,7 +13591,7 @@ function buildCertHtml({ name, englishName, role, done, total, overall, vocabCou
   .card-strengths::before{background:linear-gradient(to right, #A8DDC8, #5BAF8A);}
   .card-growth::before{background:linear-gradient(to right, #F4B8A0, #D07050);}
   .card-vocab::before{background:linear-gradient(to right, var(--orange-lite), var(--orange-deep));}
-  .card-heading{font-size:8.5px; letter-spacing:2.5px; text-transform:uppercase; font-weight:700; margin-bottom:8px;}
+  .card-heading{font-size:8.5px; letter-spacing:2.5px;  font-weight:700; margin-bottom:8px;}
   .card-topic .card-heading{color:var(--gold);}
   .card-strengths .card-heading{color:#3A9870;}
   .card-growth .card-heading{color:#B05838;}
@@ -13616,7 +13613,7 @@ function buildCertHtml({ name, englishName, role, done, total, overall, vocabCou
   .dark-card::before{content:''; position:absolute; top:0; left:0; right:0; height:1.5px; border-radius:14px 14px 0 0;
     background:linear-gradient(to right, transparent, var(--gold), var(--gold-lite), var(--gold), transparent);}
   .dark-card .card-heading{color:var(--gold-lite); font-size:8.5px; letter-spacing:2.5px;
-    text-transform:uppercase; font-weight:700; margin-bottom:12px; text-align:center;}
+     font-weight:700; margin-bottom:12px; text-align:center;}
   .dark-card-inner{display:flex; flex-direction:row; gap:16px; align-items:center;}
   .vocab-grid{flex:1; display:grid; grid-template-columns:1fr 1fr; gap:5px 12px;}
   .vocab-row{display:flex; align-items:baseline; gap:6px; background:rgba(255,255,255,0.04);
@@ -13628,7 +13625,7 @@ function buildCertHtml({ name, englishName, role, done, total, overall, vocabCou
   .sig-block{display:flex; flex-direction:column; gap:2px;}
   .sig-name{font-family:var(--f-serif); font-style:italic; font-size:18px; color:var(--ink);}
   .sig-line{width:100px; height:0.5px; background:var(--orange-soft); margin:2px 0;}
-  .sig-role{font-size:9px; color:var(--ink-lite); letter-spacing:1.5px; text-transform:uppercase;}
+  .sig-role{font-size:9px; color:var(--ink-lite); letter-spacing:1.5px; }
   .center-footer{text-align:center;}
   .issue-date{font-size:9.5px; color:var(--ink-lite); letter-spacing:0.5px; font-weight:300;}
   .logo-footer{display:flex; flex-direction:column; align-items:flex-end; gap:2px;}
