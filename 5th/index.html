@@ -7318,27 +7318,69 @@ function DayPage(dayN) {
     hook.innerHTML = `
       <div class="kicker" style="color:var(--orange-dark);">BONUS · STORY HOOK</div>
       <h3 class="h3" style="margin-top:6px;">오늘 3문장을 하나의 짧은 흐름으로 이어볼까요?</h3>
-      <p class="t-body" style="margin-top:6px;font-size:13px;line-height:1.55;">실제 미팅 시나리오 1분 상황극 — 세 표현을 자연스럽게 엮으면 기억에 더 오래 남아요.</p>`;
+      <p class="t-body" style="margin-top:6px;font-size:13px;line-height:1.55;">실제 미팅 시나리오 1분 상황극 — 세 표현을 자연스럽게 엮으면 기억에 더 오래 남아요. 아래 문장에 단어가 들어가면 ✓ 로 체크돼요.</p>`;
     const hookWords = el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' } });
+    // 칩 reference 보관 — textarea input 마다 색·체크 토글하기 위해.
+    const hookChips = [];
     d.words.forEach((word, idx) => {
-      hookWords.appendChild(el('span', {
+      const chip = el('span', {
         class: 'badge',
+        'data-word': (word.en || '').toLowerCase(),
         style: {
           padding: '8px 12px',
           borderRadius: '999px',
           background: '#FFF7ED',
           color: 'var(--orange-dark)',
           border: '1px solid var(--orange-soft)',
-          fontSize: '11px',
+          fontSize: '12px',
           fontFamily: 'var(--font-mono)',
+          fontWeight: '600',
+          transition: 'all 0.18s',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '5px',
         }
-      }, `0${idx + 1} ${word.en.toUpperCase()}`));
+      });
+      chip.dataset.idx = String(idx);
+      chip.dataset.word = word.en;
+      // 초기 라벨 (소문자, hit 상태는 updateHookHits 가 덧칠).
+      chip.innerHTML = `<span data-mark>○</span><span>0${idx + 1}</span><span>${escapeHtml(word.en)}</span>`;
+      hookWords.appendChild(chip);
+      hookChips.push({ el: chip, en: word.en });
     });
     hook.appendChild(hookWords);
+
+    // 힛 카운터 (3개 중 N개 사용됨)
+    const hookHitCounter = el('div', {
+      style: { marginTop: '8px', fontSize: '12px', fontWeight: '700', color: 'var(--muted)' }
+    }, '');
+    hook.appendChild(hookHitCounter);
+
+    function updateHookHits() {
+      const text = (hookTa.value || '').toLowerCase();
+      let hitCount = 0;
+      hookChips.forEach((c) => {
+        const hit = text.includes((c.en || '').toLowerCase());
+        if (hit) hitCount += 1;
+        const mark = c.el.querySelector('[data-mark]');
+        if (mark) mark.textContent = hit ? '✓' : '○';
+        // 색상 토글: hit 시 초록 계열, miss 시 주황 페이드.
+        c.el.style.background = hit ? 'rgba(74,160,124,0.16)' : '#FFF7ED';
+        c.el.style.color = hit ? '#2E7D5A' : 'var(--orange-dark)';
+        c.el.style.borderColor = hit ? 'rgba(74,160,124,0.42)' : 'var(--orange-soft)';
+      });
+      hookHitCounter.textContent = `${hitCount}/3 단어 사용됨`;
+      hookHitCounter.style.color = hitCount === 3 ? '#2E7D5A' : 'var(--muted)';
+    }
+
     const hookTa = el('textarea', {
       class: 'sentence-input',
       placeholder: `예) Before we jump in, let's ${d.words[0].en} on the timeline. I think we should ${d.words[1].en} option A — ${d.words[2].en}, at least.`,
-      onInput: (e) => { state.sentences[hookKey] = e.target.value; saveState(); },
+      onInput: (e) => {
+        state.sentences[hookKey] = e.target.value;
+        updateHookHits();
+        saveState();
+      },
     });
     hookTa.rows = 3;
     hookTa.style.minHeight = '120px';
@@ -7349,6 +7391,8 @@ function DayPage(dayN) {
     hookTa.style.background = '#fffdfa';
     hookTa.value = hookValue;
     hook.appendChild(hookTa);
+    // 초기 hit 상태 반영 (저장된 값으로 들어왔을 때).
+    updateHookHits();
 
     // AI review button for the bonus sentence. Shares the same "참고용 · 나만 봐요" pattern.
     const hookControls = el('div', { style: { display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '12px', justifyContent: 'flex-end' } });
