@@ -5878,13 +5878,14 @@ function Checkboard() {
     }
   }
   // 정렬: (1) 로그인한 본인 항상 최상단 — 티어 무관, (2) 그 다음 프리미엄 → 베이직,
-  // (3) 같은 티어 내에서는 MEMBERS 시드 순서 유지 (대시보드 순서 안정성).
+  // (3) 같은 티어 내에서는 한글 이름 ㄱ~ㅎ 가나다순 (Intl.Collator ko).
   const tierRank = (m) => (cbTierOf(m) === 'premium' ? 0 : 1);
+  const koCollator = new Intl.Collator('ko', { numeric: true, sensitivity: 'base' });
   const orderedMembers = [...allMembers].sort((a, b) => {
     if (a.me !== b.me) return a.me ? -1 : 1;   // me first, always
     const ta = tierRank(a), tb = tierRank(b);
     if (ta !== tb) return ta - tb;             // premium before basic
-    return 0;
+    return koCollator.compare(a.name || '', b.name || ''); // 한글 가나다순
   });
   orderedMembers.forEach((m) => {
     // 가입(온보딩 완료 → 대시보드 진입) 안 한 멤버는 이름 회색.
