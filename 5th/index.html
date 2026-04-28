@@ -2181,6 +2181,8 @@ let pendingConsentTimer = null;
 let showConsentAudit = false;
 let consentAuditRows = null; // 비동기 fetch 결과 캐시
 let consentAuditLoading = false;
+// 인증률 추이 모달 — null | 'all' | 'basic' | 'premium'
+let showRateHistory = null;
 let toast = null;
 let confettiTimer = null;
 let dashboardStats = {
@@ -3856,6 +3858,7 @@ async function refreshRemoteStateAndCommunity(opts = {}) {
     || (typeof activeMemberCard !== 'undefined' && activeMemberCard) // 프로필 카드 깜빡임 방지
     || !!document.querySelector('[data-presenter-script-modal]') // PT 대본 모달
     || !!document.querySelector('[data-consent-modal]') // 동의 모달
+    || (typeof showRateHistory !== 'undefined' && showRateHistory) // 인증률 추이 모달
   );
   if (changed && !interactiveModalOpen) render();
   return changed;
@@ -4360,6 +4363,7 @@ function render() {
     if (showSettings) root.appendChild(SettingsModal());
     if (showGoalEditor) root.appendChild(GoalModal());
     if (verificationReviewDay) root.appendChild(VerificationReviewModal(verificationReviewDay));
+    if (showRateHistory) root.appendChild(RateHistoryModal(showRateHistory));
     // MeetingConsent 모달은 body 에 싱글턴으로 마운트 → root.innerHTML='' 재렌더 영향 차단
     // → '두번씩 띡띡' 플래시 버그 방지. 이미 DOM 에 있으면 스킵. (닫힐 때는 핸들러가 직접 제거)
     if (showMeetingConsent) {
@@ -5725,22 +5729,27 @@ function HomePage() {
   const premiumRate = premiumList.length ? Math.round((premiumVerified / premiumList.length) * 100) : 0;
 
   const stats = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '24px' } });
+  // 카드 자체는 원래 디자인 유지. 클릭하면 일자별 추이 모달 오픈.
   stats.innerHTML = `
-    <div class="card card-flat" style="padding:14px 12px;">
+    <button class="card card-flat" data-stat-tier="all" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
       <div class="kicker">오늘 인증률</div>
       <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;color:var(--orange);">${todayRate}%</div>
       <div class="t-small" style="margin-top:2px;">${dashboardStats.comparisonLabel}</div>
-    </div>
-    <div class="card card-flat" style="padding:14px 12px;">
+    </button>
+    <button class="card card-flat" data-stat-tier="basic" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
       <div class="kicker">베이직</div>
       <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;">${basicRate}%</div>
       <div class="t-small" style="margin-top:2px;">${basicVerified}/${basicList.length} 인증</div>
-    </div>
-    <div class="card card-flat" style="padding:14px 12px;">
+    </button>
+    <button class="card card-flat" data-stat-tier="premium" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
       <div class="kicker">프리미엄</div>
       <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;">${premiumRate}%</div>
       <div class="t-small" style="margin-top:2px;">${premiumVerified}/${premiumList.length} 인증</div>
-    </div>`;
+    </button>`;
+  // 핸들러 — innerHTML 후에 wire up.
+  stats.querySelectorAll('[data-stat-tier]').forEach((btn) => {
+    btn.onclick = () => { showRateHistory = btn.dataset.statTier; render(); };
+  });
   page.appendChild(stats);
 
   // Checkboard — 스탯 바로 아래에 배치 (스탯에서 '우리 동네' 인증률을 먼저 보고, 보드로 누가 인증했는지 확인).
@@ -11487,6 +11496,170 @@ function SettingsModal() {
   }, 0);
   return backdrop;
 }
+
+/* 인증률 추이 모달 — Day 1~currentDay 일자별 인증률 그래프 + 평균/총합.
+   Tab: 전체 / 베이직 / 프리미엄 (클릭한 카드에 따라 초기 선택).
+   데이터: paidMembers() + member.verifiedDays (서버 summary). 본인은 state.verified. */
+function RateHistoryModal(initialTier) {
+  const backdrop = el('div', {
+    class: 'modal-backdrop',
+    onClick: (e) => { if (e.target === backdrop) { showRateHistory = null; render(); } },
+  });
+  const modal = el('div', {
+    class: 'modal',
+    style: {
+      width: 'min(94vw, 540px)',
+      maxHeight: '88vh',
+      overflowY: 'auto',
+      padding: '22px 22px 20px',
+      borderRadius: '26px',
+      background: '#FFFDF7',
+      border: '1px solid var(--line)',
+    },
+  });
+
+  // 현재 선택된 tier — modal 내부 탭으로 변경 가능 (state 와 별도 window 변수).
+  window.__rateHistoryTab = window.__rateHistoryTab || initialTier || 'all';
+  const activeTier = window.__rateHistoryTab;
+
+  // Pool 결정
+  const statsPool = paidMembers();
+  const effectiveTier = (m) => (m.me ? (state.tier || 'basic') : m.tier);
+  const pool = activeTier === 'all'
+    ? statsPool
+    : statsPool.filter((m) => effectiveTier(m) === activeTier);
+
+  // 본인 verified 체크 (서버에 verifiedDays 안 박힌 그날을 위해)
+  const myVerifiedDays = (() => {
+    const arr = [];
+    for (let d = 1; d <= 20; d++) {
+      if (state.verified && state.verified['d' + d]) arr.push(d);
+    }
+    return arr;
+  })();
+
+  const verifiedSetFor = (m) => {
+    if (m.me) return new Set(myVerifiedDays);
+    if (Array.isArray(m.verifiedDays) && m.verifiedDays.length) {
+      return new Set(m.verifiedDays.map(Number));
+    }
+    // fallback: progress count → assume Days 1..progress verified
+    const p = Number(m.progress || 0);
+    const s = new Set();
+    for (let i = 1; i <= p; i++) s.add(i);
+    return s;
+  };
+
+  const today = Math.max(1, Math.min(20, Number(state.currentDay || 1)));
+  const dayRates = [];
+  for (let d = 1; d <= today; d++) {
+    const verifiedCount = pool.filter((m) => verifiedSetFor(m).has(d)).length;
+    const rate = pool.length ? Math.round((verifiedCount / pool.length) * 100) : 0;
+    dayRates.push({ day: d, count: verifiedCount, total: pool.length, rate });
+  }
+  const avgRate = dayRates.length
+    ? Math.round(dayRates.reduce((acc, r) => acc + r.rate, 0) / dayRates.length)
+    : 0;
+  const maxRate = dayRates.length ? Math.max(...dayRates.map((r) => r.rate), 1) : 100;
+
+  // ─── Header
+  modal.innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+      <div style="flex:1;min-width:0;">
+        <div class="kicker" style="color:var(--orange-dark);">📊 인증률 추이</div>
+        <h3 class="h3" style="margin-top:6px;font-size:18px;">Day 1 ~ Day ${today}</h3>
+        <div class="t-small" style="margin-top:4px;color:var(--muted);">
+          ${pool.length}명 기준 · 평균 ${avgRate}%
+        </div>
+      </div>
+      <button class="icon-btn" style="width:38px;height:38px;border-radius:14px;flex-shrink:0;" onclick="window.__closeRateHistory()">${Icon('close', 16)}</button>
+    </div>
+  `;
+
+  // Tabs
+  const tabs = el('div', { style: { display: 'flex', gap: '6px', marginTop: '14px' } });
+  const tabDefs = [
+    { key: 'all', label: `전체 · ${statsPool.length}` },
+    { key: 'basic', label: `베이직 · ${statsPool.filter((m) => effectiveTier(m) === 'basic').length}` },
+    { key: 'premium', label: `프리미엄 · ${statsPool.filter((m) => effectiveTier(m) === 'premium').length}` },
+  ];
+  tabDefs.forEach((t) => {
+    const isActive = activeTier === t.key;
+    const tab = el('button', {
+      style: {
+        flex: '1',
+        padding: '8px 10px',
+        borderRadius: '12px',
+        border: '1px solid ' + (isActive ? 'var(--orange)' : 'var(--line)'),
+        background: isActive ? 'var(--orange-ghost)' : '#fff',
+        color: isActive ? 'var(--orange-dark)' : 'var(--ink-soft)',
+        fontSize: '12px',
+        fontWeight: '700',
+        cursor: 'pointer',
+      },
+      onClick: () => { window.__rateHistoryTab = t.key; showRateHistory = t.key; render(); },
+    }, t.label);
+    tabs.appendChild(tab);
+  });
+  modal.appendChild(tabs);
+
+  // ─── Big number: 평균
+  const bigStat = el('div', {
+    style: {
+      marginTop: '16px',
+      padding: '18px 20px',
+      borderRadius: '18px',
+      background: 'linear-gradient(135deg, rgba(240,125,56,0.08), rgba(240,125,56,0.02))',
+      border: '1px solid var(--orange-soft)',
+      display: 'flex',
+      alignItems: 'baseline',
+      gap: '14px',
+      justifyContent: 'space-between',
+    }
+  });
+  bigStat.innerHTML = `
+    <div>
+      <div class="kicker" style="color:var(--orange-dark);">${activeTier === 'all' ? '전체' : (activeTier === 'basic' ? '베이직' : '프리미엄')} 평균 인증률</div>
+      <div class="serif" style="font-size:42px;line-height:1;margin-top:4px;color:var(--orange);">${avgRate}%</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="t-small" style="color:var(--muted);">집계 기간</div>
+      <div style="font-size:14px;font-weight:700;color:var(--ink);margin-top:2px;">${today}일치</div>
+    </div>`;
+  modal.appendChild(bigStat);
+
+  // ─── Bar chart (가로 bar)
+  const chartWrap = el('div', { style: { marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '6px' } });
+  dayRates.forEach((r) => {
+    const row = el('div', {
+      style: {
+        display: 'grid',
+        gridTemplateColumns: '50px 1fr 70px',
+        gap: '10px',
+        alignItems: 'center',
+        padding: '8px 10px',
+        borderRadius: '10px',
+        background: r.day === today ? 'rgba(240,125,56,0.08)' : 'transparent',
+      }
+    });
+    const widthPct = Math.max(1, Math.round((r.rate / 100) * 100));
+    const isHighlight = r.day === today;
+    row.innerHTML = `
+      <div style="font-size:12px;font-weight:700;color:${isHighlight ? 'var(--orange-dark)' : 'var(--ink-soft)'};">Day ${r.day}${isHighlight ? ' ·' : ''}</div>
+      <div style="position:relative;height:18px;background:rgba(231,221,200,0.5);border-radius:9px;overflow:hidden;">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:${widthPct}%;background:${isHighlight ? 'linear-gradient(90deg, var(--orange), var(--orange-dark))' : 'var(--orange-soft)'};border-radius:9px;transition:width 0.3s;"></div>
+      </div>
+      <div style="font-size:12px;font-weight:700;text-align:right;color:${isHighlight ? 'var(--orange-dark)' : 'var(--ink)'};font-family:var(--font-mono);">
+        ${r.rate}% <span style="color:var(--muted);font-weight:500;">(${r.count}/${r.total})</span>
+      </div>`;
+    chartWrap.appendChild(row);
+  });
+  modal.appendChild(chartWrap);
+
+  backdrop.appendChild(modal);
+  return backdrop;
+}
+window.__closeRateHistory = () => { showRateHistory = null; render(); };
 
 function MemberCardModal(memberRef) {
   const member = memberCardData(memberRef);
