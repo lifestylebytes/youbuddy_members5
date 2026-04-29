@@ -6503,6 +6503,106 @@ function targetIsInText(target, text) {
   return re.test(txt);
 }
 
+// 단일 phrase 의 inflection·하이픈 변형을 regex alternatives 로 만들어줌.
+// targetIsInText 와 같은 로직인데 boolean test 대신 alternatives 만 뽑아내서
+// 여러 phrase 합쳐 하나의 highlight regex 만들 때 재사용.
+// PLUS: 대명사(it/them/this/that/these/those/...) 가운데 들어간 phrase 는
+// 명사구로 치환된 변형도 (예: "get it over the line" → "got this design over the line") 같이 잡음.
+const _PRONOUN_TOKENS = new Set(['it','them','this','that','these','those','something','someone','one']);
+function _buildPhraseAlternatives(target) {
+  const t = String(target || '').trim();
+  if (!t) return [];
+  const tokens = t.split(/\s+/);
+  const out = [];
+  if (tokens.length === 1) {
+    const word = tokens[0].toLowerCase();
+    hyphenVariants(word).forEach((v) => {
+      if (v.includes(' ')) {
+        const sub = v.split(/\s+/);
+        const head = sub.slice(0, -1).map(_escRe).join('\\s+');
+        const lastInfl = inflectionVariants(sub[sub.length - 1]);
+        lastInfl.forEach((h) => out.push('\\b' + head + '\\s+' + _escRe(h) + '\\b'));
+      } else {
+        inflectionVariants(v).forEach((h) => out.push('\\b' + _escRe(h) + '\\b'));
+      }
+    });
+    return out;
+  }
+  // 멀티워드: head 시제 변형 + tail 그대로
+  const headInfl = inflectionVariants(tokens[0].toLowerCase());
+  const tail = tokens.slice(1).map(_escRe).join('\\s+');
+  headInfl.forEach((h) => out.push('\\b' + _escRe(h) + '\\s+' + tail + '\\b'));
+  // 대명사 치환 — target 안에 가운데 대명사가 있으면 1~5단어 명사구로 바뀌어도 매칭.
+  // 예: "get it over the line" → "got this design over the line", "got the project over the line"
+  for (let i = 1; i < tokens.length - 1; i += 1) {
+    const cleaned = tokens[i].toLowerCase().replace(/[.,!?]+$/, '');
+    if (!_PRONOUN_TOKENS.has(cleaned)) continue;
+    const prefixTokens = tokens.slice(0, i);
+    const suffixTokens = tokens.slice(i + 1);
+    if (!prefixTokens.length || !suffixTokens.length) continue;
+    const prefixHeadInfl = inflectionVariants(prefixTokens[0].toLowerCase());
+    const prefixRest = prefixTokens.slice(1).map(_escRe).join('\\s+');
+    const escSuffix = suffixTokens.map(_escRe).join('\\s+');
+    prefixHeadInfl.forEach((h) => {
+      const head = prefixRest
+        ? '\\b' + _escRe(h) + '\\s+' + prefixRest
+        : '\\b' + _escRe(h);
+      // 1~5단어 명사구가 가운데 들어갈 수 있게. 단, 그 자체는 highlight 범위 안에 포함됨
+      // (사용자가 의도한 phrase 전체가 형광 처리됨).
+      out.push(head + '\\s+(?:\\S+\\s+){1,5}?' + escSuffix + '\\b');
+    });
+  }
+  return out;
+}
+
+// 텍스트에서 [메인 + 유의어] 어휘를 시제·하이픈 변형 인식해서 주황 형광색으로 감싸 HTML 반환.
+// XSS-safe — 매칭되지 않은 부분도 escapeHtml 처리. 매칭은 substring 단위로 보존.
+// word: { en, syn? } 객체. 없거나 비어있으면 challenge 전체에서 매칭 (post.word 가 비어있을 때).
+function highlightVocabInText(text, word) {
+  const txt = String(text || '');
+  if (!txt) return '';
+  const phrases = [];
+  if (word && word.en) {
+    phrases.push(word.en);
+    if (Array.isArray(word.syn)) phrases.push(...word.syn);
+  } else {
+    // post.word 가 비어있으면 challenge 전체 어휘로 fallback.
+    (CHALLENGE.weeks || []).forEach((w) => (w.days || []).forEach((d) => (d.words || []).forEach((dw) => {
+      if (dw.en) phrases.push(dw.en);
+      if (Array.isArray(dw.syn)) phrases.push(...dw.syn);
+    })));
+  }
+  // 길이 긴 거 우선 → "front-loaded" 가 "loaded" 보다 먼저 매칭되도록.
+  const seen = new Set();
+  const alts = [];
+  phrases
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length)
+    .forEach((p) => {
+      _buildPhraseAlternatives(p).forEach((a) => {
+        if (!seen.has(a)) { seen.add(a); alts.push(a); }
+      });
+    });
+  if (!alts.length) return escapeHtml(txt);
+  let re;
+  try {
+    re = new RegExp('(' + alts.join('|') + ')', 'gi');
+  } catch (e) {
+    return escapeHtml(txt);
+  }
+  let result = '';
+  let lastIndex = 0;
+  let m;
+  while ((m = re.exec(txt)) !== null) {
+    if (m.index > lastIndex) result += escapeHtml(txt.slice(lastIndex, m.index));
+    result += '<span style="background:var(--orange-ghost);color:var(--orange-dark);padding:1px 5px;border-radius:5px;font-weight:700;">' + escapeHtml(m[0]) + '</span>';
+    lastIndex = m.index + m[0].length;
+    if (m.index === re.lastIndex) re.lastIndex++; // zero-width 안전장치
+  }
+  if (lastIndex < txt.length) result += escapeHtml(txt.slice(lastIndex));
+  return result;
+}
+
 // 퀴즈 빈칸 split — 1-blank vs 2-blank.
 // 핵심 케이스: target = "get it over the line" / prompt = "...get this project over the line"
 //  → 대명사(it/them/...)가 실제 명사구로 치환된 예문이라 "단일 빈칸" 으로 풀면 어색함.
@@ -11569,13 +11669,18 @@ function CommunityPage() {
         alignItems: 'flex-start',
       }
     });
-    const wordRegex = challengeWordRegex('i');
-    const highlighted = wordRegex
-      ? escapeHtml(post.sentence).replace(
-          wordRegex,
-          '<span style="background:var(--orange-ghost);color:var(--orange-dark);padding:1px 5px;border-radius:5px;font-weight:700;">$1</span>'
-        )
-      : escapeHtml(post.sentence);
+    // Post 가 가리키는 vocab object 를 CHALLENGE 에서 찾아서 메인 + 유의어 둘 다 highlight.
+    // 시제 (got/getting), 하이픈 변형 (front load) 까지 매칭됨.
+    const postWordObj = (() => {
+      const targetEn = String(post.word || '').toLowerCase().trim();
+      if (!targetEn) return null;
+      let found = null;
+      (CHALLENGE.weeks || []).forEach((w) => (w.days || []).forEach((d) => (d.words || []).forEach((dw) => {
+        if (!found && (dw.en || '').toLowerCase().trim() === targetEn) found = dw;
+      })));
+      return found;
+    })();
+    const highlighted = highlightVocabInText(post.sentence, postWordObj);
     const editTag = post.edited
       ? `<span style="font-size:10px;color:var(--muted);margin-left:6px;">(수정됨)</span>` : '';
     const mineEditBtn = post.mine
