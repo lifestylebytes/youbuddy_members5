@@ -325,7 +325,7 @@ input, textarea, select { font-family: inherit; }
 .vocab-example b { color: var(--orange-dark); font-weight: 600; }
 .vocab-example .translate { display: block; margin-top: 6px; color: var(--ink-soft); font-size: 12.5px; }
 .syn-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.syn-chip { font-family: var(--font-mono); font-size: 11px; padding: 3px 9px; border-radius: 999px; background: var(--orange-ghost); color: var(--orange-dark); }
+.syn-chip { font-family: var(--font-mono); font-size: 11px; padding: 3px 9px; border-radius: 999px; background: var(--orange-ghost); color: var(--orange-dark); white-space: nowrap; max-width: 100%; }
 
 .target-banner {
   background: var(--paper); border-radius: var(--radius-l);
@@ -2065,10 +2065,36 @@ async function requestStoryCorrection(words, text, koreanContext) {
   try {
     const result = await callAiReviewEdgeFunction({
       mode: 'story',
-      words: (words || []).map((w) => ({ en: w.en, def: w.def })),
+      // syn 도 같이 보냄 — 사용자가 메인 대신 유의어로 썼어도 보존되도록 서버에서 인정.
+      words: (words || []).map((w) => ({
+        en: w.en,
+        def: w.def,
+        syn: Array.isArray(w.syn) ? w.syn : [],
+      })),
       text,
       korean: (koreanContext || '').trim() || undefined,
     });
+    // 클라이언트 사이드 방어 — 사용자가 메인+유의어 둘 다 썼으면 corrected 에도 둘 다 있어야 함.
+    // 서버가 retry 까지 했는데도 지운 경우(or Edge Function 미배포) 대비.
+    // targetIsInText 는 시제·하이픈 변형도 인정 — corrected 에 "first cut" 또는 "First cut" 등 다 OK.
+    const corrected = String(result.corrected || text);
+    const droppedPhrases = [];
+    (words || []).forEach((w) => {
+      const candidates = [w.en, ...(Array.isArray(w.syn) ? w.syn : [])].filter(Boolean);
+      candidates.forEach((phrase) => {
+        const userWrote = targetIsInText(phrase, text);
+        const stillThere = targetIsInText(phrase, corrected);
+        if (userWrote && !stillThere) droppedPhrases.push(phrase);
+      });
+    });
+    if (droppedPhrases.length > 0) {
+      console.warn('[ai-review] client-side dropped phrases — falling back to original:', droppedPhrases);
+      return {
+        corrected: text,
+        diff_html: buildWordDiffHtml(text, text),
+        why: `이미 잘 쓰셨어요! AI 가 ${droppedPhrases.slice(0, 3).map((p) => `"${p}"`).join(', ')} 같은 유의어를 빼려고 해서 원문 그대로 둘게요.`,
+      };
+    }
     return {
       ...result,
       diff_html: buildWordDiffHtml(text, result.corrected),
@@ -6250,9 +6276,9 @@ function WeeksPage() {
 
 function buildVerifyQuestions(dayN) {
   // 출제 범위 = 오늘까지 공개된 모든 Day 단어.
-  //   - 오늘의 3단어는 항상 맨 앞에 포함.
-  //   - 이전 Day 단어들 중 랜덤하게 최대 3문항까지 복습 문항으로 섞어 출제.
-  // Day가 늘어날수록 자연스럽게 복습 분량이 붙도록 설계.
+  //   - 오늘의 3단어 = primary, 항상 맨 앞.
+  //   - 이전 Day 단어들 = recall pool, 랜덤 최대 7개 선택.
+  //   - 총 문제 수: 최대 10개 (Day 1=3, Day 2=6, Day 3=9, Day 4+=10).
   // 같은 회차 내에서는 리렌더되어도 문항이 흔들리지 않도록 캐시. __restartVerifyQuiz에서 초기화.
   window.__verifyQuestionsCache = window.__verifyQuestionsCache || {};
   const cached = window.__verifyQuestionsCache[dayN];
@@ -6279,7 +6305,9 @@ function buildVerifyQuestions(dayN) {
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  const recall = pool.slice(0, 3).map(toQuestion);
+  // 복습 문항: 최대 7개 → primary 3 + recall 7 = 총 10 cap.
+  const RECALL_MAX = 7;
+  const recall = pool.slice(0, RECALL_MAX).map(toQuestion);
 
   const questions = [...primary, ...recall];
   window.__verifyQuestionsCache[dayN] = questions;
@@ -6319,6 +6347,231 @@ function buildVerifyHintMask(answer='') {
       return out;
     })
     .join('');
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// 단어 사용 매칭 — 시제·형태 변화·하이픈 변형까지 ✓ 처리.
+// 핵심: 챌린지 vocab 은 동사가 많아서 사용자가 "tackle" 을 "tackled" 로 쓰는 게 자연스러움.
+//   기본 includes() 로는 미스 → 인플렉션 패턴으로 매칭.
+//   또 "front-load" 같은 하이픈 단어는 "front load", "front loaded" 처럼 띄어쓰기로
+//   쓰는 사람이 더 많아서 둘 다 ✓ 처리.
+// 사용처: updateHookHits (보너스 스토리 chip), updateVocabHits (PT 대본 chip).
+// ───────────────────────────────────────────────────────────────────────────
+const INFLECT_IRREGULAR = {
+  be: ['be','am','is','are','was','were','been','being'],
+  get: ['get','gets','got','gotten','getting'],
+  bring: ['bring','brings','brought','bringing'],
+  take: ['take','takes','took','taken','taking'],
+  make: ['make','makes','made','making'],
+  have: ['have','has','had','having'],
+  come: ['come','comes','came','coming'],
+  go: ['go','goes','went','gone','going'],
+  do: ['do','does','did','done','doing'],
+  see: ['see','sees','saw','seen','seeing'],
+  give: ['give','gives','gave','given','giving'],
+  set: ['set','sets','setting'],
+  put: ['put','puts','putting'],
+  cut: ['cut','cuts','cutting'],
+  hit: ['hit','hits','hitting'],
+  let: ['let','lets','letting'],
+  read: ['read','reads','reading'],
+  run: ['run','runs','ran','running'],
+  send: ['send','sends','sent','sending'],
+  spend: ['spend','spends','spent','spending'],
+  meet: ['meet','meets','met','meeting'],
+  keep: ['keep','keeps','kept','keeping'],
+  lose: ['lose','loses','lost','losing'],
+  win: ['win','wins','won','winning'],
+  find: ['find','finds','found','finding'],
+  hold: ['hold','holds','held','holding'],
+  break: ['break','breaks','broke','broken','breaking'],
+  speak: ['speak','speaks','spoke','spoken','speaking'],
+  write: ['write','writes','wrote','written','writing'],
+  drive: ['drive','drives','drove','driven','driving'],
+  pay: ['pay','pays','paid','paying'],
+  say: ['say','says','said','saying'],
+  buy: ['buy','buys','bought','buying'],
+  sell: ['sell','sells','sold','selling'],
+  feel: ['feel','feels','felt','feeling'],
+  think: ['think','thinks','thought','thinking'],
+  bring: ['bring','brings','brought','bringing'],
+  catch: ['catch','catches','caught','catching'],
+  teach: ['teach','teaches','taught','teaching'],
+  fight: ['fight','fights','fought','fighting'],
+  leave: ['leave','leaves','left','leaving'],
+  lead: ['lead','leads','led','leading'],
+  fall: ['fall','falls','fell','fallen','falling'],
+  rise: ['rise','rises','rose','risen','rising'],
+  grow: ['grow','grows','grew','grown','growing'],
+  draw: ['draw','draws','drew','drawn','drawing'],
+  show: ['show','shows','showed','shown','showing'],
+  know: ['know','knows','knew','known','knowing'],
+  throw: ['throw','throws','threw','thrown','throwing'],
+  stand: ['stand','stands','stood','standing'],
+  understand: ['understand','understands','understood','understanding'],
+  forget: ['forget','forgets','forgot','forgotten','forgetting'],
+  begin: ['begin','begins','began','begun','beginning'],
+  choose: ['choose','chooses','chose','chosen','choosing'],
+  cost: ['cost','costs','costing'],
+  shut: ['shut','shuts','shutting'],
+  shoot: ['shoot','shoots','shot','shooting'],
+  hide: ['hide','hides','hid','hidden','hiding'],
+  ride: ['ride','rides','rode','ridden','riding'],
+  drink: ['drink','drinks','drank','drunk','drinking'],
+  sing: ['sing','sings','sang','sung','singing'],
+  swim: ['swim','swims','swam','swum','swimming'],
+};
+function _escRe(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function inflectionVariants(word) {
+  const lc = String(word || '').toLowerCase();
+  if (!lc) return [];
+  if (INFLECT_IRREGULAR[lc]) return [...new Set(INFLECT_IRREGULAR[lc])];
+  const alts = new Set([lc]);
+  alts.add(lc + 's');
+  alts.add(lc + 'es');
+  alts.add(lc + 'ed');
+  alts.add(lc + 'd');
+  alts.add(lc + 'ing');
+  // y 끝 (자음+y) → ies/ied
+  if (lc.length > 1 && lc.endsWith('y') && !'aeiou'.includes(lc[lc.length - 2])) {
+    const stem = lc.slice(0, -1);
+    alts.add(stem + 'ies');
+    alts.add(stem + 'ied');
+  }
+  // e 끝 → -ing 시 e 떨어짐 (tackle → tackling, prioritize → prioritizing)
+  if (lc.endsWith('e')) {
+    const stem = lc.slice(0, -1);
+    alts.add(stem + 'ing');
+  }
+  // CVC 패턴 → 자음 더블 (wrap → wrapped/wrapping, plan → planned/planning)
+  if (lc.length >= 3) {
+    const last = lc[lc.length - 1];
+    const mid = lc[lc.length - 2];
+    const first = lc[lc.length - 3];
+    const vowel = 'aeiou';
+    if (!vowel.includes(last) && vowel.includes(mid) && !vowel.includes(first) && !'wxy'.includes(last)) {
+      alts.add(lc + last + 'ed');
+      alts.add(lc + last + 'ing');
+    }
+  }
+  return [...alts];
+}
+// 하이픈 들어간 단어 — "front-load" → ["front-load", "front load", "frontload"]
+function hyphenVariants(word) {
+  const variants = new Set([word]);
+  if (word.includes('-')) {
+    variants.add(word.replace(/-/g, ' '));
+    variants.add(word.replace(/-/g, ''));
+  }
+  return [...variants];
+}
+// 단어/구문이 텍스트 안에 시제·하이픈 변형 포함해서 들어있는지 검사.
+function targetIsInText(target, text) {
+  const t = String(target || '').trim();
+  if (!t) return false;
+  const txt = String(text || '');
+  if (!txt) return false;
+  // 빠른 직접 매칭
+  if (txt.toLowerCase().includes(t.toLowerCase())) return true;
+  const tokens = t.split(/\s+/);
+  if (tokens.length === 1) {
+    const word = tokens[0].toLowerCase();
+    // 하이픈 변형 → 각 변형마다 inflection 적용
+    const allAlts = new Set();
+    hyphenVariants(word).forEach((v) => {
+      if (v.includes(' ')) {
+        // 띄어쓰기 변형 (front load) → 보통 마지막 토큰이 동사라 마지막에 inflection
+        const sub = v.split(/\s+/);
+        const head = sub.slice(0, -1).map(_escRe).join('\\s+');
+        const lastInfl = inflectionVariants(sub[sub.length - 1]);
+        lastInfl.forEach((h) => allAlts.add('\\b' + head + '\\s+' + _escRe(h) + '\\b'));
+      } else {
+        inflectionVariants(v).forEach((h) => allAlts.add('\\b' + _escRe(h) + '\\b'));
+      }
+    });
+    if (!allAlts.size) return false;
+    const re = new RegExp([...allAlts].join('|'), 'i');
+    return re.test(txt);
+  }
+  // 다어어 → 첫 토큰만 inflection (대부분 동사가 앞에 옴)
+  const headInfl = inflectionVariants(tokens[0].toLowerCase());
+  const tail = tokens.slice(1).map(_escRe).join('\\s+');
+  const re = new RegExp(
+    '\\b(?:' + headInfl.map(_escRe).join('|') + ')\\s+' + tail + '\\b',
+    'i'
+  );
+  return re.test(txt);
+}
+
+// 퀴즈 빈칸 split — 1-blank vs 2-blank.
+// 핵심 케이스: target = "get it over the line" / prompt = "...get this project over the line"
+//  → 대명사(it/them/...)가 실제 명사구로 치환된 예문이라 "단일 빈칸" 으로 풀면 어색함.
+//  → 2-blank: "get" / "this project" 가운데 visible / "over the line" 형태로 분리.
+// 1) 정답 그대로 prompt 안에 있으면 → 1-blank (현행 동작)
+// 2) 대명사 가운데 패턴 매칭 → 2-blank
+// 3) 둘 다 실패 → fallback 1-blank (prompt 끝에 빈칸)
+function computeQuizSplit(question) {
+  const answer = String(question?.en || '').trim();
+  const promptText = String(question?.prompt || '');
+  if (!answer || !promptText) {
+    return { mode: '1blank', parts: [promptText, ''], answer };
+  }
+  const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // 1) Direct match
+  const directRegex = new RegExp(escapeRe(answer), 'i');
+  const directMatch = promptText.match(directRegex);
+  if (directMatch) {
+    const idx = directMatch.index;
+    return {
+      mode: '1blank',
+      parts: [promptText.slice(0, idx), promptText.slice(idx + directMatch[0].length)],
+      answer,
+    };
+  }
+  // 2) Pronoun substitution split
+  const PRONOUNS = new Set(['it', 'them', 'this', 'that', 'these', 'those', 'something', 'someone', 'sb', 'sth', 'sb.', 'sth.', 'one']);
+  const tokens = answer.split(/\s+/);
+  for (let i = 1; i < tokens.length - 1; i += 1) {
+    const cleaned = tokens[i].toLowerCase().replace(/[.,!?]+$/, '');
+    if (!PRONOUNS.has(cleaned)) continue;
+    const prefix = tokens.slice(0, i).join(' ');
+    const suffix = tokens.slice(i + 1).join(' ');
+    if (!prefix || !suffix) continue;
+    // prefix ... suffix with bounded gap (1~6 words between)
+    const gapRe = new RegExp(
+      '\\b' + escapeRe(prefix) + '\\b(\\s+(?:\\S+\\s+){0,6}?)\\b' + escapeRe(suffix) + '\\b',
+      'i'
+    );
+    const m = promptText.match(gapRe);
+    if (m) {
+      const matchIdx = m.index;
+      const before = promptText.slice(0, matchIdx);
+      const after = promptText.slice(matchIdx + m[0].length);
+      // m[1] = " this project " (with surrounding spaces) — middle visible chunk
+      return {
+        mode: '2blank',
+        before,
+        middle: m[1],
+        after,
+        prefixAnswer: prefix,
+        suffixAnswer: suffix,
+        answer,
+      };
+    }
+  }
+  // 3) Fallback — append blank
+  return { mode: '1blank', parts: [promptText + ' → ', ''], answer };
+}
+
+// 2-blank 정답 체크 — 두 빈칸 모두 정답이어야 정답 처리.
+function isQuizAnswerCorrect(question, ui) {
+  const split = computeQuizSplit(question);
+  if (split.mode === '2blank') {
+    const v0 = normalizeQuizAnswer((ui.values || ['', ''])[0] || '');
+    const v1 = normalizeQuizAnswer((ui.values || ['', ''])[1] || '');
+    return v0 === normalizeQuizAnswer(split.prefixAnswer) && v1 === normalizeQuizAnswer(split.suffixAnswer);
+  }
+  return normalizeQuizAnswer(ui.value || '') === normalizeQuizAnswer(question.en);
 }
 
 function VerifyPage(dayN) {
@@ -6414,11 +6667,30 @@ function VerifyPage(dayN) {
         html: `${Icon('check', 14)} 시험 결과 제출`
       }));
     } else {
-      const promptText = currentQuestion.prompt || `Use ${currentQuestion.en} in context.`;
-      const parts = promptText.includes('____')
-        ? promptText.split('____')
-        : promptText.replace(new RegExp(currentQuestion.en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '____').split('____');
-      const answerWidth = Math.min(Math.max(currentQuestion.en.length + 2, 9), 18);
+      // 1-blank vs 2-blank 결정 — pronoun 치환된 예문일 땐 2칸으로 갈라치기.
+      const split = computeQuizSplit(currentQuestion);
+      const inputBaseStyle = (active) => `display:inline-block;padding:6px 10px;text-align:center;font-size:24px;font-weight:700;line-height:1.3;letter-spacing:-0.02em;background:${active ? '#FFF7E0' : 'rgba(176,176,192,0.08)'};border:none;border-bottom:3px solid ${active ? '#F0AC3D' : '#D0CADF'};border-radius:8px 8px 0 0;color:${active ? '#35344A' : '#B0B0C0'};vertical-align:baseline;caret-color:#F07D38;box-shadow:${active ? '0 2px 8px rgba(240,125,56,0.16)' : 'none'};${active ? '' : 'pointer-events:none;opacity:0.6;'}`;
+      let blankHtml = '';
+      if (split.mode === '2blank') {
+        const widthPre = Math.min(Math.max(split.prefixAnswer.length + 2, 6), 14);
+        const widthSuf = Math.min(Math.max(split.suffixAnswer.length + 2, 8), 18);
+        const values = ui.values || ['', ''];
+        blankHtml = `
+          ${escapeHtml(split.before || '')}
+          <input class="input" data-quiz-idx="${ui.idx}" data-quiz-input="1" data-quiz-part="0" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ${ui.revealAnswer ? 'disabled' : ''} style="${inputBaseStyle(!ui.revealAnswer)};width:${widthPre}ch;max-width:42%;margin:0 4px;" placeholder="${ui.revealAnswer ? '' : '①'}" value="${escapeHtml(values[0] || '')}" oninput="window.__setVerifyQuizPartValue(${dayN}, 0, this.value)" />
+          <span style="color:#5C53A5;font-weight:600;">${escapeHtml(split.middle || ' ')}</span>
+          <input class="input" data-quiz-idx="${ui.idx}" data-quiz-input="2" data-quiz-part="1" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ${ui.revealAnswer ? 'disabled' : ''} style="${inputBaseStyle(!ui.revealAnswer)};width:${widthSuf}ch;max-width:62%;margin:0 4px;" placeholder="${ui.revealAnswer ? '' : '②'}" value="${escapeHtml(values[1] || '')}" oninput="window.__setVerifyQuizPartValue(${dayN}, 1, this.value)" />
+          ${escapeHtml(split.after || '')}
+        `;
+      } else {
+        const parts = split.parts;
+        const answerWidth = Math.min(Math.max(currentQuestion.en.length + 2, 9), 18);
+        blankHtml = `
+          ${escapeHtml(parts[0] || '')}
+          <input class="input" data-quiz-idx="${ui.idx}" data-quiz-input="1" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ${ui.revealAnswer ? 'disabled' : ''} style="${inputBaseStyle(!ui.revealAnswer)};width:${answerWidth}ch;max-width:72%;margin:0 8px;" placeholder="${ui.revealAnswer ? '' : '여기 탭'}" value="${escapeHtml(ui.value)}" oninput="window.__setVerifyQuizValue(${dayN}, this.value)" />
+          ${escapeHtml(parts[1] || '')}
+        `;
+      }
       wrap.innerHTML = `
         <div style="padding:18px 18px 20px;border-radius:22px;background:#F7F5FF;border:1px solid rgba(255,255,255,0.08);color:var(--ink);">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
@@ -6428,14 +6700,12 @@ function VerifyPage(dayN) {
           ${!ui.revealAnswer ? `
             <div style="margin-top:14px;padding:10px 14px;border-radius:12px;background:#FFF8E1;border:1px solid rgba(255,193,7,0.32);font-size:13px;color:#7A5800;line-height:1.55;display:flex;align-items:center;gap:8px;">
               <span style="font-size:16px;flex-shrink:0;">✍️</span>
-              <span><b>주황색 빈칸을 탭하고 직접 타이핑</b>하세요. 정답을 입력하면 자동으로 다음 문제로 넘어가요.</span>
+              <span>${split.mode === '2blank' ? '<b>두 빈칸 모두</b> 채워주세요. (가운데 단어는 그대로 둬요)' : '<b>주황색 빈칸을 탭하고 직접 타이핑</b>하세요. 정답을 입력하면 자동으로 다음 문제로 넘어가요.'}</span>
             </div>
           ` : ''}
           <div data-verify-quiz-card="1" style="margin-top:14px;padding:28px 18px;border-radius:24px;background:rgba(255,255,255,0.68);text-align:center;box-shadow:inset 0 0 0 1px rgba(236,232,255,0.9);position:relative;overflow:hidden;">
             <div style="font-size:19px;line-height:1.7;font-weight:600;color:#35344A;word-break:keep-all;">
-              ${escapeHtml(parts[0] || '')}
-              <input class="input" data-quiz-idx="${ui.idx}" data-quiz-input="1" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ${ui.revealAnswer ? 'disabled' : ''} style="display:inline-block;width:${answerWidth}ch;max-width:72%;margin:0 8px;padding:6px 10px;text-align:center;font-size:24px;font-weight:700;line-height:1.3;letter-spacing:-0.02em;background:${ui.revealAnswer ? 'rgba(176,176,192,0.08)' : '#FFF7E0'};border:none;border-bottom:3px solid ${ui.revealAnswer ? '#D0CADF' : '#F0AC3D'};border-radius:8px 8px 0 0;color:${ui.revealAnswer ? '#B0B0C0' : '#35344A'};vertical-align:baseline;caret-color:#F07D38;box-shadow:${ui.revealAnswer ? 'none' : '0 2px 8px rgba(240,125,56,0.16)'};${ui.revealAnswer ? 'pointer-events:none;opacity:0.6;' : ''}" placeholder="${ui.revealAnswer ? '' : '여기 탭'}" value="${escapeHtml(ui.value)}" oninput="window.__setVerifyQuizValue(${dayN}, this.value)" />
-              ${escapeHtml(parts[1] || '')}
+              ${blankHtml}
             </div>
             <div style="margin-top:20px;font-size:18px;line-height:1.5;color:#6C6A86;">${escapeHtml(currentQuestion.prompt_kr || '')}</div>
             <div style="margin-top:10px;font-size:16px;line-height:1.5;color:#7D5CFF;font-weight:700;">뜻 · ${escapeHtml(currentQuestion.kr)}</div>
@@ -6971,10 +7241,10 @@ function DayPage(dayN) {
         const isSaved = !!state.saved_syns?.[synKey];
         return `
         <div style="padding:12px 14px;border-radius:14px;background:var(--paper);border:1px solid var(--line-soft);">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span class="syn-chip" style="padding:4px 10px;font-size:11px;font-family:var(--font-mono);">${escapeHtml(s)}</span>
-            <span style="font-size:12px;color:var(--ink-soft);flex:1;">${escapeHtml(synonymMeaning(s))}</span>
-            <button onclick="window.__toggleSynBookmark('${synKey}')" title="${isSaved ? '단어장에서 빼기' : '단어장에 저장'}" style="background:transparent;border:none;color:var(--orange);width:30px;height:30px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;">${Icon(isSaved ? 'bookmarkFill' : 'bookmark', 14)}</button>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;row-gap:6px;">
+            <span class="syn-chip" style="padding:4px 10px;font-size:11px;font-family:var(--font-mono);flex-shrink:0;">${escapeHtml(s)}</span>
+            <span style="font-size:12px;color:var(--ink-soft);flex:1 1 140px;min-width:0;line-height:1.5;">${escapeHtml(synonymMeaning(s))}</span>
+            <button onclick="window.__toggleSynBookmark('${synKey}')" title="${isSaved ? '단어장에서 빼기' : '단어장에 저장'}" style="background:transparent;border:none;color:var(--orange);width:30px;height:30px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;margin-left:auto;">${Icon(isSaved ? 'bookmarkFill' : 'bookmark', 14)}</button>
           </div>
         </div>
       `;}).join('');
@@ -7052,12 +7322,14 @@ function DayPage(dayN) {
     const hasCorrection = !!state.ai_feedback[key];
     const aiAvailable = canUseAiForSentence(dayN, key);
     const row = el('div', { class: 'card', style: { padding: '24px', borderRadius: '32px', background: 'rgba(255,253,247,0.72)' } });
-    const label = el('div', { class: 'row row-gap-sm', style: { marginBottom: '14px', alignItems: 'center' } });
+    // 모바일에서 chip + KR 뜻 + 배지가 한 row 에서 못 풀려 차근차근 wrap 되도록 flex-wrap.
+    // chip 자체는 nowrap (전역 .syn-chip CSS), KR 뜻은 chip 자리 다 차면 다음 줄로.
+    const label = el('div', { style: { marginBottom: '14px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', rowGap: '6px' } });
     label.innerHTML = `
       <span class="kicker" style="font-size:10px;">0${i + 1}</span>
-      <span class="syn-chip" style="padding:8px 18px;font-size:12px;">${escapeHtml(w.en)}</span>
-      <span class="t-small" style="font-size:15px;color:var(--ink-soft);">${escapeHtml(w.def)}</span>
-      ${hasCorrection ? '<span class="badge badge-green" style="margin-left:auto;font-size:10px;padding:4px 10px;white-space:nowrap;">리뷰 완료</span>' : ''}
+      <span class="syn-chip" style="padding:8px 18px;font-size:12px;flex-shrink:0;">${escapeHtml(w.en)}</span>
+      <span class="t-small" style="font-size:14px;color:var(--ink-soft);flex:1 1 140px;min-width:0;line-height:1.45;">${escapeHtml(w.def)}</span>
+      ${hasCorrection ? '<span class="badge badge-green" style="margin-left:auto;font-size:10px;padding:4px 10px;white-space:nowrap;flex-shrink:0;">리뷰 완료</span>' : ''}
     `;
     row.appendChild(label);
 
@@ -7191,10 +7463,10 @@ function DayPage(dayN) {
     const submitBtn = el('button', {
       class: 'btn',
       style: {
-        padding: '14px 22px', borderRadius: '999px', fontSize: '15px', fontWeight: '700',
+        padding: '10px 16px', borderRadius: '999px', fontSize: '13px', fontWeight: '700',
         background: (isSubmitted && !isDirty) ? 'var(--green-soft)' : 'var(--orange)',
         color: (isSubmitted && !isDirty) ? 'var(--green)' : '#fff',
-        border: 'none',
+        border: 'none', whiteSpace: 'nowrap',
       },
       disabled: !ta.value.trim() && !isSubmitted,
       onClick: () => {
@@ -7229,9 +7501,9 @@ function DayPage(dayN) {
       const aiBtn = el('button', {
         class: 'btn btn-ghost',
         style: {
-          padding: '14px 20px', background: hasCorrection ? 'var(--green-soft)' : 'transparent',
+          padding: '10px 14px', background: hasCorrection ? 'var(--green-soft)' : 'transparent',
           color: hasCorrection ? 'var(--green)' : 'var(--ink)', borderRadius: '999px',
-          fontSize: '14px', fontWeight: '700',
+          fontSize: '13px', fontWeight: '700', whiteSpace: 'nowrap',
         },
         disabled: state.tier === 'basic' && hasCorrection,
         onClick: async () => {
@@ -7473,11 +7745,11 @@ function DayPage(dayN) {
     hook.appendChild(hookHitCounter);
 
     function updateHookHits() {
-      const text = (hookTa.value || '').toLowerCase();
+      const text = hookTa.value || '';
       let hitCount = 0;
       // 메인 단어 카드 — hit 시 카드 배경/테두리 + 체크 동그라미 + 단어 색 다 같이 토글.
       hookChips.forEach((c) => {
-        const hit = text.includes((c.en || '').toLowerCase());
+        const hit = targetIsInText(c.en || '', text);
         if (hit) hitCount += 1;
         c.el.style.background = hit ? 'rgba(74,160,124,0.06)' : '#FFFDF7';
         c.el.style.borderColor = hit ? 'rgba(74,160,124,0.4)' : 'var(--orange-soft)';
@@ -7492,7 +7764,7 @@ function DayPage(dayN) {
       });
       // 프리미엄 유의어 — 텍스트만 변형 (chip 형태 아님)
       synChips.forEach((c) => {
-        const hit = text.includes((c.syn || '').toLowerCase());
+        const hit = targetIsInText(c.syn || '', text);
         const mark = c.el.querySelector('[data-mark]');
         const txt = c.el.querySelector('[data-text]');
         if (mark) {
@@ -7534,13 +7806,14 @@ function DayPage(dayN) {
     const hookReviewBtn = el('button', {
       class: 'btn btn-ghost',
       style: {
-        padding: '12px 18px',
+        padding: '10px 14px',
         borderRadius: '999px',
         background: hookFeedback ? 'var(--green-soft)' : '#fff',
         color: hookFeedback ? 'var(--green)' : 'var(--orange-dark)',
         border: '1px solid var(--orange-soft)',
-        fontSize: '13.5px',
+        fontSize: '13px',
         fontWeight: '700',
+        whiteSpace: 'nowrap',
       },
       disabled: state.tier === 'basic' && !!hookFeedback,
       onClick: async () => {
@@ -8794,9 +9067,9 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
       hitWrap.appendChild(hint);
       return;
     }
-    const scriptLower = (prep.script || '').toLowerCase();
+    const scriptText = prep.script || '';
     prep.vocabPicked.forEach((v) => {
-      const hit = scriptLower.includes(v.toLowerCase());
+      const hit = targetIsInText(v, scriptText);
       const pill = el('span', {
         style: {
           fontSize: '11px',
@@ -8810,7 +9083,7 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
       }, (hit ? '✓ ' : '◯ ') + v);
       hitWrap.appendChild(pill);
     });
-    const hitCount = prep.vocabPicked.filter((v) => scriptLower.includes(v.toLowerCase())).length;
+    const hitCount = prep.vocabPicked.filter((v) => targetIsInText(v, scriptText)).length;
     hitWrap.appendChild(el('span', {
       style: { fontSize: '11px', color: 'var(--muted)', marginLeft: '4px', fontWeight: '700' }
     }, `${hitCount}/${prep.vocabPicked.length} 사용됨`));
@@ -13118,7 +13391,8 @@ window.__startVoiceQuiz = async (dayN, btnEl) => {
     // 여러 alternative 중 "정답에 가까운 것" 우선 선택. (속어, 동음이의 보정)
     const questions = (window.__verifyQuestionsCache || {})[dayN] || [];
     const ui = (window.__verifyUi || {})[dayN] || {};
-    const target = (questions[ui.idx]?.en || '').trim();
+    const currentQ = questions[ui.idx];
+    const target = (currentQ?.en || '').trim();
     const targetLower = target.toLowerCase();
     let best = (results[0]?.transcript || '').trim();
     for (let i = 0; i < results.length; i++) {
@@ -13126,15 +13400,34 @@ window.__startVoiceQuiz = async (dayN, btnEl) => {
       if (targetLower && t.toLowerCase() === targetLower) { best = t; break; }
     }
     if (best) {
-      // 1) input 에 즉시 텍스트 채우기 (사용자가 자기 입력으로 본 것)
-      input.value = best;
-      try { input.focus({ preventScroll: true }); } catch (e) {}
-      // 2) 인식 결과 카드를 띄워서 "이렇게 들렸어요" 명시
-      showHeardCard(best, target);
-      // 3) 1.4초 후에 정답 체크 dispatch — 사용자가 카드 보고 인지할 시간 확보
-      setTimeout(() => {
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-      }, 1400);
+      // 2-blank 모드면: heard 가 full target 과 일치할 때 두 빈칸 모두 채워 정답 처리.
+      const split = currentQ ? computeQuizSplit(currentQ) : null;
+      if (split && split.mode === '2blank') {
+        const heardLower = best.toLowerCase().trim().replace(/\s+/g, ' ');
+        if (heardLower === targetLower.replace(/\s+/g, ' ')) {
+          showHeardCard(best, target);
+          setTimeout(() => {
+            window.__setVerifyQuizPartValue(dayN, 0, split.prefixAnswer);
+            window.__setVerifyQuizPartValue(dayN, 1, split.suffixAnswer);
+          }, 1400);
+        } else {
+          // partial — 첫 번째 input 에라도 채워서 사용자가 직접 수정하게.
+          input.value = best;
+          try { input.focus({ preventScroll: true }); } catch (e) {}
+          showHeardCard(best, target);
+          setTimeout(() => {
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          }, 1400);
+        }
+      } else {
+        // 1-blank
+        input.value = best;
+        try { input.focus({ preventScroll: true }); } catch (e) {}
+        showHeardCard(best, target);
+        setTimeout(() => {
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }, 1400);
+      }
     } else {
       showToast('음성을 알아듣지 못했어요. 다시 시도하거나 직접 타이핑해주세요.');
     }
@@ -13180,18 +13473,39 @@ window.__setVerifyQuizValue = (dayN, value) => {
   }
   const current = questions[ui.idx];
   clearTimeout(window.__verifyAutoAdvanceTimers[dayN]);
-  if (current && normalizeQuizAnswer(value) === normalizeQuizAnswer(current.en)) {
+  if (current && isQuizAnswerCorrect(current, ui)) {
     window.__verifyAutoAdvanceTimers[dayN] = setTimeout(() => {
       const liveUi = (window.__verifyUi || {})[dayN];
       const liveCurrent = questions[liveUi?.idx];
-      if (liveCurrent && normalizeQuizAnswer(liveUi.value) === normalizeQuizAnswer(liveCurrent.en)) {
-        // Blur active input so the typing-focus guard doesn't defer the render —
-        // the stale value was visually persisting because render() was deferred.
+      if (liveCurrent && isQuizAnswerCorrect(liveCurrent, liveUi)) {
         try { document.activeElement && document.activeElement.blur(); } catch (e) {}
         window.__flashCorrect();
-        // 정답 후 "✓" flash 가 눈에 충분히 보이고 학습자가 "맞췄다!" 를 인지할
-        // 시간을 주고 나서 다음 문제로 넘어가요. 이전엔 350ms 였는데 너무 빨라서
-        // "뭐가 지나간거지?" 느낌이라 950ms 로 늘림 (전체 정답→다음 지연 ~1.2s).
+        setTimeout(() => { window.__advanceVerifyQuiz(dayN, false); }, 950);
+      }
+    }, 220);
+  }
+};
+// 2-blank 모드 부분 입력 — values[0/1] 에 저장 후 둘 다 맞으면 자동 진행.
+window.__setVerifyQuizPartValue = (dayN, partIdx, value) => {
+  const questions = buildVerifyQuestions(dayN);
+  window.__verifyUi = window.__verifyUi || {};
+  window.__verifyUi[dayN] = window.__verifyUi[dayN] || { idx: 0, value: '', values: ['', ''], done: false, score: 0 };
+  const ui = window.__verifyUi[dayN];
+  ui.values = ui.values || ['', ''];
+  ui.values[partIdx] = value;
+  if (ui.revealAnswer) {
+    clearTimeout(window.__verifyAutoAdvanceTimers[dayN]);
+    return;
+  }
+  const current = questions[ui.idx];
+  clearTimeout(window.__verifyAutoAdvanceTimers[dayN]);
+  if (current && isQuizAnswerCorrect(current, ui)) {
+    window.__verifyAutoAdvanceTimers[dayN] = setTimeout(() => {
+      const liveUi = (window.__verifyUi || {})[dayN];
+      const liveCurrent = questions[liveUi?.idx];
+      if (liveCurrent && isQuizAnswerCorrect(liveCurrent, liveUi)) {
+        try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+        window.__flashCorrect();
         setTimeout(() => { window.__advanceVerifyQuiz(dayN, false); }, 950);
       }
     }, 220);
@@ -13199,7 +13513,7 @@ window.__setVerifyQuizValue = (dayN, value) => {
 };
 window.__restartVerifyQuiz = (dayN) => {
   window.__verifyUi = window.__verifyUi || {};
-  window.__verifyUi[dayN] = { idx: 0, value: '', done: false, score: 0, activeStep: 'capture', reveal: false, revealAnswer: false };
+  window.__verifyUi[dayN] = { idx: 0, value: '', values: ['', ''], done: false, score: 0, activeStep: 'capture', reveal: false, revealAnswer: false };
   // 새 회차엔 복습 문항을 새로 뽑도록 캐시 무효화.
   if (window.__verifyQuestionsCache) window.__verifyQuestionsCache[dayN] = null;
   // Also clear the quiz submission checkpoint so the quiz step comes back as active.
@@ -13221,10 +13535,9 @@ window.__toggleVerifyAnswer = (dayN) => {
 window.__advanceVerifyQuiz = (dayN, skipped) => {
   const questions = buildVerifyQuestions(dayN);
   window.__verifyUi = window.__verifyUi || {};
-  const ui = window.__verifyUi[dayN] || { idx: 0, value: '', done: false, score: 0, activeStep: 'capture', reveal: false };
+  const ui = window.__verifyUi[dayN] || { idx: 0, value: '', values: ['', ''], done: false, score: 0, activeStep: 'capture', reveal: false };
   const current = questions[ui.idx];
-  const answer = normalizeQuizAnswer(ui.value || '');
-  const correct = skipped ? false : answer === normalizeQuizAnswer(current.en);
+  const correct = skipped ? false : isQuizAnswerCorrect(current, ui);
   // 스킵이면 먼저 정답을 한 번 보여주고, 한 번 더 눌러야 실제로 넘어가요.
   // (혹시 이미 revealAnswer 상태에서 들어왔으면 바로 다음 문제로.)
   if (skipped && !ui.revealAnswer) {
@@ -13237,6 +13550,7 @@ window.__advanceVerifyQuiz = (dayN, skipped) => {
   if (ui.idx >= questions.length - 1) {
     ui.done = true;
     ui.value = '';
+    ui.values = ['', ''];
     // 최초 시험 점수를 영구 저장 (다시 풀기는 덮어쓰지 않음 — "최초" 점수 보존).
     try {
       if (!state.quiz_results) state.quiz_results = {};

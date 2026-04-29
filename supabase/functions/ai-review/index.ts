@@ -57,8 +57,16 @@ If the student's sentence is already grammatical, natural, and clearly conveys t
 
 Korean learners run AI review multiple times on the same sentence. If you keep "stylistically tweaking" already-correct sentences, the output keeps shifting and confuses them. Be conservative: only edit when there is a CLEAR grammar error, unnatural phrasing, or a meaning mismatch with the Korean intent. Stylistic preferences alone are NOT a reason to edit.
 
-CRITICAL RULE 2 — PRESERVE THE TARGET WORD/PHRASE:
-The "Phrase being practiced" is the whole point of this exercise. The corrected sentence MUST contain that exact phrase (or its closest natural inflection — e.g. "anchor" → "anchored" / "anchoring" if grammar requires). DO NOT swap it for a synonym, even if a synonym sounds slightly more natural. The student is here to drill THIS phrase. Build the sentence around it; don't replace it.
+CRITICAL RULE 2 — PRESERVE THE TARGET WORD/PHRASE (NON-NEGOTIABLE):
+The "Phrase being practiced" is the whole point of this exercise. The corrected sentence MUST contain that EXACT phrase (case-insensitive) or its closest grammatical inflection — e.g. "anchor" → "anchored" / "anchoring" / "anchors". This is a hard rule:
+
+- DO NOT swap to a synonym, even if a synonym sounds more natural, more common, or more "business-y".
+- DO NOT delete the phrase to "improve flow".
+- If the student wrote "anchor", the output contains "anchor" (or anchored/anchoring/anchors). Period.
+- If the student forgot to include the target phrase, REWRITE the sentence to fit the phrase in. Do not just hand back a phrase-less sentence.
+- Verify your "corrected" output contains the target phrase BEFORE returning. If it doesn't, rewrite until it does.
+
+Why this rule: the student is being TESTED on this exact phrase. Substituting it defeats the entire purpose of the drill. They will memorize whatever you return, so what you return MUST include the target.
 
 CRITICAL RULE 3 — PROFESSIONAL BUSINESS TONE:
 Default to a polished, professional business register suitable for cross-functional meetings, emails, and Slack with colleagues at a B2B/SaaS/finance/consulting workplace. Avoid:
@@ -94,22 +102,28 @@ Return JSON:
 }
 
 function buildStoryUserMessage(
-  words: { en: string; def?: string }[],
+  words: { en: string; def?: string; syn?: string[] }[],
   text: string,
   korean?: string,
 ) {
-  const lines = (words || []).map((w) => `- "${w.en}" (${w.def || ''})`).join('\n');
+  const lines = (words || []).map((w) => {
+    const synList = Array.isArray(w.syn) && w.syn.length
+      ? `   · synonyms (also acceptable): ${w.syn.map((s) => `"${s}"`).join(', ')}`
+      : '';
+    return `- "${w.en}" (${w.def || ''})${synList ? `\n${synList}` : ''}`;
+  }).join('\n');
   const koreanBlock = (korean || '').trim()
     ? `Korean context (what the student meant, in their own words): "${korean!.trim()}"\n`
     : '';
-  return `${koreanBlock}The student is tying today's 3 expressions into ONE short business-scenario mini story (1-3 sentences).
-Expressions to use (THE WHOLE POINT — keep ALL 3 in the output, do NOT swap for synonyms):
+  return `${koreanBlock}The student is tying today's 3 expressions into a short business-scenario mini story.
+Expression slots — for each slot, the student may use EITHER the main expression OR one of its listed synonyms, AND THEY MAY ALSO USE BOTH (main + synonym in different sentences) AS A LEARNING DEVICE. Treat both variants as equally valid:
 ${lines}
+
 Student's English attempt: "${text}"
 
 Return JSON:
-- "corrected": a polished business-English mini story (1-3 sentences). **MUST use ALL 3 expressions verbatim** (minimal inflection only — e.g. tense/plural — never substitute synonyms). Believable cross-functional / executive flow that matches the Korean context above (if provided). Tone: professional business — clear, confident, concise. Avoid casual slang and stiff/archaic phrasing. **If the student's text is already natural and uses all 3 expressions correctly, return it VERBATIM.**
-- "why": 1-2 Korean sentences (≤140 chars). **If unchanged, explicitly say so (e.g. "이미 흐름 좋아요! 수정할 부분 없어요.")** — otherwise explain the flow/logic/tone fix.`;
+- "corrected": a polished business-English mini story. **CRITICAL: do NOT condense, deduplicate, or remove sentences just because they repeat the same idea using a synonym variant.** If the student wrote one sentence with the main expression AND another sentence with a synonym (e.g. "We need a first pass." + "First cut is very important."), KEEP BOTH SENTENCES — the student is intentionally practicing both variants. Preserve every expression/synonym the student wrote; only fix grammar, awkward phrasing, or unclear flow. The story may end up 4-7 sentences if the student practiced 6 variants — that's fine. Minimal grammatical inflection allowed (tense, plural). Tone: professional business — clear, confident, concise. Avoid casual slang and stiff/archaic phrasing. **If the student's text is already natural, return it VERBATIM.**
+- "why": 1-2 Korean sentences (≤140 chars). **If unchanged, explicitly say so (e.g. "이미 흐름 좋아요! 수정할 부분 없어요.")** — otherwise explain the flow/logic/tone fix. Do NOT mention "removed" or "condensed" — you are not allowed to remove the student's variants.`;
 }
 
 function extractJson(raw: string): any {
@@ -141,6 +155,26 @@ function buildDiffHtml(original: string, corrected: string): string {
   if (!a) return escapeHtml(b);
   if (a === b) return escapeHtml(b);
   return `<del>${escapeHtml(a)}</del> <ins>${escapeHtml(b)}</ins>`;
+}
+
+// 타겟 단어/구문이 corrected 안에 들어있는지 검증.
+// "anchor" 면 "anchor" / "anchored" / "anchoring" / "anchors" 등 inflection 도 OK 로 간주.
+// "set the stage" 같은 multi-word 면 모든 어절이 다 들어있어야 함 (또는 phrase 그대로 등장).
+function correctedContainsTarget(corrected: string, target: string): boolean {
+  if (!target) return true;
+  const c = (corrected || '').toLowerCase();
+  const t = target.toLowerCase().trim();
+  if (!t) return true;
+  // 1) Whole phrase verbatim?
+  if (c.includes(t)) return true;
+  // 2) Multi-word phrase — all tokens present?
+  const tokens = t.split(/\s+/).filter((w) => w.length > 1);
+  if (tokens.length > 1) {
+    return tokens.every((tok) => c.includes(tok));
+  }
+  // 3) Single word — allow inflection by checking 4+ char prefix.
+  const root = t.length >= 5 ? t.slice(0, t.length - 1) : t;
+  return c.includes(root);
 }
 
 async function callOpenAI(userMessage: string): Promise<string> {
@@ -210,9 +244,85 @@ serve(async (req) => {
 
     const raw = await callOpenAI(userMessage);
     const parsed = extractJson(raw);
-    const corrected = String(parsed?.corrected || text).trim();
-    const why = String(parsed?.why || '').trim() ||
+    let corrected = String(parsed?.corrected || text).trim();
+    let why = String(parsed?.why || '').trim() ||
       '표현이 더 자연스럽게 들리도록 다듬었어요.';
+
+    // 타겟 검증 — slot-based.
+    // sentence 모드: 슬롯 1개, 메인 단어 verbatim 강제.
+    // story 모드: 슬롯 N개 (단어 수), 각 슬롯은 [메인, ...syn] 중 하나만 들어가면 통과.
+    //   PLUS: 사용자가 같은 슬롯에서 메인 + 유의어 둘 다 썼으면 둘 다 보존돼야 함 (학습 의도).
+    let targetSlots: string[][] = [];
+    if (mode === 'sentence') {
+      const w = String(body?.word?.en || '');
+      if (w) targetSlots = [[w]];
+    } else if (mode === 'story') {
+      targetSlots = (Array.isArray(body?.words) ? body.words : []).map((w: any) => {
+        const main = String(w?.en || '');
+        const syns = Array.isArray(w?.syn) ? w.syn.map((s: any) => String(s || '')).filter(Boolean) : [];
+        return [main, ...syns].filter(Boolean);
+      }).filter((slot) => slot.length > 0);
+    }
+    // 사용자가 원문에서 실제로 쓴 phrase 목록 (변형/구두점 무시) — 슬롯별로 추적.
+    // story 모드에서 메인+유의어를 둘 다 썼으면 둘 다 corrected 에 살아있어야 통과.
+    const usedByUser: string[][] = targetSlots.map((slot) =>
+      slot.filter((phrase) => correctedContainsTarget(text, phrase))
+    );
+    const missingSlots = targetSlots.filter((slot, i) => {
+      const userUsed = usedByUser[i];
+      if (userUsed.length === 0) {
+        // 사용자가 슬롯의 어떤 변형도 안 썼으면 → 슬롯에서 아무거나 하나만 있으면 OK.
+        return !slot.some((phrase) => correctedContainsTarget(corrected, phrase));
+      }
+      // 사용자가 1개 이상 변형을 썼으면 → 그 변형들 ALL 이 corrected 에 살아있어야 함.
+      return !userUsed.every((phrase) => correctedContainsTarget(corrected, phrase));
+    });
+    if (missingSlots.length > 0) {
+      // 누락 진단 — 어떤 phrase 가 빠졌는지 구체적으로.
+      const missingPhrases: string[] = [];
+      targetSlots.forEach((slot, i) => {
+        const userUsed = usedByUser[i];
+        if (userUsed.length === 0) {
+          if (!slot.some((p) => correctedContainsTarget(corrected, p))) {
+            missingPhrases.push(`(at least one of: ${slot.map((s) => `"${s}"`).join(' / ')})`);
+          }
+        } else {
+          userUsed.forEach((p) => {
+            if (!correctedContainsTarget(corrected, p)) missingPhrases.push(`"${p}" (student wrote this)`);
+          });
+        }
+      });
+      const missingDesc = missingPhrases.join(', ');
+      console.warn('[ai-review] target phrase(s) missing in corrected — retrying:', missingDesc);
+      const retryMsg = `Your previous response dropped these phrases that the student EXPLICITLY wrote: ${missingDesc}. ${
+        mode === 'story'
+          ? 'CRITICAL: keep every phrase the student wrote (main expression AND any synonym variants they practiced). Do NOT condense or de-duplicate even if two sentences express similar ideas — the student is intentionally practicing both variants. Only fix grammar/awkward phrasing.'
+          : 'Rewrite so the phrase is contained verbatim (or with grammatical inflection only).'
+      } Same JSON shape.`;
+      try {
+        const retryRaw = await callOpenAI(`${userMessage}\n\n${retryMsg}`);
+        const retryParsed = extractJson(retryRaw);
+        const retryCorrected = String(retryParsed?.corrected || '').trim();
+        const stillMissing = targetSlots.filter((slot, i) => {
+          const userUsed = usedByUser[i];
+          if (userUsed.length === 0) {
+            return !slot.some((p) => correctedContainsTarget(retryCorrected, p));
+          }
+          return !userUsed.every((p) => correctedContainsTarget(retryCorrected, p));
+        });
+        if (retryCorrected && stillMissing.length === 0) {
+          corrected = retryCorrected;
+          why = String(retryParsed?.why || why).trim();
+        } else {
+          // 두 번 시도해도 누락이면 원문 그대로 반환.
+          corrected = text;
+          why = '학습 단어가 잘 들어있으니 그대로 가셔도 좋아요. (AI 가 일부 표현을 빠뜨려서 원문 유지)';
+        }
+      } catch (_) {
+        corrected = text;
+        why = '학습 단어 보존을 위해 원문 그대로 둬요. 다시 시도해도 같은 결과면 직접 다듬어 보세요.';
+      }
+    }
 
     return json({
       corrected,
