@@ -2215,6 +2215,10 @@ let pendingConsentTimer = null;
 let showConsentAudit = false;
 let consentAuditRows = null; // 비동기 fetch 결과 캐시
 let consentAuditLoading = false;
+// 운영자 전용: meetingId → { rows: [...], loadedAt: ms } 의 멤버 노트 모아보기 캐시.
+// 같은 미팅 페이지 재방문 시 자동으로 stale (≥2분) 면 재로드. 운영자만 호출됨.
+let meetingMemberNotesCache = {};
+let meetingMemberNotesLoading = {};
 // 인증률 추이 모달 — null | 'all' | 'basic' | 'premium'
 let showRateHistory = null;
 let toast = null;
@@ -10553,8 +10557,156 @@ function MeetingNotesPage(meetingId) {
 
   page.appendChild(exportSection);
 
+  // ──────────────────────────────────────────────────────────────────────
+  // 운영자 전용: 멤버들이 적어둔 미팅 노트 모아보기.
+  // 데이터는 challenge_member_state.app_state.meeting_notes[meetingId].timeline 에서
+  // get_cohort_meeting_notes RPC 로 추출됨. RPC 권한은 anon/authenticated 둘 다
+  // 열려있지만 isOperator 가드로 UI 자체가 운영자에게만 보임.
+  // ──────────────────────────────────────────────────────────────────────
+  if (state.isOperator) {
+    const opSection = el('div', {
+      class: 'card',
+      style: { marginTop: '24px', padding: '20px', background: 'rgba(125,92,255,0.06)', border: '1px solid rgba(125,92,255,0.2)' }
+    });
+    opSection.appendChild(el('div', {
+      class: 'kicker',
+      style: { color: 'var(--lilac)', marginBottom: '4px' }
+    }, '👁 OPERATOR ONLY'));
+    opSection.appendChild(el('div', {
+      style: { fontSize: '15px', fontWeight: '700', color: 'var(--ink)', marginBottom: '4px' }
+    }, '멤버들이 적은 노트 모아보기'));
+    opSection.appendChild(el('div', {
+      class: 't-small',
+      style: { color: 'var(--ink-soft)', marginBottom: '12px', lineHeight: '1.55' }
+    }, '이 미팅의 timeline 섹션별로 멤버들이 무엇을 적었는지 한 번에 확인. 본인이 적은 내용은 위쪽 본인 카드에서 보고, 여기는 다른 멤버들 진행 상황 점검용.'));
+
+    const cached = meetingMemberNotesCache[meetingId];
+    const loading = !!meetingMemberNotesLoading[meetingId];
+    const loadBtn = el('button', {
+      class: 'btn',
+      style: { padding: '10px 18px', borderRadius: '999px', background: 'var(--lilac)', color: '#fff', border: 'none', fontSize: '13px', fontWeight: '700' },
+      disabled: loading,
+      onClick: () => window.__loadMeetingMemberNotes(meetingId, true),
+    }, loading ? '로딩 중...' : (cached ? '🔄 새로고침' : '📋 멤버 노트 불러오기'));
+    opSection.appendChild(loadBtn);
+
+    if (cached) {
+      const ts = new Date(cached.loadedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      opSection.appendChild(el('div', {
+        class: 't-small mono',
+        style: { color: 'var(--muted)', marginTop: '8px', fontSize: '11px' }
+      }, `최근 로드: ${ts} · ${cached.rows.length}명 노트 확인`));
+
+      const rows = cached.rows;
+      if (!rows.length) {
+        opSection.appendChild(el('div', {
+          style: { marginTop: '14px', padding: '14px', borderRadius: '12px', background: '#fff', textAlign: 'center', color: 'var(--muted)', fontSize: '13px' }
+        }, '아직 노트를 적은 멤버가 없어요. 미팅 직전에 다시 새로고침해보세요.'));
+      } else {
+        // timeline 안의 row key 들 (intro / roleplay / presenters 등) 자동 추출
+        const allRowKeys = new Set();
+        rows.forEach((r) => {
+          const tl = r.timeline || {};
+          Object.keys(tl).forEach((k) => allRowKeys.add(k));
+        });
+        const ROW_LABELS = {
+          intro: '👋 자기소개',
+          roleplay: '🎭 롤플레이',
+          presenters: '🎤 발표자 응원',
+        };
+        // 멤버 카드 렌더 (한 명씩 카드로)
+        const cardWrap = el('div', { style: { marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '12px' } });
+        rows.forEach((r) => {
+          const tl = r.timeline || {};
+          const hasContent = Object.values(tl).some((row) => row && (String(row.notes || '').trim() || (Array.isArray(row.expressions) && row.expressions.length)));
+          if (!hasContent) return;
+          const memberCard = el('div', {
+            style: { padding: '14px 16px', borderRadius: '14px', background: '#fff', border: '1px solid rgba(231,221,200,0.6)' }
+          });
+          // header: 이름 + tier
+          const memberLabel = r.english_name ? `${r.member_name} (${r.english_name})` : r.member_name;
+          const tierBadge = r.tier === 'premium' ? '👑 P' : 'B';
+          const headerEl = el('div', {
+            style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }
+          });
+          headerEl.innerHTML = `
+            <div style="font-weight:700;font-size:13.5px;color:var(--ink);">${escapeHtml(memberLabel)}</div>
+            <span style="font-size:9.5px;font-weight:800;color:var(--lilac);background:rgba(125,92,255,0.12);padding:2px 7px;border-radius:8px;">${tierBadge}</span>
+            ${r.role ? `<span style="font-size:11px;color:var(--ink-soft);">· ${escapeHtml(r.role)}</span>` : ''}
+          `;
+          memberCard.appendChild(headerEl);
+          // timeline rows
+          allRowKeys.forEach((rowKey) => {
+            const row = tl[rowKey];
+            const noteText = (row && row.notes) ? String(row.notes).trim() : '';
+            const exprs = (row && Array.isArray(row.expressions)) ? row.expressions : [];
+            if (!noteText && !exprs.length) return;
+            const sec = el('div', { style: { marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed rgba(231,221,200,0.7)' } });
+            sec.appendChild(el('div', {
+              class: 'kicker',
+              style: { fontSize: '10px', color: 'var(--lilac)', marginBottom: '6px' }
+            }, ROW_LABELS[rowKey] || rowKey));
+            if (noteText) {
+              const noteEl = el('div', {
+                style: { fontSize: '12.5px', lineHeight: '1.6', color: 'var(--ink)', whiteSpace: 'pre-wrap', wordBreak: 'keep-all' }
+              }, noteText);
+              sec.appendChild(noteEl);
+            }
+            if (exprs.length) {
+              const chipRow = el('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' } });
+              exprs.forEach((e) => {
+                chipRow.appendChild(el('span', {
+                  style: { fontSize: '11px', padding: '2px 8px', borderRadius: '999px', background: 'rgba(125,92,255,0.12)', color: '#5C53A5', fontWeight: '600' }
+                }, e));
+              });
+              sec.appendChild(chipRow);
+            }
+            memberCard.appendChild(sec);
+          });
+          cardWrap.appendChild(memberCard);
+        });
+        opSection.appendChild(cardWrap);
+      }
+    }
+
+    page.appendChild(opSection);
+  }
+
   return page;
 }
+
+// 운영자 전용 — 미팅 노트 모아보기 RPC 호출. force=true 면 캐시 무시.
+window.__loadMeetingMemberNotes = async (meetingId, force) => {
+  if (!state.isOperator) { showToast('운영자 전용이에요.'); return; }
+  if (!meetingId) return;
+  if (meetingMemberNotesLoading[meetingId]) return;
+  if (!hasSupabase()) {
+    showToast('서버 연결 중이 아니에요.');
+    meetingMemberNotesCache[meetingId] = { rows: [], loadedAt: Date.now() };
+    render();
+    return;
+  }
+  // 2분 이내 캐시면 재호출 안 함 (force 면 무시)
+  const cached = meetingMemberNotesCache[meetingId];
+  if (!force && cached && (Date.now() - cached.loadedAt) < 120000) return;
+  meetingMemberNotesLoading[meetingId] = true;
+  render();
+  try {
+    const payload = await supabaseRpc('get_cohort_meeting_notes', {
+      p_cohort: CHALLENGE.cohort,
+      p_meeting_id: meetingId,
+    });
+    const rows = Array.isArray(payload) ? payload : [];
+    meetingMemberNotesCache[meetingId] = { rows, loadedAt: Date.now() };
+  } catch (e) {
+    console.error('[meeting-notes-view] failed', e);
+    showToast('멤버 노트 로드 실패. RPC 가 배포됐는지 확인해주세요.');
+    meetingMemberNotesCache[meetingId] = { rows: [], loadedAt: Date.now() };
+  } finally {
+    meetingMemberNotesLoading[meetingId] = false;
+    render();
+  }
+};
 
 // 미팅 노트 = 개인 노트. 크로스 디바이스 동기화 불필요 → 백그라운드 클라우드
 // sync 중단. 매 키스트로크 saveState() 가 이미 localStorage 에 저장하고 있으니
