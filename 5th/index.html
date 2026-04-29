@@ -199,13 +199,13 @@ input, textarea, select { font-family: inherit; }
 .progress-dots { display: grid; grid-template-columns: repeat(20, 1fr); gap: 2px; }
 .progress-dots span { aspect-ratio: 1; border-radius: 2px; background: var(--line-soft); min-width: 10px; min-height: 10px; }
 .progress-dots span.on { background: var(--orange); }
-.progress-dots span.on.late { background: var(--ink); }
+.progress-dots span.on.late { background: #B89E7A; }
 .progress-dots span.today { background: transparent; border: 1.5px solid var(--orange); box-sizing: border-box; }
 .progress-dots span.missed { background: rgba(154,139,115,0.32); }
 .progress-dots span.locked { background: rgba(231,221,200,0.45); }
 .card-ink .progress-dots span { background: rgba(251,247,240,0.12); }
 .card-ink .progress-dots span.on { background: var(--orange); }
-.card-ink .progress-dots span.on.late { background: var(--cream); }
+.card-ink .progress-dots span.on.late { background: #D4BFA0; }
 .card-ink .progress-dots span.today { background: transparent; border: 1.5px solid var(--orange); box-sizing: border-box; }
 .card-ink .progress-dots span.missed { background: rgba(251,247,240,0.22); }
 .card-ink .progress-dots span.locked { background: rgba(251,247,240,0.06); }
@@ -634,7 +634,7 @@ input, textarea, select { font-family: inherit; }
    (default)  = 'open' = 내일 미리 풀기 슬롯 (페이퍼 크림) */
 .cb-cell { width: 24px; height: 24px; border-radius: 4px; background: var(--paper); border: 1px solid rgba(231,221,200,0.7); }
 .cb-cell.on { background: var(--orange); border-color: var(--orange); }
-.cb-cell.on.late { background: var(--ink); border-color: var(--ink); }
+.cb-cell.on.late { background: #B89E7A; border-color: #A88B65; }
 /* today = 오늘이지만 아직 미인증.
    인증된 'on'(꽉 찬 주황) 과 구분되도록 속은 비우고 주황 실선 링만. */
 .cb-cell.today { background: var(--paper); border: 1.5px solid var(--orange); }
@@ -3736,6 +3736,15 @@ function applyRemoteMemberSummaries(rows = []) {
       member.verifiedDays = nextDays;
       changed = true;
     }
+    // 지각 인증 day 들 — 서버 RPC 새 버전이 내려주면 사용. 옛 버전이면 빈 배열.
+    const rawLateDays = Array.isArray(summary.late_days) ? summary.late_days : [];
+    const nextLateDays = rawLateDays.map((d) => Number(d)).filter((d) => d >= 1 && d <= 20);
+    const prevLateKey = JSON.stringify((member.lateDays || []).slice().sort((a, b) => a - b));
+    const nextLateKey = JSON.stringify(nextLateDays.slice().sort((a, b) => a - b));
+    if (prevLateKey !== nextLateKey) {
+      member.lateDays = nextLateDays;
+      changed = true;
+    }
     if (Number(member.progress || 0) !== nextProgress) {
       member.progress = nextProgress;
       changed = true;
@@ -4641,7 +4650,7 @@ function onboardingTourSteps(tier) {
       emoji: '📅',
       kicker: 'Step 2 · Board',
       title: '주간 보드에서 한눈에',
-      body: `오늘 미인증 Day 는 <b>주황 테두리</b>, 완료한 Day 는 <b>주황 풀칠 + 체크</b>, 지각 인증은 <b>까만색</b> 으로 달라요. 어디에 와 있는지 한눈에 보여요.`,
+      body: `오늘 미인증 Day 는 <b>주황 테두리</b>, 완료한 Day 는 <b>주황 풀칠 + 체크</b>, 지각 인증은 <b>옅은 베이지 톤</b> 으로 달라요. 어디에 와 있는지 한눈에 보여요.`,
     },
     {
       emoji: '💬',
@@ -6116,10 +6125,16 @@ function Checkboard() {
         const verifiedSet = Array.isArray(m.verifiedDays) && m.verifiedDays.length
           ? new Set(m.verifiedDays.map(Number))
           : null;
+        const lateSet = Array.isArray(m.lateDays) && m.lateDays.length
+          ? new Set(m.lateDays.map(Number))
+          : null;
         const on = verifiedSet
           ? verifiedSet.has(d)
           : (d <= Number(m.progress || 0));
-        if (on) cls += ' on';
+        if (on) {
+          cls += ' on';
+          if (lateSet && lateSet.has(d)) cls += ' late'; // 지각 인증 → 까망
+        }
         else if (d < state.currentDay) cls += ' missed';       // 피어 과거 미인증
         else if (d === state.currentDay) cls += ' today';      // 피어 오늘 미인증 — 'me' 와 동일한 점선 링
         else                            cls += ' locked';      // 피어 내일 이후 (미리 풀기 가능/불가 둘 다 lock 톤)
@@ -6133,7 +6148,8 @@ function Checkboard() {
           const stamp = hhmm ? (peerTz ? `${hhmm} ${peerTz}` : hhmm) : '';
           // 피어 툴팁: 한국어 본명 직접 노출 안 함 — displayName (닉네임 우선) 으로.
           const peerDisplay = displayName(m);
-          tooltip = stamp ? `${peerDisplay} · Day ${d} · ${stamp}` : `${peerDisplay} · Day ${d} 완료`;
+          const lateTag = (lateSet && lateSet.has(d)) ? ' (지각)' : '';
+          tooltip = stamp ? `${peerDisplay} · Day ${d} · ${stamp}${lateTag}` : `${peerDisplay} · Day ${d} 완료${lateTag}`;
         }
       }
       const attrs = { class: cls };
@@ -6379,7 +6395,7 @@ function WeeksPage() {
       <span style="width:20px;height:20px;border-radius:6px;background:#FFF7EC;border:2px solid var(--orange);box-sizing:border-box;display:inline-block;"></span>오늘 · 미인증
     </span>
     <span style="display:inline-flex;align-items:center;gap:6px;">
-      <span style="width:20px;height:20px;border-radius:6px;background:var(--ink);display:inline-block;"></span>지각 인증
+      <span style="width:20px;height:20px;border-radius:6px;background:#B89E7A;display:inline-block;"></span>지각 인증
     </span>
     <span style="display:inline-flex;align-items:center;gap:6px;">
       <span style="width:20px;height:20px;border-radius:6px;background:rgba(154,139,115,0.18);border:1px solid rgba(154,139,115,0.34);display:inline-block;"></span>놓친 Day
@@ -10749,12 +10765,8 @@ function MeetingNotesPage(meetingId) {
           style: { marginTop: '14px', padding: '14px', borderRadius: '12px', background: '#fff', textAlign: 'center', color: 'var(--muted)', fontSize: '13px' }
         }, '아직 노트를 적은 멤버가 없어요. 미팅 직전에 다시 새로고침해보세요.'));
       } else {
-        // timeline 안의 row key 들 (intro / roleplay / presenters 등) 자동 추출
-        const allRowKeys = new Set();
-        rows.forEach((r) => {
-          const tl = r.timeline || {};
-          Object.keys(tl).forEach((k) => allRowKeys.add(k));
-        });
+        // timeline 안의 row key 들 자동 추출 — 단, ROW_LABELS 에 있는 키만 노출.
+        // 예전에 'questions' 같이 지운 key 데이터가 app_state 에 남아있어도 운영자 뷰엔 안 보임.
         const ROW_LABELS = {
           // Week 1 (noPresenter): roleplay = 자기소개 prep / intro = 미팅 중 메모
           // Week 2~4: roleplay = 그룹 롤플레이 / presenters = 발표자 응원
@@ -10762,11 +10774,22 @@ function MeetingNotesPage(meetingId) {
           intro: '📝 미팅 중 메모',
           presenters: '🎤 발표자 응원',
         };
+        const allRowKeys = new Set();
+        rows.forEach((r) => {
+          const tl = r.timeline || {};
+          Object.keys(tl).forEach((k) => {
+            if (ROW_LABELS[k]) allRowKeys.add(k);
+          });
+        });
         // 멤버 카드 렌더 (한 명씩 카드로)
         const cardWrap = el('div', { style: { marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '12px' } });
         rows.forEach((r) => {
           const tl = r.timeline || {};
-          const hasContent = Object.values(tl).some((row) => row && (String(row.notes || '').trim() || (Array.isArray(row.expressions) && row.expressions.length)));
+          // 알려진 rowKey 안에 실제 내용이 있을 때만 카드 노출 (지운 key 데이터는 무시).
+          const hasContent = Object.keys(ROW_LABELS).some((k) => {
+            const row = tl[k];
+            return row && (String(row.notes || '').trim() || (Array.isArray(row.expressions) && row.expressions.length));
+          });
           if (!hasContent) return;
           const memberCard = el('div', {
             style: { padding: '14px 16px', borderRadius: '14px', background: '#fff', border: '1px solid rgba(231,221,200,0.6)' }
