@@ -1149,18 +1149,18 @@ const CHALLENGE = {
           ],
         },
         roleplay: {
-          duration: 70,
+          duration: 40,
           roles: [
             { name: '유버디 (호스트)', goal: '챌린지 소개 · 본인 소개 · PT 진행 방식 · 다음 주 롤플레이 방식 설명. Q&A 진행.' },
             { name: '모든 멤버', goal: '1분 자기소개 (이름 · 업/역할 · 이번 챌린지에서 얻고 싶은 것). 궁금한 거 자유롭게 질문.' },
           ],
           beats: [
-            { time: '0–10',  label: '챌린지 소개',                body: '유버디가 4주 구조 (Daily 20일 + 주간 미팅 4회) · 완주 기준 · 선물 · 앱 사용법 훑기.' },
-            { time: '10–20', label: '유버디 소개',                body: '누구인지 · 왜 이 챌린지를 만들었는지 · 어떤 마음으로 설계했는지.' },
-            { time: '20–45', label: '1분 자기소개 (전원)',        body: '한 명당 1분씩. 이름 · 업 · 역할 · 이번 챌린지에서 얻고 싶은 것 한 줄.' },
-            { time: '45–55', label: 'PT 진행 방식 안내',          body: 'Week 2~4 에 선착순 3명씩 발표자. 7분 토크 + 3분 Q&A. 앱 내 발표자 탭 · 자리 잡는 법 · 자료 준비 가이드.' },
-            { time: '55–65', label: '다음 주 롤플레이 방식 안내',  body: 'Week 2 부터 40분 그룹 롤플레이 시작. 역할 분담 · Daily 단어를 실전에 녹이는 법 · 코치 피드백 포인트.' },
-            { time: '65–70', label: 'Q&A',                         body: '궁금한 거 자유롭게. 답 모르는 건 유버디가 받아 적고 다음 주에 공유.' },
+            { time: '0–3',   label: '환영 + 채팅 icebreaker',     body: '"지금 어디서 접속 중? 한 단어로" 채팅창에. 마이크 안 켜도 OK — 분위기 따뜻하게 깔기.' },
+            { time: '3–13',  label: '1분 자기소개 (전원)',         body: '한 명당 1분씩. 이름 · 업 · 역할 · 이번 챌린지에서 얻고 싶은 것 한 줄. 미리 페이지에 적어두면 부담 ↓.' },
+            { time: '13–20', label: '챌린지 소개',                body: '4주 구조 · Daily · 주간 미팅 · 완주 기준 · 인증 정책. 5분마다 "여기까지 궁금한 거?" 채팅으로 받기.' },
+            { time: '20–25', label: '유버디 소개',                body: '누구인지 · 왜 만들었는지 · 본인 영어 학습 스토리 1-2분 (공감 포인트).' },
+            { time: '25–32', label: 'PT + 롤플레이 방식 안내',    body: 'Week 2~4 발표자 자리 (7분 + Q&A 3분) · 그룹 롤플레이 흐름. 본인 1분 PT 즉석 데모 + 1-2명 즉석 롤 시뮬.' },
+            { time: '32–40', label: 'Q&A + Wrap-up',              body: '궁금한 거 자유롭게. 페어링 1분 자기소개 다시 (Daily 단어 1-2개 녹여서) 가능. 내일부터 할 일 짧게 안내.' },
           ],
           props: [
             { label: '1분 자기소개 템플릿', body: '"Hi, I\'m [name]. I work in [industry] as [role]. This challenge, I want to [goal]."' },
@@ -9917,7 +9917,8 @@ function MeetingNotesPage(meetingId) {
       presenters: { notes: '', expressions: [] },
     };
   }
-  ['roleplay','presenters'].forEach(k => {
+  // Week 1 (noPresenter) 은 intro / roleplay 2개 row 사용. 나머지 주는 roleplay / presenters.
+  ['intro','roleplay','presenters'].forEach(k => {
     if (!notes.timeline[k]) notes.timeline[k] = { notes: '', expressions: [] };
     if (!Array.isArray(notes.timeline[k].expressions)) notes.timeline[k].expressions = [];
   });
@@ -10037,7 +10038,7 @@ function MeetingNotesPage(meetingId) {
           <span>·</span>
           <span>21:00 KST</span>
           <span>·</span>
-          <span>⏱ 총 70분</span>
+          <span>⏱ 총 ${(meta.roleplay && meta.roleplay.duration) || 70}분</span>
           ${meta.meetUrl ? `<span style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;background:rgba(125,92,255,0.14);color:#5C53A5;font-size:11px;font-weight:700;">🔗 미팅 열기 →</span>` : ''}
         </div>
       </div>
@@ -10248,7 +10249,8 @@ function MeetingNotesPage(meetingId) {
     });
     card.appendChild(ta);
 
-    // Expressions chip picker
+    // Expressions chip picker — opts.hideChips 면 통째로 안 그림 (예: 미팅 중 메모 row).
+    if (!opts.hideChips) {
     const exprWrap = el('div', { style: { marginTop: '10px' } });
     exprWrap.appendChild(el('div', {
       style: {
@@ -10330,6 +10332,7 @@ function MeetingNotesPage(meetingId) {
     addWrap.appendChild(addBtn);
     exprWrap.appendChild(addWrap);
     card.appendChild(exprWrap);
+    } // end !opts.hideChips
 
     // Per-section save button — 개인 노트라 localStorage 에 자동 저장되고 있지만,
     // 유저가 명시적으로 '지금 저장됐어' 를 확인하고 싶어해서 섹션마다 버튼 둠.
@@ -10418,22 +10421,50 @@ function MeetingNotesPage(meetingId) {
       <div style="margin-top:12px;margin-bottom:10px;"><b style="color:#7B5E8C;font-size:11px;letter-spacing:0.08em;">BEATS</b></div>
       ${beatsHtml}
       ${propsHtml ? `<div style="margin-top:12px;margin-bottom:10px;"><b style="color:#7B5E8C;font-size:11px;letter-spacing:0.08em;">PROPS</b></div>${propsHtml}` : ''}`;
-    // Week 1 (noPresenter) 은 '오리엔테이션' 자리 — 롤플레이 아님.
-    wrap.appendChild(renderTimelineRow({
-      rowKey: 'roleplay',
-      timeLabel: meta.noPresenter ? '0–70' : '0–40',
-      minutes: meta.noPresenter ? 70 : 40,
-      accent: '#A98BB8',
-      title: meta.noPresenter ? '👋 오리엔테이션 & 자기소개' : '🎭 그룹 롤플레이',
-      subtitle: (meta.scenario && meta.scenario.setting) || '전원 참여 · 역할 분담 후 진행',
-      body: meta.noPresenter
-        ? `<span style="color:var(--ink);">첫 주는 발표 없음. 챌린지 / 유버디 소개 → 각자 1분 자기소개 → PT 진행 방식 → 다음 주 롤플레이 방식 → Q&A.</span>`
-        : `<span style="color:var(--ink);">각자 맡은 역할로 비즈니스 상황을 실제처럼 재현. 대사 외우지 말고, 상황에 반응하세요.</span>`,
-      briefing: roleplayBrief,
-      placeholder: meta.noPresenter
-        ? '예) 챌린지에서 제일 기대되는 것: ...\n내 1분 자기소개 핵심 문장: ...\n다음 주 롤플레이 때 시도해볼 것: ...\n질문으로 남긴 것: ...'
-        : '예) 내가 맡은 역할: Product Lead\n내가 놓친 reframe 포인트: ...\n상대방이 쓴 괜찮은 표현: ...\n다음엔 이렇게 해볼 것: ...',
-    }));
+    if (meta.noPresenter) {
+      // Week 1 — 두 영역으로 분리.
+      //   1) 'roleplay' rowKey (기존 데이터 보존) → "1분 자기소개 미리 적어두기" + 추천 표현 칩.
+      //   2) 'intro' rowKey (새 슬롯)         → "미팅 중 듣고 메모", 칩 없음.
+      // rowKey 는 안 바꿔서 이미 적어둔 멤버 데이터는 그대로 위 row 에 보임.
+      const totalMin = (meta.roleplay && meta.roleplay.duration) || 40;
+      // 1) ⭐ 1분 자기소개 미리 적어두기 (메인 prep — 기존 'roleplay' 데이터 그대로)
+      wrap.appendChild(renderTimelineRow({
+        rowKey: 'roleplay',
+        timeLabel: '미팅 전 ✍️',
+        minutes: 5,
+        accent: '#F07D38',
+        title: '👋 1분 자기소개 — 미리 적어두기',
+        subtitle: '미팅 때 안 막히게 미리 영어로 한 번 써보세요. 추천 표현 칩 누르면 자동 입력 ✨',
+        body: `<span style="color:var(--ink);"><b style="color:var(--orange-dark);">템플릿:</b> "Hi, I'm [name]. I work in [industry] as [role]. This challenge, I want to [goal]."<br/><br/>이름 · 업/역할 · 이번 챌린지에서 얻고 싶은 것 한 줄.</span>`,
+        briefing: '',
+        placeholder: 'Hi, I\'m ___. I work in ___ as ___. This challenge, I want to ___.\n\n(추천 표현 칩 클릭하면 자동으로 여기에 입력돼요)',
+      }));
+      // 2) 미팅 중 듣고 메모 — 칩 숨김 (어휘 안 보이게)
+      wrap.appendChild(renderTimelineRow({
+        rowKey: 'intro',
+        timeLabel: `0–${totalMin}`,
+        minutes: totalMin,
+        accent: '#A98BB8',
+        title: '📝 미팅 중 듣고 메모',
+        subtitle: (meta.scenario && meta.scenario.setting) || '전원 참여 · 듣다가 떠오른 거 즉시 적기',
+        body: `<span style="color:var(--ink);">첫 주는 발표 없음. 흐름: 환영 → 자기소개 → 챌린지 소개 → 유버디 소개 → PT/롤플레이 안내 → Q&A.</span>`,
+        briefing: roleplayBrief,
+        placeholder: '예) 다른 멤버가 쓴 괜찮은 표현: ...\n다음 주 롤플레이 때 시도해볼 것: ...\n새로 알게 된 것: ...',
+        hideChips: true,
+      }));
+    } else {
+      wrap.appendChild(renderTimelineRow({
+        rowKey: 'roleplay',
+        timeLabel: '0–40',
+        minutes: 40,
+        accent: '#A98BB8',
+        title: '🎭 그룹 롤플레이',
+        subtitle: (meta.scenario && meta.scenario.setting) || '전원 참여 · 역할 분담 후 진행',
+        body: `<span style="color:var(--ink);">각자 맡은 역할로 비즈니스 상황을 실제처럼 재현. 대사 외우지 말고, 상황에 반응하세요.</span>`,
+        briefing: roleplayBrief,
+        placeholder: '예) 내가 맡은 역할: Product Lead\n내가 놓친 reframe 포인트: ...\n상대방이 쓴 괜찮은 표현: ...\n다음엔 이렇게 해볼 것: ...',
+      }));
+    }
 
     // ---- Row 2: Unified presenter slot (40–70, 세 명 합본) ----
     // 예전엔 발표자 #1/#2/#3 마다 빈칸이 3개였는데 실제 사용해보면 발표 들으면서
@@ -10725,8 +10756,10 @@ function MeetingNotesPage(meetingId) {
           Object.keys(tl).forEach((k) => allRowKeys.add(k));
         });
         const ROW_LABELS = {
-          intro: '👋 자기소개',
-          roleplay: '🎭 롤플레이',
+          // Week 1 (noPresenter): roleplay = 자기소개 prep / intro = 미팅 중 메모
+          // Week 2~4: roleplay = 그룹 롤플레이 / presenters = 발표자 응원
+          roleplay: '👋 1분 자기소개 (미리 적어둔 것) / 🎭 롤플레이 메모',
+          intro: '📝 미팅 중 메모',
           presenters: '🎤 발표자 응원',
         };
         // 멤버 카드 렌더 (한 명씩 카드로)
