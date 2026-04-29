@@ -1169,7 +1169,7 @@ const CHALLENGE = {
         },
         mustUseVocab: [
           'I work in', 'based in', 'what brings me here',
-          'looking forward to', 'on my radar', 'swap notes', 'buddy up',
+          'looking forward to', 'I lead', 'specialize in', 'happy to connect',
         ],
         presenterPrompt: '', // 발표자 없음
         qaPrompts: [
@@ -2157,6 +2157,9 @@ function saveRoute() {
       week: currentWeek,
       day: currentDay,
       lastLearningPage,
+      // 미팅/발표 prep 페이지의 컨텍스트 ID — 새로고침 시 "미팅 정보 못 찾음" 으로 튕기는 거 방지.
+      meetingId: window.__currentMeetingId || null,
+      presenterWeek: window.__currentPresenterWeek || null,
       navBackStack,
       navForwardStack,
       scrollPositions: routeScrollPositions,
@@ -2175,6 +2178,10 @@ let currentPage = __initialHashPage || savedRoute.page || 'home';
 let currentWeek = savedRoute.week || 1;   // the week being viewed
 let currentDay = savedRoute.day || 1;
 let lastLearningPage = savedRoute.lastLearningPage || ((savedRoute.page === 'day' || savedRoute.page === 'weeks') ? savedRoute.page : 'weeks');
+// 미팅/발표 prep 페이지 컨텍스트 ID 복원 — saveRoute 에서 같이 저장한 값.
+// 새로고침해도 같은 미팅 페이지에 그대로 머물게.
+if (savedRoute.meetingId) window.__currentMeetingId = savedRoute.meetingId;
+if (savedRoute.presenterWeek) window.__currentPresenterWeek = savedRoute.presenterWeek;
 let navBackStack = Array.isArray(savedRoute.navBackStack) ? savedRoute.navBackStack : [];
 let navForwardStack = Array.isArray(savedRoute.navForwardStack) ? savedRoute.navForwardStack : [];
 let routeScrollPositions = (savedRoute.scrollPositions && typeof savedRoute.scrollPositions === 'object') ? savedRoute.scrollPositions : {};
@@ -10098,13 +10105,27 @@ function MeetingNotesPage(meetingId) {
     const ta = el('textarea', {
       class: 'mn-editor',
       placeholder: opts.placeholder || '여기에 기록하세요...',
-      style: { minHeight: '80px', marginTop: '6px', fontSize: '13px' },
+      style: { minHeight: '180px', marginTop: '6px', fontSize: '12.5px', lineHeight: '1.6', resize: 'vertical' },
     });
     ta.value = (notes.timeline[rowKey] && notes.timeline[rowKey].notes) || '';
+    // 사용자가 textarea 를 직접 늘려놓은 적 있으면 그 높이 복원 (chip 클릭 → render() 으로 리셋되는 문제 방지).
+    const savedHeight = notes.timeline[rowKey] && notes.timeline[rowKey].notesHeight;
+    if (savedHeight && Number.isFinite(savedHeight) && savedHeight > 100) {
+      ta.style.height = savedHeight + 'px';
+    }
     ta.addEventListener('input', (e) => {
       notes.timeline[rowKey].notes = e.target.value;
       saveState();
       scheduleCloudSync(meetingId);
+    });
+    // resize handle 드래그 끝나면 (mouseup) 현재 높이 저장 → 다음 render 에 복원.
+    ta.addEventListener('mouseup', () => {
+      const h = ta.offsetHeight;
+      if (h && h !== notes.timeline[rowKey].notesHeight && h > 100) {
+        notes.timeline[rowKey].notesHeight = h;
+        saveState();
+        scheduleCloudSync(meetingId);
+      }
     });
     card.appendChild(ta);
 
@@ -10118,7 +10139,7 @@ function MeetingNotesPage(meetingId) {
         color: 'var(--muted)',
         textTransform: 'uppercase',
       }
-    }, '💎 쓸만했던 표현'));
+    }, '💎 추천하는 표현'));
     const chipRow = el('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' } });
     const currentExprs = notes.timeline[rowKey].expressions || [];
     // Saved chips (removable)
@@ -10135,6 +10156,17 @@ function MeetingNotesPage(meetingId) {
       }, w + ' ×');
       chipRow.appendChild(chip);
     });
+    // 표현 클릭 → notes 텍스트 영역에 자동 삽입 (저장 chip 도 같이 추가).
+    // 사용자가 "클릭 → 대사에 박혀" 워크플로우를 원함.
+    const insertExpressionIntoNote = (phrase) => {
+      const cur = ta.value || '';
+      // 빈 노트면 그대로, 아니면 끝에 한 칸 띄고 추가. 줄바꿈 안 함 (자연스럽게 문장 안에 박히게).
+      const prefix = cur && !/\s$/.test(cur) ? ' ' : '';
+      ta.value = cur + prefix + phrase + ' ';
+      // input 이벤트 직접 발생시켜 기존 listener (saveState + cloud sync) 트리거
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+      try { ta.focus({ preventScroll: true }); ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {}
+    };
     // Suggestion chips (addable)
     suggestionsGlobal.forEach(w => {
       if (currentExprs.includes(w)) return;
@@ -10144,6 +10176,7 @@ function MeetingNotesPage(meetingId) {
           notes.timeline[rowKey].expressions = [...currentExprs, w];
           saveState();
           scheduleCloudSync(meetingId);
+          insertExpressionIntoNote(w);
           render();
         }
       }, '+ ' + w);
@@ -10166,6 +10199,7 @@ function MeetingNotesPage(meetingId) {
         notes.timeline[rowKey].expressions = [...currentExprs, v];
         saveState();
         scheduleCloudSync(meetingId);
+        insertExpressionIntoNote(v);
         render();
       }
     }, '＋');
