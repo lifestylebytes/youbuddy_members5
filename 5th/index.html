@@ -8014,6 +8014,31 @@ function renderBingoMode(page, weekN, week, isPremium) {
       `}
     `;
     page.appendChild(rewardCardTop);
+
+    // 주간 설문 — 보스 통과 후 reward 카드 바로 아래.
+    // 한 번 제출하면 thank-you 카드. 패스 누른 사람은 "다시 답변하고 싶어요" 옵션.
+    const surveyKey = String(weekN);
+    const existingSurvey = state.week_survey && state.week_survey[surveyKey];
+    if (existingSurvey && existingSurvey.at && !existingSurvey.skipped) {
+      // 이미 제출 — thank-you 카드
+      const done = el('div', {
+        style: {
+          marginTop: '4px', padding: '20px', borderRadius: '20px',
+          background: 'linear-gradient(135deg, #F5F1FA 0%, #FFF5E6 100%)',
+          border: '1px solid rgba(155,127,174,0.28)',
+          textAlign: 'center', marginBottom: '16px',
+        },
+      });
+      done.innerHTML = `
+        <div style="font-size:32px;line-height:1;">🙏</div>
+        <div style="margin-top:8px;font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">설문 답변 고마워요</div>
+        <div class="t-small" style="margin-top:6px;color:var(--ink-soft);font-size:12px;line-height:1.5;">${escapeHtml(existingSurvey.at.slice(0, 16).replace('T', ' '))} 에 제출됨. Week ${weekN + 1} 가 더 좋아질 거예요.</div>
+      `;
+      page.appendChild(done);
+    } else {
+      // 미제출 or 패스 처리됨 → 다시 노출
+      page.appendChild(renderWeekSurveyCard(weekN));
+    }
   }
 
   // ─ Top intro — 따뜻한 환영
@@ -8458,32 +8483,23 @@ function renderBossResult(page, weekN, week, drill) {
     </div>
   `;
   page.appendChild(card);
-
-  // ── 주간 설문 — 통과한 사람한테만 (실제 끝까지 한 멤버 인사이트가 가장 정확).
-  // 한 번 제출하면 카드 자체가 "고마워요" 로 바뀌고, 답변은 state.week_survey 에 저장 → app_state JSONB 동기화 → 운영자가 export.
+  // 설문은 보상 카드 (renderBingoMode) 에서 따로 노출됨 — 여기선 안내만.
   if (passed) {
-    const surveyKey = String(weekN);
-    const existing = state.week_survey && state.week_survey[surveyKey];
-    if (existing && existing.at) {
-      // 이미 제출 — thank-you 카드
-      const done = el('div', {
-        style: {
-          marginTop: '4px', padding: '20px', borderRadius: '20px',
-          background: 'linear-gradient(135deg, #F5F1FA 0%, #FFF5E6 100%)',
-          border: '1px solid rgba(155,127,174,0.28)',
-          textAlign: 'center',
-        },
-      });
-      done.innerHTML = `
-        <div style="font-size:32px;line-height:1;">🙏</div>
-        <div style="margin-top:8px;font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">설문 답변 고마워요</div>
-        <div class="t-small" style="margin-top:6px;color:var(--ink-soft);font-size:12px;line-height:1.5;">${escapeHtml(existing.at.slice(0, 16).replace('T', ' '))} 에 제출됨. Week 2 가 더 좋아질 거예요.</div>
-      `;
-      page.appendChild(done);
-    } else {
-      // 설문 카드
-      page.appendChild(renderWeekSurveyCard(weekN));
-    }
+    const hint = el('div', {
+      style: {
+        marginTop: '14px', padding: '12px 16px', borderRadius: '14px',
+        background: 'rgba(155,127,174,0.08)', border: '1px solid rgba(155,127,174,0.25)',
+        textAlign: 'center', fontSize: '12px', color: '#6B4F7D', lineHeight: '1.5',
+      },
+    });
+    const submitted = state.week_survey
+      && state.week_survey[String(weekN)]
+      && state.week_survey[String(weekN)].at
+      && !state.week_survey[String(weekN)].skipped;
+    hint.innerHTML = submitted
+      ? '✅ 설문 답변 고마워요 — 다음 화면에서 확인 가능해요'
+      : `📝 다음 화면에서 1분 설문 부탁드려요 (Week ${weekN + 1} 더 좋게 만드는 데 큰 도움)`;
+    page.appendChild(hint);
   }
   return page;
 }
