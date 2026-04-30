@@ -1566,6 +1566,7 @@ const defaultState = () => ({
   bingo_done: {},                   // { "1": "2026-04-30T..." } 한 주차의 첫 drill 완주 타임스탬프 — 홈 배너 / 보상 분기용.
   bingo_boss_results: {},           // { "1": { score, total, at } } 유버디 검증 (랜덤 10개) 점수 — 운영자 분석.
   week_survey: {},                  // { "1": { nps, difficulty, time, ai_help, ux, stuck, want_w2: [], comment, at } } 주간 설문.
+  meeting_briefing_open: {},        // { "m1-intro": true } 미팅 노트 페이지의 "브리핑" 펼침 상태 — 새로고침/15초 sync 에도 유지.
   operatorViewAsMember: false,      // 운영자/스태프가 "일반 회원처럼 보기" 켜둘 때 true. 운영자 UI 다 숨김.
   tierOverride: null,             // 'basic' 으로 설정하면 MEMBER_DIRECTORY 가 premium 이어도 basic 으로 강제 (베이직 프리뷰). null = 비활성.
   __vocabMigrated: false,          // 기존 bookmarks/saved_syns → pitch_vocab 일회성 이관 플래그.
@@ -1627,6 +1628,7 @@ const PERSISTED_STATE_KEYS = [
   'bingo_done',
   'bingo_boss_results',
   'week_survey',
+  'meeting_briefing_open',
   'savedTab',
   'communityFilter',
   'communitySort',
@@ -12483,9 +12485,21 @@ function MeetingNotesPage(meetingId) {
     if (rightChip) headerRow.appendChild(rightChip);
     card.appendChild(headerRow);
 
-    // Briefing (collapsible)
+    // Briefing (collapsible) — open 상태 persist:
+    //   session 메모리 (window.__meetingBriefingOpen) + state.meeting_briefing_open 둘 다 sync.
+    //   15초 서버 sync 로 재렌더되거나 새로고침해도 펼친 상태 유지.
     if (briefing) {
+      if (!window.__meetingBriefingOpen) window.__meetingBriefingOpen = {};
+      const briefingKey = `${meetingId || 'm?'}-${rowKey || 'x'}`;
+      // 새로고침 후 첫 진입 시 세션 메모리에 state 값 머지 (state 가 source of truth)
+      if (state.meeting_briefing_open
+          && state.meeting_briefing_open[briefingKey]
+          && window.__meetingBriefingOpen[briefingKey] == null) {
+        window.__meetingBriefingOpen[briefingKey] = true;
+      }
+      const isOpen = !!window.__meetingBriefingOpen[briefingKey];
       const brief = el('details', { style: { marginTop: '10px' } });
+      if (isOpen) brief.setAttribute('open', '');
       const summary = el('summary', {
         style: {
           cursor: 'pointer',
@@ -12500,7 +12514,7 @@ function MeetingNotesPage(meetingId) {
           background: 'rgba(169,139,184,0.10)',
           borderRadius: '999px',
         }
-      }, '📎 브리핑 · 펼치기');
+      }, isOpen ? '📎 브리핑 · 접기' : '📎 브리핑 · 펼치기');
       brief.appendChild(summary);
       const briefBody = el('div', {
         style: {
@@ -12515,6 +12529,17 @@ function MeetingNotesPage(meetingId) {
       });
       briefBody.innerHTML = briefing;
       brief.appendChild(briefBody);
+      // 토글 시 둘 다 sync. native <details> toggle 이벤트 사용.
+      brief.addEventListener('toggle', () => {
+        const open = brief.hasAttribute('open');
+        window.__meetingBriefingOpen[briefingKey] = open;
+        state.meeting_briefing_open = state.meeting_briefing_open || {};
+        if (open) state.meeting_briefing_open[briefingKey] = true;
+        else delete state.meeting_briefing_open[briefingKey];
+        // summary 라벨도 즉시 업데이트
+        summary.textContent = open ? '📎 브리핑 · 접기' : '📎 브리핑 · 펼치기';
+        try { saveState(); } catch (_) {}
+      });
       card.appendChild(brief);
     }
 
