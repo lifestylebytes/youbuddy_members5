@@ -6650,15 +6650,32 @@ function buildVerifyQuestions(dayN) {
 function normalizeQuizAnswer(value='') {
   return String(value).trim().toLowerCase().replace(/\s+/g, ' ');
 }
-// 퀴즈 정답 비교 — 하이픈·스페이스 변형 다 인정.
-// "front-load" / "front load" / "frontload" 다 같은 답으로 처리.
+// 퀴즈 정답 비교 — 하이픈·스페이스 변형 + 시제 변형 + 분리형 phrasal verb 다 인정.
+// "front-load" / "front load" / "frontload" 다 같은 답.
+// "Call the shots" 답 / "calling the shots" 입력 / "called the shots" 입력 모두 정답.
+// (예문이 'Who is calling the shots ...' 처럼 변형돼있을 때 사용자가 자연스럽게 떠올린 형태도 OK.)
 function quizAnswerMatches(input, target) {
   const a = normalizeQuizAnswer(input);
   const b = normalizeQuizAnswer(target);
   if (a === b) return true;
   // 하이픈·스페이스 다 제거한 형태로 한 번 더 비교
   const stripSep = (s) => s.replace(/[-\s]+/g, '');
-  return stripSep(a) === stripSep(b);
+  if (stripSep(a) === stripSep(b)) return true;
+  // 시제 / phrasal verb 분리 / 대명사 치환 변형까지 인정 — _buildPhraseAlternatives 활용
+  try {
+    if (typeof _buildPhraseAlternatives === 'function') {
+      const alts = _buildPhraseAlternatives(target);
+      if (alts && alts.length) {
+        // alts 의 \b 들은 ^...$ 로 감싸도 word-char 끝점에선 자연 매칭됨.
+        const re = new RegExp('^(?:' + alts.join('|') + ')$', 'i');
+        if (re.test(String(input || '').trim())) return true;
+        // 하이픈/공백 제거 입력도 한 번 더
+        const inputStripped = stripSep(a);
+        if (re.test(inputStripped)) return true;
+      }
+    }
+  } catch (_) {}
+  return false;
 }
 
 // 어휘별 정답/오답/힌트/스킵 누적 — 운영자가 나중에 약점 어휘 분석 / 주 시험 / recap 콘텐츠에 활용.
