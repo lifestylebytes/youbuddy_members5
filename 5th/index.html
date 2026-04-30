@@ -13050,12 +13050,15 @@ function MeetingNotesPage(meetingId) {
   page.appendChild(exportSection);
 
   // ──────────────────────────────────────────────────────────────────────
-  // 운영자 전용: 멤버들이 적어둔 미팅 노트 모아보기.
+  // 멤버 공개 — 다른 사람들이 적어둔 미팅 노트 모아보기.
+  // 운영자/스태프 + 일반 멤버 다 볼 수 있음 ("공개공개"). 같이 배우는 톤.
+  // 단, 다른 멤버 카드에서 한국어 본명은 노출 안 함 — 영어 닉네임 (없으면 익명) 으로만.
+  //   운영팀(isOperator/isStaff) 본인은 운영 차원 모니터링이라 본명 같이 보임.
   // 데이터는 challenge_member_state.app_state.meeting_notes[meetingId].timeline 에서
-  // get_cohort_meeting_notes RPC 로 추출됨. RPC 권한은 anon/authenticated 둘 다
-  // 열려있지만 isOperator 가드로 UI 자체가 운영자에게만 보임.
+  // get_cohort_meeting_notes RPC 로 추출됨. RPC 권한 anon/authenticated 둘 다 열려있어 OK.
   // ──────────────────────────────────────────────────────────────────────
-  if (state.isOperator) {
+  {
+    const isOpStaff = !!((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
     const opSection = el('div', {
       class: 'card',
       style: { marginTop: '24px', padding: '20px', background: 'rgba(125,92,255,0.06)', border: '1px solid rgba(125,92,255,0.2)' }
@@ -13063,14 +13066,16 @@ function MeetingNotesPage(meetingId) {
     opSection.appendChild(el('div', {
       class: 'kicker',
       style: { color: 'var(--lilac)', marginBottom: '4px' }
-    }, '👁 OPERATOR ONLY'));
+    }, isOpStaff ? '👁 OPERATOR · 멤버 노트 모아보기' : '🤝 같이 보는 노트'));
     opSection.appendChild(el('div', {
       style: { fontSize: '15px', fontWeight: '700', color: 'var(--ink)', marginBottom: '4px' }
-    }, '멤버들이 적은 노트 모아보기'));
+    }, isOpStaff ? '멤버들이 적은 노트 모아보기' : '다른 멤버들의 메모 함께 보기'));
     opSection.appendChild(el('div', {
       class: 't-small',
       style: { color: 'var(--ink-soft)', marginBottom: '12px', lineHeight: '1.55' }
-    }, '이 미팅의 timeline 섹션별로 멤버들이 무엇을 적었는지 한 번에 확인. 본인이 적은 내용은 위쪽 본인 카드에서 보고, 여기는 다른 멤버들 진행 상황 점검용.'));
+    }, isOpStaff
+      ? '이 미팅의 timeline 섹션별로 멤버들이 무엇을 적었는지 한 번에 확인. 본인이 적은 내용은 위쪽 본인 카드에서 보고, 여기는 다른 멤버들 진행 상황 점검용.'
+      : '같은 미팅을 들으면서 다른 멤버들이 어떤 표현을 잡았는지 같이 보면서 배워봐요. 본인이 적은 내용은 위쪽 본인 카드에서 봐주세요. 본명은 노출되지 않고 영어 닉네임으로만 표시돼요.'));
 
     const cached = meetingMemberNotesCache[meetingId];
     const loading = !!meetingMemberNotesLoading[meetingId];
@@ -13113,7 +13118,13 @@ function MeetingNotesPage(meetingId) {
         });
         // 멤버 카드 렌더 (한 명씩 카드로)
         const cardWrap = el('div', { style: { marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '12px' } });
+        // 일반 멤버 시점에선 본인 카드 스킵 (위쪽 본인 카드에서 이미 보고 있음).
+        // 운영팀(isOpStaff) 시점에선 본인 포함 전부 표시 (모니터링 용도).
+        const myKey = state.memberKey || state.member_key || '';
+        const myName = (state.name || '').trim();
         rows.forEach((r) => {
+          const isMe = (myKey && r.member_key === myKey) || (myName && r.member_name === myName);
+          if (isMe && !isOpStaff) return; // 일반 멤버 본인 카드 스킵
           const tl = r.timeline || {};
           // 알려진 rowKey 안에 실제 내용이 있을 때만 카드 노출 (지운 key 데이터는 무시).
           const hasContent = Object.keys(ROW_LABELS).some((k) => {
@@ -13125,7 +13136,14 @@ function MeetingNotesPage(meetingId) {
             style: { padding: '14px 16px', borderRadius: '14px', background: '#fff', border: '1px solid rgba(231,221,200,0.6)' }
           });
           // header: 이름 + tier
-          const memberLabel = r.english_name ? `${r.member_name} (${r.english_name})` : r.member_name;
+          //   - 운영팀: 본명 + 영어 닉네임 둘 다 노출 ("박지혜 (Buddy)")
+          //   - 일반 멤버: 영어 닉네임만 (없으면 "익명 멤버") — 본명 노출 X (프라이버시)
+          let memberLabel;
+          if (isOpStaff) {
+            memberLabel = r.english_name ? `${r.member_name} (${r.english_name})` : r.member_name;
+          } else {
+            memberLabel = (r.english_name || '').trim() || '익명 멤버';
+          }
           const tierBadge = r.tier === 'premium' ? '👑 P' : 'B';
           const headerEl = el('div', {
             style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }
@@ -13176,9 +13194,10 @@ function MeetingNotesPage(meetingId) {
   return page;
 }
 
-// 운영자 전용 — 미팅 노트 모아보기 RPC 호출. force=true 면 캐시 무시.
+// 미팅 노트 모아보기 RPC 호출 — 운영자/스태프/일반 멤버 다 호출 가능 (공개 모드).
+// 본인이 적은 노트는 위쪽 본인 카드에서 따로 보고 있으니, 여기선 다른 멤버 + 본인.
+// force=true 면 캐시 무시하고 다시 fetch.
 window.__loadMeetingMemberNotes = async (meetingId, force) => {
-  if (!state.isOperator) { showToast('운영자 전용이에요.'); return; }
   if (!meetingId) return;
   if (meetingMemberNotesLoading[meetingId]) return;
   if (!hasSupabase()) {
@@ -17348,14 +17367,16 @@ function buildCertHtml({ name, englishName, role, done, total, overall, vocabCou
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>YouBuddy ${CHALLENGE.cohort} 수료증 — ${displayName}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
     --orange-deep:#C95721; --orange-mid:#E8743C; --orange-soft:#F4A678; --orange-lite:#FAE3D1;
     --gold:#C4986A; --gold-lite:#E8C99A; --cream:#FFFDF7;
     --ink:#2A1F14; --ink-mid:#6B5540; --ink-lite:#B09A80;
     --glass-bg:rgba(255,255,255,0.48); --glass-border:rgba(255,255,255,0.72);
-    --f-serif:'Cormorant Garamond',serif; --f-sans:'Noto Sans KR',sans-serif;
+    /* 영어 헤딩만 Cormorant 세리프, 한국어는 전부 Noto Sans KR (고딕체) */
+    --f-serif:'Cormorant Garamond','Noto Sans KR',serif;
+    --f-sans:'Noto Sans KR',sans-serif;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
