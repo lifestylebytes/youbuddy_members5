@@ -2228,6 +2228,8 @@ function routeToHash() {
         return window.__currentPresenterWeek ? `#presenter/${window.__currentPresenterWeek}` : '#premium';
       case 'week-review':
         return window.__currentReviewWeek ? `#review/${window.__currentReviewWeek}` : '#weeks';
+      case 'week-survey-result':
+        return window.__weekSurveyResult ? `#survey/${window.__weekSurveyResult.weekN}` : '#home';
       case 'screenshot-guide': return '#screenshot-guide';
       default: return '';
     }
@@ -2296,6 +2298,22 @@ function applyHashRoute(rawHash) {
     case 'screenshot-guide':
       currentPage = 'screenshot-guide';
       return true;
+    case 'survey':
+      // #survey/{weekN} — 운영자 전용. RPC 다시 호출해서 결과 페이지 마운트.
+      // window.__weekSurveyResult 가 비어있으면 페이지가 fetch 트리거할 수 있게
+      // weekN 만 마커로 박아둠.
+      if (segs[1]) {
+        const wn = parseInt(segs[1], 10);
+        if (Number.isFinite(wn) && wn >= 1) {
+          if (!window.__weekSurveyResult || window.__weekSurveyResult.weekN !== wn) {
+            // 데이터 없으면 weekN 만 박아두고 페이지가 fetch.
+            window.__weekSurveyResult = { weekN: wn, data: null, pendingFetch: true };
+          }
+          currentPage = 'week-survey-result';
+          return true;
+        }
+      }
+      return false;
     default:
       return false;
   }
@@ -15427,7 +15445,32 @@ function WeekSurveyResultPage() {
   }
 
   const ctx = window.__weekSurveyResult;
-  if (!ctx || !ctx.data) {
+  if (!ctx) {
+    page.appendChild(el('div', { style: { padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' } },
+      '데이터가 없어요. 설정 모달에서 다시 호출해주세요.'));
+    return page;
+  }
+  // 새로고침 후 hash route 만 살아있으면 데이터 자동 fetch.
+  if (!ctx.data && ctx.pendingFetch && !ctx.fetching) {
+    ctx.fetching = true;
+    page.appendChild(el('div', { style: { padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' } },
+      `⏳ Week ${ctx.weekN} 결과 가져오는 중...`));
+    (async () => {
+      try {
+        if (!hasSupabase()) throw new Error('Supabase 연결 안 됨');
+        const data = await supabaseRpc('get_cohort_week_survey', { p_cohort: CHALLENGE.cohort, p_week: ctx.weekN });
+        ctx.data = data;
+        ctx.pendingFetch = false;
+        ctx.fetching = false;
+        render();
+      } catch (e) {
+        showToast(`설문 결과 실패: ${String(e?.message || e).slice(0, 80)}`);
+        ctx.fetching = false;
+      }
+    })();
+    return page;
+  }
+  if (!ctx.data) {
     page.appendChild(el('div', { style: { padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' } },
       '데이터가 없어요. 설정 모달에서 다시 호출해주세요.'));
     return page;
