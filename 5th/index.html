@@ -6181,6 +6181,7 @@ function HomePage() {
         </div>
       `;
     } else {
+      const deadlineDay = Math.min((targetWeek.n + 1) * 5, CHALLENGE.total_days);
       reviewBanner.innerHTML = `
         <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;background:rgba(240,125,56,0.18);display:grid;place-items:center;font-size:24px;">🧠</div>
         <div style="flex:1;min-width:0;">
@@ -6189,6 +6190,7 @@ function HomePage() {
             ${isPreview ? '<span style="font-size:9.5px;font-weight:700;background:rgba(125,92,255,0.18);color:#5C53A5;padding:2px 7px;border-radius:999px;">미리보기</span>' : ''}
           </div>
           <div class="t-small" style="margin-top:5px;font-size:12.5px;color:var(--orange-dark);font-weight:700;letter-spacing:-0.01em;display:inline-flex;align-items:center;gap:4px;">주간 테스트 보러가기 →</div>
+          <div style="margin-top:3px;font-size:11px;font-weight:700;color:#C95721;letter-spacing:-0.005em;">⏰ 다음 주(Day ${deadlineDay})까지만 도전 가능</div>
         </div>
       `;
     }
@@ -6801,6 +6803,8 @@ function WeeksPage() {
     const isOperatorOrStaff = !!((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
     const showReview = allDone || isOperatorOrStaff;
     if (showReview) {
+      // 한정기간 — 다음 주 마지막 날까지만 도전 가능 (Week N → Day (N+1)*5).
+      const deadlineDay = Math.min((w.n + 1) * 5, CHALLENGE.total_days);
       const reviewBtn = el('button', {
         style: {
           width: '100%',
@@ -6814,9 +6818,10 @@ function WeeksPage() {
           fontWeight: '800',
           cursor: 'pointer',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '8px',
+          gap: '4px',
         },
         onClick: (ev) => {
           ev.stopPropagation();
@@ -6825,7 +6830,11 @@ function WeeksPage() {
         },
       });
       const previewTag = (!allDone && isOperatorOrStaff) ? ' <span style="font-size:10px;font-weight:700;background:rgba(125,92,255,0.18);color:#5C53A5;padding:2px 8px;border-radius:999px;margin-left:4px;">미리보기</span>' : '';
-      reviewBtn.innerHTML = `🧠 Week ${w.n} 진짜 외우기 — 3단계 복습${previewTag}`;
+      const limitColor = isEmphasized ? 'rgba(251,247,240,0.7)' : '#C95721';
+      reviewBtn.innerHTML = `
+        <span>🧠 Week ${w.n} 진짜 외우기 — 3단계 복습${previewTag}</span>
+        <span style="font-size:11px;font-weight:700;color:${limitColor};letter-spacing:-0.005em;">⏰ 다음 주(Day ${deadlineDay})까지만 도전할 수 있어요</span>
+      `;
       card.appendChild(reviewBtn);
     } else if (progress > 0) {
       // 이 주 진행 중이지만 다 못 끝낸 경우 — 잠금 상태 안내
