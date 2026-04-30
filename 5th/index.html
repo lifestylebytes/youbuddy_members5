@@ -2075,25 +2075,25 @@ async function requestStoryCorrection(words, text, koreanContext) {
       text,
       korean: (koreanContext || '').trim() || undefined,
     });
-    // 클라이언트 사이드 방어 — 사용자가 메인+유의어 둘 다 썼으면 corrected 에도 둘 다 있어야 함.
-    // 서버가 retry 까지 했는데도 지운 경우(or Edge Function 미배포) 대비.
-    // targetIsInText 는 시제·하이픈 변형도 인정 — corrected 에 "first cut" 또는 "First cut" 등 다 OK.
+    // 클라이언트 사이드 방어 — 슬롯당 최소 1개 변형(메인 OR 유의어)이 살아있어야 함.
+    // 너무 빡빡하면 AI 가 문법 교정하면서 변형 1개만 살리고 다른 거 다듬어내는 정상 동작도 차단됨.
+    // 사용자가 한 슬롯에 메인+유의어 둘 다 썼고 둘 다 사라진 경우만 fallback.
     const corrected = String(result.corrected || text);
-    const droppedPhrases = [];
+    const droppedSlots = [];
     (words || []).forEach((w) => {
       const candidates = [w.en, ...(Array.isArray(w.syn) ? w.syn : [])].filter(Boolean);
-      candidates.forEach((phrase) => {
-        const userWrote = targetIsInText(phrase, text);
-        const stillThere = targetIsInText(phrase, corrected);
-        if (userWrote && !stillThere) droppedPhrases.push(phrase);
-      });
+      // 사용자가 이 슬롯에서 쓴 변형이 하나라도 있으면 → 그 중 하나라도 corrected 에 살아있어야 함.
+      const userUsedAny = candidates.some((phrase) => targetIsInText(phrase, text));
+      if (!userUsedAny) return; // 사용자가 안 썼던 슬롯은 검증 패스
+      const stillAny = candidates.some((phrase) => targetIsInText(phrase, corrected));
+      if (!stillAny) droppedSlots.push(w.en);
     });
-    if (droppedPhrases.length > 0) {
-      console.warn('[ai-review] client-side dropped phrases — falling back to original:', droppedPhrases);
+    if (droppedSlots.length > 0) {
+      console.warn('[ai-review] client-side dropped entire slot(s) — falling back to original:', droppedSlots);
       return {
         corrected: text,
         diff_html: buildWordDiffHtml(text, text),
-        why: `이미 잘 쓰셨어요! AI 가 ${droppedPhrases.slice(0, 3).map((p) => `"${p}"`).join(', ')} 같은 유의어를 빼려고 해서 원문 그대로 둘게요.`,
+        why: `이미 잘 쓰셨어요! AI 가 ${droppedSlots.slice(0, 3).map((p) => `"${p}"`).join(', ')} 어휘를 빼려고 해서 원문 그대로 둘게요.`,
       };
     }
     return {

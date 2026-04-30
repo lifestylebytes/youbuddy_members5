@@ -52,21 +52,40 @@ const SYSTEM_PROMPT = `You are a warm, encouraging business English coach for Ko
 You ALWAYS reply with a single valid JSON object and nothing else.
 The JSON must have exactly two string fields: "corrected" and "why".
 
-CRITICAL RULE 1 — MAKE IT SOUND LIKE A NATIVE SPEAKER WOULD ACTUALLY SAY IT:
-Your job is NOT just grammar-checking — it's to turn the sentence into something a native English business speaker would naturally say in a real meeting / email / Slack. Edit when:
-- Grammar is wrong (verb tense, articles, prepositions, agreement)
-- Word choice is awkward or non-native (Korean-English calque patterns)
-- Sentence structure is clunky (run-on, comma splice, weird order)
-- The sentence is technically correct but a native speaker would phrase it differently
-- Connector / transition flow is rough between clauses
+CRITICAL RULE 1 — FIX BROKEN GRAMMAR AND MAKE IT SOUND NATIVE:
+Your job is to turn the student's English into something a native business speaker would actually say. You MUST edit when ANY of these are present:
 
-DO improve fluency aggressively. The student WANTS feedback that makes their English sound natural — not just "technically OK". A sentence that's grammatically correct but reads awkwardly to a native speaker SHOULD be polished.
+(1) Broken grammar / missing prepositions / wrong article / wrong tense
+   ✗ "drill down our metrics" → ✓ "drill down INTO our metrics"
+   ✗ "loop in design team" → ✓ "loop in THE design team"
+   ✗ "Why don't we discuss?" (without object) → ✓ "Why don't we discuss this?"
 
-The ONLY case where you return verbatim with zero changes:
-The sentence already reads as if a fluent native speaker wrote it for that exact business context — natural word choice, smooth flow, no awkward edges. If even one phrase makes a native speaker pause ("hmm, we'd say that differently"), edit it.
+(2) Fragments / sentences that don't form a complete thought
+   ✗ "or Break down." (standalone) → merge into a complete clause
+   ✗ "Quick alignment, then go." → ✓ "Let's quickly align, then move forward."
+
+(3) Doubled / redundant verbs (Korean-English transfer error)
+   ✗ "do we need a Deconstruct is needed?" → ✓ "Do we need to deconstruct it?"
+   ✗ "I will plan to make a plan" → ✓ "I'll plan it out."
+
+(4) A noun used as a verb or vice versa
+   ✗ "we need a Deconstruct" → ✓ "we need to deconstruct it"
+   ✗ "Let's a quick sync" → ✓ "Let's do a quick sync"
+
+(5) Awkward Korean-English calque (literal translation patterns)
+   ✗ "I want to flesh out this stage" (vague) → ✓ "I want to flesh out THIS PLAN" or specify what stage
+   ✗ "Make a discussion" → ✓ "Have a discussion"
+
+(6) Run-ons / weird connector flow between clauses
+   ✗ "X makes sense or break down" → ✓ "X makes sense — or should we break it down further?"
+
+DO NOT just return the sentence as-is when ANY of the above is present. Even if the meaning is roughly clear, the JOB is to make it polished. Native speakers will pause if it sounds off — fix it.
+
+The ONLY case for verbatim return:
+The sentence is already natural, grammatical, and reads exactly like a fluent native business speaker wrote it. If you have ANY doubt, edit. Defaulting to "verbatim" because the input is "complicated" or "uses lots of options" is WRONG — restructure into clean prose.
 
 When unchanged, say so warmly in Korean ("이미 자연스러워요! 그대로 가셔도 됩니다.").
-When edited, briefly explain the type of fix in Korean ("어순 / 전치사 / 더 자연스러운 표현으로 다듬었어요.").
+When edited, briefly explain the type of fix in Korean ("어순 / 전치사 / 동사·명사 혼용 교정 / 자연스러운 표현으로 다듬음.").
 
 CRITICAL RULE 2 — PRESERVE THE TARGET WORD/PHRASE (NON-NEGOTIABLE):
 The "Phrase being practiced" is the whole point of this exercise. The corrected sentence MUST contain that EXACT phrase (case-insensitive) or its closest grammatical inflection — e.g. "anchor" → "anchored" / "anchoring" / "anchors". This is a hard rule:
@@ -204,7 +223,7 @@ async function callOpenAI(userMessage: string): Promise<string> {
     body: JSON.stringify({
       model: OPENAI_MODEL,
       max_tokens: MAX_TOKENS,
-      temperature: 0.3,
+      temperature: 0.5,
       // Forces the response to be valid JSON — much more reliable than
       // hoping the model stays within braces.
       response_format: { type: 'json_object' },
@@ -263,10 +282,11 @@ serve(async (req) => {
     let why = String(parsed?.why || '').trim() ||
       '표현이 더 자연스럽게 들리도록 다듬었어요.';
 
-    // 타겟 검증 — slot-based.
+    // 타겟 검증 — slot-based, 완화된 가드.
     // sentence 모드: 슬롯 1개, 메인 단어 verbatim 강제.
-    // story 모드: 슬롯 N개 (단어 수), 각 슬롯은 [메인, ...syn] 중 하나만 들어가면 통과.
-    //   PLUS: 사용자가 같은 슬롯에서 메인 + 유의어 둘 다 썼으면 둘 다 보존돼야 함 (학습 의도).
+    // story 모드: 각 슬롯에서 [메인, ...syn] 중 최소 1개만 살아있으면 OK.
+    //   AI 가 문법 교정하면서 변형 1~2개를 자연스럽게 다듬어내는 정상 동작 허용.
+    //   사용자가 한 슬롯에 변형들을 다 썼는데 corrected 에 그 슬롯 전체가 사라지면 fallback.
     let targetSlots: string[][] = [];
     if (mode === 'sentence') {
       const w = String(body?.word?.en || '');
@@ -279,39 +299,27 @@ serve(async (req) => {
       }).filter((slot) => slot.length > 0);
     }
     // 사용자가 원문에서 실제로 쓴 phrase 목록 (변형/구두점 무시) — 슬롯별로 추적.
-    // story 모드에서 메인+유의어를 둘 다 썼으면 둘 다 corrected 에 살아있어야 통과.
     const usedByUser: string[][] = targetSlots.map((slot) =>
       slot.filter((phrase) => correctedContainsTarget(text, phrase))
     );
     const missingSlots = targetSlots.filter((slot, i) => {
       const userUsed = usedByUser[i];
       if (userUsed.length === 0) {
-        // 사용자가 슬롯의 어떤 변형도 안 썼으면 → 슬롯에서 아무거나 하나만 있으면 OK.
-        return !slot.some((phrase) => correctedContainsTarget(corrected, phrase));
+        // 사용자가 안 쓴 슬롯 → 검증 패스 (AI 가 알아서 처리).
+        return false;
       }
-      // 사용자가 1개 이상 변형을 썼으면 → 그 변형들 ALL 이 corrected 에 살아있어야 함.
-      return !userUsed.every((phrase) => correctedContainsTarget(corrected, phrase));
+      // 사용자가 1개 이상 변형 썼으면 → 그 슬롯의 어떤 변형이든 1개라도 corrected 에 살아있으면 OK.
+      return !slot.some((phrase) => correctedContainsTarget(corrected, phrase));
     });
     if (missingSlots.length > 0) {
-      // 누락 진단 — 어떤 phrase 가 빠졌는지 구체적으로.
-      const missingPhrases: string[] = [];
-      targetSlots.forEach((slot, i) => {
-        const userUsed = usedByUser[i];
-        if (userUsed.length === 0) {
-          if (!slot.some((p) => correctedContainsTarget(corrected, p))) {
-            missingPhrases.push(`(at least one of: ${slot.map((s) => `"${s}"`).join(' / ')})`);
-          }
-        } else {
-          userUsed.forEach((p) => {
-            if (!correctedContainsTarget(corrected, p)) missingPhrases.push(`"${p}" (student wrote this)`);
-          });
-        }
-      });
-      const missingDesc = missingPhrases.join(', ');
-      console.warn('[ai-review] target phrase(s) missing in corrected — retrying:', missingDesc);
-      const retryMsg = `Your previous response dropped these phrases that the student EXPLICITLY wrote: ${missingDesc}. ${
+      // 누락 진단 — 어떤 슬롯이 통째로 사라졌는지.
+      const missingDesc = missingSlots.map((slot) =>
+        `(at least one of: ${slot.map((s) => `"${s}"`).join(' / ')})`
+      ).join(', ');
+      console.warn('[ai-review] entire slot(s) missing in corrected — retrying:', missingDesc);
+      const retryMsg = `Your previous response completely removed these target phrase slots: ${missingDesc}. ${
         mode === 'story'
-          ? 'CRITICAL: keep every phrase the student wrote (main expression AND any synonym variants they practiced). Do NOT condense or de-duplicate even if two sentences express similar ideas — the student is intentionally practicing both variants. Only fix grammar/awkward phrasing.'
+          ? 'You may rewrite for grammar/fluency, but each target slot must contain at least one of its variants (main or synonym) in the final output.'
           : 'Rewrite so the phrase is contained verbatim (or with grammatical inflection only).'
       } Same JSON shape.`;
       try {
@@ -320,10 +328,8 @@ serve(async (req) => {
         const retryCorrected = String(retryParsed?.corrected || '').trim();
         const stillMissing = targetSlots.filter((slot, i) => {
           const userUsed = usedByUser[i];
-          if (userUsed.length === 0) {
-            return !slot.some((p) => correctedContainsTarget(retryCorrected, p));
-          }
-          return !userUsed.every((p) => correctedContainsTarget(retryCorrected, p));
+          if (userUsed.length === 0) return false;
+          return !slot.some((p) => correctedContainsTarget(retryCorrected, p));
         });
         if (retryCorrected && stillMissing.length === 0) {
           corrected = retryCorrected;
