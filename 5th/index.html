@@ -1565,6 +1565,7 @@ const defaultState = () => ({
   bingo_marked: {},                 // { "1": ["front-load", "circle back"] } "기억 안나요" 체크한 어휘 — 복습 큐 + 단어장 후보.
   bingo_done: {},                   // { "1": "2026-04-30T..." } 한 주차의 첫 drill 완주 타임스탬프 — 홈 배너 / 보상 분기용.
   bingo_boss_results: {},           // { "1": { score, total, at } } 유버디 검증 (랜덤 10개) 점수 — 운영자 분석.
+  week_survey: {},                  // { "1": { nps, difficulty, time, ai_help, ux, stuck, want_w2: [], comment, at } } 주간 설문.
   operatorViewAsMember: false,      // 운영자/스태프가 "일반 회원처럼 보기" 켜둘 때 true. 운영자 UI 다 숨김.
   tierOverride: null,             // 'basic' 으로 설정하면 MEMBER_DIRECTORY 가 premium 이어도 basic 으로 강제 (베이직 프리뷰). null = 비활성.
   __vocabMigrated: false,          // 기존 bookmarks/saved_syns → pitch_vocab 일회성 이관 플래그.
@@ -1625,6 +1626,7 @@ const PERSISTED_STATE_KEYS = [
   'bingo_marked',
   'bingo_done',
   'bingo_boss_results',
+  'week_survey',
   'savedTab',
   'communityFilter',
   'communitySort',
@@ -4453,6 +4455,7 @@ function render() {
     else if (currentPage === 'scripts') page = ScriptsPage();
     else if (currentPage === 'export') page = ExportPage();
     else if (currentPage === 'screenshot-guide') page = ScreenshotGuidePage();
+    else if (currentPage === 'week-survey-result') page = WeekSurveyResultPage();
     else page = HomePage();
 
     app.appendChild(page);
@@ -8385,6 +8388,35 @@ function renderBossIntro(page, weekN, week, drill) {
 }
 
 // 유버디 검증 결과 화면 — 70% 룰 (PASS / RETRY).
+// 설문 옵션 — 한 군데서 관리해서 나중에 라벨 바꾸기 쉽게.
+const WEEK_SURVEY_OPTIONS = {
+  time: [
+    { v: 'lt5', label: '5분 미만' },
+    { v: '5to10', label: '5–10분' },
+    { v: '10to20', label: '10–20분' },
+    { v: 'gt20', label: '20분+' },
+  ],
+  stuck: [
+    { v: 'memorize', label: '단어 외우기' },
+    { v: 'compose', label: '영어로 문장 만들기' },
+    { v: 'ai_review', label: 'AI 교정 이해하기' },
+    { v: 'verify_time', label: '인증 타이밍 (자정 마감)' },
+    { v: 'compare', label: '다른 멤버랑 비교돼서' },
+    { v: 'none', label: '딱히 막힌 데 없었음' },
+  ],
+  wantW2: [
+    { v: 'pronunciation', label: '🎤 발음 도움' },
+    { v: 'voice_input', label: '🗣 음성 입력' },
+    { v: 'easier_examples', label: '😅 더 쉬운 예문' },
+    { v: 'harder_challenge', label: '🔥 더 어려운 도전' },
+    { v: 'spaced_repeat', label: '🔁 같은 단어 반복 노출' },
+    { v: 'peer_answers', label: '👀 다른 멤버 답변 노출' },
+    { v: 'wallpaper_variants', label: '📱 잠금화면 변형들' },
+    { v: 'word_audio', label: '🔊 단어장 음성 듣기' },
+    { v: 'meeting_depth', label: '🤝 미팅·롤플레이 심화' },
+  ],
+};
+
 function renderBossResult(page, weekN, week, drill) {
   const correct = drill.score || 0;
   const total = drill.queue.length || 10;
@@ -8424,7 +8456,246 @@ function renderBossResult(page, weekN, week, drill) {
     </div>
   `;
   page.appendChild(card);
+
+  // ── 주간 설문 — 통과한 사람한테만 (실제 끝까지 한 멤버 인사이트가 가장 정확).
+  // 한 번 제출하면 카드 자체가 "고마워요" 로 바뀌고, 답변은 state.week_survey 에 저장 → app_state JSONB 동기화 → 운영자가 export.
+  if (passed) {
+    const surveyKey = String(weekN);
+    const existing = state.week_survey && state.week_survey[surveyKey];
+    if (existing && existing.at) {
+      // 이미 제출 — thank-you 카드
+      const done = el('div', {
+        style: {
+          marginTop: '4px', padding: '20px', borderRadius: '20px',
+          background: 'linear-gradient(135deg, #F5F1FA 0%, #FFF5E6 100%)',
+          border: '1px solid rgba(155,127,174,0.28)',
+          textAlign: 'center',
+        },
+      });
+      done.innerHTML = `
+        <div style="font-size:32px;line-height:1;">🙏</div>
+        <div style="margin-top:8px;font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">설문 답변 고마워요</div>
+        <div class="t-small" style="margin-top:6px;color:var(--ink-soft);font-size:12px;line-height:1.5;">${escapeHtml(existing.at.slice(0, 16).replace('T', ' '))} 에 제출됨. Week 2 가 더 좋아질 거예요.</div>
+      `;
+      page.appendChild(done);
+    } else {
+      // 설문 카드
+      page.appendChild(renderWeekSurveyCard(weekN));
+    }
+  }
   return page;
+}
+
+// 주간 설문 카드 — 8개 항목. 작성 중 답변은 window.__weekSurveyDraft 에 임시 저장
+// (페이지 재렌더 사이에 답변 안 날아가게). 제출 시 state.week_survey[weekN] 으로 commit.
+function renderWeekSurveyCard(weekN) {
+  if (!window.__weekSurveyDraft) window.__weekSurveyDraft = {};
+  if (!window.__weekSurveyDraft[weekN]) {
+    window.__weekSurveyDraft[weekN] = {
+      nps: null, difficulty: null, time: null, ai_help: null,
+      ux: null, stuck: null, want_w2: [], comment: '',
+    };
+  }
+  const draft = window.__weekSurveyDraft[weekN];
+
+  const card = el('div', {
+    style: {
+      marginTop: '4px', padding: '22px 20px',
+      borderRadius: '24px',
+      background: 'linear-gradient(135deg, #FFF5E6 0%, #F5F1FA 100%)',
+      border: '1px solid rgba(155,127,174,0.32)',
+    },
+  });
+
+  // 헬퍼 — 1~5 / 0~10 슬라이더식 척도
+  const renderScale = (key, min, max, leftLabel, rightLabel) => {
+    const value = draft[key];
+    let dotsHtml = '';
+    for (let i = min; i <= max; i += 1) {
+      const active = value === i;
+      dotsHtml += `<button data-survey-set="${key}" data-survey-val="${i}" style="
+        flex:1;min-width:0;padding:10px 0;border-radius:10px;
+        background:${active ? 'var(--ink)' : '#fff'};
+        color:${active ? 'var(--cream)' : 'var(--ink)'};
+        border:1px solid ${active ? 'var(--ink)' : 'var(--line)'};
+        font-size:13px;font-weight:${active ? '800' : '600'};cursor:pointer;
+        transition:all 0.15s ease;
+      ">${i}</button>`;
+    }
+    return `
+      <div style="display:flex;gap:4px;margin-top:8px;">${dotsHtml}</div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10.5px;color:var(--muted);">
+        <span>${leftLabel}</span><span>${rightLabel}</span>
+      </div>
+    `;
+  };
+
+  // 헬퍼 — radio (단일 선택)
+  const renderRadio = (key, options) => {
+    const value = draft[key];
+    return `<div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">${
+      options.map((o) => {
+        const active = value === o.v;
+        return `<button data-survey-set="${key}" data-survey-val="${escapeHtml(o.v)}" style="
+          width:100%;text-align:left;padding:11px 14px;border-radius:12px;
+          background:${active ? 'var(--ink)' : '#fff'};
+          color:${active ? 'var(--cream)' : 'var(--ink)'};
+          border:1px solid ${active ? 'var(--ink)' : 'var(--line)'};
+          font-size:13px;font-weight:${active ? '700' : '500'};cursor:pointer;
+        ">${escapeHtml(o.label)}</button>`;
+      }).join('')
+    }</div>`;
+  };
+
+  // 헬퍼 — multi-select (max 3)
+  const renderMulti = (key, options, maxPick) => {
+    const values = Array.isArray(draft[key]) ? draft[key] : [];
+    return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${
+      options.map((o) => {
+        const active = values.includes(o.v);
+        return `<button data-survey-toggle="${key}" data-survey-val="${escapeHtml(o.v)}" data-survey-max="${maxPick}" style="
+          padding:9px 13px;border-radius:999px;
+          background:${active ? 'var(--ink)' : '#fff'};
+          color:${active ? 'var(--cream)' : 'var(--ink)'};
+          border:1px solid ${active ? 'var(--ink)' : 'var(--line)'};
+          font-size:12px;font-weight:${active ? '700' : '500'};cursor:pointer;
+        ">${escapeHtml(o.label)}</button>`;
+      }).join('')
+    }</div>
+    <div style="margin-top:6px;font-size:10.5px;color:var(--muted);">선택 ${values.length}/${maxPick}</div>`;
+  };
+
+  const sectionH = (n, title, sub) => `
+    <div style="margin-top:${n === 1 ? '4px' : '20px'};padding-top:${n === 1 ? '0' : '16px'};border-top:${n === 1 ? 'none' : '1px dashed rgba(155,127,174,0.2)'};">
+      <div style="display:flex;align-items:baseline;gap:8px;">
+        <span style="font-size:11px;font-weight:800;color:#7B5E8C;font-family:var(--font-mono);">Q${n}</span>
+        <span style="font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${title}</span>
+      </div>
+      ${sub ? `<div style="margin-top:4px;font-size:11.5px;color:var(--ink-soft);line-height:1.5;">${sub}</div>` : ''}
+    </div>
+  `;
+
+  card.innerHTML = `
+    <div style="text-align:center;">
+      <div class="kicker" style="color:#7B5E8C;">📝 1분 설문</div>
+      <div style="margin-top:6px;font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.3;">Week 2 를 더 좋게 만들어주세요</div>
+      <div class="t-small" style="margin-top:6px;color:var(--ink-soft);font-size:12px;line-height:1.55;">8개 · 짧게 답해도 좋아요. 답변은 운영진만 봐요.</div>
+    </div>
+
+    ${sectionH(1, '친구한테 추천할 가능성?', '0 = 절대 추천 안 함 · 10 = 무조건 추천')}
+    ${renderScale('nps', 0, 10, '0', '10')}
+
+    ${sectionH(2, '단어 난이도는 어땠어요?', '5점 만점 · 3 이 딱 좋음')}
+    ${renderScale('difficulty', 1, 5, '1 너무 쉬움', '5 너무 어려움')}
+
+    ${sectionH(3, '하루 평균 학습 시간?', '인증·AI 교정 다 합쳐서')}
+    ${renderRadio('time', WEEK_SURVEY_OPTIONS.time)}
+
+    ${sectionH(4, 'AI 교정이 도움됐어요?', '5점 만점')}
+    ${renderScale('ai_help', 1, 5, '1 별로', '5 진짜 큰 도움')}
+
+    ${sectionH(5, '앱 화면이 직관적이었어요?', '구성·흐름·버튼 위치 등')}
+    ${renderScale('ux', 1, 5, '1 헷갈림', '5 직관적')}
+
+    ${sectionH(6, '가장 막혔던 순간?', '하나만 골라주세요')}
+    ${renderRadio('stuck', WEEK_SURVEY_OPTIONS.stuck)}
+
+    ${sectionH(7, 'Week 2 에서 더 보고 싶은 거?', '최대 3개')}
+    ${renderMulti('want_w2', WEEK_SURVEY_OPTIONS.wantW2, 3)}
+
+    ${sectionH(8, '자유 의견 (선택)', '한 줄이라도 큰 도움돼요')}
+    <textarea id="__weekSurveyComment" maxlength="300" placeholder="예) 단어 외우기 어렵지만 미팅이 진짜 좋았어요 / Daily 분량 살짝 부담 / ..." style="width:100%;margin-top:8px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:13px;font-family:inherit;line-height:1.5;color:var(--ink);resize:vertical;min-height:74px;box-sizing:border-box;">${escapeHtml(draft.comment || '')}</textarea>
+
+    <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px;">
+      <button id="__weekSurveySubmit" data-week="${weekN}" class="btn btn-primary btn-full" style="background:#7B5E8C;border:none;font-size:14px;padding:14px;">📩 답변 제출 (Week 2 더 좋게 만들기)</button>
+      <button id="__weekSurveySkip" data-week="${weekN}" class="btn btn-ghost btn-full" style="background:transparent;border:1px solid var(--line);color:var(--muted);font-size:12px;padding:10px;">나중에 / 이번엔 패스</button>
+    </div>
+  `;
+
+  // Mount handlers after DOM insert.
+  setTimeout(() => {
+    // 1~5 / 0~10 / radio 셋
+    card.querySelectorAll('[data-survey-set]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const k = btn.getAttribute('data-survey-set');
+        let v = btn.getAttribute('data-survey-val');
+        if (!isNaN(Number(v))) v = Number(v);
+        const cur = (window.__weekSurveyDraft[weekN] || {})[k];
+        // 같은 값 재클릭 = 토글 해제 (선택 취소)
+        window.__weekSurveyDraft[weekN][k] = (cur === v) ? null : v;
+        // 부분 재렌더
+        const ta = document.getElementById('__weekSurveyComment');
+        if (ta) window.__weekSurveyDraft[weekN].comment = ta.value;
+        renderRebuild();
+      });
+    });
+    // multi-select toggle
+    card.querySelectorAll('[data-survey-toggle]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const k = btn.getAttribute('data-survey-toggle');
+        const v = btn.getAttribute('data-survey-val');
+        const max = Number(btn.getAttribute('data-survey-max') || 3);
+        const cur = Array.isArray(window.__weekSurveyDraft[weekN][k]) ? window.__weekSurveyDraft[weekN][k] : [];
+        if (cur.includes(v)) {
+          window.__weekSurveyDraft[weekN][k] = cur.filter((x) => x !== v);
+        } else if (cur.length < max) {
+          window.__weekSurveyDraft[weekN][k] = [...cur, v];
+        } else {
+          showToast(`최대 ${max}개까지만 골라주세요`);
+          return;
+        }
+        const ta = document.getElementById('__weekSurveyComment');
+        if (ta) window.__weekSurveyDraft[weekN].comment = ta.value;
+        renderRebuild();
+      });
+    });
+    // textarea — blur 때 draft 반영 (재렌더 시 안 날아가게)
+    const ta = document.getElementById('__weekSurveyComment');
+    if (ta) {
+      ta.addEventListener('input', () => {
+        window.__weekSurveyDraft[weekN].comment = ta.value;
+      });
+    }
+    // 제출
+    const submitBtn = document.getElementById('__weekSurveySubmit');
+    if (submitBtn) submitBtn.onclick = () => {
+      const draft = window.__weekSurveyDraft[weekN] || {};
+      // 최소 가드 — NPS 만 필수, 나머지는 빈 값 허용 (응답률 우선)
+      if (draft.nps == null) {
+        showToast('Q1 (추천 의향) 만 답해주시면 제출 가능해요');
+        return;
+      }
+      const ta = document.getElementById('__weekSurveyComment');
+      if (ta) draft.comment = (ta.value || '').slice(0, 300);
+      state.week_survey = state.week_survey || {};
+      state.week_survey[String(weekN)] = {
+        ...draft,
+        at: new Date().toISOString(),
+      };
+      try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
+      delete window.__weekSurveyDraft[weekN];
+      showToast('🙏 답변 저장됐어요. Week 2 더 좋게 만들게요.');
+      render();
+    };
+    const skipBtn = document.getElementById('__weekSurveySkip');
+    if (skipBtn) skipBtn.onclick = () => {
+      // skip 상태 마커 — 다음 진입에선 안 보임. 답변은 비어있음.
+      state.week_survey = state.week_survey || {};
+      state.week_survey[String(weekN)] = { skipped: true, at: new Date().toISOString() };
+      try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
+      delete window.__weekSurveyDraft[weekN];
+      showToast('패스했어요. 언제든 다시 와도 돼요.');
+      render();
+    };
+  }, 0);
+
+  return card;
+}
+
+// renderBossResult 내부 부분 재렌더 — survey 답변 반영 시 전체 페이지 다시 안 그리고
+// 카드만 새로 그리려고 사용. 단순히 render() 호출 (전체 다시 그려도 충분히 빠름).
+function renderRebuild() {
+  render();
 }
 
 window.__bingoStartBoss = (weekN) => {
@@ -14327,6 +14598,16 @@ function SettingsModal() {
           <button id="__settingsExportCohort" class="btn btn-ghost btn-full" style="margin-top:10px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;">📦 코호트 데이터 다운로드 (JSON)</button>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
+          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📊 주간 설문 결과</div>
+          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">멤버가 Week N 보스 통과 후 답변한 1분 설문 (NPS · 단어 난이도 · 학습 시간 · AI · UX · 막힌 점 · Week+1 바람 · 자유 의견) 모아보기. 통계 + 개별 응답 둘 다 받음.</div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button id="__settingsSurveyW1" data-week="1" class="btn btn-ghost" style="flex:1;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">📊 Week 1 결과</button>
+            <button id="__settingsSurveyW2" data-week="2" class="btn btn-ghost" style="flex:1;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">Week 2</button>
+            <button id="__settingsSurveyW3" data-week="3" class="btn btn-ghost" style="flex:1;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">Week 3</button>
+            <button id="__settingsSurveyW4" data-week="4" class="btn btn-ghost" style="flex:1;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">Week 4</button>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
           <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📸 4/27 공지용 스크린샷 가이드</div>
           <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">베이직/프리미엄 단톡방 공지에 넣을 스크린샷 7장을 한 페이지에서 순서대로 캡처할 수 있어요. 각 섹션마다 [이 화면으로] 버튼 하나만 누르면 됨.</div>
           <button id="__settingsOpenScreenshotGuide" class="btn btn-ghost btn-full" style="margin-top:10px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);">📸 스크린샷 가이드 열기</button>
@@ -14447,6 +14728,33 @@ function SettingsModal() {
         exportCohortBtn.disabled = false;
       }
     };
+
+    // Operator: 📊 주간 설문 결과 — 4주 버튼 한꺼번에 같은 핸들러
+    ['__settingsSurveyW1','__settingsSurveyW2','__settingsSurveyW3','__settingsSurveyW4'].forEach((btnId) => {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      btn.onclick = async () => {
+        if (!hasSupabase()) { showToast('Supabase 연결이 안 돼있어요.'); return; }
+        const weekN = Number(btn.getAttribute('data-week') || '1');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳';
+        btn.disabled = true;
+        try {
+          const data = await supabaseRpc('get_cohort_week_survey', { p_cohort: CHALLENGE.cohort, p_week: weekN });
+          if (!data) throw new Error('빈 응답');
+          // 모달 닫고 결과 화면으로 점프
+          showSettings = false;
+          window.__weekSurveyResult = { weekN, data };
+          go('week-survey-result');
+        } catch (e) {
+          console.error('week survey export failed', e);
+          showToast(`설문 결과 실패: ${String(e?.message || e).slice(0, 80)}`);
+        } finally {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        }
+      };
+    });
 
     // Operator: 👀 일반 회원처럼 보기 토글 (운영자 UI 전체 숨김)
     const toggleViewAsMemberBtn = document.getElementById('__settingsToggleViewAsMember');
@@ -15038,6 +15346,205 @@ async function __exportScriptsAsMarkdown(onlyDay) {
   } else {
     showToast('클립보드 접근이 막혀있어요. 수동 복사해주세요.');
   }
+}
+
+/* ============================================================
+   주간 설문 결과 페이지 — 운영자 전용.
+   설정 → 📊 주간 설문 결과 → 주차 클릭 → 이 페이지로 점프.
+   summary 카드 (NPS·평균·분포) + 개별 응답 리스트 + JSON/CSV 다운로드.
+   ============================================================ */
+function WeekSurveyResultPage() {
+  const page = el('div', { class: 'page' });
+
+  if (!state.isOperator && !state.isStaff) {
+    setTimeout(() => { try { showToast('운영자 전용 페이지예요.'); } catch(e){} go('home'); }, 0);
+    return page;
+  }
+
+  const ctx = window.__weekSurveyResult;
+  if (!ctx || !ctx.data) {
+    page.appendChild(el('div', { style: { padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' } },
+      '데이터가 없어요. 설정 모달에서 다시 호출해주세요.'));
+    return page;
+  }
+  const { weekN, data } = ctx;
+  const summary = data.summary || {};
+  const responses = Array.isArray(data.responses) ? data.responses : [];
+
+  const header = el('div', { style: { padding: '18px 20px 12px', borderBottom: '1px solid var(--line)' } });
+  header.innerHTML = `
+    <button onclick="go('home')" style="background:none;border:none;padding:0;color:var(--muted);font-size:13px;cursor:pointer;">← 홈으로</button>
+    <div class="kicker" style="margin-top:10px;color:#7B5E8C;">📊 주간 설문 결과</div>
+    <h1 style="margin:6px 0 0;font-size:22px;font-weight:800;letter-spacing:-0.02em;">Week ${weekN} · ${data.cohort || '5기'}</h1>
+    <div style="margin-top:6px;font-size:12.5px;color:var(--ink-soft);line-height:1.55;">총 ${summary.total_members || 0}명 중 <b>${summary.submitted || 0}명 응답</b> · 응답률 <b>${summary.response_rate || 0}%</b> · 패스 ${summary.skipped || 0} · 무응답 ${summary.no_response || 0}</div>
+  `;
+  page.appendChild(header);
+
+  const dlRow = el('div', { style: { padding: '12px 20px', display: 'flex', gap: '8px' } });
+  dlRow.innerHTML = `
+    <button id="__surveyDlJson" class="btn btn-ghost" style="flex:1;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">📥 JSON 다운로드</button>
+    <button id="__surveyDlCsv" class="btn btn-ghost" style="flex:1;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">📥 CSV 다운로드</button>
+  `;
+  page.appendChild(dlRow);
+
+  const summaryWrap = el('div', { style: { padding: '4px 20px 12px' } });
+
+  const npsCard = el('div', {
+    style: {
+      padding: '18px 16px', borderRadius: '18px',
+      background: 'linear-gradient(135deg, #F5F1FA 0%, #FFF5E6 100%)',
+      border: '1px solid rgba(155,127,174,0.32)', marginBottom: '10px',
+    },
+  });
+  npsCard.innerHTML = `
+    <div class="kicker" style="color:#7B5E8C;">NPS · 추천 의향</div>
+    <div style="margin-top:6px;display:flex;align-items:baseline;gap:10px;">
+      <span style="font-size:38px;font-weight:800;color:#7B5E8C;letter-spacing:-0.03em;font-family:var(--font-mono);">${summary.nps_avg || 0}</span>
+      <span style="color:var(--muted);font-size:13px;">평균 (0–10)</span>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:6px;font-size:11.5px;">
+      <span style="flex:1;padding:8px;text-align:center;border-radius:8px;background:rgba(34,179,106,0.12);color:#168850;font-weight:700;">Promoter ${summary.nps_promoter || 0}명</span>
+      <span style="flex:1;padding:8px;text-align:center;border-radius:8px;background:rgba(240,172,61,0.16);color:#A87410;font-weight:700;">Passive ${summary.nps_passive || 0}명</span>
+      <span style="flex:1;padding:8px;text-align:center;border-radius:8px;background:rgba(230,69,69,0.12);color:#C53030;font-weight:700;">Detractor ${summary.nps_detractor || 0}명</span>
+    </div>
+  `;
+  summaryWrap.appendChild(npsCard);
+
+  const avgRow = el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '10px' } });
+  const mkAvg = (label, val, color) => `
+    <div style="padding:14px 10px;border-radius:14px;background:#fff;border:1px solid var(--line);text-align:center;">
+      <div style="font-size:10.5px;color:var(--muted);font-weight:700;letter-spacing:0.02em;text-transform:uppercase;">${label}</div>
+      <div style="margin-top:6px;font-size:24px;font-weight:800;color:${color};letter-spacing:-0.02em;font-family:var(--font-mono);">${val || 0}</div>
+      <div style="margin-top:2px;font-size:10px;color:var(--muted);">/ 5</div>
+    </div>
+  `;
+  avgRow.innerHTML = `
+    ${mkAvg('단어 난이도', summary.difficulty_avg, 'var(--orange-dark)')}
+    ${mkAvg('AI 도움', summary.ai_help_avg, '#22B36A')}
+    ${mkAvg('UX 직관도', summary.ux_avg, '#5C53A5')}
+  `;
+  summaryWrap.appendChild(avgRow);
+
+  const mkDistCard = (title, dist, options) => {
+    const total = Object.values(dist || {}).reduce((s, v) => s + Number(v), 0);
+    const items = options.map((o) => {
+      const n = Number((dist || {})[o.v] || 0);
+      const pct = total > 0 ? Math.round((n / total) * 100) : 0;
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;font-size:12.5px;">
+          <span style="flex:1;color:var(--ink);font-weight:600;">${escapeHtml(o.label)}</span>
+          <span style="flex:0 0 130px;height:8px;background:#F0E8D8;border-radius:4px;overflow:hidden;position:relative;">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:#7B5E8C;border-radius:4px;"></span>
+          </span>
+          <span style="flex:0 0 50px;text-align:right;font-family:var(--font-mono);font-size:11.5px;color:var(--muted);">${n}명 · ${pct}%</span>
+        </div>
+      `;
+    }).join('');
+    return `
+      <div style="padding:14px 16px;border-radius:14px;background:#fff;border:1px solid var(--line);margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${escapeHtml(title)}</div>
+        <div style="margin-top:8px;">${items}</div>
+      </div>
+    `;
+  };
+
+  const distHtml = el('div');
+  distHtml.innerHTML = `
+    ${mkDistCard('하루 평균 학습 시간', summary.time_dist || {}, WEEK_SURVEY_OPTIONS.time)}
+    ${mkDistCard('가장 막혔던 순간', summary.stuck_dist || {}, WEEK_SURVEY_OPTIONS.stuck)}
+    ${mkDistCard(`Week ${weekN + 1} 에서 더 보고 싶은 거`, summary.want_w2_dist || {}, WEEK_SURVEY_OPTIONS.wantW2)}
+  `;
+  summaryWrap.appendChild(distHtml);
+  page.appendChild(summaryWrap);
+
+  const listSection = el('div', { style: { padding: '0 20px 24px' } });
+  listSection.appendChild(el('div', { class: 'kicker', style: { color: 'var(--orange-dark)', marginBottom: '10px' } },
+    `💬 개별 응답 (${responses.length}건 · 최신순)`));
+
+  if (!responses.length) {
+    listSection.appendChild(el('div', {
+      style: { padding: '40px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px', background: '#FBF7F0', borderRadius: '14px' },
+    }, '아직 응답한 사람이 없어요.'));
+  } else {
+    responses.forEach((r) => {
+      const card = el('div', {
+        style: {
+          padding: '14px 16px', borderRadius: '14px', background: '#fff',
+          border: '1px solid var(--line)', marginBottom: '10px',
+        },
+      });
+      const tier = r.tier === 'premium' ? '<span style="font-size:10px;font-weight:700;background:rgba(192,132,252,0.18);color:#7B4FB8;padding:2px 7px;border-radius:999px;">PREMIUM</span>' : '<span style="font-size:10px;font-weight:700;background:rgba(240,125,56,0.16);color:var(--orange-dark);padding:2px 7px;border-radius:999px;">BASIC</span>';
+      const name = r.english_name || r.name || '익명';
+      const wantLabels = (r.want_w2 || []).map((v) => {
+        const o = (WEEK_SURVEY_OPTIONS.wantW2 || []).find((x) => x.v === v);
+        return o ? o.label : v;
+      });
+      const stuckLabel = (() => {
+        const o = (WEEK_SURVEY_OPTIONS.stuck || []).find((x) => x.v === r.stuck);
+        return o ? o.label : (r.stuck || '-');
+      })();
+      const timeLabel = (() => {
+        const o = (WEEK_SURVEY_OPTIONS.time || []).find((x) => x.v === r.time);
+        return o ? o.label : (r.time || '-');
+      })();
+      card.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${escapeHtml(name)}</span>
+          ${tier}
+          <span style="margin-left:auto;font-size:10.5px;color:var(--muted);font-family:var(--font-mono);">${escapeHtml((r.at || '').slice(0, 16).replace('T', ' '))}</span>
+        </div>
+        <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;font-size:11px;">
+          <span style="padding:4px 9px;border-radius:8px;background:rgba(155,127,174,0.12);color:#7B5E8C;font-weight:700;">NPS ${r.nps != null ? r.nps : '-'}</span>
+          <span style="padding:4px 9px;border-radius:8px;background:rgba(240,125,56,0.12);color:var(--orange-dark);font-weight:700;">난이도 ${r.difficulty != null ? r.difficulty : '-'}/5</span>
+          <span style="padding:4px 9px;border-radius:8px;background:rgba(34,179,106,0.12);color:#168850;font-weight:700;">AI ${r.ai_help != null ? r.ai_help : '-'}/5</span>
+          <span style="padding:4px 9px;border-radius:8px;background:rgba(92,83,165,0.12);color:#5C53A5;font-weight:700;">UX ${r.ux != null ? r.ux : '-'}/5</span>
+          <span style="padding:4px 9px;border-radius:8px;background:#F5F1FA;color:#6B4F7D;font-weight:700;">⏱ ${escapeHtml(timeLabel)}</span>
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:var(--ink-soft);line-height:1.55;">
+          <b style="color:var(--ink);">막힌 점</b> · ${escapeHtml(stuckLabel)}
+        </div>
+        ${wantLabels.length ? `<div style="margin-top:6px;font-size:12px;color:var(--ink-soft);line-height:1.55;"><b style="color:var(--ink);">Week ${weekN + 1} 바람</b> · ${wantLabels.map(escapeHtml).join(' · ')}</div>` : ''}
+        ${r.comment ? `<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:#FBF7F0;border:1px solid var(--line-soft, #E7DDC8);font-size:12.5px;color:var(--ink);line-height:1.55;">💬 ${escapeHtml(r.comment)}</div>` : ''}
+      `;
+      listSection.appendChild(card);
+    });
+  }
+  page.appendChild(listSection);
+
+  setTimeout(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const jsonBtn = document.getElementById('__surveyDlJson');
+    if (jsonBtn) jsonBtn.onclick = () => {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `youbuddy-${data.cohort || '5기'}-week${weekN}-survey-${today}.json`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('JSON 다운로드 완료');
+    };
+    const csvBtn = document.getElementById('__surveyDlCsv');
+    if (csvBtn) csvBtn.onclick = () => {
+      const headers = ['name','english_name','tier','nps','difficulty','time','ai_help','ux','stuck','want_w2','comment','at'];
+      const rows = (data.responses || []).map((r) => headers.map((h) => {
+        let v = r[h];
+        if (Array.isArray(v)) v = v.join('|');
+        if (v == null) v = '';
+        v = String(v).replace(/"/g, '""').replace(/[\r\n]+/g, ' ');
+        return `"${v}"`;
+      }).join(','));
+      const csv = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `youbuddy-${data.cohort || '5기'}-week${weekN}-survey-${today}.csv`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('CSV 다운로드 완료');
+    };
+  }, 0);
+
+  return page;
 }
 
 /* ============================================================
