@@ -7738,11 +7738,12 @@ function DayPage(dayN) {
           padding: '10px 14px', background: hasCorrection ? 'var(--green-soft)' : 'transparent',
           color: hasCorrection ? 'var(--green)' : 'var(--ink)', borderRadius: '999px',
           fontSize: '13px', fontWeight: '700', whiteSpace: 'nowrap',
+          // basic + 이미 리뷰함 → 시각적으로 비활성처럼 보이지만 클릭은 받음 → toast 노출.
+          opacity: (state.tier === 'basic' && hasCorrection) ? 0.55 : 1,
         },
-        disabled: state.tier === 'basic' && hasCorrection,
         onClick: async () => {
           if (!canUseAiForSentence(dayN, key)) {
-            showToast('베이직은 한 문장당 AI 리뷰를 1번만 사용할 수 있어요.');
+            showToast('베이직에서는 1번만 리뷰받을 수 있어요');
             return;
           }
           aiBtn.disabled = true;
@@ -8048,13 +8049,13 @@ function DayPage(dayN) {
         fontSize: '13px',
         fontWeight: '700',
         whiteSpace: 'nowrap',
+        opacity: (state.tier === 'basic' && !!hookFeedback) ? 0.55 : 1,
       },
-      disabled: state.tier === 'basic' && !!hookFeedback,
       onClick: async () => {
         const currentVal = (hookTa.value || '').trim();
         if (!currentVal) { showToast('먼저 3표현을 엮은 문장을 써주세요.'); return; }
         if (!canUseAiForSentence(dayN, hookKey)) {
-          showToast('베이직은 보너스 문장도 AI 리뷰를 1번만 사용할 수 있어요.');
+          showToast('베이직에서는 1번만 리뷰받을 수 있어요');
           return;
         }
         hookReviewBtn.disabled = true;
