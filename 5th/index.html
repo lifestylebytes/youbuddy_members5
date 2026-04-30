@@ -9710,12 +9710,17 @@ function DayPage(dayN) {
       <button class="icon-btn" style="margin-left:auto;width:36px;height:36px;border-radius:12px;background:var(--orange-ghost);border-color:var(--orange-soft);color:var(--orange-dark);" onclick="window.__speakWord(${dayN}, ${i})" title="발음 듣기">${Icon('volume', 16)}</button>`;
     card.appendChild(defRow);
 
-    // Example
-    const exampleEl = el('div', { class: 'vocab-example', style: { marginTop: '14px', padding: '14px 16px', borderRadius: '18px', fontSize: '14.5px', lineHeight: '1.5' } });
+    // Example — 예문 + 듣기 버튼 (영어 예문 음성 재생)
+    const exampleEl = el('div', { class: 'vocab-example', style: { marginTop: '14px', padding: '14px 16px', borderRadius: '18px', fontSize: '14.5px', lineHeight: '1.5', position: 'relative' } });
     const exEnMarked = w.ex_en.replace(new RegExp('('+w.en.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&')+')', 'i'), '<b>$1</b>');
     exampleEl.innerHTML = `
-      ${exEnMarked}
-      <span class="translate" style="margin-top:6px;font-size:13px;">${escapeHtml(w.ex_kr)}</span>`;
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <div style="flex:1;min-width:0;">
+          <div>${exEnMarked}</div>
+          <span class="translate" style="margin-top:6px;font-size:13px;display:block;">${escapeHtml(w.ex_kr)}</span>
+        </div>
+        <button class="icon-btn" style="flex-shrink:0;width:32px;height:32px;border-radius:10px;background:var(--orange-ghost);border:1px solid var(--orange-soft);color:var(--orange-dark);" onclick="window.__speakExample(${dayN}, ${i})" title="예문 듣기">${Icon('volume', 14)}</button>
+      </div>`;
     card.appendChild(exampleEl);
 
     // 대표 표현 뉘앙스 — 항상 노출 (접근성 개선)
@@ -16997,6 +17002,33 @@ window.__speakSentence = (day, idx) => {
     u.lang = 'en-US';
     u.rate = 0.92;
     u.pitch = 1.1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.resume?.();
+    setTimeout(() => window.speechSynthesis.speak(u), 16);
+  } catch (e) {
+    showToast('듣기를 시작하지 못했어요.');
+  }
+};
+
+// Day 학습 페이지의 "예문 (ex_en)" 을 듣기. __speakSentence 는 사용자가 적은
+// 문장을 읽지만, Day 학습 페이지에선 챌린지 기본 예문을 들을 수 있어야 함.
+window.__speakExample = (day, idx) => {
+  try {
+    const data = getDay(day);
+    const word = data?.words?.[idx];
+    if (!word || !word.ex_en) {
+      showToast('예문이 없어요.');
+      return;
+    }
+    if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+      showToast('이 기기에서는 듣기를 지원하지 않아요.');
+      return;
+    }
+    const u = new SpeechSynthesisUtterance(word.ex_en);
+    u.voice = pickFemaleEnVoice();
+    u.lang = 'en-US';
+    u.rate = 0.9; // 문장이라 단어보다 살짝 더 느리게
+    u.pitch = 1.05;
     window.speechSynthesis.cancel();
     window.speechSynthesis.resume?.();
     setTimeout(() => window.speechSynthesis.speak(u), 16);
