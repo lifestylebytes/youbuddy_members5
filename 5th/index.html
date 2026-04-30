@@ -2234,6 +2234,7 @@ function routeToHash() {
         return window.__currentReviewWeek ? `#review/${window.__currentReviewWeek}` : '#weeks';
       case 'week-survey-result':
         return window.__weekSurveyResult ? `#survey/${window.__weekSurveyResult.weekN}` : '#home';
+      case 'vocab-stats': return '#vocab-stats';
       case 'screenshot-guide': return '#screenshot-guide';
       default: return '';
     }
@@ -2301,6 +2302,9 @@ function applyHashRoute(rawHash) {
       return false;
     case 'screenshot-guide':
       currentPage = 'screenshot-guide';
+      return true;
+    case 'vocab-stats':
+      currentPage = 'vocab-stats';
       return true;
     case 'survey':
       // #survey/{weekN} — 운영자 전용. RPC 다시 호출해서 결과 페이지 마운트.
@@ -4483,6 +4487,7 @@ function render() {
     else if (currentPage === 'export') page = ExportPage();
     else if (currentPage === 'screenshot-guide') page = ScreenshotGuidePage();
     else if (currentPage === 'week-survey-result') page = WeekSurveyResultPage();
+    else if (currentPage === 'vocab-stats') page = VocabStatsPage();
     else page = HomePage();
 
     app.appendChild(page);
@@ -14778,6 +14783,11 @@ function SettingsModal() {
           <button id="__settingsExportCohort" class="btn btn-ghost btn-full" style="margin-top:10px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;">📦 코호트 데이터 다운로드 (JSON)</button>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
+          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📉 약점 어휘 분석</div>
+          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">멤버들이 단어시험 풀 때 어떤 단어를 가장 많이 틀렸는지 / 힌트 봤는지 / 스킵했는지 한 큐에. 약점도 점수로 약한 단어부터 정렬됨. JSON/CSV 다운로드.</div>
+          <button id="__settingsOpenVocabStats" class="btn btn-ghost btn-full" style="margin-top:10px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);">📉 약점 어휘 분석 열기</button>
+        </div>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
           <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📊 주간 설문 결과</div>
           <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">멤버가 Week N 보스 통과 후 답변한 1분 설문 (NPS · 단어 난이도 · 학습 시간 · AI · UX · 막힌 점 · Week+1 바람 · 자유 의견) 모아보기. 통계 + 개별 응답 둘 다 받음.</div>
           <div style="display:flex;gap:8px;margin-top:10px;">
@@ -14907,6 +14917,15 @@ function SettingsModal() {
         exportCohortBtn.innerHTML = originalText;
         exportCohortBtn.disabled = false;
       }
+    };
+
+    // Operator: 📉 약점 어휘 분석 — 별도 페이지
+    const openVocabStatsBtn = document.getElementById('__settingsOpenVocabStats');
+    if (openVocabStatsBtn) openVocabStatsBtn.onclick = () => {
+      // 새로 진입 시 캐시 리셋 — 항상 fresh fetch
+      __vocabStatsCtx = null;
+      showSettings = false;
+      go('vocab-stats');
     };
 
     // Operator: 📊 주간 설문 결과 — 4주 버튼 한꺼번에 같은 핸들러
@@ -15533,6 +15552,280 @@ async function __exportScriptsAsMarkdown(onlyDay) {
    설정 → 📊 주간 설문 결과 → 주차 클릭 → 이 페이지로 점프.
    summary 카드 (NPS·평균·분포) + 개별 응답 리스트 + JSON/CSV 다운로드.
    ============================================================ */
+/* ============================================================
+   약점 어휘 분석 페이지 (운영자 전용).
+   설정 → 📉 약점 어휘 분석 → 이 페이지로 점프.
+   RPC get_cohort_vocab_stats 결과를 단어 카드 리스트로 노출.
+   정렬 기준 토글 (약점도 / 첫시도 오답률 / 총 오답수 / 힌트 의존도 / 스킵율).
+   ============================================================ */
+let __vocabStatsCtx = null; // { data, fetching, sort, expanded:Set }
+
+function VocabStatsPage() {
+  const page = el('div', { class: 'page' });
+
+  if (!state.isOperator && !state.isStaff) {
+    setTimeout(() => { try { showToast('운영자 전용 페이지예요.'); } catch(e){} go('home'); }, 0);
+    return page;
+  }
+
+  if (!__vocabStatsCtx) {
+    __vocabStatsCtx = { data: null, fetching: false, sort: 'weakness', expanded: {} };
+  }
+  const ctx = __vocabStatsCtx;
+
+  // 자동 fetch — 데이터 없으면 한 번만
+  if (!ctx.data && !ctx.fetching) {
+    ctx.fetching = true;
+    page.appendChild(el('div', {
+      style: { padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' }
+    }, '⏳ 약점 어휘 분석 가져오는 중...'));
+    (async () => {
+      try {
+        if (!hasSupabase()) throw new Error('Supabase 연결 안 됨');
+        const data = await supabaseRpc('get_cohort_vocab_stats', { p_cohort: CHALLENGE.cohort });
+        ctx.data = data;
+        ctx.fetching = false;
+        render();
+      } catch (e) {
+        showToast(`약점 어휘 분석 실패: ${String(e?.message || e).slice(0, 80)}`);
+        ctx.fetching = false;
+      }
+    })();
+    return page;
+  }
+
+  if (!ctx.data) {
+    page.appendChild(el('div', { style: { padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' } },
+      '데이터가 없어요. 새로고침해보세요.'));
+    return page;
+  }
+
+  const { totals = {}, words = [] } = ctx.data;
+
+  // ── 헤더
+  const header = el('div', { style: { padding: '18px 20px 12px', borderBottom: '1px solid var(--line)' } });
+  header.innerHTML = `
+    <button onclick="go('home')" style="background:none;border:none;padding:0;color:var(--muted);font-size:13px;cursor:pointer;">← 홈으로</button>
+    <div class="kicker" style="margin-top:10px;color:var(--orange-dark);">📉 약점 어휘 분석</div>
+    <h1 style="margin:6px 0 0;font-size:22px;font-weight:800;letter-spacing:-0.02em;">${escapeHtml(ctx.data.cohort || '5기')} · 단어시험 통계</h1>
+    <div style="margin-top:8px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-soft);">
+      <span>📊 총 <b>${totals.total_words || 0}개</b> 단어</span>
+      <span>·</span>
+      <span>👥 ${totals.members_with_stats || 0}명 응답</span>
+      <span>·</span>
+      <span>🎯 총 ${totals.total_attempts || 0}회 시도</span>
+      <span>·</span>
+      <span>✅ 평균 정답률 <b>${totals.avg_correct_rate || 0}%</b></span>
+    </div>
+  `;
+  page.appendChild(header);
+
+  // ── 다운로드 + 정렬
+  const ctrlRow = el('div', { style: { padding: '12px 20px', display: 'flex', gap: '8px', flexWrap: 'wrap' } });
+  ctrlRow.innerHTML = `
+    <button id="__vsDlJson" class="btn btn-ghost" style="border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:11.5px;padding:8px 12px;">📥 JSON</button>
+    <button id="__vsDlCsv" class="btn btn-ghost" style="border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:11.5px;padding:8px 12px;">📥 CSV</button>
+    <button id="__vsRefresh" class="btn btn-ghost" style="border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:11.5px;padding:8px 12px;">🔄 새로고침</button>
+  `;
+  page.appendChild(ctrlRow);
+
+  // 정렬 토글
+  const SORT_OPTS = [
+    { v: 'weakness',     label: '🔥 약점도 ↓' },
+    { v: 'first_wrong_rate', label: '❌ 첫시도 오답률 ↓' },
+    { v: 'total_wrong',  label: '✗ 총 오답수 ↓' },
+    { v: 'hint_rate',    label: '💡 힌트 의존도 ↓' },
+    { v: 'skip_rate',    label: '⏭ 스킵 비율 ↓' },
+  ];
+  const sortRow = el('div', { style: { padding: '0 20px 12px', display: 'flex', gap: '6px', flexWrap: 'wrap' } });
+  SORT_OPTS.forEach((o) => {
+    const active = ctx.sort === o.v;
+    const btn = el('button', {
+      style: {
+        padding: '7px 12px', borderRadius: '999px',
+        background: active ? 'var(--ink)' : '#fff',
+        color: active ? 'var(--cream)' : 'var(--ink-soft)',
+        border: '1px solid ' + (active ? 'var(--ink)' : 'var(--line)'),
+        fontSize: '11.5px', fontWeight: active ? '800' : '600', cursor: 'pointer',
+      },
+      onClick: () => { ctx.sort = o.v; render(); },
+    }, o.label);
+    sortRow.appendChild(btn);
+  });
+  page.appendChild(sortRow);
+
+  // ── 정렬된 단어 리스트
+  const sorted = [...words].sort((a, b) => {
+    const get = (w) => {
+      if (ctx.sort === 'weakness') return -w.weakness_score;
+      if (ctx.sort === 'first_wrong_rate') {
+        const total = (w.first_correct || 0) + (w.first_wrong || 0);
+        return total > 0 ? -((w.first_wrong / total) * 100) : 0;
+      }
+      if (ctx.sort === 'total_wrong') return -(w.total_wrong || 0);
+      if (ctx.sort === 'hint_rate') {
+        const m = w.members_attempted || 1;
+        return -(((w.first_hinted || 0) / m) * 100);
+      }
+      if (ctx.sort === 'skip_rate') {
+        const total = (w.total_correct || 0) + (w.total_wrong || 0) + (w.total_skip || 0);
+        return total > 0 ? -((w.total_skip / total) * 100) : 0;
+      }
+      return 0;
+    };
+    return get(a) - get(b);
+  });
+
+  const listSection = el('div', { style: { padding: '0 20px 24px' } });
+
+  if (!sorted.length) {
+    listSection.appendChild(el('div', {
+      style: { padding: '40px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px', background: '#FBF7F0', borderRadius: '14px' },
+    }, '아직 단어시험 데이터가 없어요. 멤버들이 시험을 풀어야 채워져요.'));
+  } else {
+    sorted.forEach((w, idx) => {
+      const fwTotal = (w.first_correct || 0) + (w.first_wrong || 0);
+      const fwRate = fwTotal > 0 ? Math.round((w.first_wrong / fwTotal) * 100) : 0;
+      const skipRate = (() => {
+        const t = (w.total_correct || 0) + (w.total_wrong || 0) + (w.total_skip || 0);
+        return t > 0 ? Math.round((w.total_skip / t) * 100) : 0;
+      })();
+      const hintRate = (() => {
+        const m = w.members_attempted || 0;
+        return m > 0 ? Math.round((w.first_hinted / m) * 100) : 0;
+      })();
+
+      // 약점도 색상 — 빨강 → 주황 → 노랑 → 초록
+      const ws = w.weakness_score || 0;
+      const wsColor = ws >= 70 ? '#E64545'
+                    : ws >= 50 ? '#E07020'
+                    : ws >= 30 ? '#F0AC3D'
+                    : '#22B36A';
+
+      const isExpanded = !!ctx.expanded[w.word];
+      const card = el('div', {
+        style: {
+          padding: '14px 16px', borderRadius: '14px', background: '#fff',
+          border: '1px solid ' + (idx < 3 ? 'rgba(230,69,69,0.32)' : 'var(--line)'),
+          marginBottom: '10px',
+        },
+      });
+
+      // header — rank + 단어 + 약점도
+      const headerHtml = `
+        <div style="display:flex;align-items:center;gap:10px;cursor:pointer;" data-toggle-word="${escapeHtml(w.word)}">
+          <span style="flex-shrink:0;width:26px;height:26px;border-radius:8px;background:${idx < 3 ? 'rgba(230,69,69,0.12)' : 'var(--paper)'};color:${idx < 3 ? '#E64545' : 'var(--ink-soft)'};font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);">${idx + 1}</span>
+          <span style="flex:1;font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${escapeHtml(w.word)}</span>
+          <span style="flex-shrink:0;padding:5px 10px;border-radius:8px;background:${wsColor}22;color:${wsColor};font-size:11px;font-weight:800;font-family:var(--font-mono);">${ws.toFixed(1)}</span>
+          <span style="flex-shrink:0;color:var(--muted);font-size:13px;">${isExpanded ? '▾' : '▸'}</span>
+        </div>
+        <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;font-size:11px;">
+          <span style="padding:4px 9px;border-radius:8px;background:rgba(34,179,106,0.12);color:#168850;font-weight:700;">✅ ${w.total_correct || 0}</span>
+          <span style="padding:4px 9px;border-radius:8px;background:rgba(230,69,69,0.12);color:#C53030;font-weight:700;">❌ ${w.total_wrong || 0}</span>
+          <span style="padding:4px 9px;border-radius:8px;background:rgba(240,172,61,0.16);color:#A87410;font-weight:700;">💡 힌트 ${w.total_hint || 0}</span>
+          <span style="padding:4px 9px;border-radius:8px;background:rgba(155,127,174,0.12);color:#6B4F7D;font-weight:700;">⏭ 스킵 ${w.total_skip || 0}</span>
+          <span style="margin-left:auto;color:var(--muted);font-size:11px;">${w.members_attempted || 0}명 시도</span>
+        </div>
+        <div style="margin-top:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:10.5px;">
+          <div style="padding:6px 8px;border-radius:8px;background:#FBF7F0;text-align:center;">
+            <div style="color:var(--muted);">첫시도 오답률</div>
+            <div style="margin-top:2px;font-weight:800;color:${fwRate >= 50 ? '#E64545' : 'var(--ink)'};font-family:var(--font-mono);">${fwRate}%</div>
+          </div>
+          <div style="padding:6px 8px;border-radius:8px;background:#FBF7F0;text-align:center;">
+            <div style="color:var(--muted);">힌트 의존도</div>
+            <div style="margin-top:2px;font-weight:800;color:${hintRate >= 30 ? '#A87410' : 'var(--ink)'};font-family:var(--font-mono);">${hintRate}%</div>
+          </div>
+          <div style="padding:6px 8px;border-radius:8px;background:#FBF7F0;text-align:center;">
+            <div style="color:var(--muted);">스킵율</div>
+            <div style="margin-top:2px;font-weight:800;color:${skipRate >= 20 ? '#C53030' : 'var(--ink)'};font-family:var(--font-mono);">${skipRate}%</div>
+          </div>
+        </div>
+      `;
+      card.innerHTML = headerHtml;
+
+      // expanded — 멤버별 시도
+      if (isExpanded && Array.isArray(w.member_attempts) && w.member_attempts.length) {
+        const exp = el('div', {
+          style: {
+            marginTop: '12px', paddingTop: '10px',
+            borderTop: '1px dashed var(--line-soft, #E7DDC8)',
+          },
+        });
+        exp.appendChild(el('div', {
+          style: { fontSize: '11px', color: 'var(--muted)', fontWeight: '700', marginBottom: '8px', letterSpacing: '0.04em' },
+        }, `멤버별 첫시도 결과 (${w.member_attempts.length}명)`));
+        const grid = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px' } });
+        w.member_attempts.forEach((ma) => {
+          const isWrong = ma.first_result === 'wrong';
+          const isCorrect = ma.first_result === 'correct';
+          const tag = ma.first_hinted ? '💡' : (isWrong ? '❌' : (isCorrect ? '✅' : '·'));
+          const cell = el('div', {
+            style: {
+              padding: '6px 9px', borderRadius: '8px',
+              background: isWrong ? 'rgba(230,69,69,0.06)' : (isCorrect ? 'rgba(34,179,106,0.06)' : '#FBF7F0'),
+              fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: '6px',
+            },
+          });
+          cell.innerHTML = `
+            <span style="flex-shrink:0;">${tag}</span>
+            <span style="flex:1;color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(ma.member_name || '')}</span>
+            <span style="flex-shrink:0;color:var(--muted);font-family:var(--font-mono);font-size:10.5px;">${ma.c || 0}/${(ma.c || 0) + (ma.w || 0)}</span>
+          `;
+          grid.appendChild(cell);
+        });
+        exp.appendChild(grid);
+        card.appendChild(exp);
+      }
+
+      // toggle expand on header click
+      const toggle = card.querySelector('[data-toggle-word]');
+      if (toggle) toggle.onclick = () => {
+        ctx.expanded[w.word] = !ctx.expanded[w.word];
+        render();
+      };
+
+      listSection.appendChild(card);
+    });
+  }
+  page.appendChild(listSection);
+
+  // wire downloads + refresh
+  setTimeout(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const jsonBtn = document.getElementById('__vsDlJson');
+    if (jsonBtn) jsonBtn.onclick = () => {
+      const blob = new Blob([JSON.stringify(ctx.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `youbuddy-${ctx.data.cohort || '5기'}-vocab-stats-${today}.json`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('JSON 다운로드 완료');
+    };
+    const csvBtn = document.getElementById('__vsDlCsv');
+    if (csvBtn) csvBtn.onclick = () => {
+      const headers = ['word','members_attempted','first_correct','first_wrong','first_correct_rate','first_hinted','total_correct','total_wrong','total_hint','total_skip','correct_rate','weakness_score'];
+      const rows = (ctx.data.words || []).map((w) => headers.map((h) => {
+        let v = w[h]; if (v == null) v = '';
+        v = String(v).replace(/"/g, '""').replace(/[\r\n]+/g, ' ');
+        return `"${v}"`;
+      }).join(','));
+      const csv = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `youbuddy-${ctx.data.cohort || '5기'}-vocab-stats-${today}.csv`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('CSV 다운로드 완료');
+    };
+    const refBtn = document.getElementById('__vsRefresh');
+    if (refBtn) refBtn.onclick = () => { ctx.data = null; ctx.fetching = false; render(); };
+  }, 0);
+
+  return page;
+}
+
 function WeekSurveyResultPage() {
   const page = el('div', { class: 'page' });
 
