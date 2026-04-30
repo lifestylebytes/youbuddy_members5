@@ -2075,30 +2075,35 @@ async function requestStoryCorrection(words, text, koreanContext) {
       text,
       korean: (koreanContext || '').trim() || undefined,
     });
-    // 클라이언트 사이드 방어 — 슬롯당 최소 1개 변형(메인 OR 유의어)이 살아있어야 함.
-    // 너무 빡빡하면 AI 가 문법 교정하면서 변형 1개만 살리고 다른 거 다듬어내는 정상 동작도 차단됨.
-    // 사용자가 한 슬롯에 메인+유의어 둘 다 썼고 둘 다 사라진 경우만 fallback.
+    // 클라이언트 사이드 방어 — 메인 어휘만 보존 강제 (유의어는 syn_examples 로 따로 노출).
+    // 메인 어휘 자체가 통째로 사라진 슬롯이 있으면 fallback.
     const corrected = String(result.corrected || text);
-    const droppedSlots = [];
+    const droppedMains = [];
     (words || []).forEach((w) => {
+      if (!w.en) return;
+      // 사용자가 메인 또는 유의어 어떤 형태로든 이 슬롯을 썼는지
       const candidates = [w.en, ...(Array.isArray(w.syn) ? w.syn : [])].filter(Boolean);
-      // 사용자가 이 슬롯에서 쓴 변형이 하나라도 있으면 → 그 중 하나라도 corrected 에 살아있어야 함.
       const userUsedAny = candidates.some((phrase) => targetIsInText(phrase, text));
-      if (!userUsedAny) return; // 사용자가 안 썼던 슬롯은 검증 패스
+      if (!userUsedAny) return;
+      // corrected 에 이 슬롯의 메인 또는 유의어 중 하나라도 있으면 OK
       const stillAny = candidates.some((phrase) => targetIsInText(phrase, corrected));
-      if (!stillAny) droppedSlots.push(w.en);
+      if (!stillAny) droppedMains.push(w.en);
     });
-    if (droppedSlots.length > 0) {
-      console.warn('[ai-review] client-side dropped entire slot(s) — falling back to original:', droppedSlots);
+    if (droppedMains.length > 0) {
+      console.warn('[ai-review] entire slot dropped — falling back:', droppedMains);
       return {
         corrected: text,
         diff_html: buildWordDiffHtml(text, text),
-        why: `이미 잘 쓰셨어요! AI 가 ${droppedSlots.slice(0, 3).map((p) => `"${p}"`).join(', ')} 어휘를 빼려고 해서 원문 그대로 둘게요.`,
+        why: `이미 잘 쓰셨어요! AI 가 ${droppedMains.slice(0, 3).map((p) => `"${p}"`).join(', ')} 어휘를 빼려고 해서 원문 그대로 둘게요.`,
+        syn_examples: [],
       };
     }
+    // syn_examples 가 응답에 있으면 그대로 패스 — 클라이언트에서 별도 섹션 렌더.
+    const synExamples = Array.isArray(result.syn_examples) ? result.syn_examples : [];
     return {
       ...result,
       diff_html: buildWordDiffHtml(text, result.corrected),
+      syn_examples: synExamples,
     };
   } catch (e) {
     console.warn('[ai-review] story fallback:', e);
@@ -6451,6 +6456,16 @@ function buildVerifyQuestions(dayN) {
 function normalizeQuizAnswer(value='') {
   return String(value).trim().toLowerCase().replace(/\s+/g, ' ');
 }
+// 퀴즈 정답 비교 — 하이픈·스페이스 변형 다 인정.
+// "front-load" / "front load" / "frontload" 다 같은 답으로 처리.
+function quizAnswerMatches(input, target) {
+  const a = normalizeQuizAnswer(input);
+  const b = normalizeQuizAnswer(target);
+  if (a === b) return true;
+  // 하이픈·스페이스 다 제거한 형태로 한 번 더 비교
+  const stripSep = (s) => s.replace(/[-\s]+/g, '');
+  return stripSep(a) === stripSep(b);
+}
 
 function blankPatternFor(answer='') {
   return String(answer)
@@ -6798,14 +6813,15 @@ function computeQuizSplit(question) {
 }
 
 // 2-blank 정답 체크 — 두 빈칸 모두 정답이어야 정답 처리.
+// 하이픈·스페이스 변형 다 인정 (quizAnswerMatches).
 function isQuizAnswerCorrect(question, ui) {
   const split = computeQuizSplit(question);
   if (split.mode === '2blank') {
-    const v0 = normalizeQuizAnswer((ui.values || ['', ''])[0] || '');
-    const v1 = normalizeQuizAnswer((ui.values || ['', ''])[1] || '');
-    return v0 === normalizeQuizAnswer(split.prefixAnswer) && v1 === normalizeQuizAnswer(split.suffixAnswer);
+    const v0 = (ui.values || ['', ''])[0] || '';
+    const v1 = (ui.values || ['', ''])[1] || '';
+    return quizAnswerMatches(v0, split.prefixAnswer) && quizAnswerMatches(v1, split.suffixAnswer);
   }
-  return normalizeQuizAnswer(ui.value || '') === normalizeQuizAnswer(question.en);
+  return quizAnswerMatches(ui.value || '', question.en);
 }
 
 function VerifyPage(dayN) {
@@ -8105,7 +8121,23 @@ function DayPage(dayN) {
         ${hasHookDiff
           ? `<div style="font-size:13px;margin:8px 0;line-height:1.55;">${hookFeedback.diff_html}</div>`
           : `<div class="t-small" style="margin:8px 0;color:var(--green);">흐름이 자연스러워요 — 그대로 써도 좋아요!</div>`}
-        <div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(reconciledHookWhy)}</div>`;
+        <div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(reconciledHookWhy)}</div>
+        ${(Array.isArray(hookFeedback.syn_examples) && hookFeedback.syn_examples.length) ? `
+          <div style="margin-top:14px;padding-top:14px;border-top:1px dashed rgba(169,139,184,0.4);">
+            <div class="kicker" style="color:var(--lilac);margin-bottom:8px;">💎 유의어 — 어디서 어떻게 써요?</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              ${hookFeedback.syn_examples.map((s) => `
+                <div style="padding:10px 12px;border-radius:12px;background:rgba(125,92,255,0.06);border:1px solid rgba(125,92,255,0.18);">
+                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                    <span style="font-family:var(--font-mono);font-size:11.5px;font-weight:800;color:#5C53A5;background:rgba(125,92,255,0.14);padding:2px 8px;border-radius:999px;">${escapeHtml(s.syn || '')}</span>
+                    <span style="font-size:11px;color:var(--ink-soft);">${escapeHtml(s.context || '')}</span>
+                  </div>
+                  ${s.example ? `<div style="margin-top:6px;font-size:13px;color:var(--ink);line-height:1.5;font-style:italic;">"${escapeHtml(s.example)}"</div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}`;
       const copyBtn = result.querySelector('.btn-copy-ai');
       if (copyBtn) {
         copyBtn.addEventListener('click', (ev) => {
