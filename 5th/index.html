@@ -7065,7 +7065,28 @@ function computeQuizSplit(question) {
       answer,
     };
   }
-  // 2) Pronoun substitution split
+  // 2) Inflection-aware match — answer="Call the shots" 인데 prompt 에 "calling the shots"
+  //    같이 시제 변형된 형태로 들어있을 때 그 위치에 빈칸 박기.
+  //    _buildPhraseAlternatives 가 verb 시제 + 하이픈 + phrasal verb 분리 패턴까지
+  //    다 만들어주니까 그대로 활용. 가장 첫 매칭 위치 + 매칭된 문자열로 split.
+  try {
+    if (typeof _buildPhraseAlternatives === 'function') {
+      const alts = _buildPhraseAlternatives(answer);
+      if (alts && alts.length) {
+        const inflectRe = new RegExp(alts.join('|'), 'i');
+        const m = promptText.match(inflectRe);
+        if (m) {
+          const idx = m.index;
+          return {
+            mode: '1blank',
+            parts: [promptText.slice(0, idx), promptText.slice(idx + m[0].length)],
+            answer,
+          };
+        }
+      }
+    }
+  } catch (_) {}
+  // 3) Pronoun substitution split (answer 자체가 "get it over the line" 처럼 가운데 대명사 포함)
   const PRONOUNS = new Set(['it', 'them', 'this', 'that', 'these', 'those', 'something', 'someone', 'sb', 'sth', 'sb.', 'sth.', 'one']);
   const tokens = answer.split(/\s+/);
   for (let i = 1; i < tokens.length - 1; i += 1) {
@@ -7096,7 +7117,7 @@ function computeQuizSplit(question) {
       };
     }
   }
-  // 3) Fallback — append blank
+  // 4) Fallback — append blank
   return { mode: '1blank', parts: [promptText + ' → ', ''], answer };
 }
 
