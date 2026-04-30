@@ -4608,8 +4608,24 @@ function render() {
       if (stale) stale.remove();
     }
     if (showConsentAudit) root.appendChild(ConsentAuditModal());
-    if (showRecordingPopup) root.appendChild(RecordingPopupModal());
-    if (showWeeklyQuizPopup) root.appendChild(WeeklyQuizPopupModal());
+    // RecordingPopup / WeeklyQuizPopup 은 body 싱글턴 패턴 — render() 마다 root.innerHTML='' 로
+    // 재생성되면 dashboard 15초 sync 에 깜빡임 발생. 이미 있으면 스킵, 없을 때만 생성.
+    if (showRecordingPopup) {
+      if (!document.querySelector('[data-recording-popup]')) {
+        document.body.appendChild(RecordingPopupModal());
+      }
+    } else {
+      const stale = document.querySelector('[data-recording-popup]');
+      if (stale) stale.remove();
+    }
+    if (showWeeklyQuizPopup) {
+      if (!document.querySelector('[data-weekly-quiz-popup]')) {
+        document.body.appendChild(WeeklyQuizPopupModal());
+      }
+    } else {
+      const stale = document.querySelector('[data-weekly-quiz-popup]');
+      if (stale) stale.remove();
+    }
 
     // Mobile modal scroll fix: lock body scroll while any modal is open so the
     // modal's own overflow-y:auto picks up touch scrolling instead of the page
@@ -16522,6 +16538,7 @@ function RecordingPopupModal() {
   };
   const backdrop = el('div', {
     class: 'modal-backdrop',
+    'data-recording-popup': '1',
     onClick: (e) => { if (e.target === backdrop) close(); },
   });
   const modal = el('div', {
@@ -16586,6 +16603,7 @@ function WeeklyQuizPopupModal() {
   };
   const backdrop = el('div', {
     class: 'modal-backdrop',
+    'data-weekly-quiz-popup': '1',
     onClick: (e) => { if (e.target === backdrop) close(true); },
   });
   const modal = el('div', {
