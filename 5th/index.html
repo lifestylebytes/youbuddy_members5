@@ -8621,8 +8621,8 @@ function renderWeekSurveyCard(weekN) {
     ${sectionH(7, 'Week 2 에서 더 보고 싶은 거?', '최대 3개')}
     ${renderMulti('want_w2', WEEK_SURVEY_OPTIONS.wantW2, 3)}
 
-    ${sectionH(8, '자유 의견 (선택)', '한 줄이라도 큰 도움돼요')}
-    <textarea id="__weekSurveyComment" maxlength="300" placeholder="예) 단어 외우기 어렵지만 미팅이 진짜 좋았어요 / Daily 분량 살짝 부담 / ..." style="width:100%;margin-top:8px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:13px;font-family:inherit;line-height:1.5;color:var(--ink);resize:vertical;min-height:74px;box-sizing:border-box;">${escapeHtml(draft.comment || '')}</textarea>
+    ${sectionH(8, '유버디에게 건의할 말!', '아무거나 다 돼요 — 칭찬도 불만도 아이디어도 환영 🧡')}
+    <textarea id="__weekSurveyComment" maxlength="300" placeholder="예) 단어 외우기 어려웠는데 미팅이 진짜 좋았어요 / Daily 분량 살짝 부담 / 음성 입력 있으면 좋겠어요 / 모모님 더 자주 보고 싶어요 ..." style="width:100%;margin-top:8px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:13px;font-family:inherit;line-height:1.5;color:var(--ink);resize:vertical;min-height:84px;box-sizing:border-box;">${escapeHtml(draft.comment || '')}</textarea>
 
     <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px;">
       <button id="__weekSurveySubmit" data-week="${weekN}" class="btn btn-primary btn-full" style="background:#7B5E8C;border:none;font-size:14px;padding:14px;">📩 답변 제출 (Week 2 더 좋게 만들기)</button>
