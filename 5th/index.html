@@ -1571,6 +1571,7 @@ const defaultState = () => ({
   meeting_briefing_open: {},        // { "m1-intro": true } 미팅 노트 페이지의 "브리핑" 펼침 상태 — 새로고침/15초 sync 에도 유지.
   recording_popup_seen: {},         // { "m1": true } 미팅 다시보기 팝업을 본 상태. 한 번 X 누르면 다시 안 뜸.
   weekly_quiz_popup_seen: {},       // { "v1": true } 주간 퀴즈/보상 안내 팝업 본 상태. 버전별 키로 다음 주차 새 팝업 재발행 가능.
+  notifications_read: {},           // { "recording-m1": true, "weekly-quiz-v1": true } 종 인박스에서 읽음 처리한 알림.
   operatorViewAsMember: false,      // 운영자/스태프가 "일반 회원처럼 보기" 켜둘 때 true. 운영자 UI 다 숨김.
   tierOverride: null,             // 'basic' 으로 설정하면 MEMBER_DIRECTORY 가 premium 이어도 basic 으로 강제 (베이직 프리뷰). null = 비활성.
   __vocabMigrated: false,          // 기존 bookmarks/saved_syns → pitch_vocab 일회성 이관 플래그.
@@ -1635,6 +1636,7 @@ const PERSISTED_STATE_KEYS = [
   'meeting_briefing_open',
   'recording_popup_seen',
   'weekly_quiz_popup_seen',
+  'notifications_read',
   'savedTab',
   'communityFilter',
   'communitySort',
@@ -2387,6 +2389,8 @@ let showRateHistory = null;
 let showRecordingPopup = null;
 // 주간 퀴즈/보상 안내 팝업 — 학습 탭 첫 진입 시 1회. true 면 표시.
 let showWeeklyQuizPopup = false;
+// 알림 인박스 패널 — TopBar 종 누르면 열림.
+let showNotifications = false;
 let toast = null;
 let confettiTimer = null;
 let dashboardStats = {
@@ -4626,12 +4630,20 @@ function render() {
       const stale = document.querySelector('[data-weekly-quiz-popup]');
       if (stale) stale.remove();
     }
+    if (showNotifications) {
+      if (!document.querySelector('[data-notifications-panel]')) {
+        document.body.appendChild(NotificationsPanel());
+      }
+    } else {
+      const stale = document.querySelector('[data-notifications-panel]');
+      if (stale) stale.remove();
+    }
 
     // Mobile modal scroll fix: lock body scroll while any modal is open so the
     // modal's own overflow-y:auto picks up touch scrolling instead of the page
     // behind it bubbling. 취소/저장 버튼이 모바일에서 안 닿던 문제.
     try {
-      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup);
+      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications);
       if (anyModalOpen) document.body.classList.add('modal-open');
       else document.body.classList.remove('modal-open');
     } catch (_lockErr) {}
@@ -5189,6 +5201,215 @@ document.addEventListener('visibilitychange', () => {
 /* ============================================================
    TOP BAR
    ============================================================ */
+/* ============================================================
+   알림 시스템 — 종(🔔) 인박스
+   ------------------------------------------------------------
+   getNotifications() 가 현재 사용자(tier/role/state)에 맞는 알림 목록 동적 생성.
+   각 알림은 { id, icon, color, title, body, createdAt, cta } 형태.
+   읽음 상태는 state.notifications_read[id] = true 로 영구 저장.
+   ============================================================ */
+function getNotifications() {
+  const list = [];
+
+  // 1. 미팅 다시보기 — 프리미엄 + recordingUrl 있는 미팅마다
+  if (state.tier === 'premium') {
+    (CHALLENGE.premium && CHALLENGE.premium.weekly_meetings || []).forEach((m) => {
+      if (!m || !m.recordingUrl) return;
+      list.push({
+        id: `recording-m${m.n}`,
+        icon: '🎬',
+        color: '#E8743C',
+        title: `Week ${m.n} 미팅 다시보기 올라왔어요`,
+        body: (m.title || '').replace(/^Week\s*\d+\s*[—\-·]?\s*/i, '') || '미팅 녹화본을 다시 보실 수 있어요',
+        createdAt: (m.date || '2026-04-30') + 'T22:00:00',
+        cta: { label: '다시보기 →', kind: 'meeting', meetingId: `m${m.n}` },
+      });
+    });
+  }
+
+  // 2. Week 1 보상 / 주간 퀴즈 안내
+  list.push({
+    id: 'weekly-quiz-v1',
+    icon: '🎁',
+    color: '#22B36A',
+    title: 'Week 1 보상 오픈',
+    body: '5일 다 채우면 잠금화면 단어장 받을 수 있어요. 통과하면 보상 🎁',
+    createdAt: '2026-04-30T09:00:00',
+    cta: { label: '학습 탭으로 →', kind: 'go', target: 'weeks' },
+  });
+
+  // 3. (확장 포인트) 향후 공지·이벤트 추가 — 코드에서 list.push 만 하면 자동 노출.
+
+  // 최신순 정렬
+  return list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+}
+
+function isNotificationRead(id) {
+  return !!(state.notifications_read && state.notifications_read[id]);
+}
+
+function markNotificationRead(id) {
+  state.notifications_read = state.notifications_read || {};
+  state.notifications_read[id] = true;
+  try { saveState(); } catch (_) {}
+}
+
+function unreadNotificationCount() {
+  try {
+    return getNotifications().filter((n) => !isNotificationRead(n.id)).length;
+  } catch (_) { return 0; }
+}
+
+// 알림 클릭 → CTA 실행 + 읽음 처리.
+function handleNotificationCta(n) {
+  if (!n || !n.cta) return;
+  markNotificationRead(n.id);
+  showNotifications = false;
+  const { kind } = n.cta;
+  if (kind === 'meeting') {
+    window.__currentMeetingId = n.cta.meetingId;
+    setTimeout(() => go('meeting-notes'), 30);
+  } else if (kind === 'go') {
+    setTimeout(() => go(n.cta.target), 30);
+  } else if (kind === 'review') {
+    window.__currentReviewWeek = n.cta.weekN || 1;
+    setTimeout(() => go('week-review'), 30);
+  } else if (kind === 'url') {
+    try { window.open(n.cta.url, '_blank', 'noopener,noreferrer'); } catch (_) {}
+  }
+  render();
+}
+
+// 모두 읽음 처리
+function markAllNotificationsRead() {
+  const all = getNotifications();
+  if (!all.length) return;
+  state.notifications_read = state.notifications_read || {};
+  all.forEach((n) => { state.notifications_read[n.id] = true; });
+  try { saveState(); } catch (_) {}
+  render();
+}
+
+function NotificationsPanel() {
+  const items = getNotifications();
+  const unread = items.filter((n) => !isNotificationRead(n.id)).length;
+  const close = () => { showNotifications = false; render(); };
+
+  const backdrop = el('div', {
+    class: 'modal-backdrop',
+    'data-notifications-panel': '1',
+    onClick: (e) => { if (e.target === backdrop) close(); },
+  });
+  const modal = el('div', {
+    class: 'modal',
+    style: {
+      width: 'min(94vw, 420px)',
+      padding: '0',
+      borderRadius: '24px',
+      overflow: 'hidden',
+      background: '#fff',
+      border: '1px solid var(--line)',
+      maxHeight: '80vh',
+      display: 'flex',
+      flexDirection: 'column',
+    },
+  });
+  // header
+  const header = el('div', {
+    style: {
+      padding: '18px 20px 14px',
+      borderBottom: '1px solid var(--line)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      flexShrink: '0',
+    },
+  });
+  header.innerHTML = `
+    <div style="font-size:20px;line-height:1;">🔔</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">알림</div>
+      <div style="margin-top:2px;font-size:11.5px;color:var(--muted);">${unread > 0 ? `안 읽은 알림 ${unread}개` : '모두 확인했어요'}</div>
+    </div>
+    ${unread > 0 ? `<button id="__notifMarkAll" style="background:transparent;border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:11px;color:var(--ink-soft);font-weight:700;cursor:pointer;">모두 읽음</button>` : ''}
+    <button id="__notifClose" style="background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">✕</button>
+  `;
+  modal.appendChild(header);
+
+  // body
+  const body = el('div', {
+    style: {
+      padding: '12px 14px 18px',
+      overflowY: 'auto',
+      flex: '1',
+    },
+  });
+  if (!items.length) {
+    body.appendChild(el('div', {
+      style: { padding: '40px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px' },
+    }, '아직 알림이 없어요.'));
+  } else {
+    items.forEach((n) => {
+      const read = isNotificationRead(n.id);
+      const card = el('button', {
+        style: {
+          width: '100%',
+          display: 'flex',
+          gap: '12px',
+          alignItems: 'flex-start',
+          padding: '12px 14px',
+          marginBottom: '8px',
+          borderRadius: '14px',
+          background: read ? '#FBF7F0' : '#fff',
+          border: '1px solid ' + (read ? 'var(--line-soft, #E7DDC8)' : (n.color + '55')),
+          cursor: 'pointer',
+          textAlign: 'left',
+          font: 'inherit',
+          color: 'var(--ink)',
+          position: 'relative',
+        },
+        onClick: () => handleNotificationCta(n),
+      });
+      const iconBox = el('div', {
+        style: {
+          flexShrink: '0',
+          width: '38px', height: '38px', borderRadius: '12px',
+          background: n.color + '18',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '20px',
+        },
+      }, n.icon || '📌');
+      card.appendChild(iconBox);
+      const txt = el('div', { style: { flex: '1', minWidth: '0' } });
+      // unread dot
+      const dotHtml = read ? '' : `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${n.color};margin-right:6px;vertical-align:middle;"></span>`;
+      txt.innerHTML = `
+        <div style="display:flex;align-items:center;gap:4px;">
+          ${dotHtml}
+          <span style="font-size:13.5px;font-weight:${read ? '600' : '800'};color:var(--ink);letter-spacing:-0.01em;">${escapeHtml(n.title || '')}</span>
+        </div>
+        <div style="margin-top:3px;font-size:12px;color:var(--ink-soft);line-height:1.5;">${escapeHtml(n.body || '')}</div>
+        <div style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:11px;color:${n.color};font-weight:700;">
+          <span>${escapeHtml((n.cta && n.cta.label) || '열기 →')}</span>
+        </div>
+      `;
+      card.appendChild(txt);
+      body.appendChild(card);
+    });
+  }
+  modal.appendChild(body);
+
+  setTimeout(() => {
+    const closeBtn = document.getElementById('__notifClose');
+    if (closeBtn) closeBtn.onclick = close;
+    const allBtn = document.getElementById('__notifMarkAll');
+    if (allBtn) allBtn.onclick = markAllNotificationsRead;
+  }, 0);
+
+  backdrop.appendChild(modal);
+  return backdrop;
+}
+
 function TopBar(title='') {
   const topbar = el('div', { class: 'topbar' });
   // 로고 → 홈 점프. 이미 홈에 있으면 살짝 fade scroll-to-top.
@@ -5219,6 +5440,23 @@ function TopBar(title='') {
   });
   tierBadge.innerHTML = (state.tier === 'premium' ? Icon('crown', 10) + ' ' : '') + (state.tier === 'premium' ? 'Premium' : 'Basic');
   actions.appendChild(tierBadge);
+
+  // 알림 종 — 프로필 왼쪽. 안 읽은 알림 카운트 배지 표시.
+  const unread = unreadNotificationCount();
+  const bell = el('button', {
+    class: 'icon-btn',
+    onClick: () => { showNotifications = true; render(); },
+    title: unread > 0 ? `안 읽은 알림 ${unread}개` : '알림',
+    style: { position: 'relative' },
+  });
+  bell.innerHTML = `
+    <svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+    </svg>
+    ${unread > 0 ? `<span style="position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--orange);color:#fff;font-size:9.5px;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);box-shadow:0 1px 4px rgba(0,0,0,0.15);">${unread > 9 ? '9+' : unread}</span>` : ''}
+  `;
+  actions.appendChild(bell);
 
   const settings = el('button', { class: 'icon-btn', onClick: () => go('profile'), title: 'Profile' });
   settings.innerHTML = Icon('user', 16);
