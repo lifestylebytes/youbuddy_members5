@@ -1130,12 +1130,14 @@ const CHALLENGE = {
         noPresenter: true, // Week 1 은 온보딩/자기소개만 — 발표자 선착순 없음
         title: 'Week 1 — Warm-up & Self-intro',
         desc: '온보딩 · 자기소개 — 서로 알아가기 (발표 없음)',
-        status: 'upcoming',
+        status: 'done',
         zoom: 'Google Meet',
         meetUrl: 'https://meet.google.com/mzz-cssa-zvm',
         // 버디가 미팅 후 직접 채움 — recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 없음
         recap: '',
         pptUrl: '',
+        // 미팅 다시보기 (Google Drive 공유 링크). 멤버 권한 필요할 수 있음.
+        recordingUrl: 'https://drive.google.com/file/d/1DXX7D2et_LOBiLZGe6mpwfDsVrGWn7Lh/view?usp=sharing',
         scenario: {
           setting: '첫 주는 오리엔테이션 및 자기소개가 있습니다',
           premise: '이 챌린지가 어떻게 굴러가는지 · 유버디가 누구인지 · 멤버 서로 가볍게 알아가기 · PT 어떻게 진행되는지 · 다음 주부터 할 롤플레이 방식. 편하게 듣고 궁금한 거 물어보는 자리.',
@@ -1567,6 +1569,7 @@ const defaultState = () => ({
   bingo_boss_results: {},           // { "1": { score, total, at } } 유버디 검증 (랜덤 10개) 점수 — 운영자 분석.
   week_survey: {},                  // { "1": { nps, difficulty, time, ai_help, ux, stuck, want_w2: [], comment, at } } 주간 설문.
   meeting_briefing_open: {},        // { "m1-intro": true } 미팅 노트 페이지의 "브리핑" 펼침 상태 — 새로고침/15초 sync 에도 유지.
+  recording_popup_seen: {},         // { "m1": true } 미팅 다시보기 팝업을 본 상태. 한 번 X 누르면 다시 안 뜸.
   operatorViewAsMember: false,      // 운영자/스태프가 "일반 회원처럼 보기" 켜둘 때 true. 운영자 UI 다 숨김.
   tierOverride: null,             // 'basic' 으로 설정하면 MEMBER_DIRECTORY 가 premium 이어도 basic 으로 강제 (베이직 프리뷰). null = 비활성.
   __vocabMigrated: false,          // 기존 bookmarks/saved_syns → pitch_vocab 일회성 이관 플래그.
@@ -1629,6 +1632,7 @@ const PERSISTED_STATE_KEYS = [
   'bingo_boss_results',
   'week_survey',
   'meeting_briefing_open',
+  'recording_popup_seen',
   'savedTab',
   'communityFilter',
   'communitySort',
@@ -2372,6 +2376,9 @@ let meetingMemberNotesCache = {};
 let meetingMemberNotesLoading = {};
 // 인증률 추이 모달 — null | 'all' | 'basic' | 'premium'
 let showRateHistory = null;
+// 미팅 다시보기 팝업 (프리미엄 전용 · 한 번만 자동 노출 · X 누르면 다시 안 뜸).
+// 값은 meta 객체 (meetUrl/recordingUrl/title 포함) — 닫히면 null.
+let showRecordingPopup = null;
 let toast = null;
 let confettiTimer = null;
 let dashboardStats = {
@@ -4592,12 +4599,13 @@ function render() {
       if (stale) stale.remove();
     }
     if (showConsentAudit) root.appendChild(ConsentAuditModal());
+    if (showRecordingPopup) root.appendChild(RecordingPopupModal());
 
     // Mobile modal scroll fix: lock body scroll while any modal is open so the
     // modal's own overflow-y:auto picks up touch scrolling instead of the page
     // behind it bubbling. 취소/저장 버튼이 모바일에서 안 닿던 문제.
     try {
-      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay || showMeetingConsent || showConsentAudit);
+      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay || showMeetingConsent || showConsentAudit || showRecordingPopup);
       if (anyModalOpen) document.body.classList.add('modal-open');
       else document.body.classList.remove('modal-open');
     } catch (_lockErr) {}
@@ -5749,6 +5757,28 @@ function HomePage() {
   // 홈 진입시마다 로컬 state 기준으로 재싱크해서 "프리미엄 0/8 인증" 같이
   // 방금 인증한 내 기록이 반영 안 되는 문제를 막아요.
   try { bindMeToMembers(); } catch (e) {}
+
+  // 프리미엄 멤버 → 새로 추가된 미팅 녹화본 팝업 1회 자동 노출.
+  // recording_popup_seen[meetingId] === true 면 본 거라 스킵.
+  // 운영자/스태프는 본인은 미팅 녹화 만든 사람이지만 그래도 알림 한 번 봐야해서 노출.
+  try {
+    if (state.tier === 'premium' && !showRecordingPopup) {
+      const seen = state.recording_popup_seen || {};
+      const unseenMeeting = (CHALLENGE.premium.weekly_meetings || []).find(
+        (m) => m && m.recordingUrl && !seen[`m${m.n}`]
+      );
+      if (unseenMeeting) {
+        // setTimeout 으로 한 tick 미뤄서 HomePage 가 먼저 그려진 후 팝업.
+        setTimeout(() => {
+          if (!showRecordingPopup) {
+            showRecordingPopup = unseenMeeting;
+            render();
+          }
+        }, 250);
+      }
+    }
+  } catch (e) {}
+
   const page = el('div', { class: 'page' });
   page.appendChild(TopBar());
 
@@ -12407,6 +12437,35 @@ function MeetingNotesPage(meetingId) {
     </div>`;
   page.appendChild(hero);
 
+  // 미팅 다시보기 — recordingUrl 있으면 hero 바로 아래 큰 CTA 카드.
+  if (meta.recordingUrl) {
+    const recCard = el('a', {
+      href: meta.recordingUrl,
+      target: '_blank',
+      rel: 'noopener noreferrer',
+      style: {
+        display: 'block', margin: '12px 0 0', padding: '16px 18px',
+        borderRadius: '18px',
+        background: 'linear-gradient(135deg, #FFF1E5 0%, #FFE4D0 100%)',
+        border: '1px solid var(--orange-soft)',
+        textDecoration: 'none', cursor: 'pointer',
+        boxShadow: '0 4px 14px rgba(232,116,60,0.14)',
+      },
+      title: '클릭해서 미팅 녹화본 열기',
+    });
+    recCard.innerHTML = `
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="flex-shrink:0;width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,0.7);display:flex;align-items:center;justify-content:center;font-size:22px;">🎬</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;letter-spacing:0.12em;font-weight:800;color:var(--orange-dark);">MEETING REPLAY</div>
+          <div style="margin-top:3px;font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">📺 미팅 다시보기</div>
+          <div style="margin-top:2px;font-size:11.5px;color:var(--ink-soft);line-height:1.4;">못 들었던 부분 / 흐름 다시 따라가기 · Google Drive</div>
+        </div>
+        <div style="flex-shrink:0;font-size:13px;font-weight:800;color:var(--orange-dark);">→</div>
+      </div>`;
+    page.appendChild(recCard);
+  }
+
   // Consent banner — 모달을 '나중에' 로 닫은 사용자를 위해 상단에 잔잔하게 재유도.
   if (!isMeetingConsentCurrent()) {
     const consentBanner = el('div', {
@@ -16066,6 +16125,70 @@ function MeetingConsentModal() {
    app_state.meeting_consent 를 읽어옴 (서버 summary RPC 가 이 필드를
    노출하진 않으므로 직접 pull).
    ============================================================ */
+/* ============================================================
+   RecordingPopupModal — 미팅 녹화본 출시 알림 (프리미엄 1회 자동 팝업).
+   ------------------------------------------------------------
+   showRecordingPopup 에 meta 객체 (recordingUrl 포함) 박히면 자동 노출.
+   X 또는 backdrop 클릭하면 state.recording_popup_seen[meetingId]=true
+   기록되어 다음 진입에 안 뜸.
+   "다시보기 열기" 버튼은 새 탭에서 Google Drive 링크 오픈 + 본 처리.
+   ============================================================ */
+function RecordingPopupModal() {
+  const meta = showRecordingPopup;
+  const meetingKey = meta ? `m${meta.n}` : '';
+  const close = () => {
+    if (meetingKey) {
+      state.recording_popup_seen = state.recording_popup_seen || {};
+      state.recording_popup_seen[meetingKey] = true;
+      try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
+    }
+    showRecordingPopup = null;
+    render();
+  };
+  const backdrop = el('div', {
+    class: 'modal-backdrop',
+    onClick: (e) => { if (e.target === backdrop) close(); },
+  });
+  const modal = el('div', {
+    class: 'modal',
+    style: {
+      width: 'min(92vw, 380px)',
+      padding: '0',
+      borderRadius: '24px',
+      overflow: 'hidden',
+      background: '#fff',
+      border: '1px solid var(--line)',
+    },
+  });
+  modal.innerHTML = `
+    <div style="position:relative;padding:30px 24px 22px;background:linear-gradient(135deg, #FFF1E5 0%, #FFE4D0 100%);text-align:center;">
+      <button id="__recPopupClose" style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,0.7);border:none;color:var(--ink-soft);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+      <div style="font-size:48px;line-height:1;margin-bottom:8px;">🎬</div>
+      <div class="kicker" style="color:var(--orange-dark);">MEETING REPLAY · 프리미엄 전용</div>
+      <div style="margin-top:8px;font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.3;">미팅 녹화본 올라왔어요</div>
+      <div style="margin-top:6px;font-size:13px;color:var(--ink-soft);line-height:1.55;">${escapeHtml(meta?.title || 'Week 미팅')}<br>못 들었던 부분 / 흐름 다시 따라가기 좋아요.</div>
+    </div>
+    <div style="padding:18px 22px 22px;display:flex;flex-direction:column;gap:8px;">
+      <a id="__recPopupOpen" href="${escapeHtml(meta?.recordingUrl || '#')}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-full" style="background:var(--orange);border:none;font-size:14px;padding:14px;text-align:center;text-decoration:none;display:block;">📺 다시보기 열기 →</a>
+      <button id="__recPopupLater" class="btn btn-ghost btn-full" style="background:transparent;border:1px solid var(--line);color:var(--muted);font-size:12px;padding:10px;">나중에 미팅 노트에서 볼게요</button>
+    </div>
+  `;
+  setTimeout(() => {
+    const closeBtn = document.getElementById('__recPopupClose');
+    const laterBtn = document.getElementById('__recPopupLater');
+    const openLink = document.getElementById('__recPopupOpen');
+    if (closeBtn) closeBtn.onclick = close;
+    if (laterBtn) laterBtn.onclick = close;
+    // 다시보기 클릭한 사람도 본 처리 (다음에 팝업 다시 안 뜸)
+    if (openLink) openLink.addEventListener('click', () => {
+      // 새 탭으로 열리니까 모달은 명시적으로 close 호출
+      setTimeout(close, 50);
+    });
+  }, 0);
+  backdrop.appendChild(modal);
+  return backdrop;
+}
+
 function ConsentAuditModal() {
   const backdrop = el('div', {
     class: 'modal-backdrop',
