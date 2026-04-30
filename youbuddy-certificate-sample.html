@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouBuddy 5기 수료증 — Buddy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange-deep:#C95721; --orange-mid:#E8743C; --orange-soft:#F4A678; --orange-lite:#FAE3D1;
+    --gold:#C4986A; --gold-lite:#E8C99A; --cream:#FFFDF7;
+    --ink:#2A1F14; --ink-mid:#6B5540; --ink-lite:#B09A80;
+    --glass-bg:rgba(255,255,255,0.48); --glass-border:rgba(255,255,255,0.72);
+    /* 영어 헤딩만 Cormorant 세리프, 한국어는 전부 Noto Sans KR (고딕체) */
+    --f-serif:'Cormorant Garamond','Noto Sans KR',serif;
+    --f-sans:'Noto Sans KR',sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 20px;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, #FFE2CC 0%, transparent 55%),
+      radial-gradient(ellipse 70% 50% at 85% 80%, #FBD0B2 0%, transparent 50%),
+      radial-gradient(ellipse 60% 80% at 60% 40%, #FFEEDB 0%, transparent 60%),
+      #FFF3E6;
+    font-family: var(--f-sans); gap:20px;
+  }
+  .cert { width:794px; background:var(--cream); position:relative; overflow:hidden;
+    box-shadow: 0 30px 80px rgba(201,87,33,0.22), 0 8px 24px rgba(0,0,0,0.08); }
+  .cert::before{content:'';position:absolute;top:-120px;right:-120px;width:420px;height:420px;
+    background:radial-gradient(circle, rgba(232,116,60,0.22) 0%, transparent 70%); border-radius:50%; pointer-events:none;}
+  .cert::after{content:'';position:absolute;bottom:-80px;left:-80px;width:320px;height:320px;
+    background:radial-gradient(circle, rgba(196,152,106,0.14) 0%, transparent 70%); border-radius:50%; pointer-events:none;}
+  .frame-outer{position:absolute; inset:14px; border:1.2px solid var(--orange-soft); pointer-events:none; z-index:1;}
+  .frame-inner{position:absolute; inset:18px; border:0.4px solid var(--orange-lite); pointer-events:none; z-index:1;}
+  .corner{position:absolute; width:28px; height:28px; z-index:2;}
+  .corner::before, .corner::after{content:''; position:absolute; background:var(--orange-deep);}
+  .corner::before{width:100%; height:1.5px; top:0;}
+  .corner::after{width:1.5px; height:100%; left:0;}
+  .corner.tl{top:14px; left:14px;}
+  .corner.tr{top:14px; right:14px; transform:scaleX(-1);}
+  .corner.bl{bottom:14px; left:14px; transform:scaleY(-1);}
+  .corner.br{bottom:14px; right:14px; transform:scale(-1);}
+  .corner-dot{position:absolute; width:5px; height:5px; background:var(--orange-soft); border-radius:50%; z-index:2;}
+  .corner-dot.tl{top:18px; left:18px;}
+  .corner-dot.tr{top:18px; right:18px;}
+  .corner-dot.bl{bottom:18px; left:18px;}
+  .corner-dot.br{bottom:18px; right:18px;}
+  .inner{position:relative; z-index:10; padding:42px 60px 36px 52px; display:flex; flex-direction:column;}
+  header{text-align:center; margin-bottom:20px;}
+  .logo-row{display:flex; align-items:center; justify-content:center; gap:9px; margin-bottom:16px;}
+  .logo-icon{width:26px; height:26px; background:linear-gradient(135deg, #F4A678, #C95721);
+    border-radius:7px; display:flex; align-items:center; justify-content:center; color:white;
+    font-weight:700; font-size:14px; box-shadow:0 3px 10px rgba(201,87,33,0.35);}
+  .logo-text{font-weight:700; font-size:17px; color:var(--ink); letter-spacing:-0.3px;}
+  .logo-text span{color:var(--orange-deep);}
+  .top-badge{display:inline-flex; align-items:center; gap:6px; background:var(--glass-bg); border:1px solid var(--glass-border);
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); padding:5px 14px; border-radius:100px;
+    font-size:11px; color:var(--orange-deep); font-weight:500; letter-spacing:0.3px;
+    margin-bottom:20px; box-shadow:0 2px 12px rgba(201,87,33,0.12);}
+  .top-badge::before{content:''; width:7px; height:7px; background:var(--orange-deep); border-radius:50%;}
+  .cert-title{font-family:var(--f-serif); font-size:46px; font-weight:600; color:var(--ink);
+    letter-spacing:3px; line-height:1; margin-bottom:4px;}
+  .cert-subtitle{font-family:var(--f-serif); font-style:italic; font-size:15px; color:var(--ink-mid);
+    letter-spacing:5px; margin-bottom:14px;}
+  .gold-divider{display:flex; align-items:center; gap:10px; justify-content:center; margin:0 auto; width:260px;}
+  .gold-divider::before{content:''; flex:1; height:0.5px; background:linear-gradient(to right, transparent, var(--gold-lite));}
+  .gold-divider::after{content:''; flex:1; height:0.5px; background:linear-gradient(to left, transparent, var(--gold-lite));}
+  .divider-diamond{width:6px; height:6px; background:var(--gold); transform:rotate(45deg); flex-shrink:0;}
+  .name-section{text-align:center; margin:24px 0 16px;}
+  .awarded-to{font-size:10.5px; color:var(--ink-lite); letter-spacing:3px;
+     margin-bottom:10px; font-weight:300;}
+  .name-card{display:inline-block; background:rgba(255,255,255,0.55); border:1px solid rgba(255,255,255,0.85);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); padding:16px 48px; border-radius:100px;
+    box-shadow:0 8px 32px rgba(201,87,33,0.12), inset 0 1px 0 rgba(255,255,255,0.9); margin-bottom:10px;}
+  .member-name{font-size:30px; font-weight:700; color:var(--ink); letter-spacing:-0.5px;}
+  .member-name span{font-size:16px; font-weight:400; color:var(--ink-mid); margin-left:4px;}
+  .member-role{font-size:11px; color:var(--ink-mid); font-weight:300; letter-spacing:0.5px; margin-top:4px;}
+  .stats-row{display:flex; gap:10px; justify-content:center; margin:16px 0; flex-wrap:wrap;}
+  .stat-pill{background:var(--glass-bg); border:1px solid var(--glass-border);
+    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); padding:8px 18px; border-radius:100px;
+    text-align:center; box-shadow:0 2px 12px rgba(201,87,33,0.08);}
+  .stat-value{font-size:15px; font-weight:700; color:var(--orange-deep); display:block; line-height:1.2;}
+  .stat-label{font-size:9.5px; color:var(--ink-lite); font-weight:300; display:block; margin-top:1px;}
+  .glass-card{background:rgba(255,255,255,0.5); border:1px solid rgba(255,255,255,0.75);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-radius:14px;
+    padding:16px 20px; margin-bottom:10px;
+    box-shadow:0 4px 20px rgba(201,87,33,0.07), inset 0 1px 0 rgba(255,255,255,0.9);
+    position:relative; overflow:hidden;}
+  .glass-card::before{content:''; position:absolute; top:0; left:0; right:0; height:2px; border-radius:14px 14px 0 0;}
+  .card-topic::before{background:linear-gradient(to right, var(--gold-lite), var(--gold));}
+  .card-strengths::before{background:linear-gradient(to right, #A8DDC8, #5BAF8A);}
+  .card-growth::before{background:linear-gradient(to right, #F4B8A0, #D07050);}
+  .card-vocab::before{background:linear-gradient(to right, var(--orange-lite), var(--orange-deep));}
+  .card-heading{font-size:8.5px; letter-spacing:2.5px;  font-weight:700; margin-bottom:8px;}
+  .card-topic .card-heading{color:var(--gold);}
+  .card-strengths .card-heading{color:#3A9870;}
+  .card-growth .card-heading{color:#B05838;}
+  .card-vocab .card-heading{color:var(--orange-deep);}
+  .topic-text{font-size:12.5px; color:var(--ink); font-weight:500; line-height:1.5;}
+  .bullet-list{list-style:none; display:flex; flex-direction:column; gap:5px;}
+  .bullet-list li{font-size:11.5px; color:var(--ink); line-height:1.55; padding-left:14px; position:relative;}
+  .bullet-list li::before{content:''; position:absolute; left:0; top:7px; width:5px; height:5px; transform:rotate(45deg);}
+  .card-strengths .bullet-list li::before{background:#5BAF8A;}
+  .card-growth .bullet-list li::before{background:#D07050;}
+  .vocab-tags{display:flex; flex-wrap:wrap; gap:7px; margin-top:2px;}
+  .vocab-tag{background:rgba(255,255,255,0.7); border:1px solid rgba(201,87,33,0.32); color:var(--orange-deep);
+    font-size:11px; font-weight:700; padding:4px 12px; border-radius:100px;
+    box-shadow:0 2px 8px rgba(201,87,33,0.1); letter-spacing:0.2px;}
+  .dark-card{background:rgba(42,31,20,0.88); border:1px solid rgba(196,152,106,0.35);
+    border-radius:14px; padding:18px 20px; margin-top:4px; position:relative; overflow:visible;
+    backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+    box-shadow:0 8px 32px rgba(0,0,0,0.18), inset 0 1px 0 rgba(196,152,106,0.25);}
+  .dark-card::before{content:''; position:absolute; top:0; left:0; right:0; height:1.5px; border-radius:14px 14px 0 0;
+    background:linear-gradient(to right, transparent, var(--gold), var(--gold-lite), var(--gold), transparent);}
+  .dark-card .card-heading{color:var(--gold-lite); font-size:8.5px; letter-spacing:2.5px;
+     font-weight:700; margin-bottom:12px; text-align:center;}
+  .dark-card-inner{display:flex; flex-direction:row; gap:16px; align-items:center;}
+  .vocab-grid{flex:1; display:grid; grid-template-columns:1fr 1fr; gap:5px 12px;}
+  .vocab-row{display:flex; align-items:baseline; gap:6px; background:rgba(255,255,255,0.04);
+    border-radius:6px; padding:4px 8px;}
+  .vocab-en{font-size:11px; font-weight:700; color:var(--gold-lite); white-space:nowrap;}
+  .vocab-dot{color:var(--gold); font-size:9px; flex-shrink:0;}
+  .vocab-ko{font-size:9.5px; color:rgba(232,201,154,0.75); font-weight:300; white-space:nowrap;}
+  footer{margin-top:20px; display:flex; align-items:flex-end; justify-content:space-between;}
+  .sig-block{display:flex; flex-direction:column; gap:2px;}
+  .sig-name{font-family:var(--f-serif); font-style:italic; font-size:18px; color:var(--ink);}
+  .sig-line{width:100px; height:0.5px; background:var(--orange-soft); margin:2px 0;}
+  .sig-role{font-size:9px; color:var(--ink-lite); letter-spacing:1.5px; }
+  .center-footer{text-align:center;}
+  .issue-date{font-size:9.5px; color:var(--ink-lite); letter-spacing:0.5px; font-weight:300;}
+  .logo-footer{display:flex; flex-direction:column; align-items:flex-end; gap:2px;}
+  .logo-footer .logo-sm{font-weight:700; font-size:12px; color:var(--ink);}
+  .logo-footer .logo-sm span{color:var(--orange-deep);}
+  .logo-footer small{font-size:8.5px; color:var(--ink-lite); font-weight:300;}
+  .note { max-width: 620px; background: #FFFDF7; border: 1px solid #F3E5CF; border-radius: 14px;
+    padding: 14px 18px; color: #5A4A36; font-size: 13px; line-height: 1.7; text-align:center; }
+  .note strong { color: var(--orange-deep); }
+  @media print{ body{ background:none; padding:0; } .cert{ box-shadow:none; width:100%; } .note{ display:none; } }
+</style>
+</head>
+<body>
+<div class="note">
+  <strong>🎓 YouBuddy 5기 수료증</strong><br>
+  인쇄하려면 <b>⌘+P</b> (Mac) 또는 <b>Ctrl+P</b> (Windows). PDF 로 저장도 가능해요.
+</div>
+
+<div class="cert">
+  <div class="frame-outer"></div><div class="frame-inner"></div>
+  <div class="corner tl"></div><div class="corner tr"></div>
+  <div class="corner bl"></div><div class="corner br"></div>
+  <div class="corner-dot tl"></div><div class="corner-dot tr"></div>
+  <div class="corner-dot bl"></div><div class="corner-dot br"></div>
+  <div class="inner">
+    <header>
+      <div class="logo-row">
+        <div class="logo-icon">y</div>
+        <div class="logo-text">you<span>buddy</span></div>
+      </div>
+      <div class="top-badge">비즈니스 영어 루틴 챌린지 5기 프리미엄</div>
+      <div class="cert-title">CERTIFICATION</div>
+      <div class="cert-subtitle">of completion</div>
+      <div class="gold-divider"><div class="divider-diamond"></div></div>
+    </header>
+
+    <div class="name-section">
+      <div class="awarded-to">This certificate is awarded to</div>
+      <div class="name-card">
+        <div class="member-name">Buddy<span>님</span><span>· 박지혜</span></div>
+        <div class="member-role">프로덕트 매니저</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-pill"><span class="stat-value">100%</span><span class="stat-label">프리미엄 완주</span></div>
+        <div class="stat-pill"><span class="stat-value">어휘 47개</span><span class="stat-label">+ 단어테스트</span></div>
+        <div class="stat-pill"><span class="stat-value">26 Days</span><span class="stat-label">2026.04.27 - 2026.05.22</span></div>
+        <div class="stat-pill"><span class="stat-value">20/20</span><span class="stat-label">인증 완료</span></div>
+      </div>
+    </div>
+
+    
+    <div class="glass-card card-topic">
+      <div class="card-heading">Presentation Topic · 발표 주제</div>
+      <div class="topic-text">리텐션 30% 끌어올리는 신규 온보딩 플로우 — 지난 분기 데이터 분석 + 다음 분기 OKR 까지</div>
+    </div>
+    
+    <div class="glass-card card-strengths">
+      <div class="card-heading">Strengths · 강점 &amp; 칭찬</div>
+      <ul class="bullet-list">
+        <li>복잡한 데이터를 한 줄로 요약해서 stakeholder 들이 바로 이해하게 만드는 능력이 인상적이었어요.</li><li>발표 중 reality check 를 즉시 던져서 청중의 가정을 검증하는 흐름이 자연스러웠어요.</li><li>phrasal verb (drill down INTO / flesh out / get buy-in) 를 자신감 있게 사용한 점이 좋았어요.</li>
+      </ul>
+    </div>
+    
+    <div class="glass-card card-growth">
+      <div class="card-heading">Growth Points · 다음 스텝</div>
+      <ul class="bullet-list">
+        <li>결론을 먼저 (top-line first) 던지고 근거를 풀어내면 임원진 미팅에서 더 강해질 거예요.</li><li>&quot;middle ground&quot; 를 찾는 협상 톤을 한 번 더 의식적으로 연습해보세요.</li>
+      </ul>
+    </div>
+    
+    <div class="glass-card card-vocab">
+      <div class="card-heading">Key Vocabulary · 이번 챌린지 핵심 어휘</div>
+      <div class="vocab-tags">
+        <span class="vocab-tag">set the stage</span><span class="vocab-tag">anchor</span><span class="vocab-tag">drill down</span><span class="vocab-tag">flesh out</span><span class="vocab-tag">get buy-in</span><span class="vocab-tag">cut to the chase</span><span class="vocab-tag">pain point</span><span class="vocab-tag">value proposition</span><span class="vocab-tag">connect the dots</span><span class="vocab-tag">go the extra mile</span>
+      </div>
+    </div>
+    
+    <div class="dark-card">
+      <div class="card-heading">Final Vocabulary · 5기 하이라이트</div>
+      <div class="dark-card-inner">
+        <div class="vocab-grid">
+          <div class="vocab-row"><span class="vocab-en">Set the stage</span><span class="vocab-dot">·</span><span class="vocab-ko">판을 깔다</span></div><div class="vocab-row"><span class="vocab-en">Anchor</span><span class="vocab-dot">·</span><span class="vocab-ko">기준점을 잡다</span></div><div class="vocab-row"><span class="vocab-en">Key driver</span><span class="vocab-dot">·</span><span class="vocab-ko">핵심 동인</span></div><div class="vocab-row"><span class="vocab-en">Gut check</span><span class="vocab-dot">·</span><span class="vocab-ko">직감 점검</span></div><div class="vocab-row"><span class="vocab-en">Viability</span><span class="vocab-dot">·</span><span class="vocab-ko">실행 가능성</span></div><div class="vocab-row"><span class="vocab-en">First pass</span><span class="vocab-dot">·</span><span class="vocab-ko">초안</span></div><div class="vocab-row"><span class="vocab-en">Front-load</span><span class="vocab-dot">·</span><span class="vocab-ko">초반에 몰아치기</span></div><div class="vocab-row"><span class="vocab-en">Drill down</span><span class="vocab-dot">·</span><span class="vocab-ko">심층 분석</span></div><div class="vocab-row"><span class="vocab-en">Flesh out</span><span class="vocab-dot">·</span><span class="vocab-ko">구체화하다</span></div><div class="vocab-row"><span class="vocab-en">Get buy-in</span><span class="vocab-dot">·</span><span class="vocab-ko">지지를 얻다</span></div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div class="sig-block">
+        <div class="sig-name">YouBuddy</div>
+        <div class="sig-line"></div>
+        <div class="sig-role">Director · YouBuddy</div>
+      </div>
+      <div class="center-footer">
+        <div class="issue-date">2026년 4월 30일 발행</div>
+      </div>
+      <div class="logo-footer">
+        <div class="logo-sm">you<span>buddy</span></div>
+        <small>@youbuddy_day</small>
+      </div>
+    </footer>
+  </div>
+</div>
+</body>
+</html>
