@@ -8438,9 +8438,9 @@ const WEEK_SURVEY_OPTIONS = {
     { v: 'harder_challenge', label: '🔥 더 어려운 도전' },
     { v: 'spaced_repeat', label: '🔁 같은 단어 반복 노출' },
     { v: 'peer_answers', label: '👀 다른 멤버 답변 노출' },
-    { v: 'wallpaper_variants', label: '📱 잠금화면 변형들' },
+    { v: 'retry_wrong', label: '📝 오답 다시 풀기' },
     { v: 'word_audio', label: '🔊 단어장 음성 듣기' },
-    { v: 'meeting_depth', label: '🤝 미팅·롤플레이 심화' },
+    { v: 'meeting_depth', label: '🤝 미팅·롤플레이 심화', premiumOnly: true },
   ],
 };
 
@@ -8619,7 +8619,7 @@ function renderWeekSurveyCard(weekN) {
     ${renderRadio('stuck', WEEK_SURVEY_OPTIONS.stuck)}
 
     ${sectionH(7, 'Week 2 에서 더 보고 싶은 거?', '최대 3개')}
-    ${renderMulti('want_w2', WEEK_SURVEY_OPTIONS.wantW2, 3)}
+    ${renderMulti('want_w2', WEEK_SURVEY_OPTIONS.wantW2.filter((o) => !o.premiumOnly || state.tier === 'premium'), 3)}
 
     ${sectionH(8, '유버디에게 건의할 말!', '아무거나 다 돼요 — 칭찬도 불만도 아이디어도 환영 🧡')}
     <textarea id="__weekSurveyComment" maxlength="300" placeholder="예) 단어 외우기 어려웠는데 미팅이 진짜 좋았어요 / Daily 분량 살짝 부담 / 음성 입력 있으면 좋겠어요 / 모모님 더 자주 보고 싶어요 ..." style="width:100%;margin-top:8px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:13px;font-family:inherit;line-height:1.5;color:var(--ink);resize:vertical;min-height:84px;box-sizing:border-box;">${escapeHtml(draft.comment || '')}</textarea>
