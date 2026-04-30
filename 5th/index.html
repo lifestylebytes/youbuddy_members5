@@ -1560,6 +1560,12 @@ const defaultState = () => ({
   submitted: {},                  // { "d1-0": true } 첫 제출(인증 게이트). AI 교정은 그 뒤 선택.
   submitted_text: {},             // { "d1-0": "제출할 때 문장 스냅샷" } — 현재 textarea 값과 비교해서 dirty 여부 판별 ('제출완료' ↔ '다시 제출하기')
   quiz_results: {},               // { "d1": { score:5, total:6, takenAt:"2026-04-21T10:00:00.000Z" } } 최초 시험 점수만 저장. 다시풀기는 덮어쓰지 않음.
+  vocab_stats: {},                 // { "front-load": { c: 8, w: 3, lastAt: ts, lastWrongAt: ts } } 어휘별 정답/오답 누적. 운영자 콘텐츠 기획용 — UI 노출 X.
+  bingo: {},                        // { "1": { "front-load": 2 } } 빙고 모드 어휘별 정답 카운트. 점진 진해짐 시각화 + 채우기.
+  bingo_marked: {},                 // { "1": ["front-load", "circle back"] } "기억 안나요" 체크한 어휘 — 복습 큐 + 단어장 후보.
+  bingo_done: {},                   // { "1": "2026-04-30T..." } 한 주차의 첫 drill 완주 타임스탬프 — 홈 배너 / 보상 분기용.
+  bingo_boss_results: {},           // { "1": { score, total, at } } 유버디 검증 (랜덤 10개) 점수 — 운영자 분석.
+  operatorViewAsMember: false,      // 운영자/스태프가 "일반 회원처럼 보기" 켜둘 때 true. 운영자 UI 다 숨김.
   tierOverride: null,             // 'basic' 으로 설정하면 MEMBER_DIRECTORY 가 premium 이어도 basic 으로 강제 (베이직 프리뷰). null = 비활성.
   __vocabMigrated: false,          // 기존 bookmarks/saved_syns → pitch_vocab 일회성 이관 플래그.
   cert_profile: null,              // { topic, strengths: [..], growth: [..], keyVocab: [..], finalVocab: [{en, ko}], issuedAt } — Buddy 가 수료 시점에 주입하는 개인화 데이터. null 이면 자동 데이터만 사용.
@@ -1614,6 +1620,11 @@ const PERSISTED_STATE_KEYS = [
   'submitted',
   'submitted_text',
   'quiz_results',
+  'vocab_stats',
+  'bingo',
+  'bingo_marked',
+  'bingo_done',
+  'bingo_boss_results',
   'savedTab',
   'communityFilter',
   'communitySort',
@@ -1624,6 +1635,7 @@ const PERSISTED_STATE_KEYS = [
   'tour_started_tier',
   'operatorPreviewUnlock',  // OPERATOR-only D-? 우회 플래그. 새로고침/15초 리프레시 후에도 살아남게.
   'operatorDayOverride',    // OPERATOR-only Day 점프 (테스트용).
+  'operatorViewAsMember',   // OPERATOR-only "일반 회원처럼 보기" 토글. true 면 운영자 UI 다 숨김.
 ];
 
 /* Demo seed — pre-fills a few days (1, 3, 5 late, 7) so the design can be previewed
@@ -2166,6 +2178,7 @@ function saveRoute() {
       // 미팅/발표 prep 페이지의 컨텍스트 ID — 새로고침 시 "미팅 정보 못 찾음" 으로 튕기는 거 방지.
       meetingId: window.__currentMeetingId || null,
       presenterWeek: window.__currentPresenterWeek || null,
+      reviewWeek: window.__currentReviewWeek || null,
       navBackStack,
       navForwardStack,
       scrollPositions: routeScrollPositions,
@@ -2209,6 +2222,8 @@ function routeToHash() {
         return window.__currentMeetingId ? `#meeting/${window.__currentMeetingId}` : '#premium';
       case 'presenter-prep':
         return window.__currentPresenterWeek ? `#presenter/${window.__currentPresenterWeek}` : '#premium';
+      case 'week-review':
+        return window.__currentReviewWeek ? `#review/${window.__currentReviewWeek}` : '#weeks';
       case 'screenshot-guide': return '#screenshot-guide';
       default: return '';
     }
@@ -2264,6 +2279,16 @@ function applyHashRoute(rawHash) {
         }
       }
       return false;
+    case 'review':
+      if (segs[1]) {
+        const wn = parseInt(segs[1], 10);
+        if (Number.isFinite(wn) && wn >= 1) {
+          window.__currentReviewWeek = wn;
+          currentPage = 'week-review';
+          return true;
+        }
+      }
+      return false;
     case 'screenshot-guide':
       currentPage = 'screenshot-guide';
       return true;
@@ -2275,11 +2300,12 @@ function applyHashRoute(rawHash) {
 let currentPage = savedRoute.page || 'home';
 let currentWeek = savedRoute.week || 1;   // the week being viewed
 let currentDay = savedRoute.day || 1;
-let lastLearningPage = savedRoute.lastLearningPage || ((savedRoute.page === 'day' || savedRoute.page === 'weeks') ? savedRoute.page : 'weeks');
+let lastLearningPage = savedRoute.lastLearningPage || (['day', 'weeks', 'week-review', 'verify'].includes(savedRoute.page) ? savedRoute.page : 'weeks');
 // 미팅/발표 prep 페이지 컨텍스트 ID 복원 — saveRoute 에서 같이 저장한 값.
 // 새로고침해도 같은 미팅 페이지에 그대로 머물게.
 if (savedRoute.meetingId) window.__currentMeetingId = savedRoute.meetingId;
 if (savedRoute.presenterWeek) window.__currentPresenterWeek = savedRoute.presenterWeek;
+if (savedRoute.reviewWeek) window.__currentReviewWeek = savedRoute.reviewWeek;
 // URL hash 가 있으면 localStorage 의 route 위에 덮어씀 — 외부 공유 링크 우선.
 try {
   const initialHash = (window.location && window.location.hash) || '';
@@ -2335,11 +2361,14 @@ function go(page, opts={}) {
   const previousPage = currentPage;
   rememberCurrentScroll();
   if (opts.restoreLearning) {
-    page = lastLearningPage === 'day' ? 'day' : 'weeks';
+    // 학습 탭 안의 마지막 위치로 복원 — weeks / day / week-review / verify 다 학습 흐름.
+    const learningPages = ['weeks', 'day', 'week-review', 'verify'];
+    page = learningPages.includes(lastLearningPage) ? lastLearningPage : 'weeks';
   }
   const previousRoute = currentRouteSnapshot();
   currentPage = page;
-  if (page === 'weeks' || page === 'day') lastLearningPage = page;
+  // 학습 페이지 마지막 위치 추적 (탭 이동 시 복원용).
+  if (['weeks', 'day', 'week-review', 'verify'].includes(page)) lastLearningPage = page;
   if (page === 'weeks' && !opts.week && !opts.day && (!opts.preserveSelection && (!currentWeek || !CHALLENGE.weeks.some((w) => w.n === currentWeek)))) {
     const autoWeek = CHALLENGE.weeks.find((w) => w.days.some((d) => d.day === state.currentDay));
     currentWeek = autoWeek ? autoWeek.n : 1;
@@ -4413,6 +4442,7 @@ function render() {
       }
     }
     else if (currentPage === 'premium') page = PremiumPage();
+    else if (currentPage === 'week-review') page = WeekReviewPage(window.__currentReviewWeek || 1);
     else if (currentPage === 'presenter-prep') page = PresenterPrepPage(window.__currentPresenterWeek);
     else if (currentPage === 'pitch-prep') page = PitchPrepPage();
     else if (currentPage === 'meeting-notes') page = MeetingNotesPage(window.__currentMeetingId);
@@ -5662,7 +5692,7 @@ function TabBar() {
 
   const tabs = [
     { id: 'home',      label: '홈',     icon: 'home' },
-    { id: 'weeks',     label: '내 학습', icon: 'book',     match: ['weeks', 'day'] },
+    { id: 'weeks',     label: '내 학습', icon: 'book',     match: ['weeks', 'day', 'week-review', 'verify'] },
     { id: 'community', label: '커뮤니티', icon: 'sparkles' },
     { id: 'premium',   label: '프리미엄', icon: 'crown', match: ['premium', 'quiz', 'certification', 'presenter-prep', 'meeting-notes', 'pitch-prep'] },
     { id: 'profile',   label: '나',     icon: 'user',     match: ['profile', 'export', 'scripts'] },
@@ -5770,6 +5800,68 @@ function HomePage() {
   hero.appendChild(ctaBtn);
 
   page.appendChild(hero);
+
+  // Week 진짜 외우기 — 이번 주가 다 끝나거나 운영자/스태프면 홈 상단에 노출.
+  // 진짜 retention 의 핵심 모먼트라 home 에서 한 번 더 리마인드.
+  (() => {
+    // operatorViewAsMember 켜져있으면 일반 멤버처럼 — 미리보기 차단 + 미리보기 배지 숨김.
+    const isOpStaff = !!((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
+    // 후보 주: 완주된 주들 모두 (가장 최근 것). 운영자는 아무 주나 가능 — 기본 1주.
+    const completedWeeks = (CHALLENGE.weeks || []).filter((w) => weekProgress(w) === w.days.length);
+    const targetWeek = completedWeeks.length
+      ? completedWeeks[completedWeeks.length - 1] // 가장 최근 완주 주
+      : (isOpStaff ? CHALLENGE.weeks[0] : null);
+    if (!targetWeek) return;
+    const isPreview = isOpStaff && weekProgress(targetWeek) < targetWeek.days.length;
+    const reviewBanner = el('button', {
+      style: {
+        width: '100%',
+        marginTop: '14px',
+        padding: '16px 18px',
+        borderRadius: '20px',
+        background: 'linear-gradient(135deg, #FFF5E6 0%, #FFE5D9 100%)',
+        border: '1px solid var(--orange-soft)',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '14px',
+        textAlign: 'left',
+      },
+      onClick: () => {
+        window.__currentReviewWeek = targetWeek.n;
+        go('week-review');
+      },
+    });
+    // 복습 완료 여부 — bingo_done flag 확인
+    const isReviewed = !!(state.bingo_done && state.bingo_done[String(targetWeek.n)]);
+    if (isReviewed) {
+      // 완료 후 — 톤 바꿈: 초록 액센트 + "잠금화면 받기" CTA
+      reviewBanner.style.background = 'linear-gradient(135deg, #E8F5E9 0%, #F0F8E8 100%)';
+      reviewBanner.style.borderColor = 'rgba(74,160,124,0.4)';
+      reviewBanner.innerHTML = `
+        <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;background:rgba(74,160,124,0.20);display:grid;place-items:center;font-size:24px;">✨</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
+            <div style="font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">Week ${targetWeek.n} 복습 완료!</div>
+            <span style="font-size:9.5px;font-weight:700;background:rgba(74,160,124,0.20);color:#22B36A;padding:2px 7px;border-radius:999px;">DONE</span>
+          </div>
+          <div class="t-small" style="margin-top:5px;font-size:12.5px;color:#22B36A;font-weight:700;letter-spacing:-0.01em;">${targetWeek.n <= 2 ? '📥 잠금화면 단어장 받기 →' : '한 번 더 복습하기 →'}</div>
+        </div>
+      `;
+    } else {
+      reviewBanner.innerHTML = `
+        <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;background:rgba(240,125,56,0.18);display:grid;place-items:center;font-size:24px;">🧠</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
+            <div style="font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">Week${targetWeek.n} 단어.. 진짜 다 외워졌을까요?</div>
+            ${isPreview ? '<span style="font-size:9.5px;font-weight:700;background:rgba(125,92,255,0.18);color:#5C53A5;padding:2px 7px;border-radius:999px;">미리보기</span>' : ''}
+          </div>
+          <div class="t-small" style="margin-top:5px;font-size:12.5px;color:var(--orange-dark);font-weight:700;letter-spacing:-0.01em;display:inline-flex;align-items:center;gap:4px;">주간 테스트 보러가기 →</div>
+        </div>
+      `;
+    }
+    page.appendChild(reviewBanner);
+  })();
 
   // Premium 이번 주 미팅 hero — 프리미엄 유저에게만 노출. 발표 자리 잡기 CTA 가
   // 가장 많이 놓치는 포인트라 Home 에서 한 번 더 리마인드.
@@ -6371,6 +6463,55 @@ function WeeksPage() {
     });
     card.appendChild(tileRow);
 
+    // 한 주 통합 복습 퀴즈 — 5일 다 인증한 사람만 노출. 운영자/스태프는 테스트용 미리 노출.
+    // 일주일치 다 풀고 나서 한 번에 복습해야 진짜 retention 효과 (Bjork: spaced + interleaved).
+    // operatorViewAsMember 켜져있으면 일반 멤버처럼 → 미리보기 잠금.
+    const isOperatorOrStaff = !!((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
+    const showReview = allDone || isOperatorOrStaff;
+    if (showReview) {
+      const reviewBtn = el('button', {
+        style: {
+          width: '100%',
+          marginTop: '14px',
+          padding: '14px 16px',
+          borderRadius: '16px',
+          background: isEmphasized ? 'rgba(251,247,240,0.10)' : 'linear-gradient(135deg, #FFF5E6 0%, #FFE5D9 100%)',
+          color: isEmphasized ? 'var(--cream)' : 'var(--orange-dark)',
+          border: isEmphasized ? '1px solid rgba(251,247,240,0.18)' : '1px solid var(--orange-soft)',
+          fontSize: '14px',
+          fontWeight: '800',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+        },
+        onClick: (ev) => {
+          ev.stopPropagation();
+          window.__currentReviewWeek = w.n;
+          go('week-review');
+        },
+      });
+      const previewTag = (!allDone && isOperatorOrStaff) ? ' <span style="font-size:10px;font-weight:700;background:rgba(125,92,255,0.18);color:#5C53A5;padding:2px 8px;border-radius:999px;margin-left:4px;">미리보기</span>' : '';
+      reviewBtn.innerHTML = `🧠 Week ${w.n} 진짜 외우기 — 3단계 복습${previewTag}`;
+      card.appendChild(reviewBtn);
+    } else if (progress > 0) {
+      // 이 주 진행 중이지만 다 못 끝낸 경우 — 잠금 상태 안내
+      const lockedHint = el('div', {
+        style: {
+          marginTop: '12px',
+          padding: '10px 14px',
+          borderRadius: '12px',
+          background: isEmphasized ? 'rgba(251,247,240,0.06)' : 'rgba(154,139,115,0.10)',
+          color: isEmphasized ? 'rgba(251,247,240,0.5)' : 'var(--muted)',
+          fontSize: '11.5px',
+          lineHeight: '1.5',
+          textAlign: 'center',
+        },
+      }, `🔒 Week ${w.n} 5일 다 인증하면 통합 복습 퀴즈가 열려요 (${progress}/${w.days.length})`);
+      card.appendChild(lockedHint);
+    }
+
     // Selected day preview inside the selected week card.
     if (isSelected && previewDayObj) {
       const preview = el('div', { style: { marginTop: '18px', paddingTop: '18px', borderTop: `1px solid ${isEmphasized ? 'rgba(251,247,240,0.14)' : 'rgba(231,221,200,0.9)'}` } });
@@ -6465,6 +6606,68 @@ function quizAnswerMatches(input, target) {
   // 하이픈·스페이스 다 제거한 형태로 한 번 더 비교
   const stripSep = (s) => s.replace(/[-\s]+/g, '');
   return stripSep(a) === stripSep(b);
+}
+
+// 어휘별 정답/오답/힌트/스킵 누적 — 운영자가 나중에 약점 어휘 분석 / 주 시험 / recap 콘텐츠에 활용.
+// UI 노출 X, 백엔드(app_state.vocab_stats)에만 silent 저장.
+// dedup: 같은 단어 / 같은 timestamp ≤ 1초 내 중복 호출 방지 (race 방어).
+function _ensureVocabStat(en) {
+  state.vocab_stats = state.vocab_stats || {};
+  const key = String(en || '').toLowerCase().trim();
+  if (!key) return null;
+  const entry = state.vocab_stats[key] || {
+    c: 0, w: 0, h: 0, s: 0,
+    firstResult: null, firstAt: null,   // 첫 시도 결과만 별도 — 진짜 약점 신호
+    firstHinted: false,                  // 첫 시도에서 힌트 봤는지
+    lastAt: null, lastWrongAt: null,
+  };
+  state.vocab_stats[key] = entry;
+  return entry;
+}
+function recordVocabAttempt(en, correct) {
+  try {
+    const entry = _ensureVocabStat(en);
+    if (!entry) return;
+    const now = Date.now();
+    if (entry._lastTickMs && (now - entry._lastTickMs) < 1000) return;
+    entry._lastTickMs = now;
+    // 첫 시도 결과 — 한 번만 기록 (이후 retake 영향 X). 운영자 분석에서 "초도 실력" 신호로 활용.
+    if (!entry.firstResult) {
+      entry.firstResult = correct ? 'correct' : 'wrong';
+      entry.firstAt = new Date(now).toISOString();
+    }
+    if (correct) entry.c = (entry.c || 0) + 1;
+    else { entry.w = (entry.w || 0) + 1; entry.lastWrongAt = new Date(now).toISOString(); }
+    entry.lastAt = new Date(now).toISOString();
+    saveState();
+  } catch (e) {}
+}
+// 힌트 본 횟수 — "맞췄지만 힌트 보고 맞춤" = 사실상 약점 신호.
+function recordVocabHint(en) {
+  try {
+    const entry = _ensureVocabStat(en);
+    if (!entry) return;
+    const now = Date.now();
+    if (entry._lastHintTickMs && (now - entry._lastHintTickMs) < 1000) return;
+    entry._lastHintTickMs = now;
+    entry.h = (entry.h || 0) + 1;
+    // 첫 시도 단계에서 힌트 봤으면 mark — 첫 시도 = firstResult 가 아직 안 박힌 상태
+    if (!entry.firstResult) entry.firstHinted = true;
+    entry.lastAt = new Date(now).toISOString();
+    saveState();
+  } catch (e) {}
+}
+// 스킵 횟수 — Skip 누른 어휘는 모르는 어휘 (오답 카운트에 포함되긴 하지만 별도 추적).
+function recordVocabSkip(en) {
+  try {
+    const entry = _ensureVocabStat(en);
+    if (!entry) return;
+    const now = Date.now();
+    if (entry._lastSkipTickMs && (now - entry._lastSkipTickMs) < 1000) return;
+    entry._lastSkipTickMs = now;
+    entry.s = (entry.s || 0) + 1;
+    saveState();
+  } catch (e) {}
 }
 
 function blankPatternFor(answer='') {
@@ -6614,6 +6817,13 @@ function hyphenVariants(word) {
   }
   return [...variants];
 }
+// 분리 가능한 phrasal verb 의 particle 들 — 사용자가 동사와 particle 사이에
+// 목적어를 끼워넣는 패턴 (drill it down / flesh it out / break it down) 매칭에 사용.
+const _PHRASAL_PARTICLES = new Set([
+  'up','down','in','out','off','on','over','through','away','back','around',
+  'apart','together','ahead','along','aside','forward','across',
+]);
+
 // 단어/구문이 텍스트 안에 시제·하이픈 변형 포함해서 들어있는지 검사.
 function targetIsInText(target, text) {
   const t = String(target || '').trim();
@@ -6649,7 +6859,23 @@ function targetIsInText(target, text) {
     '\\b(?:' + headInfl.map(_escRe).join('|') + ')\\s+' + tail + '\\b',
     'i'
   );
-  return re.test(txt);
+  if (re.test(txt)) return true;
+
+  // 분리 가능한 phrasal verb 매칭 — "drill down" 타겟인데 사용자가 "drill it down" /
+  //   "drill the metrics down" 같이 동사와 particle 사이에 목적어를 끼워넣은 경우.
+  // 영어 문법상 자주 쓰는 구조라 ✓ 처리해야 자연스러움.
+  // 마지막 토큰이 알려진 particle 일 때만 (drill down / break down / flesh out 등) 활성.
+  const lastTokLc = tokens[tokens.length - 1].toLowerCase().replace(/[.,!?]+$/, '');
+  if (tokens.length === 2 && _PHRASAL_PARTICLES.has(lastTokLc)) {
+    const tailEsc = _escRe(tokens[1]);
+    // V + (1~5 words) + particle. 명사구 (관사/소유격 + 명사들 / 대명사) 어디든 들어갈 수 있게.
+    const splitRe = new RegExp(
+      '\\b(?:' + headInfl.map(_escRe).join('|') + ')\\s+(?:\\S+\\s+){1,5}?' + tailEsc + '\\b',
+      'i'
+    );
+    if (splitRe.test(txt)) return true;
+  }
+  return false;
 }
 
 // 단일 phrase 의 inflection·하이픈 변형을 regex alternatives 로 만들어줌.
@@ -6681,6 +6907,15 @@ function _buildPhraseAlternatives(target) {
   const headInfl = inflectionVariants(tokens[0].toLowerCase());
   const tail = tokens.slice(1).map(_escRe).join('\\s+');
   headInfl.forEach((h) => out.push('\\b' + _escRe(h) + '\\s+' + tail + '\\b'));
+  // 분리 가능한 phrasal verb — "drill down" 인데 사용자가 "drill it down" 으로 쓴 경우.
+  // V + (1~5 words) + particle. 마지막 토큰이 알려진 particle 일 때만 발동.
+  const lastTokLc = tokens[tokens.length - 1].toLowerCase().replace(/[.,!?]+$/, '');
+  if (tokens.length === 2 && _PHRASAL_PARTICLES.has(lastTokLc)) {
+    const tailEsc = _escRe(tokens[1]);
+    headInfl.forEach((h) => {
+      out.push('\\b' + _escRe(h) + '\\s+(?:\\S+\\s+){1,5}?' + tailEsc + '\\b');
+    });
+  }
   // 대명사 치환 — target 안에 가운데 대명사가 있으면 1~5단어 명사구로 바뀌어도 매칭.
   // 예: "get it over the line" → "got this design over the line", "got the project over the line"
   for (let i = 1; i < tokens.length - 1; i += 1) {
@@ -7117,6 +7352,1772 @@ function VerifyPage(dayN) {
 }
 
 window.__weekPreview = window.__weekPreview || {};
+
+/* ============================================================
+   WEEK REVIEW PAGE — 한 주 통합 어휘 복습 (인지과학 기반 3단계)
+   ------------------------------------------------------------
+   Stage 1 — 익히기 (Recognition):
+     영어 단어 → 4지선다 한국어 뜻 고르기.
+     Karpicke & Roediger (2008) — testing 의 가장 가벼운 형태.
+   Stage 2 — 떠올리기 (Active Recall):
+     한국어 뜻 → 영어 직접 타이핑.
+     Slamecka & Graf (1978) generation effect — 직접 만들면 기억 강도 ↑.
+   Stage 3 — 섞어보기 (Interleaved Retrieval):
+     stage 1 + stage 2 무작위 섞어서.
+     Bjork desirable difficulty — blocked 보다 interleaved 가 retention +50%.
+
+   Premium: 유의어가 stage 안에 같이 섞여 나옴 (basic 은 메인만).
+   각 stage state: window.__weekReviewUi[`${weekN}-s${stage}`]
+   ============================================================ */
+window.__weekReviewUi = window.__weekReviewUi || {};
+window.__weekReviewQuestionsCache = window.__weekReviewQuestionsCache || {};
+
+const STAGE_META = {
+  1: { name: '익히기', emoji: '👀', subtitle: 'Recognition · 눈에 익혀요', color: '#7D5CFF' },
+  2: { name: '떠올리기', emoji: '🧠', subtitle: 'Active Recall · 직접 떠올려요', color: '#F07D38' },
+  3: { name: '섞어보기', emoji: '🎲', subtitle: 'Interleaved · 섞어서 마스터', color: '#22B36A' },
+};
+
+// 한 주에서 모든 어휘 (메인 + 옵션으로 유의어) 끌어오기.
+function _collectWeekVocab(weekN, includeSyn) {
+  const week = (CHALLENGE.weeks || []).find((w) => w.n === weekN);
+  if (!week) return [];
+  const out = [];
+  (week.days || []).forEach((d) => {
+    (d.words || []).forEach((w) => {
+      out.push({
+        en: w.en,
+        kr: w.def,
+        kind: 'main',
+        sourceMain: w.en,
+        sourceDay: d.day,
+        prompt: w.ex_en || '',
+        prompt_kr: w.ex_kr || '',
+      });
+      if (includeSyn && Array.isArray(w.syn)) {
+        w.syn.forEach((syn) => {
+          out.push({
+            en: syn,
+            kr: (typeof synonymMeaning === 'function' ? synonymMeaning(syn) : '') || w.def,
+            kind: 'syn',
+            sourceMain: w.en,
+            sourceDay: d.day,
+            prompt: '',
+            prompt_kr: '',
+          });
+        });
+      }
+    });
+  });
+  return out;
+}
+
+// stage 1 = 4지선다 (recognition), stage 2 = type (recall), stage 3 = mixed.
+function buildWeekReviewQuestions(weekN, stage = 1) {
+  // Cache 키에 tier 포함 — 운영자가 view 를 basic↔premium 토글하면 questions 다시 빌드됨.
+  const includeSyn = state.tier === 'premium';
+  const cacheKey = `${weekN}-s${stage}-${includeSyn ? 'p' : 'b'}`;
+  const cached = window.__weekReviewQuestionsCache[cacheKey];
+  if (Array.isArray(cached) && cached.length) return cached;
+
+  const vocab = _collectWeekVocab(weekN, includeSyn);
+  if (!vocab.length) return [];
+
+  const allKr = vocab.map((v) => v.kr).filter(Boolean);
+  const buildRecognition = (v) => {
+    // 정답 + 같은 주의 다른 한국어 뜻 3개로 distractor.
+    const distractors = allKr.filter((kr) => kr && kr !== v.kr);
+    // shuffle distractors
+    for (let i = distractors.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [distractors[i], distractors[j]] = [distractors[j], distractors[i]];
+    }
+    const choices = [v.kr, ...distractors.slice(0, 3)];
+    // shuffle final choices
+    for (let i = choices.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [choices[i], choices[j]] = [choices[j], choices[i]];
+    }
+    return {
+      mode: 'recognition',
+      en: v.en,
+      kr: v.kr,
+      choices,
+      correctIdx: choices.indexOf(v.kr),
+      kind: v.kind,
+      sourceMain: v.sourceMain,
+    };
+  };
+  const buildRecall = (v) => ({
+    mode: 'recall',
+    en: v.en,
+    kr: v.kr,
+    prompt: v.prompt,
+    prompt_kr: v.prompt_kr,
+    kind: v.kind,
+    sourceMain: v.sourceMain,
+  });
+
+  let questions;
+  if (stage === 1) {
+    questions = vocab.map(buildRecognition);
+  } else if (stage === 2) {
+    questions = vocab.map(buildRecall);
+  } else {
+    // Stage 3: 무작위로 어휘마다 둘 중 하나 모드 — 갯수 유지, interleaving 효과만 살림.
+    questions = vocab.map((v) => Math.random() < 0.5 ? buildRecognition(v) : buildRecall(v));
+  }
+
+  // Shuffle questions
+  for (let i = questions.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [questions[i], questions[j]] = [questions[j], questions[i]];
+  }
+  window.__weekReviewQuestionsCache[cacheKey] = questions;
+  return questions;
+}
+
+function WeekReviewPage(weekN) {
+  const week = (CHALLENGE.weeks || []).find((w) => w.n === weekN);
+  if (!week) return WeeksPage();
+
+  const isPremium = state.tier === 'premium';
+  // UI state 키 — tier 별로 분리. basic↔premium 토글 시 진행도 안 섞임.
+  const uiKey = (stage) => `${weekN}-s${stage}-${isPremium ? 'p' : 'b'}`;
+  window.__weekReviewActiveStage = window.__weekReviewActiveStage || {};
+  const activeStage = window.__weekReviewActiveStage[weekN] || 0; // 0 = stage 선택 화면
+
+  const page = el('div', { class: 'page' });
+
+  // Topbar
+  const head = el('div', { class: 'topbar' });
+  const back = el('button', { class: 'icon-btn', onClick: () => {
+    if (activeStage > 0) {
+      // stage 안에 있으면 stage 선택 화면으로, 아니면 weeks 로
+      window.__weekReviewActiveStage[weekN] = 0;
+      render();
+    } else {
+      go('weeks', { week: weekN });
+    }
+  } });
+  back.innerHTML = Icon('arrowLeft', 16);
+  head.appendChild(back);
+  head.appendChild(el('div', { style: { fontWeight: '800', fontSize: '16px' } }, `Week ${weekN} 진짜 외우기`));
+  const spacer = el('div', { class: 'icon-btn', style: { visibility: 'hidden' } });
+  head.appendChild(spacer);
+  page.appendChild(head);
+
+  // 기본 화면 (activeStage === 0) → 빙고 모드 (메인 화면)
+  if (activeStage === 0) {
+    return renderBingoMode(page, weekN, week, isPremium);
+  }
+  // (deprecated stage selector removed — 빙고 + Lightning 으로 통합. 깊게 풀고 싶으면 #review/{n}/stage/{s} 같은 직접 접근만)
+  if (false) {
+    const hero = el('div', { style: { padding: '20px 22px', borderRadius: '24px', background: 'linear-gradient(135deg, #FFF5E6 0%, #FFE5D9 100%)', marginBottom: '20px', border: '1px solid var(--orange-soft)' } });
+    hero.innerHTML = `
+      <div class="kicker" style="color:var(--orange-dark);">🧠 인지과학 기반 3단계 복습</div>
+      <div style="margin-top:8px;font-size:22px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.3;">한 번 보고 끝나는 게<br/>아니라, <span style="color:var(--orange-dark);">진짜 외워지게</span></div>
+      <div class="t-small" style="margin-top:10px;color:var(--ink-soft);line-height:1.6;">단어를 진짜 외우려면 단계별로 거쳐야 해요. 알아보기, 떠올리기, 섞어서. 학습 논문이 그렇대요.</div>
+    `;
+    page.appendChild(hero);
+
+    [1, 2, 3, 4].forEach((s) => {
+      const meta = STAGE_META[s];
+      const stageUi = window.__weekReviewUi[uiKey(s)];
+      const completed = stageUi && stageUi.done;
+      const score = stageUi ? `${stageUi.score}/${(buildWeekReviewQuestions(weekN, s) || []).length}` : '';
+      const card = el('button', {
+        style: {
+          width: '100%',
+          marginBottom: '12px',
+          padding: '20px 22px',
+          borderRadius: '20px',
+          background: completed ? 'rgba(74,160,124,0.08)' : '#fff',
+          border: '1px solid ' + (completed ? 'rgba(74,160,124,0.35)' : 'var(--line-soft, #E7DDC8)'),
+          textAlign: 'left',
+          cursor: 'pointer',
+          display: 'block',
+        },
+        onClick: () => {
+          window.__weekReviewActiveStage[weekN] = s;
+          render();
+        },
+      });
+      card.innerHTML = `
+        <div style="display:flex;align-items:flex-start;gap:14px;">
+          <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;background:${meta.color}20;display:grid;place-items:center;font-size:26px;">${meta.emoji}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+              <div style="font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${meta.name}</div>
+              ${completed ? `<span class="badge badge-green" style="font-size:10px;padding:2px 8px;">${score}</span>` : ''}
+            </div>
+            <div class="t-small" style="margin-top:4px;color:var(--ink-soft);font-size:12.5px;">${meta.subtitle}</div>
+          </div>
+          <div style="flex-shrink:0;color:var(--muted);">${Icon('arrowRight', 16)}</div>
+        </div>
+      `;
+      page.appendChild(card);
+    });
+
+    // Premium 안내
+    const premiumHint = el('div', {
+      style: {
+        marginTop: '14px',
+        padding: '12px 14px',
+        borderRadius: '12px',
+        background: isPremium ? 'rgba(125,92,255,0.08)' : 'rgba(154,139,115,0.08)',
+        border: '1px dashed ' + (isPremium ? 'rgba(125,92,255,0.32)' : 'rgba(154,139,115,0.32)'),
+        fontSize: '12px',
+        color: 'var(--ink-soft)',
+        lineHeight: '1.55',
+      },
+    }, isPremium
+      ? '👑 프리미엄 — 메인 어휘 + 유의어까지 다 같이 복습돼요.'
+      : '💎 베이직 — 메인 어휘만 복습. 프리미엄은 유의어까지 통합 출제됨.');
+    page.appendChild(premiumHint);
+
+    return page;
+  }
+
+  // 특정 stage 안 — 퀴즈 카드 렌더
+  const stage = activeStage;
+  const meta = STAGE_META[stage];
+  const key = uiKey(stage);
+
+  const questions = buildWeekReviewQuestions(weekN, stage);
+  const ui = window.__weekReviewUi[key] || { idx: 0, value: '', values: ['', ''], done: false, score: 0, reveal: false, revealAnswer: false };
+  window.__weekReviewUi[key] = ui;
+  const currentQuestion = questions[ui.idx] || questions[0];
+
+  // Stage hero (작게)
+  const stageHero = el('div', {
+    style: {
+      padding: '14px 18px',
+      borderRadius: '16px',
+      background: meta.color + '14',
+      border: '1px solid ' + meta.color + '44',
+      marginBottom: '16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+    },
+  });
+  stageHero.innerHTML = `
+    <div style="font-size:24px;line-height:1;">${meta.emoji}</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${meta.name}</div>
+      <div class="t-small" style="font-size:11.5px;color:var(--ink-soft);">${meta.subtitle}</div>
+    </div>
+    <span class="badge mono" style="background:${meta.color}28;color:${meta.color};font-size:10.5px;padding:4px 10px;flex-shrink:0;">${ui.idx + 1} / ${questions.length}</span>
+  `;
+  page.appendChild(stageHero);
+
+  // 결과 화면
+  if (ui.done) {
+    const passed = questions.length > 0 && (ui.score / questions.length) >= 0.7;
+    const resultCard = el('div', { class: 'card', style: { padding: '28px 24px', textAlign: 'center', borderRadius: '24px' } });
+    resultCard.innerHTML = `
+      <div class="kicker" style="color:${meta.color};">${meta.emoji} ${meta.name} 완료</div>
+      <div class="h2" style="margin-top:10px;">${passed ? '🎉 잘했어요!' : '한 번 더 풀어볼까요?'}</div>
+      <div style="margin-top:14px;font-size:48px;font-weight:800;color:${passed ? meta.color : 'var(--ink-soft)'};letter-spacing:-0.02em;">${ui.score}<span style="color:var(--muted);font-size:28px;">/${questions.length}</span></div>
+      <div class="t-small" style="margin-top:6px;color:var(--ink-soft);">정답률 ${Math.round(ui.score / questions.length * 100)}%</div>
+      <button class="btn btn-primary btn-full" style="margin-top:20px;" onclick="window.__restartWeekReview(${weekN}, ${stage})">다시 풀기</button>
+      ${stage < 3 ? `<button class="btn btn-ghost btn-full" style="margin-top:8px;background:${STAGE_META[stage+1].color};color:#fff;border:none;" onclick="window.__nextWeekReviewStage(${weekN}, ${stage+1})">${STAGE_META[stage+1].emoji} ${STAGE_META[stage+1].name} 로 →</button>` : ''}
+      <button class="btn btn-ghost btn-full" style="margin-top:8px;background:#fff;border:1px solid var(--line);" onclick="window.__nextWeekReviewStage(${weekN}, 0)">단계 선택으로</button>
+    `;
+    page.appendChild(resultCard);
+    return page;
+  }
+
+  if (!questions.length) {
+    page.appendChild(el('div', { class: 't-body', style: { padding: '40px 20px', textAlign: 'center' } }, '복습할 어휘가 아직 없어요.'));
+    return page;
+  }
+
+  const quizCard = el('div', { style: { padding: '18px', borderRadius: '24px', background: '#F7F5FF', border: '1px solid var(--line-soft, #E7DDC8)' } });
+
+  if (currentQuestion.mode === 'recognition') {
+    // 4지선다 (Recognition)
+    const choicesHtml = currentQuestion.choices.map((c, i) => {
+      const isPicked = ui.pickedIdx === i;
+      const isCorrect = i === currentQuestion.correctIdx;
+      const showResult = ui.revealAnswer || isPicked;
+      let bg = '#fff', borderC = 'var(--line-soft, #E7DDC8)', txt = 'var(--ink)';
+      if (showResult) {
+        if (isCorrect) { bg = 'rgba(74,160,124,0.14)'; borderC = '#4AA07C'; txt = '#22B36A'; }
+        else if (isPicked) { bg = 'rgba(232,116,60,0.10)'; borderC = '#E8743C'; txt = 'var(--orange-dark)'; }
+      }
+      return `
+        <button data-wr-choice="${i}" onclick="window.__pickWeekReviewChoice(${weekN}, ${stage}, ${i})"
+          style="display:block;width:100%;text-align:left;padding:14px 16px;border-radius:14px;background:${bg};border:1.5px solid ${borderC};color:${txt};font-size:14px;font-weight:600;line-height:1.4;cursor:${ui.revealAnswer ? 'default' : 'pointer'};margin-bottom:8px;${ui.revealAnswer && !isCorrect ? 'opacity:0.55;' : ''}">
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-right:8px;">${String.fromCharCode(65+i)}</span>${escapeHtml(c)}
+        </button>
+      `;
+    }).join('');
+
+    quizCard.innerHTML = `
+      <div style="padding:24px 18px;border-radius:20px;background:rgba(255,255,255,0.7);">
+        <div class="kicker" style="text-align:center;color:#8B84D7;margin-bottom:6px;">이 단어, 무슨 뜻이에요?</div>
+        <div style="text-align:center;font-size:30px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em;line-height:1.2;margin-bottom:20px;">${escapeHtml(currentQuestion.en)}</div>
+        ${currentQuestion.kind === 'syn' && currentQuestion.sourceMain ? `<div class="t-small" style="text-align:center;margin-bottom:14px;color:var(--muted);">유의어 · "${escapeHtml(currentQuestion.sourceMain)}"</div>` : ''}
+        ${choicesHtml}
+        ${ui.revealAnswer ? `<div style="display:flex;gap:8px;margin-top:14px;"><button class="btn btn-ghost" style="flex:1;justify-content:center;background:#4F4438;color:#fff;border:none;" onclick="window.__advanceWeekReview(${weekN}, ${stage}, false)">${ui.idx === questions.length - 1 ? '결과 보기' : '다음 문제'}</button></div>` : ''}
+      </div>
+    `;
+  } else {
+    // Recall — 한국어 → 영어 타이핑
+    const answerWidth = Math.min(Math.max(currentQuestion.en.length + 2, 12), 22);
+    const inputStyle = `display:inline-block;padding:8px 12px;text-align:center;font-size:24px;font-weight:700;line-height:1.3;letter-spacing:-0.02em;background:${ui.revealAnswer ? 'rgba(176,176,192,0.08)' : '#FFF7E0'};border:none;border-bottom:3px solid ${ui.revealAnswer ? '#D0CADF' : '#F0AC3D'};border-radius:8px 8px 0 0;color:${ui.revealAnswer ? '#B0B0C0' : '#35344A'};caret-color:#F07D38;width:${answerWidth}ch;max-width:90%;${ui.revealAnswer ? 'pointer-events:none;opacity:0.6;' : ''}`;
+
+    quizCard.innerHTML = `
+      <div style="padding:24px 18px;border-radius:20px;background:rgba(255,255,255,0.7);text-align:center;">
+        <div class="kicker" style="color:#8B84D7;margin-bottom:6px;">한국어를 영어로</div>
+        <div style="font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;margin-bottom:6px;">${escapeHtml(currentQuestion.kr)}</div>
+        ${currentQuestion.kind === 'syn' && currentQuestion.sourceMain ? `<div class="t-small" style="margin-bottom:14px;color:var(--muted);">유의어 · "${escapeHtml(currentQuestion.sourceMain)}"</div>` : '<div style="height:14px;"></div>'}
+        <input class="input" data-wr-input="1" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ${ui.revealAnswer ? 'disabled' : ''} style="${inputStyle}" placeholder="${ui.revealAnswer ? '' : '영어로 입력'}" value="${escapeHtml(ui.value || '')}" oninput="window.__setWeekReviewValue(${weekN}, ${stage}, this.value)" />
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;">
+          <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;${ui.revealAnswer ? 'opacity:0.45;pointer-events:none;' : ''}" onclick="window.__toggleWeekReviewHint(${weekN}, ${stage})">${ui.reveal ? '힌트 숨기기' : '힌트 보기'}</button>
+        </div>
+        ${ui.revealAnswer ? `
+          <div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:#FFF0E2;border:1px solid rgba(232,116,60,0.35);text-align:left;">
+            <div class="t-small mono" style="color:var(--orange-dark);letter-spacing:0.08em;">정답</div>
+            <div style="margin-top:6px;font-size:22px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em;">${escapeHtml(currentQuestion.en)}</div>
+          </div>
+        ` : (ui.reveal ? `<div style="margin-top:14px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);">${escapeHtml(buildVerifyHintMask(currentQuestion.en))}</div>` : '')}
+        <div style="display:flex;gap:8px;margin-top:18px;">
+          <button class="btn btn-ghost" style="flex:1;justify-content:center;background:#4F4438;color:#fff;border:none;" onclick="window.__advanceWeekReview(${weekN}, ${stage}, true)">${ui.revealAnswer ? (ui.idx === questions.length - 1 ? '결과 보기' : '확인했어요 · 다음') : (ui.idx === questions.length - 1 ? '모르겠어요 · 결과' : 'Skip')}</button>
+        </div>
+      </div>
+    `;
+
+    // 자동 포커스
+    if (!ui.revealAnswer) {
+      setTimeout(() => {
+        try {
+          const input = quizCard.querySelector('[data-wr-input="1"]');
+          if (input && document.activeElement !== input) input.focus({ preventScroll: true });
+        } catch (e) {}
+      }, 60);
+    }
+  }
+  page.appendChild(quizCard);
+
+  return page;
+}
+
+window.__weekReviewAutoTimers = window.__weekReviewAutoTimers || {};
+
+// 통합 정답 검사 — recognition (4지선다) / recall (타이핑) 분기.
+function _wrIsCorrect(question, ui) {
+  if (!question) return false;
+  if (question.mode === 'recognition') {
+    return Number.isInteger(ui.pickedIdx) && ui.pickedIdx === question.correctIdx;
+  }
+  // recall
+  return quizAnswerMatches(ui.value || '', question.en);
+}
+
+window.__setWeekReviewValue = (weekN, stage, value) => {
+  const key = `${weekN}-s${stage}-${state.tier === 'premium' ? 'p' : 'b'}`;
+  const ui = window.__weekReviewUi[key];
+  if (!ui) return;
+  ui.value = value;
+  if (ui.revealAnswer) return;
+  const questions = buildWeekReviewQuestions(weekN, stage);
+  const current = questions[ui.idx];
+  clearTimeout(window.__weekReviewAutoTimers[key]);
+  if (current && _wrIsCorrect(current, ui)) {
+    window.__weekReviewAutoTimers[key] = setTimeout(() => {
+      const live = window.__weekReviewUi[key];
+      if (live && _wrIsCorrect(questions[live.idx], live)) {
+        try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+        window.__flashCorrect && window.__flashCorrect();
+        setTimeout(() => window.__advanceWeekReview(weekN, stage, false), 700);
+      }
+    }, 200);
+  }
+};
+
+// Recognition (4지선다) 픽 — 즉시 채점. 정답이면 0.6초 후 다음.
+window.__pickWeekReviewChoice = (weekN, stage, idx) => {
+  const key = `${weekN}-s${stage}-${state.tier === 'premium' ? 'p' : 'b'}`;
+  const ui = window.__weekReviewUi[key];
+  if (!ui || ui.revealAnswer) return;
+  const questions = buildWeekReviewQuestions(weekN, stage);
+  const current = questions[ui.idx];
+  if (!current || current.mode !== 'recognition') return;
+  ui.pickedIdx = idx;
+  const correct = idx === current.correctIdx;
+  recordVocabAttempt(current.en, correct);
+  if (correct) {
+    window.__flashCorrect && window.__flashCorrect();
+    ui.score = (ui.score || 0) + 1;
+    setTimeout(() => {
+      const live = window.__weekReviewUi[key];
+      if (!live) return;
+      if (live.idx >= questions.length - 1) {
+        live.done = true;
+      } else {
+        live.idx += 1;
+        live.value = '';
+        live.values = ['', ''];
+        live.pickedIdx = null;
+      }
+      live.reveal = false;
+      live.revealAnswer = false;
+      render();
+    }, 700);
+  } else {
+    // 오답 → 정답 노출 (학습 시점) → 한 번 더 클릭해야 다음
+    ui.revealAnswer = true;
+  }
+  render();
+};
+
+window.__toggleWeekReviewHint = (weekN, stage) => {
+  const key = `${weekN}-s${stage}-${state.tier === 'premium' ? 'p' : 'b'}`;
+  const ui = window.__weekReviewUi[key];
+  if (!ui) return;
+  const turningOn = !ui.reveal;
+  ui.reveal = !ui.reveal;
+  if (turningOn) {
+    const questions = buildWeekReviewQuestions(weekN, stage);
+    const current = questions[ui.idx];
+    if (current && current.en) recordVocabHint(current.en);
+  }
+  render();
+};
+
+window.__advanceWeekReview = (weekN, stage, skipped) => {
+  const key = `${weekN}-s${stage}-${state.tier === 'premium' ? 'p' : 'b'}`;
+  const questions = buildWeekReviewQuestions(weekN, stage);
+  const ui = window.__weekReviewUi[key];
+  if (!ui) return;
+  const current = questions[ui.idx];
+  const correct = skipped ? false : _wrIsCorrect(current, ui);
+  // 통계 기록 — recall 모드만. recognition 은 __pickWeekReviewChoice 에서 별도 기록.
+  if (current && current.mode !== 'recognition' && !ui.revealAnswer) {
+    recordVocabAttempt(current.en, correct);
+    if (skipped) recordVocabSkip(current.en);
+  }
+  // 스킵이면 정답 한 번 보여주고 한 번 더 눌러야 진행
+  if (skipped && !ui.revealAnswer) {
+    ui.revealAnswer = true;
+    render();
+    return;
+  }
+  // recognition 의 경우 score 는 pickWeekReviewChoice 에서 이미 처리됨 — 중복 가산 방지
+  if (current && current.mode !== 'recognition') {
+    ui.score = (ui.score || 0) + (correct ? 1 : 0);
+  }
+  if (ui.idx >= questions.length - 1) {
+    ui.done = true;
+  } else {
+    ui.idx += 1;
+    ui.value = '';
+    ui.values = ['', ''];
+    ui.pickedIdx = null;
+  }
+  ui.reveal = false;
+  ui.revealAnswer = false;
+  render();
+};
+
+window.__restartWeekReview = (weekN, stage) => {
+  const key = `${weekN}-s${stage}-${state.tier === 'premium' ? 'p' : 'b'}`;
+  window.__weekReviewUi[key] = { idx: 0, value: '', values: ['', ''], pickedIdx: null, done: false, score: 0, reveal: false, revealAnswer: false };
+  // 새 회차 = 문제 새로 셔플 (basic / premium 둘 다 invalidate)
+  if (window.__weekReviewQuestionsCache) {
+    delete window.__weekReviewQuestionsCache[`${weekN}-s${stage}-b`];
+    delete window.__weekReviewQuestionsCache[`${weekN}-s${stage}-p`];
+  }
+  render();
+};
+
+window.__nextWeekReviewStage = (weekN, stage) => {
+  window.__weekReviewActiveStage = window.__weekReviewActiveStage || {};
+  window.__weekReviewActiveStage[weekN] = stage;
+  render();
+};
+
+/* ============================================================
+   🎯 BINGO MODE — Week 빙고판 (5×3 격자) + 본인 문장 recap
+   - 주간 어휘 15개를 5(day) × 3(word) 격자로 배치
+   - 각 셀 = 정답 횟수에 따라 진해짐 (0=옅음, 1=중간, 2+=진함)
+   - 셀 탭 → 그 단어 cloze 퀴즈 → 정답 시 셀 fill
+   - 다 채우면 confetti + 단어장 JPG 다운로드 버튼
+   ============================================================ */
+const BINGO_MASTERY = 2; // 2번 정답 = mastery (진하게)
+
+function _getBingoCount(weekN, en) {
+  if (!state.bingo || !state.bingo[String(weekN)]) return 0;
+  const k = String(en).toLowerCase().trim();
+  return Number(state.bingo[String(weekN)][k] || 0);
+}
+function _bumpBingoCount(weekN, en) {
+  const wk = String(weekN);
+  const k = String(en).toLowerCase().trim();
+  if (!k) return;
+  state.bingo = state.bingo || {};
+  state.bingo[wk] = state.bingo[wk] || {};
+  state.bingo[wk][k] = (state.bingo[wk][k] || 0) + 1;
+  // 전체 mastery 달성 시점 타임스탬프 (운영자 분석용 — 누가 언제 다 외웠는지)
+  if (state.bingo[wk][k] === BINGO_MASTERY) {
+    try {
+      const week = (CHALLENGE.weeks || []).find((w) => w.n === Number(wk));
+      if (week) {
+        const allWords = [];
+        (week.days || []).forEach((d) => (d.words || []).forEach((w) => allWords.push(String(w.en).toLowerCase().trim())));
+        const allMastered = allWords.every((w) => (state.bingo[wk][w] || 0) >= BINGO_MASTERY);
+        if (allMastered && !state.bingo[wk]._completedAt) {
+          state.bingo[wk]._completedAt = new Date().toISOString();
+        }
+      }
+    } catch (e) {}
+  }
+  saveState();
+}
+
+function _bingoCellShade(count) {
+  // 0 = 옅은 크림, 1 = 옅은 주황, 2+ = 진한 주황
+  if (count >= BINGO_MASTERY) return { bg: 'var(--orange)', fg: '#fff', border: 'var(--orange)', shadow: '0 6px 18px rgba(240,125,56,0.32)' };
+  if (count === 1) return { bg: 'rgba(240,125,56,0.22)', fg: 'var(--orange-dark)', border: 'rgba(240,125,56,0.4)', shadow: 'none' };
+  return { bg: '#FFFCF4', fg: 'var(--ink-soft)', border: 'rgba(231,221,200,0.9)', shadow: 'none' };
+}
+
+function renderBingoMode(page, weekN, week, isPremium) {
+  // 진행 중 drill 이면 drill 화면 우선
+  window.__bingoDrill = window.__bingoDrill || {};
+  const drill = window.__bingoDrill[weekN];
+  if (drill && !drill.done) return renderBingoDrill(page, weekN, week, drill);
+
+  // "기억 안나요" 체크된 어휘 — 영구 저장 (state.bingo_marked) + 이번 세션 캐시 동기화
+  state.bingo_marked = state.bingo_marked || {};
+  const wkKey = String(weekN);
+  state.bingo_marked[wkKey] = state.bingo_marked[wkKey] || [];
+  const markedList = state.bingo_marked[wkKey];
+  const markedSet = new Set(markedList.map((s) => String(s).toLowerCase().trim()));
+
+  // 어휘 펼치기 — Day 1-5 × Word 1-3 = 15개 메인.
+  const vocab = [];
+  (week.days || []).forEach((d) => {
+    (d.words || []).forEach((w, idx) => {
+      vocab.push({ ...w, sourceDay: d.day, idx });
+    });
+  });
+  const markedCount = markedSet.size;
+
+  // 운영자 전용 영역 — 데모 문장 채우기 + 진행도 초기화
+  // operatorViewAsMember 켜져있으면 일반 멤버처럼 보이게 숨김.
+  const isOperatorMain = !!((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
+  if (isOperatorMain) {
+    const opRow = el('div', {
+      style: { display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' },
+    });
+    // 데모 문장 채우기
+    const demoBtn = el('button', {
+      style: {
+        flex: '1', minWidth: '160px', padding: '10px 12px',
+        borderRadius: '10px', background: 'rgba(125,92,255,0.10)', color: '#5C53A5',
+        border: '1px dashed rgba(125,92,255,0.4)', fontSize: '11.5px', fontWeight: '700', cursor: 'pointer',
+      },
+      onClick: () => {
+        (week.days || []).forEach((d) => {
+          (d.words || []).forEach((w, idx) => {
+            const k = `d${d.day}-${idx}`;
+            if (!state.sentence_notes) state.sentence_notes = {};
+            if (!state.sentences) state.sentences = {};
+            if (!state.sentence_notes[k]) state.sentence_notes[k] = (w.ex_kr || `${w.def || w.en}로 시작하는 상황`).slice(0, 80);
+            if (!state.sentences[k]) state.sentences[k] = w.ex_en || `Let's use ${w.en}.`;
+          });
+        });
+        saveState();
+        showToast('🎭 Week ' + weekN + ' 데모 문장 채움');
+        render();
+      },
+    }, '🎭 데모 문장 채우기');
+    opRow.appendChild(demoBtn);
+    // 진행도 초기화 — 강력하게 (서버 sync 즉시 + 모든 캐시)
+    const resetBtn = el('button', {
+      style: {
+        flex: '1', minWidth: '160px', padding: '10px 12px',
+        borderRadius: '10px', background: 'rgba(230,69,69,0.08)', color: '#E64545',
+        border: '1px dashed rgba(230,69,69,0.35)', fontSize: '11.5px', fontWeight: '700', cursor: 'pointer',
+      },
+      onClick: async () => {
+        if (!confirm(`Week ${weekN} 진행도 초기화할까요? 체크 / 검증 점수 / 완료 flag 다 사라져요.`)) return;
+        const wkKey = String(weekN);
+        // 영구 state 다 비움 — 키 제거 + 빈 객체로 reassign 까지
+        if (!state.bingo_marked) state.bingo_marked = {};
+        if (!state.bingo_done) state.bingo_done = {};
+        if (!state.bingo_boss_results) state.bingo_boss_results = {};
+        if (!state.bingo) state.bingo = {};
+        delete state.bingo_marked[wkKey];
+        delete state.bingo_done[wkKey];
+        delete state.bingo_boss_results[wkKey];
+        delete state.bingo[wkKey];
+        // 세션 캐시도 정리
+        if (window.__bingoSelected) {
+          delete window.__bingoSelected[weekN];
+          delete window.__bingoSelected[String(weekN)];
+        }
+        if (window.__bingoDrill) {
+          delete window.__bingoDrill[weekN];
+          delete window.__bingoDrill[String(weekN)];
+        }
+        if (window.__bingoSentenceReveal) {
+          delete window.__bingoSentenceReveal[weekN];
+          delete window.__bingoSentenceReveal[String(weekN)];
+        }
+        if (window.__weekReviewActiveStage) {
+          delete window.__weekReviewActiveStage[weekN];
+          delete window.__weekReviewActiveStage[String(weekN)];
+        }
+        if (window.__weekReviewUi) {
+          Object.keys(window.__weekReviewUi).forEach((k) => {
+            if (k.startsWith(`${weekN}-s`) || k.startsWith(`${String(weekN)}-s`)) delete window.__weekReviewUi[k];
+          });
+        }
+        // 즉시 서버 sync — debounce 우회 (15초 merge 가 옛날 데이터로 복원하는 거 방지)
+        try { await saveState({ immediate: true }); } catch (e) { saveState(); }
+        showToast(`🔄 Week ${weekN} 진행도 초기화 완료`);
+        render();
+      },
+    }, '🔄 진행도 초기화');
+    opRow.appendChild(resetBtn);
+    page.appendChild(opRow);
+  }
+
+  // ─ 보상 — bingo_done 이면 맨 위에 등장 (사용자 즉각 확인 가능)
+  const reviewDoneAtTop = state.bingo_done && state.bingo_done[String(weekN)];
+  if (reviewDoneAtTop) {
+    const jpgAllowedTop = weekN <= 2;
+    const rewardCardTop = el('div', { style: { padding: '24px 22px', borderRadius: '24px', background: 'linear-gradient(135deg, #E8F5E9 0%, #F0F8E8 100%)', border: '1px solid rgba(74,160,124,0.4)', textAlign: 'center', marginBottom: '16px' } });
+    rewardCardTop.innerHTML = `
+      <div style="font-size:48px;line-height:1;margin-bottom:8px;">✨</div>
+      <div class="kicker" style="color:#22B36A;">복습 완료</div>
+      <div style="margin-top:8px;font-size:20px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.3;">Week ${weekN} 한 사이클 끝!</div>
+      <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;font-size:12.5px;">기억 안나는 단어가 또 나오면 다시 체크해서 복습해보세요.</div>
+      ${jpgAllowedTop ? `
+        <div style="margin-top:16px;padding:14px;border-radius:14px;background:rgba(255,255,255,0.85);border:1px solid var(--orange-soft);">
+          <div style="font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">📱 잠금화면 단어장 받기</div>
+          <div class="t-small" style="margin-top:6px;color:var(--ink-soft);font-size:11.5px;line-height:1.55;">폰 켤 때마다 자연스럽게 노출 → 무자각 복습</div>
+          <button onclick="window.__bingoDownloadJpg(${weekN})" class="btn btn-primary btn-full" style="margin-top:12px;background:var(--orange);border:none;font-size:14px;padding:12px;">📥 다운로드</button>
+        </div>
+      ` : `
+        <div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:rgba(154,139,115,0.12);border:1px dashed rgba(154,139,115,0.4);color:var(--muted);font-size:12px;line-height:1.55;">📦 잠금화면 배경은 Week 1·2 까지만. Week ${weekN}+ 는 챌린지 후반 보상 패키지로 따로 드려요 ✨</div>
+      `}
+    `;
+    page.appendChild(rewardCardTop);
+  }
+
+  // ─ Top intro — 따뜻한 환영
+  const intro = el('div', { style: { padding: '20px 22px', borderRadius: '22px', background: 'linear-gradient(135deg, #FFF5E6 0%, #FFE5D9 100%)', border: '1px solid var(--orange-soft)', marginBottom: '16px' } });
+  // 베이직 = 문서/이메일 타깃, 프리미엄 = 미팅/PT 타깃 — 톤 분리.
+  const introBody = isPremium
+    ? '열심히 하긴 했는데 막상 단어시험 볼 때 살짝 머뭇거리지 않으셨어요? 실제 미팅에서도 입에서 안 나올까 걱정되시구요?'
+    : '열심히 풀어봤는데 막상 영어 메일 / 보고서 쓸 때 단어가 바로 안 떠오르지 않으셨어요? 시험 때 살짝 머뭇거렸다면 진짜 외워진 게 아닐 수도 있어요.';
+  intro.innerHTML = `
+    <div class="kicker" style="color:var(--orange-dark);">🎯 주간 학습 · Week ${weekN}</div>
+    <div style="margin-top:8px;font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">5일 페이지 다 끝내셨네요!<br/>대단합니다 👏</div>
+    <div class="t-small" style="margin-top:10px;color:var(--ink-soft);line-height:1.65;font-size:13px;">
+      ${introBody}<br/><br/>
+      <b style="color:var(--orange-dark);">아래 한국어 문장을 보고 영어로 떠올려본 다음 탭해서 비교</b>해보세요. 안 떠올랐던 단어는 "기억 안나요" 체크 → 따로 빠르게 복습할 수 있어요.
+    </div>
+  `;
+  page.appendChild(intro);
+
+  // ─ 본인 문장 recap — 한국어 먼저 → 탭으로 영어 reveal.
+  // 진짜 학습 효과: KO 만 보고 머릿속에서 EN 떠올려보고 → 정답 비교 (active recall).
+  window.__bingoSentenceReveal = window.__bingoSentenceReveal || {};
+  window.__bingoSentenceReveal[weekN] = window.__bingoSentenceReveal[weekN] || {};
+  const revealed = window.__bingoSentenceReveal[weekN];
+
+  const myWeekSentences = [];
+  (week.days || []).forEach((d) => {
+    (d.words || []).forEach((w, idx) => {
+      const key = `d${d.day}-${idx}`;
+      const ko = (state.sentence_notes?.[key] || '').trim();
+      const en = (state.community_edits?.[`me-${key}`]?.sentence || state.sentences?.[key] || '').trim();
+      if (ko || en) myWeekSentences.push({ key, day: d.day, en: w.en, koSentence: ko, enSentence: en });
+    });
+  });
+  if (myWeekSentences.length) {
+    const recap = el('div', { style: { padding: '16px 16px 14px', borderRadius: '20px', background: '#fff', border: '1px solid var(--line-soft, #E7DDC8)', marginBottom: '18px' } });
+    recap.appendChild(el('div', { class: 'kicker', style: { color: 'var(--lilac)', marginBottom: '4px' } }, `📝 우선 내가 쓴 문장 둘러볼까요?`));
+    recap.appendChild(el('div', { class: 't-small', style: { color: 'var(--ink-soft)', marginBottom: '12px', fontSize: '12px', lineHeight: '1.55' } }, '한국어 보고 영어 떠올려본 다음 탭해서 비교해보세요.'));
+
+    myWeekSentences.forEach((s) => {
+      const isOpen = !!revealed[s.key];
+      const enKey = String(s.en).toLowerCase().trim();
+      const isMarked = markedSet.has(enKey);
+      // 메인 단어 + 유의어 둘 다 주황으로 강조 (highlightVocabInText 재활용)
+      const wordObj = vocab.find((v) => String(v.en).toLowerCase().trim() === enKey);
+      const enHtml = s.enSentence
+        ? (typeof highlightVocabInText === 'function'
+            ? highlightVocabInText(s.enSentence, wordObj)
+            : escapeHtml(s.enSentence))
+        : '';
+
+      const card = el('div', {
+        style: {
+          padding: '14px 16px',
+          marginBottom: '8px',
+          borderRadius: '14px',
+          background: isMarked ? 'rgba(232,116,60,0.08)' : '#FBF7F0',
+          border: '1px solid ' + (isMarked ? 'rgba(232,116,60,0.45)' : 'rgba(231,221,200,0.9)'),
+          transition: 'all 0.18s ease',
+        },
+      });
+      card.innerHTML = `
+        ${s.koSentence
+          ? `<div style="font-size:14.5px;color:var(--ink);line-height:1.55;font-weight:600;">${escapeHtml(s.koSentence)}</div>`
+          : '<div class="t-small" style="color:var(--muted);font-style:italic;">한국어 문장 비어있음</div>'}
+        ${s.enSentence ? `
+          <div data-act="toggle-en" style="margin-top:10px;padding:8px 0;cursor:pointer;position:relative;">
+            <div style="font-size:13.5px;line-height:1.6;color:var(--ink);${isOpen ? '' : 'filter:blur(5px);user-select:none;'}transition:filter 0.25s ease;">${enHtml}</div>
+            ${!isOpen ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;"><span style="background:rgba(255,255,255,0.85);padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700;color:var(--orange-dark);box-shadow:0 2px 8px rgba(0,0,0,0.06);">👀 탭해서 영어 보기</span></div>` : ''}
+          </div>
+        ` : `<div class="t-small" style="margin-top:8px;color:var(--muted);font-style:italic;">영어 문장 안 적으셨어요</div>`}
+        <button data-act="toggle-mark" style="display:flex;align-items:center;gap:6px;margin-top:10px;padding:6px 10px;border-radius:10px;background:${isMarked ? 'var(--orange)' : 'transparent'};color:${isMarked ? '#fff' : 'var(--orange-dark)'};border:1px solid ${isMarked ? 'var(--orange)' : 'var(--orange-soft)'};cursor:pointer;font-size:11.5px;font-weight:700;">
+          <span>${isMarked ? '✓' : '○'}</span><span>${isMarked ? '복습 큐에 담음' : '기억 안나요'}</span>
+        </button>
+      `;
+      const enToggle = card.querySelector('[data-act="toggle-en"]');
+      if (enToggle) enToggle.addEventListener('click', () => {
+        revealed[s.key] = !revealed[s.key];
+        render();
+      });
+      const markToggle = card.querySelector('[data-act="toggle-mark"]');
+      if (markToggle) markToggle.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const wkKey = String(weekN);
+        state.bingo_marked[wkKey] = state.bingo_marked[wkKey] || [];
+        const list = state.bingo_marked[wkKey];
+        const idx = list.indexOf(s.en);
+        if (idx >= 0) list.splice(idx, 1);
+        else list.push(s.en);
+        saveState();
+        render();
+      });
+      recap.appendChild(card);
+    });
+    page.appendChild(recap);
+  }
+
+  // ─ Drill 큐 빌더 (헬퍼)
+  const startDrill = (enKeys) => {
+    const queue = [];
+    enKeys.forEach((en) => {
+      const lower = String(en).toLowerCase().trim();
+      const v = vocab.find((vv) => String(vv.en).toLowerCase().trim() === lower);
+      if (v) queue.push(v);
+    });
+    for (let i = queue.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [queue[i], queue[j]] = [queue[j], queue[i]];
+    }
+    window.__bingoDrill[weekN] = { queue, idx: 0, value: '', score: 0, done: false, startedAt: Date.now() };
+    render();
+  };
+
+  // ─ CTA — "기억 안나요" 체크한 단어로 복습 시작
+  const ctaWrap = el('div', { style: { marginBottom: '18px' } });
+  if (markedCount > 0) {
+    const cta = el('button', {
+      style: {
+        width: '100%', padding: '16px', borderRadius: '16px',
+        background: 'var(--orange)', color: '#fff', border: 'none',
+        fontSize: '15px', fontWeight: '800', cursor: 'pointer',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+      },
+      onClick: () => startDrill(markedList),
+    });
+    cta.innerHTML = `
+      <span>🎯 체크한 ${markedCount}개 단어로 복습 시작 →</span>
+      <span style="font-size:11px;font-weight:600;opacity:0.85;">빈칸에 직접 영어 채우면서 외워봐요</span>
+    `;
+    ctaWrap.appendChild(cta);
+  } else {
+    ctaWrap.appendChild(el('div', {
+      style: {
+        padding: '14px', borderRadius: '14px', background: '#fff', border: '1px dashed var(--line-soft, #E7DDC8)',
+        textAlign: 'center', color: 'var(--muted)', fontSize: '12.5px', lineHeight: '1.5',
+      }
+    }, '↑ 한국어 문장 보고 영어 떠올리다가 막힌 어휘는 "기억 안나요" 체크하세요'));
+  }
+  page.appendChild(ctaWrap);
+
+  // ─ 기억하면 좋은 단어 리스트 — 마크된 단어들 모아보기 + 단어장 저장 옵션
+  if (markedList.length > 0) {
+    const wordList = el('div', { style: { padding: '16px', borderRadius: '20px', background: '#fff', border: '1px solid var(--line-soft, #E7DDC8)', marginBottom: '18px' } });
+    wordList.appendChild(el('div', { class: 'kicker', style: { color: 'var(--orange-dark)', marginBottom: '6px' } }, `📚 기억하면 좋은 단어 (${markedList.length}개)`));
+    wordList.appendChild(el('div', { class: 't-small', style: { color: 'var(--ink-soft)', marginBottom: '12px', fontSize: '12px', lineHeight: '1.5' } }, '단어장에 저장해두면 PT 준비, 미팅 노트에서 바로 꺼내 쓸 수 있어요.'));
+
+    markedList.forEach((en) => {
+      const v = vocab.find((vv) => vv.en === en);
+      if (!v) return;
+      // 이미 단어장에 저장됐는지 확인 (state.bookmarks 또는 pitch_vocab)
+      const bookmarkKey = `d${v.sourceDay}-${v.idx}`;
+      const lowerEn = String(en).toLowerCase().trim();
+      const isSaved = !!(state.bookmarks && state.bookmarks[bookmarkKey])
+        || (Array.isArray(state.pitch_vocab) && state.pitch_vocab.some((it) => String(it.word || '').toLowerCase().trim() === lowerEn));
+
+      const row = el('div', {
+        style: {
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: '10px 12px', marginBottom: '6px',
+          borderRadius: '12px', background: '#FFFCF4', border: '1px solid rgba(231,221,200,0.7)',
+        },
+      });
+      row.innerHTML = `
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em;">${escapeHtml(v.en)}</div>
+          <div class="t-small" style="margin-top:2px;font-size:11.5px;color:var(--ink-soft);">${escapeHtml(v.def || '')}</div>
+        </div>
+        <button data-act="save" style="flex-shrink:0;padding:6px 12px;border-radius:999px;background:${isSaved ? 'rgba(74,160,124,0.14)' : '#fff'};color:${isSaved ? '#22B36A' : 'var(--orange-dark)'};border:1px solid ${isSaved ? 'rgba(74,160,124,0.45)' : 'var(--orange-soft)'};font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">
+          ${isSaved ? '✓ 저장됨' : '+ 단어장'}
+        </button>
+        <button data-act="remove" title="이 단어 빼기" style="flex-shrink:0;padding:6px 8px;border-radius:8px;background:transparent;color:var(--muted);border:none;font-size:14px;cursor:pointer;">✕</button>
+      `;
+      const saveBtn = row.querySelector('[data-act="save"]');
+      if (saveBtn) saveBtn.addEventListener('click', () => {
+        // '나' 탭 MY WORD DECK 의 "단어" 카운트가 보는 source = state.bookmarks.
+        // Daily 페이지 북마크 토글이랑 동일한 데이터 라인을 쓰도록 통일.
+        const bookmarkKey = `d${v.sourceDay}-${v.idx}`;
+        state.bookmarks = state.bookmarks || {};
+        state.bookmarks[bookmarkKey] = true;
+        // 백그라운드 sync (Daily 토글이랑 일관성 — 다른 화면도 자동 갱신).
+        if (typeof syncDailyBookmarkToBank === 'function') {
+          syncDailyBookmarkToBank(v.sourceDay, v.idx, v, true);
+        }
+        saveState();
+        showToast(`📌 ${v.en} 저장 — '나' 탭 MY WORD DECK 에서 확인`);
+        render();
+      });
+      const removeBtn = row.querySelector('[data-act="remove"]');
+      if (removeBtn) removeBtn.addEventListener('click', () => {
+        const idx = markedList.indexOf(v.en);
+        if (idx >= 0) markedList.splice(idx, 1);
+        saveState();
+        render();
+      });
+      wordList.appendChild(row);
+    });
+    page.appendChild(wordList);
+  }
+
+  return page;
+}
+
+// Drill mode 렌더 — 선택한 어휘들 cloze 퀴즈 sequential.
+function renderBingoDrill(page, weekN, week, drill) {
+  // operatorViewAsMember 켜져있으면 일반 멤버 뷰 → 운영자 자동 입력 버튼 숨김.
+  const isOperator = !!((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
+  if (drill.idx >= drill.queue.length) {
+    if (drill.isBoss) {
+      // Boss test 완료 → 결과 화면
+      return renderBossResult(page, weekN, week, drill);
+    }
+    if (!drill.bossDone) {
+      // 1차 drill 끝 → 유버디 의심 messenger
+      return renderBossIntro(page, weekN, week, drill);
+    }
+    // 모든 단계 끝 — 메인 화면 복귀
+    drill.done = true;
+    setTimeout(() => {
+      window.__bingoDrill[weekN] = null;
+      if (window.__bingoSelected && window.__bingoSelected[weekN]) {
+        window.__bingoSelected[weekN].clear();
+      }
+      render();
+    }, 0);
+    page.appendChild(el('div', { class: 't-body', style: { padding: '40px', textAlign: 'center' } }, '복귀 중...'));
+    return page;
+  }
+
+  const w = drill.queue[drill.idx];
+  const total = drill.queue.length;
+  const progress = drill.idx + 1;
+
+  // Top — 종료/뒤로 (boss 면 다른 라벨 + 톤)
+  const accentColor = drill.isBoss ? 'var(--ink)' : 'var(--orange)';
+  const topRow = el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' } });
+  const exitBtn = el('button', {
+    style: { background: 'transparent', border: '1px solid var(--line)', color: 'var(--muted)', padding: '6px 12px', borderRadius: '999px', fontSize: '12px', cursor: 'pointer' },
+    onClick: () => { window.__bingoDrill[weekN] = null; render(); },
+  }, '← 나가기');
+  topRow.appendChild(exitBtn);
+  if (drill.isBoss) {
+    topRow.appendChild(el('span', {
+      style: { fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--ink)', background: '#FFF7EC', padding: '4px 12px', borderRadius: '999px', fontWeight: '800', letterSpacing: '0.08em' }
+    }, `🎲 유버디 검증 · ${progress}/${total}`));
+  } else {
+    topRow.appendChild(el('span', { class: 'mono', style: { fontSize: '12px', color: 'var(--muted)' } }, `${progress} / ${total}`));
+  }
+  page.appendChild(topRow);
+
+  // Progress bar
+  const progBar = el('div', { style: { height: '6px', background: 'rgba(0,0,0,0.06)', borderRadius: '999px', overflow: 'hidden', marginBottom: '20px' } });
+  progBar.innerHTML = `<div style="height:100%;width:${(drill.idx / total) * 100}%;background:${accentColor};transition:width 0.3s ease;"></div>`;
+  page.appendChild(progBar);
+
+  const card = el('div', { style: { padding: '18px', borderRadius: '20px', background: '#fff', border: '2px solid var(--orange)' } });
+
+  // ─ 객관식 (recognition) — boss 에서만 등장, 단답이랑 섞임
+  if (w.mode === 'recognition' && Array.isArray(w.choices)) {
+    const choicesHtml = w.choices.map((c, i) => {
+      const isPicked = drill.pickedIdx === i;
+      const isCorrect = i === w.correctIdx;
+      const showResult = drill.revealAnswer || isPicked;
+      let bg = '#fff', borderC = 'var(--line-soft, #E7DDC8)', txt = 'var(--ink)';
+      if (showResult) {
+        if (isCorrect) { bg = 'rgba(74,160,124,0.14)'; borderC = '#4AA07C'; txt = '#22B36A'; }
+        else if (isPicked) { bg = 'rgba(232,116,60,0.10)'; borderC = '#E8743C'; txt = 'var(--orange-dark)'; }
+      }
+      return `
+        <button onclick="window.__bingoDrillPickChoice(${weekN}, ${i})" style="display:block;width:100%;text-align:left;padding:14px 16px;border-radius:14px;background:${bg};border:1.5px solid ${borderC};color:${txt};font-size:13.5px;font-weight:600;line-height:1.4;cursor:${drill.revealAnswer ? 'default' : 'pointer'};margin-bottom:8px;${drill.revealAnswer && !isCorrect ? 'opacity:0.55;' : ''}">
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-right:8px;">${String.fromCharCode(65+i)}</span>${escapeHtml(c)}
+        </button>
+      `;
+    }).join('');
+    card.innerHTML = `
+      <div data-verify-quiz-card="1" style="position:relative;padding:24px 18px;border-radius:16px;background:#FFF7EC;overflow:hidden;">
+        <div class="kicker" style="color:${drill.isBoss ? 'var(--ink)' : 'var(--orange-dark)'};text-align:center;margin-bottom:8px;">${drill.isBoss ? '🎲 마지막 관문 · 객관식' : '객관식'}</div>
+        <div style="text-align:center;font-size:30px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em;line-height:1.2;margin-bottom:18px;">${escapeHtml(w.en)}</div>
+        ${choicesHtml}
+        ${drill.revealAnswer ? `<div style="display:flex;gap:8px;margin-top:14px;"><button onclick="window.__bingoDrillSkip(${weekN})" style="flex:1;padding:12px;border-radius:12px;background:#4F4438;color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;">다음 문제</button></div>` : ''}
+      </div>
+      ${isOperator ? `<button onclick="window.__bingoDrillOperatorAuto(${weekN})" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;background:rgba(125,92,255,0.10);color:#5C53A5;border:1px dashed rgba(125,92,255,0.4);font-size:11.5px;font-weight:700;cursor:pointer;">⚙️ 운영자 자동 입력 (테스트)</button>` : ''}
+    `;
+    page.appendChild(card);
+    return page;
+  }
+
+  // ─ 단답 (recall · cloze)
+  // boss 에선 미리 만들어둔 pre/post 사용, 일반 drill 에선 즉석 split
+  let pre, post, sentenceBroken = false;
+  if (drill.isBoss && (w.pre !== undefined || w.post !== undefined)) {
+    pre = w.pre || '';
+    post = w.post || '';
+  } else {
+    const escaped = String(w.en).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(escaped, 'i');
+    const m = w.ex_en && w.ex_en.match(re);
+    if (m) {
+      pre = w.ex_en.slice(0, m.index);
+      post = w.ex_en.slice(m.index + m[0].length);
+    } else {
+      // 직접 매칭 실패 (대명사 치환 등) → 깨끗한 빈 cloze. 한국어 힌트만 보여줌.
+      pre = '';
+      post = '';
+      sentenceBroken = true;
+    }
+  }
+
+  card.innerHTML = `
+    <div data-verify-quiz-card="1" style="position:relative;padding:24px 18px;border-radius:16px;background:#FFF7EC;text-align:left;overflow:hidden;">
+      <div class="kicker" style="color:${drill.isBoss ? 'var(--ink)' : 'var(--orange-dark)'};text-align:center;margin-bottom:12px;">${drill.isBoss ? '🎲 마지막 관문 · 빈칸 채우기' : 'Day ' + w.sourceDay + ' · 빈칸 채우기'}</div>
+      <div style="font-size:18px;font-weight:600;color:var(--ink);line-height:1.7;word-break:keep-all;">
+        ${escapeHtml(pre)}<input data-bingo-drill-input class="input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="..." value="${escapeHtml(drill.value || '')}" oninput="window.__bingoDrillCheck(${weekN}, this.value)" style="display:inline-block;padding:6px 10px;text-align:center;font-size:20px;font-weight:800;background:#fff;border:none;border-bottom:3px solid var(--orange);border-radius:8px 8px 0 0;color:var(--ink);min-width:100px;width:${Math.min(Math.max((w.en || '').length + 3, 8), 18)}ch;max-width:80%;vertical-align:baseline;" />${escapeHtml(post)}
+      </div>
+      ${w.ex_kr ? `<div class="t-small" style="margin-top:14px;padding-top:10px;border-top:1px dashed rgba(240,125,56,0.25);color:var(--ink-soft);font-size:12.5px;line-height:1.5;">💡 ${escapeHtml(w.ex_kr)}</div>` : ''}
+      ${w.def ? `<div class="t-small" style="margin-top:4px;color:var(--muted);font-size:11.5px;">뜻 · ${escapeHtml(w.def)}</div>` : ''}
+      ${drill.reveal ? `<div style="margin-top:14px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);text-align:center;">${escapeHtml(typeof buildVerifyHintMask === 'function' ? buildVerifyHintMask(w.en) : w.en)}</div>` : ''}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button onclick="window.__bingoDrillToggleHint(${weekN})" style="flex:1;padding:12px;border-radius:12px;background:#fff;color:var(--ink);border:1px solid var(--line);font-size:13px;font-weight:700;cursor:pointer;">${drill.reveal ? '힌트 숨기기' : '💡 힌트 보기'}</button>
+      <button onclick="window.__bingoDrillSkip(${weekN})" style="flex:1;padding:12px;border-radius:12px;background:#4F4438;color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;">모르겠어요 · 다음</button>
+    </div>
+    ${isOperator ? `<button onclick="window.__bingoDrillOperatorAuto(${weekN})" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;background:rgba(125,92,255,0.10);color:#5C53A5;border:1px dashed rgba(125,92,255,0.4);font-size:11.5px;font-weight:700;cursor:pointer;">⚙️ 운영자 자동 입력 (테스트)</button>` : ''}
+  `;
+  page.appendChild(card);
+
+  // 자동 포커스
+  setTimeout(() => {
+    try {
+      const inp = card.querySelector('[data-bingo-drill-input]');
+      if (inp && document.activeElement !== inp) inp.focus({ preventScroll: true });
+    } catch (e) {}
+  }, 60);
+
+  return page;
+}
+
+// 유버디 의심 메신저 — 1차 drill 끝 후 노출.
+function renderBossIntro(page, weekN, week, drill) {
+  const card = el('div', { style: { borderRadius: '24px', overflow: 'hidden', background: '#FBF7F0', border: '1px solid var(--orange-soft)', marginBottom: '14px', boxShadow: '0 12px 32px rgba(0,0,0,0.06)' } });
+  card.innerHTML = `
+    <!-- Messenger header -->
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;background:#FFFCF4;border-bottom:1px solid var(--line-soft, #E7DDC8);">
+      <div style="width:42px;height:42px;border-radius:50%;background:rgba(240,125,56,0.18);display:grid;place-items:center;font-size:22px;">🌟</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:800;color:var(--ink);">유버디</div>
+        <div class="t-small" style="font-size:11px;color:var(--muted);">Week ${weekN} 마지막 관문</div>
+      </div>
+      <span class="t-small mono" style="font-size:10px;color:var(--orange-dark);background:var(--orange-ghost);padding:3px 8px;border-radius:999px;font-weight:800;">FINAL</span>
+    </div>
+    <!-- Bubbles (왼쪽 정렬, 카톡 톤) -->
+    <div style="padding:18px;display:flex;flex-direction:column;gap:8px;">
+      <div style="align-self:flex-start;max-width:80%;padding:10px 14px;border-radius:18px 18px 18px 4px;background:#fff;border:1px solid rgba(231,221,200,0.7);color:var(--ink);font-size:14px;line-height:1.55;">
+        잘 했어요 👏
+      </div>
+      <div style="align-self:flex-start;max-width:85%;padding:10px 14px;border-radius:18px 18px 18px 4px;background:#fff;border:1px solid rgba(231,221,200,0.7);color:var(--ink);font-size:14px;line-height:1.55;">
+        그런데 진짜 다 외워졌나... 한 번만 더 확인해도 될까요? 😊
+      </div>
+      <div style="align-self:flex-start;max-width:85%;padding:10px 14px;border-radius:18px 18px 18px 4px;background:#fff;border:1px solid rgba(231,221,200,0.7);color:var(--ink);font-size:14px;line-height:1.55;">
+        랜덤 10개 (빈칸 + 객관식 섞어서) <b>70% 이상</b> 맞추면 진짜 통과예요 ✨
+      </div>
+      <div style="align-self:flex-start;max-width:85%;padding:10px 14px;border-radius:18px 18px 18px 4px;background:rgba(240,125,56,0.10);border:1px solid var(--orange-soft);color:var(--orange-dark);font-size:13px;line-height:1.55;font-weight:700;">
+        Week ${weekN} 중에서 <b>랜덤</b>으로 골라봤어요. 원래 약했던 거 진짜 외워졌는지 한번 테스트해볼게요 🤓
+      </div>
+    </div>
+    <!-- Action — 건너뛰기 X, 통과만. 운영자만 skip 가능. -->
+    <div style="padding:0 18px 18px;display:flex;flex-direction:column;gap:8px;">
+      <button onclick="window.__bingoStartBoss(${weekN})" style="width:100%;padding:14px;border-radius:14px;background:var(--ink);color:var(--cream);border:none;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:-0.01em;">🎲 마지막 관문 도전 (10문제)</button>
+      ${((state.isOperator || state.isStaff) && !state.operatorViewAsMember) ? `
+        <button onclick="window.__bingoOperatorSkipFinal(${weekN})" style="width:100%;padding:10px;border-radius:10px;background:rgba(125,92,255,0.10);color:#5C53A5;border:1px dashed rgba(125,92,255,0.4);font-size:11.5px;font-weight:700;cursor:pointer;">⚙️ 운영자 — 파이널 건너뛰기 (완료 화면으로)</button>
+      ` : ''}
+    </div>
+  `;
+  page.appendChild(card);
+  return page;
+}
+
+// 유버디 검증 결과 화면 — 70% 룰 (PASS / RETRY).
+function renderBossResult(page, weekN, week, drill) {
+  const correct = drill.score || 0;
+  const total = drill.queue.length || 10;
+  const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+  const passed = pct >= 70;
+
+  let mood, emoji, msg, msg2;
+  if (pct >= 90) {
+    mood = '#22B36A'; emoji = '🏆';
+    msg = '완벽해요! 진짜 다 외우셨네요'; msg2 = '이건 진짜 인정. 잠금화면 단어장으로 마무리 가시죠 🚀';
+  } else if (pct >= 70) {
+    mood = '#22B36A'; emoji = '✨';
+    msg = '통과! 잘하셨어요'; msg2 = '거의 다 외운 거 맞네요. 자주 헷갈리는 한두 개만 더 다듬으면 완벽.';
+  } else if (pct >= 50) {
+    mood = '#F0AC3D'; emoji = '🤓';
+    msg = '아쉽! 한 번만 더 가볼까요?'; msg2 = '반은 잘 알고 계세요. 막힌 어휘 다시 보고 한 번 더 풀면 통과 가능해요.';
+  } else {
+    mood = '#E64545'; emoji = '💪';
+    msg = '조금 더 익히고 다시 와요'; msg2 = '괜찮아요, 처음엔 다 그래요. 단어 카드 한 번 더 보고 다시 도전해보세요!';
+  }
+
+  const card = el('div', { style: { borderRadius: '24px', overflow: 'hidden', background: '#FBF7F0', border: '1px solid ' + mood + '55', marginBottom: '14px' } });
+  card.innerHTML = `
+    <div style="padding:28px 22px 22px;text-align:center;">
+      <div style="font-size:56px;line-height:1;margin-bottom:10px;">${emoji}</div>
+      <div class="kicker" style="color:${mood};">${passed ? '🎉 유버디 검증 통과' : '유버디 검증 결과'}</div>
+      <div style="margin-top:10px;font-size:22px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.3;">${msg}</div>
+      <div style="margin-top:18px;font-size:54px;font-weight:800;color:${mood};letter-spacing:-0.04em;line-height:1;font-family:var(--font-mono);">${correct}<span style="color:var(--muted);font-size:28px;">/${total}</span></div>
+      <div class="t-small" style="margin-top:6px;color:var(--ink-soft);font-size:13px;">정답률 ${pct}% · 통과선 70%</div>
+      <div class="t-small" style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#fff;border:1px solid var(--line-soft, #E7DDC8);color:var(--ink-soft);font-size:12.5px;line-height:1.55;">${msg2}</div>
+    </div>
+    <div style="padding:0 22px 22px;display:flex;flex-direction:column;gap:8px;">
+      ${passed
+        ? `<button onclick="window.__bingoFinishBoss(${weekN})" class="btn btn-primary btn-full" style="background:${mood};border:none;font-size:14px;padding:14px;">✨ 통과 — 다음으로 →</button>`
+        : `<button onclick="window.__bingoStartBoss(${weekN})" class="btn btn-primary btn-full" style="background:${mood};border:none;font-size:14px;padding:14px;">💪 다시 도전 (랜덤 10개)</button>
+           <button onclick="window.__bingoBackToBoard(${weekN})" class="btn btn-ghost btn-full" style="background:#fff;border:1px solid var(--line);font-size:13px;">← 단어 카드 다시 보기</button>`}
+    </div>
+  `;
+  page.appendChild(card);
+  return page;
+}
+
+window.__bingoStartBoss = (weekN) => {
+  const drill = (window.__bingoDrill || {})[weekN];
+  const week = (CHALLENGE.weeks || []).find((w) => w.n === weekN);
+  if (!drill || !week) return;
+  // Boss 풀 = 한 주 전체 메인 어휘 (ex_en 가진 거)
+  const pool = [];
+  (week.days || []).forEach((d) => {
+    (d.words || []).forEach((w, idx) => {
+      if (w.ex_en && w.en) pool.push({ ...w, sourceDay: d.day, idx });
+    });
+  });
+  // 셔플
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  // 모든 def (객관식 distractor 만들기용)
+  const allDefs = pool.map((w) => w.def).filter(Boolean);
+
+  const shuffleArr = (arr) => {
+    for (let i = arr.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+
+  // 10개 cap, 모드 50/50 (객관식 + 단답 섞임). Bjork desirable difficulty.
+  // 단, 단답 (cloze) 은 단어가 예문에 직접 매칭될 때만. 매칭 안 되는 단어 (대명사 치환 케이스)
+  // 는 자동으로 객관식으로 떨어트려서 깨진 cloze 안 보이게.
+  const buildRecognition = (w) => {
+    const distractors = allDefs.filter((d) => d !== w.def);
+    shuffleArr(distractors);
+    const choices = shuffleArr([w.def, ...distractors.slice(0, 3)]);
+    return { ...w, mode: 'recognition', choices, correctIdx: choices.indexOf(w.def) };
+  };
+  const buildRecall = (w) => {
+    const escaped = String(w.en).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(escaped, 'i');
+    const m = w.ex_en && w.ex_en.match(re);
+    if (!m) return null; // 직접 매칭 안 되면 cloze 불가 → 객관식 fallback
+    return { ...w, mode: 'recall', pre: w.ex_en.slice(0, m.index), post: w.ex_en.slice(m.index + m[0].length) };
+  };
+
+  const tenWords = pool.slice(0, Math.min(10, pool.length));
+  const queue = tenWords.map((w, i) => {
+    const wantRecall = i % 2 === 1; // 짝/홀 번갈아
+    if (wantRecall) {
+      const recall = buildRecall(w);
+      if (recall) return recall;
+      // 매칭 실패 → 객관식 fallback
+    }
+    return buildRecognition(w);
+  });
+  // 큐 자체도 한 번 더 셔플 (mode 분포 자연스럽게)
+  shuffleArr(queue);
+
+  drill.queue = queue;
+  drill.idx = 0;
+  drill.value = '';
+  drill.pickedIdx = null;
+  drill.score = 0;
+  drill.isBoss = true;
+  drill.bossDone = false;
+  drill.bossStartedAt = Date.now();
+  render();
+};
+
+// 통과 (70%+) 시점 — 보상 화면으로.
+window.__bingoFinishBoss = (weekN) => {
+  const drill = (window.__bingoDrill || {})[weekN];
+  if (!drill) return;
+  drill.bossDone = true;
+  drill.done = true;
+  state.bingo_done = state.bingo_done || {};
+  if (!state.bingo_done[String(weekN)]) state.bingo_done[String(weekN)] = new Date().toISOString();
+  state.bingo_boss_results = state.bingo_boss_results || {};
+  state.bingo_boss_results[String(weekN)] = {
+    score: drill.score || 0,
+    total: drill.queue.length || 10,
+    at: new Date().toISOString(),
+  };
+  saveState();
+  window.__bingoDrill[weekN] = null;
+  if (window.__bingoSelected && window.__bingoSelected[weekN]) {
+    window.__bingoSelected[weekN].clear();
+  }
+  render();
+};
+
+// 70% 미만 시점 — drill 끝내고 메인 카드 화면으로 (재학습 유도).
+window.__bingoBackToBoard = (weekN) => {
+  window.__bingoDrill[weekN] = null;
+  render();
+};
+
+// 운영자 전용 — 파이널 통째로 건너뛰고 완료 화면 (보상 카드) 으로 점프.
+// 테스트 / 시연 시 빠르게 결과 화면 확인용.
+window.__bingoOperatorSkipFinal = (weekN) => {
+  if (!(state.isOperator || state.isStaff)) return;
+  state.bingo_done = state.bingo_done || {};
+  if (!state.bingo_done[String(weekN)]) state.bingo_done[String(weekN)] = new Date().toISOString();
+  // 시연용 가짜 점수 박음 (10/10 통과로)
+  state.bingo_boss_results = state.bingo_boss_results || {};
+  if (!state.bingo_boss_results[String(weekN)]) {
+    state.bingo_boss_results[String(weekN)] = {
+      score: 10, total: 10, at: new Date().toISOString(), operatorBypass: true,
+    };
+  }
+  saveState();
+  // drill / selection 초기화
+  if (window.__bingoDrill) window.__bingoDrill[weekN] = null;
+  if (window.__bingoSelected && window.__bingoSelected[weekN]) {
+    window.__bingoSelected[weekN].clear();
+  }
+  showToast('⚙️ 파이널 건너뛰기 — 완료 화면으로');
+  render();
+};
+
+window.__bingoDrillCheck = (weekN, value) => {
+  const drill = (window.__bingoDrill || {})[weekN];
+  if (!drill || drill.done) return;
+  drill.value = value;
+  const w = drill.queue[drill.idx];
+  if (!w || w.mode === 'recognition') return; // 객관식이면 typing 안 받음
+  if (quizAnswerMatches(value, w.en)) {
+    _bumpBingoCount(weekN, w.en);
+    recordVocabAttempt(w.en, true);
+    try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+    window.__flashCorrect && window.__flashCorrect();
+    drill.score = (drill.score || 0) + 1;
+    drill.idx += 1;
+    drill.value = '';
+    drill.reveal = false;
+    setTimeout(() => render(), 700);
+  }
+};
+// 객관식 (boss 의 recognition 모드) — 클릭으로 답.
+window.__bingoDrillPickChoice = (weekN, idx) => {
+  const drill = (window.__bingoDrill || {})[weekN];
+  if (!drill || drill.done || drill.revealAnswer) return;
+  const w = drill.queue[drill.idx];
+  if (!w || w.mode !== 'recognition') return;
+  drill.pickedIdx = idx;
+  const correct = idx === w.correctIdx;
+  recordVocabAttempt(w.en, correct);
+  if (correct) {
+    _bumpBingoCount(weekN, w.en);
+    drill.score = (drill.score || 0) + 1;
+    window.__flashCorrect && window.__flashCorrect();
+    setTimeout(() => {
+      drill.idx += 1;
+      drill.value = '';
+      drill.pickedIdx = null;
+      drill.revealAnswer = false;
+      render();
+    }, 700);
+  } else {
+    // 오답 → 정답 노출 (학습), 한 번 더 클릭으로 다음
+    drill.revealAnswer = true;
+  }
+  render();
+};
+window.__bingoDrillSkip = (weekN) => {
+  const drill = (window.__bingoDrill || {})[weekN];
+  if (!drill || drill.done) return;
+  const w = drill.queue[drill.idx];
+  if (w) recordVocabSkip(w.en);
+  drill.idx += 1;
+  drill.value = '';
+  drill.pickedIdx = null;
+  drill.reveal = false;
+  drill.revealAnswer = false;
+  render();
+};
+window.__bingoDrillToggleHint = (weekN) => {
+  const drill = (window.__bingoDrill || {})[weekN];
+  if (!drill || drill.done) return;
+  drill.reveal = !drill.reveal;
+  // 힌트 본 어휘는 stats 에 기록 (정답 맞춰도 약점 신호)
+  if (drill.reveal && drill.queue[drill.idx]) {
+    recordVocabHint(drill.queue[drill.idx].en);
+  }
+  render();
+};
+window.__bingoDrillOperatorAuto = (weekN) => {
+  if (!(state.isOperator || state.isStaff)) return;
+  const drill = (window.__bingoDrill || {})[weekN];
+  if (!drill || drill.done) return;
+  const w = drill.queue[drill.idx];
+  if (!w) return;
+  _bumpBingoCount(weekN, w.en);
+  try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+  window.__flashCorrect && window.__flashCorrect();
+  drill.idx += 1;
+  drill.value = '';
+  setTimeout(() => render(), 400);
+};
+window.__bingoReset = (weekN) => {
+  if (!confirm('이 주차 빙고판을 초기화할까요? 진행도 다 사라져요.')) return;
+  state.bingo = state.bingo || {};
+  delete state.bingo[String(weekN)];
+  saveState();
+  render();
+};
+
+// 단어장 JPG 다운로드 — iPhone 잠금화면 사이즈 (1170×2532).
+// 2-column grid 라 15개 어휘 다 들어감. 잠금 화면에 깔아두면 폰 켤 때마다 자연 노출.
+window.__bingoDownloadJpg = (weekN) => {
+  if (weekN > 2) {
+    showToast('단어장 다운로드는 Week 1·2 까지만 가능해요.');
+    return;
+  }
+  try {
+    const week = (CHALLENGE.weeks || []).find((w) => w.n === weekN);
+    if (!week) return;
+    const vocab = [];
+    (week.days || []).forEach((d) => {
+      (d.words || []).forEach((w) => vocab.push({ ...w, day: d.day }));
+    });
+
+    // iPhone 잠금화면 사이즈 (Pro Max 까지 호환)
+    const W = 1170, H = 2532;
+    // 모바일 safe zone — 어느 기종이든 잘 보이게 가운데로 확실히 몰기.
+    // 좌우 패딩 크게, 위/아래 안전 영역 충분히.
+    const SAFE_TOP = 620;     // 시계 영역 + 여유
+    const SAFE_BOTTOM = 420;  // 홈 인디케이터 + 위젯 영역
+    const SIDE_PAD = 200;     // 좌우 패딩 ↑↑
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // 배경 — 부드러운 크림 그라디언트
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+    bgGrad.addColorStop(0, '#FBF7F0');
+    bgGrad.addColorStop(1, '#F4E8D5');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Header — safe top 영역 시작점
+    const headerY = SAFE_TOP;
+    ctx.fillStyle = '#F07D38';
+    ctx.font = '600 26px -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('YOUBUDDY · 5기', SIDE_PAD, headerY);
+
+    ctx.fillStyle = '#1A1612';
+    ctx.font = '800 76px -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif';
+    ctx.fillText(`Week ${weekN} 단어장`, SIDE_PAD, headerY + 90);
+
+    ctx.fillStyle = '#6E5C46';
+    ctx.font = '500 26px -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif';
+    ctx.fillText(`${vocab.length}개 어휘 · 잠금화면 복습용`, SIDE_PAD, headerY + 132);
+
+    // Divider
+    ctx.strokeStyle = '#C8B89A';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(SIDE_PAD, headerY + 175);
+    ctx.lineTo(W - SIDE_PAD, headerY + 175);
+    ctx.stroke();
+
+    // 2-column vocab grid — content area 만 사용 (가운데로 몰림)
+    const gridStartY = headerY + 220;
+    const gridEndY = H - SAFE_BOTTOM;
+    const availW = W - (SIDE_PAD * 2);
+    const cardGap = 22;
+    const cols = 2;
+    const cardW = (availW - cardGap) / cols;
+    const rows = Math.ceil(vocab.length / cols);
+    const availH = gridEndY - gridStartY - 60; // 푸터 60px 양보
+    const cardH = Math.min(180, Math.floor((availH - (rows - 1) * cardGap) / rows));
+
+    // Day color palette (Day 별 살짝 다른 액센트)
+    const dayColors = {
+      1: '#F07D38', // orange
+      2: '#7D5CFF', // lilac
+      3: '#22B36A', // green
+      4: '#E64545', // red
+      5: '#3B82F6', // blue
+    };
+
+    vocab.forEach((w, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = SIDE_PAD + col * (cardW + cardGap);
+      const y = gridStartY + row * (cardH + cardGap);
+
+      // Card background
+      ctx.fillStyle = '#FFFCF4';
+      ctx.strokeStyle = '#E7DDC8';
+      ctx.lineWidth = 1.5;
+      const radius = 18;
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + cardW - radius, y);
+      ctx.quadraticCurveTo(x + cardW, y, x + cardW, y + radius);
+      ctx.lineTo(x + cardW, y + cardH - radius);
+      ctx.quadraticCurveTo(x + cardW, y + cardH, x + cardW - radius, y + cardH);
+      ctx.lineTo(x + radius, y + cardH);
+      ctx.quadraticCurveTo(x, y + cardH, x, y + cardH - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Day color stripe (왼쪽 4px)
+      ctx.fillStyle = dayColors[w.day] || '#F07D38';
+      ctx.fillRect(x, y, 4, cardH);
+
+      const padX = 22;
+
+      // Day badge
+      ctx.fillStyle = dayColors[w.day] || '#F07D38';
+      ctx.font = '700 16px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(`DAY ${w.day}`, x + padX, y + 30);
+
+      // English word — wrap if too long
+      ctx.fillStyle = '#1A1612';
+      const enLen = (w.en || '').length;
+      const enFontSize = enLen > 16 ? 26 : enLen > 12 ? 32 : 38;
+      ctx.font = `800 ${enFontSize}px -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif`;
+      const enText = enLen > 22 ? w.en.slice(0, 20) + '…' : w.en;
+      ctx.fillText(enText, x + padX, y + 70);
+
+      // Korean def
+      ctx.fillStyle = '#4A3C30';
+      ctx.font = '500 18px -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif';
+      const def = w.def || '';
+      const maxChars = 22;
+      if (def.length <= maxChars) {
+        ctx.fillText(def, x + padX, y + 108);
+      } else {
+        const splitPt = def.lastIndexOf(' ', maxChars);
+        const split = splitPt > maxChars * 0.5 ? splitPt : maxChars;
+        ctx.fillText(def.slice(0, split), x + padX, y + 108);
+        ctx.fillText(def.slice(split).trim().slice(0, maxChars), x + padX, y + 132);
+      }
+
+      // 작은 example en (있고 카드 충분히 크면)
+      if (w.ex_en && cardH >= 170) {
+        ctx.fillStyle = '#A89884';
+        ctx.font = 'italic 14px -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif';
+        const exTrim = w.ex_en.length > 42 ? w.ex_en.slice(0, 40) + '…' : w.ex_en;
+        ctx.fillText('"' + exTrim + '"', x + padX, y + cardH - 18);
+      }
+    });
+
+    // Footer — safe bottom 영역 위쪽
+    ctx.fillStyle = '#8C7A66';
+    ctx.font = '500 20px -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('youbuddy.co.kr · 매일 5분의 변화', W / 2, H - SAFE_BOTTOM + 80);
+
+    // Download
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `youbuddy-week${weekN}-lockscreen.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+      showToast('잠금화면 단어장 받았어요 🎉 폰 잠금화면에 깔아두세요');
+    }, 'image/jpeg', 0.92);
+  } catch (e) {
+    console.error('JPG export failed', e);
+    showToast('단어장 다운로드 실패. 다시 시도해주세요.');
+  }
+};
+
+/* ============================================================
+   ⚡ Lightning Round — 30초 sprint, 입에 붙이기 자동 reflex 강화
+   - 한국어 → 영어 빠르게 입력
+   - 정답 시 즉시 다음 + 시간 +2초 보너스 (sustained engagement)
+   - 오답이면 정답 잠깐 보여주고 (페널티 -1초) 다음
+   - 끝나면 정답 갯수 / 정답률 / 평균 시간 + 최고 기록 (localStorage) 저장
+   ============================================================ */
+const LIGHTNING_TIME_S = 30;
+const LIGHTNING_BONUS_S = 2;
+const LIGHTNING_PENALTY_S = 1;
+const LIGHTNING_BEST_KEY = 'yb5_lightning_best_v1';
+
+function _lightningPool(weekN) {
+  // Cloze sprint — 영어 예문에 타깃 빈칸. 메인 어휘만 (ex_en 가진 거).
+  // 유의어는 ex_en 없어서 cloze 불가 → 메인만 출제. 의미 명확 + retention 강함.
+  const week = (CHALLENGE.weeks || []).find((w) => w.n === weekN);
+  if (!week) return [];
+  const out = [];
+  (week.days || []).forEach((d) => {
+    (d.words || []).forEach((w) => {
+      if (!w.ex_en || !w.en) return;
+      // 타깃이 ex_en 안에 들어있는지 확인 (있는 거만 cloze 가능)
+      const escaped = String(w.en).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(escaped, 'i');
+      const match = w.ex_en.match(re);
+      if (!match) return;
+      const idx = match.index;
+      out.push({
+        en: w.en,
+        kr: w.def,
+        ex_en: w.ex_en,
+        ex_kr: w.ex_kr || '',
+        pre: w.ex_en.slice(0, idx),
+        post: w.ex_en.slice(idx + match[0].length),
+      });
+    });
+  });
+  // shuffle
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+function _readLightningBest() {
+  try { return JSON.parse(localStorage.getItem(LIGHTNING_BEST_KEY) || '{}'); }
+  catch { return {}; }
+}
+function _saveLightningBest(weekN, score) {
+  try {
+    const all = _readLightningBest();
+    const cur = all[`w${weekN}`] || 0;
+    if (score > cur) {
+      all[`w${weekN}`] = score;
+      localStorage.setItem(LIGHTNING_BEST_KEY, JSON.stringify(all));
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
+function renderLightningRound(page, weekN, key, meta) {
+  const ui = window.__weekReviewUi[key] || { phase: 'start', timeLeft: LIGHTNING_TIME_S, correct: 0, wrong: 0, idx: 0, value: '', pool: null, lastWrong: null };
+  window.__weekReviewUi[key] = ui;
+
+  const bestAll = _readLightningBest();
+  const best = bestAll[`w${weekN}`] || 0;
+
+  // Hero 박스
+  const stageHero = el('div', {
+    style: {
+      padding: '14px 18px',
+      borderRadius: '16px',
+      background: meta.color + '14',
+      border: '1px solid ' + meta.color + '44',
+      marginBottom: '16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+    },
+  });
+  stageHero.innerHTML = `
+    <div style="font-size:28px;line-height:1;">${meta.emoji}</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${meta.name}</div>
+      <div class="t-small" style="font-size:11.5px;color:var(--ink-soft);">${meta.subtitle}</div>
+    </div>
+    ${best ? `<span class="badge mono" style="background:${meta.color}28;color:${meta.color};font-size:10.5px;padding:4px 10px;flex-shrink:0;">⭐ best ${best}</span>` : ''}
+  `;
+  page.appendChild(stageHero);
+
+  // Start 화면
+  if (ui.phase === 'start') {
+    const startCard = el('div', { style: { padding: '32px 24px', borderRadius: '24px', background: '#fff', border: '1px solid var(--line-soft, #E7DDC8)', textAlign: 'center' } });
+    startCard.innerHTML = `
+      <div style="font-size:64px;line-height:1;margin-bottom:16px;">⚡</div>
+      <div style="font-size:24px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">30초 빈칸 스프린트</div>
+      <div class="t-small" style="margin-top:10px;color:var(--ink-soft);line-height:1.6;font-size:13.5px;">영어 예문의 빈칸을 빠르게 채워보세요.<br/>맞추면 +${LIGHTNING_BONUS_S}초 보너스, 모르면 -${LIGHTNING_PENALTY_S}초 페널티.</div>
+      <div class="t-small" style="margin-top:14px;padding:10px 14px;border-radius:10px;background:rgba(230,69,69,0.08);color:#E64545;font-size:11.5px;line-height:1.55;">
+        💡 문맥 속에서 단어 떠올리는 훈련이에요. 한국어 힌트는 아래 작게 표시. 하이픈/공백 변형 다 정답.
+      </div>
+      <button class="btn btn-primary btn-full" style="margin-top:22px;background:${meta.color};border:none;font-size:16px;padding:14px;" onclick="window.__startLightning(${weekN})">⚡ Start</button>
+      ${best ? `<div class="t-small mono" style="margin-top:14px;color:var(--muted);">최고 기록 · ${best}개</div>` : ''}
+    `;
+    page.appendChild(startCard);
+    return page;
+  }
+
+  // 결과 화면
+  if (ui.phase === 'done') {
+    const accuracy = ui.correct + ui.wrong > 0 ? Math.round(ui.correct / (ui.correct + ui.wrong) * 100) : 0;
+    const isNewBest = ui.correct > 0 && ui.correct >= best;
+    const resultCard = el('div', { style: { padding: '32px 24px', borderRadius: '24px', background: '#fff', border: '1px solid var(--line-soft, #E7DDC8)', textAlign: 'center' } });
+    resultCard.innerHTML = `
+      <div style="font-size:48px;line-height:1;margin-bottom:8px;">${isNewBest ? '🏆' : '⚡'}</div>
+      <div class="kicker" style="color:${meta.color};">${isNewBest ? 'NEW BEST!' : '결과'}</div>
+      <div style="margin-top:14px;font-size:64px;font-weight:800;color:${meta.color};letter-spacing:-0.04em;line-height:1;font-family:var(--font-mono);">${ui.correct}</div>
+      <div class="t-small" style="margin-top:6px;color:var(--ink-soft);font-size:13px;">개 맞춤 · 30초 안에</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px;">
+        <div style="padding:12px;border-radius:12px;background:rgba(74,160,124,0.08);">
+          <div style="font-family:var(--font-mono);font-size:22px;font-weight:800;color:#22B36A;">${ui.correct}</div>
+          <div class="t-small" style="font-size:10.5px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;">정답</div>
+        </div>
+        <div style="padding:12px;border-radius:12px;background:rgba(230,69,69,0.08);">
+          <div style="font-family:var(--font-mono);font-size:22px;font-weight:800;color:#E64545;">${ui.wrong}</div>
+          <div class="t-small" style="font-size:10.5px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;">오답</div>
+        </div>
+      </div>
+      <div class="t-small" style="margin-top:10px;color:var(--ink-soft);">정답률 ${accuracy}% · ${best > 0 && !isNewBest ? `최고 ${best}` : ''}</div>
+      <button class="btn btn-primary btn-full" style="margin-top:22px;background:${meta.color};border:none;" onclick="window.__startLightning(${weekN})">🔁 다시 도전</button>
+      <button class="btn btn-ghost btn-full" style="margin-top:8px;background:#fff;border:1px solid var(--line);" onclick="window.__nextWeekReviewStage(${weekN}, 0)">단계 선택으로</button>
+    `;
+    page.appendChild(resultCard);
+    return page;
+  }
+
+  // Playing 화면
+  const current = ui.pool && ui.pool[ui.idx];
+  if (!current) {
+    // 풀 다 떨어진 경우 — 끝
+    ui.phase = 'done';
+    setTimeout(() => render(), 0);
+    return page;
+  }
+
+  const timePct = Math.max(0, Math.min(100, ui.timeLeft / LIGHTNING_TIME_S * 100));
+  const lowTime = ui.timeLeft <= 10;
+
+  const playCard = el('div', { style: { padding: '0', borderRadius: '24px', background: '#fff', border: '2px solid ' + (lowTime ? '#E64545' : meta.color), overflow: 'hidden' } });
+  playCard.innerHTML = `
+    <!-- Timer bar -->
+    <div style="position:relative;height:8px;background:rgba(0,0,0,0.06);">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:${timePct}%;background:${lowTime ? '#E64545' : meta.color};transition:width 0.3s linear;"></div>
+    </div>
+    <div style="padding:22px 18px;">
+      <!-- Stats top -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+        <div style="display:flex;align-items:baseline;gap:6px;">
+          <span style="font-family:var(--font-mono);font-size:32px;font-weight:800;color:${lowTime ? '#E64545' : 'var(--ink)'};letter-spacing:-0.02em;line-height:1;">${ui.timeLeft.toFixed(1)}</span>
+          <span class="t-small" style="color:var(--muted);">초</span>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <div style="text-align:center;">
+            <div style="font-family:var(--font-mono);font-size:18px;font-weight:800;color:#22B36A;">${ui.correct}</div>
+            <div class="t-small" style="font-size:9.5px;color:var(--muted);letter-spacing:0.08em;">정답</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-family:var(--font-mono);font-size:18px;font-weight:800;color:#E64545;">${ui.wrong}</div>
+            <div class="t-small" style="font-size:9.5px;color:var(--muted);letter-spacing:0.08em;">오답</div>
+          </div>
+        </div>
+      </div>
+      <!-- Question (cloze) -->
+      <div data-verify-quiz-card="1" style="position:relative;text-align:left;padding:24px 18px;border-radius:16px;background:#FFF7EC;">
+        <div class="kicker" style="color:${meta.color};margin-bottom:10px;text-align:center;">빈칸 채우기</div>
+        <div style="font-size:18px;font-weight:600;color:var(--ink);line-height:1.7;word-break:keep-all;">
+          ${escapeHtml(current.pre || '')}<input class="input" data-lr-input="1" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="display:inline-block;padding:6px 10px;text-align:center;font-size:20px;font-weight:800;background:#fff;border:none;border-bottom:3px solid ${meta.color};border-radius:8px 8px 0 0;color:var(--ink);min-width:120px;width:${Math.min(Math.max((current.en || '').length + 3, 8), 18)}ch;max-width:80%;vertical-align:baseline;" placeholder="..." value="${escapeHtml(ui.value || '')}" oninput="window.__setLightningValue(${weekN}, this.value)" />${escapeHtml(current.post || '')}
+        </div>
+        ${current.ex_kr ? `<div class="t-small" style="margin-top:12px;padding-top:10px;border-top:1px dashed rgba(230,69,69,0.25);color:var(--ink-soft);font-size:12.5px;line-height:1.5;">💡 ${escapeHtml(current.ex_kr)}</div>` : ''}
+        ${current.kr ? `<div class="t-small" style="margin-top:6px;color:var(--muted);font-size:11.5px;">뜻 · ${escapeHtml(current.kr)}</div>` : ''}
+        ${ui.lastWrong ? `<div style="margin-top:12px;padding:10px 14px;border-radius:12px;background:rgba(230,69,69,0.10);color:#E64545;font-size:13.5px;font-weight:700;text-align:center;">${escapeHtml(ui.lastWrong)}</div>` : ''}
+      </div>
+      <button class="btn btn-ghost btn-full" style="margin-top:14px;background:transparent;border:1px solid var(--line);color:var(--muted);font-size:12px;" onclick="window.__skipLightning(${weekN})">모르겠어요 · 넘기기 (-${LIGHTNING_PENALTY_S}초)</button>
+    </div>
+  `;
+  page.appendChild(playCard);
+
+  // 자동 포커스
+  setTimeout(() => {
+    try {
+      const input = playCard.querySelector('[data-lr-input="1"]');
+      if (input && document.activeElement !== input) input.focus({ preventScroll: true });
+    } catch (e) {}
+  }, 60);
+
+  return page;
+}
+
+window.__startLightning = (weekN) => {
+  const stage = 4;
+  const key = `${weekN}-s${stage}-${state.tier === 'premium' ? 'p' : 'b'}`;
+  const pool = _lightningPool(weekN);
+  window.__weekReviewUi[key] = {
+    phase: 'playing',
+    timeLeft: LIGHTNING_TIME_S,
+    correct: 0,
+    wrong: 0,
+    idx: 0,
+    value: '',
+    pool,
+    lastWrong: null,
+  };
+  // 기존 타이머 정리
+  if (window.__lightningTimer) clearInterval(window.__lightningTimer);
+  const startedAt = Date.now();
+  let lastTickAt = startedAt;
+  window.__lightningTimer = setInterval(() => {
+    const now = Date.now();
+    const dt = (now - lastTickAt) / 1000;
+    lastTickAt = now;
+    const ui = window.__weekReviewUi[key];
+    if (!ui || ui.phase !== 'playing') {
+      clearInterval(window.__lightningTimer);
+      window.__lightningTimer = null;
+      return;
+    }
+    ui.timeLeft = Math.max(0, ui.timeLeft - dt);
+    if (ui.timeLeft <= 0) {
+      ui.phase = 'done';
+      _saveLightningBest(weekN, ui.correct);
+      clearInterval(window.__lightningTimer);
+      window.__lightningTimer = null;
+    }
+    // 100ms 마다 timer 표시 업데이트 — 전체 render 호출은 무거우니 timer 영역만 직접 업데이트
+    try {
+      const live = document.querySelector('.page');
+      if (!live) return;
+      const timerSpan = live.querySelector('[data-lr-timer]');
+      // 풀 render 는 1초마다만 (low time flicker 줄이기)
+      if (ui.phase === 'done' || (now - startedAt) % 1000 < 100) {
+        render();
+      }
+    } catch (e) {}
+  }, 100);
+  render();
+};
+
+window.__setLightningValue = (weekN, value) => {
+  const stage = 4;
+  const key = `${weekN}-s${stage}-${state.tier === 'premium' ? 'p' : 'b'}`;
+  const ui = window.__weekReviewUi[key];
+  if (!ui || ui.phase !== 'playing') return;
+  ui.value = value;
+  const current = ui.pool[ui.idx];
+  if (!current) return;
+  // 정답 즉시 체크 (하이픈·공백 변형 인정)
+  if (quizAnswerMatches(value, current.en)) {
+    recordVocabAttempt(current.en, true);
+    ui.correct = (ui.correct || 0) + 1;
+    ui.timeLeft = Math.min(LIGHTNING_TIME_S * 2, ui.timeLeft + LIGHTNING_BONUS_S);
+    ui.idx += 1;
+    ui.value = '';
+    ui.lastWrong = null;
+    if (ui.idx >= ui.pool.length) {
+      ui.phase = 'done';
+      _saveLightningBest(weekN, ui.correct);
+      if (window.__lightningTimer) {
+        clearInterval(window.__lightningTimer);
+        window.__lightningTimer = null;
+      }
+    }
+    window.__flashCorrect && window.__flashCorrect();
+    render();
+  }
+};
+
+window.__skipLightning = (weekN) => {
+  const stage = 4;
+  const key = `${weekN}-s${stage}-${state.tier === 'premium' ? 'p' : 'b'}`;
+  const ui = window.__weekReviewUi[key];
+  if (!ui || ui.phase !== 'playing') return;
+  const current = ui.pool[ui.idx];
+  if (!current) return;
+  recordVocabAttempt(current.en, false);
+  recordVocabSkip(current.en);
+  ui.wrong = (ui.wrong || 0) + 1;
+  ui.timeLeft = Math.max(0, ui.timeLeft - LIGHTNING_PENALTY_S);
+  ui.lastWrong = `정답: ${current.en}`;
+  ui.idx += 1;
+  ui.value = '';
+  setTimeout(() => {
+    const live = window.__weekReviewUi[key];
+    if (live) {
+      live.lastWrong = null;
+      render();
+    }
+  }, 1200);
+  if (ui.idx >= ui.pool.length) {
+    ui.phase = 'done';
+    _saveLightningBest(weekN, ui.correct);
+    if (window.__lightningTimer) {
+      clearInterval(window.__lightningTimer);
+      window.__lightningTimer = null;
+    }
+  } else if (ui.timeLeft <= 0) {
+    ui.phase = 'done';
+    _saveLightningBest(weekN, ui.correct);
+    if (window.__lightningTimer) {
+      clearInterval(window.__lightningTimer);
+      window.__lightningTimer = null;
+    }
+  }
+  render();
+};
 
 /* ============================================================
    DAY PAGE — the actual learning note
@@ -12284,6 +14285,14 @@ function SettingsModal() {
         ${state.tierOverride ? `<div style="margin-top:6px;font-size:10.5px;color:var(--muted);line-height:1.5;">현재 <b>override</b> 상태 (<code>${escapeHtml(state.tierOverride)}</code>). 원래 티어로 돌아가려면 <button style="background:none;border:none;padding:0;color:#6B4F7D;font-weight:700;cursor:pointer;text-decoration:underline;" onclick="window.__restoreTier()">여기 클릭</button>.</div>` : ''}
       </div>
     ` : ''}
+    ${(state.isOperator || state.isStaff) ? `
+      <div style="margin-top:14px;padding:14px;border-radius:14px;background:${state.operatorViewAsMember ? 'rgba(34,179,106,0.06)' : '#F5F1FA'};border:1px solid ${state.operatorViewAsMember ? 'rgba(34,179,106,0.28)' : 'rgba(155,127,174,0.22)'};">
+        <div class="kicker" style="color:${state.operatorViewAsMember ? '#16A34A' : '#7B5E8C'};">STAFF · 멤버 뷰 토글</div>
+        <div style="margin-top:6px;font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">👀 일반 회원처럼 보기</div>
+        <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">켜두면 이 기기의 운영자 전용 UI(데모 채우기, 정답으로 넘기기, 미리보기 배지, 다른 멤버 본명 등)를 전부 숨겨서 진짜 베이직/프리미엄 멤버 화면으로 보여요. 다른 멤버한테는 영향 없음. ${state.operatorViewAsMember ? `<span style="color:#16A34A;font-weight:700;">· 현재 ON · 멤버 뷰</span>` : `<span style="color:var(--muted);font-weight:600;">· 현재 OFF · 운영자 뷰</span>`}</div>
+        <button id="__settingsToggleViewAsMember" class="btn btn-ghost btn-full" style="margin-top:10px;border-color:${state.operatorViewAsMember ? 'rgba(22,163,74,0.32)' : 'rgba(155,127,174,0.32)'};color:${state.operatorViewAsMember ? '#16A34A' : '#6B4F7D'};">${state.operatorViewAsMember ? '✅ 멤버 뷰 ON · 끄기' : '👀 멤버 뷰로 보기'}</button>
+      </div>
+    ` : ''}
     ${state.isOperator ? `
       <div style="margin-top:14px;padding:14px;border-radius:14px;background:#FFF7EF;border:1px solid rgba(240,125,56,0.18);">
         <div class="kicker" style="color:var(--orange-dark);">OPERATOR ONLY</div>
@@ -12437,6 +14446,17 @@ function SettingsModal() {
         exportCohortBtn.innerHTML = originalText;
         exportCohortBtn.disabled = false;
       }
+    };
+
+    // Operator: 👀 일반 회원처럼 보기 토글 (운영자 UI 전체 숨김)
+    const toggleViewAsMemberBtn = document.getElementById('__settingsToggleViewAsMember');
+    if (toggleViewAsMemberBtn) toggleViewAsMemberBtn.onclick = () => {
+      state.operatorViewAsMember = !state.operatorViewAsMember;
+      try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
+      showToast(state.operatorViewAsMember ? '👀 멤버 뷰 ON · 운영자 UI 숨김' : '운영자 뷰로 돌아왔어요');
+      // 모달 닫고 다시 그려서 다른 페이지에도 즉시 반영
+      showSettings = false;
+      render();
     };
 
     // Operator: 🧪 챌린지 프리뷰 언락 토글 (D-? 에도 본인만 제출/AI/시험 풀게)
@@ -12729,7 +14749,8 @@ function MemberCardModal(memberRef) {
   //   - 그 외 피어 카드 에선 아예 안 보임 (프라이버시 — 다른 사람한테 본명 안 노출)
   //   - 영어 닉네임이 비어있으면 어쩔 수 없이 한국어 이름이 headline 으로 fallback
   //     (그 사람이 아직 닉네임을 세팅 안 한 상태)
-  const viewerIsStaff = !!(state.isOperator || state.isStaff);
+  // operatorViewAsMember 켜둔 운영자는 멤버 시점이라 다른 멤버 본명 안 보이게.
+  const viewerIsStaff = !!((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
   const headlineName = memberEng || member.name || '';
   const showRealNameSubline = (
     (!!member.me || viewerIsStaff)
@@ -14023,8 +16044,15 @@ window.__restartVerifyQuiz = (dayN) => {
 window.__toggleVerifyAnswer = (dayN) => {
   window.__verifyUi = window.__verifyUi || {};
   const ui = window.__verifyUi[dayN] || { idx: 0, value: '', done: false, score: 0, activeStep: 'capture', reveal: false };
+  // 힌트 false → true 전환 시 (즉 힌트 본 시점) 통계 기록.
+  const turningOn = !ui.reveal;
   ui.reveal = !ui.reveal;
   window.__verifyUi[dayN] = ui;
+  if (turningOn) {
+    const questions = buildVerifyQuestions(dayN);
+    const current = questions[ui.idx];
+    if (current && current.en) recordVocabHint(current.en);
+  }
   render();
 };
 window.__advanceVerifyQuiz = (dayN, skipped) => {
@@ -14033,6 +16061,11 @@ window.__advanceVerifyQuiz = (dayN, skipped) => {
   const ui = window.__verifyUi[dayN] || { idx: 0, value: '', values: ['', ''], done: false, score: 0, activeStep: 'capture', reveal: false };
   const current = questions[ui.idx];
   const correct = skipped ? false : isQuizAnswerCorrect(current, ui);
+  // 통계 기록 — silent (이미 revealAnswer 상태에서 들어오는 두 번째 클릭은 카운트 X)
+  if (current && !ui.revealAnswer) {
+    recordVocabAttempt(current.en, correct);
+    if (skipped) recordVocabSkip(current.en);
+  }
   // 스킵이면 먼저 정답을 한 번 보여주고, 한 번 더 눌러야 실제로 넘어가요.
   // (혹시 이미 revealAnswer 상태에서 들어왔으면 바로 다음 문제로.)
   if (skipped && !ui.revealAnswer) {

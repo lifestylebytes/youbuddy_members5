@@ -53,11 +53,13 @@ You ALWAYS reply with a single valid JSON object and nothing else.
 The JSON must have exactly two string fields: "corrected" and "why".
 
 CRITICAL RULE 1 — FIX BROKEN GRAMMAR AND MAKE IT SOUND NATIVE:
-Your job is to turn the student's English into something a native business speaker would actually say. You MUST edit when ANY of these are present:
+Your job is to turn the student's English into something a native business speaker would actually say. You MUST edit when ANY of these are present.
+
+FORMATTING RULE (very important): Output the corrected sentence in NORMAL sentence case. DO NOT capitalize, bold, or otherwise emphasize any inserted/edited words. Just write natural prose. The diff highlighter on the client will mark inserts visually — your job is purely to write the polished sentence.
 
 (1) Broken grammar / missing prepositions / wrong article / wrong tense
-   ✗ "drill down our metrics" → ✓ "drill down INTO our metrics"
-   ✗ "loop in design team" → ✓ "loop in THE design team"
+   ✗ "drill down our metrics" → ✓ "drill down into our metrics"
+   ✗ "loop in design team" → ✓ "loop in the design team"
    ✗ "Why don't we discuss?" (without object) → ✓ "Why don't we discuss this?"
 
 (2) Fragments / sentences that don't form a complete thought
@@ -73,7 +75,7 @@ Your job is to turn the student's English into something a native business speak
    ✗ "Let's a quick sync" → ✓ "Let's do a quick sync"
 
 (5) Awkward Korean-English calque (literal translation patterns)
-   ✗ "I want to flesh out this stage" (vague) → ✓ "I want to flesh out THIS PLAN" or specify what stage
+   ✗ "I want to flesh out this stage" (vague) → ✓ "I want to flesh out this plan" or specify what stage
    ✗ "Make a discussion" → ✓ "Have a discussion"
 
 (6) Run-ons / weird connector flow between clauses
@@ -148,16 +150,34 @@ function buildStoryUserMessage(
     ? `Korean context (what the student meant, in their own words): "${korean!.trim()}"\n`
     : '';
   return `${koreanBlock}The student is tying today's 3 expressions into a short business-scenario mini story.
-Expression slots — for each slot, the student may use EITHER the main expression OR one of its listed synonyms, AND THEY MAY ALSO USE BOTH (main + synonym in different sentences) AS A LEARNING DEVICE. Treat both variants as equally valid:
+Each main expression has optional synonyms the student MAY have practiced as alternative phrasings:
 ${lines}
 
 Student's English attempt: "${text}"
 
-Your goal: turn this into a smooth, native-sounding business mini-story while keeping every target phrase the student wrote.
+Your goal: produce a clean, native-sounding business mini-story that keeps the MAIN expressions intact, AND separately teach the synonyms with concrete usage guidance.
 
-Return JSON:
-- "corrected": a polished, native-sounding business-English mini story. **CRITICAL: do NOT condense, deduplicate, or remove sentences just because they repeat the same idea using a synonym variant.** If the student wrote one sentence with the main expression AND another with a synonym (e.g. "We need a first pass." + "First cut is very important."), KEEP BOTH SENTENCES — the student is intentionally practicing both variants. Preserve every expression/synonym the student wrote. The story may end up 4-7 sentences if the student practiced 6 variants — that's fine. **Edit aggressively for fluency**: fix grammar, awkward word order, non-native phrasing, weird prepositions, choppy connectors between sentences. Make the flow feel like a native speaker actually said it in a real meeting. Minimal grammatical inflection on target phrases allowed (tense, plural). Tone: professional business — clear, confident, concise. Avoid casual slang and stiff/archaic phrasing. **Only return verbatim if the text already reads as if a fluent native speaker wrote it.**
-- "why": 1-2 Korean sentences (≤140 chars). **If unchanged, say so warmly (e.g. "이미 흐름 좋아요! 수정할 부분 없어요.")** — otherwise briefly explain the type of fix (e.g. "흐름 / 어순 / 자연스러운 표현으로 다듬었어요."). Do NOT mention "removed" or "condensed" — you are not allowed to remove the student's variants.`;
+Return JSON with THREE fields:
+
+1. "corrected" — polished, native-sounding business-English mini story.
+   - MUST contain each MAIN expression at least once (or its inflection: tense / plural).
+   - Edit aggressively for fluency: fix grammar, awkward word order, non-native phrasing, weird prepositions, choppy connectors. Native business speaker register.
+   - You DO NOT need to keep every synonym the student wrote — feel free to drop redundant synonym variants if they make the prose awkward. Synonyms get proper treatment in field 3 below.
+   - Only return verbatim if the text already reads as if a fluent native speaker wrote it.
+
+2. "why" — 1-2 Korean sentences (≤140 chars). Friendly, brief.
+   - If unchanged: "이미 흐름 좋아요! 수정할 부분 없어요." style.
+   - If edited: short fix-type tag ("흐름 / 어순 / 자연스러운 표현으로 다듬었어요.").
+
+3. "syn_examples" — array of objects, ONE entry for EACH synonym the student wrote in their text (skip synonyms they didn't actually use).
+   Schema: [{ syn: string, context: string, example: string }]
+   - "syn": the synonym phrase exactly as listed (e.g. "First cut", "Bring it home").
+   - "context": ≤30자 Korean — when/where this synonym is naturally used (industry, situation, tone). Be SPECIFIC and TRUE — don't make up generic platitudes. Examples: "디자인·UX 분야 초안 단계에서 자주 써요" / "프로젝트 마무리 동기부여 톤" / "엔지니어링·QA 에서 빠른 검증 시점에".
+   - "example": natural English example sentence (≤20 words) showing the synonym in a realistic business context. Different scenario from the student's text — broaden their understanding.
+   - If the student wrote zero synonyms, return empty array [].
+   - Each example should be plausible business English (Slack/email/meeting), not stilted.
+
+Output STRICTLY in this JSON shape, no extra fields, no markdown.`;
 }
 
 function extractJson(raw: string): any {
