@@ -3322,6 +3322,20 @@ function synonymNuance(word, syn) {
 }
 const weekProgress = (w) => w.days.filter(d => state.verified['d'+d.day]).length;
 const hasSupabase = () => !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+// 진짜 외우기 데드라인 — Week N 은 다음 주 마지막 날(Day (N+1)*5)까지만 도전 가능.
+// total_days clamp + 운영자/스태프 (operatorViewAsMember 꺼있을 때만) 는 무시.
+function reviewDeadlineDay(weekN) {
+  const n = Number(weekN);
+  if (!Number.isFinite(n) || n < 1) return CHALLENGE.total_days || 20;
+  return Math.min((n + 1) * 5, CHALLENGE.total_days || 20);
+}
+function isReviewLocked(weekN) {
+  // 운영자/스태프 (operatorViewAsMember false) 는 데드라인 무시
+  if ((state.isOperator || state.isStaff) && !state.operatorViewAsMember) return false;
+  const today = Number(state.currentDay) || 0;
+  return today > reviewDeadlineDay(weekN);
+}
 const memberKey = () => (state.accountKey || state.email || [state.accessCode, state.name].filter(Boolean).join(':') || state.name || 'anonymous').trim();
 
 /* ============================================================
@@ -6181,7 +6195,12 @@ function HomePage() {
         </div>
       `;
     } else {
-      const deadlineDay = Math.min((targetWeek.n + 1) * 5, CHALLENGE.total_days);
+      const deadlineDay = reviewDeadlineDay(targetWeek.n);
+      const locked = isReviewLocked(targetWeek.n);
+      if (locked) {
+        // 도전 기간 끝남 — 배너 자체 표시 안 함 (홈에서 깔끔하게 제거)
+        return;
+      }
       reviewBanner.innerHTML = `
         <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;background:rgba(240,125,56,0.18);display:grid;place-items:center;font-size:24px;">🧠</div>
         <div style="flex:1;min-width:0;">
@@ -6804,19 +6823,29 @@ function WeeksPage() {
     const showReview = allDone || isOperatorOrStaff;
     if (showReview) {
       // 한정기간 — 다음 주 마지막 날까지만 도전 가능 (Week N → Day (N+1)*5).
-      const deadlineDay = Math.min((w.n + 1) * 5, CHALLENGE.total_days);
+      const deadlineDay = reviewDeadlineDay(w.n);
+      const locked = isReviewLocked(w.n);
+      const alreadyDone = !!(state.bingo_done && state.bingo_done[String(w.n)]);
+      // 잠겼는데 이미 통과한 사람은 다시 들어갈 수 있게 (보상 카드 / JPG 다운로드 위해)
+      const effectivelyLocked = locked && !alreadyDone;
       const reviewBtn = el('button', {
         style: {
           width: '100%',
           marginTop: '14px',
           padding: '14px 16px',
           borderRadius: '16px',
-          background: isEmphasized ? 'rgba(251,247,240,0.10)' : 'linear-gradient(135deg, #FFF5E6 0%, #FFE5D9 100%)',
-          color: isEmphasized ? 'var(--cream)' : 'var(--orange-dark)',
-          border: isEmphasized ? '1px solid rgba(251,247,240,0.18)' : '1px solid var(--orange-soft)',
+          background: effectivelyLocked
+            ? 'rgba(154,139,115,0.12)'
+            : (isEmphasized ? 'rgba(251,247,240,0.10)' : 'linear-gradient(135deg, #FFF5E6 0%, #FFE5D9 100%)'),
+          color: effectivelyLocked
+            ? 'var(--muted)'
+            : (isEmphasized ? 'var(--cream)' : 'var(--orange-dark)'),
+          border: effectivelyLocked
+            ? '1px dashed rgba(154,139,115,0.4)'
+            : (isEmphasized ? '1px solid rgba(251,247,240,0.18)' : '1px solid var(--orange-soft)'),
           fontSize: '14px',
           fontWeight: '800',
-          cursor: 'pointer',
+          cursor: effectivelyLocked ? 'not-allowed' : 'pointer',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -6825,16 +6854,27 @@ function WeeksPage() {
         },
         onClick: (ev) => {
           ev.stopPropagation();
+          if (effectivelyLocked) {
+            showToast(`도전 기간 종료 — Week ${w.n} 복습은 Day ${deadlineDay}까지만 가능했어요`);
+            return;
+          }
           window.__currentReviewWeek = w.n;
           go('week-review');
         },
       });
       const previewTag = (!allDone && isOperatorOrStaff) ? ' <span style="font-size:10px;font-weight:700;background:rgba(125,92,255,0.18);color:#5C53A5;padding:2px 8px;border-radius:999px;margin-left:4px;">미리보기</span>' : '';
       const limitColor = isEmphasized ? 'rgba(251,247,240,0.7)' : '#C95721';
-      reviewBtn.innerHTML = `
-        <span>🧠 Week ${w.n} 진짜 외우기 — 3단계 복습${previewTag}</span>
-        <span style="font-size:11px;font-weight:700;color:${limitColor};letter-spacing:-0.005em;">⏰ 다음 주(Day ${deadlineDay})까지만 도전할 수 있어요</span>
-      `;
+      if (effectivelyLocked) {
+        reviewBtn.innerHTML = `
+          <span>🔒 Week ${w.n} 진짜 외우기 · 기간 종료</span>
+          <span style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:-0.005em;">Day ${deadlineDay}까지였어요</span>
+        `;
+      } else {
+        reviewBtn.innerHTML = `
+          <span>🧠 Week ${w.n} 진짜 외우기 — 3단계 복습${previewTag}</span>
+          <span style="font-size:11px;font-weight:700;color:${limitColor};letter-spacing:-0.005em;">⏰ 다음 주(Day ${deadlineDay})까지만 도전할 수 있어요</span>
+        `;
+      }
       card.appendChild(reviewBtn);
     } else if (progress > 0) {
       // 이 주 진행 중이지만 다 못 끝낸 경우 — 잠금 상태 안내
@@ -7859,6 +7899,41 @@ function buildWeekReviewQuestions(weekN, stage = 1) {
 function WeekReviewPage(weekN) {
   const week = (CHALLENGE.weeks || []).find((w) => w.n === weekN);
   if (!week) return WeeksPage();
+
+  // 데드라인 잠금 — 도전 기간 끝났으면 (운영자 외) 진입 차단.
+  // 통과한 사람은 그대로 진입 가능 (보상 카드 / JPG 다운로드 위해).
+  const alreadyDone = !!(state.bingo_done && state.bingo_done[String(weekN)]);
+  if (isReviewLocked(weekN) && !alreadyDone) {
+    const page = el('div', { class: 'page' });
+    const head = el('div', { class: 'topbar' });
+    const back = el('button', { class: 'icon-btn', onClick: () => go('weeks') });
+    back.innerHTML = Icon('arrowLeft', 16);
+    head.appendChild(back);
+    head.appendChild(el('div', { style: { fontWeight: '800', fontSize: '16px' } }, `Week ${weekN} 진짜 외우기`));
+    head.appendChild(el('div', { class: 'icon-btn', style: { visibility: 'hidden' } }));
+    page.appendChild(head);
+    const card = el('div', {
+      style: {
+        margin: '24px 18px', padding: '32px 22px', borderRadius: '20px',
+        background: 'rgba(154,139,115,0.10)', border: '1px dashed rgba(154,139,115,0.4)',
+        textAlign: 'center',
+      },
+    });
+    card.innerHTML = `
+      <div style="font-size:48px;line-height:1;margin-bottom:10px;">🔒</div>
+      <div class="kicker" style="color:var(--muted);">도전 기간 종료</div>
+      <div style="margin-top:8px;font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">Week ${weekN} 진짜 외우기는<br>Day ${reviewDeadlineDay(weekN)} 까지만 가능했어요</div>
+      <div class="t-small" style="margin-top:10px;color:var(--ink-soft);line-height:1.55;font-size:12.5px;">아쉽지만 이번엔 다음 주차에서 만나요 — 새 단어가 또 기다리고 있어요!</div>
+    `;
+    page.appendChild(card);
+    const goBtn = el('button', {
+      class: 'btn btn-primary btn-full',
+      style: { margin: '0 18px', background: 'var(--ink)', color: 'var(--cream)', border: 'none', fontSize: '14px', padding: '14px' },
+      onClick: () => go('weeks'),
+    }, '← 학습 탭으로');
+    page.appendChild(goBtn);
+    return page;
+  }
 
   const isPremium = state.tier === 'premium';
   // UI state 키 — tier 별로 분리. basic↔premium 토글 시 진행도 안 섞임.
@@ -16897,12 +16972,12 @@ function WeeklyQuizPopupModal() {
     if (closeBtn) closeBtn.onclick = () => close(true);
     if (laterBtn) laterBtn.onclick = () => close(true);
     if (goBtn) goBtn.onclick = () => {
-      // 5일 완주자만 review 페이지로 점프, 아닌 사람은 학습 탭 (weeks) 으로
+      // 5일 완주 + 데드라인 안 지난 사람만 review 로 점프, 그 외 학습 탭 (weeks) 으로
       close(true);
       const week1Days = (CHALLENGE.weeks?.[0]?.days || []).map((d) => d.day);
       const week1Done = week1Days.filter((d) => state.verified && state.verified['d' + d]).length;
       const allDone = week1Done >= week1Days.length;
-      if (allDone) {
+      if (allDone && !isReviewLocked(1)) {
         window.__currentReviewWeek = 1;
         setTimeout(() => go('week-review'), 50);
       } else {
