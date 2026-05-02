@@ -2937,7 +2937,10 @@ function dayDate(dayN) {
   return cursor;
 }
 /* Compute which cohort day number today is.
-   Clamped to [1, 20]. Before start = 1, after end = 20. */
+   Clamped to [1, 20]. Before start = 1, after end = 20.
+   주말 (토/일) 은 challenge day 없음 — 직전 평일 Day 에 멈춤.
+   예: Day 5 = 2026-05-01 (금) → 5/2(토)·5/3(일) 도 currentDay=5,
+       Day 6 = 2026-05-04 (월) 부터 currentDay=6. */
 function computeCurrentDay() {
   // Operator 본인 Day 점프 override — 다른 멤버 영향 없음.
   // operatorDayOverride 가 1~20 이면 그 값을 우선. (운영자/staff 만)
@@ -2948,15 +2951,18 @@ function computeCurrentDay() {
     }
   } catch (e) {}
   const today = todayStr();
+  let lastPassedDay = 1;  // 기본 (pre-start 도 1 로 clamp)
   for (let n = 1; n <= 20; n++) {
     const d = dayDate(n);
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
     const s = `${y}-${m}-${dd}`;
-    if (today <= s) return n;
+    if (today === s) return n;          // 정확히 그 Day 평일
+    if (today < s) break;               // 미래 — 더 볼 필요 X
+    lastPassedDay = n;                  // 지나간 평일 Day 중 가장 최근
   }
-  return 20;
+  return lastPassedDay;                 // 주말이면 직전 평일 Day, post-end 면 20
 }
 function formatDateKR(date) {
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
