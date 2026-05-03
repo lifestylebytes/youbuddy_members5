@@ -1569,6 +1569,7 @@ const defaultState = () => ({
   bingo_boss_results: {},           // { "1": { score, total, at } } 유버디 검증 (랜덤 10개) 점수 — 운영자 분석.
   week_survey: {},                  // { "1": { nps, difficulty, time, ai_help, ux, stuck, want_w2: [], comment, at } } 주간 설문.
   meeting_briefing_open: {},        // { "m1-intro": true } 미팅 노트 페이지의 "브리핑" 펼침 상태 — 새로고침/15초 sync 에도 유지.
+  nonparticipant_list: [],          // ['강태윤', ...] Week 1 무참여자 — 대시보드 맨 아래로 + 향후 기능 제한 대상.
   recording_popup_seen: {},         // { "m1": true } 미팅 다시보기 팝업을 본 상태. 한 번 X 누르면 다시 안 뜸.
   weekly_quiz_popup_seen: {},       // { "v1": true } 주간 퀴즈/보상 안내 팝업 본 상태. 버전별 키로 다음 주차 새 팝업 재발행 가능.
   notifications_read: {},           // { "recording-m1": true, "weekly-quiz-v1": true } 종 인박스에서 읽음 처리한 알림.
@@ -1637,6 +1638,7 @@ const PERSISTED_STATE_KEYS = [
   'recording_popup_seen',
   'weekly_quiz_popup_seen',
   'notifications_read',
+  'nonparticipant_list',
   'savedTab',
   'communityFilter',
   'communitySort',
@@ -3328,6 +3330,36 @@ function synonymNuance(word, syn) {
 }
 const weekProgress = (w) => w.days.filter(d => state.verified['d'+d.day]).length;
 const hasSupabase = () => !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+// 무참여자(블록 리스트) — 대시보드에서 맨 아래로 + 향후 기능 제한 대상.
+// state.nonparticipant_list 가 source of truth. 운영자가 Settings 에서 자동 채우기 / 수동 편집.
+function _normNameKey(s) { return String(s || '').trim().toLowerCase(); }
+function isNonparticipant(member) {
+  if (!member) return false;
+  const list = (state.nonparticipant_list || []).map(_normNameKey);
+  if (!list.length) return false;
+  const candidates = [member.name, member.member_name, member.englishName, member.english_name]
+    .filter(Boolean).map(_normNameKey);
+  return candidates.some((c) => list.includes(c));
+}
+// 멤버 정렬용 비교 함수 — 무참여자는 항상 맨 아래.
+// 위 그룹은 progress desc → streak desc, 무참여자 그룹도 같은 기준으로 그 안에서 정렬.
+function memberSortCompare(a, b) {
+  const aNon = isNonparticipant(a) ? 1 : 0;
+  const bNon = isNonparticipant(b) ? 1 : 0;
+  if (aNon !== bNon) return aNon - bNon; // 일반 → 무참여
+  return (b.progress - a.progress) || (b.streak - a.streak);
+}
+// Week 1 (Day 1~5) 한 번도 인증 안 한 멤버 — 자동 검출용.
+function isWeek1Zero(member) {
+  if (!member) return false;
+  const days = Array.isArray(member.verifiedDays) ? member.verifiedDays.map(Number) : [];
+  if (days.length === 0) {
+    // 데이터 없으면 progress 0 인지로 보조 판단
+    return Number(member.progress || 0) === 0;
+  }
+  return ![1,2,3,4,5].some((d) => days.includes(d));
+}
 
 // 진짜 외우기 데드라인 — Week N 은 다음 주 마지막 날(Day (N+1)*5)까지만 도전 가능.
 // total_days clamp + 운영자/스태프 (operatorViewAsMember 꺼있을 때만) 는 무시.
@@ -6083,7 +6115,8 @@ function HomePage() {
 
   const me = meMember();
   const visible = visibleMembers();
-  const sorted = [...visible].sort((a,b) => b.progress - a.progress || b.streak - a.streak);
+  // 무참여자(state.nonparticipant_list) 는 항상 맨 아래로 push.
+  const sorted = [...visible].sort(memberSortCompare);
   const myRank = sorted.findIndex(m => m.me) + 1;
   const done = completedCount();
   const totalDays = CHALLENGE.total_days;
@@ -6340,7 +6373,7 @@ function HomePage() {
   // 통계는 paidMembers (실참가자 39명) 기준으로 집계 — 운영팀/ghost 제외해서
   // 분모가 30 / 9 로 깔끔하게 떨어지도록. 보드는 visibleMembers 로 그대로 노출.
   const effectiveTier = (m) => (m.me ? (state.tier || 'basic') : m.tier);
-  const paidSorted = [...statsPool].sort((a,b) => b.progress - a.progress || b.streak - a.streak);
+  const paidSorted = [...statsPool].sort(memberSortCompare);
   const basicList = paidSorted.filter((m) => effectiveTier(m) === 'basic');
   const premiumList = paidSorted.filter((m) => effectiveTier(m) === 'premium');
   const basicVerified = basicList.filter(isVerifiedToday).length;
@@ -15147,6 +15180,15 @@ function SettingsModal() {
           <button id="__settingsExportCohort" class="btn btn-ghost btn-full" style="margin-top:10px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;">📦 코호트 데이터 다운로드 (JSON)</button>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
+          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🚫 무참여자 리스트 (블록 리스트)</div>
+          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">대시보드에서 맨 아래로 내려가는 멤버. 향후 기능 제한 대상으로도 쓸 수 있어요. 현재 ${(state.nonparticipant_list || []).length}명: <b style="color:var(--ink);">${escapeHtml((state.nonparticipant_list || []).join(', ') || '(비어있음)')}</b></div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button id="__settingsAutoFillNonparticipants" class="btn btn-ghost" style="flex:1;border-color:rgba(230,69,69,0.32);color:#C53030;font-size:12.5px;padding:10px 8px;">🔍 Week 1 무참여 자동 검출</button>
+            <button id="__settingsClearNonparticipants" class="btn btn-ghost" style="flex:0 0 auto;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 12px;">↺ 비우기</button>
+          </div>
+          <input id="__settingsNonparticipantsManual" class="input" placeholder="이름 직접 추가 (예: 강태윤). Enter 로 추가" style="margin-top:8px;font-size:12px;" />
+        </div>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
           <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🔔 주간 퀴즈 팝업 미리보기</div>
           <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">학습 탭 진입 시 멤버한테 1회 자동으로 뜨는 "5회 다 하셨나요? 주간 퀴즈 열렸어요" 팝업. 운영자는 여기서 언제든 다시 볼 수 있어요. ${state.weekly_quiz_popup_seen && state.weekly_quiz_popup_seen.v1 ? `<span style="color:var(--muted);">· 본 상태</span>` : `<span style="color:#16A34A;font-weight:700;">· 아직 안 본 상태</span>`}</div>
           <div style="display:flex;gap:8px;margin-top:10px;">
@@ -15290,6 +15332,55 @@ function SettingsModal() {
         exportCohortBtn.disabled = false;
       }
     };
+
+    // Operator: 🚫 무참여자 리스트 (블록 리스트)
+    const autoFillNonpBtn = document.getElementById('__settingsAutoFillNonparticipants');
+    if (autoFillNonpBtn) autoFillNonpBtn.onclick = () => {
+      try {
+        const all = visibleMembers().filter((m) => !m.me); // 본인 제외
+        const detected = all.filter(isWeek1Zero);
+        const names = detected
+          .map((m) => (m.name || m.member_name || m.englishName || '').trim())
+          .filter(Boolean);
+        if (!names.length) {
+          showToast('Week 1 무참여자가 없어요 (모두 1회 이상 인증).');
+          return;
+        }
+        // 기존 리스트 + 새로 검출 (중복 제거)
+        const merged = [...new Set([...(state.nonparticipant_list || []), ...names])];
+        state.nonparticipant_list = merged;
+        try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch(_){} }
+        showToast(`${names.length}명 자동 추가 — 총 ${merged.length}명`);
+        render();
+      } catch (e) {
+        showToast('자동 검출 실패: ' + (e?.message || e));
+      }
+    };
+    const clearNonpBtn = document.getElementById('__settingsClearNonparticipants');
+    if (clearNonpBtn) clearNonpBtn.onclick = () => {
+      if (!confirm('무참여자 리스트 전체 비울까요?')) return;
+      state.nonparticipant_list = [];
+      try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch(_){} }
+      showToast('리스트 비웠어요');
+      render();
+    };
+    const manualNonpInput = document.getElementById('__settingsNonparticipantsManual');
+    if (manualNonpInput) manualNonpInput.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      const name = (manualNonpInput.value || '').trim();
+      if (!name) return;
+      const list = [...(state.nonparticipant_list || [])];
+      if (list.map(_normNameKey).includes(_normNameKey(name))) {
+        showToast('이미 리스트에 있어요');
+        return;
+      }
+      list.push(name);
+      state.nonparticipant_list = list;
+      try { saveState({ immediate: true }); } catch (er) { try { saveState(); } catch(_){} }
+      showToast(`'${name}' 추가됨 (${list.length}명)`);
+      manualNonpInput.value = '';
+      render();
+    });
 
     // Operator: 🔔 주간 퀴즈 팝업 — 미리보기 / 리셋
     const showWqBtn = document.getElementById('__settingsShowWeeklyQuizPopup');
