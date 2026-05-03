@@ -2970,11 +2970,13 @@ function formatDateKR(date) {
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
 // 주말 여부 — 평일만 challenge day 카운트하므로 토·일은 인증 자체가 없음.
-// 0=Sun, 6=Sat. operatorDayOverride 가 있으면 운영자가 의도적으로 평일 시뮬레이션 중이라
-// 주말 처리 안 함 (테스트 흐름 깨지지 않게).
+// 0=Sun, 6=Sat. operatorDayOverride 가 명시적으로 1~20 숫자로 박혀있을 때만
+// 운영자가 평일 시뮬레이션 중이라 판단해서 주말 처리 안 함.
+// (Number(null) === 0 이라 isFinite 통과되는 함정 방지 — 명시적으로 null/undefined 체크.)
 function isWeekendToday() {
   try {
-    if ((state.isOperator || state.isStaff) && Number.isFinite(Number(state.operatorDayOverride))) {
+    const ov = state.operatorDayOverride;
+    if ((state.isOperator || state.isStaff) && ov != null && Number.isFinite(Number(ov)) && Number(ov) >= 1) {
       return false;
     }
   } catch (e) {}
@@ -6601,12 +6603,15 @@ function Checkboard() {
       }
     }
   }
-  // 정렬: (1) 로그인한 본인 항상 최상단 — 티어 무관, (2) 그 다음 프리미엄 → 베이직,
-  // (3) 같은 티어 내에서는 한글 이름 ㄱ~ㅎ 가나다순 (Intl.Collator ko).
+  // 정렬: (1) 로그인한 본인 항상 최상단 — 티어 무관, (2) 무참여자 (블록 리스트) 항상 맨 아래,
+  // (3) 그 다음 프리미엄 → 베이직, (4) 같은 그룹 내에서는 한글 이름 ㄱ~ㅎ 가나다순.
   const tierRank = (m) => (cbTierOf(m) === 'premium' ? 0 : 1);
   const koCollator = new Intl.Collator('ko', { numeric: true, sensitivity: 'base' });
   const orderedMembers = [...allMembers].sort((a, b) => {
     if (a.me !== b.me) return a.me ? -1 : 1;   // me first, always
+    const aNon = isNonparticipant(a) ? 1 : 0;
+    const bNon = isNonparticipant(b) ? 1 : 0;
+    if (aNon !== bNon) return aNon - bNon;     // 일반 → 무참여자 맨 아래
     const ta = tierRank(a), tb = tierRank(b);
     if (ta !== tb) return ta - tb;             // premium before basic
     return koCollator.compare(a.name || '', b.name || ''); // 한글 가나다순
