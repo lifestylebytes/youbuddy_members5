@@ -2969,6 +2969,18 @@ function computeCurrentDay() {
 function formatDateKR(date) {
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
+// 주말 여부 — 평일만 challenge day 카운트하므로 토·일은 인증 자체가 없음.
+// 0=Sun, 6=Sat. operatorDayOverride 가 있으면 운영자가 의도적으로 평일 시뮬레이션 중이라
+// 주말 처리 안 함 (테스트 흐름 깨지지 않게).
+function isWeekendToday() {
+  try {
+    if ((state.isOperator || state.isStaff) && Number.isFinite(Number(state.operatorDayOverride))) {
+      return false;
+    }
+  } catch (e) {}
+  const dow = new Date().getDay();
+  return dow === 0 || dow === 6;
+}
 function formatDateShortKR(date) {
   return `${date.getMonth() + 1}/${date.getDate()}`;
 }
@@ -6113,6 +6125,32 @@ function HomePage() {
   const page = el('div', { class: 'page' });
   page.appendChild(TopBar());
 
+  // 주말 안내 — 토·일엔 인증 자체가 없으니 부담 없이 "리프레시 하기" 톤으로.
+  const isWeekend = isWeekendToday();
+  if (isWeekend) {
+    const dow = new Date().getDay();
+    const weekendCard = el('div', {
+      style: {
+        marginTop: '12px',
+        padding: '14px 16px',
+        borderRadius: '18px',
+        background: 'linear-gradient(135deg, #F5F1FA 0%, #FFF5E6 100%)',
+        border: '1px solid rgba(155,127,174,0.32)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+      },
+    });
+    weekendCard.innerHTML = `
+      <div style="flex-shrink:0;width:42px;height:42px;border-radius:14px;background:rgba(155,127,174,0.16);display:grid;place-items:center;font-size:22px;">${dow === 6 ? '🌿' : '☕️'}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${dow === 6 ? '토요일' : '일요일'} · 한 박자 쉬어가요</div>
+        <div style="margin-top:4px;font-size:12px;color:var(--ink-soft);line-height:1.55;">이번 주 단어 한 번 훑어보면서 리프레시 하기 좋은 날. 인증은 평일에만 카운트돼요.</div>
+      </div>
+    `;
+    page.appendChild(weekendCard);
+  }
+
   const me = meMember();
   const visible = visibleMembers();
   // 무참여자(state.nonparticipant_list) 는 항상 맨 아래로 push.
@@ -6383,22 +6421,42 @@ function HomePage() {
 
   const stats = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '24px' } });
   // 카드 자체는 원래 디자인 유지. 클릭하면 일자별 추이 모달 오픈.
-  stats.innerHTML = `
-    <button class="card card-flat" data-stat-tier="all" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
-      <div class="kicker">오늘 인증률</div>
-      <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;color:var(--orange);">${todayRate}%</div>
-      <div class="t-small" style="margin-top:2px;">${dashboardStats.comparisonLabel}</div>
-    </button>
-    <button class="card card-flat" data-stat-tier="basic" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
-      <div class="kicker">베이직</div>
-      <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;">${basicRate}%</div>
-      <div class="t-small" style="margin-top:2px;">${basicVerified}/${basicList.length} 인증</div>
-    </button>
-    <button class="card card-flat" data-stat-tier="premium" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
-      <div class="kicker">프리미엄</div>
-      <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;">${premiumRate}%</div>
-      <div class="t-small" style="margin-top:2px;">${premiumVerified}/${premiumList.length} 인증</div>
-    </button>`;
+  // 주말이면 인증률 % 대신 '쉬어가는 날' 톤으로 — 0% 가 아니라 의도적 휴식임을 보여줌.
+  if (isWeekend) {
+    stats.innerHTML = `
+      <button class="card card-flat" data-stat-tier="all" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
+        <div class="kicker">오늘 인증률</div>
+        <div class="serif" style="font-size:18px;line-height:1.15;margin-top:6px;color:#7B5E8C;">쉬어가요</div>
+        <div class="t-small" style="margin-top:4px;">평일에 다시 만나요</div>
+      </button>
+      <button class="card card-flat" data-stat-tier="basic" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
+        <div class="kicker">베이직</div>
+        <div class="serif" style="font-size:18px;line-height:1.15;margin-top:6px;color:var(--ink-soft);">주말 ☕️</div>
+        <div class="t-small" style="margin-top:4px;">단어 가볍게 한 번 훑기</div>
+      </button>
+      <button class="card card-flat" data-stat-tier="premium" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
+        <div class="kicker">프리미엄</div>
+        <div class="serif" style="font-size:18px;line-height:1.15;margin-top:6px;color:var(--ink-soft);">주말 🌿</div>
+        <div class="t-small" style="margin-top:4px;">미팅 표현 떠올려보기</div>
+      </button>`;
+  } else {
+    stats.innerHTML = `
+      <button class="card card-flat" data-stat-tier="all" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
+        <div class="kicker">오늘 인증률</div>
+        <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;color:var(--orange);">${todayRate}%</div>
+        <div class="t-small" style="margin-top:2px;">${dashboardStats.comparisonLabel}</div>
+      </button>
+      <button class="card card-flat" data-stat-tier="basic" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
+        <div class="kicker">베이직</div>
+        <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;">${basicRate}%</div>
+        <div class="t-small" style="margin-top:2px;">${basicVerified}/${basicList.length} 인증</div>
+      </button>
+      <button class="card card-flat" data-stat-tier="premium" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
+        <div class="kicker">프리미엄</div>
+        <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;">${premiumRate}%</div>
+        <div class="t-small" style="margin-top:2px;">${premiumVerified}/${premiumList.length} 인증</div>
+      </button>`;
+  }
   // 핸들러 — innerHTML 후에 wire up.
   stats.querySelectorAll('[data-stat-tier]').forEach((btn) => {
     btn.onclick = () => { showRateHistory = btn.dataset.statTier; render(); };
