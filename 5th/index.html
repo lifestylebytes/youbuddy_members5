@@ -15149,22 +15149,7 @@ function SettingsModal() {
     ${state.isOperator ? `
       <div style="margin-top:14px;padding:14px;border-radius:14px;background:#FFF7EF;border:1px solid rgba(240,125,56,0.18);">
         <div class="kicker" style="color:var(--orange-dark);">OPERATOR ONLY</div>
-        <div style="margin-top:6px;font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">가입 화면부터 다시 확인할 수 있어요.</div>
-        <button id="__settingsResetApp" class="btn btn-ghost btn-full" style="margin-top:12px;border-color:rgba(240,125,56,0.24);">가입부터 다시 시작</button>
-        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
-          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">온보딩 팝업 플레이해보기</div>
-          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">실제 멤버들이 가입 직후 보는 팝업 튜어를 그대로 미리 볼 수 있어요.</div>
-          <div style="display:flex;gap:8px;margin-top:10px;">
-            <button id="__settingsPlayTourBasic" class="btn btn-ghost" style="flex:1;border-color:rgba(240,125,56,0.24);font-size:12.5px;padding:10px 8px;">Basic 로 플레이 (5스텝)</button>
-            <button id="__settingsPlayTourPremium" class="btn btn-ghost" style="flex:1;border-color:rgba(192,132,252,0.3);color:var(--lilac, #9A6FD9);font-size:12.5px;padding:10px 8px;">Premium 로 플레이 (6스텝)</button>
-          </div>
-        </div>
-        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
-          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🧪 챌린지 프리뷰 언락 (테스트용)</div>
-          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">출시 전(D-?) 에도 운영자 본인만 Day 1 학습·제출·AI·단어시험 전체 흐름을 미리 풀어볼 수 있어요. <b>다른 멤버에게는 영향 없음.</b> ${state.operatorPreviewUnlock ? `<span style="color:#16A34A;font-weight:700;">· 현재 ON (제출 가능)</span>` : `<span style="color:var(--muted);font-weight:600;">· 현재 OFF (잠금)</span>`}</div>
-          <button id="__settingsTogglePreviewUnlock" class="btn btn-ghost btn-full" style="margin-top:10px;border-color:${state.operatorPreviewUnlock ? 'rgba(22,163,74,0.32)' : 'rgba(240,125,56,0.28)'};color:${state.operatorPreviewUnlock ? '#16A34A' : 'var(--orange-dark)'};">${state.operatorPreviewUnlock ? '✅ 프리뷰 언락 중 — 끄기' : '🔓 프리뷰 언락 켜기'}</button>
-        </div>
-        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
+        <div style="margin-top:10px;">
           <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">⏩ Day 점프 (운영자 전용)</div>
           <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">운영자 본인의 currentDay 를 임의 점프시켜서 Day N 콘텐츠 미리 풀어볼 때 쓰는 거. 다른 멤버한텐 영향 없음. ${Number.isFinite(Number(state.operatorDayOverride)) ? `<span style="color:#16A34A;font-weight:700;">· 현재 Day ${state.operatorDayOverride} 로 점프 중</span>` : `<span style="color:var(--muted);font-weight:600;">· 캘린더 기준 (override 없음)</span>`}</div>
           <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
@@ -15212,11 +15197,6 @@ function SettingsModal() {
           </div>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
-          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📸 4/27 공지용 스크린샷 가이드</div>
-          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">베이직/프리미엄 단톡방 공지에 넣을 스크린샷 7장을 한 페이지에서 순서대로 캡처할 수 있어요. 각 섹션마다 [이 화면으로] 버튼 하나만 누르면 됨.</div>
-          <button id="__settingsOpenScreenshotGuide" class="btn btn-ghost btn-full" style="margin-top:10px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);">📸 스크린샷 가이드 열기</button>
-        </div>
-        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
           <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🎥 미팅 동의 감사 (Consent Audit)</div>
           <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">프리미엄 멤버별로 미팅 녹화/분석 동의를 누가 언제 했는지 확인. ${state.meeting_consent && state.meeting_consent.accepted ? `<span style="color:#16A34A;font-weight:700;">· 내 상태: 동의 (${new Date(state.meeting_consent.at).toLocaleString('ko-KR', { hour12: false })})</span>` : `<span style="color:var(--muted);font-weight:600;">· 내 상태: 미동의</span>`}</div>
           <div style="display:flex;gap:8px;margin-top:10px;">
@@ -15224,6 +15204,31 @@ function SettingsModal() {
             <button id="__settingsResetMyConsent" class="btn btn-ghost" style="flex:1;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">내 동의 초기화 (테스트용)</button>
           </div>
         </div>
+        <details style="margin-top:18px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
+          <summary style="cursor:pointer;list-style:none;font-size:12px;color:var(--muted);font-weight:700;letter-spacing:0.04em;padding:6px 0;">🗄 자주 안 쓰는 도구 (펼치기)</summary>
+          <div style="margin-top:10px;">
+            <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">가입 화면부터 다시 확인할 수 있어요.</div>
+            <button id="__settingsResetApp" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(240,125,56,0.24);">가입부터 다시 시작</button>
+          </div>
+          <div style="margin-top:14px;padding-top:12px;border-top:1px dotted rgba(240,125,56,0.18);">
+            <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">온보딩 팝업 플레이해보기</div>
+            <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">실제 멤버들이 가입 직후 보는 팝업 튜어를 그대로 미리 볼 수 있어요.</div>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <button id="__settingsPlayTourBasic" class="btn btn-ghost" style="flex:1;border-color:rgba(240,125,56,0.24);font-size:12.5px;padding:10px 8px;">Basic 로 플레이 (5스텝)</button>
+              <button id="__settingsPlayTourPremium" class="btn btn-ghost" style="flex:1;border-color:rgba(192,132,252,0.3);color:var(--lilac, #9A6FD9);font-size:12.5px;padding:10px 8px;">Premium 로 플레이 (6스텝)</button>
+            </div>
+          </div>
+          <div style="margin-top:14px;padding-top:12px;border-top:1px dotted rgba(240,125,56,0.18);">
+            <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🧪 챌린지 프리뷰 언락 (테스트용)</div>
+            <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">출시 전(D-?) 에도 운영자 본인만 Day 1 학습·제출·AI·단어시험 전체 흐름을 미리 풀어볼 수 있어요. <b>다른 멤버에게는 영향 없음.</b> ${state.operatorPreviewUnlock ? `<span style="color:#16A34A;font-weight:700;">· 현재 ON (제출 가능)</span>` : `<span style="color:var(--muted);font-weight:600;">· 현재 OFF (잠금)</span>`}</div>
+            <button id="__settingsTogglePreviewUnlock" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:${state.operatorPreviewUnlock ? 'rgba(22,163,74,0.32)' : 'rgba(240,125,56,0.28)'};color:${state.operatorPreviewUnlock ? '#16A34A' : 'var(--orange-dark)'};">${state.operatorPreviewUnlock ? '✅ 프리뷰 언락 중 — 끄기' : '🔓 프리뷰 언락 켜기'}</button>
+          </div>
+          <div style="margin-top:14px;padding-top:12px;border-top:1px dotted rgba(240,125,56,0.18);">
+            <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📸 4/27 공지용 스크린샷 가이드</div>
+            <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">베이직/프리미엄 단톡방 공지에 넣을 스크린샷 7장을 한 페이지에서 순서대로 캡처할 수 있어요.</div>
+            <button id="__settingsOpenScreenshotGuide" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);">📸 스크린샷 가이드 열기</button>
+          </div>
+        </details>
       </div>
     ` : ''}
     <div style="display:flex;gap:8px;margin-top:20px;">
