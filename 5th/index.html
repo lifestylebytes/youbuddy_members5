@@ -6127,30 +6127,16 @@ function HomePage() {
   const page = el('div', { class: 'page' });
   page.appendChild(TopBar());
 
-  // 주말 안내 — 토·일엔 인증 자체가 없으니 부담 없이 "리프레시 하기" 톤으로.
+  // 주말 안내 — 토·일엔 인증 자체가 없으니 살짝 내려오는 toast 로만 한 번 알림.
+  // 페이지 자체엔 자리 차지 안 하고, 인증률 카드의 '쉬어가요' 톤으로 조용히 표시.
+  // 세션당 1회만 — 매 render() 마다 안 뜨게.
   const isWeekend = isWeekendToday();
-  if (isWeekend) {
+  if (isWeekend && !window.__weekendToastShown) {
+    window.__weekendToastShown = true;
     const dow = new Date().getDay();
-    const weekendCard = el('div', {
-      style: {
-        marginTop: '12px',
-        padding: '14px 16px',
-        borderRadius: '18px',
-        background: 'linear-gradient(135deg, #F5F1FA 0%, #FFF5E6 100%)',
-        border: '1px solid rgba(155,127,174,0.32)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-      },
-    });
-    weekendCard.innerHTML = `
-      <div style="flex-shrink:0;width:42px;height:42px;border-radius:14px;background:rgba(155,127,174,0.16);display:grid;place-items:center;font-size:22px;">${dow === 6 ? '🌿' : '☕️'}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${dow === 6 ? '토요일' : '일요일'} · 한 박자 쉬어가요</div>
-        <div style="margin-top:4px;font-size:12px;color:var(--ink-soft);line-height:1.55;">이번 주 단어 한 번 훑어보면서 리프레시 하기 좋은 날. 인증은 평일에만 카운트돼요.</div>
-      </div>
-    `;
-    page.appendChild(weekendCard);
+    setTimeout(() => {
+      try { showToast(`${dow === 6 ? '🌿 토요일' : '☕️ 일요일'} · 한 박자 쉬어가는 날 — 단어 한 번 훑어보기 좋아요`); } catch (_) {}
+    }, 400);
   }
 
   const me = meMember();
