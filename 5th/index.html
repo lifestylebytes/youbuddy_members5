@@ -1572,6 +1572,7 @@ const defaultState = () => ({
   nonparticipant_list: [],          // ['강태윤', ...] Week 1 무참여자 — 대시보드 맨 아래로 + 향후 기능 제한 대상.
   recording_popup_seen: {},         // { "m1": true } 미팅 다시보기 팝업을 본 상태. 한 번 X 누르면 다시 안 뜸.
   weekly_quiz_popup_seen: {},       // { "v1": true } 주간 퀴즈/보상 안내 팝업 본 상태. 버전별 키로 다음 주차 새 팝업 재발행 가능.
+  spaced_repeat_seen: {},           // { "day7": true } Spaced Repetition 팝업 본 상태 — Day 시작 시 1회 노출용.
   notifications_read: {},           // { "recording-m1": true, "weekly-quiz-v1": true } 종 인박스에서 읽음 처리한 알림.
   operatorViewAsMember: false,      // 운영자/스태프가 "일반 회원처럼 보기" 켜둘 때 true. 운영자 UI 다 숨김.
   tierOverride: null,             // 'basic' 으로 설정하면 MEMBER_DIRECTORY 가 premium 이어도 basic 으로 강제 (베이직 프리뷰). null = 비활성.
@@ -1637,6 +1638,7 @@ const PERSISTED_STATE_KEYS = [
   'meeting_briefing_open',
   'recording_popup_seen',
   'weekly_quiz_popup_seen',
+  'spaced_repeat_seen',
   'notifications_read',
   'nonparticipant_list',
   'savedTab',
@@ -2391,6 +2393,9 @@ let showRateHistory = null;
 let showRecordingPopup = null;
 // 주간 퀴즈/보상 안내 팝업 — 학습 탭 첫 진입 시 1회. true 면 표시.
 let showWeeklyQuizPopup = false;
+// Spaced Repetition 팝업 — Day 시작 시 1회 노출 (Week 1 회고).
+// 값: { dayN: number, words: [{en, ko, ex_en}] } — 닫히면 null.
+let showSpacedRepeatPopup = null;
 // 알림 인박스 패널 — TopBar 종 누르면 열림.
 let showNotifications = false;
 let toast = null;
@@ -4704,12 +4709,20 @@ function render() {
       const stale = document.querySelector('[data-notifications-panel]');
       if (stale) stale.remove();
     }
+    if (showSpacedRepeatPopup) {
+      if (!document.querySelector('[data-spaced-repeat-popup]')) {
+        document.body.appendChild(SpacedRepeatPopupModal());
+      }
+    } else {
+      const stale = document.querySelector('[data-spaced-repeat-popup]');
+      if (stale) stale.remove();
+    }
 
     // Mobile modal scroll fix: lock body scroll while any modal is open so the
     // modal's own overflow-y:auto picks up touch scrolling instead of the page
     // behind it bubbling. 취소/저장 버튼이 모바일에서 안 닿던 문제.
     try {
-      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications);
+      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications || showSpacedRepeatPopup);
       if (anyModalOpen) document.body.classList.add('modal-open');
       else document.body.classList.remove('modal-open');
     } catch (_lockErr) {}
@@ -9951,6 +9964,23 @@ window.__skipLightning = (weekN) => {
 function DayPage(dayN) {
   const d = getDay(dayN);
   if (!d) return WeeksPage();
+
+  // Spaced Repetition 팝업 — Day 시작 시 1회 자동 노출.
+  // SPACED_REPEAT_PRESETS 에 dayN 키가 있고, 아직 안 본 사용자한테 trigger.
+  // 운영자/스태프는 미리보기 가능 — operatorViewAsMember 가 ON 이어도 그대로.
+  try {
+    const preset = SPACED_REPEAT_PRESETS[String(dayN)];
+    const seen = state.spaced_repeat_seen || {};
+    if (preset && !seen[`day${dayN}`] && !showSpacedRepeatPopup) {
+      setTimeout(() => {
+        if (!showSpacedRepeatPopup && !(state.spaced_repeat_seen || {})[`day${dayN}`]) {
+          showSpacedRepeatPopup = { dayN, ...preset };
+          render();
+        }
+      }, 350);
+    }
+  } catch (e) {}
+
   const page = el('div', { class: 'page' });
   const copyKey = `d${dayN}-copy`;
   const copyDone = !!state.checkpoints[copyKey];
@@ -15223,6 +15253,14 @@ function SettingsModal() {
           <input id="__settingsNonparticipantsManual" class="input" placeholder="이름 직접 추가 (예: 강태윤). Enter 로 추가" style="margin-top:8px;font-size:12px;" />
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
+          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🔁 Spaced Repetition 팝업 (Day 7)</div>
+          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">Day 7 진입 시 멤버한테 1회 자동으로 뜨는 "Week 1 가장 헷갈렸던 표현 3개" 팝업. ${state.spaced_repeat_seen && state.spaced_repeat_seen.day7 ? `<span style="color:var(--muted);">· 본 상태</span>` : `<span style="color:#16A34A;font-weight:700;">· 아직 안 본 상태</span>`}</div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button id="__settingsShowSrPopup" class="btn btn-ghost" style="flex:1;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">🔁 팝업 미리보기 (Day 7)</button>
+            <button id="__settingsResetSrPopup" class="btn btn-ghost" style="flex:1;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">↺ '본 상태' 리셋</button>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
           <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🔔 주간 퀴즈 팝업 미리보기</div>
           <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">학습 탭 진입 시 멤버한테 1회 자동으로 뜨는 "5회 다 하셨나요? 주간 퀴즈 열렸어요" 팝업. 운영자는 여기서 언제든 다시 볼 수 있어요. ${state.weekly_quiz_popup_seen && state.weekly_quiz_popup_seen.v1 ? `<span style="color:var(--muted);">· 본 상태</span>` : `<span style="color:#16A34A;font-weight:700;">· 아직 안 본 상태</span>`}</div>
           <div style="display:flex;gap:8px;margin-top:10px;">
@@ -15435,6 +15473,24 @@ function SettingsModal() {
       manualNonpInput.value = '';
       render();
     });
+
+    // Operator: 🔁 Spaced Repetition 팝업 — Day 7 미리보기 / 리셋
+    const showSrBtn = document.getElementById('__settingsShowSrPopup');
+    if (showSrBtn) showSrBtn.onclick = () => {
+      const preset = SPACED_REPEAT_PRESETS['7'];
+      if (!preset) { showToast('Day 7 preset 미정의'); return; }
+      showSettings = false;
+      showSpacedRepeatPopup = { dayN: 7, ...preset };
+      render();
+    };
+    const resetSrBtn = document.getElementById('__settingsResetSrPopup');
+    if (resetSrBtn) resetSrBtn.onclick = () => {
+      state.spaced_repeat_seen = state.spaced_repeat_seen || {};
+      delete state.spaced_repeat_seen.day7;
+      try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
+      showToast("'본 상태' 리셋 — Day 7 진입 시 자동 노출");
+      render();
+    };
 
     // Operator: 🔔 주간 퀴즈 팝업 — 미리보기 / 리셋
     const showWqBtn = document.getElementById('__settingsShowWeeklyQuizPopup');
@@ -17140,6 +17196,178 @@ function WeeklyQuizPopupModal() {
   return backdrop;
 }
 
+/* ============================================================
+   SpacedRepeatPopupModal — Day 시작 시 1회 자동 노출.
+   "Week N-1 에서 가장 헷갈렸던 표현 3개 다시 만나기".
+   - state.spaced_repeat_seen[dayN] = true → 한 번 본 사람은 다시 안 뜸.
+   - 닫으면 즉시 학습 페이지로 (현재 Day 그대로).
+   - "🔊 한 번씩 듣고 가기" 버튼 누르면 3개 단어 + 예문 자동 TTS 재생.
+   ============================================================ */
+const SPACED_REPEAT_PRESETS = {
+  // Day 7 (Week 2 시작) — Week 1 top 3 약점 어휘 (실제 데이터 기반).
+  '7': {
+    title: 'Week 1 에서 가져온 3개 표현',
+    subtitle: '지난 주 가장 많이 헷갈렸던 표현이에요',
+    words: [
+      {
+        en: 'Front-load',
+        ko: '초반에 몰아치기',
+        ex_en: "Let's front-load the heavy tasks this week.",
+        stat: '지난 주 약점 1위 · 첫시도 정답률 62%',
+      },
+      {
+        en: 'Get it over the line',
+        ko: '어렵사리 완수시키다',
+        ex_en: 'We worked all weekend to get this over the line.',
+        stat: '힌트 의존도 63% · 정답률 75%',
+      },
+      {
+        en: 'Move in lockstep',
+        ko: '발 맞춰 협력하다',
+        ex_en: 'Marketing and sales need to move in lockstep.',
+        stat: '첫시도 정답률 82%',
+      },
+    ],
+  },
+  // 향후 Day 12 (Week 3) / Day 17 (Week 4) 도 같은 패턴으로 추가 가능.
+};
+
+function SpacedRepeatPopupModal() {
+  const ctx = showSpacedRepeatPopup;
+  if (!ctx) return el('div');
+  const dayKey = String(ctx.dayN);
+  const close = (markSeen = true) => {
+    if (markSeen) {
+      state.spaced_repeat_seen = state.spaced_repeat_seen || {};
+      state.spaced_repeat_seen[`day${dayKey}`] = true;
+      try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+    }
+    showSpacedRepeatPopup = null;
+    render();
+  };
+
+  const speakWord = (text) => {
+    try {
+      if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      u.rate = 0.92;
+      u.pitch = 1.05;
+      if (typeof pickFemaleEnVoice === 'function') {
+        try { u.voice = pickFemaleEnVoice(); } catch (_) {}
+      }
+      window.speechSynthesis.speak(u);
+    } catch (_) {}
+  };
+  // 모든 단어 + 예문 차례로 재생 (단어 → 1초 → 예문 → 다음 단어 ...)
+  const playAll = () => {
+    let i = 0;
+    const items = [];
+    (ctx.words || []).forEach((w) => {
+      if (w.en) items.push(w.en);
+      if (w.ex_en) items.push(w.ex_en);
+    });
+    const next = () => {
+      if (i >= items.length) return;
+      const text = items[i++];
+      try {
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-US';
+        u.rate = 0.92;
+        u.pitch = 1.05;
+        if (typeof pickFemaleEnVoice === 'function') {
+          try { u.voice = pickFemaleEnVoice(); } catch (_) {}
+        }
+        u.onend = () => setTimeout(next, 250);
+        window.speechSynthesis.speak(u);
+      } catch (_) {}
+    };
+    next();
+  };
+
+  const backdrop = el('div', {
+    class: 'modal-backdrop',
+    'data-spaced-repeat-popup': '1',
+    onClick: (e) => { if (e.target === backdrop) close(true); },
+  });
+  const modal = el('div', {
+    class: 'modal',
+    style: {
+      width: 'min(92vw, 400px)',
+      padding: '0',
+      borderRadius: '24px',
+      overflow: 'hidden',
+      background: '#fff',
+      border: '1px solid var(--line)',
+      maxHeight: '90vh',
+      display: 'flex',
+      flexDirection: 'column',
+    },
+  });
+  const wordsHtml = (ctx.words || []).map((w, i) => `
+    <button data-spaced-card data-en="${escapeHtml(w.en || '')}" data-ex="${escapeHtml(w.ex_en || '')}" style="
+      width:100%;text-align:left;padding:14px 16px;margin-bottom:10px;
+      border-radius:14px;background:#FBF7F0;border:1px solid var(--line-soft, #E7DDC8);
+      cursor:pointer;font:inherit;color:var(--ink);
+      display:flex;align-items:flex-start;gap:12px;
+    ">
+      <span style="flex-shrink:0;width:28px;height:28px;border-radius:8px;background:var(--orange);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;">${i + 1}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:15px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em;">${escapeHtml(w.en || '')}</span>
+          <span style="font-size:13px;color:var(--ink-soft);">·</span>
+          <span style="font-size:12.5px;color:var(--ink-soft);font-weight:600;">${escapeHtml(w.ko || '')}</span>
+        </div>
+        <div style="margin-top:5px;font-size:11.5px;color:var(--ink);line-height:1.45;font-style:italic;">"${escapeHtml(w.ex_en || '')}"</div>
+        ${w.stat ? `<div style="margin-top:5px;font-size:10.5px;color:var(--muted);">${escapeHtml(w.stat)}</div>` : ''}
+      </div>
+      <span style="flex-shrink:0;font-size:16px;color:var(--orange-dark);">🔊</span>
+    </button>
+  `).join('');
+  modal.innerHTML = `
+    <div style="position:relative;padding:26px 22px 14px;background:linear-gradient(135deg, #FFF1E5 0%, #FFE4D0 100%);text-align:center;flex-shrink:0;">
+      <button id="__srPopupClose" style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,0.7);border:none;color:var(--ink-soft);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+      <div style="font-size:40px;line-height:1;margin-bottom:8px;">🔁</div>
+      <div class="kicker" style="color:var(--orange-dark);">SPACED REPETITION · Day ${ctx.dayN}</div>
+      <div style="margin-top:6px;font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.3;">${escapeHtml(ctx.title || '다시 만나볼까요?')}</div>
+      <div style="margin-top:6px;font-size:12px;color:var(--ink-soft);line-height:1.5;">${escapeHtml(ctx.subtitle || '')}</div>
+    </div>
+    <div style="padding:14px 18px 4px;overflow-y:auto;flex:1;">
+      ${wordsHtml}
+    </div>
+    <div style="padding:14px 22px 22px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;border-top:1px solid var(--line);background:#fff;">
+      <button id="__srPlayAll" class="btn btn-ghost btn-full" style="background:transparent;border:1px solid var(--orange-soft);color:var(--orange-dark);font-size:13px;padding:11px;font-weight:700;">🔊 한 번씩 듣고 가기</button>
+      <button id="__srDone" class="btn btn-primary btn-full" style="background:var(--orange);border:none;font-size:14px;padding:13px;">✓ 다 봤어요 · Day ${ctx.dayN} 시작</button>
+    </div>
+  `;
+  setTimeout(() => {
+    const closeBtn = document.getElementById('__srPopupClose');
+    const doneBtn = document.getElementById('__srDone');
+    const playBtn = document.getElementById('__srPlayAll');
+    if (closeBtn) closeBtn.onclick = () => close(true);
+    if (doneBtn) doneBtn.onclick = () => close(true);
+    if (playBtn) playBtn.onclick = playAll;
+    modal.querySelectorAll('[data-spaced-card]').forEach((card) => {
+      card.onclick = () => {
+        const en = card.getAttribute('data-en') || '';
+        const ex = card.getAttribute('data-ex') || '';
+        // 단어 → 0.7초 → 예문
+        if (en) {
+          speakWord(en);
+          if (ex) setTimeout(() => speakWord(ex), 1100);
+        } else if (ex) {
+          speakWord(ex);
+        }
+      };
+    });
+  }, 0);
+  backdrop.appendChild(modal);
+  return backdrop;
+}
+
 function ConsentAuditModal() {
   const backdrop = el('div', {
     class: 'modal-backdrop',
@@ -17561,7 +17789,8 @@ window.__startVoiceQuiz = async (dayN, btnEl) => {
       'data-voice-wave-card': '1',
       style: {
         position: 'fixed',
-        bottom: '24px',
+        // TabBar (모바일 70~88px + safe-area) 위로 충분히 올림. 데스크탑에선 그래도 자연스러운 위치.
+        bottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: '9999',
