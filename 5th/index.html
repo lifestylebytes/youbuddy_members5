@@ -2396,6 +2396,8 @@ let showWeeklyQuizPopup = false;
 // Spaced Repetition 팝업 — Day 시작 시 1회 노출 (Week 1 회고).
 // 값: { dayN: number, words: [{en, ko, ex_en}] } — 닫히면 null.
 let showSpacedRepeatPopup = null;
+// 주간 설문 작성 모달 — 홈 배너 클릭 시 활성. 값: 주차 번호 (1~4).
+let showSurveyFillModal = null;
 // 알림 인박스 패널 — TopBar 종 누르면 열림.
 let showNotifications = false;
 let toast = null;
@@ -4717,12 +4719,20 @@ function render() {
       const stale = document.querySelector('[data-spaced-repeat-popup]');
       if (stale) stale.remove();
     }
+    if (showSurveyFillModal) {
+      if (!document.querySelector('[data-survey-fill-modal]')) {
+        document.body.appendChild(SurveyFillModal());
+      }
+    } else {
+      const stale = document.querySelector('[data-survey-fill-modal]');
+      if (stale) stale.remove();
+    }
 
     // Mobile modal scroll fix: lock body scroll while any modal is open so the
     // modal's own overflow-y:auto picks up touch scrolling instead of the page
     // behind it bubbling. 취소/저장 버튼이 모바일에서 안 닿던 문제.
     try {
-      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications || showSpacedRepeatPopup);
+      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications || showSpacedRepeatPopup || showSurveyFillModal);
       if (anyModalOpen) document.body.classList.add('modal-open');
       else document.body.classList.remove('modal-open');
     } catch (_lockErr) {}
@@ -6292,6 +6302,51 @@ function HomePage() {
       </div>
     `;
     page.appendChild(reviewBanner);
+  })();
+
+  // 직전 주 설문 응답 안 한 사람한테 홈 배너 노출.
+  // currentDay > 5 (Week 1 끝났음) 이고 직전 주 설문 미응답이면 배너 노출 → 클릭 시 모달.
+  // 데드라인 같은 룰 (이번 주까지만) 적용. 응답 후엔 자동 숨김.
+  (() => {
+    const currentDay = state.currentDay || 0;
+    if (currentDay <= 5) return;  // Week 1 진행 중엔 노출 X
+    // 가장 최근 끝난 주 = Math.ceil((currentDay - 5) / 5)
+    const targetWeek = Math.max(1, Math.ceil((currentDay - 5) / 5));
+    const survey = (state.week_survey || {})[String(targetWeek)];
+    if (survey && survey.at && !survey.skipped) return; // 이미 답변
+    // 데드라인 — 그 주 +1 주 까지 (= reviewDeadlineDay 와 같은 룰)
+    const deadlineDay = Math.min((targetWeek + 1) * 5, CHALLENGE.total_days);
+    if (currentDay > deadlineDay) return; // 데드라인 지남
+    const daysLeft = Math.max(0, deadlineDay - currentDay);
+
+    const surveyBanner = el('button', {
+      style: {
+        width: '100%',
+        marginTop: '10px',
+        padding: '14px 18px',
+        borderRadius: '18px',
+        background: 'linear-gradient(135deg, #F5F1FA 0%, #FFF5E6 100%)',
+        border: '1px solid rgba(155,127,174,0.32)',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '14px',
+        textAlign: 'left',
+      },
+      onClick: () => { showSurveyFillModal = targetWeek; render(); },
+    });
+    surveyBanner.innerHTML = `
+      <div style="flex-shrink:0;width:44px;height:44px;border-radius:14px;background:rgba(155,127,174,0.18);display:grid;place-items:center;font-size:22px;">📝</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">Week ${targetWeek} 회고 1분 부탁드려요</div>
+        <div class="t-small" style="margin-top:3px;font-size:12px;color:var(--ink-soft);line-height:1.5;">여러분 의견 그대로 다음 주에 반영해갈게요</div>
+        <div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;background:rgba(155,127,174,0.18);color:#6B4F7D;font-size:10.5px;font-weight:700;letter-spacing:-0.005em;">
+          ⏰ 이번 주 (Day ${deadlineDay})까지만${daysLeft > 0 ? ` · D-${daysLeft}` : ''}
+        </div>
+      </div>
+      <div style="flex-shrink:0;color:#7B5E8C;font-size:14px;font-weight:800;">→</div>
+    `;
+    page.appendChild(surveyBanner);
   })();
 
   // Premium 이번 주 미팅 hero — 프리미엄 유저에게만 노출. 발표 자리 잡기 CTA 가
@@ -17203,6 +17258,17 @@ function WeeklyQuizPopupModal() {
    - 닫으면 즉시 학습 페이지로 (현재 Day 그대로).
    - "🔊 한 번씩 듣고 가기" 버튼 누르면 3개 단어 + 예문 자동 TTS 재생.
    ============================================================ */
+// 설문 응답 후 보여줄 mini-summary — 해당 주 약점 어휘 Top 3.
+// 응답 보상 + 본인 학습 도움 + 보스 통과 안 한 사람도 어려운 단어 노출.
+// Week 2~4 데이터 모이면 같은 패턴으로 추가.
+const SURVEY_WEAK_WORDS_BY_WEEK = {
+  '1': [
+    { en: 'Front-load', ko: '초반에 몰아치기', ex_en: "Let's front-load the heavy tasks this week." },
+    { en: 'Get it over the line', ko: '어렵사리 완수시키다', ex_en: 'We worked all weekend to get this over the line.' },
+    { en: 'Move in lockstep', ko: '발 맞춰 협력하다', ex_en: 'Marketing and sales need to move in lockstep.' },
+  ],
+};
+
 const SPACED_REPEAT_PRESETS = {
   // Day 7 (Week 2 시작) — Week 1 top 3 약점 어휘 (실제 데이터 기반).
   '7': {
@@ -17364,6 +17430,121 @@ function SpacedRepeatPopupModal() {
       };
     });
   }, 0);
+  backdrop.appendChild(modal);
+  return backdrop;
+}
+
+/* ============================================================
+   SurveyFillModal — 홈 배너 클릭 시 모달로 설문 작성.
+   기존 renderWeekSurveyCard 그대로 활용. 응답 후 mini-summary 자동 노출.
+   ============================================================ */
+function SurveyFillModal() {
+  const weekN = showSurveyFillModal;
+  if (!weekN) return el('div');
+  const close = () => { showSurveyFillModal = null; render(); };
+  const backdrop = el('div', {
+    class: 'modal-backdrop',
+    'data-survey-fill-modal': '1',
+    onClick: (e) => { if (e.target === backdrop) close(); },
+  });
+  const modal = el('div', {
+    class: 'modal',
+    style: {
+      width: 'min(94vw, 440px)',
+      maxHeight: '92vh',
+      padding: '0',
+      borderRadius: '24px',
+      overflow: 'hidden',
+      background: '#fff',
+      border: '1px solid var(--line)',
+      display: 'flex', flexDirection: 'column',
+    },
+  });
+  // 헤더
+  const header = el('div', {
+    style: {
+      padding: '18px 20px 14px',
+      borderBottom: '1px solid var(--line)',
+      display: 'flex', alignItems: 'center', gap: '10px', flexShrink: '0',
+    },
+  });
+  header.innerHTML = `
+    <div style="font-size:20px;line-height:1;">📝</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">Week ${weekN} 회고 · 1분 설문</div>
+      <div style="margin-top:2px;font-size:11.5px;color:var(--muted);">여러분 의견 다음 주에 그대로 반영해갈게요</div>
+    </div>
+    <button id="__surveyFillClose" style="background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">✕</button>
+  `;
+  modal.appendChild(header);
+
+  const existing = (state.week_survey || {})[String(weekN)];
+  const isSubmitted = !!(existing && existing.at && !existing.skipped);
+
+  // 본문 — submitted 상태면 thank-you + mini-summary, 아니면 설문 카드
+  const body = el('div', {
+    style: { padding: '14px 18px 18px', overflowY: 'auto', flex: '1' },
+  });
+  if (isSubmitted) {
+    // Thank-you + Mini-summary
+    const thanks = el('div', {
+      style: {
+        padding: '20px', borderRadius: '18px',
+        background: 'linear-gradient(135deg, #F5F1FA 0%, #FFF5E6 100%)',
+        border: '1px solid rgba(155,127,174,0.28)',
+        textAlign: 'center', marginBottom: '14px',
+      },
+    });
+    thanks.innerHTML = `
+      <div style="font-size:36px;line-height:1;">🙏</div>
+      <div style="margin-top:8px;font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">설문 답변 진짜 고마워요</div>
+      <div class="t-small" style="margin-top:6px;color:var(--ink-soft);font-size:12px;line-height:1.55;">한 명 한 명 답변 다 챙겨봤답니다.<br>여러분 의견 순서대로 반영해갈게요.</div>
+    `;
+    body.appendChild(thanks);
+    // Mini-summary — 해당 주 약점 단어 Top 3
+    const weakWords = SURVEY_WEAK_WORDS_BY_WEEK[String(weekN)] || [];
+    if (weakWords.length) {
+      const summary = el('div', {
+        style: {
+          padding: '16px 18px', borderRadius: '16px',
+          background: '#FBF7F0', border: '1px solid var(--line-soft, #E7DDC8)',
+        },
+      });
+      const cardsHtml = weakWords.map((w, i) => `
+        <div style="margin-top:${i === 0 ? '10px' : '8px'};padding:10px 12px;border-radius:10px;background:#fff;border:1px solid var(--line-soft);">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="flex-shrink:0;width:22px;height:22px;border-radius:7px;background:var(--orange);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;">${i + 1}</span>
+            <span style="font-size:14px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em;">${escapeHtml(w.en)}</span>
+            <span style="font-size:11.5px;color:var(--ink-soft);">· ${escapeHtml(w.ko)}</span>
+          </div>
+          <div style="margin-top:4px;font-size:11px;color:var(--ink);line-height:1.45;font-style:italic;">"${escapeHtml(w.ex_en)}"</div>
+        </div>
+      `).join('');
+      summary.innerHTML = `
+        <div class="kicker" style="color:var(--orange-dark);">💡 Week ${weekN} 가장 어려웠던 표현 Top 3</div>
+        <div class="t-small" style="margin-top:6px;color:var(--ink-soft);font-size:11.5px;line-height:1.55;">설문 답해주신 보상이에요. 다음 주 학습에 자연스럽게 다시 나올 거예요.</div>
+        ${cardsHtml}
+      `;
+      body.appendChild(summary);
+    }
+    // 닫기 버튼
+    const closeBtn = el('button', {
+      class: 'btn btn-primary btn-full',
+      style: { background: 'var(--ink)', color: 'var(--cream)', border: 'none', fontSize: '14px', padding: '13px', marginTop: '14px' },
+      onClick: close,
+    }, '✓ 닫기');
+    body.appendChild(closeBtn);
+  } else {
+    // 설문 카드 (기존 renderWeekSurveyCard 재활용)
+    body.appendChild(renderWeekSurveyCard(weekN));
+  }
+  modal.appendChild(body);
+
+  setTimeout(() => {
+    const closeBtn = document.getElementById('__surveyFillClose');
+    if (closeBtn) closeBtn.onclick = close;
+  }, 0);
+
   backdrop.appendChild(modal);
   return backdrop;
 }
