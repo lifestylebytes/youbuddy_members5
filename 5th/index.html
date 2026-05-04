@@ -9332,6 +9332,9 @@ function renderWeekSurveyCard(weekN) {
       try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
       delete window.__weekSurveyDraft[weekN];
       showToast('🙏 답변 저장됐어요. Week 2 더 좋게 만들게요.');
+      // 모달 강제 재마운트 → thank-you + mini-summary 화면으로 전환
+      const stale = document.querySelector('[data-survey-fill-modal]');
+      if (stale) stale.remove();
       render();
     };
     const skipBtn = document.getElementById('__weekSurveySkip');
@@ -9342,6 +9345,10 @@ function renderWeekSurveyCard(weekN) {
       try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
       delete window.__weekSurveyDraft[weekN];
       showToast('패스했어요. 언제든 다시 와도 돼요.');
+      // 스킵은 그냥 모달 닫기
+      showSurveyFillModal = null;
+      const stale = document.querySelector('[data-survey-fill-modal]');
+      if (stale) stale.remove();
       render();
     };
   }, 0);
