@@ -17530,8 +17530,8 @@ window.__startVoiceQuiz = async (dayN, btnEl) => {
   }
   recognition.lang = 'en-US';
   recognition.continuous = false;
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 3;
+  recognition.interimResults = true;  // 실시간 partial 결과도 받아서 input 에 띄우면 "들어오고 있다" 안정감.
+  recognition.maxAlternatives = 5;    // 3 → 5 로 늘려서 한국식 발음 후보 더 많이 챙김.
 
   // 버튼 시각 피드백 — 빨강 + "🎙 듣는 중..."
   const originalHTML = btnEl ? btnEl.innerHTML : '';
@@ -17543,6 +17543,92 @@ window.__startVoiceQuiz = async (dayN, btnEl) => {
     btnEl.style.color = '#fff';
     btnEl.style.borderColor = '#E64545';
   }
+
+  // ── 인터렉티브 waveform — 마이크 입력 dB 실시간 시각화.
+  // 사용자가 "내 목소리 들어가고 있다" 즉시 확인. Web Audio API 의 AnalyserNode 사용.
+  // SpeechRecognition 과 별도로 getUserMedia 호출 — 같은 마이크 stream 공유 가능.
+  let audioCtx = null, analyser = null, audioStream = null, waveRaf = null;
+  let waveCanvas = null, waveCard = null;
+  try {
+    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = audioCtx.createMediaStreamSource(audioStream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    src.connect(analyser);
+
+    waveCard = el('div', {
+      'data-voice-wave-card': '1',
+      style: {
+        position: 'fixed',
+        bottom: '24px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: '9999',
+        background: 'rgba(35, 35, 50, 0.92)',
+        borderRadius: '999px',
+        padding: '14px 22px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        boxShadow: '0 6px 24px rgba(0,0,0,0.32)',
+        backdropFilter: 'blur(8px)',
+      },
+    });
+    waveCard.innerHTML = `
+      <span style="font-size:14px;color:#fff;font-weight:700;letter-spacing:-0.01em;">🎙</span>
+      <canvas id="__voiceWaveCanvas" width="180" height="36" style="display:block;border-radius:8px;"></canvas>
+      <span style="font-size:11px;color:rgba(255,255,255,0.6);font-family:var(--font-mono);">말해보세요</span>
+    `;
+    document.body.appendChild(waveCard);
+    waveCanvas = document.getElementById('__voiceWaveCanvas');
+    const ctx2d = waveCanvas.getContext('2d');
+    const buf = new Uint8Array(analyser.frequencyBinCount);
+    const draw = () => {
+      analyser.getByteTimeDomainData(buf);
+      ctx2d.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+      // 평균 amplitude → "내 목소리 들어가는지" 시각화 (간단한 bar 그래프)
+      const bars = 24;
+      const sliceLen = Math.floor(buf.length / bars);
+      const cx = waveCanvas.width / bars;
+      for (let i = 0; i < bars; i++) {
+        let sum = 0;
+        for (let j = 0; j < sliceLen; j++) {
+          sum += Math.abs(buf[i * sliceLen + j] - 128);
+        }
+        const amp = (sum / sliceLen) / 128; // 0~1
+        const h = Math.max(2, amp * waveCanvas.height * 1.6);
+        const y = (waveCanvas.height - h) / 2;
+        // 시각적 톤: 조용 → 회색, 적당 → 흰색, 큼 → 주황
+        const lvl = amp;
+        const color = lvl < 0.04 ? 'rgba(255,255,255,0.3)'
+                    : lvl < 0.15 ? 'rgba(255,255,255,0.85)'
+                    : '#FF8043';
+        ctx2d.fillStyle = color;
+        ctx2d.fillRect(i * cx + 1, y, cx - 2, h);
+      }
+      waveRaf = requestAnimationFrame(draw);
+    };
+    draw();
+  } catch (e) {
+    console.warn('[voice] waveform unavailable', e);
+    // waveform 실패해도 STT 자체는 진행 (마이크 권한 거부면 SR 도 어차피 실패할 거).
+  }
+
+  const cleanupWave = () => {
+    if (waveRaf) cancelAnimationFrame(waveRaf);
+    waveRaf = null;
+    if (waveCard && waveCard.parentNode) waveCard.parentNode.removeChild(waveCard);
+    waveCard = null;
+    if (audioStream) {
+      try { audioStream.getTracks().forEach((t) => t.stop()); } catch (_) {}
+      audioStream = null;
+    }
+    if (audioCtx && audioCtx.state !== 'closed') {
+      try { audioCtx.close(); } catch (_) {}
+    }
+    audioCtx = null; analyser = null;
+  };
 
   const restoreBtn = () => {
     if (btnEl) {
@@ -17592,17 +17678,43 @@ window.__startVoiceQuiz = async (dayN, btnEl) => {
   };
 
   recognition.onresult = (event) => {
-    const results = event.results[0];
-    // 여러 alternative 중 "정답에 가까운 것" 우선 선택. (속어, 동음이의 보정)
+    // interimResults true 라 부분/최종 둘 다 들어옴. final 만 처리.
+    let resultsFinal = null;
+    for (let i = event.results.length - 1; i >= 0; i--) {
+      if (event.results[i].isFinal) { resultsFinal = event.results[i]; break; }
+    }
+    if (!resultsFinal) {
+      // partial — input 에 미리 채워서 "들어오고 있다" 시그널. 정답 체크는 final 까지 대기.
+      try {
+        const partial = (event.results[event.results.length - 1][0]?.transcript || '').trim();
+        if (partial && input && !input.disabled) {
+          input.value = partial;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      } catch (_) {}
+      return;
+    }
+    const results = resultsFinal;
+    // 여러 alternative 중 "정답에 가까운 것" 우선 선택. quizAnswerMatches 로 시제·하이픈·phrasal verb 분리 변형까지 인정.
     const questions = (window.__verifyQuestionsCache || {})[dayN] || [];
     const ui = (window.__verifyUi || {})[dayN] || {};
     const currentQ = questions[ui.idx];
     const target = (currentQ?.en || '').trim();
     const targetLower = target.toLowerCase();
     let best = (results[0]?.transcript || '').trim();
+    let foundExact = false;
     for (let i = 0; i < results.length; i++) {
       const t = (results[i].transcript || '').trim();
-      if (targetLower && t.toLowerCase() === targetLower) { best = t; break; }
+      if (!t) continue;
+      if (targetLower && t.toLowerCase() === targetLower) { best = t; foundExact = true; break; }
+      // 변형 매칭 — quizAnswerMatches 가 시제·하이픈·phrasal verb 분리 다 본다.
+      try {
+        if (typeof quizAnswerMatches === 'function' && target && quizAnswerMatches(t, target)) {
+          best = target; // 정답 형태로 통일해서 input 에 채움
+          foundExact = true;
+          break;
+        }
+      } catch (_) {}
     }
     if (best) {
       // 2-blank 모드면: heard 가 full target 과 일치할 때 두 빈칸 모두 채워 정답 처리.
@@ -17652,6 +17764,7 @@ window.__startVoiceQuiz = async (dayN, btnEl) => {
 
   recognition.onend = () => {
     restoreBtn();
+    cleanupWave();
     window.__activeRecognition = null;
   };
 
