@@ -6259,38 +6259,38 @@ function HomePage() {
     // 복습 완료 여부 — bingo_done flag 확인
     const isReviewed = !!(state.bingo_done && state.bingo_done[String(targetWeek.n)]);
     if (isReviewed) {
-      // 완료 후 — 톤 바꿈: 초록 액센트 + "잠금화면 받기" CTA
-      reviewBanner.style.background = 'linear-gradient(135deg, #E8F5E9 0%, #F0F8E8 100%)';
-      reviewBanner.style.borderColor = 'rgba(74,160,124,0.4)';
-      reviewBanner.innerHTML = `
-        <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;background:rgba(74,160,124,0.20);display:grid;place-items:center;font-size:24px;">✨</div>
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
-            <div style="font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">Week ${targetWeek.n} 복습 완료!</div>
-            <span style="font-size:9.5px;font-weight:700;background:rgba(74,160,124,0.20);color:#22B36A;padding:2px 7px;border-radius:999px;">DONE</span>
-          </div>
-          <div class="t-small" style="margin-top:5px;font-size:12.5px;color:#22B36A;font-weight:700;letter-spacing:-0.01em;">${targetWeek.n <= 2 ? '📥 잠금화면 단어장 받기 →' : '한 번 더 복습하기 →'}</div>
-        </div>
-      `;
-    } else {
-      const deadlineDay = reviewDeadlineDay(targetWeek.n);
-      const locked = isReviewLocked(targetWeek.n);
-      if (locked) {
-        // 도전 기간 끝남 — 배너 자체 표시 안 함 (홈에서 깔끔하게 제거)
-        return;
-      }
-      reviewBanner.innerHTML = `
-        <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;background:rgba(240,125,56,0.18);display:grid;place-items:center;font-size:24px;">🧠</div>
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
-            <div style="font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">Week${targetWeek.n} 단어.. 진짜 다 외워졌을까요?</div>
-            ${isPreview ? '<span style="font-size:9.5px;font-weight:700;background:rgba(125,92,255,0.18);color:#5C53A5;padding:2px 7px;border-radius:999px;">미리보기</span>' : ''}
-          </div>
-          <div class="t-small" style="margin-top:5px;font-size:12.5px;color:var(--orange-dark);font-weight:700;letter-spacing:-0.01em;display:inline-flex;align-items:center;gap:4px;">주간 테스트 보러가기 →</div>
-          <div style="margin-top:3px;font-size:11px;font-weight:700;color:#C95721;letter-spacing:-0.005em;">⏰ 다음 주(Day ${deadlineDay})까지만 도전 가능</div>
-        </div>
-      `;
+      // 통과한 사람한텐 홈 배너 숨김 — 매번 보이면 oversaturate.
+      // JPG 다운로드는 학습 탭 → Week 카드 → 진짜 외우기 → reward card 에서 다시 받을 수 있음.
+      return;
     }
+    // 미통과자 — 도전 기간 안 지났으면 카운트다운 배너 강조
+    const deadlineDay = reviewDeadlineDay(targetWeek.n);
+    const locked = isReviewLocked(targetWeek.n);
+    if (locked) {
+      // 도전 기간 끝남 — 배너 자체 표시 안 함 (홈에서 깔끔하게 제거)
+      return;
+    }
+    // 데드라인 D-N 계산 — Day {deadlineDay} 까지 남은 평일 수
+    const daysLeft = Math.max(0, deadlineDay - state.currentDay);
+    const isUrgent = daysLeft <= 2;
+    // 긴급도에 따른 색상 / 톤 구분
+    if (isUrgent) {
+      reviewBanner.style.background = 'linear-gradient(135deg, #FFE5D9 0%, #FFD1B8 100%)';
+      reviewBanner.style.borderColor = 'rgba(232,116,60,0.5)';
+    }
+    reviewBanner.innerHTML = `
+      <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;background:${isUrgent ? 'rgba(232,116,60,0.30)' : 'rgba(240,125,56,0.18)'};display:grid;place-items:center;font-size:24px;">${isUrgent ? '⏰' : '🧠'}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
+          <div style="font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">Week ${targetWeek.n} 단어.. 진짜 다 외워졌을까요?</div>
+          ${isPreview ? '<span style="font-size:9.5px;font-weight:700;background:rgba(125,92,255,0.18);color:#5C53A5;padding:2px 7px;border-radius:999px;">미리보기</span>' : ''}
+        </div>
+        <div class="t-small" style="margin-top:5px;font-size:12.5px;color:var(--orange-dark);font-weight:700;letter-spacing:-0.01em;display:inline-flex;align-items:center;gap:4px;">주간 테스트 보러가기 →</div>
+        <div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:${isUrgent ? '#C95721' : 'rgba(201,87,33,0.12)'};color:${isUrgent ? '#fff' : '#C95721'};font-size:11px;font-weight:800;letter-spacing:-0.005em;">
+          ⏰ ${daysLeft <= 0 ? '오늘이 마지막!' : `D-${daysLeft} · 이번 주(Day ${deadlineDay})까지만`}
+        </div>
+      </div>
+    `;
     page.appendChild(reviewBanner);
   })();
 
