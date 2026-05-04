@@ -54,6 +54,10 @@ begin
 end;
 $$;
 
+-- "어제" = 직전 평일 (주말 skip).
+-- 월요일 비교 시 어제(일) 가 아닌 직전 금요일과 비교.
+-- 일요일/토요일에 호출되면 직전 금요일과 비교.
+-- 화-금 에는 그대로 -1 day.
 create or replace function public.get_hourly_completion_delta(
   p_cohort text,
   p_verified_day integer,
@@ -73,7 +77,13 @@ as $$
 with bounds as (
   select
     date_trunc('hour', coalesce(p_now, now())) as current_hour,
-    date_trunc('hour', coalesce(p_now, now()) - interval '1 day') as yesterday_same_hour
+    -- 직전 평일 같은 시간 (KST 기준 dow). Mon(1)→Fri(-3d), Sat(6)→Fri(-1d), Sun(0)→Fri(-2d), Tue-Fri→previous day(-1d).
+    date_trunc('hour', coalesce(p_now, now()) at time zone 'Asia/Seoul' - case
+      when extract(dow from coalesce(p_now, now()) at time zone 'Asia/Seoul') = 1 then interval '3 day'   -- Mon → Fri
+      when extract(dow from coalesce(p_now, now()) at time zone 'Asia/Seoul') = 0 then interval '2 day'   -- Sun → Fri
+      when extract(dow from coalesce(p_now, now()) at time zone 'Asia/Seoul') = 6 then interval '1 day'   -- Sat → Fri
+      else interval '1 day'                                                                              -- Tue-Fri → 직전 평일
+    end) at time zone 'Asia/Seoul' as yesterday_same_hour
 ),
 current_stats as (
   select count(distinct member_key)::int as cnt
