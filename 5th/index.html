@@ -7624,6 +7624,48 @@ function computeQuizSplit(question) {
       };
     }
   }
+  // 3.5) 답안 자체엔 목적어 없지만 실제 예문엔 대명사 (you/me/him/her/them/us/it) 가
+  //      verb 와 뒤 단어 사이에 끼어드는 idiom 패턴.
+  //      예: answer="Meet halfway" / prompt="meet you halfway and increase the volume"
+  //          → before [Meet] " you " [halfway] after  (2-blank, 가운데 대명사구 visible)
+  //      verb 시제 변형도 고려 (meets/met/meeting halfway).
+  const OBJ_PRONOUNS = ['you', 'me', 'him', 'her', 'them', 'us', 'it', 'someone', 'something'];
+  for (let i = 0; i < tokens.length - 1; i += 1) {
+    const prefixToks = tokens.slice(0, i + 1);
+    const suffixToks = tokens.slice(i + 1);
+    const prefix = prefixToks.join(' ');
+    const suffix = suffixToks.join(' ');
+    // prefix 의 첫 토큰만 시제 변형 시도 (verb 가정)
+    const headForms = (typeof inflectionVariants === 'function')
+      ? inflectionVariants(prefixToks[0].toLowerCase())
+      : [prefixToks[0].toLowerCase()];
+    const prefixRest = prefixToks.slice(1).map(escapeRe).join('\\s+');
+    for (const head of headForms) {
+      const headPattern = prefixRest
+        ? escapeRe(head) + '\\s+' + prefixRest
+        : escapeRe(head);
+      const pronAlt = OBJ_PRONOUNS.map(escapeRe).join('|');
+      const gapRe = new RegExp(
+        '\\b' + headPattern + '\\b(\\s+(?:' + pronAlt + ')(?:\\s+\\S+){0,3}?\\s+)\\b' + escapeRe(suffix) + '\\b',
+        'i'
+      );
+      const m = promptText.match(gapRe);
+      if (m) {
+        const matchIdx = m.index;
+        const before = promptText.slice(0, matchIdx);
+        const after = promptText.slice(matchIdx + m[0].length);
+        return {
+          mode: '2blank',
+          before,
+          middle: m[1],
+          after,
+          prefixAnswer: prefix,
+          suffixAnswer: suffix,
+          answer,
+        };
+      }
+    }
+  }
   // 4) Fallback — append blank
   return { mode: '1blank', parts: [promptText + ' → ', ''], answer };
 }
