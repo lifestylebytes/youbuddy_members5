@@ -4173,7 +4173,7 @@ async function refreshRemoteStateAndCommunity(opts = {}) {
     || !!document.querySelector('[data-consent-modal]') // 동의 모달
     || (typeof showRateHistory !== 'undefined' && showRateHistory) // 인증률 추이 모달
   );
-  if (changed && !interactiveModalOpen) render();
+  if (changed && !interactiveModalOpen) requestRender();
   return changed;
 }
 
@@ -4209,7 +4209,7 @@ async function refreshDashboardStats() {
       || !!document.querySelector('[data-presenter-script-modal]')
       || !!document.querySelector('[data-consent-modal]')
     );
-    if (currentPage === 'home' && !modalOpenForDash) render();
+    if (currentPage === 'home' && !modalOpenForDash) requestRender();
   } catch (e) {
     dashboardStats = {
       todayRate: null,
@@ -4494,6 +4494,18 @@ function installTypingBlurRerender(target) {
     target.addEventListener('blur', handler, { once: true });
   } catch (e) {}
 }
+// 백그라운드 fetch (polling / peer times / dashboard stats) 가 같은 frame 안에서
+// render() 를 N번 trigger 하는 패턴이 흔함 — 다 합쳐서 1번만 수행하도록 rAF 기반 코얼리스.
+// 사용자 인터랙션 (클릭/입력) 은 그대로 동기 render() 호출. 백그라운드만 requestRender().
+let __renderRafId = 0;
+function requestRender() {
+  if (__renderRafId) return;
+  __renderRafId = requestAnimationFrame(() => {
+    __renderRafId = 0;
+    try { render(); } catch (e) {}
+  });
+}
+
 function render() {
   // Keyboard stays open on mobile as long as the focused textarea/input stays in the DOM.
   // If a typing field is focused right now, defer the re-render until blur — otherwise
@@ -6668,8 +6680,10 @@ function Checkboard() {
         loadPeerVerificationTimes(d).then((map) => {
           if (map && Object.keys(map).length) {
             // Only re-render if we're still on this page; skip otherwise to avoid churn.
+            // 같은 프레임에 여러 day 응답이 도착해도 requestRender 가 1번으로 코얼리스.
             if (currentPage === 'board' || currentPage === 'home' || currentPage === 'weeks') {
-              if (typeof render === 'function') render();
+              if (typeof requestRender === 'function') requestRender();
+              else if (typeof render === 'function') render();
             }
           }
         }).catch(() => {});
@@ -6693,6 +6707,25 @@ function Checkboard() {
   // ── 성능 최적화 — 50명 × 21셀 = 1050 노드를 el() 로 일일이 만들면 매 render 마다 무거움.
   //    여기선 한 번에 innerHTML 로 wire 한 다음, 클릭은 grid 단에 위임 (event delegation).
   //    me 행은 status 정확도 위해 dayStatus(d) 호출, 피어 행은 verifiedDays / lateDays Set 한 번만 만들고 재사용.
+  // ── 메모이제이션 — 백그라운드 폴링이 15초마다 render() 트리거하는데, 멤버 state 가 안 바뀌었으면
+  //    rowsHtml 50KB 재생성하는 거 자체가 낭비. 간단한 fingerprint 로 캐시 hit 시 재사용.
+  const fpParts = [
+    state.currentDay,
+    JSON.stringify(state.verified || {}),
+    JSON.stringify(state.verified_time || {}),
+    !!window.__registeredLoaded,
+    orderedMembers.length,
+    orderedMembers.map((m) => {
+      const v = Array.isArray(m.verifiedDays) ? m.verifiedDays.join(',') : '';
+      const l = Array.isArray(m.lateDays) ? m.lateDays.join(',') : '';
+      return `${m.member_key || m.name}|${m.progress || 0}|${v}|${l}|${m.registered ? 1 : 0}`;
+    }).join('||'),
+    JSON.stringify(window.__peerVerifyTimes || {}),
+  ];
+  const fingerprint = fpParts.join('::');
+  const cachedRowsHtml = window.__cbCachedFingerprint === fingerprint
+    ? window.__cbCachedRowsHtml
+    : null;
   const meCellStatus = (() => {
     const map = {};
     for (let d = 1; d <= 20; d++) {
@@ -6710,7 +6743,7 @@ function Checkboard() {
   const myTz = state.timezoneOffsetText || '+0h';
   const escAttr = (s) => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
-  const rowsHtml = orderedMembers.map((m) => {
+  const rowsHtml = cachedRowsHtml || orderedMembers.map((m) => {
     // 이름칸 ── 가입 안 한 멤버는 회색 (__registeredLoaded 후만 판정).
     const isUnreg = !!(window.__registeredLoaded && !m.me && !m.registered);
     const nameCls = 'cb-name' + (m.me ? ' cb-row-me' : '') + (isUnreg ? ' is-unreg' : '');
@@ -6777,6 +6810,11 @@ function Checkboard() {
     return nameHtml + cellsHtml;
   }).join('');
 
+  // 캐시 갱신 — 다음 render 가 같은 fingerprint 면 위 .map(...) 다 스킵.
+  if (!cachedRowsHtml) {
+    window.__cbCachedFingerprint = fingerprint;
+    window.__cbCachedRowsHtml = rowsHtml;
+  }
   // 한 번에 inject — el() 1050번 호출 대비 큰 폭으로 가벼움.
   grid.insertAdjacentHTML('beforeend', rowsHtml);
   // 이름 클릭 = 멤버 카드 — wrap 단 한 곳에 위임 (이벤트 리스너 1개만).
