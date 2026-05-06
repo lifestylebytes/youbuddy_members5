@@ -7666,7 +7666,45 @@ function computeQuizSplit(question) {
       }
     }
   }
-  // 4) Fallback — append blank
+  // 3.6) Phrasal-particle 끝 idiom — 답안 가운데 명사가 prompt 에서 다른 명사구로 치환된 케이스.
+  //      예: answer="Give time back" / prompt="give you 10 minutes back"
+  //          → before [Give] " you 10 minutes " [back] after  (2-blank)
+  //      답안 마지막 토큰이 알려진 phrasal particle 일 때만 발동 (오매칭 방지).
+  //      verb 시제 변형 + 가운데 1~6 단어 임의 매칭.
+  if (tokens.length >= 2 && typeof _PHRASAL_PARTICLES !== 'undefined') {
+    const lastTok = tokens[tokens.length - 1].toLowerCase().replace(/[.,!?]+$/, '');
+    if (_PHRASAL_PARTICLES.has(lastTok)) {
+      const headTok = tokens[0];
+      const headForms = (typeof inflectionVariants === 'function')
+        ? inflectionVariants(headTok.toLowerCase())
+        : [headTok.toLowerCase()];
+      for (const head of headForms) {
+        const gapRe = new RegExp(
+          '\\b' + escapeRe(head) + '\\b(\\s+(?:\\S+\\s+){1,6}?)\\b' + escapeRe(lastTok) + '\\b',
+          'i'
+        );
+        const m = promptText.match(gapRe);
+        if (m) {
+          const matchIdx = m.index;
+          const before = promptText.slice(0, matchIdx);
+          const after = promptText.slice(matchIdx + m[0].length);
+          return {
+            mode: '2blank',
+            before,
+            middle: m[1],
+            after,
+            prefixAnswer: headTok,
+            suffixAnswer: lastTok,
+            answer,
+          };
+        }
+      }
+    }
+  }
+  // 4) Fallback — 더 이상 prompt 끝에 어색한 화살표 안 붙임. prompt 그대로 보여주고
+  //    별도 빈칸 line 으로 dictionary form 을 직접 입력하게 함 (UX: "이 표현을 영어로?").
+  //    parts[0] 끝에 줄바꿈 마커 둬서 렌더 쪽에서 처리. (현재 렌더가 inline 이라
+  //    여기선 안전하게 prompt + 줄바꿈 + ' → ' 형태 유지.)
   return { mode: '1blank', parts: [promptText + ' → ', ''], answer };
 }
 
