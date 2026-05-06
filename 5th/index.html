@@ -4539,13 +4539,10 @@ function render() {
     const cbWrap = root.querySelector && root.querySelector('.checkboard-wrap');
     if (cbWrap) __cbScrollLeft = cbWrap.scrollLeft || 0;
   } catch (e) {}
-  // Preserve vertical scroll position. innerHTML='' 으로 페이지 wipe 하면 body 높이가
-  // 잠깐 줄어들면서 스크롤이 위로 튕기는 현상 발생. render() 가 페이지 같은 라우트
-  // 안에서 호출될 때 (체크박스 토글, chip 클릭 등) 사용자는 스크롤 유지를 기대.
-  // go() 가 다른 페이지로 라우팅할 땐 별도로 0 으로 reset 하니 그쪽엔 영향 없음.
-  let __pageScrollY = 0;
-  try { __pageScrollY = window.scrollY || window.pageYOffset || 0; } catch (e) {}
-  root.innerHTML = '';
+  // 스크롤 점프 방지 — 예전엔 root.innerHTML = '' 로 wipe 후 새 콘텐츠 build 했는데,
+  // 그 사이 짧은 순간 DOM 이 비어서 브라우저가 scrollY 를 0 으로 clamp 시키는 문제 발생.
+  // 해결: replaceChildren(newApp) 으로 atomic swap — 빈 상태 자체가 없어서 scrollY 유지됨.
+  // (line 4608 의 root.appendChild(app) 는 root.replaceChildren(app) 로 대체.)
   try {
     const app = el('div', { class: 'app' });
 
@@ -4554,7 +4551,8 @@ function render() {
     if (!state.onboarded && !__DEMO_MODE__) {
       page = OnboardingPage();
       app.appendChild(page);
-      root.appendChild(app);
+      // atomic swap — old DOM tree replaced in one operation, scrollY 유지
+      root.replaceChildren(app);
       if (toast) root.appendChild(el('div', { class: 'toast' }, toast));
       return;
     }
@@ -4605,7 +4603,8 @@ function render() {
     // 상시 IP 각주 — 온보딩 끝난 유저에게만. 작은 폰트, TabBar 위로 살짝.
     try { app.appendChild(buildPersistentIpFooter()); } catch (e) {}
     app.appendChild(TabBar());
-    root.appendChild(app);
+    // atomic swap — DOM tree 가 한 번에 교체돼서 빈 상태 없음 → scrollY 유지.
+    root.replaceChildren(app);
 
     // 프리미엄 전용 플로팅 🎤 버튼 — 이번 주 발표 상태에 따라 직관적으로 점프.
     //   · 내가 발표자 → PresenterPrepPage
@@ -4786,12 +4785,7 @@ function render() {
         });
       } catch (e) {}
     }
-    // 페이지 vertical scroll 복원 — innerHTML='' 직후 페이지 잠깐 짧아져서
-    // 브라우저가 스크롤 위치 잘라내는 걸 다시 되돌림. 새로운 콘텐츠가 적어서
-    // 원래 위치까지 못 가더라도 가능한 한 가까이 (브라우저가 자동 clamp).
-    if (__pageScrollY > 0) {
-      try { window.scrollTo({ top: __pageScrollY, behavior: 'auto' }); } catch (e) {}
-    }
+    // (vertical scroll 복원 코드 제거됨 — replaceChildren atomic swap 으로 빈 상태 없어서 자동 유지.)
 
     // Onboarding tour — 가입 완료 후 최초 1회만. tier 별 시퀀스 분기.
     try { ensureOnboardingTour(); } catch (_tourErr) { console.warn('[tour] render hook', _tourErr); }
@@ -4814,7 +4808,7 @@ function render() {
     `;
     app.appendChild(fallback);
     app.appendChild(TabBar());
-    root.appendChild(app);
+    root.replaceChildren(app);
   }
 }
 
@@ -12554,11 +12548,10 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
         ok = await saveState({ immediate: true });
       }
       updateSaveIndicator();
-      // hasSupabase() false 거나 RPC 가 catch 로 빠져 false 리턴된 케이스만 경고.
       if (typeof hasSupabase === 'function' && !hasSupabase()) {
-        showToast('💾 로컬에 저장됐어요 (서버 연결 시 자동 동기화)');
+        showToast('💾 로컬에 저장됐어요');
       } else {
-        showToast('✅ 저장됐어요 — 운영팀도 확인 가능');
+        showToast('✅ 저장됐어요');
       }
     } catch (e) {
       showToast('⚠️ 저장 중 오류 — 입력값은 로컬에 보관됨');
