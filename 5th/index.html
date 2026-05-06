@@ -4538,6 +4538,12 @@ function render() {
     const cbWrap = root.querySelector && root.querySelector('.checkboard-wrap');
     if (cbWrap) __cbScrollLeft = cbWrap.scrollLeft || 0;
   } catch (e) {}
+  // Preserve vertical scroll position. innerHTML='' 으로 페이지 wipe 하면 body 높이가
+  // 잠깐 줄어들면서 스크롤이 위로 튕기는 현상 발생. render() 가 페이지 같은 라우트
+  // 안에서 호출될 때 (체크박스 토글, chip 클릭 등) 사용자는 스크롤 유지를 기대.
+  // go() 가 다른 페이지로 라우팅할 땐 별도로 0 으로 reset 하니 그쪽엔 영향 없음.
+  let __pageScrollY = 0;
+  try { __pageScrollY = window.scrollY || window.pageYOffset || 0; } catch (e) {}
   root.innerHTML = '';
   try {
     const app = el('div', { class: 'app' });
@@ -4778,6 +4784,12 @@ function render() {
           if (cbWrap) cbWrap.scrollLeft = __cbScrollLeft;
         });
       } catch (e) {}
+    }
+    // 페이지 vertical scroll 복원 — innerHTML='' 직후 페이지 잠깐 짧아져서
+    // 브라우저가 스크롤 위치 잘라내는 걸 다시 되돌림. 새로운 콘텐츠가 적어서
+    // 원래 위치까지 못 가더라도 가능한 한 가까이 (브라우저가 자동 clamp).
+    if (__pageScrollY > 0) {
+      try { window.scrollTo({ top: __pageScrollY, behavior: 'auto' }); } catch (e) {}
     }
 
     // Onboarding tour — 가입 완료 후 최초 1회만. tier 별 시퀀스 분기.
@@ -12524,12 +12536,28 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
     saveBtn.disabled = true;
     updateSaveIndicator('saving');
     try {
-      const ok = await saveState({ immediate: true });
+      // saveState 가 false 를 리턴해도 그건 "이미 in-flight 라 큐잉됨" 의미일 뿐
+      // 데이터는 곧 push 됨. 큐가 비어질 때까지 (또는 타임아웃) 기다렸다가 성공 처리.
+      let ok = await saveState({ immediate: true });
+      // false 면 큐잉된 거 — flush 까지 짧게 polling.
+      if (ok === false) {
+        const start = Date.now();
+        while (
+          (typeof statePersistInFlight !== 'undefined' && statePersistInFlight) ||
+          (typeof statePersistQueued !== 'undefined' && statePersistQueued)
+        ) {
+          if (Date.now() - start > 5000) break; // 5초 안전 timeout
+          await new Promise((r) => setTimeout(r, 120));
+        }
+        // 한 번 더 확정 push.
+        ok = await saveState({ immediate: true });
+      }
       updateSaveIndicator();
-      if (ok !== false) {
-        showToast('✅ 저장됐어요 — 운영팀도 확인 가능');
+      // hasSupabase() false 거나 RPC 가 catch 로 빠져 false 리턴된 케이스만 경고.
+      if (typeof hasSupabase === 'function' && !hasSupabase()) {
+        showToast('💾 로컬에 저장됐어요 (서버 연결 시 자동 동기화)');
       } else {
-        showToast('⚠️ 저장은 됐지만 서버 동기화는 다음 시도에 진행됩니다');
+        showToast('✅ 저장됐어요 — 운영팀도 확인 가능');
       }
     } catch (e) {
       showToast('⚠️ 저장 중 오류 — 입력값은 로컬에 보관됨');
