@@ -4791,24 +4791,18 @@ function render() {
         });
       } catch (e) {}
     }
-    // 페이지 vertical scroll 복원 (방어 ②) — atomic swap 후에도 새 page 가 짧으면
-    // 브라우저가 scrollY 를 새 max 까지 clamp 함. 동기 + rAF 두 번 시도해서 layout
-    // 안정화되는 시점에 가장 가까운 위치로 회복.
+    // 페이지 vertical scroll 복원 (방어 ②) — atomic swap 후에도 일부 브라우저는
+    // 새 페이지 빌드 + 레이아웃 finalize 사이에 brief scrollY clamp 가 끼어서 시각적
+    // jump 발생. 무조건 동기 + rAF 두 번 force 해서 클램프 보다 빨리 원위치 복귀.
     // go() 가 일부러 0 으로 reset 하는 라우트 변경 케이스는 __skipRenderScrollRestore=true 로 우회.
     if (__pageScrollY > 0 && !window.__skipRenderScrollRestore) {
-      try {
-        const cur = window.scrollY || window.pageYOffset || 0;
-        if (Math.abs(cur - __pageScrollY) > 4) {
-          window.scrollTo({ top: __pageScrollY, behavior: 'auto' });
-        }
-      } catch (e) {}
+      // 동기 — 첫 reflow 전에 강제로 복원 시도 (browser 가 paint 전에 잡아주길 기대)
+      try { window.scrollTo({ top: __pageScrollY, behavior: 'auto' }); } catch (e) {}
+      // rAF — 다음 frame 에 layout 이 끝나고 만약 brief jump 가 일어났더라도 즉시 되돌림
       try {
         requestAnimationFrame(() => {
           if (window.__skipRenderScrollRestore) return;
-          const cur = window.scrollY || window.pageYOffset || 0;
-          if (Math.abs(cur - __pageScrollY) > 4) {
-            try { window.scrollTo({ top: __pageScrollY, behavior: 'auto' }); } catch (e) {}
-          }
+          try { window.scrollTo({ top: __pageScrollY, behavior: 'auto' }); } catch (e) {}
         });
       } catch (e) {}
     }
@@ -6476,11 +6470,20 @@ function HomePage() {
         <div style="font-size:13px;margin-top:4px;color:${iAmP ? 'rgba(255,255,255,0.82)' : 'var(--ink-soft)'};line-height:1.5;">
           ${escapeHtml(statusLine)}
         </div>
+        ${thisWk.meetUrl ? `
+          <a href="${escapeHtml(thisWk.meetUrl)}" target="_blank" rel="noopener noreferrer"
+             data-meet-link="1"
+             style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:${iAmP ? 'rgba(252,232,178,0.20)' : 'rgba(125,92,255,0.14)'};color:${iAmP ? '#FCE8B2' : '#5C53A5'};font-size:11.5px;font-weight:700;text-decoration:none;letter-spacing:-0.005em;">
+            🔗 Google Meet 열기 →
+          </a>
+        ` : ''}
         <div style="margin-top:12px;font-size:13px;font-weight:700;color:${iAmP ? '#FCE8B2' : 'var(--lilac)'};">
           ${ctaLabel}
         </div>`;
 
-      pCard.addEventListener('click', () => {
+      pCard.addEventListener('click', (ev) => {
+        // meet 링크 클릭은 새 탭으로 열려야 — pCard 의 navigation 핸들러 막음.
+        if (ev.target && ev.target.closest && ev.target.closest('[data-meet-link]')) return;
         if (!weekHasP) {
           // noPresenter 주 — 미팅 노트 페이지로 바로 이동 (말할 거리 준비).
           // MeetingNotesPage 는 'm{n}' 형식만 resolve 함 ('week1-2026-04-30' 같은 구
