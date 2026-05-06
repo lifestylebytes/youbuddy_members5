@@ -2454,7 +2454,11 @@ function go(page, opts={}) {
       history.replaceState(history.state, '', target);
     }
   } catch (e) {}
+  // render() 내부의 scroll 복원 로직과 충돌 방지 — go() 가 일부러 scrollTo(0) 하는
+  // 라우트 변경 케이스에선 render 의 scroll 복원이 끼어들면 안 됨.
+  window.__skipRenderScrollRestore = true;
   render();
+  window.__skipRenderScrollRestore = false;
   if (opts.restoreSavedScroll) {
     restoreCurrentScroll();
   } else if (opts.scroll !== false && previousPage !== page) {
@@ -4539,10 +4543,12 @@ function render() {
     const cbWrap = root.querySelector && root.querySelector('.checkboard-wrap');
     if (cbWrap) __cbScrollLeft = cbWrap.scrollLeft || 0;
   } catch (e) {}
-  // 스크롤 점프 방지 — 예전엔 root.innerHTML = '' 로 wipe 후 새 콘텐츠 build 했는데,
-  // 그 사이 짧은 순간 DOM 이 비어서 브라우저가 scrollY 를 0 으로 clamp 시키는 문제 발생.
-  // 해결: replaceChildren(newApp) 으로 atomic swap — 빈 상태 자체가 없어서 scrollY 유지됨.
-  // (line 4608 의 root.appendChild(app) 는 root.replaceChildren(app) 로 대체.)
+  // 스크롤 점프 방지 — 두 단계 방어:
+  //   ① root.replaceChildren(app) 으로 atomic swap (DOM 이 빈 상태 안 거침)
+  //   ② 그래도 새 page 가 short 해서 브라우저가 clamp 시키면 scrollY 직접 복원
+  // ②는 ①이 실패하는 환경(모바일 일부 브라우저, 동적으로 height 변하는 페이지) 대비.
+  let __pageScrollY = 0;
+  try { __pageScrollY = window.scrollY || window.pageYOffset || 0; } catch (e) {}
   try {
     const app = el('div', { class: 'app' });
 
@@ -4785,7 +4791,27 @@ function render() {
         });
       } catch (e) {}
     }
-    // (vertical scroll 복원 코드 제거됨 — replaceChildren atomic swap 으로 빈 상태 없어서 자동 유지.)
+    // 페이지 vertical scroll 복원 (방어 ②) — atomic swap 후에도 새 page 가 짧으면
+    // 브라우저가 scrollY 를 새 max 까지 clamp 함. 동기 + rAF 두 번 시도해서 layout
+    // 안정화되는 시점에 가장 가까운 위치로 회복.
+    // go() 가 일부러 0 으로 reset 하는 라우트 변경 케이스는 __skipRenderScrollRestore=true 로 우회.
+    if (__pageScrollY > 0 && !window.__skipRenderScrollRestore) {
+      try {
+        const cur = window.scrollY || window.pageYOffset || 0;
+        if (Math.abs(cur - __pageScrollY) > 4) {
+          window.scrollTo({ top: __pageScrollY, behavior: 'auto' });
+        }
+      } catch (e) {}
+      try {
+        requestAnimationFrame(() => {
+          if (window.__skipRenderScrollRestore) return;
+          const cur = window.scrollY || window.pageYOffset || 0;
+          if (Math.abs(cur - __pageScrollY) > 4) {
+            try { window.scrollTo({ top: __pageScrollY, behavior: 'auto' }); } catch (e) {}
+          }
+        });
+      } catch (e) {}
+    }
 
     // Onboarding tour — 가입 완료 후 최초 1회만. tier 별 시퀀스 분기.
     try { ensureOnboardingTour(); } catch (_tourErr) { console.warn('[tour] render hook', _tourErr); }
