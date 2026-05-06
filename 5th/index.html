@@ -1579,6 +1579,7 @@ const defaultState = () => ({
   recording_popup_seen: {},         // { "m1": true } 미팅 다시보기 팝업을 본 상태. 한 번 X 누르면 다시 안 뜸.
   weekly_quiz_popup_seen: {},       // { "v1": true } 주간 퀴즈/보상 안내 팝업 본 상태. 버전별 키로 다음 주차 새 팝업 재발행 가능.
   spaced_repeat_seen: {},           // { "day7": true } Spaced Repetition 팝업 본 상태 — Day 시작 시 1회 노출용.
+  prereview_seen: {},               // { "day2": true } 매일 학습 전 "어제 단어 복습" 팝업 본 상태 — Day N 진입 시 1회 노출.
   notifications_read: {},           // { "recording-m1": true, "weekly-quiz-v1": true } 종 인박스에서 읽음 처리한 알림.
   operatorViewAsMember: false,      // 운영자/스태프가 "일반 회원처럼 보기" 켜둘 때 true. 운영자 UI 다 숨김.
   tierOverride: null,             // 'basic' 으로 설정하면 MEMBER_DIRECTORY 가 premium 이어도 basic 으로 강제 (베이직 프리뷰). null = 비활성.
@@ -1645,6 +1646,7 @@ const PERSISTED_STATE_KEYS = [
   'recording_popup_seen',
   'weekly_quiz_popup_seen',
   'spaced_repeat_seen',
+  'prereview_seen',
   'notifications_read',
   'nonparticipant_list',
   'savedTab',
@@ -2402,6 +2404,9 @@ let showWeeklyQuizPopup = false;
 // Spaced Repetition 팝업 — Day 시작 시 1회 노출 (Week 1 회고).
 // 값: { dayN: number, words: [{en, ko, ex_en}] } — 닫히면 null.
 let showSpacedRepeatPopup = null;
+// 학습 전 "어제 단어 복습" 팝업 — Day N (N≥2) 진입 시 1회 자동 노출.
+// 값: { dayN, prevDayN, prev: <Day object> } — 닫히면 null.
+let showPreReviewPopup = null;
 // 주간 설문 작성 모달 — 홈 배너 클릭 시 활성. 값: 주차 번호 (1~4).
 let showSurveyFillModal = null;
 // 알림 인박스 패널 — TopBar 종 누르면 열림.
@@ -4725,6 +4730,14 @@ function render() {
       const stale = document.querySelector('[data-spaced-repeat-popup]');
       if (stale) stale.remove();
     }
+    if (showPreReviewPopup) {
+      if (!document.querySelector('[data-prereview-popup]')) {
+        document.body.appendChild(PreReviewPopupModal());
+      }
+    } else {
+      const stale = document.querySelector('[data-prereview-popup]');
+      if (stale) stale.remove();
+    }
     if (showSurveyFillModal) {
       if (!document.querySelector('[data-survey-fill-modal]')) {
         document.body.appendChild(SurveyFillModal());
@@ -4738,7 +4751,7 @@ function render() {
     // modal's own overflow-y:auto picks up touch scrolling instead of the page
     // behind it bubbling. 취소/저장 버튼이 모바일에서 안 닿던 문제.
     try {
-      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications || showSpacedRepeatPopup || showSurveyFillModal);
+      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup);
       if (anyModalOpen) document.body.classList.add('modal-open');
       else document.body.classList.remove('modal-open');
     } catch (_lockErr) {}
@@ -6666,7 +6679,8 @@ function Checkboard() {
   // 정렬: (1) 로그인한 본인 항상 최상단 — 티어 무관, (2) 무참여자 (블록 리스트) 항상 맨 아래,
   // (3) 그 다음 프리미엄 → 베이직, (4) 같은 그룹 내에서는 한글 이름 ㄱ~ㅎ 가나다순.
   const tierRank = (m) => (cbTierOf(m) === 'premium' ? 0 : 1);
-  const koCollator = new Intl.Collator('ko', { numeric: true, sensitivity: 'base' });
+  // Collator 매 render 마다 새로 만들면 비용 누적 — 한 번만 만들고 재사용.
+  const koCollator = window.__koCollator || (window.__koCollator = new Intl.Collator('ko', { numeric: true, sensitivity: 'base' }));
   const orderedMembers = [...allMembers].sort((a, b) => {
     if (a.me !== b.me) return a.me ? -1 : 1;   // me first, always
     const aNon = isNonparticipant(a) ? 1 : 0;
@@ -6676,98 +6690,103 @@ function Checkboard() {
     if (ta !== tb) return ta - tb;             // premium before basic
     return koCollator.compare(a.name || '', b.name || ''); // 한글 가나다순
   });
-  orderedMembers.forEach((m) => {
-    // 가입(온보딩 완료 → 대시보드 진입) 안 한 멤버는 이름 회색.
-    // __registeredLoaded 가 true 가 되고나서만 판정 — 초기 로드 flash 방지.
-    // Staff (이규태/이지흔/유버디) 도 실제로 앱에 로그인해야 하는 사람들이라
-    // 회색 판정에 포함. 본인 (me) 만 예외 (앱 쓰는 중 = 무조건 까맣).
+  // ── 성능 최적화 — 50명 × 21셀 = 1050 노드를 el() 로 일일이 만들면 매 render 마다 무거움.
+  //    여기선 한 번에 innerHTML 로 wire 한 다음, 클릭은 grid 단에 위임 (event delegation).
+  //    me 행은 status 정확도 위해 dayStatus(d) 호출, 피어 행은 verifiedDays / lateDays Set 한 번만 만들고 재사용.
+  const meCellStatus = (() => {
+    const map = {};
+    for (let d = 1; d <= 20; d++) {
+      const st = dayStatus(d);
+      let cls = '';
+      if (st === 'done')           cls = 'on';
+      else if (st === 'done-late') cls = 'on late';
+      else if (st === 'today')     cls = 'today';
+      else if (st === 'missed')    cls = 'missed';
+      else if (st === 'locked')    cls = 'locked';
+      map[d] = { cls, st };
+    }
+    return map;
+  })();
+  const myTz = state.timezoneOffsetText || '+0h';
+  const escAttr = (s) => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+  const rowsHtml = orderedMembers.map((m) => {
+    // 이름칸 ── 가입 안 한 멤버는 회색 (__registeredLoaded 후만 판정).
     const isUnreg = !!(window.__registeredLoaded && !m.me && !m.registered);
     const nameCls = 'cb-name' + (m.me ? ' cb-row-me' : '') + (isUnreg ? ' is-unreg' : '');
-    const name = el('div', { class: nameCls });
-    // 리더보드를 치우고 나니 다른 멤버 프로필 카드를 열 진입점이 부족 — 이름 탭하면
-    // MemberCardModal (이미 존재하는 애) 이 뜨도록 클릭 핸들러 연결.
-    // 내 row 는 눌러도 '내 카드' 가 뜨므로 괜찮음.
-    name.style.cursor = 'pointer';
     const memberRef = m.member_key || m.name;
-    name.addEventListener('click', () => {
-      activeMemberCard = memberRef;
-      render();
-    });
-    // Hide tz on the checkboard so all rows stay uniform height (we don't have
-    // tz for other members yet — showing it only on "me" looks inconsistent).
-    // 한국 (+0h) 외 멤버에겐 시차 작게 회색으로. KST 기준 표시.
     const memberTz = (memberTimezoneText(m) || '').trim();
     const showTz = memberTz && memberTz !== '+0h';
-    name.innerHTML = `
-      <div class="tiny-av ${resolveAvatarColor(m)}">${safeInitial(m)}</div>
-      <div style="min-width:0;overflow:hidden;flex:1 1 auto;">
-        <div style="display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden;">
-          <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto;">${escapeHtml(displayName(m))}</span>
-          ${premiumPill(m)}
-          ${showTz ? `<span style="font-size:9.5px;font-family:var(--font-mono);color:var(--muted);font-weight:500;flex-shrink:0;letter-spacing:-0.02em;" title="한국(KST) 대비 시차">${escapeHtml(memberTz)}</span>` : ''}
+    const nameHtml = `
+      <div class="${nameCls}" style="cursor:pointer;" data-member-ref="${escAttr(memberRef)}">
+        <div class="tiny-av ${resolveAvatarColor(m)}">${safeInitial(m)}</div>
+        <div style="min-width:0;overflow:hidden;flex:1 1 auto;">
+          <div style="display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden;">
+            <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto;">${escapeHtml(displayName(m))}</span>
+            ${premiumPill(m)}
+            ${showTz ? `<span style="font-size:9.5px;font-family:var(--font-mono);color:var(--muted);font-weight:500;flex-shrink:0;letter-spacing:-0.02em;" title="한국(KST) 대비 시차">${escapeHtml(memberTz)}</span>` : ''}
+          </div>
         </div>
       </div>`;
-    grid.appendChild(name);
-    for (let d = 1; d <= 20; d++) {
-      // For "me" row we have full status (verified_at → late detection).
-      // For other members we only know progress count (no per-day timestamps yet),
-      // so default them to 'on' (정상) when within their progress — upstream
-      // board RPC can be extended later to emit per-day late flags.
-      let cls = 'cb-cell';
-      let tooltip = '';
-      if (m.me) {
-        const st = dayStatus(d);
-        if (st === 'done')           cls += ' on';
-        else if (st === 'done-late') cls += ' on late';
-        else if (st === 'today')     cls += ' today';
-        else if (st === 'missed')    cls += ' missed';
-        else if (st === 'locked')    cls += ' locked';
-        // 'open' renders as default (크림 빈 슬롯 = 내일 미리 풀기)
+
+    // 셀 ── me / peer 분기. peer 는 Set 한 번 만들고 재사용해서 N×20 성능 잡음.
+    let cellsHtml = '';
+    if (m.me) {
+      const peerDisplay = displayName(m);
+      for (let d = 1; d <= 20; d++) {
+        const meta = meCellStatus[d];
+        let cls = 'cb-cell' + (meta.cls ? ' ' + meta.cls : '');
+        let titleAttr = '';
         const vt = state.verified_time && state.verified_time['d'+d];
-        if (vt && (st === 'done' || st === 'done-late')) {
-          const tz = state.timezoneOffsetText || '+0h';
-          // 툴팁도 displayName 으로 — 본명 직접 노출 안 함 (본인 카드라 본인 보기용이지만 통일).
-          tooltip = `${displayName(m)} · Day ${d} · ${vt} ${tz}${st === 'done-late' ? ' (지각)' : ''}`;
+        if (vt && (meta.st === 'done' || meta.st === 'done-late')) {
+          const tip = `${peerDisplay} · Day ${d} · ${vt} ${myTz}${meta.st === 'done-late' ? ' (지각)' : ''}`;
+          titleAttr = ` title="${escAttr(tip)}"`;
         }
-      } else {
-        // 피어 셀: verifiedDays (서버가 내려주는 실제 인증된 day 번호 배열) 를 최우선으로 사용.
-        // RPC 가 구버전이라 verifiedDays 가 비어있으면 progress 카운트로 fallback (Day 1..progress 를 on 으로).
-        // 전 버그: progress 를 "최대 Day 번호" 로 오해해서, 멤버가 Day 2 만 인증하면
-        // progress=1 → Day 1 을 on 으로 표시하고 Day 2 는 today 링으로 표시됨.
-        const verifiedSet = Array.isArray(m.verifiedDays) && m.verifiedDays.length
-          ? new Set(m.verifiedDays.map(Number))
-          : null;
-        const lateSet = Array.isArray(m.lateDays) && m.lateDays.length
-          ? new Set(m.lateDays.map(Number))
-          : null;
-        const on = verifiedSet
-          ? verifiedSet.has(d)
-          : (d <= Number(m.progress || 0));
+        cellsHtml += `<div class="${cls}"${titleAttr}></div>`;
+      }
+    } else {
+      const verifiedSet = Array.isArray(m.verifiedDays) && m.verifiedDays.length
+        ? new Set(m.verifiedDays.map(Number)) : null;
+      const lateSet = Array.isArray(m.lateDays) && m.lateDays.length
+        ? new Set(m.lateDays.map(Number)) : null;
+      const progressNum = Number(m.progress || 0);
+      const peerNm = String(m.name || '').trim();
+      const peerKey = m.member_key || '';
+      const peerTz = memberTimezoneText(m);
+      const peerDisplay = displayName(m);
+      for (let d = 1; d <= 20; d++) {
+        const on = verifiedSet ? verifiedSet.has(d) : (d <= progressNum);
+        let cls = 'cb-cell';
+        let titleAttr = '';
         if (on) {
           cls += ' on';
-          if (lateSet && lateSet.has(d)) cls += ' late'; // 지각 인증 → 까망
-        }
-        else if (d < state.currentDay) cls += ' missed';       // 피어 과거 미인증
-        else if (d === state.currentDay) cls += ' today';      // 피어 오늘 미인증 — 'me' 와 동일한 점선 링
-        else                            cls += ' locked';      // 피어 내일 이후 (미리 풀기 가능/불가 둘 다 lock 톤)
-        if (on) {
-          // Peer times: look up the server-side RPC cache (keyed by both member_key
-          // and member_name). Falls back to just the name if time isn't cached yet.
+          const isLate = lateSet && lateSet.has(d);
+          if (isLate) cls += ' late';
           const peerMap = (window.__peerVerifyTimes || {})[d] || {};
-          const nm = String(m.name || '').trim();
-          const hhmm = peerMap[nm] || peerMap[m.member_key || ''] || '';
-          const peerTz = memberTimezoneText(m);
+          const hhmm = peerMap[peerNm] || peerMap[peerKey] || '';
           const stamp = hhmm ? (peerTz ? `${hhmm} ${peerTz}` : hhmm) : '';
-          // 피어 툴팁: 한국어 본명 직접 노출 안 함 — displayName (닉네임 우선) 으로.
-          const peerDisplay = displayName(m);
-          const lateTag = (lateSet && lateSet.has(d)) ? ' (지각)' : '';
-          tooltip = stamp ? `${peerDisplay} · Day ${d} · ${stamp}${lateTag}` : `${peerDisplay} · Day ${d} 완료${lateTag}`;
-        }
+          const lateTag = isLate ? ' (지각)' : '';
+          const tip = stamp ? `${peerDisplay} · Day ${d} · ${stamp}${lateTag}` : `${peerDisplay} · Day ${d} 완료${lateTag}`;
+          titleAttr = ` title="${escAttr(tip)}"`;
+        } else if (d < state.currentDay) cls += ' missed';
+        else if (d === state.currentDay) cls += ' today';
+        else                              cls += ' locked';
+        cellsHtml += `<div class="${cls}"${titleAttr}></div>`;
       }
-      const attrs = { class: cls };
-      if (tooltip) attrs.title = tooltip;
-      grid.appendChild(el('div', attrs));
     }
+    return nameHtml + cellsHtml;
+  }).join('');
+
+  // 한 번에 inject — el() 1050번 호출 대비 큰 폭으로 가벼움.
+  grid.insertAdjacentHTML('beforeend', rowsHtml);
+  // 이름 클릭 = 멤버 카드 — wrap 단 한 곳에 위임 (이벤트 리스너 1개만).
+  grid.addEventListener('click', (ev) => {
+    const target = ev.target.closest && ev.target.closest('[data-member-ref]');
+    if (!target) return;
+    const ref = target.getAttribute('data-member-ref');
+    if (!ref) return;
+    activeMemberCard = ref;
+    render();
   });
   wrap.appendChild(grid);
   return wrap;
@@ -10153,6 +10172,34 @@ function DayPage(dayN) {
           render();
         }
       }, 350);
+    }
+  } catch (e) {}
+
+  // 어제 단어 복습 팝업 — Day N (N≥2) 진입 시 1회 자동 노출.
+  // 본인 학습 중인 Day 만 (operatorViewAsMember off 인 운영자도 미리보기 가능).
+  // SPACED_REPEAT_PRESETS 가 있는 날 (Day 7 등) 은 그쪽이 우선 — 두 팝업 동시 표출 방지.
+  try {
+    const hasSpacedPreset = !!SPACED_REPEAT_PRESETS[String(dayN)];
+    const prevDayN = dayN - 1;
+    const prev = prevDayN >= 1 ? getDay(prevDayN) : null;
+    const seenPR = state.prereview_seen || {};
+    if (
+      !hasSpacedPreset &&
+      prev && Array.isArray(prev.words) && prev.words.length &&
+      !seenPR[`day${dayN}`] &&
+      !showPreReviewPopup &&
+      !showSpacedRepeatPopup
+    ) {
+      setTimeout(() => {
+        if (
+          !showPreReviewPopup &&
+          !showSpacedRepeatPopup &&
+          !(state.prereview_seen || {})[`day${dayN}`]
+        ) {
+          showPreReviewPopup = { dayN, prevDayN, prev };
+          render();
+        }
+      }, 380);
     }
   } catch (e) {}
 
@@ -17568,6 +17615,157 @@ function SpacedRepeatPopupModal() {
         const en = card.getAttribute('data-en') || '';
         const ex = card.getAttribute('data-ex') || '';
         // 단어 → 0.7초 → 예문
+        if (en) {
+          speakWord(en);
+          if (ex) setTimeout(() => speakWord(ex), 1100);
+        } else if (ex) {
+          speakWord(ex);
+        }
+      };
+    });
+  }, 0);
+  backdrop.appendChild(modal);
+  return backdrop;
+}
+
+/* ============================================================
+   PreReviewPopupModal — Day N 진입 시 어제 (Day N-1) 단어 3개 + 유의어 빠르게 훑기.
+   - state.prereview_seen[dayN] = true → 한 번 본 사람은 다시 안 뜸.
+   - 단어 카드 탭 → TTS 재생 (단어 → 0.7s → 예문)
+   - "🔊 한 번씩 듣고 가기" 버튼 → 단어+예문 차례로 자동 재생
+   - "다 봤어요" 버튼 → 닫고 Day N 학습으로
+   ============================================================ */
+function PreReviewPopupModal() {
+  const ctx = showPreReviewPopup;
+  if (!ctx || !ctx.prev) return el('div');
+  const { dayN, prevDayN, prev } = ctx;
+  const dayKey = String(dayN);
+  const close = (markSeen = true) => {
+    if (markSeen) {
+      state.prereview_seen = state.prereview_seen || {};
+      state.prereview_seen[`day${dayKey}`] = true;
+      try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+    }
+    showPreReviewPopup = null;
+    render();
+  };
+
+  const speakWord = (text) => {
+    try {
+      if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      u.rate = 0.92;
+      u.pitch = 1.05;
+      if (typeof pickFemaleEnVoice === 'function') {
+        try { u.voice = pickFemaleEnVoice(); } catch (_) {}
+      }
+      window.speechSynthesis.speak(u);
+    } catch (_) {}
+  };
+  const playAll = () => {
+    let i = 0;
+    const items = [];
+    (prev.words || []).forEach((w) => {
+      if (w.en) items.push(w.en);
+      if (w.ex_en) items.push(w.ex_en);
+    });
+    const next = () => {
+      if (i >= items.length) return;
+      const text = items[i++];
+      try {
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-US';
+        u.rate = 0.92;
+        u.pitch = 1.05;
+        if (typeof pickFemaleEnVoice === 'function') {
+          try { u.voice = pickFemaleEnVoice(); } catch (_) {}
+        }
+        u.onend = () => setTimeout(next, 250);
+        window.speechSynthesis.speak(u);
+      } catch (_) {}
+    };
+    next();
+  };
+
+  const backdrop = el('div', {
+    class: 'modal-backdrop',
+    'data-prereview-popup': '1',
+    onClick: (e) => { if (e.target === backdrop) close(true); },
+  });
+  const modal = el('div', {
+    class: 'modal',
+    style: {
+      width: 'min(92vw, 420px)',
+      padding: '0',
+      borderRadius: '24px',
+      overflow: 'hidden',
+      background: '#fff',
+      border: '1px solid var(--line)',
+      maxHeight: '90vh',
+      display: 'flex',
+      flexDirection: 'column',
+    },
+  });
+  // 카드 — 단어 / 품사 / 뜻 / 예문 / syn 칩들.
+  const wordsHtml = (prev.words || []).map((w, i) => {
+    const synList = Array.isArray(w.syn) ? w.syn.filter(Boolean) : [];
+    const synHtml = synList.length
+      ? `<div style="margin-top:9px;display:flex;flex-wrap:wrap;gap:5px;">
+           ${synList.map((s) => `<span style="font-size:10.5px;font-weight:700;background:rgba(240,125,56,0.10);color:var(--orange-dark);padding:3px 9px;border-radius:999px;letter-spacing:-0.005em;">${escapeHtml(s)}</span>`).join('')}
+         </div>`
+      : '';
+    return `
+      <button data-prereview-card data-en="${escapeHtml(w.en || '')}" data-ex="${escapeHtml(w.ex_en || '')}" style="
+        width:100%;text-align:left;padding:14px 16px;margin-bottom:10px;
+        border-radius:14px;background:#FBF7F0;border:1px solid var(--line-soft, #E7DDC8);
+        cursor:pointer;font:inherit;color:var(--ink);
+        display:flex;align-items:flex-start;gap:12px;
+      ">
+        <span style="flex-shrink:0;width:28px;height:28px;border-radius:8px;background:var(--orange);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;">${i + 1}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:15px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em;">${escapeHtml(w.en || '')}</span>
+            ${w.pos ? `<span style="font-size:10px;font-weight:600;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase;">${escapeHtml(w.pos)}</span>` : ''}
+          </div>
+          <div style="margin-top:4px;font-size:12.5px;color:var(--ink-soft);font-weight:600;line-height:1.45;">${escapeHtml(w.def || '')}</div>
+          ${w.ex_en ? `<div style="margin-top:6px;font-size:11.5px;color:var(--ink);line-height:1.5;font-style:italic;">"${escapeHtml(w.ex_en)}"</div>` : ''}
+          ${synHtml}
+        </div>
+        <span style="flex-shrink:0;font-size:16px;color:var(--orange-dark);">🔊</span>
+      </button>
+    `;
+  }).join('');
+  modal.innerHTML = `
+    <div style="position:relative;padding:24px 22px 14px;background:linear-gradient(135deg, #FFF5E6 0%, #FFE4D0 100%);text-align:center;flex-shrink:0;">
+      <button id="__prPopupClose" style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,0.7);border:none;color:var(--ink-soft);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+      <div style="font-size:36px;line-height:1;margin-bottom:6px;">📖</div>
+      <div class="kicker" style="color:var(--orange-dark);">DAILY WARM-UP · Day ${dayN}</div>
+      <div style="margin-top:6px;font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.3;">시작 전, 어제 표현 빠르게 한 번</div>
+      <div style="margin-top:6px;font-size:12px;color:var(--ink-soft);line-height:1.5;">Day ${prevDayN} · ${escapeHtml(prev.title || '')}</div>
+    </div>
+    <div style="padding:14px 18px 4px;overflow-y:auto;flex:1;">
+      ${wordsHtml}
+    </div>
+    <div style="padding:14px 22px 22px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;border-top:1px solid var(--line);background:#fff;">
+      <button id="__prPlayAll" class="btn btn-ghost btn-full" style="background:transparent;border:1px solid var(--orange-soft);color:var(--orange-dark);font-size:13px;padding:11px;font-weight:700;">🔊 한 번씩 듣고 가기</button>
+      <button id="__prDone" class="btn btn-primary btn-full" style="background:var(--orange);border:none;font-size:14px;padding:13px;">✓ 다 봤어요 · Day ${dayN} 시작</button>
+    </div>
+  `;
+  setTimeout(() => {
+    const closeBtn = document.getElementById('__prPopupClose');
+    const doneBtn = document.getElementById('__prDone');
+    const playBtn = document.getElementById('__prPlayAll');
+    if (closeBtn) closeBtn.onclick = () => close(true);
+    if (doneBtn) doneBtn.onclick = () => close(true);
+    if (playBtn) playBtn.onclick = playAll;
+    modal.querySelectorAll('[data-prereview-card]').forEach((card) => {
+      card.onclick = () => {
+        const en = card.getAttribute('data-en') || '';
+        const ex = card.getAttribute('data-ex') || '';
         if (en) {
           speakWord(en);
           if (ex) setTimeout(() => speakWord(ex), 1100);
