@@ -12369,8 +12369,16 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
       <div style="font-size:12.5px;color:rgba(255,255,255,0.82);margin-top:6px;">
         ${escapeHtml(meta.date)} · 21:00 KST · ${escapeHtml(meta.zoom || 'Google Meet')}
       </div>
-      <div style="margin-top:12px;display:inline-flex;padding:6px 12px;border-radius:999px;background:rgba(252,232,178,0.25);color:#FCE8B2;font-size:12.5px;font-weight:700;">
-        ⏳ ${countdown}
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <span style="display:inline-flex;padding:6px 12px;border-radius:999px;background:rgba(252,232,178,0.25);color:#FCE8B2;font-size:12.5px;font-weight:700;">
+          ⏳ ${countdown}
+        </span>
+        ${meta.meetUrl ? `
+          <a href="${escapeHtml(meta.meetUrl)}" target="_blank" rel="noopener noreferrer"
+             style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:rgba(125,92,255,0.28);color:#FCE8B2;font-size:12.5px;font-weight:700;text-decoration:none;letter-spacing:-0.005em;">
+            🔗 Google Meet 열기 →
+          </a>
+        ` : ''}
       </div>`;
     page.appendChild(heading);
   }
