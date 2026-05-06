@@ -12467,8 +12467,95 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
     prep.script = e.target.value;
     updateVocabHits();
     saveState({});
+    // 자동 저장 indicator — 입력하는 동안 "저장 중..." 표시 (실제 push 는 450ms debounce 후).
+    if (typeof updateSaveIndicator === 'function') updateSaveIndicator('typing');
   });
   page.appendChild(scriptArea);
+
+  // ── 저장 영역 — 명시적 "지금 저장" 버튼 + 마지막 저장 시각 표시.
+  //    실제 데이터는 사용자 입력마다 자동으로 Supabase 에 동기화되지만,
+  //    "정말 저장됐나?" 불안 해제 위해 명시적 버튼 + 시각 노출.
+  const saveBar = el('div', {
+    style: {
+      marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+    },
+  });
+  const saveBtn = el('button', {
+    class: 'btn btn-ghost',
+    style: {
+      borderColor: 'rgba(240,125,56,0.32)', color: 'var(--orange-dark)',
+      fontSize: '12.5px', padding: '8px 14px', fontWeight: '700', flex: '0 0 auto',
+    },
+  }, '💾 지금 저장');
+  const saveStatus = el('div', {
+    style: { fontSize: '11.5px', color: 'var(--ink-soft)', fontWeight: '600', flex: '1 1 auto' },
+  });
+  saveBar.appendChild(saveBtn);
+  saveBar.appendChild(saveStatus);
+  page.appendChild(saveBar);
+
+  function fmtSavedAgo(iso) {
+    if (!iso) return '아직 저장 안 됨';
+    try {
+      const ms = Date.now() - new Date(iso).getTime();
+      if (ms < 0 || !Number.isFinite(ms)) return '방금 저장됨';
+      const sec = Math.floor(ms / 1000);
+      if (sec < 5)   return '✅ 방금 저장됨';
+      if (sec < 60)  return `✅ ${sec}초 전 저장됨`;
+      const min = Math.floor(sec / 60);
+      if (min < 60)  return `✅ ${min}분 전 저장됨`;
+      const hr = Math.floor(min / 60);
+      if (hr < 24)   return `✅ ${hr}시간 전 저장됨`;
+      return `✅ ${new Date(iso).toLocaleString('ko-KR', { hour12: false })} 저장됨`;
+    } catch (_) { return ''; }
+  }
+  function updateSaveIndicator(mode) {
+    if (mode === 'typing') {
+      saveStatus.textContent = '✏️ 입력 중 — 곧 자동 저장돼요';
+      saveStatus.style.color = 'var(--ink-soft)';
+      return;
+    }
+    if (mode === 'saving') {
+      saveStatus.textContent = '⏳ 저장 중...';
+      saveStatus.style.color = 'var(--ink-soft)';
+      return;
+    }
+    saveStatus.textContent = fmtSavedAgo(prep.savedAt);
+    saveStatus.style.color = prep.savedAt ? '#16A34A' : 'var(--muted)';
+  }
+  saveBtn.addEventListener('click', async () => {
+    prep.savedAt = new Date().toISOString();
+    saveBtn.disabled = true;
+    updateSaveIndicator('saving');
+    try {
+      const ok = await saveState({ immediate: true });
+      updateSaveIndicator();
+      if (ok !== false) {
+        showToast('✅ 저장됐어요 — 운영팀도 확인 가능');
+      } else {
+        showToast('⚠️ 저장은 됐지만 서버 동기화는 다음 시도에 진행됩니다');
+      }
+    } catch (e) {
+      showToast('⚠️ 저장 중 오류 — 입력값은 로컬에 보관됨');
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+  // 초기 표시
+  updateSaveIndicator();
+  // 1분에 한 번씩 "N분 전" 라벨 갱신 — 페이지 떠나면 자동 정리.
+  if (window.__ppSaveTimer) { clearInterval(window.__ppSaveTimer); window.__ppSaveTimer = null; }
+  window.__ppSaveTimer = setInterval(() => {
+    if (!document.body.contains(saveStatus)) {
+      clearInterval(window.__ppSaveTimer);
+      window.__ppSaveTimer = null;
+      return;
+    }
+    // 입력 중이거나 저장 중이 아닐 때만 갱신
+    if (!saveStatus.textContent.startsWith('✏️') && !saveStatus.textContent.startsWith('⏳')) {
+      updateSaveIndicator();
+    }
+  }, 60 * 1000);
 
   // Live highlight: show which picked vocab appear in script
   const hitWrap = el('div', { style: { marginTop: '10px', display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' } });
