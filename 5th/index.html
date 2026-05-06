@@ -15510,6 +15510,19 @@ function SettingsModal() {
           </div>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
+          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📖 학습 전 어제 단어 복습 팝업</div>
+          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">Day N (N≥2) 진입 시 멤버한테 1회 자동으로 뜨는 "어제 단어 3개 + 유의어" 워밍업 팝업. ${(() => {
+            const seenDays = Object.keys(state.prereview_seen || {}).filter((k) => state.prereview_seen[k]);
+            return seenDays.length
+              ? `<span style="color:var(--muted);">· 본 상태 ${seenDays.length}일 (${seenDays.map((k) => k.replace('day','D')).join(', ')})</span>`
+              : `<span style="color:#16A34A;font-weight:700;">· 아직 안 본 상태</span>`;
+          })()}</div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button id="__settingsShowPreReviewPopup" class="btn btn-ghost" style="flex:1;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">📖 팝업 미리보기 (오늘 기준)</button>
+            <button id="__settingsResetPreReviewPopup" class="btn btn-ghost" style="flex:1;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">↺ '본 상태' 리셋</button>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
           <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🔔 주간 퀴즈 팝업 미리보기</div>
           <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">학습 탭 진입 시 멤버한테 1회 자동으로 뜨는 "5회 다 하셨나요? 주간 퀴즈 열렸어요" 팝업. 운영자는 여기서 언제든 다시 볼 수 있어요. ${state.weekly_quiz_popup_seen && state.weekly_quiz_popup_seen.v1 ? `<span style="color:var(--muted);">· 본 상태</span>` : `<span style="color:#16A34A;font-weight:700;">· 아직 안 본 상태</span>`}</div>
           <div style="display:flex;gap:8px;margin-top:10px;">
@@ -15738,6 +15751,30 @@ function SettingsModal() {
       delete state.spaced_repeat_seen.day7;
       try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
       showToast("'본 상태' 리셋 — Day 7 진입 시 자동 노출");
+      render();
+    };
+
+    // Operator: 📖 학습 전 어제 단어 복습 팝업 — 미리보기 / 리셋
+    const showPrBtn = document.getElementById('__settingsShowPreReviewPopup');
+    if (showPrBtn) showPrBtn.onclick = () => {
+      // 오늘 currentDay 기준 — Day N (N≥2) 의 어제 (Day N-1) 단어 보여주기.
+      // currentDay 가 1이면 Day 2 의 워밍업 (Day 1 단어) 으로 강제 미리보기.
+      const baseDay = Math.max(2, Number(state.currentDay) || 2);
+      const prevDayN = baseDay - 1;
+      const prev = (typeof getDay === 'function') ? getDay(prevDayN) : null;
+      if (!prev || !Array.isArray(prev.words) || !prev.words.length) {
+        showToast(`Day ${prevDayN} 단어 데이터 없음`);
+        return;
+      }
+      showSettings = false;
+      showPreReviewPopup = { dayN: baseDay, prevDayN, prev };
+      render();
+    };
+    const resetPrBtn = document.getElementById('__settingsResetPreReviewPopup');
+    if (resetPrBtn) resetPrBtn.onclick = () => {
+      state.prereview_seen = {};
+      try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
+      showToast("'본 상태' 리셋 — 다음 Day 진입 시 자동 노출");
       render();
     };
 
