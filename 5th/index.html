@@ -12394,14 +12394,14 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
 
   // ---- Vocab picker — Week 2/4 는 dynamic 으로 계산 ----
   const effectiveVocab = getEffectiveMustUseVocab(meta, n);
-  const MAX_PICK = 3;
-
-  page.appendChild(el('div', { class: 'kicker', style: { marginTop: '24px' } }, `필수 어휘 · ${prep.vocabPicked.length}/${MAX_PICK} 고르기`));
+  // 5기 피드백 — 3개 제한이 너무 빡세서 "이거 쓰고 싶은데 슬롯 없어" 가 자주 나옴.
+  // 발표에 녹이고 싶은 표현은 제한 없이 고르고, 대본 작성하면서 자연스럽게 추려지게.
+  page.appendChild(el('div', { class: 'kicker', style: { marginTop: '24px' } }, `발표에 쓰고 싶은 표현 · ${prep.vocabPicked.length}개 선택`));
   page.appendChild(el('p', {
     class: 't-small',
     style: { marginTop: '4px', color: 'var(--ink-soft)', lineHeight: '1.5' }
   }, effectiveVocab.length
-    ? '발표에서 꼭 쓰고 싶은 표현 3개를 골라요. 아래 PT 대본에 쓸 때마다 초록색으로 하이라이트돼요.'
+    ? '발표에서 꼭 쓰고 싶은 표현을 골라요. 개수 제한 없음 — 대본에 쓸 때마다 초록색으로 하이라이트돼요.'
     : '아직 이번 주 학습이 시작되지 않아 어휘 리스트가 비어있어요. Daily 학습이 시작되면 그 주차에 학습한 단어가 자동으로 채워져요.'
   ));
 
@@ -12424,10 +12424,6 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
         if (picked) {
           prep.vocabPicked = prep.vocabPicked.filter((x) => x !== v);
         } else {
-          if (prep.vocabPicked.length >= MAX_PICK) {
-            showToast(`최대 ${MAX_PICK}개까지 고를 수 있어요. 하나 빼고 고르세요.`);
-            return;
-          }
           prep.vocabPicked = prep.vocabPicked.concat(v);
         }
         saveState({ immediate: true });
