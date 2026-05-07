@@ -2583,6 +2583,7 @@ let showSpacedRepeatPopup = null;
 let showPreReviewPopup = null;
 // 주간 설문 작성 모달 — 홈 배너 클릭 시 활성. 값: 주차 번호 (1~4).
 let showSurveyFillModal = null;
+let showMiniWeekSurvey = null; // weekN — 단어 시험 입구에서 띄우는 3문항 미니 설문
 // 알림 인박스 패널 — TopBar 종 누르면 열림.
 let showNotifications = false;
 let toast = null;
@@ -5023,12 +5024,20 @@ function render() {
       const stale = document.querySelector('[data-survey-fill-modal]');
       if (stale) stale.remove();
     }
+    if (showMiniWeekSurvey) {
+      if (!document.querySelector('[data-mini-week-survey]')) {
+        document.body.appendChild(MiniWeekSurveyModal());
+      }
+    } else {
+      const stale = document.querySelector('[data-mini-week-survey]');
+      if (stale) stale.remove();
+    }
 
     // Mobile modal scroll fix: lock body scroll while any modal is open so the
     // modal's own overflow-y:auto picks up touch scrolling instead of the page
     // behind it bubbling. 취소/저장 버튼이 모바일에서 안 닿던 문제.
     try {
-      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup);
+      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey);
       if (anyModalOpen) document.body.classList.add('modal-open');
       else document.body.classList.remove('modal-open');
     } catch (_lockErr) {}
@@ -8605,6 +8614,30 @@ function buildWeekReviewQuestions(weekN, stage = 1) {
 function WeekReviewPage(weekN) {
   const week = (CHALLENGE.weeks || []).find((w) => w.n === weekN);
   if (!week) return WeeksPage();
+
+  // 미니 설문 — 시험 시작 전 1회 자동 노출 (응답률 부스트).
+  // 메인 설문 이미 답한 사람 / 미니 이미 답한 사람 / 명시적으로 skip 한 사람 → 자동 skip.
+  // 운영자 미리보기로 강제 띄울 땐 showMiniWeekSurvey 가 이미 set 되어있어 중복 트리거 X.
+  try {
+    const survey = (state.week_survey || {})[String(weekN)] || {};
+    const mainDone = !!(survey.at && !survey.skipped);
+    const miniState = survey.mini || {};
+    const miniHandled = !!(miniState.at || miniState.skipped);
+    const alreadyShowing = !!showMiniWeekSurvey;
+    if (!mainDone && !miniHandled && !alreadyShowing) {
+      // 페이지 렌더 끝나고 setTimeout 으로 띄움 (렌더 사이클 충돌 방지)
+      setTimeout(() => {
+        const survey2 = (state.week_survey || {})[String(weekN)] || {};
+        const mainDone2 = !!(survey2.at && !survey2.skipped);
+        const miniState2 = survey2.mini || {};
+        const miniHandled2 = !!(miniState2.at || miniState2.skipped);
+        if (!mainDone2 && !miniHandled2 && !showMiniWeekSurvey) {
+          showMiniWeekSurvey = weekN;
+          render();
+        }
+      }, 200);
+    }
+  } catch (_) {}
 
   // 데드라인 잠금 — 도전 기간 끝났으면 (운영자 외) 진입 차단.
   // 통과한 사람은 그대로 진입 가능 (보상 카드 / JPG 다운로드 위해).
@@ -16685,8 +16718,17 @@ function SettingsModal() {
             <button id="__settingsResetWeeklyQuizPopup" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">↺ 전체 리셋</button>
           </div>
           <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
-            <button id="__settingsShowSurveyW2" data-week="2" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">📝 W2 설문 미리보기</button>
+            <button id="__settingsShowSurveyW2" data-week="2" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">📝 W2 메인 설문</button>
+            <button id="__settingsShowMiniSurveyW2" data-week="2" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">⚡ W2 미니 설문</button>
             <button id="__settingsResetMySurveyW2" data-week="2" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">↺ 내 W2 응답 초기화</button>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
+          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📱 잠금화면 단어장 다운로드</div>
+          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">멤버가 Week N 단어 시험 통과 후 받는 보상 JPG (1170×2532). 운영자는 통과 여부 상관없이 미리 다운로드 가능. Week 1·2 까지 지원.</div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button id="__settingsLockscreenW1" data-week="1" class="btn btn-ghost" style="flex:1;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">📱 W1 단어장 받기</button>
+            <button id="__settingsLockscreenW2" data-week="2" class="btn btn-ghost" style="flex:1;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">📱 W2 단어장 받기</button>
           </div>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
@@ -16944,12 +16986,28 @@ function SettingsModal() {
       showWeeklyQuizPopup = 2; // 숫자로 = Week 2
       render();
     };
-    // Operator: 📝 W2 설문 미리 작성하기
+    // Operator: 📝 W2 메인 설문 미리 작성하기
     const showSurveyW2Btn = document.getElementById('__settingsShowSurveyW2');
     if (showSurveyW2Btn) showSurveyW2Btn.onclick = () => {
       showSettings = false;
       showSurveyFillModal = 2;
       render();
+    };
+    // Operator: ⚡ W2 미니 설문 미리보기
+    const showMiniSurveyW2Btn = document.getElementById('__settingsShowMiniSurveyW2');
+    if (showMiniSurveyW2Btn) showMiniSurveyW2Btn.onclick = () => {
+      showSettings = false;
+      showMiniWeekSurvey = 2;
+      render();
+    };
+    // Operator: 📱 잠금화면 단어장 다운로드 (W1/W2)
+    const lockscreenW1Btn = document.getElementById('__settingsLockscreenW1');
+    if (lockscreenW1Btn) lockscreenW1Btn.onclick = () => {
+      try { window.__bingoDownloadJpg(1); showSettings = false; render(); } catch (_) { showToast('다운로드 실패'); }
+    };
+    const lockscreenW2Btn = document.getElementById('__settingsLockscreenW2');
+    if (lockscreenW2Btn) lockscreenW2Btn.onclick = () => {
+      try { window.__bingoDownloadJpg(2); showSettings = false; render(); } catch (_) { showToast('다운로드 실패'); }
     };
     // Operator: ↺ 내 W2 응답 초기화 (테스트용)
     const resetMySurveyW2Btn = document.getElementById('__settingsResetMySurveyW2');
@@ -19140,6 +19198,184 @@ function SurveyFillModal() {
   setTimeout(() => {
     const closeBtn = document.getElementById('__surveyFillClose');
     if (closeBtn) closeBtn.onclick = close;
+  }, 0);
+
+  backdrop.appendChild(modal);
+  return backdrop;
+}
+
+/* ============================================================
+   MiniWeekSurveyModal — Week N 진짜 외우기 (단어 시험) 입구에서 1회 노출.
+   3문항 (≤30s) — 응답률 부스트용. state.week_survey[N].mini 에 저장.
+   메인 설문 이미 답한 사람은 자동 skip. 응답 후 시험 (week-review) 으로 자동 이동.
+   ============================================================ */
+function MiniWeekSurveyModal() {
+  const weekN = showMiniWeekSurvey;
+  if (!weekN) return el('div');
+  const wk = (CHALLENGE.weeks || []).find((w) => w.n === weekN);
+  if (!wk) { showMiniWeekSurvey = null; return el('div'); }
+
+  // draft 상태
+  if (!window.__miniSurveyDraft) window.__miniSurveyDraft = {};
+  if (!window.__miniSurveyDraft[weekN]) {
+    window.__miniSurveyDraft[weekN] = { hardest: '', amount: '', comment: '' };
+  }
+  const draft = window.__miniSurveyDraft[weekN];
+
+  const close = (markSkipped = true) => {
+    if (markSkipped) {
+      state.week_survey = state.week_survey || {};
+      const cur = state.week_survey[String(weekN)] || {};
+      cur.mini = cur.mini || {};
+      if (!cur.mini.at) cur.mini.skipped = true;
+      state.week_survey[String(weekN)] = cur;
+      try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+    }
+    showMiniWeekSurvey = null;
+    render();
+  };
+  const proceed = () => {
+    showMiniWeekSurvey = null;
+    if (!isReviewLocked(weekN)) {
+      window.__currentReviewWeek = weekN;
+      setTimeout(() => go('week-review'), 30);
+    } else {
+      render();
+    }
+  };
+  const submit = () => {
+    state.week_survey = state.week_survey || {};
+    const cur = state.week_survey[String(weekN)] || {};
+    cur.mini = {
+      hardest: draft.hardest || '',
+      amount: draft.amount || '',
+      comment: (draft.comment || '').trim(),
+      at: new Date().toISOString(),
+      skipped: false,
+    };
+    state.week_survey[String(weekN)] = cur;
+    try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+    showToast('🙏 답변 고마워요! 시험 시작할게요');
+    proceed();
+  };
+
+  // 해당 주차 단어 (메인 + premium 이면 syn) 모으기
+  const vocab = [];
+  (wk.days || []).forEach((d) => {
+    (d.words || []).forEach((w) => {
+      vocab.push({ en: w.en, kr: w.def });
+    });
+  });
+
+  const backdrop = el('div', {
+    class: 'modal-backdrop',
+    'data-mini-week-survey': '1',
+    onClick: (e) => { if (e.target === backdrop) close(true); },
+  });
+  const modal = el('div', {
+    class: 'modal',
+    style: {
+      width: 'min(94vw, 440px)',
+      maxHeight: '92vh',
+      padding: '0',
+      borderRadius: '24px',
+      overflow: 'hidden',
+      background: '#fff',
+      border: '1px solid var(--line)',
+      display: 'flex', flexDirection: 'column',
+    },
+  });
+
+  const header = el('div', {
+    style: { padding: '18px 20px 14px', borderBottom: '1px solid var(--line)', flexShrink: '0', display: 'flex', alignItems: 'center', gap: '10px' },
+  });
+  header.innerHTML = `
+    <div style="font-size:20px;line-height:1;">⚡</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">시험 시작 전 30초만</div>
+      <div style="margin-top:2px;font-size:11.5px;color:var(--muted);">3문항 답하면 운영진이 다음 주 더 잘 만들어요</div>
+    </div>
+    <button id="__miniSurveyClose" style="background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">✕</button>
+  `;
+  modal.appendChild(header);
+
+  const body = el('div', { style: { padding: '14px 18px 18px', overflowY: 'auto', flex: '1' } });
+  const sectionH = (n, title) => `
+    <div style="margin-top:${n === 1 ? '4px' : '20px'};padding-top:${n === 1 ? '0' : '16px'};border-top:${n === 1 ? 'none' : '1px dashed rgba(155,127,174,0.2)'};">
+      <div style="display:flex;align-items:baseline;gap:8px;">
+        <span style="font-size:11px;font-weight:800;color:#7B5E8C;font-family:var(--font-mono);">Q${n}</span>
+        <span style="font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${title}</span>
+      </div>
+    </div>
+  `;
+
+  body.innerHTML = `
+    ${sectionH(1, `Week ${weekN} 단어 중 가장 헷갈렸던 1개?`)}
+    <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
+      ${vocab.map((v) => {
+        const active = draft.hardest === v.en;
+        return `<button data-mini-hardest="${escapeHtml(v.en)}" style="padding:8px 12px;border-radius:999px;background:${active ? 'var(--ink)' : '#fff'};color:${active ? 'var(--cream)' : 'var(--ink)'};border:1px solid ${active ? 'var(--ink)' : 'var(--line)'};font-size:12px;font-weight:${active ? '700' : '500'};cursor:pointer;">${escapeHtml(v.en)}</button>`;
+      }).join('')}
+    </div>
+
+    ${sectionH(2, '학습 분량 어땠어요?')}
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+      ${[
+        { v: 'just_right', label: '😌 적당했어요' },
+        { v: 'a_lot', label: '😅 좀 많은 편' },
+        { v: 'too_much', label: '🥵 너무 많음' },
+        { v: 'too_little', label: '🤔 더 많아도 됨' },
+      ].map((o) => {
+        const active = draft.amount === o.v;
+        return `<button data-mini-amount="${escapeHtml(o.v)}" style="width:100%;text-align:left;padding:11px 14px;border-radius:12px;background:${active ? 'var(--ink)' : '#fff'};color:${active ? 'var(--cream)' : 'var(--ink)'};border:1px solid ${active ? 'var(--ink)' : 'var(--line)'};font-size:13px;font-weight:${active ? '700' : '500'};cursor:pointer;">${escapeHtml(o.label)}</button>`;
+      }).join('')}
+    </div>
+
+    ${sectionH(3, '한 줄 코멘트 (선택)')}
+    <textarea id="__miniSurveyComment" maxlength="200" placeholder="예) 발음 어려웠어요 / Day 8 빡셨음 / 미팅 너무 좋았어요 ..." style="width:100%;margin-top:8px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:13px;font-family:inherit;line-height:1.5;color:var(--ink);resize:vertical;min-height:60px;box-sizing:border-box;">${escapeHtml(draft.comment || '')}</textarea>
+
+    <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px;">
+      <button id="__miniSurveySubmit" class="btn btn-primary btn-full" style="background:var(--orange);border:none;font-size:14px;padding:14px;">답변하고 시험 시작 →</button>
+      <button id="__miniSurveySkip" class="btn btn-ghost btn-full" style="background:transparent;border:1px solid var(--line);color:var(--muted);font-size:12px;padding:10px;">패스 (그냥 시험 시작)</button>
+    </div>
+  `;
+  modal.appendChild(body);
+
+  // Wire up handlers
+  setTimeout(() => {
+    const closeBtn = document.getElementById('__miniSurveyClose');
+    if (closeBtn) closeBtn.onclick = () => close(true);
+    body.querySelectorAll('[data-mini-hardest]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        draft.hardest = btn.getAttribute('data-mini-hardest');
+        // 인플레이스 visual 업데이트
+        body.querySelectorAll('[data-mini-hardest]').forEach((b) => {
+          const active = b.getAttribute('data-mini-hardest') === draft.hardest;
+          b.style.background = active ? 'var(--ink)' : '#fff';
+          b.style.color = active ? 'var(--cream)' : 'var(--ink)';
+          b.style.borderColor = active ? 'var(--ink)' : 'var(--line)';
+          b.style.fontWeight = active ? '700' : '500';
+        });
+      });
+    });
+    body.querySelectorAll('[data-mini-amount]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        draft.amount = btn.getAttribute('data-mini-amount');
+        body.querySelectorAll('[data-mini-amount]').forEach((b) => {
+          const active = b.getAttribute('data-mini-amount') === draft.amount;
+          b.style.background = active ? 'var(--ink)' : '#fff';
+          b.style.color = active ? 'var(--cream)' : 'var(--ink)';
+          b.style.borderColor = active ? 'var(--ink)' : 'var(--line)';
+          b.style.fontWeight = active ? '700' : '500';
+        });
+      });
+    });
+    const ta = document.getElementById('__miniSurveyComment');
+    if (ta) ta.addEventListener('input', () => { draft.comment = ta.value; });
+    const submitBtn = document.getElementById('__miniSurveySubmit');
+    if (submitBtn) submitBtn.onclick = submit;
+    const skipBtn = document.getElementById('__miniSurveySkip');
+    if (skipBtn) skipBtn.onclick = () => { close(true); proceed(); };
   }, 0);
 
   backdrop.appendChild(modal);
