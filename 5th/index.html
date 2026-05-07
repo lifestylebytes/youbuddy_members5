@@ -11166,10 +11166,9 @@ function DayPage(dayN) {
         <span style="font-size:13px;color:var(--ink-soft);"><b style="color:var(--orange-dark);">${escapeHtml(w.en)}</b> · ${escapeHtml(w.def)}</span>
       </div>
     `;
-    // 유의어 한 끗 차이 — 카드 제목(label) 바로 아래에 큼직하게.
-    // Day 1~9 = 전체 멤버 / Day 10~ = 프리미엄만.
+    // 유의어로 같은 상황 다르게 말하기 — 프리미엄 전용.
     // 각 syn 마다: 영어 예시문장 (어휘 강조) + 분위기 한 줄 + Korean 의미 + nuance.
-    const showSyn = (dayN <= 9 || state.tier === 'premium') && Array.isArray(w.syn) && w.syn.length;
+    const showSyn = state.tier === 'premium' && Array.isArray(w.syn) && w.syn.length;
     if (showSyn) {
       const synBox = el('div', {
         style: {
@@ -11180,7 +11179,7 @@ function DayPage(dayN) {
           border: '1px solid rgba(232,116,60,0.15)',
         }
       });
-      const isPremiumGated = dayN > 9;
+      const isPremiumGated = true;
       // 어휘 단어를 영문장 안에서 굵은 오렌지로 하이라이트
       const highlightSyn = (sentence, synWord) => {
         if (!sentence || !synWord) return escapeHtml(sentence || '');
