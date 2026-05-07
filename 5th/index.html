@@ -7956,6 +7956,52 @@ function computeQuizSplit(question) {
       }
     }
   }
+  // 3.7) Possessive 치환 패턴 — 답안 가운데 possessive 토큰 (someone's / one's / your 등)
+  //      이 들어 있고, prompt 에서 다른 possessive (anyone's / her / Sara's 등) 로 치환된 경우.
+  //      예: answer="Step on someone's toes" / prompt="step on anyone's toes"
+  //          → before [Step on] " anyone's " [toes] after  (2-blank)
+  //      또는: answer="Get on someone's nerves" / prompt="get on my nerves"
+  //      verb 시제 변형도 같이 매칭.
+  const POSSESSIVE_TOKEN_RE = /^(?:someone|anyone|one|sb|my|your|his|her|their|our|its|sb\.|sth|sth\.)(?:'s|s)?$/i;
+  const isPossessiveLike = (t) => POSSESSIVE_TOKEN_RE.test(String(t).replace(/[.,!?]+$/, ''));
+  // prompt 안에서 매칭될 가능한 possessive 형태 (pronoun + 's / 고유명사's / 인칭 possessive)
+  const POSSESSIVE_ALT = "(?:[A-Za-z]+'s|someone's|anyone's|no one's|one's|sb's|my|your|his|her|their|our|its)";
+  for (let i = 1; i < tokens.length - 1; i += 1) {
+    if (!isPossessiveLike(tokens[i])) continue;
+    const prefixToks = tokens.slice(0, i);
+    const suffixToks = tokens.slice(i + 1);
+    const prefix = prefixToks.join(' ');
+    const suffix = suffixToks.join(' ');
+    if (!prefix || !suffix) continue;
+    const headForms = (typeof inflectionVariants === 'function')
+      ? inflectionVariants(prefixToks[0].toLowerCase())
+      : [prefixToks[0].toLowerCase()];
+    const prefixRest = prefixToks.slice(1).map(escapeRe).join('\\s+');
+    for (const head of headForms) {
+      const headPattern = prefixRest
+        ? escapeRe(head) + '\\s+' + prefixRest
+        : escapeRe(head);
+      const gapRe = new RegExp(
+        '\\b' + headPattern + '\\b(\\s+' + POSSESSIVE_ALT + '\\s+)' + escapeRe(suffix) + '\\b',
+        'i'
+      );
+      const m = promptText.match(gapRe);
+      if (m) {
+        const matchIdx = m.index;
+        const before = promptText.slice(0, matchIdx);
+        const after = promptText.slice(matchIdx + m[0].length);
+        return {
+          mode: '2blank',
+          before,
+          middle: m[1],
+          after,
+          prefixAnswer: prefix,
+          suffixAnswer: suffix,
+          answer,
+        };
+      }
+    }
+  }
   // 4) Fallback — 더 이상 prompt 끝에 어색한 화살표 안 붙임. prompt 그대로 보여주고
   //    별도 빈칸 line 으로 dictionary form 을 직접 입력하게 함 (UX: "이 표현을 영어로?").
   //    parts[0] 끝에 줄바꿈 마커 둬서 렌더 쪽에서 처리. (현재 렌더가 inline 이라
