@@ -11181,34 +11181,39 @@ function DayPage(dayN) {
         const re = new RegExp('(' + escSyn + 's?)', 'i');
         return safe.replace(re, '<b style="color:var(--orange-dark);font-weight:700;">$1</b>');
       };
+      // 인라인 듣기 버튼 — 단어/문장 끝에 작게 붙이는 형태
+      const speakBtnHtml = (text, size = 14) => {
+        const onClick = `window.__speakText(${JSON.stringify(String(text || ''))})`.replace(/"/g, '&quot;');
+        return `<button onclick="${onClick}" type="button" title="듣기" style="background:transparent;border:none;color:var(--orange);cursor:pointer;padding:2px 6px;border-radius:6px;display:inline-flex;align-items:center;vertical-align:middle;line-height:1;margin-left:4px;">${Icon('volume', size)}</button>`;
+      };
       // 베이직: syn 이름 + 의미만. 프리미엄: + 영어 예시문장 + 분위기 + 뉘앙스 비교.
       const synonymPreview = (w.syn || []).map((s) => {
         const synKey = `${bookmarkKey}::${s}`;
         const isSaved = !!state.saved_syns?.[synKey];
         const ex = (typeof synonymExample === 'function') ? synonymExample(w, s) : null;
         if (!isPremiumViewer) {
-          // 베이직 — 영어 위 / 한국어 아래
+          // 베이직 — 영어 위 / 한국어 아래 + 듣기 버튼 인라인
           return `
           <div style="padding:12px 14px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(232,116,60,0.22);border-left:4px solid var(--orange);">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
               <div style="flex:1;min-width:0;">
-                <div style="font-size:16px;font-weight:800;color:var(--orange-dark);font-family:var(--font-mono);letter-spacing:-0.01em;">${escapeHtml(s)}</div>
+                <div style="font-size:16px;font-weight:800;color:var(--orange-dark);font-family:var(--font-mono);letter-spacing:-0.01em;display:flex;align-items:center;flex-wrap:wrap;">${escapeHtml(s)}${speakBtnHtml(s, 14)}</div>
                 <div style="margin-top:4px;font-size:13px;color:var(--ink-soft);font-weight:600;line-height:1.5;">${escapeHtml(synonymMeaning(s))}</div>
               </div>
               <button onclick="window.__toggleSynBookmark('${synKey}')" title="${isSaved ? '단어장에서 빼기' : '단어장에 저장'}" style="background:transparent;border:none;color:var(--orange);width:30px;height:30px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;">${Icon(isSaved ? 'bookmarkFill' : 'bookmark', 14)}</button>
             </div>
           </div>`;
         }
-        // 프리미엄 — full (영어 → 한국어 → 예시문 → 분위기 → 뉘앙스)
+        // 프리미엄 — full (영어 → 한국어 → 예시문 → 분위기 → 뉘앙스), 듣기 버튼 인라인
         return `
         <div style="padding:14px 16px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(232,116,60,0.22);border-left:4px solid var(--orange);">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
             <div style="flex:1;min-width:0;">
-              <div style="font-size:17px;font-weight:800;color:var(--orange-dark);font-family:var(--font-mono);letter-spacing:-0.01em;">${escapeHtml(s)}</div>
+              <div style="font-size:17px;font-weight:800;color:var(--orange-dark);font-family:var(--font-mono);letter-spacing:-0.01em;display:flex;align-items:center;flex-wrap:wrap;">${escapeHtml(s)}${speakBtnHtml(s, 14)}</div>
               <div style="margin-top:4px;font-size:13.5px;color:var(--ink);font-weight:700;line-height:1.5;">${escapeHtml(synonymMeaning(s))}</div>
               ${ex && ex.en ? `
                 <div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:#FFF7EB;border:1px solid rgba(232,116,60,0.18);">
-                  <div style="font-size:14px;line-height:1.55;color:var(--ink);word-break:keep-all;">${highlightSynInSentence(ex.en, s)}</div>
+                  <div style="font-size:14px;line-height:1.55;color:var(--ink);word-break:keep-all;">${highlightSynInSentence(ex.en, s)}${speakBtnHtml(ex.en, 13)}</div>
                   ${ex.kr ? `<div style="margin-top:6px;font-size:12.5px;line-height:1.55;color:var(--ink-soft);word-break:keep-all;">${escapeHtml(ex.kr)}</div>` : ''}
                 </div>
               ` : ''}
