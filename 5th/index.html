@@ -7358,6 +7358,13 @@ function Checkboard() {
   const tierRank = (m) => (cbTierOf(m) === 'premium' ? 0 : 1);
   // Collator 매 render 마다 새로 만들면 비용 누적 — 한 번만 만들고 재사용.
   const koCollator = window.__koCollator || (window.__koCollator = new Intl.Collator('ko', { numeric: true, sensitivity: 'base' }));
+  // 표시명 기준 정렬 키 — 화면에 보이는 이름 (영어 닉네임 있으면 영어) 으로 정렬해야
+  // "Andy 다음에 Song" 같은 시각적 순서가 모든 뷰어한테 동일하게 보임. name (한글) 으로 정렬하면
+  // 보이는 화면이랑 안 맞음.
+  const sortNameOf = (m) => {
+    const en = (m.englishName || '').trim();
+    return en || (m.name || '');
+  };
   const orderedMembers = [...allMembers].sort((a, b) => {
     // 1) me → 항상 맨 위
     if (a.me !== b.me) return a.me ? -1 : 1;
@@ -7372,8 +7379,9 @@ function Checkboard() {
     // 4) tier — premium 먼저
     const ta = tierRank(a), tb = tierRank(b);
     if (ta !== tb) return ta - tb;
-    // 5) 같은 그룹 안에서 한글 가나다순 (모든 뷰어가 같은 순서 보장)
-    return koCollator.compare(a.name || '', b.name || '');
+    // 5) 같은 그룹 안에서 표시명 기준 알파벳/가나다순
+    //    (Andy/Song 같은 영어 닉네임 있으면 영어, 없으면 한글 이름)
+    return koCollator.compare(sortNameOf(a), sortNameOf(b));
   });
   // ── 성능 최적화 — 50명 × 21셀 = 1050 노드를 el() 로 일일이 만들면 매 render 마다 무거움.
   //    여기선 한 번에 innerHTML 로 wire 한 다음, 클릭은 grid 단에 위임 (event delegation).
