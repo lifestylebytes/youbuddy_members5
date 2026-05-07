@@ -6920,6 +6920,14 @@ function HomePage() {
         textAlign: 'left',
       },
       onClick: () => {
+        // 5일 다 인증 안 한 멤버는 진입 차단 (운영자/스태프는 미리보기 OK)
+        const allDone = weekProgress(targetWeek) === targetWeek.days.length;
+        if (!allDone && !isOpStaff) {
+          const lastDay = targetWeek.days[targetWeek.days.length - 1].day;
+          const doneCount = weekProgress(targetWeek);
+          showToast(`Day ${lastDay} 까지 ${targetWeek.days.length}일 인증 다 채우고 들어와요 (지금 ${doneCount}/${targetWeek.days.length})`);
+          return;
+        }
         window.__currentReviewWeek = targetWeek.n;
         go('week-review');
       },
@@ -8982,6 +8990,41 @@ function buildWeekReviewQuestions(weekN, stage = 1) {
 function WeekReviewPage(weekN) {
   const week = (CHALLENGE.weeks || []).find((w) => w.n === weekN);
   if (!week) return WeeksPage();
+
+  // 5일 다 인증 안 한 일반 멤버는 진입 차단 — 운영자/스태프 (operatorViewAsMember 꺼져있을 때) 만 미리보기 가능.
+  // 이미 통과한 사람은 그대로 진입 (보상 카드 / JPG 다운로드 위해).
+  const __allDays = (week.days || []).every((d) => state.verified && state.verified['d' + d.day]);
+  const __isOpStaff = !!((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
+  const __alreadyDone = !!(state.bingo_done && state.bingo_done[String(weekN)]);
+  if (!__allDays && !__isOpStaff && !__alreadyDone) {
+    const lockedPage = el('div', { class: 'page' });
+    const headLk = el('div', { class: 'topbar' });
+    const backLk = el('button', { class: 'icon-btn', onClick: () => go('weeks') });
+    backLk.innerHTML = Icon('arrowLeft', 16);
+    headLk.appendChild(backLk);
+    headLk.appendChild(el('div', { style: { fontWeight: '800', fontSize: '16px' } }, `Week ${weekN} 진짜 외우기`));
+    headLk.appendChild(el('div', { class: 'icon-btn', style: { visibility: 'hidden' } }));
+    lockedPage.appendChild(headLk);
+    const lastDay = week.days[week.days.length - 1].day;
+    const doneCount = weekProgress(week);
+    const card = el('div', {
+      style: { margin: '24px 18px', padding: '32px 22px', borderRadius: '20px', background: 'rgba(154,139,115,0.10)', border: '1px dashed rgba(154,139,115,0.4)', textAlign: 'center' },
+    });
+    card.innerHTML = `
+      <div style="font-size:48px;line-height:1;margin-bottom:10px;">🔒</div>
+      <div class="kicker" style="color:var(--muted);">아직 잠겨 있어요</div>
+      <div style="margin-top:8px;font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">Day ${lastDay} 까지<br>${week.days.length}일 인증 다 채우고 오세요</div>
+      <div class="t-small" style="margin-top:10px;color:var(--ink-soft);line-height:1.55;font-size:13px;">현재 <b style="color:var(--orange-dark);">${doneCount}/${week.days.length}일</b> 인증 — 남은 ${week.days.length - doneCount}일 다 채우면 시험 풀려요.</div>
+    `;
+    lockedPage.appendChild(card);
+    const goBtn = el('button', {
+      class: 'btn btn-primary btn-full',
+      style: { margin: '0 18px', background: 'var(--orange)', color: '#fff', border: 'none', fontSize: '14px', padding: '14px' },
+      onClick: () => go('weeks'),
+    }, '← 학습 탭으로 돌아가기');
+    lockedPage.appendChild(goBtn);
+    return lockedPage;
+  }
 
   // 미니 설문 — 시험 시작 전 1회 자동 노출 (응답률 부스트).
   // 메인 설문 이미 답한 사람 / 미니 이미 답한 사람 / 명시적으로 skip 한 사람 → 자동 skip.
