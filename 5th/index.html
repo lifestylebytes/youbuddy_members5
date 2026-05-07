@@ -6423,14 +6423,17 @@ function HomePage() {
   try { bindMeToMembers(); } catch (e) {}
 
   // 주간 퀴즈/보상 안내 팝업 — 홈 진입 시 1회 자동 노출 (베이직/프리미엄 둘 다).
-  // weekly_quiz_popup_seen.v1 마커로 한 번 본 사람은 다시 안 뜸.
-  // 운영자는 설정에서 다시 보기 가능.
+  // 멤버 currentDay 기준 현재 주차 popup 노출. weekly_quiz_popup_seen.v{N} 마커로 본 상태 추적.
+  // 운영자는 설정에서 주차 골라 다시 보기 가능.
   try {
+    const cDay = state.currentDay || 1;
+    const cWeek = Math.min(4, Math.max(1, Math.ceil(cDay / 5)));
+    const seenKey = `v${cWeek}`;
     const seen = state.weekly_quiz_popup_seen || {};
-    if (!seen.v1 && !showWeeklyQuizPopup) {
+    if (!seen[seenKey] && !showWeeklyQuizPopup) {
       setTimeout(() => {
-        if (!showWeeklyQuizPopup && !(state.weekly_quiz_popup_seen || {}).v1) {
-          showWeeklyQuizPopup = true;
+        if (!showWeeklyQuizPopup && !(state.weekly_quiz_popup_seen || {})[seenKey]) {
+          showWeeklyQuizPopup = cWeek;
           render();
         }
       }, 400);
@@ -11086,13 +11089,6 @@ function DayPage(dayN) {
           </div>
         </div>
       `;}).join('');
-      // 베이직에게는 프리미엄 업그레이드 권유 한 줄 보여주기 (Day 10~ 은 그냥 안 보이게)
-      const basicTeaser = !isPremiumViewer && dayN <= 9
-        ? `<div style="margin-top:10px;padding:10px 14px;border-radius:12px;background:rgba(169,139,184,0.08);border:1px dashed rgba(169,139,184,0.35);font-size:11.5px;line-height:1.55;color:#7B5E8C;display:flex;align-items:center;gap:8px;">
-            ${Icon('crown', 12)}
-            <span><b>프리미엄</b> 에선 각 유의어마다 <b>예시 영문장 · 분위기 · 톤 비교</b> 까지 들여다볼 수 있어요.</span>
-          </div>`
-        : '';
       detail.innerHTML = `
         <div>
           <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -11102,7 +11098,6 @@ function DayPage(dayN) {
           <div style="display:grid;gap:10px;">
             ${synonymPreview || `<div style="padding:12px 14px;border-radius:14px;background:var(--paper);border:1px solid var(--line-soft);font-size:12px;color:var(--muted);">연결된 유의어가 아직 없어요.</div>`}
           </div>
-          ${basicTeaser}
         </div>
       `;
       card.appendChild(detail);
@@ -16670,11 +16665,16 @@ function SettingsModal() {
           </div>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
-          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🔔 주간 퀴즈 팝업 미리보기</div>
-          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">학습 탭 진입 시 멤버한테 1회 자동으로 뜨는 "5회 다 하셨나요? 주간 퀴즈 열렸어요" 팝업. 운영자는 여기서 언제든 다시 볼 수 있어요. ${state.weekly_quiz_popup_seen && state.weekly_quiz_popup_seen.v1 ? `<span style="color:var(--muted);">· 본 상태</span>` : `<span style="color:#16A34A;font-weight:700;">· 아직 안 본 상태</span>`}</div>
-          <div style="display:flex;gap:8px;margin-top:10px;">
-            <button id="__settingsShowWeeklyQuizPopup" class="btn btn-ghost" style="flex:1;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">🔔 팝업 미리보기</button>
-            <button id="__settingsResetWeeklyQuizPopup" class="btn btn-ghost" style="flex:1;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">↺ '본 상태' 리셋</button>
+          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🔔 주간 퀴즈 팝업 미리보기 (Week 별)</div>
+          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">학습 탭 진입 시 멤버한테 1회 자동으로 뜨는 "주간 퀴즈/보상 열렸어요" 팝업. 멤버 currentDay 기준 자동 노출. 운영자는 Week 골라서 미리 볼 수 있음.<br/>· Week 1 ${state.weekly_quiz_popup_seen && state.weekly_quiz_popup_seen.v1 ? '<span style="color:var(--muted);">본 상태</span>' : '<span style="color:#16A34A;font-weight:700;">미열람</span>'}<br/>· Week 2 ${state.weekly_quiz_popup_seen && state.weekly_quiz_popup_seen.v2 ? '<span style="color:var(--muted);">본 상태</span>' : '<span style="color:#16A34A;font-weight:700;">미열람</span>'}</div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+            <button id="__settingsShowWeeklyQuizPopup" data-week="1" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">🔔 W1 팝업</button>
+            <button id="__settingsShowWeeklyQuizPopupW2" data-week="2" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">🔔 W2 팝업</button>
+            <button id="__settingsResetWeeklyQuizPopup" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">↺ 전체 리셋</button>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
+            <button id="__settingsShowSurveyW2" data-week="2" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">📝 W2 설문 미리보기</button>
+            <button id="__settingsResetMySurveyW2" data-week="2" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">↺ 내 W2 응답 초기화</button>
           </div>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
@@ -16925,19 +16925,46 @@ function SettingsModal() {
       render();
     };
 
-    // Operator: 🔔 주간 퀴즈 팝업 — 미리보기 / 리셋
+    // Operator: 🔔 W2 주간 퀴즈 팝업 미리보기
+    const showWqW2Btn = document.getElementById('__settingsShowWeeklyQuizPopupW2');
+    if (showWqW2Btn) showWqW2Btn.onclick = () => {
+      showSettings = false;
+      showWeeklyQuizPopup = 2; // 숫자로 = Week 2
+      render();
+    };
+    // Operator: 📝 W2 설문 미리 작성하기
+    const showSurveyW2Btn = document.getElementById('__settingsShowSurveyW2');
+    if (showSurveyW2Btn) showSurveyW2Btn.onclick = () => {
+      showSettings = false;
+      showSurveyFillModal = 2;
+      render();
+    };
+    // Operator: ↺ 내 W2 응답 초기화 (테스트용)
+    const resetMySurveyW2Btn = document.getElementById('__settingsResetMySurveyW2');
+    if (resetMySurveyW2Btn) resetMySurveyW2Btn.onclick = () => {
+      state.week_survey = state.week_survey || {};
+      delete state.week_survey['2'];
+      try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
+      showToast('내 Week 2 설문 응답 초기화 — 다시 작성 가능');
+      render();
+    };
+    // Operator: 🔔 주간 퀴즈 팝업 — 미리보기 (Week 1)
     const showWqBtn = document.getElementById('__settingsShowWeeklyQuizPopup');
     if (showWqBtn) showWqBtn.onclick = () => {
       showSettings = false;
-      showWeeklyQuizPopup = true;
+      showWeeklyQuizPopup = 1; // 숫자로 = Week 1
       render();
     };
     const resetWqBtn = document.getElementById('__settingsResetWeeklyQuizPopup');
     if (resetWqBtn) resetWqBtn.onclick = () => {
       state.weekly_quiz_popup_seen = state.weekly_quiz_popup_seen || {};
+      // 모든 주차 popup-seen 리셋 (v1, v2, v3, v4)
       delete state.weekly_quiz_popup_seen.v1;
+      delete state.weekly_quiz_popup_seen.v2;
+      delete state.weekly_quiz_popup_seen.v3;
+      delete state.weekly_quiz_popup_seen.v4;
       try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
-      showToast("'본 상태' 리셋 — 다음 학습 탭 진입 시 자동 노출");
+      showToast("모든 주차 '본 상태' 리셋 — 다음 학습 탭 진입 시 자동 노출");
       render();
     };
 
@@ -18550,18 +18577,17 @@ function RecordingPopupModal() {
    운영자는 설정 → '🔔 주간 퀴즈 팝업 다시 보기' 로 재노출 가능.
    ============================================================ */
 function WeeklyQuizPopupModal() {
+  // showWeeklyQuizPopup 가 truthy(=number) 면 그 주차. true(legacy) 또는 1 이면 Week 1.
+  const weekN = (typeof showWeeklyQuizPopup === 'number') ? showWeeklyQuizPopup : 1;
+  const seenKey = `v${weekN}`;
   const close = (markSeen = true) => {
     if (markSeen) {
       state.weekly_quiz_popup_seen = state.weekly_quiz_popup_seen || {};
-      state.weekly_quiz_popup_seen.v1 = true;
+      state.weekly_quiz_popup_seen[seenKey] = true;
       try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
     }
     showWeeklyQuizPopup = false;
     render();
-  };
-  const goWeeks = () => {
-    close(true);
-    setTimeout(() => go('weeks'), 50);
   };
   const backdrop = el('div', {
     class: 'modal-backdrop',
@@ -18579,29 +18605,30 @@ function WeeklyQuizPopupModal() {
       border: '1px solid var(--line)',
     },
   });
-  // 본인 진행도 — 메시지에서 컨텍스트 보여주려고
-  const week1Days = (CHALLENGE.weeks?.[0]?.days || []).map((d) => d.day);
-  const week1Done = week1Days.filter((d) => state.verified && state.verified['d' + d]).length;
-  const week1Total = week1Days.length;
-  const allDone = week1Done >= week1Total;
+  // 해당 주차 진행도
+  const wk = (CHALLENGE.weeks || []).find((w) => w.n === weekN) || CHALLENGE.weeks?.[0];
+  const wkDays = (wk?.days || []).map((d) => d.day);
+  const wkDone = wkDays.filter((d) => state.verified && state.verified['d' + d]).length;
+  const wkTotal = wkDays.length || 5;
+  const allDone = wkDone >= wkTotal;
 
   modal.innerHTML = `
     <div style="position:relative;padding:30px 24px 22px;background:linear-gradient(135deg, #FFF1E5 0%, #FFE4D0 100%);text-align:center;">
       <button id="__wqClose" style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,0.7);border:none;color:var(--ink-soft);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
       <div style="font-size:48px;line-height:1;margin-bottom:8px;">🎁</div>
-      <div class="kicker" style="color:var(--orange-dark);">WEEK 1 보상 오픈</div>
+      <div class="kicker" style="color:var(--orange-dark);">WEEK ${weekN} 보상 오픈</div>
       <div style="margin-top:8px;font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.3;">5일 다 채우면<br>잠금화면 단어장 🎁</div>
       <div style="margin-top:10px;display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,0.7);border:1px solid var(--orange-soft);font-size:12.5px;font-weight:700;color:var(--orange-dark);">
-        ${allDone ? '✨ 5/5 완주 · 보상 받으러 가요!' : `📅 내 진도 ${week1Done}/5일 인증`}
+        ${allDone ? `✨ ${wkTotal}/${wkTotal} 완주 · 보상 받으러 가요!` : `📅 내 진도 ${wkDone}/${wkTotal}일 인증`}
       </div>
       <div style="margin-top:10px;font-size:13px;color:var(--ink-soft);line-height:1.6;">
         ${allDone
           ? '주간 퀴즈 통과하면 단어 잠금화면 받을 수 있어요.<br>오늘 바로 임해보세요!'
-          : '5일 다 인증하면 주간 퀴즈가 열려요.<br>통과하면 단어 잠금화면 보상 🎁'}
+          : `${wkTotal}일 다 인증하면 주간 퀴즈가 열려요.<br>통과하면 단어 잠금화면 보상 🎁`}
       </div>
     </div>
     <div style="padding:18px 22px 22px;display:flex;flex-direction:column;gap:8px;">
-      <button id="__wqGo" class="btn btn-primary btn-full" style="background:var(--orange);border:none;font-size:14px;padding:14px;">${allDone ? '🚀 Week 1 진짜 외우기 시작 →' : '📅 학습 탭에서 진도 확인하기 →'}</button>
+      <button id="__wqGo" class="btn btn-primary btn-full" style="background:var(--orange);border:none;font-size:14px;padding:14px;">${allDone ? `🚀 Week ${weekN} 진짜 외우기 시작 →` : '📅 학습 탭에서 진도 확인하기 →'}</button>
       <button id="__wqLater" class="btn btn-ghost btn-full" style="background:transparent;border:1px solid var(--line);color:var(--muted);font-size:12px;padding:10px;">나중에</button>
     </div>
   `;
@@ -18612,13 +18639,9 @@ function WeeklyQuizPopupModal() {
     if (closeBtn) closeBtn.onclick = () => close(true);
     if (laterBtn) laterBtn.onclick = () => close(true);
     if (goBtn) goBtn.onclick = () => {
-      // 5일 완주 + 데드라인 안 지난 사람만 review 로 점프, 그 외 학습 탭 (weeks) 으로
       close(true);
-      const week1Days = (CHALLENGE.weeks?.[0]?.days || []).map((d) => d.day);
-      const week1Done = week1Days.filter((d) => state.verified && state.verified['d' + d]).length;
-      const allDone = week1Done >= week1Days.length;
-      if (allDone && !isReviewLocked(1)) {
-        window.__currentReviewWeek = 1;
+      if (allDone && !isReviewLocked(weekN)) {
+        window.__currentReviewWeek = weekN;
         setTimeout(() => go('week-review'), 50);
       } else {
         setTimeout(() => go('weeks'), 50);
@@ -18644,6 +18667,13 @@ const SURVEY_WEAK_WORDS_BY_WEEK = {
     { en: 'Front-load', ko: '초반에 몰아치기', ex_en: "Let's front-load the heavy tasks this week." },
     { en: 'Get it over the line', ko: '어렵사리 완수시키다', ex_en: 'We worked all weekend to get this over the line.' },
     { en: 'Move in lockstep', ko: '발 맞춰 협력하다', ex_en: 'Marketing and sales need to move in lockstep.' },
+  ],
+  // Week 2 — 운영자 (유버디) 가 통계 보고 손으로 다듬기 전 placeholder.
+  // 일단 idiom 빈도 + 길이로 어려울 가능성 큰 3개 미리 박아둠.
+  '2': [
+    { en: "Step on someone's toes", ko: '남의 영역을 침범하다', ex_en: "I want to help, but I don't want to step on anyone's toes." },
+    { en: "Play devil's advocate", ko: '의도적으로 반대 입장', ex_en: "Let me play devil's advocate for a second." },
+    { en: 'Sugarcoat', ko: '듣기 좋게 포장', ex_en: "I'm not going to sugarcoat it — we missed the target." },
   ],
 };
 
@@ -18673,7 +18703,32 @@ const SPACED_REPEAT_PRESETS = {
       },
     ],
   },
-  // 향후 Day 12 (Week 3) / Day 17 (Week 4) 도 같은 패턴으로 추가 가능.
+  // Day 12 (Week 3 시작) — Week 2 top 3 약점 어휘 (placeholder, 운영자 통계 후 다듬기).
+  '12': {
+    title: 'Week 2 에서 가져온 3개 표현',
+    subtitle: '지난 주 가장 많이 헷갈렸던 표현이에요',
+    words: [
+      {
+        en: "Step on someone's toes",
+        ko: '남의 영역을 침범하다',
+        ex_en: "I want to help, but I don't want to step on anyone's toes.",
+        stat: 'idiomatic possessive · 빈칸 위치 가장 많이 틀림',
+      },
+      {
+        en: "Play devil's advocate",
+        ko: '의도적으로 반대 입장',
+        ex_en: "Let me play devil's advocate for a second.",
+        stat: '한국어로 잘 안 쓰는 표현 · 입에 잘 안 붙음',
+      },
+      {
+        en: 'Sugarcoat',
+        ko: '듣기 좋게 포장',
+        ex_en: "I'm not going to sugarcoat it — we missed the target.",
+        stat: '단일 동사인데도 메신저에서 거의 안 쓴다는 피드백',
+      },
+    ],
+  },
+  // 향후 Day 17 (Week 4) 도 같은 패턴으로 추가 가능.
 };
 
 function SpacedRepeatPopupModal() {
