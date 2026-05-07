@@ -1742,6 +1742,7 @@ const defaultState = () => ({
   nonparticipant_list: [],          // ['강태윤', ...] Week 1 무참여자 — 대시보드 맨 아래로 + 향후 기능 제한 대상.
   recording_popup_seen: {},         // { "m1": true } 미팅 다시보기 팝업을 본 상태. 한 번 X 누르면 다시 안 뜸.
   weekly_quiz_popup_seen: {},       // { "v1": true } 주간 퀴즈/보상 안내 팝업 본 상태. 버전별 키로 다음 주차 새 팝업 재발행 가능.
+  friday_redirect_seen: {},         // { "1": true } — Day 5/10/15/20 (= 매주 금요일) 자동 시험 페이지 redirect 본 상태. 주차별 1회만 redirect.
   spaced_repeat_seen: {},           // { "day7": true } Spaced Repetition 팝업 본 상태 — Day 시작 시 1회 노출용.
   prereview_seen: {},               // { "day2": true } 매일 학습 전 "어제 단어 복습" 팝업 본 상태 — Day N 진입 시 1회 노출.
   notifications_read: {},           // { "recording-m1": true, "weekly-quiz-v1": true } 종 인박스에서 읽음 처리한 알림.
@@ -6579,6 +6580,27 @@ function HomePage() {
   // 방금 인증한 내 기록이 반영 안 되는 문제를 막아요.
   try { bindMeToMembers(); } catch (e) {}
 
+  // 매주 금요일 (=Day 5/10/15/20) 자동 redirect — 그 주 테스트 페이지로 강제 점프.
+  // 멤버가 5일 인증 다 채우고 시험 보러 들어가도록 유도.
+  // 한 번 redirect 되면 state.friday_redirect_seen[weekN] = true 마커로 다시 안 띄움.
+  // 시험 통과 (bingo_done) 했거나 데드라인 지났으면 자동 skip.
+  try {
+    const cDay = Number(state.currentDay) || 0;
+    if (cDay > 0 && cDay % 5 === 0) {
+      const weekN = cDay / 5;
+      state.friday_redirect_seen = state.friday_redirect_seen || {};
+      const alreadyRedirected = !!state.friday_redirect_seen[String(weekN)];
+      const reviewDone = !!(state.bingo_done && state.bingo_done[String(weekN)]);
+      const locked = isReviewLocked(weekN);
+      if (!alreadyRedirected && !reviewDone && !locked) {
+        state.friday_redirect_seen[String(weekN)] = true;
+        try { saveState({ immediate: true }); } catch (_) { try { saveState(); } catch (__) {} }
+        window.__currentReviewWeek = weekN;
+        setTimeout(() => go('week-review'), 60);
+      }
+    }
+  } catch (e) {}
+
   // 주간 퀴즈/보상 안내 팝업 — 홈 진입 시 1회 자동 노출 (베이직/프리미엄 둘 다).
   // 멤버 currentDay 기준 현재 주차 popup 노출. weekly_quiz_popup_seen.v{N} 마커로 본 상태 추적.
   // 운영자는 설정에서 주차 골라 다시 보기 가능.
@@ -6774,7 +6796,7 @@ function HomePage() {
         </div>
         <div class="t-small" style="margin-top:5px;font-size:12.5px;color:var(--orange-dark);font-weight:700;letter-spacing:-0.01em;display:inline-flex;align-items:center;gap:4px;">주간 테스트 보러가기 →</div>
         <div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:${isUrgent ? '#C95721' : 'rgba(201,87,33,0.12)'};color:${isUrgent ? '#fff' : '#C95721'};font-size:11px;font-weight:800;letter-spacing:-0.005em;">
-          ⏰ 이번 주 (Day ${deadlineDay})까지만 도전 가능
+          ⏰ 다음 주 (Day ${deadlineDay})까지만 도전 가능
         </div>
       </div>
     `;
@@ -6818,7 +6840,7 @@ function HomePage() {
         <div style="font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">Week ${targetWeek} 회고 1분 부탁드려요</div>
         <div class="t-small" style="margin-top:3px;font-size:12px;color:var(--ink-soft);line-height:1.5;">여러분 의견 그대로 다음 주에 반영해갈게요</div>
         <div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;background:rgba(155,127,174,0.18);color:#6B4F7D;font-size:10.5px;font-weight:700;letter-spacing:-0.005em;">
-          ⏰ 이번 주 (Day ${deadlineDay})까지만${daysLeft > 0 ? ` · D-${daysLeft}` : ''}
+          ⏰ 다음 주 (Day ${deadlineDay})까지만${daysLeft > 0 ? ` · D-${daysLeft}` : ''}
         </div>
       </div>
       <div style="flex-shrink:0;color:#7B5E8C;font-size:14px;font-weight:800;">→</div>
@@ -7546,7 +7568,7 @@ function WeeksPage() {
       } else {
         reviewBtn.innerHTML = `
           <span>🧠 Week ${w.n} 진짜 외우기 — 3단계 복습${previewTag}</span>
-          <span style="font-size:11px;font-weight:700;color:${limitColor};letter-spacing:-0.005em;">⏰ 이번 주 (Day ${deadlineDay})까지만 도전 가능</span>
+          <span style="font-size:11px;font-weight:700;color:${limitColor};letter-spacing:-0.005em;">⏰ 다음 주 (Day ${deadlineDay})까지만 도전 가능</span>
         `;
       }
       card.appendChild(reviewBtn);
