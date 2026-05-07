@@ -19563,8 +19563,13 @@ function MiniWeekSurveyModal() {
   }
   const draft = window.__miniSurveyDraft[weekN];
 
-  const close = (markSkipped = true) => {
-    if (markSkipped) {
+  // close(opts):
+  //   { mark: 'skip' } — 패스 버튼 누른 경우만 영구 skipped 마킹 (다음에 안 뜸)
+  //   { mark: 'temp' }  — X 버튼/배경 클릭 — 마킹 X (다음 진입에 다시 뜸)
+  //   기본은 'temp' — X close 했다고 영구 skip 처리하면 user 가 미니 설문 영영 못 봄.
+  const close = (opts) => {
+    const o = (typeof opts === 'object' && opts) ? opts : {};
+    if (o.mark === 'skip') {
       state.week_survey = state.week_survey || {};
       const cur = state.week_survey[String(weekN)] || {};
       cur.mini = cur.mini || {};
@@ -19611,7 +19616,7 @@ function MiniWeekSurveyModal() {
   const backdrop = el('div', {
     class: 'modal-backdrop',
     'data-mini-week-survey': '1',
-    onClick: (e) => { if (e.target === backdrop) close(true); },
+    onClick: (e) => { if (e.target === backdrop) close({ mark: 'temp' }); },
   });
   const modal = el('div', {
     class: 'modal',
@@ -19685,7 +19690,7 @@ function MiniWeekSurveyModal() {
   // Wire up handlers
   setTimeout(() => {
     const closeBtn = document.getElementById('__miniSurveyClose');
-    if (closeBtn) closeBtn.onclick = () => close(true);
+    if (closeBtn) closeBtn.onclick = () => close({ mark: 'temp' });
     body.querySelectorAll('[data-mini-hardest]').forEach((btn) => {
       btn.addEventListener('click', () => {
         draft.hardest = btn.getAttribute('data-mini-hardest');
@@ -19716,7 +19721,7 @@ function MiniWeekSurveyModal() {
     const submitBtn = document.getElementById('__miniSurveySubmit');
     if (submitBtn) submitBtn.onclick = submit;
     const skipBtn = document.getElementById('__miniSurveySkip');
-    if (skipBtn) skipBtn.onclick = () => { close(true); proceed(); };
+    if (skipBtn) skipBtn.onclick = () => { close({ mark: 'skip' }); proceed(); };
   }, 0);
 
   backdrop.appendChild(modal);
@@ -19741,6 +19746,15 @@ function WeekWrapupPopupModal() {
   };
   const goNow = () => {
     close(true);
+    // 메인 설문 / 미니 설문 둘 다 안 한 사람은 시험 가기 전 미니 설문 먼저 띄움.
+    const survey = (state.week_survey || {})[String(weekN)] || {};
+    const mainDone = !!(survey.at && !survey.skipped);
+    const miniState = survey.mini || {};
+    const miniDone = !!miniState.at; // 답한 거만 체크 (skipped 는 다음에 다시 띄움)
+    if (!mainDone && !miniDone) {
+      setTimeout(() => { showMiniWeekSurvey = weekN; render(); }, 80);
+      return;
+    }
     window.__currentReviewWeek = weekN;
     setTimeout(() => go('week-review'), 30);
   };
