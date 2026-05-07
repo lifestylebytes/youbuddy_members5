@@ -3767,24 +3767,55 @@ const memberKey = () => (state.accountKey || state.email || [state.accessCode, s
    - 3명 선착순. 같은 사람이 같은 주에 중복 signup 불가.
    ============================================================ */
 const PRESENTER_KEY = (n) => 'w' + Number(n);
-// 운영자 수동 force-include — 코드에 박아둔 발표자 자리.
+// 운영자 수동 force-include / exclude — 코드에 박아둔 발표자 자리 변경.
 // 형식: { weekN: ['MEMBER_DIRECTORY id', ...] } — 디스플레이 전용. 서버에 영구 저장 X.
-// 권다은(p9) 가 Week 2 에서 발표 못 해서 Week 3 마지막 자리로 이동.
+// 권다은(p9, English: Dani) — Week 2 에서 발표 못 해서 Week 3 마지막 자리로 이동.
 const PRESENTER_FORCE_INCLUDE = { 3: ['p9'] };
+const PRESENTER_FORCE_EXCLUDE = { 2: ['p9'] }; // Week 2 의 p9 정상 signup 을 디스플레이에서 숨김
 // 주차별 cap override — Week 3 만 4명 (권다은 추가로 인해).
 const PRESENTER_CAP_OVERRIDE = { 3: 4 };
 function weekMeta(n) {
   return (CHALLENGE.premium.weekly_meetings || []).find((w) => Number(w.n) === Number(n)) || null;
 }
+// member_key → MEMBER_DIRECTORY id 매핑 (cache 와 summary 기반).
+function _memberIdFromKey(key) {
+  if (!key || typeof key !== 'string') return null;
+  if (key.startsWith('__forced:')) return key.slice('__forced:'.length);
+  // 1) memberSummaryCache 에서 찾기
+  try {
+    const summary = (memberSummaryCache?.rows || []).find((r) => r.member_key === key);
+    if (summary && summary.member_name) {
+      const dir = MEMBER_DIRECTORY.find((m) => m.name === summary.member_name);
+      if (dir) return dir.id;
+    }
+  } catch (_) {}
+  // 2) 본인이면 state.accessCode 로 매핑
+  try {
+    if (key === memberKey() && state.accessCode) {
+      const dir = MEMBER_DIRECTORY.find((m) => m.code === state.accessCode);
+      if (dir) return dir.id;
+    }
+  } catch (_) {}
+  return null;
+}
 function weekSignupsArray(n) {
   const raw = (state.presenterSignups || {})[PRESENTER_KEY(n)];
-  const arr = Array.isArray(raw) ? raw.slice() : [];
+  let arr = Array.isArray(raw) ? raw.slice() : [];
+  // Force-exclude — 운영자가 박아둔 멤버 id 가 있으면 그 멤버 키 필터링.
+  const excludeIds = PRESENTER_FORCE_EXCLUDE[Number(n)] || [];
+  if (excludeIds.length) {
+    arr = arr.filter((k) => {
+      const id = _memberIdFromKey(k);
+      return !excludeIds.includes(id);
+    });
+  }
   // Force-include — 운영자가 박아둔 멤버를 맨 뒤에 (없으면) 추가.
   const forced = PRESENTER_FORCE_INCLUDE[Number(n)] || [];
   forced.forEach((id) => {
     const synthKey = '__forced:' + id;
-    // 중복 방지 (이미 정상 signup 했거나 forced 키 이미 있으면 skip)
-    if (!arr.includes(synthKey)) arr.push(synthKey);
+    // 이미 정상 signup 으로 들어있으면 (id 매핑) skip — 중복 방지.
+    const alreadyIn = arr.some((k) => k === synthKey || _memberIdFromKey(k) === id);
+    if (!alreadyIn) arr.push(synthKey);
   });
   return arr;
 }
@@ -6680,10 +6711,16 @@ function HomePage() {
   (() => {
     // operatorViewAsMember 켜져있으면 일반 멤버처럼 — 미리보기 차단 + 미리보기 배지 숨김.
     const isOpStaff = !!((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
-    // 후보 주: 완주된 주들 모두 (가장 최근 것). 운영자는 아무 주나 가능 — 기본 1주.
-    const completedWeeks = (CHALLENGE.weeks || []).filter((w) => weekProgress(w) === w.days.length);
-    const targetWeek = completedWeeks.length
-      ? completedWeeks[completedWeeks.length - 1] // 가장 최근 완주 주
+    // 후보 주: (1) 완주된 주, OR (2) 마지막 day 가 이미 도달된 주 (예: Day 10 = Week 2 마지막)
+    // 두 조건 중 더 늦은 주차를 banner 대상으로. 멤버가 5/5 인증 못했어도 시험 진입 자체는 가능
+    // (isReviewed / isReviewLocked 가 아래에서 추가 가드).
+    const today = state.currentDay || 0;
+    const candidateWeeks = (CHALLENGE.weeks || []).filter((w) => {
+      const lastDay = w.days[w.days.length - 1].day;
+      return today >= lastDay || weekProgress(w) === w.days.length;
+    });
+    const targetWeek = candidateWeeks.length
+      ? candidateWeeks[candidateWeeks.length - 1] // 가장 최근 도달/완주 주
       : (isOpStaff ? CHALLENGE.weeks[0] : null);
     if (!targetWeek) return;
     const isPreview = isOpStaff && weekProgress(targetWeek) < targetWeek.days.length;
