@@ -5614,7 +5614,7 @@ function _globalPeerKey(p) {
 
 async function globalPeerTick() {
   try {
-    if (document.hidden) return;
+    // 탭이 백그라운드여도 폴링은 계속 — 브라우저 알림 (Notification API) 으로 알람.
     if (!hasSupabase()) return;
     const today = Number(state.currentDay) || 1;
     const posts = await loadCommunityPosts(today, { force: true });
@@ -5632,15 +5632,26 @@ async function globalPeerTick() {
     });
     if (!fresh.length) return;
     fresh.forEach((p) => window.__globalPeerSeen.add(_globalPeerKey(p)));
-    // Day 페이지에 있는 동안엔 local peer-ticker 가 있으니 글로벌 중복 방지 (local 이 우선).
-    if (currentPage === 'day') return;
     const pick = fresh[0];
-    showPeerTicker({
+    const peerObj = {
       user: pick.member_name || '',
       member_key: pick.member_key || '',
       sentence: pick.sentence || '',
       id: pick.id,
-    });
+    };
+    // peer 표시명 — englishName 우선
+    const peerMember = (typeof memberByRef === 'function' ? memberByRef(peerObj.user) : null)
+      || (peerObj.member_key && typeof memberByKey === 'function' ? memberByKey(peerObj.member_key) : null);
+    const peerDisplay = peerMember ? (typeof displayName === 'function' ? displayName(peerMember) : peerObj.user) : peerObj.user;
+    // 1) 탭이 백그라운드 → 브라우저 OS 알림
+    if (document.hidden) {
+      showPeerBrowserNotif(peerObj, peerDisplay);
+      return;
+    }
+    // 2) Day 페이지에 있는 동안엔 local peer-ticker 가 처리 — 중복 방지
+    if (currentPage === 'day') return;
+    // 3) 그 외엔 in-page floating ticker
+    showPeerTicker(peerObj);
   } catch (_) {}
 }
 
@@ -5649,6 +5660,34 @@ function startGlobalPeerTicker() {
   // Initial tick: 5초 후 baseline 잡고, 이후 60초 cadence.
   setTimeout(globalPeerTick, 5000);
   window.__globalPeerTimer = setInterval(globalPeerTick, 60000);
+  // 브라우저 알림 권한 요청 — default 상태일 때만 1회. 거부해도 in-page ticker 는 그대로 동작.
+  try { requestPeerNotifPermission(); } catch (_) {}
+}
+
+// 브라우저 Notification API — 탭이 백그라운드일 때만 OS 알림. 포그라운드는 in-page ticker.
+function requestPeerNotifPermission() {
+  if (typeof Notification === 'undefined') return;
+  if (Notification.permission !== 'default') return;
+  // 사용자 인터랙션 직후가 아니면 일부 브라우저가 silently 거부. 첫 로드에선 그냥 시도만.
+  try { Notification.requestPermission().catch(() => {}); } catch (_) {}
+}
+
+function showPeerBrowserNotif(peer, peerDisplay) {
+  if (typeof Notification === 'undefined') return false;
+  if (Notification.permission !== 'granted') return false;
+  if (!document.hidden) return false; // 탭이 포그라운드면 in-page ticker 가 처리
+  try {
+    const n = new Notification(`📝 ${peerDisplay}님 문장 올렸어요`, {
+      body: (peer.sentence || '').slice(0, 100),
+      tag: 'youbuddy-peer-' + (peer.id || (peer.member_key || '') + ':' + (peer.sentence || '').slice(0, 20)),
+      // icon 은 cohort 페이지 favicon 자동 사용 — 별도 path 지정 시 절대 경로 필요.
+    });
+    n.onclick = () => { try { window.focus(); n.close(); } catch (_) {} };
+    setTimeout(() => { try { n.close(); } catch (_) {} }, 6000);
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 function showPeerTicker(peer) {
