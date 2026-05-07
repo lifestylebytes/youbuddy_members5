@@ -2224,6 +2224,50 @@ async function callAiReviewEdgeFunction(payload) {
   };
 }
 
+// 클라이언트 측 동의어 교체 감지 — AI 가 어떤 룰 무시하고 한 단어만 동의어로 바꾼 경우 잡아냄.
+// 입력/출력에 단어 1개 차이만 있고 그 한 쌍이 알려진 동의어 교체면 → 원문 그대로 (no-edit) 처리.
+const __AI_SYN_PAIRS = [
+  ['recognize', 'acknowledge'],
+  ['begin', 'start'], ['begin', 'kick off'], ['start', 'kick off'],
+  ['discuss', 'talk about'], ['discuss', 'go over'], ['talk about', 'go over'],
+  ['use', 'utilize'], ['use', 'leverage'], ['utilize', 'leverage'],
+  ['show', 'demonstrate'], ['show', 'illustrate'], ['demonstrate', 'illustrate'],
+  ['help', 'assist'], ['help', 'support'], ['assist', 'support'],
+  ['finish', 'complete'], ['finish', 'wrap up'], ['complete', 'wrap up'],
+  ['many', 'several'], ['many', 'multiple'], ['several', 'multiple'],
+  ['get', 'obtain'], ['get', 'receive'], ['obtain', 'receive'],
+  ['think', 'believe'],
+  ['big', 'large'], ['big', 'significant'], ['large', 'significant'],
+  ['fast', 'quick'], ['fast', 'rapid'], ['quick', 'rapid'],
+  ['need', 'require'],
+  ['ensure', 'make sure'],
+  ['determine', 'find out'], ['determine', 'figure out'], ['find out', 'figure out'],
+  ['end', 'conclude'],
+  ['accept', 'agree to'],
+  ['give', 'provide'],
+];
+function __isPureSynSwap(original, corrected) {
+  if (!original || !corrected) return false;
+  const norm = (s) => String(s).toLowerCase().trim();
+  // 단어 토큰화 — 구두점/공백 제외
+  const oTokens = (norm(original).match(/[a-z]+(?:'[a-z]+)?/gi) || []);
+  const cTokens = (norm(corrected).match(/[a-z]+(?:'[a-z]+)?/gi) || []);
+  if (oTokens.length !== cTokens.length) return false;
+  // 정확히 한 단어 차이 + 그 차이 단어 쌍이 동의어 리스트에 있어야 함
+  let diffs = 0;
+  let pair = null;
+  for (let i = 0; i < oTokens.length; i++) {
+    if (oTokens[i] !== cTokens[i]) {
+      diffs++;
+      if (diffs > 1) return false;
+      pair = [oTokens[i], cTokens[i]];
+    }
+  }
+  if (diffs !== 1 || !pair) return false;
+  const [a, b] = pair;
+  return __AI_SYN_PAIRS.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
+}
+
 async function requestSentenceCorrection(word, sentence, koreanContext) {
   try {
     const result = await callAiReviewEdgeFunction({
@@ -2236,6 +2280,18 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
       // 결정론적 응답 요청 — 같은 input → 같은 corrected 가 나오도록 (Edge Function 이 respect 한다고 가정).
       temperature: 0,
     });
+    // 클라이언트 안전망: AI 가 동의어 교체만 한 경우 (recognize ↔ acknowledge 등) 강제 원문 처리
+    // — Edge Function 의 system prompt 룰이 무시됐을 때를 위한 fallback.
+    if (__isPureSynSwap(sentence, result.corrected)) {
+      try { console.log('[ai-review] pure synonym swap detected → reverting to original', sentence, '→', result.corrected); } catch (_) {}
+      return {
+        corrected: sentence,
+        diff_html: escapeHtml(sentence),
+        why: '이미 자연스러워요! AI 가 동의어 추천만 해서 원문 그대로 가도 OK 입니다.',
+        originalInput: sentence,
+        isFallback: false,
+      };
+    }
     // Always recompute diff client-side so we can show WORD-level changes
     // (server returns whole-sentence <del>/<ins>, which looks too aggressive).
     return {
