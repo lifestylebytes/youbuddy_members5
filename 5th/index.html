@@ -8298,7 +8298,10 @@ function VerifyPage(dayN) {
         ${settingsHtml}
         <div style="padding:18px 18px 20px;border-radius:22px;background:#F7F5FF;border:1px solid rgba(255,255,255,0.08);color:var(--ink);">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-            <div class="kicker" style="color:#8B84D7;">단어 시험 · 총 ${questions.length}문제</div>
+            <div class="kicker" style="color:#8B84D7;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              단어 시험 · 총 ${questions.length}문제
+              ${currentQuestion.isSyn ? `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:999px;background:#FFE7C9;color:#C9591F;font-size:9.5px;font-weight:800;letter-spacing:0.04em;text-transform:none;">✦ 유의어</span>` : ''}
+            </div>
             <span class="badge" style="background:#ECE8FF;color:#5C53A5;">${ui.idx + 1} / ${questions.length}</span>
           </div>
           ${!ui.revealAnswer ? `
@@ -11035,7 +11038,8 @@ function DayPage(dayN) {
 
     if (isNuanceOpen) {
       const detail = el('div', { style: { marginTop: '10px' } });
-      // 어휘 단어를 영문장 안에서 굵은 오렌지로 하이라이트
+      const isPremiumViewer = state.tier === 'premium';
+      // 어휘 단어를 영문장 안에서 굵은 오렌지로 하이라이트 (premium 전용)
       const highlightSynInSentence = (sentence, synWord) => {
         if (!sentence || !synWord) return escapeHtml(sentence || '');
         const safe = escapeHtml(sentence);
@@ -11043,10 +11047,25 @@ function DayPage(dayN) {
         const re = new RegExp('(' + escSyn + 's?)', 'i');
         return safe.replace(re, '<b style="color:var(--orange-dark);font-weight:700;">$1</b>');
       };
+      // 베이직: syn 이름 + 의미만. 프리미엄: + 영어 예시문장 + 분위기 + 뉘앙스 비교.
       const synonymPreview = (w.syn || []).map((s) => {
         const synKey = `${bookmarkKey}::${s}`;
         const isSaved = !!state.saved_syns?.[synKey];
         const ex = (typeof synonymExample === 'function') ? synonymExample(w, s) : null;
+        if (!isPremiumViewer) {
+          // 베이직 — 심플 chip + meaning 만
+          return `
+          <div style="padding:12px 14px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(232,116,60,0.22);border-left:4px solid var(--orange);">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+              <div style="flex:1;min-width:0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+                <span style="font-size:16px;font-weight:800;color:var(--orange-dark);font-family:var(--font-mono);letter-spacing:-0.01em;">${escapeHtml(s)}</span>
+                <span style="font-size:13px;color:var(--ink-soft);font-weight:600;">${escapeHtml(synonymMeaning(s))}</span>
+              </div>
+              <button onclick="window.__toggleSynBookmark('${synKey}')" title="${isSaved ? '단어장에서 빼기' : '단어장에 저장'}" style="background:transparent;border:none;color:var(--orange);width:30px;height:30px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;">${Icon(isSaved ? 'bookmarkFill' : 'bookmark', 14)}</button>
+            </div>
+          </div>`;
+        }
+        // 프리미엄 — full
         return `
         <div style="padding:14px 16px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(232,116,60,0.22);border-left:4px solid var(--orange);">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
@@ -11067,15 +11086,23 @@ function DayPage(dayN) {
           </div>
         </div>
       `;}).join('');
+      // 베이직에게는 프리미엄 업그레이드 권유 한 줄 보여주기 (Day 10~ 은 그냥 안 보이게)
+      const basicTeaser = !isPremiumViewer && dayN <= 9
+        ? `<div style="margin-top:10px;padding:10px 14px;border-radius:12px;background:rgba(169,139,184,0.08);border:1px dashed rgba(169,139,184,0.35);font-size:11.5px;line-height:1.55;color:#7B5E8C;display:flex;align-items:center;gap:8px;">
+            ${Icon('crown', 12)}
+            <span><b>프리미엄</b> 에선 각 유의어마다 <b>예시 영문장 · 분위기 · 톤 비교</b> 까지 들여다볼 수 있어요.</span>
+          </div>`
+        : '';
       detail.innerHTML = `
         <div>
-          <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+          <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="font-size:13px;font-weight:800;color:var(--orange-dark);letter-spacing:0.04em;">유의어로 같은 상황 다르게 말하기</span>
             <span style="font-size:11px;color:var(--muted);font-weight:500;">— 같은 뜻, 다른 톤</span>
           </div>
           <div style="display:grid;gap:10px;">
             ${synonymPreview || `<div style="padding:12px 14px;border-radius:14px;background:var(--paper);border:1px solid var(--line-soft);font-size:12px;color:var(--muted);">연결된 유의어가 아직 없어요.</div>`}
           </div>
+          ${basicTeaser}
         </div>
       `;
       card.appendChild(detail);
