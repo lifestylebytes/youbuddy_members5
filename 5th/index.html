@@ -4275,7 +4275,11 @@ async function supabaseRpc(fn, payload={}) {
     try { console.error('[supabaseRpc]', fn, res.status, body); } catch (_) {}
     throw err;
   }
-  return res.json();
+  // 빈 응답 (204 No Content / void RPC) 안전 처리 — JSON.parse 깨지는 거 방지.
+  let text = '';
+  try { text = await res.text(); } catch (_) {}
+  if (!text) return null;
+  try { return JSON.parse(text); } catch (_) { return text; }
 }
 
 const communityFeedCache = {};
@@ -5618,6 +5622,7 @@ async function globalPeerTick() {
     if (!hasSupabase()) return;
     const today = Number(state.currentDay) || 1;
     const posts = await loadCommunityPosts(today, { force: true });
+    try { console.log('[peer-ticker] poll', { day: today, count: (posts||[]).length, startedAt: window.__globalPeerStartedAt }); } catch (_) {}
     if (!Array.isArray(posts) || !posts.length) return;
     const startedAt = window.__globalPeerStartedAt || Date.now();
     const myKey = memberKey();
@@ -5638,6 +5643,7 @@ async function globalPeerTick() {
       }
       return true;
     });
+    try { console.log('[peer-ticker] fresh', fresh.length, fresh.map((p) => ({ name: p.member_name, created: p.created_at }))); } catch (_) {}
     if (!fresh.length) return;
     fresh.forEach((p) => window.__globalPeerSeen.add(_globalPeerKey(p)));
     const pick = fresh[0];
