@@ -86,8 +86,11 @@ input, textarea, select { font-family: inherit; }
   display: grid; place-items: center;
   font-weight: 800; font-family: var(--font-serif); font-style: normal;
 }
-.brand-name { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
-.brand-name small { font-family: var(--font-mono); font-size: 10px; color: var(--muted); margin-left: 6px; font-weight: 500; }
+.brand-name { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.brand-name small { font-family: var(--font-mono); font-size: 10px; color: var(--muted); margin-left: 6px; font-weight: 500; white-space: nowrap; }
+@media (max-width: 380px) {
+  .brand-name small { display: none; } /* 좁은 모바일에선 cohort 부제 숨김 — 브랜드명만 한 줄 */
+}
 .icon-btn {
   width: 38px; height: 38px; border-radius: 12px;
   background: var(--cream); border: 1px solid var(--line);
@@ -4941,6 +4944,9 @@ function render() {
     return;
   }
   window.__renderDeferred = false;
+  // 글로벌 peer ticker — 어느 페이지에서든 누군가 sentence 올리면 알람 받게.
+  // idempotent — 한 번 시작되면 setInterval 로 60s 주기 폴링.
+  try { if (typeof startGlobalPeerTicker === 'function') startGlobalPeerTicker(); } catch (_) {}
   // Daily rollover safety net: if midnight has passed while the app was open
   // (or we hydrated with a stale cached currentDay), recompute against today.
   try {
@@ -5873,6 +5879,32 @@ function getNotifications() {
     cta: { label: '학습 탭으로 →', kind: 'go', target: 'weeks' },
   });
 
+  // 2-b. 매주 금요일 wrap-up — 그 주차가 도달된 멤버에게 노출. 주차별 v{N} 마커.
+  // currentDay 가 그 주의 마지막 날 (5/10/15/20) 이상이면 알림함에 띄움.
+  // 시험 통과 / 데드라인 지난 사람한테는 노출 X.
+  try {
+    const cDay = Number(state.currentDay) || 0;
+    (CHALLENGE.weeks || []).forEach((wk) => {
+      const lastDay = wk.days[wk.days.length - 1].day;
+      if (cDay < lastDay) return;
+      if (state.bingo_done && state.bingo_done[String(wk.n)]) return;
+      if (typeof isReviewLocked === 'function' && isReviewLocked(wk.n)) return;
+      // 도달 알림 시각 — Day N 의 21시 (저녁) 로 박아둠 (정렬 안정).
+      const dateStr = (typeof dayDate === 'function')
+        ? (() => { try { const d = dayDate(lastDay); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}T21:00:00`; } catch(_) { return '2026-05-08T21:00:00'; } })()
+        : '2026-05-08T21:00:00';
+      list.push({
+        id: `week-wrapup-w${wk.n}`,
+        icon: '🎉',
+        color: '#F07D38',
+        title: `Week ${wk.n} 끝 — 진짜 외우기 시간`,
+        body: '이번 주 단어 다 외워졌나 빠르게 체크. 통과하면 잠금화면 단어장 보상 🎁',
+        createdAt: dateStr,
+        cta: { label: '🚀 진짜 외우기 풀러가기 →', kind: 'go-week-review', weekN: wk.n },
+      });
+    });
+  } catch (_) {}
+
   // 3. (확장 포인트) 향후 공지·이벤트 추가 — 코드에서 list.push 만 하면 자동 노출.
 
   // 최신순 정렬
@@ -5906,7 +5938,7 @@ function handleNotificationCta(n) {
     setTimeout(() => go('meeting-notes'), 30);
   } else if (kind === 'go') {
     setTimeout(() => go(n.cta.target), 30);
-  } else if (kind === 'review') {
+  } else if (kind === 'review' || kind === 'go-week-review') {
     window.__currentReviewWeek = n.cta.weekN || 1;
     setTimeout(() => go('week-review'), 30);
   } else if (kind === 'url') {
@@ -6663,8 +6695,9 @@ function HomePage() {
 
   // 매주 금요일 (=Day 5/10/15/20) 자동 wrap-up 팝업 — "지금 풀러가기 / 주말에 보기" 선택지.
   // 노출 조건: 그 주 5일 다 완주 + 시험 미통과 + 미열람 + 데드라인 안 지남.
-  // (5일 다 안 끝낸 사람한테 띄우면 페이지 진입해도 잠금이라 의미 없음.)
+  // 세션 내 1회만 트리거하는 가드 (window.__wrapupTriggeredSession) — 무한 루프 방지.
   try {
+    window.__wrapupTriggeredSession = window.__wrapupTriggeredSession || {};
     const cDay = Number(state.currentDay) || 0;
     if (cDay > 0 && cDay % 5 === 0) {
       const weekN = cDay / 5;
@@ -6672,9 +6705,11 @@ function HomePage() {
       const allDaysVerified = !!(week && weekProgress(week) === week.days.length);
       state.friday_redirect_seen = state.friday_redirect_seen || {};
       const alreadyShown = !!state.friday_redirect_seen[String(weekN)];
+      const sessionTriggered = !!window.__wrapupTriggeredSession[String(weekN)];
       const reviewDone = !!(state.bingo_done && state.bingo_done[String(weekN)]);
       const locked = isReviewLocked(weekN);
-      if (allDaysVerified && !alreadyShown && !reviewDone && !locked && !showWeekWrapupPopup) {
+      if (allDaysVerified && !alreadyShown && !sessionTriggered && !reviewDone && !locked && !showWeekWrapupPopup) {
+        window.__wrapupTriggeredSession[String(weekN)] = true; // 세션 가드 즉시 set
         setTimeout(() => {
           if (showWeekWrapupPopup) return;
           if ((state.friday_redirect_seen || {})[String(weekN)]) return;
