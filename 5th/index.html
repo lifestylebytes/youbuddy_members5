@@ -13961,7 +13961,66 @@ function MeetingNotesPage(meetingId) {
       const sc = meta.script;
 
       // 1) Dialogue script card — 클릭하면 한국어 표시
+      //    백그라운드 polling 으로 render() 재호출돼도 reveal 상태 유지하려고
+      //    window.__scriptRevealed[meetingId] (Set) 에 펼쳐진 라인 id 보관.
+      //    멤버 슬롯 매핑은 notes.scriptSlots 에 영구 저장.
       if (sc.sections && sc.sections.length) {
+        if (!window.__scriptRevealed) window.__scriptRevealed = {};
+        if (!(window.__scriptRevealed[meetingId] instanceof Set)) {
+          window.__scriptRevealed[meetingId] = new Set();
+        }
+        const revealedSet = window.__scriptRevealed[meetingId];
+        if (!notes.scriptSlots || typeof notes.scriptSlots !== 'object') notes.scriptSlots = {};
+        // notes.attendees: undefined/null = 전체 참여, Array = 그 멤버들만
+        if (notes.attendees !== null && !Array.isArray(notes.attendees)) notes.attendees = null;
+        const slotMap = notes.scriptSlots;
+        // 프리미엄 멤버만 슬롯 매핑 가능
+        const allPremium = (typeof MEMBER_DIRECTORY !== 'undefined' ? MEMBER_DIRECTORY : []).filter((m) => m.tier === 'premium' && !m.hidden && !m.ghost);
+        const memberById = {};
+        allPremium.forEach((m) => { memberById[m.id] = m; });
+        // 항상 live 상태 기준 — closure 로 잡힌 snapshot 사용 X
+        const isAttending = (mid) => {
+          if (notes.attendees == null) return true;
+          return Array.isArray(notes.attendees) && notes.attendees.indexOf(mid) >= 0;
+        };
+        const getAttendeeCount = () => {
+          if (notes.attendees == null) return allPremium.length;
+          return Array.isArray(notes.attendees) ? notes.attendees.length : 0;
+        };
+        const getCurrentSlotOpts = () => allPremium.filter((m) => isAttending(m.id));
+        // 대본에 등장하는 unique speaker 들 모으기 (등장 순서대로)
+        const speakerOrder = [];
+        const seenSpeakers = new Set();
+        sc.sections.forEach((sec) => (sec.lines || []).forEach((ln) => {
+          const sp = (ln.speaker || '').trim();
+          if (sp && !seenSpeakers.has(sp)) { seenSpeakers.add(sp); speakerOrder.push(sp); }
+        }));
+        const formatSpeakerLabel = (originalSpeaker) => {
+          const memberId = slotMap[originalSpeaker];
+          const member = memberId ? memberById[memberId] : null;
+          if (member && isAttending(member.id)) return escapeHtml(member.name) + ' <span style="opacity:0.6;font-weight:500;">· ' + escapeHtml(originalSpeaker) + '</span>';
+          return escapeHtml(originalSpeaker);
+        };
+        const renderAttendeeChip = (m) => {
+          const attending = isAttending(m.id);
+          return `
+            <label style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;background:${attending ? 'rgba(123,94,140,0.18)' : 'rgba(255,255,255,0.4)'};border:1px solid ${attending ? 'rgba(123,94,140,0.30)' : 'rgba(0,0,0,0.06)'};cursor:pointer;font-size:11.5px;color:${attending ? '#5D4770' : 'var(--muted)'};font-weight:${attending ? '700' : '500'};">
+              <input type="checkbox" data-attendee-checkbox="${escapeHtml(m.id)}" ${attending ? 'checked' : ''} style="margin:0;cursor:pointer;accent-color:#7B5E8C;" />
+              ${escapeHtml(m.name)}${m.englishName ? ' · ' + escapeHtml(m.englishName) : ''}
+            </label>`;
+        };
+        const renderSlotRow = (sp) => {
+          const sel = slotMap[sp] || '';
+          const opts = getCurrentSlotOpts();
+          return `
+            <div style="display:flex;align-items:center;gap:8px;padding:4px 0;">
+              <span style="font-size:11px;font-weight:700;color:#5D4770;min-width:80px;flex-shrink:0;">${escapeHtml(sp)}</span>
+              <select data-slot-picker="${escapeHtml(sp)}" style="flex:1;padding:5px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.12);background:${sel ? 'rgba(252,232,178,0.5)' : '#fff'};font-size:11px;cursor:pointer;font-weight:${sel ? '700' : '400'};min-width:130px;">
+                <option value="">— 미할당 —</option>
+                ${opts.map((m) => `<option value="${escapeHtml(m.id)}" ${sel === m.id ? 'selected' : ''}>${escapeHtml(m.name)}${m.englishName ? ' · ' + escapeHtml(m.englishName) : ''}</option>`).join('')}
+              </select>
+            </div>`;
+        };
         const scriptCard = el('div', {
           style: {
             background: 'linear-gradient(135deg, rgba(123,94,140,0.10) 0%, rgba(123,94,140,0.04) 100%)',
@@ -13984,16 +14043,18 @@ function MeetingNotesPage(meetingId) {
             </div>
           </div>
         `).join('');
+        // 라인 렌더 — 한국어가 기본 노출, 영어는 클릭하면 표시 (cheat sheet 모드)
         const sectionsHtml = sc.sections.map((sec, si) => {
           const linesHtml = (sec.lines || []).map((ln, li) => {
             const id = `${si}_${li}`;
+            const isRevealed = revealedSet.has(id);
             return `
               <div data-script-line="${id}" style="margin-bottom:6px;cursor:pointer;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.04);">
                 <div style="display:flex;align-items:flex-start;gap:8px;">
-                  <span style="display:inline-block;flex-shrink:0;padding:2px 8px;border-radius:999px;background:rgba(123,94,140,0.18);color:#5D4770;font-size:10px;font-weight:700;letter-spacing:0.04em;white-space:nowrap;">${escapeHtml(ln.speaker || '')}</span>
-                  <div style="flex:1;font-size:13px;color:var(--ink);line-height:1.55;">${escapeHtml(ln.en || '')}</div>
+                  <span data-script-speaker="${escapeHtml(ln.speaker || '')}" style="display:inline-block;flex-shrink:0;padding:2px 8px;border-radius:999px;background:rgba(123,94,140,0.18);color:#5D4770;font-size:10px;font-weight:700;letter-spacing:0.04em;white-space:nowrap;">${formatSpeakerLabel(ln.speaker || '')}</span>
+                  <div style="flex:1;font-size:13px;color:var(--ink);line-height:1.55;">${escapeHtml(ln.ko || '')}</div>
                 </div>
-                <div data-script-ko="${id}" style="display:none;margin-top:6px;padding:6px 10px;border-left:2px solid #A98BB8;background:rgba(255,255,255,0.7);font-size:12px;color:var(--ink-soft);line-height:1.55;">${escapeHtml(ln.ko || '')}</div>
+                <div data-script-en="${id}" style="display:${isRevealed ? 'block' : 'none'};margin-top:6px;padding:6px 10px;border-left:2px solid #A98BB8;background:rgba(255,255,255,0.85);font-size:12.5px;color:var(--ink);line-height:1.55;font-weight:500;">${escapeHtml(ln.en || '')}</div>
               </div>`;
           }).join('');
           return `
@@ -14009,33 +14070,114 @@ function MeetingNotesPage(meetingId) {
         scriptCard.innerHTML = `
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
             <div style="flex:1;min-width:200px;">
-              <div style="font-size:10px;letter-spacing:0.14em;font-weight:700;color:#5D4770;">🎬 미팅 대본</div>
-              <div style="font-size:14px;font-weight:700;color:var(--ink);margin-top:6px;">그룹에서 돌아가면서 한 줄씩</div>
+              <div style="font-size:10px;letter-spacing:0.14em;font-weight:700;color:#5D4770;">🎬 미팅 대본 · cheat sheet</div>
+              <div style="font-size:14px;font-weight:700;color:var(--ink);margin-top:6px;">한국어 라인 → 클릭하면 영어 정답</div>
               <div style="font-size:12px;line-height:1.55;color:var(--muted);margin-top:4px;">${escapeHtml(sc.intro || '')}</div>
             </div>
-            <button data-script-toggle-all type="button" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(123,94,140,0.3);background:rgba(255,255,255,0.6);color:#5D4770;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap;">한국어 전체 토글</button>
+            <button data-script-toggle-all type="button" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(123,94,140,0.3);background:rgba(255,255,255,0.6);color:#5D4770;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap;">영어 전체 토글</button>
           </div>
+          <details open style="margin-top:14px;background:rgba(255,255,255,0.55);border-radius:10px;padding:10px 12px;border:1px solid rgba(123,94,140,0.12);">
+            <summary style="cursor:pointer;font-size:12px;font-weight:700;color:#5D4770;list-style:none;">⚙️ 회의 시작 설정 — 안 온 사람 체크 해제 → 슬롯에 이름 매핑 (오늘 참여 <span data-attendee-count>${getAttendeeCount()}</span>명) ▾</summary>
+            <div style="margin-top:10px;">
+              <div style="font-size:10.5px;color:var(--muted);margin-bottom:8px;line-height:1.5;">기본은 프리미엄 9명 전체 참여. 오늘 안 온 사람 체크 해제 → 슬롯 드롭다운이 자동으로 줄어들어요. 슬롯에 이름 매핑하면 아래 라인의 화자가 그 멤버 이름으로 바뀝니다. (자동 저장)</div>
+              <div data-attendee-grid style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">${allPremium.map(renderAttendeeChip).join('')}</div>
+              <div style="margin-top:6px;font-size:10.5px;font-weight:700;color:#5D4770;letter-spacing:0.04em;">📌 슬롯 매핑 (${speakerOrder.length}개)</div>
+              <div data-slot-picker-grid style="margin-top:6px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px;">${speakerOrder.map(renderSlotRow).join('')}</div>
+            </div>
+          </details>
           ${recapHtml ? `
-            <details style="margin-top:14px;background:rgba(255,255,255,0.4);border-radius:10px;padding:10px 12px;">
+            <details style="margin-top:10px;background:rgba(255,255,255,0.4);border-radius:10px;padding:10px 12px;">
               <summary style="cursor:pointer;font-size:12px;font-weight:700;color:#5D4770;list-style:none;">📖 Day 1~9 단어 27개 빠른 복습 ▾</summary>
               <div style="margin-top:8px;">${recapHtml}</div>
             </details>
           ` : ''}
           <div style="margin-top:8px;">${sectionsHtml}</div>`;
+
+        // 슬롯/참여자 변경 시 화자 칩 + 슬롯 picker 동기화 (in-place)
+        const rebuildSpeakerChips = () => {
+          scriptCard.querySelectorAll('[data-script-speaker]').forEach((chip) => {
+            const sp = chip.getAttribute('data-script-speaker');
+            chip.innerHTML = formatSpeakerLabel(sp);
+          });
+        };
+        const rebuildSlotPicker = () => {
+          const grid = scriptCard.querySelector('[data-slot-picker-grid]');
+          if (grid) grid.innerHTML = speakerOrder.map(renderSlotRow).join('');
+          const cnt = scriptCard.querySelector('[data-attendee-count]');
+          if (cnt) cnt.textContent = String(getAttendeeCount());
+        };
+        const rebuildAttendeeChips = () => {
+          const grid = scriptCard.querySelector('[data-attendee-grid]');
+          if (grid) grid.innerHTML = allPremium.map(renderAttendeeChip).join('');
+        };
+
+        // ── 클릭: 라인 토글 / 영어 전체 토글
         scriptCard.addEventListener('click', (e) => {
           const toggle = e.target && e.target.closest && e.target.closest('[data-script-toggle-all]');
           if (toggle) {
-            const allKo = scriptCard.querySelectorAll('[data-script-ko]');
-            const anyHidden = Array.from(allKo).some((k) => k.style.display === 'none' || !k.style.display);
-            allKo.forEach((k) => { k.style.display = anyHidden ? 'block' : 'none'; });
+            const allEn = scriptCard.querySelectorAll('[data-script-en]');
+            const anyHidden = Array.from(allEn).some((k) => k.style.display === 'none' || !k.style.display);
+            allEn.forEach((k) => {
+              const id = k.getAttribute('data-script-en');
+              if (anyHidden) {
+                k.style.display = 'block';
+                if (id) revealedSet.add(id);
+              } else {
+                k.style.display = 'none';
+                if (id) revealedSet.delete(id);
+              }
+            });
             e.preventDefault();
             return;
           }
           const line = e.target && e.target.closest && e.target.closest('[data-script-line]');
           if (line) {
+            // 슬롯 picker 안에서 클릭한 건 라인 토글하면 안 됨
+            if (e.target && e.target.closest && (e.target.closest('select') || e.target.closest('input') || e.target.closest('label') || e.target.closest('summary'))) return;
             const id = line.getAttribute('data-script-line');
-            const ko = scriptCard.querySelector(`[data-script-ko="${id}"]`);
-            if (ko) ko.style.display = ko.style.display === 'block' ? 'none' : 'block';
+            const en = scriptCard.querySelector(`[data-script-en="${id}"]`);
+            if (en) {
+              const willShow = en.style.display !== 'block';
+              en.style.display = willShow ? 'block' : 'none';
+              if (willShow) revealedSet.add(id); else revealedSet.delete(id);
+            }
+          }
+        });
+
+        // ── 변경: 참여자 체크박스 / 슬롯 드롭다운
+        scriptCard.addEventListener('change', (e) => {
+          const cb = e.target && e.target.matches && e.target.matches('[data-attendee-checkbox]') ? e.target : null;
+          if (cb) {
+            const mid = cb.getAttribute('data-attendee-checkbox');
+            const checked = cb.checked;
+            // attendees null → 전체에서 시작. 체크 해제하면 명시 array 로 전환.
+            let arr = Array.isArray(notes.attendees) ? notes.attendees.slice() : allPremium.map((m) => m.id);
+            if (checked) {
+              if (arr.indexOf(mid) < 0) arr.push(mid);
+            } else {
+              arr = arr.filter((id) => id !== mid);
+              // 빠진 멤버에게 할당된 슬롯 자동 해제
+              Object.keys(slotMap).forEach((slotKey) => {
+                if (slotMap[slotKey] === mid) delete slotMap[slotKey];
+              });
+            }
+            notes.attendees = arr;
+            try { saveState({}); } catch (_) {}
+            rebuildAttendeeChips();
+            rebuildSlotPicker();
+            rebuildSpeakerChips();
+            return;
+          }
+          const sel = e.target && e.target.matches && e.target.matches('[data-slot-picker]') ? e.target : null;
+          if (sel) {
+            const slotKey = sel.getAttribute('data-slot-picker');
+            const value = sel.value || '';
+            if (value) slotMap[slotKey] = value;
+            else delete slotMap[slotKey];
+            try { saveState({}); } catch (_) {}
+            rebuildSlotPicker();
+            rebuildSpeakerChips();
+            return;
           }
         });
         wrap.appendChild(scriptCard);
@@ -14053,7 +14195,8 @@ function MeetingNotesPage(meetingId) {
             marginBottom: '14px',
           }
         });
-        const memberOpts = (typeof MEMBER_DIRECTORY !== 'undefined' ? MEMBER_DIRECTORY : []).filter((m) => !m.hidden && !m.ghost);
+        // 프리미엄 멤버만 노출 (운영팀 중에서도 tier='premium' 인 사람 포함)
+        const memberOpts = (typeof MEMBER_DIRECTORY !== 'undefined' ? MEMBER_DIRECTORY : []).filter((m) => m.tier === 'premium' && !m.hidden && !m.ghost);
         const dayThemes = { 6: '피드백', 7: '설득', 8: '시간', 9: '역할' };
         const byDay = {};
         sc.weekVocab.forEach((w) => { if (!byDay[w.day]) byDay[w.day] = []; byDay[w.day].push(w); });
@@ -14142,9 +14285,10 @@ function MeetingNotesPage(meetingId) {
         wrap.appendChild(sceneCard);
       }
 
-      // 4) Recap question — 자유 작성
+      // 4) Recap question — 자유 작성 + 명시적 저장 버튼
       if (sc.recapQuestion) {
         if (typeof notes.recapAnswer !== 'string') notes.recapAnswer = '';
+        if (typeof notes.recapSavedAt !== 'string') notes.recapSavedAt = '';
         const recapCard = el('div', {
           style: {
             background: 'linear-gradient(135deg, rgba(252,232,178,0.30) 0%, rgba(252,232,178,0.10) 100%)',
@@ -14159,16 +14303,81 @@ function MeetingNotesPage(meetingId) {
             <div style="font-size:10px;letter-spacing:0.14em;font-weight:700;color:#C9591F;">📝 오늘의 회고</div>
             <div style="font-size:14px;font-weight:700;color:var(--ink);margin-top:6px;line-height:1.5;">${escapeHtml(sc.recapQuestion)}</div>
           </div>
-          <textarea data-recap-answer style="margin-top:10px;width:100%;min-height:80px;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,0.10);background:rgba(255,255,255,0.85);font-size:13px;line-height:1.55;color:var(--ink);resize:vertical;font-family:inherit;box-sizing:border-box;" placeholder="예) 'Sugarcoat' — 한국어로 '사탕발림'은 친구한테 쓰는 말 같아서 회의에 끼우니 헛도는 느낌. 'I'll be straight with you' 가 더 본인 같음."></textarea>`;
+          <textarea data-recap-answer style="margin-top:10px;width:100%;min-height:80px;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,0.10);background:rgba(255,255,255,0.85);font-size:13px;line-height:1.55;color:var(--ink);resize:vertical;font-family:inherit;box-sizing:border-box;" placeholder="예) 'Sugarcoat' — 한국어로 '사탕발림'은 친구한테 쓰는 말 같아서 회의에 끼우니 헛도는 느낌. 'I'll be straight with you' 가 더 본인 같음."></textarea>
+          <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <button data-recap-save type="button" style="padding:8px 14px;border-radius:10px;border:1px solid rgba(240,125,56,0.32);background:rgba(255,255,255,0.85);color:var(--orange-dark);font-size:12.5px;font-weight:700;cursor:pointer;flex:0 0 auto;">💾 지금 저장</button>
+            <div data-recap-status style="font-size:11.5px;color:var(--ink-soft);font-weight:600;flex:1 1 auto;"></div>
+          </div>`;
         const ta = recapCard.querySelector('[data-recap-answer]');
+        const saveBtn = recapCard.querySelector('[data-recap-save]');
+        const statusEl = recapCard.querySelector('[data-recap-status]');
+        const fmtSavedAgo = (iso) => {
+          if (!iso) return '아직 저장 안 됨';
+          try {
+            const ms = Date.now() - new Date(iso).getTime();
+            if (ms < 0 || !Number.isFinite(ms)) return '✅ 방금 저장됨';
+            const sec = Math.floor(ms / 1000);
+            if (sec < 5) return '✅ 방금 저장됨';
+            if (sec < 60) return `✅ ${sec}초 전 저장됨`;
+            const min = Math.floor(sec / 60);
+            if (min < 60) return `✅ ${min}분 전 저장됨`;
+            const hr = Math.floor(min / 60);
+            if (hr < 24) return `✅ ${hr}시간 전 저장됨`;
+            return `✅ ${new Date(iso).toLocaleString('ko-KR', { hour12: false })} 저장됨`;
+          } catch (_) { return ''; }
+        };
+        const setStatus = (mode) => {
+          if (!statusEl) return;
+          if (mode === 'typing') {
+            statusEl.textContent = '✏️ 입력 중 — 자동 저장 + 직접 저장 둘 다 돼요';
+            statusEl.style.color = 'var(--ink-soft)';
+            return;
+          }
+          if (mode === 'saving') {
+            statusEl.textContent = '⏳ 저장 중...';
+            statusEl.style.color = 'var(--ink-soft)';
+            return;
+          }
+          statusEl.textContent = fmtSavedAgo(notes.recapSavedAt);
+          statusEl.style.color = notes.recapSavedAt ? '#16A34A' : 'var(--muted)';
+        };
         if (ta) {
           ta.value = notes.recapAnswer || '';
           ta.addEventListener('input', () => {
             notes.recapAnswer = ta.value;
+            setStatus('typing');
             try { saveState({}); } catch (_) {}
             try { scheduleCloudSync(meetingId); } catch (_) {}
           });
         }
+        if (saveBtn) {
+          saveBtn.addEventListener('click', async () => {
+            saveBtn.disabled = true;
+            setStatus('saving');
+            notes.recapSavedAt = new Date().toISOString();
+            try {
+              let ok = await saveState({ immediate: true });
+              if (ok === false) {
+                const start = Date.now();
+                while (
+                  (typeof statePersistInFlight !== 'undefined' && statePersistInFlight) ||
+                  (typeof statePersistQueued !== 'undefined' && statePersistQueued)
+                ) {
+                  if (Date.now() - start > 5000) break;
+                  await new Promise((r) => setTimeout(r, 120));
+                }
+                ok = await saveState({ immediate: true });
+              }
+              setStatus();
+              showToast('✅ 저장됐어요');
+            } catch (_) {
+              showToast('⚠️ 저장 중 오류 — 입력값은 로컬에 보관됨');
+            } finally {
+              saveBtn.disabled = false;
+            }
+          });
+        }
+        setStatus();
         wrap.appendChild(recapCard);
       }
     }
