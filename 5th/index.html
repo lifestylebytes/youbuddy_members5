@@ -1354,18 +1354,18 @@ sugarcoat 사실 메신저에선 거의 안 써요…! ㅋㅋ
             },
           ],
           weekVocab: [
-            { en: 'Constructive criticism', day: 6, krSentence: '이건 인신공격 아니라, 그냥 건설적인 비판이에요.' },
-            { en: 'Sugarcoat', day: 6, krSentence: '좋게 포장 안 할게요 — 우리 이번 분기 목표 못 채웠어요.' },
-            { en: 'Take it offline', day: 6, krSentence: '그건 좋은 포인트지만, 회의 끝나고 따로 얘기하시죠.' },
-            { en: "Play devil's advocate", day: 7, krSentence: '잠깐 딴지 좀 걸어볼게요 — 만약 서버 터지면요?' },
-            { en: 'Middle ground', day: 7, krSentence: '속도랑 퀄리티 사이에서 타협점을 찾아야 해요.' },
-            { en: 'Meet halfway', day: 7, krSentence: '가격을 낮춰주시면 저희도 양보해서 물량을 늘리겠습니다.' },
-            { en: 'Cut to the chase', day: 8, krSentence: '우리 10분밖에 없으니까 본론으로 바로 갑시다.' },
-            { en: 'Timebox', day: 8, krSentence: '이 논의는 딱 15분으로 시간 박아둡시다.' },
-            { en: 'Give time back', day: 8, krSentence: '안건 다 다뤘으니, 남은 10분은 돌려드릴게요.' },
-            { en: 'Go-to person', day: 9, krSentence: '데이터 분석 관련은 사라가 우리 만능 해결사예요.' },
-            { en: 'Heavy lifting', day: 9, krSentence: '디자인 쪽 가장 빡센 작업은 에이전시가 맡을 거예요.' },
-            { en: "Step on someone's toes", day: 9, krSentence: '돕고 싶은데, 담당자 선 넘는 건 싫어요.' },
+            { en: 'Constructive criticism', day: 6, defaultSlot: 'M5', krSentence: '이건 인신공격 아니라, 그냥 건설적인 비판이에요.' },
+            { en: 'Sugarcoat', day: 6, defaultSlot: 'M4', krSentence: '좋게 포장 안 할게요 — 우리 이번 분기 목표 못 채웠어요.' },
+            { en: 'Take it offline', day: 6, defaultSlot: 'M2', krSentence: '그건 좋은 포인트지만, 회의 끝나고 따로 얘기하시죠.' },
+            { en: "Play devil's advocate", day: 7, defaultSlot: 'M3', krSentence: '잠깐 딴지 좀 걸어볼게요 — 만약 서버 터지면요?' },
+            { en: 'Middle ground', day: 7, defaultSlot: 'M5', krSentence: '속도랑 퀄리티 사이에서 타협점을 찾아야 해요.' },
+            { en: 'Meet halfway', day: 7, defaultSlot: 'M4', krSentence: '가격을 낮춰주시면 저희도 양보해서 물량을 늘리겠습니다.' },
+            { en: 'Cut to the chase', day: 8, defaultSlot: 'M2', krSentence: '우리 10분밖에 없으니까 본론으로 바로 갑시다.' },
+            { en: 'Timebox', day: 8, defaultSlot: 'M3', krSentence: '이 논의는 딱 15분으로 시간 박아둡시다.' },
+            { en: 'Give time back', day: 8, defaultSlot: 'M2', krSentence: '안건 다 다뤘으니, 남은 10분은 돌려드릴게요.' },
+            { en: 'Go-to person', day: 9, defaultSlot: 'M2', krSentence: '데이터 분석 관련은 사라가 우리 만능 해결사예요.' },
+            { en: 'Heavy lifting', day: 9, defaultSlot: 'M2', krSentence: '디자인 쪽 가장 빡센 작업은 에이전시가 맡을 거예요.' },
+            { en: "Step on someone's toes", day: 9, defaultSlot: 'M5', krSentence: '돕고 싶은데, 담당자 선 넘는 건 싫어요.' },
           ],
           miniScenarios: [
             {
@@ -1374,6 +1374,8 @@ sugarcoat 사실 메신저에선 거의 안 써요…! ㅋㅋ
               kicker: '좋게 포장하지 말고 솔직하게 — 그래도 건설적인 다음 액션까지.',
               suggested: ['Sugarcoat', 'Constructive criticism', 'Timebox', 'Take it offline'],
               prompt: '"이번 주 캠페인 런칭이 1주 밀렸어요. ___ 안 할게요 — 디자인 리뷰가 두 번 들어가서 그래요. ___ 환영이에요 — 다음 번엔 어떻게 막을 수 있을까요?"',
+              answerEn: "Our campaign launch slipped by a week. I'm not going to sugarcoat it — design review went through twice. Constructive criticism welcome — what would you do differently to catch this next time? Anything tactical we should take offline?",
+              answerKo: '캠페인 런칭이 1주 밀렸어요. **sugarcoat** 안 할게요 — 디자인 리뷰가 두 번 들어갔거든요. **Constructive criticism** 환영이에요 — 다음번엔 어떻게 잡을 수 있을지. 디테일은 **take it offline** 하셔도 좋고요.',
             },
             {
               title: '⚖️ 의견 충돌 → 합의',
@@ -1381,6 +1383,8 @@ sugarcoat 사실 메신저에선 거의 안 써요…! ㅋㅋ
               kicker: '딴지 한 번 걸고, 절충안 만들고, 서로 양보해서 합의 보기.',
               suggested: ["Play devil's advocate", 'Middle ground', 'Meet halfway'],
               prompt: '"잠깐 ___ 입장에서 — 빠르게 가면 퀄리티는요? ___ 찾을 수 있을까요? 디자인 1주 더 주시면, 저희가 ___ 해서 일정은 그대로 가져갈게요."',
+              answerEn: "Let me play devil's advocate for a sec — if we move fast, what happens to quality? Can we find a middle ground? If you give design one more week, we'll meet you halfway and keep the launch date locked.",
+              answerKo: '잠깐 **play devil\'s advocate** — 빠르게 가면 퀄리티는요? **middle ground** 찾을 수 있을까요? 디자인 1주 더 주시면, 저희가 **meet you halfway** 해서 런칭 날짜는 그대로 가져갈게요.',
             },
             {
               title: '🤝 부서 간 업무 분장',
@@ -1388,6 +1392,8 @@ sugarcoat 사실 메신저에선 거의 안 써요…! ㅋㅋ
               kicker: '담당 명확히 하고, 핵심 작업 누가 하는지 정하고, 선 넘지 않게.',
               suggested: ['Go-to person', 'Heavy lifting', "Step on someone's toes", 'Cut to the chase'],
               prompt: '"___ 갈게요 — 이 프로젝트 ___ 누구죠? ___ (디자인 시스템 셋업) 누가 하나요? 도와드리고 싶은데 ___ 하긴 싫어서요."',
+              answerEn: "Let me cut to the chase — who's the go-to person on this project? And who's doing the heavy lifting on the design system setup? I'd love to help, but I don't want to step on anyone's toes.",
+              answerKo: '**Cut to the chase** 할게요 — 이 프로젝트 **go-to person** 누구죠? 디자인 시스템 셋업 같은 **heavy lifting** 누가 하나요? 돕고 싶은데 **step on anyone\'s toes** 하긴 싫어서요.',
             },
           ],
           recapQuestion: '오늘 가장 입에 붙이기 힘들었던 단어/표현은 뭐였어요? 왜 어색했는지 한 줄로 적어보세요.',
@@ -13956,6 +13962,21 @@ function MeetingNotesPage(meetingId) {
     if (meta.script) {
       const sc = meta.script;
 
+      // 어휘 주황 볼드 하이라이트 — 모든 카드 (대본, 미니 시나리오 등) 공용
+      const VOCAB_LIST = (sc.weekVocab || []).map((w) => w.en);
+      const highlightVocab = (escapedText) => {
+        if (!escapedText || !VOCAB_LIST.length) return escapedText;
+        let result = escapedText;
+        const sorted = VOCAB_LIST.slice().sort((a, b) => b.length - a.length);
+        sorted.forEach((v) => {
+          const escapedV = escapeHtml(v);
+          const escapedRe = escapedV.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const re = new RegExp('(' + escapedRe + ')', 'gi');
+          result = result.replace(re, '<b style="color:#F07D38;font-weight:700;">$1</b>');
+        });
+        return result;
+      };
+
       // 1) Dialogue script card — 클릭하면 영어 표시 (한국어 기본 노출)
       //    백그라운드 polling 으로 render() 재호출돼도 사용자가 펼쳐놓은 게 안 접히게:
       //    - 라인 reveal: window.__scriptRevealed[mid]
@@ -14048,21 +14069,6 @@ function MeetingNotesPage(meetingId) {
             </div>
           </div>
         `).join('');
-        // 어휘 주황 볼드 하이라이트 (이미 escapeHtml 처리된 텍스트에 적용)
-        const VOCAB_LIST = (sc.weekVocab || []).map((w) => w.en);
-        const highlightVocab = (escapedText) => {
-          if (!escapedText || !VOCAB_LIST.length) return escapedText;
-          let result = escapedText;
-          // 긴 표현 먼저 매칭 (e.g. "play devil's advocate" 가 "devil" 보다 우선)
-          const sorted = VOCAB_LIST.slice().sort((a, b) => b.length - a.length);
-          sorted.forEach((v) => {
-            const escapedV = escapeHtml(v);
-            const escapedRe = escapedV.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const re = new RegExp('(' + escapedRe + ')', 'gi');
-            result = result.replace(re, '<b style="color:#F07D38;font-weight:700;">$1</b>');
-          });
-          return result;
-        };
         // 라인 렌더 — 한국어가 기본 노출, 영어는 클릭하면 표시 (cheat sheet 모드)
         const sectionsHtml = sc.sections.map((sec, si) => {
           const linesHtml = (sec.lines || []).map((ln, li) => {
@@ -14230,17 +14236,26 @@ function MeetingNotesPage(meetingId) {
         sc.weekVocab.forEach((w) => { if (!byDay[w.day]) byDay[w.day] = []; byDay[w.day].push(w); });
         const totalCount = sc.weekVocab.length;
         const renderOpt = (m, sel) => `<option value="${escapeHtml(m.id)}" ${sel === m.id ? 'selected' : ''}>${escapeHtml(m.englishName || m.name)}</option>`;
+        // 슬롯 매핑 기반 자동 프리필 — notes.scriptSlots[defaultSlot] 가 있으면 그 멤버 ID 를 default 로
+        const slotMapForVocab = (notes.scriptSlots && typeof notes.scriptSlots === 'object') ? notes.scriptSlots : {};
+        const resolveDefaultSpeaker = (w) => {
+          if (notes.vocabSpoken[w.en]) return notes.vocabSpoken[w.en]; // 사용자가 명시적으로 선택한 게 우선
+          if (w.defaultSlot && slotMapForVocab[w.defaultSlot]) return slotMapForVocab[w.defaultSlot];
+          return '';
+        };
+        const isManual = (w) => !!notes.vocabSpoken[w.en];
         const wordsHtml = Object.keys(byDay).sort().map((d) => `
           <div style="margin-top:12px;">
             <div style="display:inline-block;padding:3px 10px;border-radius:999px;background:rgba(240,125,56,0.15);color:#C9591F;font-size:11px;font-weight:700;letter-spacing:0.04em;margin-bottom:8px;">Day ${d} · ${escapeHtml(dayThemes[d] || '')}</div>
             ${byDay[d].map((w) => {
-              const selected = notes.vocabSpoken[w.en] || '';
+              const selected = resolveDefaultSpeaker(w);
+              const manual = isManual(w);
               return `
                 <div style="margin-bottom:8px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.7);border:1px solid rgba(0,0,0,0.05);">
                   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-                    <div style="font-weight:700;font-size:13px;color:var(--ink);">${escapeHtml(w.en)}</div>
-                    <select data-vocab-speaker="${escapeHtml(w.en)}" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.12);font-size:11px;min-width:150px;cursor:pointer;background:${selected ? '#FCE8B2' : '#fff'};font-weight:${selected ? '700' : '400'};">
-                      <option value="">— 누가 썼나요 —</option>
+                    <div style="font-weight:700;font-size:13px;color:var(--ink);">${escapeHtml(w.en)} ${w.defaultSlot ? `<span style="font-size:10px;color:var(--muted);font-weight:500;">· ${escapeHtml(w.defaultSlot)}</span>` : ''}</div>
+                    <select data-vocab-speaker="${escapeHtml(w.en)}" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.12);font-size:11px;min-width:150px;cursor:pointer;background:${selected ? (manual ? '#FCE8B2' : 'rgba(252,232,178,0.5)') : '#fff'};font-weight:${selected ? '700' : '400'};">
+                      <option value="">— 미할당 —</option>
                       ${memberOpts.map((m) => renderOpt(m, selected)).join('')}
                     </select>
                   </div>
@@ -14249,7 +14264,8 @@ function MeetingNotesPage(meetingId) {
             }).join('')}
           </div>
         `).join('');
-        const checkedCount = sc.weekVocab.filter((w) => notes.vocabSpoken[w.en]).length;
+        // 진행: 슬롯 자동 매핑된 것 + 수동 선택된 것 모두 카운트
+        const checkedCount = sc.weekVocab.filter((w) => resolveDefaultSpeaker(w)).length;
         vocabCard.innerHTML = `
           <div>
             <div style="font-size:10px;letter-spacing:0.14em;font-weight:700;color:#C9591F;">✅ 이번 주 단어 체크</div>
@@ -14272,7 +14288,8 @@ function MeetingNotesPage(meetingId) {
             sel.style.background = '#fff';
             sel.style.fontWeight = '400';
           }
-          const c = sc.weekVocab.filter((w) => notes.vocabSpoken[w.en]).length;
+          // 슬롯 자동 + 수동 합쳐서 카운트
+          const c = sc.weekVocab.filter((w) => resolveDefaultSpeaker(w)).length;
           const prog = vocabCard.querySelector('[data-vocab-progress]');
           if (prog) prog.textContent = `진행: ${c} / ${totalCount}`;
           try { saveState({}); } catch (_) {}
@@ -14283,6 +14300,10 @@ function MeetingNotesPage(meetingId) {
 
       // 3) Mini roleplay scenarios (3개)
       if (sc.miniScenarios && sc.miniScenarios.length) {
+        // 정답 details open/close 상태 보존
+        if (!window.__miniScenariosOpen) window.__miniScenariosOpen = {};
+        if (!window.__miniScenariosOpen[meetingId]) window.__miniScenariosOpen[meetingId] = {};
+        const miniOpen = window.__miniScenariosOpen[meetingId];
         const sceneCard = el('div', {
           style: {
             background: 'linear-gradient(135deg, rgba(125,92,255,0.08) 0%, rgba(125,92,255,0.03) 100%)',
@@ -14292,6 +14313,14 @@ function MeetingNotesPage(meetingId) {
             marginBottom: '14px',
           }
         });
+        // 마크다운 **bold** 를 <b> 로 변환 (정답 한국어에 어휘 강조용)
+        const renderAnswerKo = (text) => {
+          if (!text) return '';
+          let safe = escapeHtml(text);
+          // **단어** → <b style="color:#F07D38;">단어</b>
+          safe = safe.replace(/\*\*([^*]+)\*\*/g, '<b style="color:#F07D38;font-weight:700;">$1</b>');
+          return safe;
+        };
         const scenesHtml = sc.miniScenarios.map((s, idx) => `
           <div style="margin-top:${idx === 0 ? '12' : '14'}px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.7);border:1px solid rgba(125,92,255,0.12);">
             <div style="font-size:13px;font-weight:700;color:var(--ink);">${escapeHtml(s.title)}</div>
@@ -14300,7 +14329,14 @@ function MeetingNotesPage(meetingId) {
             <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px;">
               ${(s.suggested || []).map((v) => `<span style="display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(125,92,255,0.14);color:#5D4770;font-size:10.5px;font-weight:700;">${escapeHtml(v)}</span>`).join('')}
             </div>
-            <div style="margin-top:8px;padding:8px 10px;border-left:2px solid #7D5CFF;background:rgba(255,255,255,0.6);font-size:12px;color:var(--ink);line-height:1.6;font-style:italic;">${escapeHtml(s.prompt)}</div>
+            <div style="margin-top:8px;padding:8px 10px;border-left:2px solid #7D5CFF;background:rgba(255,255,255,0.6);font-size:12px;color:var(--ink);line-height:1.6;font-style:italic;">${highlightVocab(escapeHtml(s.prompt))}</div>
+            ${(s.answerEn || s.answerKo) ? `
+              <details ${miniOpen[idx] ? 'open' : ''} data-mini-details="${idx}" style="margin-top:8px;background:rgba(125,92,255,0.06);border-radius:8px;padding:8px 10px;">
+                <summary style="cursor:pointer;font-size:11.5px;font-weight:700;color:#5D4770;list-style:none;">💡 정답 보기 (클릭하면 펼침) ▾</summary>
+                ${s.answerEn ? `<div style="margin-top:8px;padding:8px 10px;border-left:2px solid #7D5CFF;background:rgba(255,255,255,0.85);font-size:12.5px;color:var(--ink);line-height:1.55;font-weight:500;"><b style="font-size:9.5px;color:#5D4770;letter-spacing:0.06em;">EN ▸</b><br/>${highlightVocab(escapeHtml(s.answerEn))}</div>` : ''}
+                ${s.answerKo ? `<div style="margin-top:6px;padding:8px 10px;border-left:2px solid #A98BB8;background:rgba(255,255,255,0.7);font-size:12px;color:var(--ink-soft);line-height:1.55;"><b style="font-size:9.5px;color:#7B5E8C;letter-spacing:0.06em;">KO ▸</b><br/>${renderAnswerKo(s.answerKo)}</div>` : ''}
+              </details>
+            ` : ''}
           </div>
         `).join('');
         sceneCard.innerHTML = `
@@ -14310,6 +14346,13 @@ function MeetingNotesPage(meetingId) {
             <div style="font-size:12px;line-height:1.55;color:var(--muted);margin-top:4px;">대본 끝나고 시간 남으면, 이 상황으로 짝꿍이랑 짧게 연기해보세요. 빈칸(___) 자리에 추천 단어 골라서 채워서.</div>
           </div>
           ${scenesHtml}`;
+        // 정답 details toggle 상태 보존
+        sceneCard.querySelectorAll('details[data-mini-details]').forEach((d) => {
+          d.addEventListener('toggle', () => {
+            const key = d.getAttribute('data-mini-details');
+            if (key !== null && key !== undefined) miniOpen[key] = d.open;
+          });
+        });
         wrap.appendChild(sceneCard);
       }
 
