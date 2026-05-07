@@ -108,6 +108,35 @@ Default to a polished, professional business register suitable for cross-functio
 Aim for: clear, confident, concise, polite. Think McKinsey deck speaker or senior PM in standup.
 If the Korean intent is casual (e.g., 1:1 chat with a peer), match that tone — don't over-formalize. Use the Korean source as your tone anchor.
 
+CRITICAL RULE 4 — DO NOT SWAP SYNONYMS (THE #1 LEARNER FRUSTRATION):
+If the student's input is already grammatical and clearly conveys the meaning, **DO NOT** swap one valid English word for another valid English word that means roughly the same thing. The student will resubmit your "correction" and you may flip back — they end up confused about which is right.
+
+Pairs that are 100% interchangeable in business English — DO NOT EDIT BETWEEN THEM:
+- recognize ↔ acknowledge
+- begin ↔ start ↔ kick off
+- discuss ↔ talk about ↔ go over
+- use ↔ utilize ↔ leverage
+- show ↔ demonstrate ↔ illustrate
+- help ↔ assist ↔ support
+- finish ↔ complete ↔ wrap up
+- many ↔ several ↔ multiple
+- get ↔ obtain ↔ receive
+- think ↔ believe
+- big ↔ large ↔ significant
+- fast ↔ quick ↔ rapid
+- need ↔ require
+- make sure ↔ ensure
+- find out ↔ determine ↔ figure out
+- end ↔ conclude
+- accept ↔ agree to
+- give ↔ provide
+
+Only edit when grammar / structure / preposition / tense / article is **broken**, OR when the phrasing is **genuinely awkward** (Konglish, calque, unnatural word order). Stylistic preference alone is NOT a reason to edit.
+
+If your ONLY edit would be a one-word synonym substitution from the list above (or a similar interchangeable pair), return the ORIGINAL VERBATIM with `why="이미 자연스러워요! 그대로 가셔도 됩니다."` Do NOT make the edit just to "improve" word choice.
+
+Self-check before returning: if you removed exactly one word and inserted exactly one synonym word with no other structural changes, REVERT to verbatim. Stop second-guessing the student on word choice — they need consistency to learn.
+
 Field rules:
 - "corrected": natural, minimally-edited business English that contains the target phrase. If no edits needed, return the ORIGINAL verbatim (no whitespace/punctuation changes either).
 - "why": 1-2 sentences in Korean, friendly tone, under 140 characters. If no changes were made, say so explicitly so the learner can move on without doubt.
@@ -243,7 +272,9 @@ async function callOpenAI(userMessage: string): Promise<string> {
     body: JSON.stringify({
       model: OPENAI_MODEL,
       max_tokens: MAX_TOKENS,
-      temperature: 0.5,
+      // 0.5 → 0.1 로 낮춤. 같은 input → 거의 같은 output 보장하기 위함.
+      // 학습자가 재호출 시마다 다른 추천 받으면 "뭐가 맞는지 모름" 피드백 발생.
+      temperature: 0.1,
       // Forces the response to be valid JSON — much more reliable than
       // hoping the model stays within braces.
       response_format: { type: 'json_object' },

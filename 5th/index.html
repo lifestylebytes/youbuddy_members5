@@ -3712,13 +3712,18 @@ const hasSupabase = () => !!(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 // 무참여자(블록 리스트) — 대시보드에서 맨 아래로 + 향후 기능 제한 대상.
 // state.nonparticipant_list 가 source of truth. 운영자가 Settings 에서 자동 채우기 / 수동 편집.
+// HARDCODED_LOW_RANK — 운영자 요청으로 코드에 박아둔 저참여 멤버. nonparticipant_list 와 동일하게 맨 아래로.
+const HARDCODED_LOW_RANK = ['양은지'];
 function _normNameKey(s) { return String(s || '').trim().toLowerCase(); }
 function isNonparticipant(member) {
   if (!member) return false;
-  const list = (state.nonparticipant_list || []).map(_normNameKey);
-  if (!list.length) return false;
   const candidates = [member.name, member.member_name, member.englishName, member.english_name]
     .filter(Boolean).map(_normNameKey);
+  // 1) 하드코딩된 저참여 리스트
+  if (HARDCODED_LOW_RANK.map(_normNameKey).some((c) => candidates.includes(c))) return true;
+  // 2) 운영자 nonparticipant_list (state)
+  const list = (state.nonparticipant_list || []).map(_normNameKey);
+  if (!list.length) return false;
   return candidates.some((c) => list.includes(c));
 }
 // 멤버 정렬용 비교 함수 — 무참여자는 항상 맨 아래.
@@ -3762,12 +3767,26 @@ const memberKey = () => (state.accountKey || state.email || [state.accessCode, s
    - 3명 선착순. 같은 사람이 같은 주에 중복 signup 불가.
    ============================================================ */
 const PRESENTER_KEY = (n) => 'w' + Number(n);
+// 운영자 수동 force-include — 코드에 박아둔 발표자 자리.
+// 형식: { weekN: ['MEMBER_DIRECTORY id', ...] } — 디스플레이 전용. 서버에 영구 저장 X.
+// 권다은(p9) 가 Week 2 에서 발표 못 해서 Week 3 마지막 자리로 이동.
+const PRESENTER_FORCE_INCLUDE = { 3: ['p9'] };
+// 주차별 cap override — Week 3 만 4명 (권다은 추가로 인해).
+const PRESENTER_CAP_OVERRIDE = { 3: 4 };
 function weekMeta(n) {
   return (CHALLENGE.premium.weekly_meetings || []).find((w) => Number(w.n) === Number(n)) || null;
 }
 function weekSignupsArray(n) {
   const raw = (state.presenterSignups || {})[PRESENTER_KEY(n)];
-  return Array.isArray(raw) ? raw.slice() : [];
+  const arr = Array.isArray(raw) ? raw.slice() : [];
+  // Force-include — 운영자가 박아둔 멤버를 맨 뒤에 (없으면) 추가.
+  const forced = PRESENTER_FORCE_INCLUDE[Number(n)] || [];
+  forced.forEach((id) => {
+    const synthKey = '__forced:' + id;
+    // 중복 방지 (이미 정상 signup 했거나 forced 키 이미 있으면 skip)
+    if (!arr.includes(synthKey)) arr.push(synthKey);
+  });
+  return arr;
 }
 function isMePresenterInWeek(n) {
   return weekSignupsArray(n).includes(memberKey());
@@ -3806,7 +3825,8 @@ function personalQuizState() {
   return 'waiting_inject';
 }
 function presenterSlotsRemaining(n) {
-  const cap = Number(CHALLENGE.premium.presenter_slots_per_week || 3);
+  const baseCap = Number(CHALLENGE.premium.presenter_slots_per_week || 3);
+  const cap = PRESENTER_CAP_OVERRIDE[Number(n)] || baseCap;
   return Math.max(0, cap - weekSignupsArray(n).length);
 }
 // Week 에 발표자 시트가 있는지 — Week 1 같은 "온보딩/자기소개" 주는 noPresenter:true 라서 false.
@@ -4016,6 +4036,15 @@ function currentPremiumWeek() {
 function memberByKey(key) {
   if (!key) return null;
   if (key === memberKey()) return meMember();
+  // 운영자 force-include synthetic key (__forced:<id>) — MEMBER_DIRECTORY id 로 매핑.
+  if (typeof key === 'string' && key.startsWith('__forced:')) {
+    const id = key.slice('__forced:'.length);
+    const fromMembers = MEMBERS.find((m) => !m.me && m.id === id);
+    if (fromMembers) return fromMembers;
+    const dir = MEMBER_DIRECTORY.find((m) => m.id === id);
+    if (dir) return { id: dir.id, name: dir.name, color: dir.color, tier: dir.tier, progress: 0, streak: 0 };
+    return null;
+  }
   // memberSummaryCache.rows 에서 먼저 찾기
   const summary = (memberSummaryCache.rows || []).find((r) => r.member_key === key);
   if (summary) {
