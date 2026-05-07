@@ -3629,7 +3629,7 @@ const SYN_EXAMPLES = {
   'Reinvent the wheel::Duplicate effort': { en: "Don't duplicate effort — there's already a finished template.", kr: '이중 작업 하지 마세요 — 이미 완성된 템플릿이 있어요.', mood: '🔁 중복 작업 — 효율 강조 사무적 톤' },
   'Reinvent the wheel::Waste time on basics': { en: "Let's not waste time on basics that the team already nailed last quarter.", kr: '지난 분기에 이미 끝낸 기본기에 시간 낭비하지 맙시다.', mood: '⏳ 기본기 시간 낭비 — 직설적 비판 톤' },
   'Scratch the surface::Touch on': { en: "The slides only touch on the customer feedback themes.", kr: '슬라이드가 고객 피드백 테마만 살짝 다루고 있어요.', mood: '🪞 살짝 다루기 — 가벼운 언급, 학술/리포트 톤' },
-  'Scratch the surface::Barely begin': { en: "We've barely begun to understand why retention dropped.", kr: '리텐션 떨어진 이유 이제 겨우 알아보기 시작했어요.', mood: '🚪 겨우 시작 — 솔직한 자기 평가 톤' },
+  'Scratch the surface::Barely begin': { en: "This report barely begins to address the real churn drivers.", kr: '이 보고서는 진짜 이탈 원인을 겨우 건드리기 시작한 정도예요.', mood: '🚪 겨우 시작 — 솔직한 자기 평가 톤' },
 
   // Day 12
   'Value proposition::Core benefit': { en: "What's the core benefit users get within the first minute?", kr: '유저가 첫 1분 안에 얻는 핵심 혜택이 뭐죠?', mood: '🎁 핵심 혜택 — 단순 명료, 마케팅 베이직 톤' },
@@ -3681,7 +3681,7 @@ const SYN_EXAMPLES = {
 
   // Day 18
   'Jump through hoops::Navigate hurdles': { en: "She navigated the hurdles of compliance like a pro.", kr: '그녀는 컴플라이언스 허들을 프로처럼 헤쳐나갔어요.', mood: '🪜 허들 헤쳐가기 — 능숙함 강조 톤' },
-  'Jump through hoops::Overcome bureaucratic hurdles': { en: "We overcame bureaucratic hurdles to get the contract signed.", kr: '계약 체결 위해 관료적 허들을 다 극복했어요.', mood: '🏛️ 관료적 허들 극복 — 격식 있는 보고 톤' },
+  'Jump through hoops::Overcome bureaucratic hurdles': { en: "We overcome bureaucratic hurdles every week to keep contracts moving.", kr: '계약 진행하려면 매주 관료적 허들을 극복해야 해요.', mood: '🏛️ 관료적 허들 극복 — 격식 있는 보고 톤' },
   'Red tape::Bureaucracy': { en: "Big company bureaucracy slowed our hiring by months.", kr: '대기업 관료주의가 우리 채용을 몇 달 늦췄어요.', mood: '🏢 관료주의 — 중립·학술 용어 톤' },
   'Red tape::Official strictness': { en: "Official strictness on data export delayed the launch.", kr: '데이터 내보내기 공식 규제가 런칭을 지연시켰어요.', mood: '📜 공식 규제 — 격식 매우 강한 톤' },
   'Uphill battle::Tough struggle': { en: "Convincing the board was a tough struggle but worth it.", kr: '이사회 설득은 힘든 싸움이었지만 가치 있었어요.', mood: '💪 힘든 투쟁 — 직설적·솔직 톤' },
@@ -8253,7 +8253,9 @@ function computeQuizSplit(question) {
   //      예: answer="Meet halfway" / prompt="meet you halfway and increase the volume"
   //          → before [Meet] " you " [halfway] after  (2-blank, 가운데 대명사구 visible)
   //      verb 시제 변형도 고려 (meets/met/meeting halfway).
-  const OBJ_PRONOUNS = ['you', 'me', 'him', 'her', 'them', 'us', 'it', 'someone', 'something'];
+  // OBJ_PRONOUNS — verb 다음에 끼어들 수 있는 모든 목적어 후보.
+  // 지시대명사(that/this/these/those)도 추가 — "discuss that separately" 같은 패턴 catch.
+  const OBJ_PRONOUNS = ['you', 'me', 'him', 'her', 'them', 'us', 'it', 'someone', 'something', 'that', 'this', 'these', 'those', 'the'];
   for (let i = 0; i < tokens.length - 1; i += 1) {
     const prefixToks = tokens.slice(0, i + 1);
     const suffixToks = tokens.slice(i + 1);
@@ -8575,6 +8577,16 @@ function VerifyPage(dayN) {
             <div style="display:flex;gap:8px;margin-top:18px;">
               <button class="btn btn-ghost" style="flex:1;justify-content:center;background:#4F4438;color:#fff;border:none;" onclick="window.__advanceVerifyQuiz(${dayN}, true)">${ui.revealAnswer ? (ui.idx === questions.length - 1 ? '확인했어요 · 제출' : '확인했어요 · 다음 문제') : (ui.idx === questions.length - 1 ? '모르겠어요 · 제출' : 'Skip')}</button>
             </div>
+            ${ui.revealAnswer ? (() => {
+              const wKey = `quiz::${escapeHtml(currentQuestion.en)}`;
+              const isSavedQuiz = !!(state.bookmarks && state.bookmarks[wKey]);
+              return `
+                <div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(125,92,255,0.06);border:1px dashed rgba(125,92,255,0.28);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+                  <span style="font-size:11.5px;color:#5C53A5;line-height:1.5;">📌 이 단어 단어장에 저장할까요?</span>
+                  <button onclick="window.__saveQuizWordBookmark('${escapeHtml(currentQuestion.en)}', '${escapeHtml(currentQuestion.kr || '')}')" type="button" style="padding:5px 11px;border-radius:999px;border:1px solid ${isSavedQuiz ? 'rgba(125,92,255,0.4)' : 'rgba(125,92,255,0.32)'};background:${isSavedQuiz ? 'var(--lilac)' : '#fff'};color:${isSavedQuiz ? '#fff' : '#5C53A5'};font-size:11px;font-weight:700;cursor:pointer;">${isSavedQuiz ? '✓ 저장됨' : '+ 단어장 저장'}</button>
+                </div>
+              `;
+            })() : ''}
             <div class="t-small" style="margin-top:12px;color:#8B84D7;line-height:1.5;">${ui.revealAnswer ? '정답을 한 번 눈에 담고 다음 문제로 넘어가요.' : '정답을 맞추면 자동으로 다음 문제로 넘어가요. 모르면 <b>힌트</b>를 눌러보세요.'}</div>
           </div>
         </div>
@@ -20333,6 +20345,25 @@ window.__restartVerifyQuiz = (dayN) => {
     delete state.checkpoints[quizKey];
     saveState();
   }
+  render();
+};
+// 단어 시험에서 모르는 단어 단어장에 저장. quiz 출처는 wKey 'quiz::<en>' 로 저장.
+window.__saveQuizWordBookmark = (en, kr) => {
+  if (!en) return;
+  state.bookmarks = state.bookmarks || {};
+  const wKey = `quiz::${en}`;
+  if (state.bookmarks[wKey]) {
+    showToast('이미 단어장에 있어요 ✓');
+    return;
+  }
+  state.bookmarks[wKey] = {
+    en: en,
+    kr: kr || '',
+    source: 'quiz',
+    savedAt: new Date().toISOString(),
+  };
+  try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+  showToast(`📌 "${en}" 단어장에 저장됐어요`);
   render();
 };
 window.__updateVerifySettings = (dayN, key, value) => {
