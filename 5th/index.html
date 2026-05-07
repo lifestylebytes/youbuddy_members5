@@ -9748,39 +9748,49 @@ function renderWeekSurveyCard(weekN) {
     </div>
   `;
 
+  // NPS = 첫 주 + 마지막 주만 받기 (매주 받으면 응답률 떨어지고 의미 희석됨)
+  const showNps = (weekN === 1 || weekN === 4);
+  // 다음 주 라벨 — Week 4 이후엔 "다음 기수" 로
+  const nextWeekLabel = weekN < 4 ? `Week ${weekN + 1}` : '다음 기수';
+  let qNum = 0;
+  const nextQ = () => ++qNum;
+  const totalQ = showNps ? 8 : 7;
+
   card.innerHTML = `
     <div style="text-align:center;">
       <div class="kicker" style="color:#7B5E8C;">📝 1분 설문</div>
-      <div style="margin-top:6px;font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.3;">Week 2 를 더 좋게 만들어주세요</div>
-      <div class="t-small" style="margin-top:6px;color:var(--ink-soft);font-size:12px;line-height:1.55;">8개 · 짧게 답해도 좋아요. 답변은 운영진만 봐요.</div>
+      <div style="margin-top:6px;font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.3;">Week ${weekN} 회고 · ${nextWeekLabel} 더 좋게</div>
+      <div class="t-small" style="margin-top:6px;color:var(--ink-soft);font-size:12px;line-height:1.55;">${totalQ}개 · 짧게 답해도 좋아요. 답변은 운영진만 봐요.</div>
     </div>
 
-    ${sectionH(1, '친구한테 추천할 가능성?', '0 = 절대 추천 안 함 · 10 = 무조건 추천')}
-    ${renderScale('nps', 0, 10, '0', '10')}
+    ${showNps ? `
+      ${sectionH(nextQ(), '친구한테 추천할 가능성?', '0 = 절대 추천 안 함 · 10 = 무조건 추천')}
+      ${renderScale('nps', 0, 10, '0', '10')}
+    ` : ''}
 
-    ${sectionH(2, '단어 난이도는 어땠어요?', '5점 만점 · 3 이 딱 좋음')}
+    ${sectionH(nextQ(), '단어 난이도는 어땠어요?', '5점 만점 · 3 이 딱 좋음')}
     ${renderScale('difficulty', 1, 5, '1 너무 쉬움', '5 너무 어려움')}
 
-    ${sectionH(3, '하루 평균 학습 시간?', '인증·AI 교정 다 합쳐서')}
+    ${sectionH(nextQ(), '하루 평균 학습 시간?', '인증·AI 교정 다 합쳐서')}
     ${renderRadio('time', WEEK_SURVEY_OPTIONS.time)}
 
-    ${sectionH(4, 'AI 교정이 도움됐어요?', '5점 만점')}
+    ${sectionH(nextQ(), 'AI 교정이 도움됐어요?', '5점 만점')}
     ${renderScale('ai_help', 1, 5, '1 별로', '5 진짜 큰 도움')}
 
-    ${sectionH(5, '앱 화면이 직관적이었어요?', '구성·흐름·버튼 위치 등')}
+    ${sectionH(nextQ(), '앱 화면이 직관적이었어요?', '구성·흐름·버튼 위치 등')}
     ${renderScale('ux', 1, 5, '1 헷갈림', '5 직관적')}
 
-    ${sectionH(6, '가장 막혔던 순간?', '하나만 골라주세요')}
+    ${sectionH(nextQ(), '가장 막혔던 순간?', '하나만 골라주세요')}
     ${renderRadio('stuck', WEEK_SURVEY_OPTIONS.stuck)}
 
-    ${sectionH(7, 'Week 2 에서 더 보고 싶은 거?', '최대 3개')}
+    ${sectionH(nextQ(), `${nextWeekLabel} 에서 더 보고 싶은 거?`, '최대 3개')}
     ${renderMulti('want_w2', WEEK_SURVEY_OPTIONS.wantW2.filter((o) => !o.premiumOnly || state.tier === 'premium'), 3)}
 
-    ${sectionH(8, '유버디에게 건의할 말!', '아무거나 다 돼요 — 칭찬도 불만도 아이디어도 환영 🧡')}
+    ${sectionH(nextQ(), '유버디에게 건의할 말!', '아무거나 다 돼요 — 칭찬도 불만도 아이디어도 환영 🧡')}
     <textarea id="__weekSurveyComment" maxlength="300" placeholder="예) 단어 외우기 어려웠는데 미팅이 진짜 좋았어요 / Daily 분량 살짝 부담 / 음성 입력 있으면 좋겠어요 / 인증 마감 시간이 좀 빠듯해요 ..." style="width:100%;margin-top:8px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:13px;font-family:inherit;line-height:1.5;color:var(--ink);resize:vertical;min-height:84px;box-sizing:border-box;">${escapeHtml(draft.comment || '')}</textarea>
 
     <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px;">
-      <button id="__weekSurveySubmit" data-week="${weekN}" class="btn btn-primary btn-full" style="background:#7B5E8C;border:none;font-size:14px;padding:14px;">📩 답변 제출 (Week 2 더 좋게 만들기)</button>
+      <button id="__weekSurveySubmit" data-week="${weekN}" class="btn btn-primary btn-full" style="background:#7B5E8C;border:none;font-size:14px;padding:14px;">📩 답변 제출 (${nextWeekLabel} 더 좋게)</button>
       <button id="__weekSurveySkip" data-week="${weekN}" class="btn btn-ghost btn-full" style="background:transparent;border:1px solid var(--line);color:var(--muted);font-size:12px;padding:10px;">나중에 / 이번엔 패스</button>
     </div>
   `;
@@ -10916,7 +10926,7 @@ function DayPage(dayN) {
     const __storedNuance = (window.__nuanceOpen || {})[nuanceKey];
     const isNuanceOpen = __storedNuance === undefined ? true : !!__storedNuance;
 
-    const card = el('div', { class: 'vocab-card', id: `vocab-anchor-${dayN}-${i}`, style: { padding: '22px 22px 18px', borderRadius: '26px', position: 'relative', scrollMarginTop: '18px' } });
+    const card = el('div', { class: 'vocab-card', id: `vocab-anchor-${dayN}-${i}`, style: { padding: '22px', borderRadius: '24px', position: 'relative', scrollMarginTop: '18px' } });
 
     // Top-right action cluster (bookmark + index)
     const actions = el('div', { style: { position: 'absolute', top: '16px', right: '18px', display: 'flex', alignItems: 'center', gap: '10px' } });
@@ -10961,7 +10971,7 @@ function DayPage(dayN) {
     card.appendChild(defRow);
 
     // Example — 예문 + 듣기 버튼 (영어 예문 음성 재생)
-    const exampleEl = el('div', { class: 'vocab-example', style: { marginTop: '14px', padding: '14px 16px', borderRadius: '18px', fontSize: '14.5px', lineHeight: '1.5', position: 'relative' } });
+    const exampleEl = el('div', { class: 'vocab-example', style: { marginTop: '14px', padding: '14px 16px', borderRadius: '16px', background: '#FFFDF8', border: '1px solid var(--line-soft)', fontSize: '14.5px', lineHeight: '1.5', position: 'relative' } });
     const exEnMarked = w.ex_en.replace(new RegExp('('+w.en.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&')+')', 'i'), '<b>$1</b>');
     exampleEl.innerHTML = `
       <div style="display:flex;align-items:flex-start;gap:10px;">
@@ -11163,7 +11173,7 @@ function DayPage(dayN) {
     const noteValue = state.sentence_notes?.[key] || '';
     const hasCorrection = !!state.ai_feedback[key];
     const aiAvailable = canUseAiForSentence(dayN, key);
-    const row = el('div', { class: 'card', style: { padding: '24px', borderRadius: '32px', background: 'rgba(255,253,247,0.72)' } });
+    const row = el('div', { class: 'card', style: { padding: '22px', borderRadius: '24px', background: 'rgba(255,253,247,0.72)' } });
     // 모바일에서 chip + KR 뜻 + 배지가 한 row 에서 못 풀려 차근차근 wrap 되도록 flex-wrap.
     // chip 자체는 nowrap (전역 .syn-chip CSS), KR 뜻은 chip 자리 다 차면 다음 줄로.
     const label = el('div', { style: { marginBottom: '14px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', rowGap: '6px' } });
@@ -11241,7 +11251,7 @@ function DayPage(dayN) {
       style: {
         marginBottom: '12px',
         padding: '14px 16px',
-        borderRadius: '20px',
+        borderRadius: '16px',
         background: '#FFFDF8',
         border: '1px solid var(--line-soft)',
       }
