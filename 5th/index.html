@@ -1710,6 +1710,7 @@ const defaultState = () => ({
   ai_daily_usage: {},             // { "d1": 1 }
   checkpoints: {},                // { "d1-record": true }
   quiz_answers: {},               // { "q0": 1 }
+  verify_settings: { includeSyn: false, questionCount: 10 }, // 단어 시험 설정 (premium 만 includeSyn=true / count=20 가능)
   personal_quiz: null,            // { items:[{q,options,a,hint}], basedOnScript:'', injectedAt:'...', week:N } — Gaby 가 발표 후 스크립트 기반으로 직접 주입
   personal_quiz_answers: {},      // { "q0": 1 } — personal_quiz 에 대한 응답 (CHALLENGE.premium.quiz 와 분리)
   bookmarks: {},                  // { "d1-0": true }
@@ -1780,6 +1781,7 @@ const PERSISTED_STATE_KEYS = [
   'ai_daily_usage',
   'checkpoints',
   'quiz_answers',
+  'verify_settings',
   'personal_quiz',
   'personal_quiz_answers',
   'bookmarks',
@@ -2226,17 +2228,26 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
       // Korean intent sentence (한국어 문장) so the model can match the
       // learner's actual meaning instead of guessing from English alone.
       korean: (koreanContext || '').trim() || undefined,
+      // 결정론적 응답 요청 — 같은 input → 같은 corrected 가 나오도록 (Edge Function 이 respect 한다고 가정).
+      temperature: 0,
     });
     // Always recompute diff client-side so we can show WORD-level changes
     // (server returns whole-sentence <del>/<ins>, which looks too aggressive).
     return {
       ...result,
       diff_html: buildWordDiffHtml(sentence, result.corrected),
+      originalInput: sentence,
+      isFallback: false,
     };
   } catch (e) {
     console.warn('[ai-review] sentence fallback:', e);
     const local = buildLocalCorrection(word, sentence);
-    return { ...local, diff_html: buildWordDiffHtml(sentence, local.corrected) };
+    return {
+      ...local,
+      diff_html: buildWordDiffHtml(sentence, local.corrected),
+      originalInput: sentence,
+      isFallback: true, // 네트워크/AI 에러로 local fallback 임을 표시 (UI 에서 "잘 썼어요" 오인 방지)
+    };
   }
 }
 
@@ -3526,6 +3537,86 @@ function synonymNuance(word, syn) {
   if (SYNONYM_NUANCE[key]) return SYNONYM_NUANCE[key];
   // fallback: 짧고 자연스럽게만.
   return `"${syn}"은 "${word?.en ?? ''}"과 의미는 비슷하지만 쓰이는 상황·톤이 조금 달라서, 맥락에 맞춰 골라 쓰면 좋아요.`;
+}
+
+// 유의어 예시 문장 + 분위기 — Day 1~9 메인 27개에 대한 syn 들. {en, mood} 형태.
+// mood 는 emoji + 한 줄로 "이 표현 쓸 때의 분위기/톤" 캡쳐.
+const SYN_EXAMPLES = {
+  // Day 1
+  'Set the stage::Pave the way': { en: "Today's announcement paves the way for our new product line.", mood: '🛤️ 새 길 닦기 — 후속 변화가 자연스럽게 이어지도록 사전 정리하는 톤' },
+  'Set the stage::Prepare the ground': { en: "We need to prepare the ground for next quarter's pivot.", mood: '🌾 흙 갈아엎기 — 큰 변화 전 인프라/마음가짐 다지는 묵직한 톤' },
+  'Anchor::Ground': { en: "We need to ground this strategy in actual user feedback.", mood: '⚓ 발 디뎌 단단히 — 데이터·실증으로 결정의 발 받쳐주는 톤' },
+  'Anchor::Establish a baseline': { en: "Let's establish a baseline before we run any experiments.", mood: '📏 기준선 그어두기 — 측정·비교를 위한 출발점 명확히 하는 분석적 톤' },
+  'Key driver::Main catalyst': { en: "The new pricing model became the main catalyst for Q3 growth.", mood: '⚗️ 화학 반응의 촉매 — 결정적 임팩트로 변화를 가속하는 톤' },
+  'Key driver::Core factor': { en: "Customer trust is the core factor behind our retention numbers.", mood: '🧩 핵심 요인 — 가치중립적, 분석 보고서에 어울리는 차분한 톤' },
+
+  // Day 2
+  'Gut check::Reality check': { en: "Let's do a quick reality check on whether we can ship this by Friday.", mood: '🔔 정신 차리고 본질 확인 — 환상에서 깨어나라는 톤' },
+  'Gut check::Instinctive review': { en: "An instinctive review of the timeline says it's too tight.", mood: '⚡ 직감 기반 검토 — 데이터 보기 전 즉답형 가벼운 톤' },
+  'Vetting process::Screening': { en: "Our vendor screening takes about two weeks before approval.", mood: '🔎 거름망 — 단순 절차로 탈락 거른다는 사무적 톤' },
+  'Vetting process::Due diligence': { en: "We need to complete due diligence before signing the contract.", mood: '⚖️ 적정 의무 점검 — 법적·재무적 무게 실린 격식 톤' },
+  'Viability::Feasibility': { en: "Let's run a feasibility check before committing real budget.", mood: '🛠️ 실행 가능성 — 기술/공정으로 봤을 때 되는지 검토 톤' },
+  'Viability::Workability': { en: "The plan looks great on paper, but the workability is the question.", mood: '🏗️ 실무 운영 가능성 — 현장에서 굴러가나, 일상감 있는 톤' },
+
+  // Day 3
+  'First pass::Rough draft': { en: "Here's a rough draft of the proposal — feel free to mark it up.", mood: '✍️ 거친 초안 — 다듬기 전 그대로 던진 솔직 협업 톤' },
+  'First pass::First cut': { en: "I'll take a first cut at the slides this afternoon.", mood: '🎬 1차 컷 — 방송·편집 비유, 빠른 첫 시도 + 다음 회차 예고 톤' },
+  'Get it over the line::Bring it home': { en: "We've worked too hard to stop now — let's bring it home.", mood: '🏁 끝까지 끌고 와 골인 — 운동경기 마무리 응원의 따뜻한 톤' },
+  'Get it over the line::Wrap it up': { en: "Let's wrap it up tonight so we can ship Monday morning.", mood: '🎁 깔끔히 마무리 — 일상적, 가벼운 종료 신호 톤' },
+  'Front-load::Tackle early': { en: "Let's tackle the heavy edits early so reviews stay quick later.", mood: '⏩ 일찍 들이박다 — 미루지 않고 바로 시작하는 액션 톤' },
+  'Front-load::Prioritize heavily at the start': { en: "We'll prioritize heavily at the start to avoid a sprint at the deadline.", mood: '📊 초반 비중 크게 두기 — 정량적·전략적 격식 톤' },
+
+  // Day 4
+  'Unpack::Break down': { en: "Let's break down the assumptions behind this revenue forecast.", mood: '🧱 잘게 부수기 — 청크를 작은 조각으로 나누는 분석 톤' },
+  'Unpack::Deconstruct': { en: "We need to deconstruct the customer journey to find the drop-off point.", mood: '🔬 해체 — 학술적·이론적 분해의 차가운 톤' },
+  'Flesh out::Expand on': { en: "Could you expand on the rollout plan in the next deck?", mood: '📝 더 길게 풀기 — 짧은 설명을 늘려 구체화 요청 톤' },
+  'Flesh out::Elaborate': { en: "Please elaborate on the integration risks before we sign off.", mood: '🎩 정중히 풀어서 — 격식 있는 발표·문서 톤' },
+  'Drill down::Delve into': { en: "Let's delve into the conversion data by region.", mood: '🕵️ 깊이 들어가 살피기 — 호기심 + 탐험 느낌의 톤' },
+  'Drill down::Look closely into': { en: "We need to look closely into why churn spiked in March.", mood: '🔍 가까이 들여다보기 — 직설·실무적 톤' },
+
+  // Day 5
+  'Get buy-in::Gain support': { en: "We need to gain support from finance before pitching to the board.", mood: '🗳️ 지지를 얻다 — 정치·캠페인 톤' },
+  'Get buy-in::Secure agreement': { en: "Let's secure agreement from legal before we publish.", mood: '✍️ 합의 확보 — 계약·법적 격식 톤' },
+  'Call the shots::Take the lead': { en: "Sarah will take the lead on the vendor negotiations.", mood: '🚩 앞장서다 — 주도성·책임감 강조한 중립 톤' },
+  'Call the shots::Be in charge': { en: "Mark is in charge of the whole launch sequence.", mood: '🛡️ 책임자다 — 권한·역할 명시한 사무적 톤' },
+  'Move in lockstep::Sync up perfectly': { en: "Engineering and marketing need to sync up perfectly on launch day.", mood: '🔄 완벽 동기화 — 시스템·기술적 정밀함의 톤' },
+  'Move in lockstep::Coordinate closely': { en: "We'll coordinate closely with the regional teams to avoid overlap.", mood: '🤝 긴밀히 조율 — 부서 간 협력의 부드러운 톤' },
+
+  // Day 6
+  'Constructive criticism::Actionable feedback': { en: "Please give me actionable feedback I can apply to the next draft.", mood: '✅ 행동 가능한 — 실용적·실행 중심의 톤' },
+  'Constructive criticism::Helpful critique': { en: "Her helpful critique made the deck twice as strong.", mood: '🎨 유익한 비평 — 작품·결과물에 어울리는 평가 톤' },
+  'Sugarcoat::Soften the blow': { en: "I won't soften the blow — Q1 numbers came in below target.", mood: '🥊 타격 완화 — 안 좋은 뉴스 충격 줄이는 배려 톤' },
+  'Sugarcoat::Mince words': { en: "Let's not mince words: this campaign underperformed.", mood: '💬 말 가려 하기 — 부정형 (won\'t mince) 으로 "솔직히 말한다" 강조' },
+  'Take it offline::Discuss separately': { en: "Let's discuss that separately so we can stay on the agenda.", mood: '🗂️ 따로 논의 — 격식 있는 회의 운영 톤' },
+  'Take it offline::Follow up later': { en: "I'll follow up later with the legal questions in a smaller group.", mood: '⏭️ 나중에 후속 — 가볍게 미루는 일상 톤' },
+
+  // Day 7
+  "Play devil's advocate::Argue the opposing side": { en: "Let me argue the opposing side — what if engagement drops?", mood: '⚔️ 반대편 입장에서 논하기 — 형식적·디베이트 톤' },
+  'Middle ground::Compromise': { en: "We need a compromise between speed and quality here.", mood: '🤲 타협 — 양보 의미 강한 무거운 톤' },
+  'Middle ground::Happy medium': { en: "Let's find a happy medium between the two pricing models.", mood: '😊 적당한 중간 — 기분 좋은 합의점, 가벼운 톤' },
+  'Meet halfway::Make a concession': { en: "If you make a concession on volume, we'll match on price.", mood: '🪜 양보하다 — 협상 시 한쪽이 양보하는 격식 톤' },
+  'Meet halfway::Strike a balance': { en: "Let's strike a balance between scope and timeline.", mood: '⚖️ 균형 잡기 — 중립적·전략적 표현 톤' },
+
+  // Day 8
+  'Cut to the chase::Get straight to the point': { en: "We're short on time — let me get straight to the point.", mood: '🎯 본론 직진 — 단순·명료 일상 톤' },
+  'Cut to the chase::Skip the fluff': { en: "Let's skip the fluff and look at the real numbers.", mood: '✂️ 군더더기 빼기 — 캐주얼·구어적, 약간 농담 섞인 톤' },
+  'Timebox::Set a time limit': { en: "Let's set a time limit of 15 minutes for the demo.", mood: '⏱️ 시간 제한 — 회의 운영 기본 신호 톤' },
+  'Timebox::Cap the time': { en: "We'll cap the time at 30 minutes per agenda item.", mood: '🧢 시간 상한 — 좀 더 단호한 결재 톤' },
+  'Give time back::Wrap up early': { en: "We covered everything, so let's wrap up early.", mood: '🌅 일찍 마무리 — 분위기 좋은 정리 톤' },
+  'Give time back::End ahead of schedule': { en: "If we end ahead of schedule, the team gets a 10-minute breather.", mood: '📅 예정보다 일찍 종료 — 격식 있는 보고 톤' },
+
+  // Day 9
+  'Go-to person::Subject matter expert': { en: "Sarah is our subject matter expert on payments compliance.", mood: '🎓 해당 분야 전문가 — 형식적·이력서 톤' },
+  'Go-to person::Key contact': { en: "Mark is the key contact for any questions on the new platform.", mood: '📇 핵심 컨택 — 비즈니스/거래처 매너 톤' },
+  'Heavy lifting::The bulk of the work': { en: "Engineering will handle the bulk of the work on the migration.", mood: '📦 작업의 대부분 — 양적·중립 분배 톤' },
+  'Heavy lifting::Hard work': { en: "The hard work happens in the first two weeks of integration.", mood: '💪 힘든 일 — 단순·일상 표현 톤' },
+  "Step on someone's toes::Overstep boundaries": { en: "I want to help, but I don't want to overstep boundaries.", mood: '🚧 경계를 넘다 — 형식적·HR 톤' },
+  "Step on someone's toes::Interfere": { en: "I'd love to support, but I shouldn't interfere with the design team's call.", mood: '🙅 끼어들다 — 직설적·약간 부정 함의 톤' },
+};
+
+function synonymExample(word, syn) {
+  const key = `${word?.en ?? ''}::${syn}`;
+  return SYN_EXAMPLES[key] || null;
 }
 const weekProgress = (w) => w.days.filter(d => state.verified['d'+d.day]).length;
 const hasSupabase = () => !!(SUPABASE_URL && SUPABASE_ANON_KEY);
@@ -7352,43 +7443,76 @@ function WeeksPage() {
   return page;
 }
 
+// 단어 시험 설정 — premium 만 includeSyn / 20문항 사용 가능.
+function getVerifySettings() {
+  const s = state.verify_settings || {};
+  const isPremium = state.tier === 'premium';
+  const includeSyn = !!s.includeSyn && isPremium;
+  let count = Number(s.questionCount) || 10;
+  if (count !== 5 && count !== 10 && count !== 20) count = 10;
+  if (count === 20 && !isPremium) count = 10;
+  return { includeSyn, questionCount: count };
+}
+
 function buildVerifyQuestions(dayN) {
   // 출제 범위 = 오늘까지 공개된 모든 Day 단어.
   //   - 오늘의 3단어 = primary, 항상 맨 앞.
-  //   - 이전 Day 단어들 = recall pool, 랜덤 최대 7개 선택.
-  //   - 총 문제 수: 최대 10개 (Day 1=3, Day 2=6, Day 3=9, Day 4+=10).
-  // 같은 회차 내에서는 리렌더되어도 문항이 흔들리지 않도록 캐시. __restartVerifyQuiz에서 초기화.
+  //   - 이전 Day 단어들 = recall pool, 랜덤 선택.
+  //   - includeSyn=true 면 syn 들도 pool 에 합류 (premium 옵션).
+  //   - 총 문항: state.verify_settings.questionCount (5/10/20, default 10. premium 만 20 가능).
+  // 같은 설정 내에서는 리렌더되어도 문항이 흔들리지 않도록 캐시. __restartVerifyQuiz에서 초기화.
+  const settings = getVerifySettings();
+  const cacheKey = `${dayN}|syn=${settings.includeSyn ? 1 : 0}|n=${settings.questionCount}`;
   window.__verifyQuestionsCache = window.__verifyQuestionsCache || {};
-  const cached = window.__verifyQuestionsCache[dayN];
+  const cached = window.__verifyQuestionsCache[cacheKey];
   if (Array.isArray(cached) && cached.length) return cached;
 
-  const toQuestion = (w) => ({
+  const toQuestion = (w, opts) => ({
     en: w.en,
     kr: w.def,
     syn: w.syn || [],
     prompt: w.ex_en || `Let's use ${w.en} in a sentence.`,
     prompt_kr: w.ex_kr || '',
+    isSyn: !!(opts && opts.isSyn),
+    parentEn: (opts && opts.parentEn) || null,
   });
+  // syn 을 메인과 같은 구조로 변환 (premium 만 사용)
+  const synAsWord = (mainW, syn) => {
+    const ex = (typeof synonymExample === 'function') ? synonymExample(mainW, syn) : null;
+    return {
+      en: syn,
+      def: (typeof synonymMeaning === 'function') ? synonymMeaning(syn) : (mainW.def || ''),
+      ex_en: (ex && ex.en) || `${syn} works in this kind of sentence.`,
+      ex_kr: '',
+      syn: [],
+    };
+  };
   const today = getDay(dayN);
-  const primary = (today?.words || []).map(toQuestion);
+  const primary = (today?.words || []).map((w) => toQuestion(w));
 
   const pool = [];
   (CHALLENGE.weeks || []).forEach((week) => {
     (week.days || []).forEach((d) => {
       if (!d || d.day >= dayN) return;
-      (d.words || []).forEach((w) => pool.push(w));
+      (d.words || []).forEach((w) => {
+        pool.push(toQuestion(w));
+        if (settings.includeSyn && Array.isArray(w.syn)) {
+          w.syn.forEach((syn) => {
+            pool.push(toQuestion(synAsWord(w, syn), { isSyn: true, parentEn: w.en }));
+          });
+        }
+      });
     });
   });
   for (let i = pool.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  // 복습 문항: 최대 7개 → primary 3 + recall 7 = 총 10 cap.
-  const RECALL_MAX = 7;
-  const recall = pool.slice(0, RECALL_MAX).map(toQuestion);
+  const recallNeeded = Math.max(0, settings.questionCount - primary.length);
+  const recall = pool.slice(0, recallNeeded);
 
   const questions = [...primary, ...recall];
-  window.__verifyQuestionsCache[dayN] = questions;
+  window.__verifyQuestionsCache[cacheKey] = questions;
   return questions;
 }
 
@@ -8114,6 +8238,38 @@ function VerifyPage(dayN) {
         html: `${Icon('check', 14)} 시험 결과 제출`
       }));
     } else {
+      // ─── 설정 패널 — 문항 수 + 유의어 포함 (premium 만 일부 옵션) ───
+      const vSettings = getVerifySettings();
+      const vIsPremium = state.tier === 'premium';
+      const settingsHtml = `
+        <div style="margin-bottom:14px;padding:14px 16px;border-radius:14px;background:rgba(251,247,240,0.06);border:1px solid rgba(251,247,240,0.12);">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div>
+              <div class="kicker" style="color:rgba(251,247,240,0.6);">문항 수</div>
+              <div style="display:inline-flex;gap:6px;margin-top:6px;">
+                ${[5, 10, 20].map((n) => {
+                  const isOn = vSettings.questionCount === n;
+                  const lockedFor20 = (n === 20 && !vIsPremium);
+                  return `
+                    <button onclick="window.__updateVerifySettings(${dayN}, 'questionCount', ${n})" ${lockedFor20 ? 'disabled' : ''} style="padding:6px 14px;border-radius:999px;border:1px solid ${isOn ? 'var(--orange)' : 'rgba(251,247,240,0.2)'};background:${isOn ? 'var(--orange)' : 'transparent'};color:${isOn ? '#fff' : (lockedFor20 ? 'rgba(251,247,240,0.3)' : 'var(--cream)')};font-size:12px;font-weight:700;cursor:${lockedFor20 ? 'not-allowed' : 'pointer'};display:inline-flex;align-items:center;gap:4px;">
+                      ${n}문제 ${lockedFor20 ? '🔒' : ''}
+                    </button>`;
+                }).join('')}
+              </div>
+              ${!vIsPremium ? `<div style="margin-top:6px;font-size:10.5px;color:rgba(251,247,240,0.5);">20문항은 프리미엄 전용</div>` : ''}
+            </div>
+            ${vIsPremium ? `
+              <label style="display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:${vSettings.includeSyn ? 'rgba(255,193,7,0.18)' : 'rgba(251,247,240,0.04)'};border:1px solid ${vSettings.includeSyn ? 'rgba(255,193,7,0.4)' : 'rgba(251,247,240,0.15)'};cursor:pointer;font-size:12px;color:var(--cream);font-weight:700;">
+                <input type="checkbox" ${vSettings.includeSyn ? 'checked' : ''} onchange="window.__updateVerifySettings(${dayN}, 'includeSyn', this.checked)" style="margin:0;cursor:pointer;accent-color:#FFC107;" />
+                유의어까지 출제
+                <span style="display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:999px;background:var(--lilac);color:#fff;font-size:9px;font-weight:800;letter-spacing:0.06em;">PREMIUM</span>
+              </label>
+            ` : `
+              <div style="font-size:11px;color:rgba(251,247,240,0.45);text-align:right;line-height:1.5;">유의어 출제 옵션은<br/>프리미엄 전용</div>
+            `}
+          </div>
+        </div>
+      `;
       // 1-blank vs 2-blank 결정 — pronoun 치환된 예문일 땐 2칸으로 갈라치기.
       const split = computeQuizSplit(currentQuestion);
       const inputBaseStyle = (active) => `display:inline-block;padding:6px 10px;text-align:center;font-size:24px;font-weight:700;line-height:1.3;letter-spacing:-0.02em;background:${active ? '#FFF7E0' : 'rgba(176,176,192,0.08)'};border:none;border-bottom:3px solid ${active ? '#F0AC3D' : '#D0CADF'};border-radius:8px 8px 0 0;color:${active ? '#35344A' : '#B0B0C0'};vertical-align:baseline;caret-color:#F07D38;box-shadow:${active ? '0 2px 8px rgba(240,125,56,0.16)' : 'none'};${active ? '' : 'pointer-events:none;opacity:0.6;'}`;
@@ -8139,6 +8295,7 @@ function VerifyPage(dayN) {
         `;
       }
       wrap.innerHTML = `
+        ${settingsHtml}
         <div style="padding:18px 18px 20px;border-radius:22px;background:#F7F5FF;border:1px solid rgba(255,255,255,0.08);color:var(--ink);">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
             <div class="kicker" style="color:#8B84D7;">단어 시험 · 총 ${questions.length}문제</div>
@@ -10878,51 +11035,32 @@ function DayPage(dayN) {
 
     if (isNuanceOpen) {
       const detail = el('div', { style: { marginTop: '10px' } });
-      const SYN_PALETTE = [
-        { bg1: '#F0E8FF', bg2: '#E5DAFB', border: '#7D5CFF', chip: '#7D5CFF', text: '#5D4770' }, // 라일락
-        { bg1: '#E2F0E2', bg2: '#D2E8D2', border: '#4F8F4F', chip: '#4F8F4F', text: '#345C34' }, // 그린
-        { bg1: '#E0F0F8', bg2: '#CFE6F2', border: '#3D8FB8', chip: '#3D8FB8', text: '#2A6488' }, // 블루 (3번째 syn 있을 때)
-      ];
-      const synonymRows = (w.syn || []).map((s, idx) => {
+      // 단일 톤 (오렌지) + 폰트 키움 — 신호등 X
+      const synonymPreview = (w.syn || []).map((s) => {
         const synKey = `${bookmarkKey}::${s}`;
         const isSaved = !!state.saved_syns?.[synKey];
-        const c = SYN_PALETTE[idx % SYN_PALETTE.length];
         return `
-        <div style="position:relative;padding:14px 16px 14px 18px;border-radius:16px;background:linear-gradient(135deg, ${c.bg1} 0%, ${c.bg2} 100%);border-left:5px solid ${c.border};">
+        <div style="padding:14px 16px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(232,116,60,0.22);border-left:4px solid var(--orange);">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
             <div style="flex:1;min-width:0;">
-              <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
-                <span style="display:inline-block;padding:2px 8px;border-radius:999px;background:${c.chip};color:#fff;font-size:9px;font-weight:800;letter-spacing:0.08em;">VAR ${idx + 1}</span>
-                <span style="font-size:17px;font-weight:800;color:${c.border};letter-spacing:-0.01em;font-family:var(--font-mono);">${escapeHtml(s)}</span>
+              <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+                <span style="font-size:17px;font-weight:800;color:var(--orange-dark);font-family:var(--font-mono);letter-spacing:-0.01em;">${escapeHtml(s)}</span>
+                <span style="font-size:13.5px;color:var(--ink);font-weight:700;line-height:1.5;">${escapeHtml(synonymMeaning(s))}</span>
               </div>
-              <div style="margin-top:6px;font-size:13px;color:${c.text};font-weight:700;line-height:1.5;">${escapeHtml(synonymMeaning(s))}</div>
-              <div style="margin-top:6px;font-size:12.5px;line-height:1.55;color:var(--ink);word-break:keep-all;">${escapeHtml(synonymNuance(w, s))}</div>
+              <div style="margin-top:8px;font-size:13px;line-height:1.6;color:var(--ink-soft);word-break:keep-all;">${escapeHtml(synonymNuance(w, s))}</div>
             </div>
-            <button onclick="window.__toggleSynBookmark('${synKey}')" title="${isSaved ? '단어장에서 빼기' : '단어장에 저장'}" style="background:transparent;border:none;color:${c.border};width:30px;height:30px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;">${Icon(isSaved ? 'bookmarkFill' : 'bookmark', 14)}</button>
+            <button onclick="window.__toggleSynBookmark('${synKey}')" title="${isSaved ? '단어장에서 빼기' : '단어장에 저장'}" style="background:transparent;border:none;color:var(--orange);width:32px;height:32px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;">${Icon(isSaved ? 'bookmarkFill' : 'bookmark', 15)}</button>
           </div>
         </div>
       `;}).join('');
-      // 메인 + 유의어들을 한 패널에서 컬러 비교 — 톤 차이가 한눈에 들어오게.
-      const mainNuance = w.nuance || defaultNuance(w);
-      const mainRow = `
-        <div style="position:relative;padding:14px 16px 14px 18px;border-radius:16px;background:linear-gradient(135deg, #FFF3E8 0%, #FFEAD6 100%);border-left:5px solid var(--orange);">
-          <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
-            <span style="display:inline-block;padding:2px 8px;border-radius:999px;background:var(--orange);color:#fff;font-size:9px;font-weight:800;letter-spacing:0.08em;">★ MAIN</span>
-            <span style="font-size:17px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em;">${escapeHtml(w.en)}</span>
-          </div>
-          <div style="margin-top:6px;font-size:13px;color:var(--orange-dark);font-weight:700;line-height:1.5;">${escapeHtml(w.def)}</div>
-          <div style="margin-top:6px;font-size:12.5px;line-height:1.55;color:var(--ink);word-break:keep-all;">${escapeHtml(mainNuance)}</div>
-        </div>
-      `;
       detail.innerHTML = `
         <div>
-          <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span style="font-size:12px;font-weight:800;color:var(--ink);letter-spacing:0.04em;">3가지 표현 · 한눈에 차이</span>
-            <span style="font-size:10.5px;color:var(--muted);font-weight:500;">같은 뜻, 다른 톤 — 색깔별로 구분해서 보기</span>
+          <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:13px;font-weight:800;color:var(--orange-dark);letter-spacing:0.04em;">유의어</span>
+            <span style="font-size:11px;color:var(--muted);font-weight:500;">— 같은 뜻, 다른 톤</span>
           </div>
           <div style="display:grid;gap:10px;">
-            ${mainRow}
-            ${synonymRows || `<div style="padding:12px 14px;border-radius:14px;background:var(--paper);border:1px solid var(--line-soft);font-size:12px;color:var(--muted);">연결된 유의어가 아직 없어요.</div>`}
+            ${synonymPreview || `<div style="padding:12px 14px;border-radius:14px;background:var(--paper);border:1px solid var(--line-soft);font-size:12px;color:var(--muted);">연결된 유의어가 아직 없어요.</div>`}
           </div>
         </div>
       `;
@@ -11028,32 +11166,53 @@ function DayPage(dayN) {
         <span style="font-size:13px;color:var(--ink-soft);"><b style="color:var(--orange-dark);">${escapeHtml(w.en)}</b> · ${escapeHtml(w.def)}</span>
       </div>
     `;
-    // 유의어 한 끗 차이 — 카드 제목(label) 바로 아래에 큼직하게, 배경 없이.
+    // 유의어 한 끗 차이 — 카드 제목(label) 바로 아래에 큼직하게.
     // Day 1~9 = 전체 멤버 / Day 10~ = 프리미엄만.
+    // 각 syn 마다: 영어 예시문장 (어휘 강조) + 분위기 한 줄 + Korean 의미 + nuance.
     const showSyn = (dayN <= 9 || state.tier === 'premium') && Array.isArray(w.syn) && w.syn.length;
     if (showSyn) {
       const synBox = el('div', {
         style: {
-          marginBottom: '14px',
-          padding: '0',
+          marginBottom: '16px',
+          padding: '14px 16px',
+          borderRadius: '14px',
+          background: '#FFFCF4',
+          border: '1px solid rgba(232,116,60,0.15)',
         }
       });
       const isPremiumGated = dayN > 9;
+      // 어휘 단어를 영문장 안에서 굵은 오렌지로 하이라이트
+      const highlightSyn = (sentence, synWord) => {
+        if (!sentence || !synWord) return escapeHtml(sentence || '');
+        const safe = escapeHtml(sentence);
+        const escSyn = escapeHtml(synWord).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // 시제 변형 추가 시 너무 복잡 — 그대로 매칭 + 's 변형 정도만
+        const re = new RegExp('(' + escSyn + 's?)', 'i');
+        return safe.replace(re, '<b style="color:#F07D38;font-weight:700;">$1</b>');
+      };
       synBox.innerHTML = `
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-          <span style="font-size:11px;font-weight:800;color:#7B5E8C;letter-spacing:0.06em;">유의어 한 끗 차이</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          <span style="font-size:12px;font-weight:800;color:var(--orange-dark);letter-spacing:0.04em;">유의어로 같은 상황 다르게 말하기</span>
           ${isPremiumGated ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:999px;background:var(--lilac);color:#fff;font-size:9px;font-weight:800;letter-spacing:0.06em;">${Icon('crown', 8)} PREMIUM</span>` : ''}
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          ${w.syn.map((s) => `
-            <div style="padding:0 0 0 12px;border-left:3px solid rgba(169,139,184,0.45);">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          ${w.syn.map((s) => {
+            const ex = synonymExample(w, s);
+            return `
+            <div style="padding:0 0 0 14px;border-left:3px solid var(--orange);">
               <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
-                <span style="font-size:15px;font-weight:800;color:#5D4770;letter-spacing:-0.01em;">${escapeHtml(s)}</span>
-                <span style="font-size:13px;color:#7B5E8C;font-weight:600;">— ${escapeHtml(synonymMeaning(s))}</span>
+                <span style="font-size:16px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em;font-family:var(--font-mono);">${escapeHtml(s)}</span>
+                <span style="font-size:13px;color:var(--ink);font-weight:600;">— ${escapeHtml(synonymMeaning(s))}</span>
               </div>
-              <div style="margin-top:4px;font-size:13px;line-height:1.55;color:var(--ink);word-break:keep-all;">${escapeHtml(synonymNuance(w, s))}</div>
+              ${ex && ex.en ? `
+                <div style="margin-top:8px;padding:8px 12px;border-radius:10px;background:#FFF7EB;border:1px solid rgba(232,116,60,0.18);font-size:14px;line-height:1.55;color:var(--ink);word-break:keep-all;">${highlightSyn(ex.en, s)}</div>
+              ` : ''}
+              ${ex && ex.mood ? `
+                <div style="margin-top:6px;font-size:12.5px;line-height:1.5;color:#7B5E8C;font-weight:600;word-break:keep-all;">${escapeHtml(ex.mood)}</div>
+              ` : ''}
+              <div style="margin-top:6px;font-size:12.5px;line-height:1.55;color:var(--ink-soft);word-break:keep-all;">${escapeHtml(synonymNuance(w, s))}</div>
             </div>
-          `).join('')}
+          `;}).join('')}
         </div>
       `;
       row.appendChild(synBox);
@@ -11195,15 +11354,27 @@ function DayPage(dayN) {
           aiBtn.innerHTML = `${Icon('sparkles', 12)} 리뷰 중...`;
           try {
             const koreanCtx = (state.sentence_notes?.[key] || '').trim();
+            // 같은 입력으로 이미 리뷰 받은 적 있으면 재호출 X — 결정론 보장 + 비용/속도 절감.
+            const cached = state.ai_feedback[key];
+            const cachedSameInput = cached && cached.originalInput === ta.value && cached.corrected !== undefined && !cached.isError;
+            if (cachedSameInput) {
+              showToast('동일 문장에 대한 리뷰가 이미 있어요. 입력을 바꾸면 새로 리뷰합니다.');
+              aiBtn.disabled = false;
+              aiBtn.innerHTML = `${Icon('sparkles', 12)} 다시 리뷰 받기`;
+              return;
+            }
             const result = await requestSentenceCorrection(w, ta.value, koreanCtx);
             state.ai_feedback[key] = result;
             saveState();
             render();
           } catch (e) {
+            // 네트워크/예외로 진짜 실패한 경우 — "잘 썼어요" 처럼 보이지 않게 isError 플래그 명시.
             state.ai_feedback[key] = {
               corrected: ta.value,
-              diff_html: escapeHtml(ta.value),
+              diff_html: '',
               why: '네트워크 이슈로 AI 리뷰가 지연되고 있어요. 잠시 후 다시 시도해보세요.',
+              originalInput: ta.value,
+              isError: true,
             };
             saveState();
             render();
@@ -11244,6 +11415,8 @@ function DayPage(dayN) {
     const fb = state.ai_feedback[key];
     if (fb && isSubmitted) {
       const hasDiff = /<del>|<ins>/i.test(fb.diff_html || '');
+      const isError = !!fb.isError; // 네트워크/AI 진짜 에러 — 절대 "잘 썼어요" 로 표시 X
+      const isFallback = !!fb.isFallback; // local fallback (덜 정확) — 사용자에게 한 번 더 시도 권유
       // AI 가 "수정 없음" 류 메시지 보냈는데 실제 diff 가 있으면 → 일관성 깨진 케이스.
       // diff 가 정답이라 가정하고 why 를 덮어써서 학습자 혼란 방지.
       const __whyClaimsNoChange = /수정할? 부분.*없|이미.*자연|그대로.*가셔도|잘 쓰셨|수정 ?없|변경 ?없/i.test(fb.why || '');
@@ -11251,20 +11424,45 @@ function DayPage(dayN) {
         ? '문장 거의 자연스러웠고, 흐름·표현을 살짝만 다듬었어요.'
         : (fb.why || '');
       const result = el('div', { class: 'ai-feedback', style: { marginTop: '18px', padding: '20px 22px', borderRadius: '28px' } });
+      let bodyHtml;
+      if (isError) {
+        bodyHtml = `
+          <div style="font-size:13px;margin:8px 0;line-height:1.55;color:var(--orange-dark);background:rgba(232,116,60,0.08);padding:10px 14px;border-radius:12px;border:1px solid rgba(232,116,60,0.25);">
+            ⚠️ AI 리뷰 실패 — 다시 리뷰 버튼 눌러주세요.
+          </div>
+          <div class="t-small" style="color:var(--ink-soft);line-height:1.55;">${escapeHtml(fb.why || '')}</div>`;
+      } else if (hasDiff) {
+        bodyHtml = `
+          <div class="ai-corrected" style="display:flex;align-items:flex-start;gap:8px;">
+            <span style="flex:1;min-width:0;">"${escapeHtml(fb.corrected)}"</span>
+            <button type="button" class="btn-copy-ai" data-copy-text="${escapeHtml(fb.corrected)}" style="flex-shrink:0;padding:6px 10px;border-radius:999px;background:#fff;color:var(--orange-dark);border:1px solid var(--orange-soft);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">📋 복사</button>
+          </div>
+          <div style="font-size:13px;margin:8px 0;line-height:1.55;">${fb.diff_html}</div>
+          <div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(reconciledWhy)}</div>
+          <div class="t-small" style="margin-top:8px;color:var(--muted);font-size:11.5px;line-height:1.5;">이걸 복사해서 다시 붙여넣고 제출하면 수정돼 올라가요.</div>`;
+      } else if (isFallback) {
+        // local fallback 인데 diff 가 없는 경우 — 진짜 자연스러운 게 아니라 폴백이 같은 문장 돌려준 것일 수 있음.
+        bodyHtml = `
+          <div style="font-size:13px;margin:8px 0;line-height:1.55;color:var(--orange-dark);background:rgba(232,116,60,0.06);padding:10px 14px;border-radius:12px;border:1px solid rgba(232,116,60,0.18);">
+            ⚙️ 로컬 폴백 모드로 검토했어요. 정확한 AI 리뷰는 잠시 후 다시 시도해주세요.
+          </div>
+          <div class="t-small" style="color:var(--ink-soft);line-height:1.55;">${escapeHtml(fb.why || '')}</div>`;
+      } else {
+        // 정상 AI 응답 + diff 없음 = "정말 잘 썼다"
+        bodyHtml = `
+          <div class="ai-corrected" style="display:flex;align-items:flex-start;gap:8px;">
+            <span style="flex:1;min-width:0;">"${escapeHtml(fb.corrected)}"</span>
+            <button type="button" class="btn-copy-ai" data-copy-text="${escapeHtml(fb.corrected)}" style="flex-shrink:0;padding:6px 10px;border-radius:999px;background:#fff;color:var(--orange-dark);border:1px solid var(--orange-soft);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">📋 복사</button>
+          </div>
+          <div class="t-small" style="margin:8px 0;color:var(--green);">고칠 부분이 없어요 — 자연스럽게 잘 썼어요!</div>
+          <div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(reconciledWhy)}</div>`;
+      }
       result.innerHTML = `
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
           <div class="ai-head" style="margin:0;">${Icon('sparkles', 12)} 내 기록실 · AI 리뷰</div>
           <span style="font-size:10.5px;color:var(--muted);background:var(--paper);padding:3px 8px;border-radius:999px;">참고용 · 나만 봐요</span>
         </div>
-        <div class="ai-corrected" style="display:flex;align-items:flex-start;gap:8px;">
-          <span style="flex:1;min-width:0;">"${escapeHtml(fb.corrected)}"</span>
-          <button type="button" class="btn-copy-ai" data-copy-text="${escapeHtml(fb.corrected)}" style="flex-shrink:0;padding:6px 10px;border-radius:999px;background:#fff;color:var(--orange-dark);border:1px solid var(--orange-soft);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">📋 복사</button>
-        </div>
-        ${hasDiff
-          ? `<div style="font-size:13px;margin:8px 0;line-height:1.55;">${fb.diff_html}</div>`
-          : `<div class="t-small" style="margin:8px 0;color:var(--green);">고칠 부분이 없어요 — 자연스럽게 잘 썼어요!</div>`}
-        <div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(reconciledWhy)}</div>
-        <div class="t-small" style="margin-top:8px;color:var(--muted);font-size:11.5px;line-height:1.5;">이걸 복사해서 다시 붙여넣고 제출하면 수정돼 올라가요.</div>`;
+        ${bodyHtml}`;
       // Wire up the copy button after innerHTML is set.
       const copyBtn = result.querySelector('.btn-copy-ai');
       if (copyBtn) {
@@ -19553,8 +19751,12 @@ window.__setVerifyQuizPartValue = (dayN, partIdx, value) => {
 window.__restartVerifyQuiz = (dayN) => {
   window.__verifyUi = window.__verifyUi || {};
   window.__verifyUi[dayN] = { idx: 0, value: '', values: ['', ''], done: false, score: 0, activeStep: 'capture', reveal: false, revealAnswer: false };
-  // 새 회차엔 복습 문항을 새로 뽑도록 캐시 무효화.
-  if (window.__verifyQuestionsCache) window.__verifyQuestionsCache[dayN] = null;
+  // 새 회차엔 복습 문항을 새로 뽑도록 캐시 무효화 (모든 settings 조합 cache key 비우기).
+  if (window.__verifyQuestionsCache) {
+    Object.keys(window.__verifyQuestionsCache).forEach((k) => {
+      if (k.indexOf(dayN + '|') === 0) delete window.__verifyQuestionsCache[k];
+    });
+  }
   // Also clear the quiz submission checkpoint so the quiz step comes back as active.
   // Prevents the "다시 풀기 but page shows next step instead" confusion.
   const quizKey = `d${dayN}-quiz`;
@@ -19562,6 +19764,29 @@ window.__restartVerifyQuiz = (dayN) => {
     delete state.checkpoints[quizKey];
     saveState();
   }
+  render();
+};
+window.__updateVerifySettings = (dayN, key, value) => {
+  // 단어 시험 설정 변경 — 캐시 / ui 초기화 후 다시 풀기 모드.
+  state.verify_settings = state.verify_settings || { includeSyn: false, questionCount: 10 };
+  if (key === 'includeSyn') {
+    if (state.tier !== 'premium') return; // premium 만 가능
+    state.verify_settings.includeSyn = !!value;
+  } else if (key === 'questionCount') {
+    const n = Number(value);
+    if (n === 20 && state.tier !== 'premium') return; // 20 은 premium 만
+    if (n === 5 || n === 10 || n === 20) state.verify_settings.questionCount = n;
+  }
+  // 캐시 비우기 (해당 dayN 의 모든 cache key)
+  if (window.__verifyQuestionsCache) {
+    Object.keys(window.__verifyQuestionsCache).forEach((k) => {
+      if (k.indexOf(dayN + '|') === 0) delete window.__verifyQuestionsCache[k];
+    });
+  }
+  // UI 초기화 (현재 진행 중이던 답안 초기화)
+  window.__verifyUi = window.__verifyUi || {};
+  window.__verifyUi[dayN] = { idx: 0, value: '', values: ['', ''], done: false, score: 0, activeStep: 'capture', reveal: false, revealAnswer: false };
+  saveState();
   render();
 };
 window.__toggleVerifyAnswer = (dayN) => {
