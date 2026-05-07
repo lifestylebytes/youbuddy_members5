@@ -5606,7 +5606,8 @@ function startPeerTicker(dayN) {
    ============================================================ */
 window.__globalPeerTimer = window.__globalPeerTimer || null;
 window.__globalPeerSeen = window.__globalPeerSeen || new Set();
-window.__globalPeerBaselineSet = window.__globalPeerBaselineSet || false;
+// 단순화: 시작 시각 기록. 그 이후에 들어온 post 만 fresh 로 판정 (timestamp 기반).
+window.__globalPeerStartedAt = window.__globalPeerStartedAt || Date.now();
 
 function _globalPeerKey(p) {
   return String(p.id || (p.member_key || '') + '::' + (p.sentence || '').slice(0, 60));
@@ -5614,21 +5615,28 @@ function _globalPeerKey(p) {
 
 async function globalPeerTick() {
   try {
-    // 탭이 백그라운드여도 폴링은 계속 — 브라우저 알림 (Notification API) 으로 알람.
     if (!hasSupabase()) return;
     const today = Number(state.currentDay) || 1;
     const posts = await loadCommunityPosts(today, { force: true });
     if (!Array.isArray(posts) || !posts.length) return;
-    // Baseline — 첫 폴링 시점에 이미 있는 글은 모두 "이미 본 것" 으로 마킹.
-    if (!window.__globalPeerBaselineSet) {
-      posts.forEach((p) => window.__globalPeerSeen.add(_globalPeerKey(p)));
-      window.__globalPeerBaselineSet = true;
-      return;
-    }
+    const startedAt = window.__globalPeerStartedAt || Date.now();
     const myKey = memberKey();
+    // Fresh 판정: created_at 이 시작 시각 이후 + 본인 글 아님 + 이미 알람 보낸 적 없음.
     const fresh = posts.filter((p) => {
-      if ((p.member_key || '') === myKey) return false; // 본인 글 X
-      return !window.__globalPeerSeen.has(_globalPeerKey(p));
+      const key = _globalPeerKey(p);
+      if (window.__globalPeerSeen.has(key)) return false;
+      // 본인 글은 알람 X (본인이 막 올린 거니까)
+      if ((p.member_key || '') === myKey) {
+        window.__globalPeerSeen.add(key); // 마킹은 해두고 알람만 skip
+        return false;
+      }
+      // 시작 시각 기준 — created_at 이 그 이후만 fresh
+      const ts = p.created_at ? Date.parse(p.created_at) : 0;
+      if (ts && ts < startedAt) {
+        window.__globalPeerSeen.add(key); // 오래된 글은 마킹만
+        return false;
+      }
+      return true;
     });
     if (!fresh.length) return;
     fresh.forEach((p) => window.__globalPeerSeen.add(_globalPeerKey(p)));
@@ -5638,29 +5646,28 @@ async function globalPeerTick() {
       member_key: pick.member_key || '',
       sentence: pick.sentence || '',
       id: pick.id,
+      dayN: pick.day_n || pick.dayN || today,
     };
-    // peer 표시명 — englishName 우선
     const peerMember = (typeof memberByRef === 'function' ? memberByRef(peerObj.user) : null)
       || (peerObj.member_key && typeof memberByKey === 'function' ? memberByKey(peerObj.member_key) : null);
     const peerDisplay = peerMember ? (typeof displayName === 'function' ? displayName(peerMember) : peerObj.user) : peerObj.user;
-    // 1) 탭이 백그라운드 → 브라우저 OS 알림
+    // 백그라운드면 브라우저 알림, 포그라운드면 in-page ticker (Day 페이지에선 local 이 처리)
     if (document.hidden) {
       showPeerBrowserNotif(peerObj, peerDisplay);
-      return;
+    } else if (currentPage !== 'day') {
+      showPeerTicker(peerObj);
     }
-    // 2) Day 페이지에 있는 동안엔 local peer-ticker 가 처리 — 중복 방지
-    if (currentPage === 'day') return;
-    // 3) 그 외엔 in-page floating ticker
-    showPeerTicker(peerObj);
-  } catch (_) {}
+  } catch (e) {
+    try { console.warn('[peer-ticker]', e); } catch (_) {}
+  }
 }
 
 function startGlobalPeerTicker() {
   if (window.__globalPeerTimer) return; // already running
-  // Initial tick: 5초 후 baseline 잡고, 이후 60초 cadence.
-  setTimeout(globalPeerTick, 5000);
-  window.__globalPeerTimer = setInterval(globalPeerTick, 60000);
-  // 브라우저 알림 권한 요청 — default 상태일 때만 1회. 거부해도 in-page ticker 는 그대로 동작.
+  window.__globalPeerStartedAt = Date.now();
+  // 30초 간격으로 폴링 — 60초보다 알람 빠름.
+  setTimeout(globalPeerTick, 3000);
+  window.__globalPeerTimer = setInterval(globalPeerTick, 30000);
   try { requestPeerNotifPermission(); } catch (_) {}
 }
 
