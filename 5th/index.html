@@ -5701,12 +5701,31 @@ function showPeerTicker(peer) {
   const peerDisplay = peerMember ? displayName(peerMember) : (peer.user || '');
   const peerInitial = peerMember ? safeInitial(peerMember) : ((peer.avatar || peer.user || '').slice(0,1));
 
+  // 문장 미리보기 (길이 제한)
+  const sentencePreview = (peer.sentence || '').trim().slice(0, 90);
+  // 단어 (Day vocab) 정보 — peer.dayN + peer.wordIdx 가 있으면 매칭, 없으면 sentence 안에서 vocab 탐지.
+  let wordHint = '';
+  try {
+    const dayN = Number(peer.dayN || state.currentDay || 0);
+    if (dayN > 0) {
+      const day = (typeof getDay === 'function') ? getDay(dayN) : null;
+      const words = (day && day.words) || [];
+      // Try to find which vocab the sentence used
+      const matched = words.find((w) => w.en && new RegExp('\\b' + w.en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(sentencePreview));
+      if (matched) wordHint = `${matched.en} · ${matched.def || ''}`;
+    }
+  } catch (_) {}
+
   const node = el('div', { class: 'peer-ticker' });
+  // inline override — 좀 더 풍부한 컨텐트, 가로 max-width 늘림
+  node.style.maxWidth = '380px';
   node.innerHTML = `
     <span class="pt-pulse"></span>
     <div class="pt-avatar">${escapeHtml(peerInitial)}</div>
-    <div class="pt-text">
-      <span class="pt-label">${escapeHtml(peerDisplay)}님 문장 올림</span>
+    <div class="pt-text" style="flex:1;min-width:0;">
+      <div class="pt-label" style="font-weight:800;line-height:1.3;">${escapeHtml(peerDisplay)}님이 문장 제출했어요</div>
+      ${sentencePreview ? `<div style="margin-top:4px;font-size:12px;color:rgba(0,0,0,0.7);line-height:1.45;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">"${escapeHtml(sentencePreview)}"</div>` : ''}
+      ${wordHint ? `<div style="margin-top:3px;font-size:10.5px;color:var(--orange-dark);font-weight:700;letter-spacing:-0.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📌 ${escapeHtml(wordHint)}</div>` : ''}
     </div>`;
   node.addEventListener('click', () => {
     // Scroll to peer sentences section if present
@@ -5720,7 +5739,7 @@ function showPeerTicker(peer) {
     if (!node.isConnected) return;
     node.classList.add('out');
     setTimeout(() => node.remove(), 280);
-  }, 4200);
+  }, 5200); // 더 길게 보여줘 — 5초
 }
 
 function shouldIgnoreSwipeTarget(target) {
@@ -7340,13 +7359,21 @@ function Checkboard() {
   // Collator 매 render 마다 새로 만들면 비용 누적 — 한 번만 만들고 재사용.
   const koCollator = window.__koCollator || (window.__koCollator = new Intl.Collator('ko', { numeric: true, sensitivity: 'base' }));
   const orderedMembers = [...allMembers].sort((a, b) => {
-    if (a.me !== b.me) return a.me ? -1 : 1;   // me first, always
+    // 1) me → 항상 맨 위
+    if (a.me !== b.me) return a.me ? -1 : 1;
+    // 2) 무참여자 → 맨 아래
     const aNon = isNonparticipant(a) ? 1 : 0;
     const bNon = isNonparticipant(b) ? 1 : 0;
-    if (aNon !== bNon) return aNon - bNon;     // 일반 → 무참여자 맨 아래
+    if (aNon !== bNon) return aNon - bNon;
+    // 3) 운영자 (유버디) → me 다음
+    const aOp = a.isOperator ? 1 : 0;
+    const bOp = b.isOperator ? 1 : 0;
+    if (aOp !== bOp) return bOp - aOp;
+    // 4) tier — premium 먼저
     const ta = tierRank(a), tb = tierRank(b);
-    if (ta !== tb) return ta - tb;             // premium before basic
-    return koCollator.compare(a.name || '', b.name || ''); // 한글 가나다순
+    if (ta !== tb) return ta - tb;
+    // 5) 같은 그룹 안에서 한글 가나다순 (모든 뷰어가 같은 순서 보장)
+    return koCollator.compare(a.name || '', b.name || '');
   });
   // ── 성능 최적화 — 50명 × 21셀 = 1050 노드를 el() 로 일일이 만들면 매 render 마다 무거움.
   //    여기선 한 번에 innerHTML 로 wire 한 다음, 클릭은 grid 단에 위임 (event delegation).
