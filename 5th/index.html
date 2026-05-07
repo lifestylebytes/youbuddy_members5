@@ -5626,19 +5626,22 @@ async function globalPeerTick() {
     if (!Array.isArray(posts) || !posts.length) return;
     const startedAt = window.__globalPeerStartedAt || Date.now();
     const myKey = memberKey();
-    // Fresh 판정: created_at 이 시작 시각 이후 + 본인 글 아님 + 이미 알람 보낸 적 없음.
+    const RECENT_WINDOW_MS = 5 * 60 * 1000; // 5분 안에 올라온 글은 startedAt 보다 오래됐어도 fresh
+    // Fresh 판정: 최근 5분 안 글 OR startedAt 이후 글 + 본인 글 아님 + 이미 알람 보낸 적 없음.
     const fresh = posts.filter((p) => {
       const key = _globalPeerKey(p);
       if (window.__globalPeerSeen.has(key)) return false;
       // 본인 글은 알람 X (본인이 막 올린 거니까)
       if ((p.member_key || '') === myKey) {
-        window.__globalPeerSeen.add(key); // 마킹은 해두고 알람만 skip
+        window.__globalPeerSeen.add(key);
         return false;
       }
-      // 시작 시각 기준 — created_at 이 그 이후만 fresh
       const ts = p.created_at ? Date.parse(p.created_at) : 0;
-      if (ts && ts < startedAt) {
-        window.__globalPeerSeen.add(key); // 오래된 글은 마킹만
+      if (!ts) return true; // created_at 없으면 일단 fresh 로
+      const veryRecent = (Date.now() - ts) < RECENT_WINDOW_MS;
+      if (ts < startedAt && !veryRecent) {
+        // startedAt 이전 + 5분도 더 지난 글은 진짜 old
+        window.__globalPeerSeen.add(key);
         return false;
       }
       return true;
