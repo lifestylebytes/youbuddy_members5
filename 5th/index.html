@@ -10832,26 +10832,51 @@ function DayPage(dayN) {
 
     if (isNuanceOpen) {
       const detail = el('div', { style: { marginTop: '10px' } });
-      const nuance = w.nuance || defaultNuance(w);
-      const synonymPreview = (w.syn || []).map((s) => {
+      const SYN_PALETTE = [
+        { bg1: '#F0E8FF', bg2: '#E5DAFB', border: '#7D5CFF', chip: '#7D5CFF', text: '#5D4770' }, // 라일락
+        { bg1: '#E2F0E2', bg2: '#D2E8D2', border: '#4F8F4F', chip: '#4F8F4F', text: '#345C34' }, // 그린
+        { bg1: '#E0F0F8', bg2: '#CFE6F2', border: '#3D8FB8', chip: '#3D8FB8', text: '#2A6488' }, // 블루 (3번째 syn 있을 때)
+      ];
+      const synonymRows = (w.syn || []).map((s, idx) => {
         const synKey = `${bookmarkKey}::${s}`;
         const isSaved = !!state.saved_syns?.[synKey];
+        const c = SYN_PALETTE[idx % SYN_PALETTE.length];
         return `
-        <div style="padding:12px 14px;border-radius:14px;background:var(--paper);border:1px solid var(--line-soft);">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;row-gap:6px;">
-            <span class="syn-chip" style="padding:4px 10px;font-size:11px;font-family:var(--font-mono);flex-shrink:0;">${escapeHtml(s)}</span>
-            <span style="font-size:12px;color:var(--ink-soft);flex:1 1 140px;min-width:0;line-height:1.5;">${escapeHtml(synonymMeaning(s))}</span>
-            <button onclick="window.__toggleSynBookmark('${synKey}')" title="${isSaved ? '단어장에서 빼기' : '단어장에 저장'}" style="background:transparent;border:none;color:var(--orange);width:30px;height:30px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;margin-left:auto;">${Icon(isSaved ? 'bookmarkFill' : 'bookmark', 14)}</button>
+        <div style="position:relative;padding:14px 16px 14px 18px;border-radius:16px;background:linear-gradient(135deg, ${c.bg1} 0%, ${c.bg2} 100%);border-left:5px solid ${c.border};">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+                <span style="display:inline-block;padding:2px 8px;border-radius:999px;background:${c.chip};color:#fff;font-size:9px;font-weight:800;letter-spacing:0.08em;">VAR ${idx + 1}</span>
+                <span style="font-size:17px;font-weight:800;color:${c.border};letter-spacing:-0.01em;font-family:var(--font-mono);">${escapeHtml(s)}</span>
+              </div>
+              <div style="margin-top:6px;font-size:13px;color:${c.text};font-weight:700;line-height:1.5;">${escapeHtml(synonymMeaning(s))}</div>
+              <div style="margin-top:6px;font-size:12.5px;line-height:1.55;color:var(--ink);word-break:keep-all;">${escapeHtml(synonymNuance(w, s))}</div>
+            </div>
+            <button onclick="window.__toggleSynBookmark('${synKey}')" title="${isSaved ? '단어장에서 빼기' : '단어장에 저장'}" style="background:transparent;border:none;color:${c.border};width:30px;height:30px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;">${Icon(isSaved ? 'bookmarkFill' : 'bookmark', 14)}</button>
           </div>
         </div>
       `;}).join('');
-      // PREMIUM DETAIL 박스는 위쪽 vocab card 에서 제거됨 — 정보 중복 + 결정 시점이 아닌 곳.
-      // 같은 정보가 prompt box (문장 쓸 때) 에 라일락 박스로 노출됨 = just-in-time learning.
+      // 메인 + 유의어들을 한 패널에서 컬러 비교 — 톤 차이가 한눈에 들어오게.
+      const mainNuance = w.nuance || defaultNuance(w);
+      const mainRow = `
+        <div style="position:relative;padding:14px 16px 14px 18px;border-radius:16px;background:linear-gradient(135deg, #FFF3E8 0%, #FFEAD6 100%);border-left:5px solid var(--orange);">
+          <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+            <span style="display:inline-block;padding:2px 8px;border-radius:999px;background:var(--orange);color:#fff;font-size:9px;font-weight:800;letter-spacing:0.08em;">★ MAIN</span>
+            <span style="font-size:17px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em;">${escapeHtml(w.en)}</span>
+          </div>
+          <div style="margin-top:6px;font-size:13px;color:var(--orange-dark);font-weight:700;line-height:1.5;">${escapeHtml(w.def)}</div>
+          <div style="margin-top:6px;font-size:12.5px;line-height:1.55;color:var(--ink);word-break:keep-all;">${escapeHtml(mainNuance)}</div>
+        </div>
+      `;
       detail.innerHTML = `
         <div>
-          <div class="kicker" style="margin-bottom:8px;">유의어</div>
-          <div style="display:grid;gap:8px;">
-            ${synonymPreview || `<div style="padding:12px 14px;border-radius:14px;background:var(--paper);border:1px solid var(--line-soft);font-size:12px;color:var(--muted);">연결된 유의어가 아직 없어요.</div>`}
+          <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:12px;font-weight:800;color:var(--ink);letter-spacing:0.04em;">3가지 표현 · 한눈에 차이</span>
+            <span style="font-size:10.5px;color:var(--muted);font-weight:500;">같은 뜻, 다른 톤 — 색깔별로 구분해서 보기</span>
+          </div>
+          <div style="display:grid;gap:10px;">
+            ${mainRow}
+            ${synonymRows || `<div style="padding:12px 14px;border-radius:14px;background:var(--paper);border:1px solid var(--line-soft);font-size:12px;color:var(--muted);">연결된 유의어가 아직 없어요.</div>`}
           </div>
         </div>
       `;
