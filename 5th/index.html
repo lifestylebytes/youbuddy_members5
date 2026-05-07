@@ -5664,47 +5664,31 @@ function startPeerTicker(dayN) {
    초기 1회 baseline 잡고, 그 이후 새로 들어온 post 만 표시.
    document.hidden 이면 일시정지. 본인 글은 건너뜀.
    ============================================================ */
+// === 전역 알림 ticker — 단순 버전 ===
+// 룰: 어떤 글이든 새로 올라오면 모든 계정에서 "{이름}님이 글 올렸어요" 토스트.
+// 시간/본인 필터/페이지 필터 다 제거. 그냥 "이 ID 본 적 없으면 띄움".
+// 첫 폴링은 마킹만 (앱 켜자마자 폭주 방지).
 window.__globalPeerTimer = window.__globalPeerTimer || null;
-window.__globalPeerSeen = window.__globalPeerSeen || new Set();
-// 단순화: 시작 시각 기록. 그 이후에 들어온 post 만 fresh 로 판정 (timestamp 기반).
-window.__globalPeerStartedAt = window.__globalPeerStartedAt || Date.now();
-
-function _globalPeerKey(p) {
-  return String(p.id || (p.member_key || '') + '::' + (p.sentence || '').slice(0, 60));
-}
+window.__peerSeenIds = window.__peerSeenIds || new Set();
+window.__peerFirstPoll = (window.__peerFirstPoll === undefined) ? true : window.__peerFirstPoll;
 
 async function globalPeerTick() {
   try {
     if (!hasSupabase()) return;
     const today = Number(state.currentDay) || 1;
     const posts = await loadCommunityPosts(today, { force: true });
-    try { console.log('[peer-ticker] poll', { day: today, count: (posts||[]).length, startedAt: window.__globalPeerStartedAt }); } catch (_) {}
     if (!Array.isArray(posts) || !posts.length) return;
-    const startedAt = window.__globalPeerStartedAt || Date.now();
-    const myKey = memberKey();
-    const RECENT_WINDOW_MS = 5 * 60 * 1000; // 5분 안에 올라온 글은 startedAt 보다 오래됐어도 fresh
-    // Fresh 판정: 최근 5분 안 글 OR startedAt 이후 글 + 본인 글 아님 + 이미 알람 보낸 적 없음.
-    const fresh = posts.filter((p) => {
-      const key = _globalPeerKey(p);
-      if (window.__globalPeerSeen.has(key)) return false;
-      // 본인 글은 알람 X (본인이 막 올린 거니까)
-      if ((p.member_key || '') === myKey) {
-        window.__globalPeerSeen.add(key);
-        return false;
-      }
-      const ts = p.created_at ? Date.parse(p.created_at) : 0;
-      if (!ts) return true; // created_at 없으면 일단 fresh 로
-      const veryRecent = (Date.now() - ts) < RECENT_WINDOW_MS;
-      if (ts < startedAt && !veryRecent) {
-        // startedAt 이전 + 5분도 더 지난 글은 진짜 old
-        window.__globalPeerSeen.add(key);
-        return false;
-      }
-      return true;
-    });
-    try { console.log('[peer-ticker] fresh', fresh.length, fresh.map((p) => ({ name: p.member_name, created: p.created_at }))); } catch (_) {}
+    // 첫 폴링 — 모두 마킹만, 토스트 X
+    if (window.__peerFirstPoll) {
+      posts.forEach((p) => window.__peerSeenIds.add(_postId(p)));
+      window.__peerFirstPoll = false;
+      return;
+    }
+    // 새 글만 — ID 안 본 거
+    const fresh = posts.filter((p) => !window.__peerSeenIds.has(_postId(p)));
+    fresh.forEach((p) => window.__peerSeenIds.add(_postId(p)));
     if (!fresh.length) return;
-    fresh.forEach((p) => window.__globalPeerSeen.add(_globalPeerKey(p)));
+    // 가장 첫 새 글로 토스트
     const pick = fresh[0];
     const peerObj = {
       user: pick.member_name || '',
@@ -5716,10 +5700,10 @@ async function globalPeerTick() {
     const peerMember = (typeof memberByRef === 'function' ? memberByRef(peerObj.user) : null)
       || (peerObj.member_key && typeof memberByKey === 'function' ? memberByKey(peerObj.member_key) : null);
     const peerDisplay = peerMember ? (typeof displayName === 'function' ? displayName(peerMember) : peerObj.user) : peerObj.user;
-    // 백그라운드면 브라우저 알림, 포그라운드면 in-page ticker (Day 페이지에선 local 이 처리)
+    // 탭 백그라운드 → OS 알림 / 포그라운드 → in-page 토스트
     if (document.hidden) {
       showPeerBrowserNotif(peerObj, peerDisplay);
-    } else if (currentPage !== 'day') {
+    } else {
       showPeerTicker(peerObj);
     }
   } catch (e) {
@@ -5727,12 +5711,14 @@ async function globalPeerTick() {
   }
 }
 
+function _postId(p) {
+  return String(p.id || (p.member_key || '') + '::' + (p.sentence || '').slice(0, 60));
+}
+
 function startGlobalPeerTicker() {
-  if (window.__globalPeerTimer) return; // already running
-  window.__globalPeerStartedAt = Date.now();
-  // 30초 간격으로 폴링 — 60초보다 알람 빠름.
-  setTimeout(globalPeerTick, 3000);
-  window.__globalPeerTimer = setInterval(globalPeerTick, 30000);
+  if (window.__globalPeerTimer) return;
+  setTimeout(globalPeerTick, 2000);
+  window.__globalPeerTimer = setInterval(globalPeerTick, 20000); // 20초 주기 — 빠르게
   try { requestPeerNotifPermission(); } catch (_) {}
 }
 
