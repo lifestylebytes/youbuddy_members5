@@ -3728,12 +3728,27 @@ function isNonparticipant(member) {
   if (!list.length) return false;
   return candidates.some((c) => list.includes(c));
 }
-// 멤버 정렬용 비교 함수 — 무참여자는 항상 맨 아래.
-// 위 그룹은 progress desc → streak desc, 무참여자 그룹도 같은 기준으로 그 안에서 정렬.
+// 멤버 정렬용 비교 함수 — 모든 사람이 같은 순서로 보이도록.
+// 우선순위: 본인 → 운영자(유버디) → 프리미엄 → 베이직 → 무참여자
+// 같은 그룹 안에서는 progress desc → streak desc.
 function memberSortCompare(a, b) {
+  // 1) 본인 — 항상 맨 위
+  const aMe = a.me ? 1 : 0;
+  const bMe = b.me ? 1 : 0;
+  if (aMe !== bMe) return bMe - aMe;
+  // 2) 무참여자 — 맨 아래
   const aNon = isNonparticipant(a) ? 1 : 0;
   const bNon = isNonparticipant(b) ? 1 : 0;
-  if (aNon !== bNon) return aNon - bNon; // 일반 → 무참여
+  if (aNon !== bNon) return aNon - bNon;
+  // 3) 운영자 (유버디) — 본인 다음
+  const aOp = a.isOperator ? 1 : 0;
+  const bOp = b.isOperator ? 1 : 0;
+  if (aOp !== bOp) return bOp - aOp;
+  // 4) Tier — premium 먼저, basic 나중
+  const tierWeight = (m) => (m.tier === 'premium' ? 0 : 1);
+  const tw = tierWeight(a) - tierWeight(b);
+  if (tw !== 0) return tw;
+  // 5) 같은 그룹 안에서: progress desc → streak desc
   return (b.progress - a.progress) || (b.streak - a.streak);
 }
 // Week 1 (Day 1~5) 한 번도 인증 안 한 멤버 — 자동 검출용.
@@ -6647,17 +6662,19 @@ function HomePage() {
   try { startGlobalPeerTicker(); } catch (e) {}
 
   // 매주 금요일 (=Day 5/10/15/20) 자동 wrap-up 팝업 — "지금 풀러가기 / 주말에 보기" 선택지.
-  // 한 번 본 사람은 state.friday_redirect_seen[weekN] 마커로 다시 안 띄움.
-  // 시험 통과 / 데드라인 지났으면 자동 skip.
+  // 노출 조건: 그 주 5일 다 완주 + 시험 미통과 + 미열람 + 데드라인 안 지남.
+  // (5일 다 안 끝낸 사람한테 띄우면 페이지 진입해도 잠금이라 의미 없음.)
   try {
     const cDay = Number(state.currentDay) || 0;
     if (cDay > 0 && cDay % 5 === 0) {
       const weekN = cDay / 5;
+      const week = (CHALLENGE.weeks || []).find((w) => w.n === weekN);
+      const allDaysVerified = !!(week && weekProgress(week) === week.days.length);
       state.friday_redirect_seen = state.friday_redirect_seen || {};
       const alreadyShown = !!state.friday_redirect_seen[String(weekN)];
       const reviewDone = !!(state.bingo_done && state.bingo_done[String(weekN)]);
       const locked = isReviewLocked(weekN);
-      if (!alreadyShown && !reviewDone && !locked && !showWeekWrapupPopup) {
+      if (allDaysVerified && !alreadyShown && !reviewDone && !locked && !showWeekWrapupPopup) {
         setTimeout(() => {
           if (showWeekWrapupPopup) return;
           if ((state.friday_redirect_seen || {})[String(weekN)]) return;
