@@ -1200,13 +1200,8 @@ sugarcoat 사실 메신저에선 거의 안 써요…! ㅋㅋ
         recap: '',
         pptUrl: '',
         scenario: {
-          setting: 'Cross-team sync · status update + 피드백 + 의견 충돌 풀기',
-          premise: 'Week 2 (Day 6~9) 에서 학습한 표현을 실전 회의 상황에 녹이는 시간. "지금 하는 일 업데이트 → 까다로운 피드백 주고받기 → 다른 의견 부드럽게 좁히기" 흐름으로. 외운 단어를 입으로 꺼내는 게 목적.',
-          flow: [
-            '① Context — go-to person / heavy lifting 으로 본인 역할 한 줄',
-            '② Update — cut to the chase / timebox 로 핵심부터, sugarcoat 없이 솔직하게',
-            '③ Pushback — 의견 다르면 play devil\'s advocate / middle ground / meet halfway 로 풀기',
-          ],
+          setting: 'Day 6~9 단어 12개 입에 붙이기',
+          premise: '아래 🎬 미팅 대본 카드 따라가면 됨. 슬롯 M1~M8 에 멤버 매핑 → 페어 2번 → 회고 1번 → 한 단어 발표.',
         },
         roleplay: {
           duration: 40,
@@ -1242,7 +1237,7 @@ sugarcoat 사실 메신저에선 거의 안 써요…! ㅋㅋ
           'If you said this to your real team, which word would you swap out?',
         ],
         script: {
-          intro: '각 줄을 클릭하면 한국어 해석이 나와요. 그룹에서 돌아가면서 한 줄씩 읽거나, 역할 정해서 연기해보세요. (Updater A·B / Listener / Observer 자리는 멤버끼리 매 라운드 교체)',
+          intro: '슬롯 M1~M10 에 멤버 매핑하면 라인마다 그 사람 이름으로 바뀌어요. 한국어 라인 보고 영어로 직접 말해보고, 막히면 클릭해서 영어 정답 확인. (각 섹션 note 에 누가 어느 자리인지 표시)',
           vocabRecap: [
             { day: 1, theme: '판 깔고 기준점', words: [
               { en: 'Set the stage', kr: '판 깔다 · 분위기 조성' },
@@ -1293,67 +1288,68 @@ sugarcoat 사실 메신저에선 거의 안 써요…! ㅋㅋ
           sections: [
             {
               time: '0–5', label: 'Vocab warmup',
-              note: 'Coach 가 운을 띄우고, 한 명씩 돌아가며 답해요.',
+              note: 'M1 = Coach 진행. M7·M8 자유 발화 (질문 + 픽 발표).',
               lines: [
-                { speaker: 'Coach', en: 'Welcome to Week 2 — vocab in action. Pick your top three from Day 6 to 9, the ones you actually want to use tonight.', ko: 'Week 2에 오신 걸 환영합니다 — 어휘를 실전에. Day 6~9 중에 오늘 진짜 써보고 싶은 거 3개씩 골라보세요.' },
-                { speaker: 'Coach', en: "Let me cut to the chase — we'll do two pair roleplays, then debrief. By the end, each of you walks out with one sentence you couldn't have said last week.", ko: '바로 본론으로 갈게요 — 페어 롤플레이 두 번, 그리고 회고. 끝나면 각자 지난주엔 못 했을 한 문장씩 가져갑니다.' },
-                { speaker: 'Member 1', en: "Quick gut check — if 'sugarcoat' doesn't fit my role, can I swap it for another word?", ko: "잠깐 직감 점검 — 'sugarcoat'가 제 자리에 안 맞으면 다른 단어로 바꿔도 돼요?" },
-                { speaker: 'Coach', en: "Of course. The list is a menu, not a checklist. Just flesh out which three feel most like you.", ko: '당연하죠. 이 리스트는 체크리스트가 아니라 메뉴예요. 본인 같은 3개만 추려서 살을 붙여보세요.' },
-                { speaker: 'Member 2', en: "I'll go with 'cut to the chase,' 'meet halfway,' and 'go-to person.'", ko: "저는 'cut to the chase,' 'meet halfway,' 'go-to person'으로 갈게요." },
-                { speaker: 'Member 3', en: "Mine are 'timebox,' 'play devil's advocate,' and 'heavy lifting.'", ko: "저는 'timebox,' 'play devil\\'s advocate,' 'heavy lifting'이요." },
+                { speaker: 'M1', en: 'Welcome to Week 2 — vocab in action. Pick your top three from Day 6 to 9, the ones you actually want to use tonight.', ko: 'Week 2에 오신 걸 환영합니다 — 어휘를 실전에. Day 6~9 중에 오늘 진짜 써보고 싶은 거 3개씩 골라보세요.' },
+                { speaker: 'M1', en: "Let me cut to the chase — we'll do two pair roleplays, then debrief. By the end, each of you walks out with one sentence you couldn't have said last week.", ko: '바로 본론으로 갈게요 — 페어 롤플레이 두 번, 그리고 회고. 끝나면 각자 지난주엔 못 했을 한 문장씩 가져갑니다.' },
+                { speaker: 'M7', en: "Quick gut check — if 'sugarcoat' doesn't fit my role, can I swap it for another word?", ko: "잠깐 직감 점검 — 'sugarcoat'가 제 자리에 안 맞으면 다른 단어로 바꿔도 돼요?" },
+                { speaker: 'M1', en: "Of course. The list is a menu, not a checklist. Just flesh out which three feel most like you.", ko: '당연하죠. 이 리스트는 체크리스트가 아니라 메뉴예요. 본인 같은 3개만 추려서 살을 붙여보세요.' },
+                { speaker: 'M7', en: "I'll go with 'cut to the chase,' 'meet halfway,' and 'go-to person.'", ko: "저는 'cut to the chase,' 'meet halfway,' 'go-to person'으로 갈게요." },
+                { speaker: 'M8', en: "Mine are 'timebox,' 'play devil's advocate,' and 'sugarcoat' — bring it on.", ko: "저는 'timebox,' 'play devil\\'s advocate,' 'sugarcoat' — 한 번 써볼게요." },
               ],
             },
             {
               time: '5–15', label: 'Pair 1 — Status update',
-              note: 'Updater A · Listener 두 명이 마이크 잡고 진행. 다른 분들은 Observer 로 단어 체크.',
+              note: 'M2 = Updater A (본인 업무 업데이트). M3 = Listener (echo back / push back). M1 (Coach) 가 끝에 한 마디.',
               lines: [
-                { speaker: 'Updater A', en: "Right now I'm the go-to person for the onboarding flow. The heavy lifting this week is rewriting the welcome email — three drafts, two stakeholders.", ko: '지금 저는 온보딩 흐름의 핵심 담당이에요. 이번 주 가장 빡센 일은 환영 이메일 다시 쓰는 거예요 — 초안 3개, 이해관계자 2명.' },
-                { speaker: 'Listener', en: "You said 'go-to person' — go-to for decisions, or for execution?", ko: "'go-to person'이라 하셨는데 — 의사결정이요, 실행이요?" },
-                { speaker: 'Updater A', en: "Both, honestly. Which is part of the problem.", ko: '둘 다요, 솔직히. 그게 문제이기도 하고요.' },
-                { speaker: 'Listener', en: "Let me play devil's advocate for a sec. Should you really be doing both?", ko: '잠깐 딴지 좀 걸어볼게요. 진짜 둘 다 하셔야 해요?' },
-                { speaker: 'Updater A', en: "Probably not. Can we take it offline and figure out who picks up execution?", ko: '아마 아니죠. 이 부분은 따로 얘기해서 누가 실행 맡을지 정할 수 있을까요?' },
-                { speaker: 'Listener', en: "Sure — but timebox it to Friday so we don't drag it.", ko: '좋아요 — 근데 금요일까지로 시간 박아두죠. 늘어지지 않게.' },
-                { speaker: 'Updater A', en: "Deal. I'll give you ten minutes back today and book Friday.", ko: '콜이요. 오늘은 10분 일찍 끝내드리고 금요일 잡을게요.' },
-                { speaker: 'Coach', en: "Nice — that 'give time back' landed naturally. Let's mark it on the checklist.", ko: "좋네요 — 'give time back' 자연스럽게 쓰셨어요. 체크리스트에 표시." },
+                { speaker: 'M2', en: "Right now I'm the go-to person for the onboarding flow. The heavy lifting this week is rewriting the welcome email — three drafts, two stakeholders.", ko: '지금 저는 온보딩 흐름의 핵심 담당이에요. 이번 주 가장 빡센 일은 환영 이메일 다시 쓰는 거예요 — 초안 3개, 이해관계자 2명.' },
+                { speaker: 'M3', en: "You said 'go-to person' — go-to for decisions, or for execution?", ko: "'go-to person'이라 하셨는데 — 의사결정이요, 실행이요?" },
+                { speaker: 'M2', en: "Both, honestly. Which is part of the problem.", ko: '둘 다요, 솔직히. 그게 문제이기도 하고요.' },
+                { speaker: 'M3', en: "Let me play devil's advocate for a sec. Should you really be doing both?", ko: '잠깐 딴지 좀 걸어볼게요. 진짜 둘 다 하셔야 해요?' },
+                { speaker: 'M2', en: "Probably not. Can we take it offline and figure out who picks up execution?", ko: '아마 아니죠. 이 부분은 따로 얘기해서 누가 실행 맡을지 정할 수 있을까요?' },
+                { speaker: 'M3', en: "Sure — but timebox it to Friday so we don't drag it.", ko: '좋아요 — 근데 금요일까지로 시간 박아두죠. 늘어지지 않게.' },
+                { speaker: 'M2', en: "Deal. I'll give you ten minutes back today and book Friday.", ko: '콜이요. 오늘은 10분 일찍 끝내드리고 금요일 잡을게요.' },
+                { speaker: 'M1', en: "Nice — that 'give time back' landed naturally. Let's mark it on the checklist.", ko: "좋네요 — 'give time back' 자연스럽게 쓰셨어요. 체크리스트에 표시." },
               ],
             },
             {
               time: '15–25', label: 'Pair 2 — Pushback & 합의',
-              note: 'Updater B · Listener 교체. 의견 충돌 → 절충 흐름.',
+              note: 'M4 = Updater B (마감 슬립 보고). M5 = Listener (push back → 합의). 의견 충돌 → 절충 흐름.',
               lines: [
-                { speaker: 'Updater B', en: "My update — the launch slipped two weeks. I'm not going to sugarcoat it: the spec changed three times in April.", ko: '제 업데이트요 — 런칭이 2주 밀렸어요. 좋게 포장 안 할게요. 4월에 스펙이 세 번 바뀌었거든요.' },
-                { speaker: 'Listener', en: "Constructive criticism welcome — what would you have done differently?", ko: '건설적인 피드백 환영이에요 — 다르게 했다면 뭘 했을 것 같으세요?' },
-                { speaker: 'Updater B', en: "Honestly, I'd timebox the spec phase. Two weeks max, then we ship whatever's locked.", ko: '솔직히 스펙 단계를 시간으로 막았을 것 같아요. 최대 2주, 그리고 정해진 것만 출시.' },
-                { speaker: 'Listener', en: "Let me push back — two weeks feels tight. Could we find a middle ground?", ko: '반박해볼게요 — 2주는 빠듯해 보여요. 중간 지점 있을까요?' },
-                { speaker: 'Updater B', en: "What if I give you a hard cutoff on day 14, and you meet me halfway on a one-week buffer?", ko: '14일째 마감 딱 박고, 1주 버퍼는 절반씩 양보하는 거 어때요?' },
-                { speaker: 'Listener', en: "I can live with that. One catch — we don't want to step on Sara's toes. She's been heads-down on the spec.", ko: "그건 받아들일 수 있어요. 한 가지 — Sara 영역 침범하면 안 돼요. 스펙에 집중해 왔거든요." },
-                { speaker: 'Updater B', en: "Agreed. I'll loop her in tomorrow and circulate the plan.", ko: '동의해요. 내일 Sara 포함시키고 계획 공유할게요.' },
-                { speaker: 'Listener', en: "Perfect. We just met halfway in real time.", ko: '완벽해요. 방금 실시간으로 절반씩 양보 봤네요.' },
+                { speaker: 'M4', en: "My update — the launch slipped two weeks. I'm not going to sugarcoat it: the spec changed three times in April.", ko: '제 업데이트요 — 런칭이 2주 밀렸어요. 좋게 포장 안 할게요. 4월에 스펙이 세 번 바뀌었거든요.' },
+                { speaker: 'M5', en: "Constructive criticism welcome — what would you have done differently?", ko: '건설적인 피드백 환영이에요 — 다르게 했다면 뭘 했을 것 같으세요?' },
+                { speaker: 'M4', en: "Honestly, I'd timebox the spec phase. Two weeks max, then we ship whatever's locked.", ko: '솔직히 스펙 단계를 시간으로 막았을 것 같아요. 최대 2주, 그리고 정해진 것만 출시.' },
+                { speaker: 'M5', en: "Let me push back — two weeks feels tight. Could we find a middle ground?", ko: '반박해볼게요 — 2주는 빠듯해 보여요. 중간 지점 있을까요?' },
+                { speaker: 'M4', en: "What if I give you a hard cutoff on day 14, and you meet me halfway on a one-week buffer?", ko: '14일째 마감 딱 박고, 1주 버퍼는 절반씩 양보하는 거 어때요?' },
+                { speaker: 'M5', en: "I can live with that. One catch — we don't want to step on Sara's toes. She's been heads-down on the spec.", ko: "그건 받아들일 수 있어요. 한 가지 — Sara 영역 침범하면 안 돼요. 스펙에 집중해 왔거든요." },
+                { speaker: 'M4', en: "Agreed. I'll loop her in tomorrow and circulate the plan.", ko: '동의해요. 내일 Sara 포함시키고 계획 공유할게요.' },
+                { speaker: 'M5', en: "Perfect. We just met halfway in real time.", ko: '완벽해요. 방금 실시간으로 절반씩 양보 봤네요.' },
               ],
             },
             {
               time: '25–35', label: 'Observer debrief',
-              note: 'Observer 가 체크리스트 발표. 멤버들이 자유롭게 코멘트.',
+              note: 'M6 = Observer (체크리스트 발표 진행). M7·M8 자유 코멘트.',
               lines: [
-                { speaker: 'Observer', en: "Quick debrief — Pair 1 used four words: 'go-to person,' 'heavy lifting,' 'take it offline,' 'give time back.' All natural.", ko: "빠른 회고 — Pair 1은 4개 썼어요: 'go-to person,' 'heavy lifting,' 'take it offline,' 'give time back.' 다 자연스러웠어요." },
-                { speaker: 'Observer', en: "Pair 2 hit six: 'sugarcoat,' 'constructive criticism,' 'timebox,' 'middle ground,' 'meet halfway,' 'step on toes.'", ko: "Pair 2는 6개 — 'sugarcoat,' 'constructive criticism,' 'timebox,' 'middle ground,' 'meet halfway,' 'step on toes.'" },
-                { speaker: 'Observer', en: "Honest call — 'sugarcoat' felt slightly forced. Anyone else catch that?", ko: "솔직히 — 'sugarcoat'는 좀 억지스러웠어요. 다른 분들도 느끼셨어요?" },
-                { speaker: 'Member 4', en: "Same here. 'I won't dance around it' might feel more like you.", ko: "저도요. 'I won't dance around it'가 더 본인 같을 듯요." },
-                { speaker: 'Member 5', en: "What about 'I'll be straight with you' — same energy, less bookish.", ko: "'I'll be straight with you'는 어때요 — 같은 톤인데 책같지 않고." },
-                { speaker: 'Observer', en: "Good call. Let's flag 'sugarcoat' for re-drill.", ko: "좋은 지적이에요. 'sugarcoat' 다시 한 번 짚고 갑시다." },
+                { speaker: 'M6', en: "Quick debrief — Pair 1 used four words: 'go-to person,' 'heavy lifting,' 'take it offline,' 'give time back.' All natural.", ko: "빠른 회고 — Pair 1은 4개 썼어요: 'go-to person,' 'heavy lifting,' 'take it offline,' 'give time back.' 다 자연스러웠어요." },
+                { speaker: 'M6', en: "Pair 2 hit six: 'sugarcoat,' 'constructive criticism,' 'timebox,' 'middle ground,' 'meet halfway,' 'step on toes.'", ko: "Pair 2는 6개 — 'sugarcoat,' 'constructive criticism,' 'timebox,' 'middle ground,' 'meet halfway,' 'step on toes.'" },
+                { speaker: 'M6', en: "Honest call — 'sugarcoat' felt slightly forced. Anyone else catch that?", ko: "솔직히 — 'sugarcoat'는 좀 억지스러웠어요. 다른 분들도 느끼셨어요?" },
+                { speaker: 'M7', en: "Same here. 'I won't dance around it' might feel more like you.", ko: "저도요. 'I won't dance around it'가 더 본인 같을 듯요." },
+                { speaker: 'M8', en: "What about 'I'll be straight with you' — same energy, less bookish.", ko: "'I'll be straight with you'는 어때요 — 같은 톤인데 책같지 않고." },
+                { speaker: 'M6', en: "Good call. Let's flag 'sugarcoat' for re-drill.", ko: "좋은 지적이에요. 'sugarcoat' 다시 한 번 짚고 갑시다." },
               ],
             },
             {
               time: '35–40', label: 'Coach re-drill + close',
-              note: '한 명씩 돌아가며 "이번 주 진짜 쓸 단어 1개" 발표하고 마무리.',
+              note: 'M1 (Coach) 마무리. M4 가 다시 시연 → M2/M3/M5/M6 가 "이번 주 쓸 단어 1개" 발표.',
               lines: [
-                { speaker: 'Coach', en: "Updater B — try that opener again, but swap 'sugarcoat' for whatever feels like you.", ko: "Updater B — 그 첫 줄 다시, 'sugarcoat' 자리에 본인답게 바꿔서 해볼까요." },
-                { speaker: 'Updater B', en: "Update — launch slipped two weeks. I'll be straight with you: the spec changed three times in April.", ko: '업데이트요 — 런칭이 2주 밀렸어요. 솔직히 말씀드리면 4월에 스펙이 세 번 바뀌었어요.' },
-                { speaker: 'Coach', en: "Much better. Last round — each of you, one word you'll actually use this week. Go around.", ko: '훨씬 좋아요. 마지막 — 한 명씩 돌아가며, 이번 주에 진짜 쓸 단어 하나.' },
-                { speaker: 'Member 6', en: "I'll use 'cut to the chase' in tomorrow's standup.", ko: "내일 스탠드업에서 'cut to the chase' 써볼게요." },
-                { speaker: 'Member 7', en: "I'll try 'meet halfway' in my vendor call on Friday.", ko: "금요일 벤더 미팅에서 'meet halfway' 시도해볼게요." },
-                { speaker: 'Member 8', en: "Mine's 'go-to person' — I want to claim that role officially.", ko: "저는 'go-to person'이요 — 그 역할 공식적으로 가져가고 싶어요." },
-                { speaker: 'Coach', en: "Great work. I'll give you five minutes back — see you Day 10.", ko: '수고하셨어요. 5분 일찍 끝낼게요 — Day 10에서 봐요.' },
+                { speaker: 'M1', en: "M4 — try that opener again, but swap 'sugarcoat' for whatever feels like you.", ko: "M4 자리 — 그 첫 줄 다시, 'sugarcoat' 자리에 본인답게 바꿔서 해볼까요." },
+                { speaker: 'M4', en: "Update — launch slipped two weeks. I'll be straight with you: the spec changed three times in April.", ko: '업데이트요 — 런칭이 2주 밀렸어요. 솔직히 말씀드리면 4월에 스펙이 세 번 바뀌었어요.' },
+                { speaker: 'M1', en: "Much better. Last round — each of you, one word you'll actually use this week. Go around.", ko: '훨씬 좋아요. 마지막 — 한 명씩 돌아가며, 이번 주에 진짜 쓸 단어 하나.' },
+                { speaker: 'M2', en: "I'll use 'cut to the chase' in tomorrow's standup.", ko: "내일 스탠드업에서 'cut to the chase' 써볼게요." },
+                { speaker: 'M3', en: "I'll try 'meet halfway' in my vendor call on Friday.", ko: "금요일 벤더 미팅에서 'meet halfway' 시도해볼게요." },
+                { speaker: 'M5', en: "Mine's 'go-to person' — I want to claim that role officially.", ko: "저는 'go-to person'이요 — 그 역할 공식적으로 가져가고 싶어요." },
+                { speaker: 'M6', en: "And mine is 'play devil's advocate' — for my Tuesday review.", ko: "저는 'play devil\\'s advocate' 가져갈게요 — 화요일 리뷰에서 써볼게요." },
+                { speaker: 'M1', en: "Great work. I'll give you five minutes back — see you Day 10.", ko: '수고하셨어요. 5분 일찍 끝낼게요 — Day 10에서 봐요.' },
               ],
             },
           ],
@@ -13960,16 +13956,23 @@ function MeetingNotesPage(meetingId) {
     if (meta.script) {
       const sc = meta.script;
 
-      // 1) Dialogue script card — 클릭하면 한국어 표시
-      //    백그라운드 polling 으로 render() 재호출돼도 reveal 상태 유지하려고
-      //    window.__scriptRevealed[meetingId] (Set) 에 펼쳐진 라인 id 보관.
-      //    멤버 슬롯 매핑은 notes.scriptSlots 에 영구 저장.
+      // 1) Dialogue script card — 클릭하면 영어 표시 (한국어 기본 노출)
+      //    백그라운드 polling 으로 render() 재호출돼도 사용자가 펼쳐놓은 게 안 접히게:
+      //    - 라인 reveal: window.__scriptRevealed[mid]
+      //    - <details> open/close: window.__scriptDetailsOpen[mid]
+      //    멤버 슬롯 매핑/참여자: notes.scriptSlots / notes.attendees 영구 저장.
       if (sc.sections && sc.sections.length) {
         if (!window.__scriptRevealed) window.__scriptRevealed = {};
         if (!(window.__scriptRevealed[meetingId] instanceof Set)) {
           window.__scriptRevealed[meetingId] = new Set();
         }
         const revealedSet = window.__scriptRevealed[meetingId];
+        if (!window.__scriptDetailsOpen) window.__scriptDetailsOpen = {};
+        if (!window.__scriptDetailsOpen[meetingId]) window.__scriptDetailsOpen[meetingId] = {};
+        const detailsState = window.__scriptDetailsOpen[meetingId];
+        // 디폴트: settings 는 열림, recap 은 닫힘 — 한 번 토글하면 그 상태 보존.
+        if (detailsState.settings === undefined) detailsState.settings = true;
+        if (detailsState.recap === undefined) detailsState.recap = false;
         if (!notes.scriptSlots || typeof notes.scriptSlots !== 'object') notes.scriptSlots = {};
         // notes.attendees: undefined/null = 전체 참여, Array = 그 멤버들만
         if (notes.attendees !== null && !Array.isArray(notes.attendees)) notes.attendees = null;
@@ -13995,10 +13998,12 @@ function MeetingNotesPage(meetingId) {
           const sp = (ln.speaker || '').trim();
           if (sp && !seenSpeakers.has(sp)) { seenSpeakers.add(sp); speakerOrder.push(sp); }
         }));
+        // 영어 닉네임 우선, 없으면 한글 이름 fallback
+        const memberDisplayName = (m) => m && (m.englishName || m.name) || '';
         const formatSpeakerLabel = (originalSpeaker) => {
           const memberId = slotMap[originalSpeaker];
           const member = memberId ? memberById[memberId] : null;
-          if (member && isAttending(member.id)) return escapeHtml(member.name) + ' <span style="opacity:0.6;font-weight:500;">· ' + escapeHtml(originalSpeaker) + '</span>';
+          if (member && isAttending(member.id)) return escapeHtml(memberDisplayName(member)) + ' <span style="opacity:0.6;font-weight:500;">· ' + escapeHtml(originalSpeaker) + '</span>';
           return escapeHtml(originalSpeaker);
         };
         const renderAttendeeChip = (m) => {
@@ -14006,7 +14011,7 @@ function MeetingNotesPage(meetingId) {
           return `
             <label style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;background:${attending ? 'rgba(123,94,140,0.18)' : 'rgba(255,255,255,0.4)'};border:1px solid ${attending ? 'rgba(123,94,140,0.30)' : 'rgba(0,0,0,0.06)'};cursor:pointer;font-size:11.5px;color:${attending ? '#5D4770' : 'var(--muted)'};font-weight:${attending ? '700' : '500'};">
               <input type="checkbox" data-attendee-checkbox="${escapeHtml(m.id)}" ${attending ? 'checked' : ''} style="margin:0;cursor:pointer;accent-color:#7B5E8C;" />
-              ${escapeHtml(m.name)}${m.englishName ? ' · ' + escapeHtml(m.englishName) : ''}
+              ${escapeHtml(memberDisplayName(m))}
             </label>`;
         };
         const renderSlotRow = (sp) => {
@@ -14017,7 +14022,7 @@ function MeetingNotesPage(meetingId) {
               <span style="font-size:11px;font-weight:700;color:#5D4770;min-width:80px;flex-shrink:0;">${escapeHtml(sp)}</span>
               <select data-slot-picker="${escapeHtml(sp)}" style="flex:1;padding:5px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.12);background:${sel ? 'rgba(252,232,178,0.5)' : '#fff'};font-size:11px;cursor:pointer;font-weight:${sel ? '700' : '400'};min-width:130px;">
                 <option value="">— 미할당 —</option>
-                ${opts.map((m) => `<option value="${escapeHtml(m.id)}" ${sel === m.id ? 'selected' : ''}>${escapeHtml(m.name)}${m.englishName ? ' · ' + escapeHtml(m.englishName) : ''}</option>`).join('')}
+                ${opts.map((m) => `<option value="${escapeHtml(m.id)}" ${sel === m.id ? 'selected' : ''}>${escapeHtml(memberDisplayName(m))}</option>`).join('')}
               </select>
             </div>`;
         };
@@ -14043,6 +14048,21 @@ function MeetingNotesPage(meetingId) {
             </div>
           </div>
         `).join('');
+        // 어휘 주황 볼드 하이라이트 (이미 escapeHtml 처리된 텍스트에 적용)
+        const VOCAB_LIST = (sc.weekVocab || []).map((w) => w.en);
+        const highlightVocab = (escapedText) => {
+          if (!escapedText || !VOCAB_LIST.length) return escapedText;
+          let result = escapedText;
+          // 긴 표현 먼저 매칭 (e.g. "play devil's advocate" 가 "devil" 보다 우선)
+          const sorted = VOCAB_LIST.slice().sort((a, b) => b.length - a.length);
+          sorted.forEach((v) => {
+            const escapedV = escapeHtml(v);
+            const escapedRe = escapedV.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const re = new RegExp('(' + escapedRe + ')', 'gi');
+            result = result.replace(re, '<b style="color:#F07D38;font-weight:700;">$1</b>');
+          });
+          return result;
+        };
         // 라인 렌더 — 한국어가 기본 노출, 영어는 클릭하면 표시 (cheat sheet 모드)
         const sectionsHtml = sc.sections.map((sec, si) => {
           const linesHtml = (sec.lines || []).map((ln, li) => {
@@ -14052,9 +14072,9 @@ function MeetingNotesPage(meetingId) {
               <div data-script-line="${id}" style="margin-bottom:6px;cursor:pointer;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.04);">
                 <div style="display:flex;align-items:flex-start;gap:8px;">
                   <span data-script-speaker="${escapeHtml(ln.speaker || '')}" style="display:inline-block;flex-shrink:0;padding:2px 8px;border-radius:999px;background:rgba(123,94,140,0.18);color:#5D4770;font-size:10px;font-weight:700;letter-spacing:0.04em;white-space:nowrap;">${formatSpeakerLabel(ln.speaker || '')}</span>
-                  <div style="flex:1;font-size:13px;color:var(--ink);line-height:1.55;">${escapeHtml(ln.ko || '')}</div>
+                  <div style="flex:1;font-size:13px;color:var(--ink);line-height:1.55;">${highlightVocab(escapeHtml(ln.ko || ''))}</div>
                 </div>
-                <div data-script-en="${id}" style="display:${isRevealed ? 'block' : 'none'};margin-top:6px;padding:6px 10px;border-left:2px solid #A98BB8;background:rgba(255,255,255,0.85);font-size:12.5px;color:var(--ink);line-height:1.55;font-weight:500;">${escapeHtml(ln.en || '')}</div>
+                <div data-script-en="${id}" style="display:${isRevealed ? 'block' : 'none'};margin-top:6px;padding:6px 10px;border-left:2px solid #A98BB8;background:rgba(255,255,255,0.85);font-size:12.5px;color:var(--ink);line-height:1.55;font-weight:500;">${highlightVocab(escapeHtml(ln.en || ''))}</div>
               </div>`;
           }).join('');
           return `
@@ -14076,7 +14096,7 @@ function MeetingNotesPage(meetingId) {
             </div>
             <button data-script-toggle-all type="button" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(123,94,140,0.3);background:rgba(255,255,255,0.6);color:#5D4770;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap;">영어 전체 토글</button>
           </div>
-          <details open style="margin-top:14px;background:rgba(255,255,255,0.55);border-radius:10px;padding:10px 12px;border:1px solid rgba(123,94,140,0.12);">
+          <details ${detailsState.settings ? 'open' : ''} data-details-key="settings" style="margin-top:14px;background:rgba(255,255,255,0.55);border-radius:10px;padding:10px 12px;border:1px solid rgba(123,94,140,0.12);">
             <summary style="cursor:pointer;font-size:12px;font-weight:700;color:#5D4770;list-style:none;">⚙️ 회의 시작 설정 — 안 온 사람 체크 해제 → 슬롯에 이름 매핑 (오늘 참여 <span data-attendee-count>${getAttendeeCount()}</span>명) ▾</summary>
             <div style="margin-top:10px;">
               <div style="font-size:10.5px;color:var(--muted);margin-bottom:8px;line-height:1.5;">기본은 프리미엄 9명 전체 참여. 오늘 안 온 사람 체크 해제 → 슬롯 드롭다운이 자동으로 줄어들어요. 슬롯에 이름 매핑하면 아래 라인의 화자가 그 멤버 이름으로 바뀝니다. (자동 저장)</div>
@@ -14086,7 +14106,7 @@ function MeetingNotesPage(meetingId) {
             </div>
           </details>
           ${recapHtml ? `
-            <details style="margin-top:10px;background:rgba(255,255,255,0.4);border-radius:10px;padding:10px 12px;">
+            <details ${detailsState.recap ? 'open' : ''} data-details-key="recap" style="margin-top:10px;background:rgba(255,255,255,0.4);border-radius:10px;padding:10px 12px;">
               <summary style="cursor:pointer;font-size:12px;font-weight:700;color:#5D4770;list-style:none;">📖 Day 1~9 단어 27개 빠른 복습 ▾</summary>
               <div style="margin-top:8px;">${recapHtml}</div>
             </details>
@@ -14110,6 +14130,14 @@ function MeetingNotesPage(meetingId) {
           const grid = scriptCard.querySelector('[data-attendee-grid]');
           if (grid) grid.innerHTML = allPremium.map(renderAttendeeChip).join('');
         };
+
+        // ── <details> 토글 상태 보존 (백그라운드 render 시에도 안 접히게)
+        scriptCard.querySelectorAll('details[data-details-key]').forEach((d) => {
+          d.addEventListener('toggle', () => {
+            const key = d.getAttribute('data-details-key');
+            if (key) detailsState[key] = d.open;
+          });
+        });
 
         // ── 클릭: 라인 토글 / 영어 전체 토글
         scriptCard.addEventListener('click', (e) => {
@@ -14201,7 +14229,7 @@ function MeetingNotesPage(meetingId) {
         const byDay = {};
         sc.weekVocab.forEach((w) => { if (!byDay[w.day]) byDay[w.day] = []; byDay[w.day].push(w); });
         const totalCount = sc.weekVocab.length;
-        const renderOpt = (m, sel) => `<option value="${escapeHtml(m.id)}" ${sel === m.id ? 'selected' : ''}>${escapeHtml(m.name)}${m.englishName ? ' · ' + escapeHtml(m.englishName) : ''}</option>`;
+        const renderOpt = (m, sel) => `<option value="${escapeHtml(m.id)}" ${sel === m.id ? 'selected' : ''}>${escapeHtml(m.englishName || m.name)}</option>`;
         const wordsHtml = Object.keys(byDay).sort().map((d) => `
           <div style="margin-top:12px;">
             <div style="display:inline-block;padding:3px 10px;border-radius:999px;background:rgba(240,125,56,0.15);color:#C9591F;font-size:11px;font-weight:700;letter-spacing:0.04em;margin-bottom:8px;">Day ${d} · ${escapeHtml(dayThemes[d] || '')}</div>
@@ -14393,7 +14421,16 @@ function MeetingNotesPage(meetingId) {
     const propsHtml = (rp.props || []).map(p =>
       `<div style="margin-bottom:4px;"><b style="color:var(--ink);">${escapeHtml(p.label)}:</b> <span style="color:var(--muted);">${escapeHtml(p.body || '')}</span></div>`
     ).join('');
-    const roleplayBrief = `
+    // meta.script 있는 주차는 위에 큰 대본 카드(슬롯/대사/단어/회고) 가 다 그려졌으니
+    // 여기 brief 는 흐름 한 줄만 — 중복 제거. script 없는 주차는 기존 ROLES/BEATS/PROPS.
+    const beatsTimelineHtml = (rp.beats || []).map((b) => `<span style="display:inline-block;padding:1px 7px;border-radius:999px;background:rgba(169,139,184,0.18);color:#7B5E8C;font-size:10px;font-weight:700;">${escapeHtml(b.time)} ${escapeHtml(b.label)}</span>`).join('<span style="color:var(--muted);font-size:10px;margin:0 4px;">→</span>');
+    const roleplayBrief = meta.script ? `
+      <div style="font-size:11.5px;line-height:1.6;color:var(--muted);">
+        📋 위 <b style="color:#5D4770;">🎬 미팅 대본</b> 카드에 <b style="color:var(--ink);">슬롯 매핑 · 5섹션 대사 · Day 6~9 단어 체크 · 미니 롤플레이 · 회고</b> 다 들어있어요.<br/>
+        여기 textarea 는 자유 메모만.
+      </div>
+      ${beatsTimelineHtml ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;align-items:center;gap:4px;">${beatsTimelineHtml}</div>` : ''}
+    ` : `
       <div style="margin-bottom:10px;"><b style="color:#7B5E8C;font-size:11px;letter-spacing:0.08em;">ROLES</b></div>
       ${rolesHtml}
       <div style="margin-top:12px;margin-bottom:10px;"><b style="color:#7B5E8C;font-size:11px;letter-spacing:0.08em;">BEATS</b></div>
