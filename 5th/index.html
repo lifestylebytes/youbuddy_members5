@@ -2585,6 +2585,7 @@ let showPreReviewPopup = null;
 // 주간 설문 작성 모달 — 홈 배너 클릭 시 활성. 값: 주차 번호 (1~4).
 let showSurveyFillModal = null;
 let showMiniWeekSurvey = null; // weekN — 단어 시험 입구에서 띄우는 3문항 미니 설문
+let showWeekWrapupPopup = null; // weekN — 매주 금요일 (Day 5/10/15/20) 자동 노출. "지금 풀러가기 / 주말에 보기"
 // 알림 인박스 패널 — TopBar 종 누르면 열림.
 let showNotifications = false;
 let toast = null;
@@ -5181,12 +5182,20 @@ function render() {
       const stale = document.querySelector('[data-mini-week-survey]');
       if (stale) stale.remove();
     }
+    if (showWeekWrapupPopup) {
+      if (!document.querySelector('[data-week-wrapup-popup]')) {
+        document.body.appendChild(WeekWrapupPopupModal());
+      }
+    } else {
+      const stale = document.querySelector('[data-week-wrapup-popup]');
+      if (stale) stale.remove();
+    }
 
     // Mobile modal scroll fix: lock body scroll while any modal is open so the
     // modal's own overflow-y:auto picks up touch scrolling instead of the page
     // behind it bubbling. 취소/저장 버튼이 모바일에서 안 닿던 문제.
     try {
-      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey);
+      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup);
       if (anyModalOpen) document.body.classList.add('modal-open');
       else document.body.classList.remove('modal-open');
     } catch (_lockErr) {}
@@ -6637,23 +6646,24 @@ function HomePage() {
   // 한 번 시작되면 setInterval 로 계속 돔 (idempotent).
   try { startGlobalPeerTicker(); } catch (e) {}
 
-  // 매주 금요일 (=Day 5/10/15/20) 자동 redirect — 그 주 테스트 페이지로 강제 점프.
-  // 멤버가 5일 인증 다 채우고 시험 보러 들어가도록 유도.
-  // 한 번 redirect 되면 state.friday_redirect_seen[weekN] = true 마커로 다시 안 띄움.
-  // 시험 통과 (bingo_done) 했거나 데드라인 지났으면 자동 skip.
+  // 매주 금요일 (=Day 5/10/15/20) 자동 wrap-up 팝업 — "지금 풀러가기 / 주말에 보기" 선택지.
+  // 한 번 본 사람은 state.friday_redirect_seen[weekN] 마커로 다시 안 띄움.
+  // 시험 통과 / 데드라인 지났으면 자동 skip.
   try {
     const cDay = Number(state.currentDay) || 0;
     if (cDay > 0 && cDay % 5 === 0) {
       const weekN = cDay / 5;
       state.friday_redirect_seen = state.friday_redirect_seen || {};
-      const alreadyRedirected = !!state.friday_redirect_seen[String(weekN)];
+      const alreadyShown = !!state.friday_redirect_seen[String(weekN)];
       const reviewDone = !!(state.bingo_done && state.bingo_done[String(weekN)]);
       const locked = isReviewLocked(weekN);
-      if (!alreadyRedirected && !reviewDone && !locked) {
-        state.friday_redirect_seen[String(weekN)] = true;
-        try { saveState({ immediate: true }); } catch (_) { try { saveState(); } catch (__) {} }
-        window.__currentReviewWeek = weekN;
-        setTimeout(() => go('week-review'), 60);
+      if (!alreadyShown && !reviewDone && !locked && !showWeekWrapupPopup) {
+        setTimeout(() => {
+          if (showWeekWrapupPopup) return;
+          if ((state.friday_redirect_seen || {})[String(weekN)]) return;
+          showWeekWrapupPopup = weekN;
+          render();
+        }, 600);
       }
     }
   } catch (e) {}
@@ -7589,13 +7599,15 @@ function WeeksPage() {
           borderRadius: '16px',
           background: effectivelyLocked
             ? 'rgba(154,139,115,0.12)'
-            : (isEmphasized ? 'rgba(251,247,240,0.10)' : 'linear-gradient(135deg, #FFF5E6 0%, #FFE5D9 100%)'),
+            // emphasized (다크 카드) 안에서도 확실하게 "활성화된 CTA" 느낌으로 — 오렌지 솔리드.
+            : (isEmphasized ? 'var(--orange)' : 'linear-gradient(135deg, #FFF5E6 0%, #FFE5D9 100%)'),
           color: effectivelyLocked
             ? 'var(--muted)'
-            : (isEmphasized ? 'var(--cream)' : 'var(--orange-dark)'),
+            : (isEmphasized ? '#fff' : 'var(--orange-dark)'),
           border: effectivelyLocked
             ? '1px dashed rgba(154,139,115,0.4)'
-            : (isEmphasized ? '1px solid rgba(251,247,240,0.18)' : '1px solid var(--orange-soft)'),
+            : (isEmphasized ? 'none' : '1px solid var(--orange-soft)'),
+          boxShadow: (!effectivelyLocked && isEmphasized) ? '0 4px 14px rgba(240,125,56,0.35)' : 'none',
           fontSize: '14px',
           fontWeight: '800',
           cursor: effectivelyLocked ? 'not-allowed' : 'pointer',
@@ -7616,7 +7628,7 @@ function WeeksPage() {
         },
       });
       const previewTag = (!allDone && isOperatorOrStaff) ? ' <span style="font-size:10px;font-weight:700;background:rgba(125,92,255,0.18);color:#5C53A5;padding:2px 8px;border-radius:999px;margin-left:4px;">미리보기</span>' : '';
-      const limitColor = isEmphasized ? 'rgba(251,247,240,0.7)' : '#C95721';
+      const limitColor = isEmphasized ? 'rgba(255,255,255,0.85)' : '#C95721';
       if (effectivelyLocked) {
         reviewBtn.innerHTML = `
           <span>🔒 Week ${w.n} 진짜 외우기 · 기간 종료</span>
@@ -8803,13 +8815,32 @@ function buildWeekReviewQuestions(weekN, stage = 1) {
   if (!vocab.length) return [];
 
   const allKr = vocab.map((v) => v.kr).filter(Boolean);
+  // 같은 sourceMain (= 같은 단어의 main + syn 들) 에 속한 한국어 뜻은 distractor 에서 제외.
+  // 예: "Meet halfway" 답 ↔ "Middle ground" (같은 sourceMain) 의 뜻은 너무 비슷해서 멤버 헷갈림.
+  const krBySourceMain = {};
+  vocab.forEach((v) => {
+    const key = v.sourceMain || v.en;
+    if (!krBySourceMain[key]) krBySourceMain[key] = new Set();
+    if (v.kr) krBySourceMain[key].add(v.kr);
+  });
   const buildRecognition = (v) => {
-    // 정답 + 같은 주의 다른 한국어 뜻 3개로 distractor.
-    const distractors = allKr.filter((kr) => kr && kr !== v.kr);
+    // 정답 + distractor 3개. 같은 sourceMain (의미군) 의 한국어 뜻은 제외해서
+    // "유의어 vs 메인" 이 동시에 보기로 떠서 헷갈리는 사고 방지.
+    const sameMainKr = krBySourceMain[v.sourceMain || v.en] || new Set();
+    const distractors = allKr.filter((kr) => kr && kr !== v.kr && !sameMainKr.has(kr));
     // shuffle distractors
     for (let i = distractors.length - 1; i > 0; i -= 1) {
       const j = Math.floor(Math.random() * (i + 1));
       [distractors[i], distractors[j]] = [distractors[j], distractors[i]];
+    }
+    // 만약 같은 그룹 제외 후 3개 못 채우면 fallback — 다른 vocab 에서 메꿈.
+    if (distractors.length < 3) {
+      const fallback = allKr.filter((kr) => kr && kr !== v.kr && !distractors.includes(kr));
+      for (let i = fallback.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [fallback[i], fallback[j]] = [fallback[j], fallback[i]];
+      }
+      while (distractors.length < 3 && fallback.length) distractors.push(fallback.shift());
     }
     const choices = [v.kr, ...distractors.slice(0, 3)];
     // shuffle final choices
@@ -9482,7 +9513,7 @@ function renderBingoMode(page, weekN, week, isPremium) {
     : '열심히 풀어봤는데 막상 영어 메일 / 보고서 쓸 때 단어가 바로 안 떠오르지 않으셨어요? 시험 때 살짝 머뭇거렸다면 진짜 외워진 게 아닐 수도 있어요.';
   intro.innerHTML = `
     <div class="kicker" style="color:var(--orange-dark);">🎯 주간 학습 · Week ${weekN}</div>
-    <div style="margin-top:8px;font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">5일 페이지 다 끝내셨네요!<br/>대단합니다 👏</div>
+    <div style="margin-top:8px;font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">이번 주 페이지도 다 끝내셨네요!<br/>대단합니다 👏</div>
     <div class="t-small" style="margin-top:10px;color:var(--ink-soft);line-height:1.65;font-size:13px;">
       ${introBody}<br/><br/>
       <b style="color:var(--orange-dark);">아래 한국어 문장을 보고 영어로 떠올려본 다음 탭해서 비교</b>해보세요. 안 떠올랐던 단어는 "기억 안나요" 체크 → 따로 빠르게 복습할 수 있어요.
@@ -19635,6 +19666,68 @@ function MiniWeekSurveyModal() {
     if (skipBtn) skipBtn.onclick = () => { close(true); proceed(); };
   }, 0);
 
+  backdrop.appendChild(modal);
+  return backdrop;
+}
+
+/* ============================================================
+   WeekWrapupPopupModal — 매주 금요일 (Day 5/10/15/20) 자동 노출.
+   "지금 풀러가기 / 주말에 보기" 두 선택지. 한 번 보면 마커 박아 다시 안 띄움.
+   ============================================================ */
+function WeekWrapupPopupModal() {
+  const weekN = showWeekWrapupPopup;
+  if (!weekN) return el('div');
+  const close = (markSeen = true) => {
+    if (markSeen) {
+      state.friday_redirect_seen = state.friday_redirect_seen || {};
+      state.friday_redirect_seen[String(weekN)] = true;
+      try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+    }
+    showWeekWrapupPopup = null;
+    render();
+  };
+  const goNow = () => {
+    close(true);
+    window.__currentReviewWeek = weekN;
+    setTimeout(() => go('week-review'), 30);
+  };
+  const backdrop = el('div', {
+    class: 'modal-backdrop',
+    'data-week-wrapup-popup': '1',
+    onClick: (e) => { if (e.target === backdrop) close(true); },
+  });
+  const modal = el('div', {
+    class: 'modal',
+    style: {
+      width: 'min(92vw, 380px)',
+      padding: '0',
+      borderRadius: '24px',
+      overflow: 'hidden',
+      background: '#fff',
+      border: '1px solid var(--line)',
+    },
+  });
+  modal.innerHTML = `
+    <div style="position:relative;padding:30px 24px 22px;background:linear-gradient(135deg, #FFF1E5 0%, #FFE4D0 100%);text-align:center;">
+      <button id="__wupClose" style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,0.7);border:none;color:var(--ink-soft);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+      <div style="font-size:48px;line-height:1;margin-bottom:8px;">🎉</div>
+      <div class="kicker" style="color:var(--orange-dark);">WEEK ${weekN} 끝</div>
+      <div style="margin-top:8px;font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.3;">이번 주 단어<br>다 외워졌나 빠르게 체크?</div>
+      <div style="margin-top:10px;font-size:13px;color:var(--ink-soft);line-height:1.6;">3단계 복습 + 보상 받기 (잠금화면 단어장 🎁)<br>10분이면 끝나요.</div>
+    </div>
+    <div style="padding:18px 22px 22px;display:flex;flex-direction:column;gap:8px;">
+      <button id="__wupGo" class="btn btn-primary btn-full" style="background:var(--orange);border:none;font-size:14px;padding:14px;">🚀 지금 풀러가기 →</button>
+      <button id="__wupLater" class="btn btn-ghost btn-full" style="background:transparent;border:1px solid var(--line);color:var(--muted);font-size:12px;padding:10px;">주말에 보기</button>
+    </div>
+  `;
+  setTimeout(() => {
+    const closeBtn = document.getElementById('__wupClose');
+    const goBtn = document.getElementById('__wupGo');
+    const laterBtn = document.getElementById('__wupLater');
+    if (closeBtn) closeBtn.onclick = () => close(true);
+    if (laterBtn) laterBtn.onclick = () => close(true);
+    if (goBtn) goBtn.onclick = goNow;
+  }, 0);
   backdrop.appendChild(modal);
   return backdrop;
 }
