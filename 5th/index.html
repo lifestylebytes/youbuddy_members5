@@ -875,7 +875,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   display: flex; align-items: center; justify-content: center;
   font-size: 10px; font-weight: 700; flex-shrink: 0;
 }
-.peer-ticker .pt-text { min-width: 0; flex: 1; display: flex; align-items: center; gap: 6px; }
+.peer-ticker .pt-text { min-width: 0; flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
 .peer-ticker .pt-label { font-size: 11px; color: var(--muted); letter-spacing: 0; white-space: nowrap; }
 .peer-ticker .pt-body { font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; color: var(--ink); }
 .peer-ticker .pt-pulse {
@@ -5675,18 +5675,35 @@ window.__peerFirstPoll = (window.__peerFirstPoll === undefined) ? true : window.
 async function globalPeerTick() {
   try {
     if (!hasSupabase()) return;
-    const today = Number(state.currentDay) || 1;
-    const posts = await loadCommunityPosts(today, { force: true });
-    if (!Array.isArray(posts) || !posts.length) return;
-    // 첫 폴링 — 모두 마킹만, 토스트 X
+    // currentDay 가 디바이스 마다 다를 수 있어서, 최근 3일 다 폴링해서 합침.
+    // 어떤 날에 글이 올라가도 다른 디바이스에서 잡힘.
+    const cDay = Number(state.currentDay) || 1;
+    const daysToCheck = [cDay, cDay - 1, cDay + 1].filter((d) => d >= 1 && d <= 20);
+    try { console.log('[peer-ticker] tick start days=' + daysToCheck.join(',') + ' firstPoll=' + window.__peerFirstPoll + ' seen=' + window.__peerSeenIds.size); } catch (_) {}
+    const allPosts = [];
+    for (const d of daysToCheck) {
+      try {
+        const ps = await loadCommunityPosts(d, { force: true });
+        if (Array.isArray(ps)) allPosts.push(...ps);
+      } catch (_) {}
+    }
+    const posts = allPosts;
+    try { console.log('[peer-ticker] got posts: ' + posts.length); } catch (_) {}
+    if (!posts.length) {
+      // 빈 응답이면 firstPoll 그대로 유지 (다음 poll 에서 baseline 잡게).
+      return;
+    }
+    // 첫 폴링 — 모두 마킹만, 토스트 X. (post 가 0개일 땐 위에서 return 해서 여기 안 옴)
     if (window.__peerFirstPoll) {
       posts.forEach((p) => window.__peerSeenIds.add(_postId(p)));
       window.__peerFirstPoll = false;
+      try { console.log('[peer-ticker] baseline set with ' + posts.length + ' posts'); } catch (_) {}
       return;
     }
     // 새 글만 — ID 안 본 거
     const fresh = posts.filter((p) => !window.__peerSeenIds.has(_postId(p)));
     fresh.forEach((p) => window.__peerSeenIds.add(_postId(p)));
+    try { console.log('[peer-ticker] fresh count=' + fresh.length); } catch (_) {}
     if (!fresh.length) return;
     // 가장 첫 새 글로 토스트
     const pick = fresh[0];
@@ -5749,6 +5766,7 @@ function showPeerBrowserNotif(peer, peerDisplay) {
 }
 
 function showPeerTicker(peer) {
+  try { console.log('[peer-ticker] showPeerTicker fired', peer); } catch (_) {}
   // Remove any existing ticker first
   const existing = document.querySelector('.peer-ticker');
   if (existing) existing.remove();
