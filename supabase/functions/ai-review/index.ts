@@ -133,7 +133,7 @@ Pairs that are 100% interchangeable in business English — DO NOT EDIT BETWEEN 
 
 Only edit when grammar / structure / preposition / tense / article is **broken**, OR when the phrasing is **genuinely awkward** (Konglish, calque, unnatural word order). Stylistic preference alone is NOT a reason to edit.
 
-If your ONLY edit would be a one-word synonym substitution from the list above (or a similar interchangeable pair), return the ORIGINAL VERBATIM with `why="이미 자연스러워요! 그대로 가셔도 됩니다."` Do NOT make the edit just to "improve" word choice.
+If your ONLY edit would be a one-word synonym substitution from the list above (or a similar interchangeable pair), return the ORIGINAL VERBATIM with why = "이미 자연스러워요! 그대로 가셔도 됩니다." Do NOT make the edit just to "improve" word choice.
 
 Self-check before returning: if you removed exactly one word and inserted exactly one synonym word with no other structural changes, REVERT to verbatim. Stop second-guessing the student on word choice — they need consistency to learn.
 
