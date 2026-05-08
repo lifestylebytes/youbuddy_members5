@@ -8987,15 +8987,22 @@ function _collectWeekVocab(weekN, includeSyn) {
   if (!week) return [];
   const out = [];
   (week.days || []).forEach((d) => {
-    (d.words || []).forEach((w) => {
+    (d.words || []).forEach((w, i) => {
+      // 멤버 본인이 쓴 문장 우선 — 챌린지의 핵심 목적: 본인 대본/문장 가져가기.
+      // 본인이 안 쓴 경우만 preset 예문 fallback.
+      const sKey = `d${d.day}-${i}`;
+      const myEn = (state.sentences && state.sentences[sKey] || '').toString().trim();
+      const myKr = (state.sentence_notes && state.sentence_notes[sKey] || '').toString().trim();
+      const usingMy = !!myEn;
       out.push({
         en: w.en,
         kr: w.def,
         kind: 'main',
         sourceMain: w.en,
         sourceDay: d.day,
-        prompt: w.ex_en || '',
-        prompt_kr: w.ex_kr || '',
+        prompt: usingMy ? myEn : (w.ex_en || ''),
+        prompt_kr: usingMy ? myKr : (w.ex_kr || ''),
+        isMine: usingMy,
       });
       if (includeSyn && Array.isArray(w.syn)) {
         w.syn.forEach((syn) => {
@@ -9007,6 +9014,7 @@ function _collectWeekVocab(weekN, includeSyn) {
             sourceDay: d.day,
             prompt: '',
             prompt_kr: '',
+            isMine: false,
           });
         });
       }
@@ -9019,7 +9027,24 @@ function _collectWeekVocab(weekN, includeSyn) {
 function buildWeekReviewQuestions(weekN, stage = 1) {
   // Cache 키에 tier 포함 — 운영자가 view 를 basic↔premium 토글하면 questions 다시 빌드됨.
   const includeSyn = state.tier === 'premium';
-  const cacheKey = `${weekN}-s${stage}-${includeSyn ? 'p' : 'b'}`;
+  // 멤버 sentences 시그니처도 cache key 에 — 본인 문장 제출/수정 시 자동 invalidate.
+  const week = (CHALLENGE.weeks || []).find((w) => w.n === weekN);
+  let sentSig = '';
+  try {
+    const fps = [];
+    (week?.days || []).forEach((d) => {
+      (d.words || []).forEach((_w, i) => {
+        const sKey = `d${d.day}-${i}`;
+        const s = (state.sentences && state.sentences[sKey] || '').slice(0, 30);
+        if (s) fps.push(sKey + ':' + s);
+      });
+    });
+    sentSig = fps.join('|');
+    // 짧은 hash
+    let h = 0; for (let c = 0; c < sentSig.length; c++) { h = ((h << 5) - h) + sentSig.charCodeAt(c); h |= 0; }
+    sentSig = 'h' + (h >>> 0).toString(36);
+  } catch (_) { sentSig = ''; }
+  const cacheKey = `${weekN}-s${stage}-${includeSyn ? 'p' : 'b'}-${sentSig}`;
   const cached = window.__weekReviewQuestionsCache[cacheKey];
   if (Array.isArray(cached) && cached.length) return cached;
 
