@@ -5739,12 +5739,10 @@ function startGlobalPeerTicker() {
   try { requestPeerNotifPermission(); } catch (_) {}
 }
 
-// 브라우저 Notification API — 탭이 백그라운드일 때만 OS 알림. 포그라운드는 in-page ticker.
+// 브라우저 Notification API — 일단 권한 요청 OFF (알림이 안정적으로 안 와서 멤버한테 권한 묻기만 하면 부담만 줌).
+// 추후 알림 인프라 안정화되면 다시 활성화. 지금은 in-page ticker 만 사용.
 function requestPeerNotifPermission() {
-  if (typeof Notification === 'undefined') return;
-  if (Notification.permission !== 'default') return;
-  // 사용자 인터랙션 직후가 아니면 일부 브라우저가 silently 거부. 첫 로드에선 그냥 시도만.
-  try { Notification.requestPermission().catch(() => {}); } catch (_) {}
+  return; // disabled
 }
 
 function showPeerBrowserNotif(peer, peerDisplay) {
