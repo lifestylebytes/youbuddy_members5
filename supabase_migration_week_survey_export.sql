@@ -64,13 +64,13 @@ filtered as (
     and coalesce(member_name, '') != ''
     and member_name not in ('모모', '유버디', '이규태', '이지흔')
 ),
--- 응답 분류
+-- 응답 분류 — Week 2·3 부터는 NPS 안 받음. 'at' 만으로 submitted 판정.
 classified as (
   select *,
     case
       when survey is null or survey = 'null'::jsonb then 'no_response'
       when (survey ->> 'skipped') = 'true' then 'skipped'
-      when (survey ->> 'at') is not null and (survey ->> 'nps') is not null then 'submitted'
+      when (survey ->> 'at') is not null then 'submitted'
       else 'no_response'
     end as response_status
   from filtered
@@ -129,7 +129,7 @@ counts as (
     count(*) filter (where response_status = 'no_response') as no_response
   from classified
 ),
--- 개별 응답 정렬 (최신순)
+-- 개별 응답 정렬 (최신순) — mini 필드도 같이 노출 (시험 입구 미니 설문)
 responses as (
   select coalesce(jsonb_agg(
     jsonb_build_object(
@@ -144,10 +144,44 @@ responses as (
       'stuck', survey ->> 'stuck',
       'want_w2', coalesce(survey -> 'want_w2', '[]'::jsonb),
       'comment', coalesce(survey ->> 'comment', ''),
-      'at', survey ->> 'at'
+      'at', survey ->> 'at',
+      'mini', coalesce(survey -> 'mini', '{}'::jsonb)
     ) order by survey ->> 'at' desc
   ), '[]'::jsonb) as list
   from submitted_rows
+),
+-- 미니 설문 — 메인 응답 안 한 사람도 mini 만 답할 수 있어서 별도 base 에서 모음.
+mini_only_rows as (
+  select * from filtered
+  where survey -> 'mini' is not null
+    and (survey -> 'mini' ->> 'at') is not null
+),
+mini_responses as (
+  select coalesce(jsonb_agg(
+    jsonb_build_object(
+      'name', member_name,
+      'english_name', english_name,
+      'tier', tier,
+      'hardest', survey -> 'mini' ->> 'hardest',
+      'amount', survey -> 'mini' ->> 'amount',
+      'comment', coalesce(survey -> 'mini' ->> 'comment', ''),
+      'at', survey -> 'mini' ->> 'at'
+    ) order by survey -> 'mini' ->> 'at' desc
+  ), '[]'::jsonb) as list
+  from mini_only_rows
+),
+-- 미니 설문 통계
+mini_hardest_dist as (
+  select jsonb_object_agg(h, n) as dist from (
+    select coalesce(survey -> 'mini' ->> 'hardest', 'unknown') as h, count(*) as n
+    from mini_only_rows group by 1
+  ) x
+),
+mini_amount_dist as (
+  select jsonb_object_agg(a, n) as dist from (
+    select coalesce(survey -> 'mini' ->> 'amount', 'unknown') as a, count(*) as n
+    from mini_only_rows group by 1
+  ) x
 )
 select jsonb_build_object(
   'cohort', p_cohort,
@@ -169,9 +203,13 @@ select jsonb_build_object(
     'ux_avg', coalesce((select ux_avg from averages), 0),
     'time_dist', coalesce((select dist from time_dist), '{}'::jsonb),
     'stuck_dist', coalesce((select dist from stuck_dist), '{}'::jsonb),
-    'want_w2_dist', coalesce((select dist from want_w2_dist), '{}'::jsonb)
+    'want_w2_dist', coalesce((select dist from want_w2_dist), '{}'::jsonb),
+    'mini_count', (select count(*) from mini_only_rows),
+    'mini_hardest_dist', coalesce((select dist from mini_hardest_dist), '{}'::jsonb),
+    'mini_amount_dist', coalesce((select dist from mini_amount_dist), '{}'::jsonb)
   ),
-  'responses', (select list from responses)
+  'responses', (select list from responses),
+  'mini_responses', (select list from mini_responses)
 );
 $$;
 
