@@ -10426,10 +10426,18 @@ function renderWeekSurveyCard(weekN) {
     const submitBtn = document.getElementById('__weekSurveySubmit');
     if (submitBtn) submitBtn.onclick = () => {
       const draft = window.__weekSurveyDraft[weekN] || {};
-      // 최소 가드 — NPS 만 필수, 나머지는 빈 값 허용 (응답률 우선)
-      if (draft.nps == null) {
-        showToast('Q1 (추천 의향) 만 답해주시면 제출 가능해요');
-        return;
+      // 최소 가드 — Week 1·4 는 NPS 필수, Week 2·3 는 difficulty 필수.
+      // (showNps 로직과 동일: NPS 노출되는 주차만 NPS 필수, 그 외는 첫 노출 질문 필수)
+      if (showNps) {
+        if (draft.nps == null) {
+          showToast('Q1 (추천 의향) 만 답해주시면 제출 가능해요');
+          return;
+        }
+      } else {
+        if (draft.difficulty == null) {
+          showToast('Q1 (단어 난이도) 만 답해주시면 제출 가능해요');
+          return;
+        }
       }
       const ta = document.getElementById('__weekSurveyComment');
       if (ta) draft.comment = (ta.value || '').slice(0, 300);
@@ -10440,7 +10448,7 @@ function renderWeekSurveyCard(weekN) {
       };
       try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
       delete window.__weekSurveyDraft[weekN];
-      showToast('🙏 답변 저장됐어요. Week 2 더 좋게 만들게요.');
+      showToast(`🙏 답변 저장됐어요. ${nextWeekLabel} 더 좋게 만들게요.`);
       // 모달 강제 재마운트 → thank-you + mini-summary 화면으로 전환
       const stale = document.querySelector('[data-survey-fill-modal]');
       if (stale) stale.remove();
