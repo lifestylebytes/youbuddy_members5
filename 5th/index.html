@@ -18678,6 +18678,98 @@ function WeekSurveyResultPage() {
   }
   page.appendChild(listSection);
 
+  // ─── 미니 설문 (시험 입구 3문항) 결과 ───
+  const miniResponses = Array.isArray(data.mini_responses) ? data.mini_responses : [];
+  const miniHardestDist = (summary.mini_hardest_dist) || {};
+  const miniAmountDist = (summary.mini_amount_dist) || {};
+  const miniCount = Number(summary.mini_count || 0);
+
+  const miniSection = el('div', { style: { padding: '0 20px 24px' } });
+  miniSection.appendChild(el('div', {
+    style: { paddingTop: '16px', borderTop: '1px dashed var(--line)', marginBottom: '10px' }
+  }, ''));
+  miniSection.appendChild(el('div', { class: 'kicker', style: { color: '#7B5E8C', marginBottom: '8px' } },
+    `⚡ 미니 설문 (시험 입구 · 3문항) — ${miniCount}건`));
+
+  if (miniCount === 0 && !miniResponses.length) {
+    miniSection.appendChild(el('div', {
+      style: { padding: '20px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: '12.5px', background: 'rgba(155,127,174,0.06)', borderRadius: '14px' },
+    }, '미니 설문 응답 없음. (Supabase migration 안 돌렸으면 Studio SQL Editor 에서 supabase_migration_week_survey_export.sql 한 번 실행하셔야 mini 데이터 노출됨)'));
+  } else {
+    const hardestEntries = Object.entries(miniHardestDist).sort((a, b) => Number(b[1]) - Number(a[1])).slice(0, 8);
+    const hardestTotal = Object.values(miniHardestDist).reduce((s, v) => s + Number(v), 0);
+    const hardestHtml = hardestEntries.length ? hardestEntries.map(([word, n]) => {
+      const pct = hardestTotal > 0 ? Math.round((Number(n) / hardestTotal) * 100) : 0;
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;font-size:12.5px;">
+          <span style="flex:1;color:var(--ink);font-weight:600;font-family:var(--font-mono);">${escapeHtml(word)}</span>
+          <span style="flex:0 0 130px;height:8px;background:#F0E8D8;border-radius:4px;overflow:hidden;position:relative;">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:#F07D38;border-radius:4px;"></span>
+          </span>
+          <span style="flex:0 0 50px;text-align:right;font-family:var(--font-mono);font-size:11.5px;color:var(--muted);">${n}명 · ${pct}%</span>
+        </div>`;
+    }).join('') : '<div style="color:var(--muted);font-size:12px;">데이터 없음</div>';
+
+    const amountLabels = {
+      'just_right': '😌 적당했어요',
+      'a_lot': '😅 좀 많은 편',
+      'too_much': '🥵 너무 많음',
+      'too_little': '🤔 더 많아도 됨',
+    };
+    const amountTotal = Object.values(miniAmountDist).reduce((s, v) => s + Number(v), 0);
+    const amountHtml = Object.entries(amountLabels).map(([key, label]) => {
+      const n = Number(miniAmountDist[key] || 0);
+      const pct = amountTotal > 0 ? Math.round((n / amountTotal) * 100) : 0;
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;font-size:12.5px;">
+          <span style="flex:1;color:var(--ink);font-weight:600;">${label}</span>
+          <span style="flex:0 0 130px;height:8px;background:#F0E8D8;border-radius:4px;overflow:hidden;position:relative;">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:#7B5E8C;border-radius:4px;"></span>
+          </span>
+          <span style="flex:0 0 50px;text-align:right;font-family:var(--font-mono);font-size:11.5px;color:var(--muted);">${n}명 · ${pct}%</span>
+        </div>`;
+    }).join('');
+
+    const distCards = el('div');
+    distCards.innerHTML = `
+      <div style="padding:14px 16px;border-radius:14px;background:#fff;border:1px solid var(--line);margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">가장 헷갈린 단어 (Top 8)</div>
+        <div style="margin-top:8px;">${hardestHtml}</div>
+      </div>
+      <div style="padding:14px 16px;border-radius:14px;background:#fff;border:1px solid var(--line);margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">학습 분량</div>
+        <div style="margin-top:8px;">${amountHtml}</div>
+      </div>
+    `;
+    miniSection.appendChild(distCards);
+
+    if (miniResponses.length) {
+      miniSection.appendChild(el('div', { class: 'kicker', style: { color: 'var(--muted)', marginTop: '14px', marginBottom: '8px' } },
+        `💬 미니 응답 ${miniResponses.length}건`));
+      miniResponses.forEach((r) => {
+        const card = el('div', {
+          style: { padding: '12px 14px', borderRadius: '12px', background: 'rgba(155,127,174,0.06)', border: '1px solid rgba(155,127,174,0.2)', marginBottom: '8px' }
+        });
+        const tier = r.tier === 'premium' ? '<span style="font-size:9.5px;font-weight:700;background:rgba(192,132,252,0.18);color:#7B4FB8;padding:2px 6px;border-radius:999px;">PREMIUM</span>' : '<span style="font-size:9.5px;font-weight:700;background:rgba(240,125,56,0.16);color:var(--orange-dark);padding:2px 6px;border-radius:999px;">BASIC</span>';
+        const name = r.english_name || r.name || '익명';
+        card.innerHTML = `
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:13px;font-weight:800;color:var(--ink);">${escapeHtml(name)}</span>
+            ${tier}
+            <span style="margin-left:auto;font-size:10px;color:var(--muted);font-family:var(--font-mono);">${escapeHtml((r.at || '').slice(0, 16).replace('T', ' '))}</span>
+          </div>
+          <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;font-size:11px;">
+            <span style="padding:3px 8px;border-radius:8px;background:rgba(240,125,56,0.12);color:var(--orange-dark);font-weight:700;font-family:var(--font-mono);">📌 ${escapeHtml(r.hardest || '-')}</span>
+            <span style="padding:3px 8px;border-radius:8px;background:rgba(155,127,174,0.12);color:#7B5E8C;font-weight:700;">${escapeHtml(amountLabels[r.amount] || r.amount || '-')}</span>
+          </div>
+          ${r.comment ? `<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:#fff;border:1px solid var(--line-soft);font-size:12px;color:var(--ink);line-height:1.5;">💬 ${escapeHtml(r.comment)}</div>` : ''}
+        `;
+        miniSection.appendChild(card);
+      });
+    }
+  }
+  page.appendChild(miniSection);
+
   setTimeout(() => {
     const today = new Date().toISOString().slice(0, 10);
     const jsonBtn = document.getElementById('__surveyDlJson');
