@@ -10035,24 +10035,32 @@ function renderBingoDrill(page, weekN, week, drill) {
   }
 
   // ─ 단답 (recall · cloze)
-  // boss 에선 미리 만들어둔 pre/post 사용, 일반 drill 에선 즉석 split
+  // boss 에선 미리 만들어둔 pre/post 사용, 일반 drill 에선 computeQuizSplit 풀 기능 활용
+  // (단순 regex 매칭으로는 "Meet halfway" + "meet you halfway" 같은 대명사 치환 케이스 못 잡음)
   let pre, post, sentenceBroken = false;
   if (drill.isBoss && (w.pre !== undefined || w.post !== undefined)) {
     pre = w.pre || '';
     post = w.post || '';
-  } else {
-    const escaped = String(w.en).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp(escaped, 'i');
-    const m = w.ex_en && w.ex_en.match(re);
-    if (m) {
-      pre = w.ex_en.slice(0, m.index);
-      post = w.ex_en.slice(m.index + m[0].length);
+  } else if (typeof computeQuizSplit === 'function' && w.ex_en) {
+    const split = computeQuizSplit({ en: w.en, prompt: w.ex_en });
+    if (split.mode === '2blank') {
+      // 2-blank 모드 — 학습자한테는 input 1개만 노출. before + [vocab 전체] + after.
+      // (대명사 "you" 등 middle 도 포함해서 input 1칸으로 합침. 답안 matcher 가 변형 허용)
+      pre = split.before || '';
+      post = split.after || '';
+    } else if (split.mode === '1blank' && Array.isArray(split.parts)) {
+      const p0 = split.parts[0] || '';
+      // fallback ('→ ' 끝나는 경우) 면 sentenceBroken
+      if (/→\s*$/.test(p0)) {
+        pre = ''; post = ''; sentenceBroken = true;
+      } else {
+        pre = p0; post = split.parts[1] || '';
+      }
     } else {
-      // 직접 매칭 실패 (대명사 치환 등) → 깨끗한 빈 cloze. 한국어 힌트만 보여줌.
-      pre = '';
-      post = '';
-      sentenceBroken = true;
+      pre = ''; post = ''; sentenceBroken = true;
     }
+  } else {
+    pre = ''; post = ''; sentenceBroken = true;
   }
 
   card.innerHTML = `
