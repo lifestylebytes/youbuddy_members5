@@ -7073,6 +7073,9 @@ function HomePage() {
     if (currentDay <= 5) return;  // Week 1 진행 중엔 노출 X
     // 가장 최근 끝난 주 = Math.ceil((currentDay - 5) / 5)
     const targetWeek = Math.max(1, Math.ceil((currentDay - 5) / 5));
+    // Week 2·3 는 미니 설문만 돌림 — 메인 설문 배너 노출 X.
+    // Week 1 (이미 받음) 과 Week 4 (마지막 피드백) 만 메인 배너 노출.
+    if (targetWeek === 2 || targetWeek === 3) return;
     const survey = (state.week_survey || {})[String(targetWeek)];
     if (survey && survey.at && !survey.skipped) return; // 이미 답변
     // 데드라인 — 그 주 +1 주 까지 (= reviewDeadlineDay 와 같은 룰)
