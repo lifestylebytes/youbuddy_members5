@@ -19441,28 +19441,30 @@ const SPACED_REPEAT_PRESETS = {
       },
     ],
   },
-  // Day 12 (Week 3 시작) — Week 2 top 3 약점 어휘 (placeholder, 운영자 통계 후 다듬기).
-  '12': {
-    title: 'Week 2 에서 가져온 3개 표현',
-    subtitle: '지난 주 가장 많이 헷갈렸던 표현이에요',
+  // Day 11 (Week 3 시작 · 월요일) — Week 1·2 통합 약점 어휘 top 3 + 미니 퀴즈.
+  // 미니 설문 응답 (Take it offline 2명, Play devil's advocate 1명) + Day 7 preset 데이터 종합.
+  '11': {
+    title: '지난 2주 가장 헷갈렸던 표현',
+    subtitle: '진짜 외워졌는지 미니 퀴즈로 한 번만 짚고 갈까요?',
+    quiz: true, // 듣기 + 미니 퀴즈 모드
     words: [
       {
-        en: "Step on someone's toes",
-        ko: '남의 영역을 침범하다',
-        ex_en: "I want to help, but I don't want to step on anyone's toes.",
-        stat: 'idiomatic possessive · 빈칸 위치 가장 많이 틀림',
+        en: 'Take it offline',
+        ko: '회의 끝나고 따로 얘기하다',
+        ex_en: "Let's take it offline so we can stay on the agenda.",
+        stat: '미니 설문 1위 · 응답자의 67% 가 가장 헷갈렸다고 답함',
+      },
+      {
+        en: 'Front-load',
+        ko: '초반에 몰아치기',
+        ex_en: "Let's front-load the heavy tasks this week.",
+        stat: 'Week 1 약점 1위 · 첫시도 정답률 62%',
       },
       {
         en: "Play devil's advocate",
         ko: '의도적으로 반대 입장',
         ex_en: "Let me play devil's advocate for a second.",
-        stat: '한국어로 잘 안 쓰는 표현 · 입에 잘 안 붙음',
-      },
-      {
-        en: 'Sugarcoat',
-        ko: '듣기 좋게 포장',
-        ex_en: "I'm not going to sugarcoat it — we missed the target.",
-        stat: '단일 동사인데도 메신저에서 거의 안 쓴다는 피드백',
+        stat: '미니 설문 2위 · 한국어로 잘 안 쓰는 표현',
       },
     ],
   },
@@ -19577,21 +19579,123 @@ function SpacedRepeatPopupModal() {
     </div>
     <div style="padding:14px 22px 22px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;border-top:1px solid var(--line);background:#fff;">
       <button id="__srPlayAll" class="btn btn-ghost btn-full" style="background:transparent;border:1px solid var(--orange-soft);color:var(--orange-dark);font-size:13px;padding:11px;font-weight:700;">🔊 한 번씩 듣고 가기</button>
-      <button id="__srDone" class="btn btn-primary btn-full" style="background:var(--orange);border:none;font-size:14px;padding:13px;">✓ 다 봤어요 · Day ${ctx.dayN} 시작</button>
+      ${ctx.quiz ? `<button id="__srStartQuiz" class="btn btn-primary btn-full" style="background:var(--orange);border:none;font-size:14px;padding:13px;">⚡ 미니 퀴즈로 짚고 가기 (3문항)</button>` : ''}
+      <button id="__srDone" class="btn btn-${ctx.quiz ? 'ghost' : 'primary'} btn-full" style="${ctx.quiz ? 'background:transparent;border:1px solid var(--line);color:var(--muted);' : 'background:var(--orange);border:none;color:#fff;'}font-size:13px;padding:11px;">${ctx.quiz ? '나중에' : '✓ 다 봤어요 · Day ' + ctx.dayN + ' 시작'}</button>
     </div>
   `;
+  // 미니 퀴즈 — 한국어 보고 영어 채워넣기. ctx.words 3개 순서대로.
+  let quizState = null;
+  function renderQuiz() {
+    if (!quizState) return;
+    const w = ctx.words[quizState.idx];
+    if (!w) return;
+    const total = ctx.words.length;
+    const correctSoFar = quizState.correct;
+    modal.innerHTML = `
+      <div style="position:relative;padding:22px 22px 14px;background:linear-gradient(135deg, #FFF1E5 0%, #FFE4D0 100%);text-align:center;flex-shrink:0;">
+        <button id="__srPopupClose" style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,0.7);border:none;color:var(--ink-soft);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+        <div class="kicker" style="color:var(--orange-dark);">⚡ 미니 퀴즈 · ${quizState.idx + 1} / ${total}</div>
+        <div style="margin-top:6px;font-size:13px;color:var(--ink-soft);line-height:1.5;">한국어 뜻 보고 영어 표현 채우기</div>
+      </div>
+      <div style="padding:24px 20px;flex:1;overflow-y:auto;">
+        <div style="padding:18px 16px;border-radius:14px;background:#FBF7F0;border:1px solid var(--line-soft, #E7DDC8);text-align:center;">
+          <div style="font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">${escapeHtml(w.ko || '')}</div>
+          ${w.ex_en ? `<div style="margin-top:10px;font-size:11.5px;color:var(--muted);font-style:italic;line-height:1.5;">힌트: "${escapeHtml((w.ex_en || '').replace(new RegExp(w.en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '____'))}"</div>` : ''}
+        </div>
+        <input id="__srQuizInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="영어로 입력..." style="width:100%;margin-top:16px;padding:14px 16px;border-radius:12px;border:2px solid var(--orange-soft);background:#fff;font-size:18px;font-weight:600;color:var(--ink);text-align:center;font-family:var(--font-mono);box-sizing:border-box;" value="${escapeHtml(quizState.input || '')}" />
+        <div id="__srQuizFeedback" style="margin-top:10px;text-align:center;font-size:13px;font-weight:700;min-height:20px;"></div>
+      </div>
+      <div style="padding:14px 22px 22px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;border-top:1px solid var(--line);background:#fff;">
+        <button id="__srQuizCheck" class="btn btn-primary btn-full" style="background:var(--orange);border:none;font-size:14px;padding:13px;">확인</button>
+        <button id="__srQuizSkip" class="btn btn-ghost btn-full" style="background:transparent;border:1px solid var(--line);color:var(--muted);font-size:12px;padding:10px;">모르겠어요 · 정답 보기</button>
+      </div>
+    `;
+    setTimeout(() => {
+      const closeBtn = document.getElementById('__srPopupClose');
+      if (closeBtn) closeBtn.onclick = () => close(true);
+      const input = document.getElementById('__srQuizInput');
+      if (input) {
+        input.focus();
+        input.oninput = () => { quizState.input = input.value; };
+        input.onkeydown = (e) => { if (e.key === 'Enter') checkBtn?.click(); };
+      }
+      const checkBtn = document.getElementById('__srQuizCheck');
+      const skipBtn = document.getElementById('__srQuizSkip');
+      const showFeedback = (correct, msg) => {
+        const fb = document.getElementById('__srQuizFeedback');
+        if (fb) {
+          fb.style.color = correct ? '#22B36A' : 'var(--orange-dark)';
+          fb.textContent = msg;
+        }
+      };
+      if (checkBtn) checkBtn.onclick = () => {
+        const ans = (input?.value || '').trim();
+        if (!ans) { showFeedback(false, '답을 입력해주세요'); return; }
+        const isMatch = (typeof quizAnswerMatches === 'function')
+          ? quizAnswerMatches(ans, w.en)
+          : (ans.toLowerCase() === (w.en || '').toLowerCase());
+        if (isMatch) {
+          quizState.correct++;
+          showFeedback(true, `✓ 정답!`);
+          setTimeout(advanceQuiz, 700);
+        } else {
+          showFeedback(false, `정답: ${w.en}`);
+          setTimeout(advanceQuiz, 1500);
+        }
+      };
+      if (skipBtn) skipBtn.onclick = () => {
+        showFeedback(false, `정답: ${w.en}`);
+        setTimeout(advanceQuiz, 1200);
+      };
+    }, 0);
+  }
+  function advanceQuiz() {
+    if (!quizState) return;
+    quizState.idx += 1;
+    quizState.input = '';
+    if (quizState.idx >= ctx.words.length) {
+      finishQuiz();
+    } else {
+      renderQuiz();
+    }
+  }
+  function finishQuiz() {
+    const score = quizState.correct;
+    const total = ctx.words.length;
+    modal.innerHTML = `
+      <div style="position:relative;padding:30px 22px;background:linear-gradient(135deg, #FFF1E5 0%, #FFE4D0 100%);text-align:center;">
+        <div style="font-size:48px;line-height:1;">${score === total ? '🎉' : score > 0 ? '👏' : '💪'}</div>
+        <div class="kicker" style="margin-top:8px;color:var(--orange-dark);">미니 퀴즈 끝</div>
+        <div style="margin-top:8px;font-size:24px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${score} / ${total} 맞췄어요</div>
+        <div style="margin-top:10px;font-size:13px;color:var(--ink-soft);line-height:1.55;">
+          ${score === total ? '완벽! 진짜 외워졌네요 ✨' : score > 0 ? `${total - score}개는 오늘 학습에서 다시 만날 거예요.` : '오늘 학습에서 다시 만나봅시다 — 한 번 더 짚으면 돼요.'}
+        </div>
+      </div>
+      <div style="padding:18px 22px;display:flex;flex-direction:column;gap:8px;">
+        <button id="__srQuizDone" class="btn btn-primary btn-full" style="background:var(--orange);border:none;font-size:14px;padding:13px;">✓ Day ${ctx.dayN} 학습 시작</button>
+      </div>
+    `;
+    setTimeout(() => {
+      const doneBtn = document.getElementById('__srQuizDone');
+      if (doneBtn) doneBtn.onclick = () => close(true);
+    }, 0);
+  }
   setTimeout(() => {
     const closeBtn = document.getElementById('__srPopupClose');
     const doneBtn = document.getElementById('__srDone');
     const playBtn = document.getElementById('__srPlayAll');
+    const startQuizBtn = document.getElementById('__srStartQuiz');
     if (closeBtn) closeBtn.onclick = () => close(true);
     if (doneBtn) doneBtn.onclick = () => close(true);
     if (playBtn) playBtn.onclick = playAll;
+    if (startQuizBtn) startQuizBtn.onclick = () => {
+      quizState = { idx: 0, correct: 0, input: '' };
+      renderQuiz();
+    };
     modal.querySelectorAll('[data-spaced-card]').forEach((card) => {
       card.onclick = () => {
         const en = card.getAttribute('data-en') || '';
         const ex = card.getAttribute('data-ex') || '';
-        // 단어 → 0.7초 → 예문
         if (en) {
           speakWord(en);
           if (ex) setTimeout(() => speakWord(ex), 1100);
