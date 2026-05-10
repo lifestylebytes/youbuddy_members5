@@ -6826,6 +6826,22 @@ function HomePage() {
   // 한 번 시작되면 setInterval 로 계속 돔 (idempotent).
   try { startGlobalPeerTicker(); } catch (e) {}
 
+  // Spaced Repetition 팝업 — 홈 진입 시에도 노출 (DayPage 만 트리거하면 주말 멤버 놓침).
+  // SPACED_REPEAT_PRESETS 키가 currentDay 와 일치하고 아직 안 본 사람한테 띄움.
+  try {
+    const cDay = Number(state.currentDay) || 0;
+    const preset = SPACED_REPEAT_PRESETS[String(cDay)];
+    const seen = state.spaced_repeat_seen || {};
+    if (preset && !seen[`day${cDay}`] && !showSpacedRepeatPopup) {
+      setTimeout(() => {
+        if (!showSpacedRepeatPopup && !(state.spaced_repeat_seen || {})[`day${cDay}`]) {
+          showSpacedRepeatPopup = { dayN: cDay, ...preset };
+          render();
+        }
+      }, 600);
+    }
+  } catch (e) {}
+
   // 매주 금요일 (=Day 5/10/15/20) 자동 wrap-up 팝업 — "지금 풀러가기 / 주말에 보기" 선택지.
   // 노출 조건: 그 주 5일 다 완주 + 시험 미통과 + 미열람 + 데드라인 안 지남.
   // 세션 내 1회만 트리거하는 가드 (window.__wrapupTriggeredSession) — 무한 루프 방지.
@@ -19441,11 +19457,11 @@ const SPACED_REPEAT_PRESETS = {
       },
     ],
   },
-  // Day 11 (Week 3 시작 · 월요일) — Week 1·2 통합 약점 어휘 top 3 + 미니 퀴즈.
-  // 미니 설문 응답 (Take it offline 2명, Play devil's advocate 1명) + Day 7 preset 데이터 종합.
-  '11': {
+  // Day 10 (Week 2 마무리·주말 시작) — Week 1·2 통합 약점 어휘 top 3 + 미니 퀴즈.
+  // 일요일 밤부터 노출되도록 Day 10 키로 박음. 미니 설문 응답 + Day 7 preset 데이터 종합.
+  '10': {
     title: '지난 2주 가장 헷갈렸던 표현',
-    subtitle: '진짜 외워졌는지 미니 퀴즈로 한 번만 짚고 갈까요?',
+    subtitle: '주말 동안 진짜 외워졌는지 미니 퀴즈로 한 번 짚고 갈까요?',
     quiz: true, // 듣기 + 미니 퀴즈 모드
     words: [
       {
