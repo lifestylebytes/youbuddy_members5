@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>비즈니스 영어 2D 뉘앙스 맵 · YouBuddy</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFF9F5;
+    --surface: #FFFFFF;
+    --ink: #2A2622;
+    --ink-soft: #6E6862;
+    --ink-faint: #B5AFA7;
+    --rule: #ECE5DC;
+
+    --req-bg: #F0E8FB;
+    --req-mid: #C9B5ED;
+    --req-deep: #8466C7;
+
+    --opn-bg: #E0F2E8;
+    --opn-mid: #95D2AF;
+    --opn-deep: #4A9970;
+
+    --dis-bg: #FCE3D6;
+    --dis-mid: #F2B196;
+    --dis-deep: #C77252;
+
+    --upd-bg: #DCEAF6;
+    --upd-mid: #9BC0DD;
+    --upd-deep: #5A8DBB;
+
+    --accent: #F8B8D0;
+
+    --sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
+
+    --c-bg: var(--req-bg);
+    --c-mid: var(--req-mid);
+    --c-deep: var(--req-deep);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--sans); }
+
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 10% 0%, var(--c-bg) 0%, transparent 40%),
+      radial-gradient(circle at 90% 100%, var(--c-bg) 0%, transparent 35%),
+      var(--bg);
+    transition: background 0.6s ease;
+    padding: 32px 20px 80px;
+  }
+
+  .wrap { max-width: 540px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 36px; }
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--ink-soft);
+    margin-bottom: 14px;
+    font-weight: 500;
+  }
+  .eyebrow .dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    background: var(--c-deep);
+    border-radius: 50%;
+    margin: 0 8px;
+    vertical-align: 1px;
+    transition: background 0.4s;
+  }
+  h1 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+    margin-bottom: 12px;
+  }
+  h1 em {
+    font-style: normal;
+    color: var(--c-deep);
+    transition: color 0.4s;
+  }
+  .sub {
+    font-size: 14px;
+    color: var(--ink-soft);
+    max-width: 420px;
+    margin: 0 auto;
+  }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 28px;
+    padding: 6px;
+    background: var(--surface);
+    border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .tab {
+    background: transparent;
+    border: none;
+    padding: 12px 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.25s;
+    letter-spacing: -0.01em;
+  }
+  .tab .en {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    margin-top: 3px;
+    color: var(--ink-faint);
+    font-weight: 500;
+  }
+  .tab:hover { background: var(--c-bg); color: var(--ink); }
+  .tab.active { background: var(--c-deep); color: white; }
+  .tab.active .en { color: rgba(255,255,255,0.75); }
+
+  .quadrant-section {
+    background: var(--surface);
+    border-radius: 24px;
+    padding: 32px 24px 24px;
+    box-shadow: 0 8px 32px rgba(132, 102, 199, 0.06), 0 2px 6px rgba(0,0,0,0.03);
+    margin-bottom: 18px;
+  }
+  .quadrant-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+  }
+
+  .ax-label {
+    position: absolute;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--ink-soft);
+    font-weight: 600;
+    z-index: 2;
+    background: var(--surface);
+    padding: 4px 10px;
+    border-radius: 100px;
+  }
+  .ax-label.top { top: -2px; left: 50%; transform: translateX(-50%); }
+  .ax-label.bottom {
+    bottom: -2px; left: 50%;
+    transform: translateX(-50%);
+    color: var(--c-deep);
+    transition: color 0.4s;
+  }
+  .ax-label.left { left: -4px; top: 50%; transform: translateY(-50%); }
+  .ax-label.right {
+    right: -4px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--c-deep);
+    transition: color 0.4s;
+  }
+
+  .quadrant {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .axis-line { stroke: var(--rule); stroke-width: 0.5; stroke-dasharray: 1,1.5; }
+  .quadrant-bg { fill: var(--bg); }
+  .quadrant-bg.pro {
+    fill: var(--c-bg);
+    opacity: 0.5;
+    transition: fill 0.4s;
+  }
+
+  .dot-group { cursor: pointer; }
+  .dot {
+    fill: var(--ink-soft);
+    opacity: 0.55;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .dot-group:hover .dot {
+    fill: var(--c-deep);
+    opacity: 1;
+    r: 2.6;
+  }
+  .dot-group.selected .dot {
+    fill: var(--c-deep);
+    opacity: 1;
+    r: 3.2;
+    stroke: var(--surface);
+    stroke-width: 1.2;
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.15));
+  }
+  .dot-group.tier-pro .dot { fill: var(--c-deep); opacity: 0.8; }
+  .dot-group.tier-avoid .dot { fill: #C77272; opacity: 0.65; }
+
+  .dot-label {
+    fill: var(--ink);
+    font-size: 3px;
+    font-weight: 600;
+    text-anchor: middle;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    paint-order: stroke;
+    stroke: var(--surface);
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+  }
+  .dot-group:hover .dot-label,
+  .dot-group.selected .dot-label { opacity: 1; }
+
+  .corner-tag {
+    position: absolute;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    font-weight: 500;
+    color: var(--ink-faint);
+    pointer-events: none;
+  }
+  .corner-tag.tl { top: 12px; left: 14px; }
+  .corner-tag.tr { top: 12px; right: 14px; }
+  .corner-tag.bl { bottom: 12px; left: 14px; }
+  .corner-tag.br {
+    bottom: 12px; right: 14px;
+    color: var(--c-deep);
+    font-weight: 600;
+    transition: color 0.4s;
+  }
+
+  .card {
+    background: var(--surface);
+    border-radius: 24px;
+    padding: 28px 28px 24px;
+    position: relative;
+    box-shadow: 0 8px 32px rgba(132, 102, 199, 0.06), 0 2px 6px rgba(0,0,0,0.03);
+    overflow: hidden;
+    transition: transform 0.3s ease;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--c-bg), var(--c-mid), var(--c-deep));
+    transition: background 0.4s;
+  }
+
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .level-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--c-bg);
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--c-deep);
+    font-weight: 600;
+    transition: all 0.4s;
+  }
+  .tier-tag {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--ink-faint);
+    font-weight: 600;
+  }
+  .tier-tag.tier-avoid { color: #B85050; }
+  .tier-tag.tier-good { color: var(--c-deep); }
+  .tier-tag.tier-pro { color: var(--c-deep); font-weight: 700; }
+
+  .english {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+    margin-bottom: 10px;
+    transition: opacity 0.25s;
+  }
+  .korean {
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin-bottom: 18px;
+    transition: opacity 0.25s;
+  }
+  .context {
+    background: var(--c-bg);
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--ink);
+    margin-bottom: 18px;
+    transition: background 0.4s, opacity 0.25s;
+  }
+  .context strong { color: var(--c-deep); font-weight: 600; }
+
+  .card.fading .english,
+  .card.fading .korean,
+  .card.fading .context,
+  .card.fading .qi-tag,
+  .card.fading .qi-text { opacity: 0.3; }
+
+  /* ═══ Quadrant insight (the WHY behind each region) ═══ */
+  .quadrant-insight {
+    margin-bottom: 16px;
+    padding: 12px 14px 13px;
+    background: linear-gradient(135deg, var(--c-bg) 0%, transparent 130%);
+    border-left: 3px solid var(--c-deep);
+    border-radius: 10px;
+    transition: border-color 0.4s, background 0.4s;
+  }
+  .qi-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .qi-marker {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    background: var(--c-deep);
+    transition: background 0.4s;
+  }
+  .qi-tag {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--c-deep);
+    letter-spacing: 0;
+    transition: color 0.4s, opacity 0.25s;
+  }
+  .qi-text {
+    font-size: 12.5px;
+    color: var(--ink);
+    line-height: 1.55;
+    transition: opacity 0.25s;
+    font-weight: 500;
+  }
+
+  .meters {
+    display: flex;
+    gap: 14px;
+    padding: 16px;
+    background: var(--bg);
+    border-radius: 14px;
+    margin-bottom: 16px;
+  }
+  .meter { flex: 1; }
+  .meter-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    color: var(--ink-soft);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .meter-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .meter-icon svg {
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .meter-bar {
+    height: 6px;
+    background: var(--surface);
+    border-radius: 100px;
+    overflow: hidden;
+    position: relative;
+  }
+  .meter-fill {
+    height: 100%;
+    border-radius: 100px;
+    background: linear-gradient(90deg, var(--c-mid), var(--c-deep));
+    transition: width 0.6s cubic-bezier(0.4, 0.0, 0.2, 1), background 0.4s;
+    width: 0%;
+  }
+  .meter-value {
+    font-size: 10px;
+    color: var(--ink-faint);
+    font-weight: 600;
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  .actions { display: flex; gap: 10px; }
+  .action-btn {
+    flex: 1;
+    background: white;
+    border: 1px solid var(--rule);
+    padding: 11px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .action-btn:hover {
+    background: var(--c-bg);
+    border-color: var(--c-mid);
+    transform: translateY(-1px);
+  }
+  .action-btn:active { transform: translateY(0); }
+  .action-btn.saved {
+    background: var(--c-deep);
+    color: white;
+    border-color: var(--c-deep);
+  }
+
+  .saved-section {
+    margin-top: 32px;
+    padding: 24px 22px;
+    background: var(--surface);
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  }
+  .saved-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .saved-head h3 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .saved-head .count {
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.1em;
+    font-weight: 600;
+  }
+  .saved-empty {
+    text-align: center;
+    padding: 24px 10px;
+    color: var(--ink-faint);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .saved-empty .ico { font-size: 24px; display: block; margin-bottom: 8px; opacity: 0.5; }
+  .saved-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .saved-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--bg);
+    border-radius: 12px;
+    border-left: 3px solid var(--ink-faint);
+  }
+  .saved-item.cat-request { border-left-color: var(--req-deep); }
+  .saved-item.cat-opinion { border-left-color: var(--opn-deep); }
+  .saved-item.cat-disagree { border-left-color: var(--dis-deep); }
+  .saved-item.cat-update { border-left-color: var(--upd-deep); }
+  .saved-item .body { flex: 1; min-width: 0; }
+  .saved-item .saved-en {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 2px;
+    word-break: break-word;
+  }
+  .saved-item .saved-ko { font-size: 11px; color: var(--ink-soft); }
+  .saved-item .saved-meta {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--ink-faint);
+    margin-top: 4px;
+    font-weight: 600;
+  }
+  .saved-item button {
+    background: transparent;
+    border: none;
+    color: var(--ink-faint);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    line-height: 1;
+    transition: all 0.2s;
+  }
+  .saved-item button:hover { background: white; color: #B85050; }
+  .saved-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .saved-actions button {
+    flex: 1;
+    background: var(--bg);
+    border: none;
+    padding: 9px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .saved-actions button:hover { background: var(--c-bg); color: var(--c-deep); }
+
+  .cta {
+    margin-top: 36px;
+    padding: 28px;
+    background: var(--ink);
+    color: var(--bg);
+    border-radius: 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 80% 20%, rgba(232, 64, 122, 0.15), transparent 50%);
+  }
+  .cta-eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    margin-bottom: 10px;
+    font-weight: 600;
+    position: relative;
+  }
+  .cta h3 {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .cta-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--bg);
+    text-decoration: none;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    padding: 10px 18px;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 100px;
+    transition: all 0.2s;
+    position: relative;
+    font-weight: 600;
+  }
+  .cta-link:hover {
+    background: var(--accent);
+    color: var(--ink);
+    border-color: var(--accent);
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 28px;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--ink-faint);
+    font-weight: 500;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--ink);
+    color: var(--bg);
+    padding: 12px 24px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    transition: transform 0.3s ease;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 480px) {
+    body { padding: 20px 14px 60px; }
+    h1 { font-size: 26px; }
+    .tabs { gap: 4px; padding: 4px; }
+    .tab { padding: 10px 4px; font-size: 13px; }
+    .tab .en { font-size: 8px; }
+    .quadrant-section { padding: 28px 18px 18px; }
+    .card { padding: 24px 20px 20px; }
+    .english { font-size: 20px; }
+    .korean { font-size: 14px; }
+    .context { font-size: 12px; padding: 12px 14px; }
+    .actions { flex-direction: column; gap: 8px; }
+    .meters { flex-direction: column; gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">YOUBUDDY <span class="dot"></span> 2D NUANCE MAP</div>
+  <h1>2차원으로 보는<br><em>비즈니스 영어 뉘앙스</em></h1>
+  <p class="sub">사분면이 진짜로 4개! 같은 뜻이라도 X·Y 두 축이 어떻게 섞이는지 점들의 흩뿌려진 위치를 직접 눌러 확인해보세요.</p>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button class="tab active" data-cat="request">요청<span class="en">REQUEST</span></button>
+  <button class="tab" data-cat="opinion">의견<span class="en">OPINION</span></button>
+  <button class="tab" data-cat="disagree">반대<span class="en">DISAGREE</span></button>
+  <button class="tab" data-cat="update">보고<span class="en">UPDATE</span></button>
+</nav>
+
+<section class="quadrant-section">
+  <div class="quadrant-wrap">
+    <span class="ax-label top" id="ax-top">긴급</span>
+    <span class="ax-label bottom" id="ax-bottom">여유</span>
+    <span class="ax-label left" id="ax-left">직설</span>
+    <span class="ax-label right" id="ax-right">부드러움</span>
+
+    <span class="corner-tag tl">⚠ AVOID</span>
+    <span class="corner-tag tr">긴장된 정중함</span>
+    <span class="corner-tag bl">친한 사이만</span>
+    <span class="corner-tag br" id="corner-pro">⭐ PRO</span>
+
+    <svg class="quadrant" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+      <rect class="quadrant-bg" x="0" y="0" width="100" height="100"/>
+      <rect class="quadrant-bg pro" x="50" y="50" width="50" height="50"/>
+      <line class="axis-line" x1="50" y1="0" x2="50" y2="100"/>
+      <line class="axis-line" x1="0" y1="50" x2="100" y2="50"/>
+      <g id="dots"></g>
+    </svg>
+  </div>
+</section>
+
+<div class="card" id="card">
+  <div class="card-top">
+    <span class="level-badge"><span id="cat-name">요청</span> · <span id="quadrant-tag">Q2</span></span>
+    <span class="tier-tag" id="tier-tag">AVOID</span>
+  </div>
+  <h2 class="english" id="english">"Do this now."</h2>
+  <p class="korean" id="korean">이거 지금 해.</p>
+  <div class="context" id="context">명령조 + 즉시. 동료/선배에게 절대 사용 금지.</div>
+
+  <div class="quadrant-insight" id="quadrant-insight">
+    <div class="qi-head">
+      <span class="qi-marker"></span>
+      <span class="qi-tag" id="qi-tag">Q2 · 직설적 긴급</span>
+    </div>
+    <p class="qi-text" id="qi-text">명령조 + 즉시 톤. 동료·선배에겐 절대 금지. 위계적이고 강압적으로 들려요.</p>
+  </div>
+
+  <div class="meters">
+    <div class="meter">
+      <div class="meter-head">
+        <span class="meter-icon" id="icon-x">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+        </span>
+        <span id="meter-x-label">직설도</span>
+      </div>
+      <div class="meter-bar"><div class="meter-fill" id="meter-x"></div></div>
+      <div class="meter-value" id="meter-x-val">0%</div>
+    </div>
+    <div class="meter">
+      <div class="meter-head">
+        <span class="meter-icon" id="icon-y">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+            <line x1="9" y1="9" x2="9.01" y2="9"/>
+            <line x1="15" y1="9" x2="15.01" y2="9"/>
+          </svg>
+        </span>
+        <span id="meter-y-label">긴급도</span>
+      </div>
+      <div class="meter-bar"><div class="meter-fill" id="meter-y"></div></div>
+      <div class="meter-value" id="meter-y-val">0%</div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="action-btn" id="btn-tts">🔊 듣기</button>
+    <button class="action-btn" id="btn-save">⭐ 저장</button>
+  </div>
+</div>
+
+<section class="saved-section">
+  <div class="saved-head">
+    <h3>내가 저장한 표현</h3>
+    <span class="count" id="saved-count">0</span>
+  </div>
+  <div id="saved-body">
+    <div class="saved-empty">
+      <span class="ico">⭐</span>
+      마음에 드는 표현을 저장해보세요.<br>
+      나만의 비즈니스 영어 컬렉션이 만들어져요.
+    </div>
+  </div>
+</section>
+
+<div class="cta">
+  <div class="cta-eyebrow">— YOUBUDDY BUSINESS ENGLISH</div>
+  <h3>매일 비즈니스 영어<br>인증 챌린지</h3>
+  <a href="https://www.instagram.com/youbuddy_day/" class="cta-link" target="_blank" rel="noopener">@youbuddy_day →</a>
+</div>
+
+<footer>YOUBUDDY · 2D NUANCE MAP · v2.0</footer>
+
+</div>
+
+<div class="toast" id="toast">저장됐어요</div>
+
+<script>
+const DATA = {
+  request: {
+    label: '요청',
+    en: 'REQUEST',
+    axes: { top: '긴급', bottom: '여유', left: '직설', right: '부드러움' },
+    quadrants: {"Q1": {"name": "긴급한 정중함", "insight": "진짜 시급할 때 말투 안 바꿔도 정중하게 부탁하는 베테랑 화법. 이 영역을 알면 급할 때도 우아할 수 있어요."}, "Q2": {"name": "직설적 긴급", "insight": "명령조 + 즉시 톤. 동료·선배에겐 절대 금지. 위계적이고 강압적으로 들려요."}, "Q3": {"name": "캐주얼 명령조", "insight": "친한 동료끼리만 가능한 톤. 비즈니스 메일이나 격식 자리에선 위험해요."}, "Q4": {"name": "세련된 여유", "insight": "정중함 + 여유의 정석. 외국계 영어의 가장 베테랑스러운 영역이에요."}},
+    meters: { x: '직설도', y: '긴급도' },
+    items: [
+      // 좌상단 Q2 (직설+긴급) — AVOID
+      { en: '"Do this now."', ko: '이거 지금 해.', ctx: '<strong>명령조 + 즉시.</strong> 외국계에서 절대 금지. 위계적이고 무례하게 들립니다.', tier: 'AVOID', x: -0.8, y: 0.85 },
+      { en: '"I need this ASAP."', ko: '지금 당장 필요해요.', ctx: '<strong>강요 + 다급함.</strong> 본인 사정만 강조해 무례하게 들리는 표현이에요.', tier: 'AVOID', x: -0.3, y: 0.5 },
+      { en: '"This is urgent—do it."', ko: '이거 긴급해요. 해주세요.', ctx: '직설적인 긴급 요청. 위계적 톤이라 동등한 동료 사이엔 <strong>피하는 게 좋아요</strong>.', tier: 'AVOID', x: -0.55, y: 0.2 },
+
+      // 우상단 Q1 (부드러움+긴급) — OK
+      { en: '"Could you possibly prioritize this?"', ko: '혹시 이거 우선순위로 봐주실 수 있을까요?', ctx: '<strong>긴급한데 정중한</strong> 균형. 진짜 시급할 때 외국계에서 자주 쓰는 패턴.', tier: 'GOOD', x: 0.2, y: 0.4 },
+      { en: '"I hate to rush you, but…"', ko: '재촉드려 죄송한데요…', ctx: '<strong>미안함 + 긴급</strong>. 사과 한 마디로 분위기를 부드럽게 만드는 베테랑 화법.', tier: 'GOOD', x: 0.65, y: 0.65 },
+
+      // 좌하단 Q3 (직설+여유) — BASIC
+      { en: '"Do it whenever."', ko: '편할 때 해줘.', ctx: '<strong>캐주얼 명령조.</strong> 친한 동료 사이에선 OK지만 격식 있는 자리엔 부적절.', tier: 'BASIC', x: -0.2, y: -0.55 },
+      { en: '"Just take care of this."', ko: '이거 처리해줘.', ctx: '명령조지만 시급하지 않은 톤. <strong>부하 직원에게만</strong> 쓰는 게 안전해요.', tier: 'BASIC', x: -0.55, y: -0.25 },
+
+      // 우하단 Q4 (부드러움+여유) — PRO
+      { en: '"Whenever you get a chance, could you…"', ko: '시간 되실 때 혹시…', ctx: '<strong>정중함 + 여유</strong>의 정석. 상대 일정을 존중하는 시그널.', tier: 'GOOD', x: 0.25, y: -0.3 },
+      { en: '"It would be great if you could…"', ko: '…해주시면 정말 좋을 것 같아요.', ctx: '기대를 부드럽게 표현. <strong>세련된 비즈니스 톤</strong>의 정석.', tier: 'PRO', x: 0.55, y: -0.55 },
+      { en: '"I\'d appreciate it if you could, at your convenience."', ko: '편하실 때 해주시면 감사하겠습니다.', ctx: '베테랑급. 감사를 미리 표현해 <strong>협력적 관계</strong>를 형성.', tier: 'PRO', x: 0.85, y: -0.85 }
+    ]
+  },
+  opinion: {
+    label: '의견',
+    en: 'OPINION',
+    axes: { top: '주관', bottom: '객관', left: '망설임', right: '확신' },
+    quadrants: {"Q1": {"name": "주관적 확신", "insight": "자신감은 좋지만 근거가 약함. 데이터 없는 강한 의견은 감정적으로 보일 수 있어요."}, "Q2": {"name": "망설이는 의견", "insight": "추측 + 감정 톤. 비즈니스 자리에서 신입·주니어 인상이 강해요."}, "Q3": {"name": "조심스러운 객관", "insight": "근거는 있는데 너무 조심스러움. 자료가 있다면 더 확신을 가져도 OK예요."}, "Q4": {"name": "데이터 기반 확신", "insight": "일잘러의 정석. 객관적 근거 + 확신이 결합된 외국계 핵심 화법."}},
+    meters: { x: '망설임', y: '주관성' },
+    items: [
+      // 좌상단 (망설임+주관) — WEAK
+      { en: '"I think…"', ko: '제 생각엔…', ctx: '<strong>추측처럼</strong> 들려서 자신감 부족 시그널. 신입·주니어 인상이 강해요.', tier: 'AVOID', x: -0.8, y: 0.8 },
+      { en: '"I feel like…"', ko: '제 느낌엔…', ctx: '감정 기반 표현. <strong>비즈니스 자리</strong>에선 think보다 더 약하게 들립니다.', tier: 'AVOID', x: -0.3, y: 0.5 },
+      { en: '"Maybe we could…"', ko: '어쩌면 …할 수도 있을 것 같아요.', ctx: '모호한 제안. <strong>자신감 부족</strong>이 의사결정 자리에서 약점이에요.', tier: 'AVOID', x: -0.55, y: 0.2 },
+
+      // 우상단 (확신+주관) — OK
+      { en: '"I strongly believe…"', ko: '강하게 믿어요.', ctx: '확신은 좋지만 <strong>주관적 신념</strong>에 머무름. 근거가 없으면 감정적으로 보일 수 있어요.', tier: 'OK', x: 0.25, y: 0.35 },
+      { en: '"I\'m convinced that…"', ko: '저는 …라고 확신해요.', ctx: '강한 의견. <strong>주관적 확신</strong>이라 데이터 기반 의견보다 한 단계 약해요.', tier: 'OK', x: 0.65, y: 0.55 },
+
+      // 좌하단 (망설임+객관) — OK
+      { en: '"The data might suggest…"', ko: '데이터는 …일지도 모르겠네요.', ctx: '객관적이지만 <strong>지나치게 조심스러움</strong>. 자료가 있다면 더 확신을 가져도 OK.', tier: 'OK', x: -0.2, y: -0.3 },
+      { en: '"Some studies indicate…"', ko: '일부 연구에선…', ctx: '근거 인용 + 약한 어조. <strong>안전한 톤</strong>이지만 영향력은 약해요.', tier: 'OK', x: -0.55, y: -0.55 },
+
+      // 우하단 (확신+객관) — PRO
+      { en: '"In my experience…"', ko: '제 경험상…', ctx: '경험 기반. <strong>신뢰도</strong>가 한 단계 올라가는 정석 표현.', tier: 'GOOD', x: 0.3, y: -0.2 },
+      { en: '"Based on the data…"', ko: '데이터를 보면…', ctx: '데이터 기반. <strong>일잘러 시그널</strong>이자 외국계의 정석 화법.', tier: 'PRO', x: 0.55, y: -0.55 },
+      { en: '"The evidence clearly shows…"', ko: '근거상 명확히…', ctx: '객관적 근거 + 강한 확신. <strong>임원 미팅</strong>에 어울리는 베테랑 톤.', tier: 'PRO', x: 0.85, y: -0.85 }
+    ]
+  },
+  disagree: {
+    label: '반대',
+    en: 'DISAGREE',
+    axes: { top: '부정', bottom: '건설', left: '대립', right: '외교' },
+    quadrants: {"Q1": {"name": "외교적 거부", "insight": "윗사람한테 안전하게 반대하는 표현. 다만 대안이 없으면 단순 거부에 그쳐요."}, "Q2": {"name": "관계 단절형", "insight": "외국계 회의에서 최악의 영역. 분위기를 망치고 신뢰를 깎아요."}, "Q3": {"name": "직설적 솔직함", "insight": "친한 사이에선 효율적이지만, 격식 자리나 윗사람 앞에선 위험해요."}, "Q4": {"name": "협력적 대안", "insight": "갈등을 토론으로 만드는 리더 화법. 인정 + 대안 = 베테랑."}},
+    meters: { x: '대립도', y: '부정성' },
+    items: [
+      // 좌상단 (대립+부정) — AVOID
+      { en: '"That\'s wrong."', ko: '그건 틀렸어요.', ctx: '<strong>최악의 표현.</strong> 외국계 회의에서 절대 금지. 관계 단절형.', tier: 'AVOID', x: -0.85, y: 0.8 },
+      { en: '"No, I don\'t agree."', ko: '동의 안 해요.', ctx: '단절형. <strong>분위기를 망치는</strong> 직설적 거부 표현이에요.', tier: 'AVOID', x: -0.3, y: 0.55 },
+      { en: '"I disagree."', ko: '동의하지 않습니다.', ctx: '직설적. <strong>거리감을 증폭</strong>시키니 단독으로는 쓰지 마세요.', tier: 'AVOID', x: -0.6, y: 0.25 },
+
+      // 우상단 (외교+부정) — OK
+      { en: '"I respectfully disagree."', ko: '존중하지만 동의는 어렵습니다.', ctx: '외교적이지만 <strong>여전히 반대 명확</strong>. 회의에서 안전하게 쓸 수 있는 표현.', tier: 'OK', x: 0.3, y: 0.35 },
+      { en: '"With all due respect, I see it differently."', ko: '말씀에 대한 존중과는 별개로, 다르게 봅니다.', ctx: '<strong>매우 외교적인 부정.</strong> 윗사람에게 다른 의견 낼 때의 정석.', tier: 'OK', x: 0.6, y: 0.6 },
+
+      // 좌하단 (대립+건설) — BASIC
+      { en: '"That won\'t work—try this instead."', ko: '그건 안 될 거예요. 이거 어때요?', ctx: '직설 + 대안. <strong>친한 사이</strong>나 빠른 의사결정이 필요할 때 OK.', tier: 'BASIC', x: -0.55, y: -0.2 },
+      { en: '"That\'s off, but here\'s a better way."', ko: '그건 좀 아니고, 더 나은 방법이…', ctx: '직설적이지만 <strong>건설적</strong>. 친한 동료와 솔직하게 일할 때 유용해요.', tier: 'BASIC', x: -0.25, y: -0.5 },
+
+      // 우하단 (외교+건설) — PRO
+      { en: '"I see your point. What if we…"', ko: '말씀 이해돼요. 그럼 이렇게는 어떨까요?', ctx: '<strong>인정 + 대안</strong>. 갈등 없이 다른 방향을 제시하는 안전한 패턴.', tier: 'GOOD', x: 0.2, y: -0.3 },
+      { en: '"Let\'s look at this from another angle."', ko: '다른 각도에서 한번 볼까요?', ctx: '협력적으로 전환되는 <strong>리더십 화법</strong>. 갈등을 토론으로 만드는 표현.', tier: 'PRO', x: 0.55, y: -0.55 },
+      { en: '"Have we considered the alternative of…?"', ko: '…하는 대안도 고려해봤을까요?', ctx: '질문형 제안. <strong>베테랑 화법</strong>으로 결정자에게 깊은 인상을 줘요.', tier: 'PRO', x: 0.85, y: -0.8 }
+    ]
+  },
+  update: {
+    label: '보고',
+    en: 'UPDATE',
+    axes: { top: '수동', bottom: '능동', left: '모호', right: '구체' },
+    quadrants: {"Q1": {"name": "구체적 보고체", "insight": "정보는 명확하지만 수동적. 다음 액션이 안 보여 리더십 시그널이 약해요."}, "Q2": {"name": "모호한 회피", "insight": "측정 불가한 표현으로 신뢰를 깎는 영역. \"almost\", \"soon\" 등이 함정이에요."}, "Q3": {"name": "의지뿐인 보고", "insight": "의욕은 있는데 데드라인이 없음. 리더처럼 보이려다 공허해질 수 있어요."}, "Q4": {"name": "능동 + 구체", "insight": "베테랑 보고의 정석. 성과 + 데드라인 + 다음 비전이 다 들어가는 영역."}},
+    meters: { x: '모호도', y: '수동성' },
+    items: [
+      // 좌상단 (모호+수동) — AVOID
+      { en: '"I\'m working on it."', ko: '작업 중이에요.', ctx: '<strong>모호함의 정석.</strong> 언제 끝날지 알 수 없어 신뢰를 깎는 표현.', tier: 'AVOID', x: -0.8, y: 0.85 },
+      { en: '"Almost done."', ko: '거의 다 됐어요.', ctx: '주관적. <strong>"almost"는 신뢰를 깎는</strong> 형용사예요.', tier: 'AVOID', x: -0.3, y: 0.5 },
+      { en: '"It\'s coming along."', ko: '진행되고 있어요.', ctx: '모호한 진행 상태. <strong>측정 불가능</strong>한 표현이라 보고로는 약함.', tier: 'AVOID', x: -0.6, y: 0.2 },
+
+      // 우상단 (구체+수동) — OK
+      { en: '"I\'m 80% done."', ko: '80% 정도 완료됐어요.', ctx: '<strong>비율로 명시</strong>. 신뢰도가 확 올라가지만 다음 액션은 안 보임.', tier: 'OK', x: 0.25, y: 0.35 },
+      { en: '"Status: in progress, ETA tomorrow."', ko: '상태: 진행 중, 내일 완료 예정.', ctx: '구체적이지만 <strong>수동적 보고체</strong>. 정보는 명확하나 다음 액션은 약해요.', tier: 'OK', x: 0.65, y: 0.6 },
+
+      // 좌하단 (모호+능동) — BASIC
+      { en: '"Pushing it through."', ko: '밀어붙이는 중이에요.', ctx: '능동적이지만 <strong>측정 불가</strong>. 의지를 보여주지만 데드라인은 모름.', tier: 'BASIC', x: -0.55, y: -0.2 },
+      { en: '"Driving this forward."', ko: '이걸 진행시키는 중입니다.', ctx: '능동 + 모호. <strong>리더 톤</strong>이지만 구체성 없으면 공허해 보일 수 있어요.', tier: 'BASIC', x: -0.25, y: -0.55 },
+
+      // 우하단 (구체+능동) — PRO
+      { en: '"I\'ll have it by [time]."', ko: '…까지 드리겠습니다.', ctx: '<strong>데드라인 명시 + 책임감</strong>. 능동적 약속이라 신뢰가 따라와요.', tier: 'GOOD', x: 0.3, y: -0.3 },
+      { en: '"Phase 1 complete, moving to phase 2."', ko: '1단계 완료, 2단계로 넘어갑니다.', ctx: '<strong>단계별 + 능동</strong>. 프로젝트의 큰 그림과 다음 액션을 함께 보여줘요.', tier: 'PRO', x: 0.6, y: -0.55 },
+      { en: '"Hit a milestone, next is…"', ko: '마일스톤 달성, 다음은…', ctx: '베테랑 보고. <strong>성과 + 다음 비전</strong>까지 제시하는 일잘러 화법.', tier: 'PRO', x: 0.85, y: -0.85 }
+    ]
+  }
+};
+
+const TIER_CLASS = {
+  'AVOID': 'tier-avoid', 'WEAK': 'tier-avoid',
+  'BASIC': 'tier-ok', 'OK': 'tier-ok',
+  'GOOD': 'tier-good', 'REFINED': 'tier-good',
+  'PRO': 'tier-pro'
+};
+
+const STORAGE_KEY = 'youbuddy_saved_expressions_2d_v2';
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+let currentCat = 'request';
+let currentIdx = 0;
+let saved = loadSaved();
+
+const root = document.documentElement;
+const card = document.getElementById('card');
+const englishEl = document.getElementById('english');
+const koreanEl = document.getElementById('korean');
+const contextEl = document.getElementById('context');
+const quadrantTagEl = document.getElementById('quadrant-tag');
+const catNameEl = document.getElementById('cat-name');
+const tierTagEl = document.getElementById('tier-tag');
+const tabs = document.querySelectorAll('.tab');
+const btnSave = document.getElementById('btn-save');
+const btnTTS = document.getElementById('btn-tts');
+const savedBody = document.getElementById('saved-body');
+const savedCount = document.getElementById('saved-count');
+const toast = document.getElementById('toast');
+const dotsGroup = document.getElementById('dots');
+
+const axTop = document.getElementById('ax-top');
+const axBottom = document.getElementById('ax-bottom');
+const axLeft = document.getElementById('ax-left');
+const axRight = document.getElementById('ax-right');
+const meterXLabel = document.getElementById('meter-x-label');
+const meterYLabel = document.getElementById('meter-y-label');
+const meterX = document.getElementById('meter-x');
+const meterY = document.getElementById('meter-y');
+const meterXVal = document.getElementById('meter-x-val');
+const meterYVal = document.getElementById('meter-y-val');
+const iconX = document.getElementById('icon-x');
+const iconY = document.getElementById('icon-y');
+
+applyCategory(currentCat);
+renderQuadrant();
+render();
+renderSaved();
+
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (tab.classList.contains('active')) return;
+    tabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentCat = tab.dataset.cat;
+    currentIdx = 0;
+    applyCategory(currentCat);
+    renderQuadrant();
+    render();
+  });
+});
+
+btnSave.addEventListener('click', () => {
+  const item = DATA[currentCat].items[currentIdx];
+  const id = `${currentCat}-${currentIdx}`;
+  const exists = saved.find(s => s.id === id);
+
+  if (exists) {
+    saved = saved.filter(s => s.id !== id);
+    showToast('저장 해제됨');
+  } else {
+    saved.push({
+      id, cat: currentCat,
+      catLabel: DATA[currentCat].label,
+      en: item.en, ko: item.ko, tier: item.tier,
+      quadrant: getQuadrant(item.x, item.y)
+    });
+    showToast('⭐ 저장됐어요');
+  }
+  storeSaved();
+  renderSaved();
+  updateSaveButton();
+});
+
+btnTTS.addEventListener('click', () => {
+  const text = DATA[currentCat].items[currentIdx].en.replace(/["…]/g, '');
+  speak(text);
+});
+
+function applyCategory(cat) {
+  const map = {
+    request: ['--req-bg', '--req-mid', '--req-deep'],
+    opinion: ['--opn-bg', '--opn-mid', '--opn-deep'],
+    disagree: ['--dis-bg', '--dis-mid', '--dis-deep'],
+    update: ['--upd-bg', '--upd-mid', '--upd-deep']
+  };
+  const [bg, mid, deep] = map[cat];
+  root.style.setProperty('--c-bg', `var(${bg})`);
+  root.style.setProperty('--c-mid', `var(${mid})`);
+  root.style.setProperty('--c-deep', `var(${deep})`);
+
+  const axes = DATA[cat].axes;
+  axTop.textContent = axes.top;
+  axBottom.textContent = axes.bottom;
+  axLeft.textContent = axes.left;
+  axRight.textContent = axes.right;
+
+  const meters = DATA[cat].meters;
+  meterXLabel.textContent = meters.x;
+  meterYLabel.textContent = meters.y;
+
+  catNameEl.textContent = DATA[cat].label;
+}
+
+function getQuadrant(x, y) {
+  // x: left negative, right positive
+  // y: top positive, bottom negative (data-space)
+  if (x < 0 && y > 0) return 'Q2'; // top-left
+  if (x >= 0 && y > 0) return 'Q1'; // top-right
+  if (x < 0 && y <= 0) return 'Q3'; // bottom-left
+  return 'Q4'; // bottom-right (PRO)
+}
+
+function renderQuadrant() {
+  dotsGroup.innerHTML = '';
+  const items = DATA[currentCat].items;
+
+  items.forEach((item, idx) => {
+    const cx = (item.x + 1) * 50;
+    const cy = (1 - item.y) * 50;
+
+    const g = document.createElementNS(SVG_NS, 'g');
+    g.classList.add('dot-group');
+    if (TIER_CLASS[item.tier] === 'tier-pro') g.classList.add('tier-pro');
+    if (TIER_CLASS[item.tier] === 'tier-avoid') g.classList.add('tier-avoid');
+    g.dataset.idx = idx;
+
+    const dot = document.createElementNS(SVG_NS, 'circle');
+    dot.classList.add('dot');
+    dot.setAttribute('cx', cx);
+    dot.setAttribute('cy', cy);
+    dot.setAttribute('r', '2');
+
+    const label = document.createElementNS(SVG_NS, 'text');
+    label.classList.add('dot-label');
+    const labelY = cy < 12 ? cy + 7 : cy - 5;
+    label.setAttribute('x', cx);
+    label.setAttribute('y', labelY);
+    label.textContent = shorten(item.en);
+
+    g.appendChild(dot);
+    g.appendChild(label);
+
+    g.addEventListener('click', () => {
+      currentIdx = idx;
+      render();
+    });
+
+    dotsGroup.appendChild(g);
+  });
+
+  updateSelected();
+}
+
+function shorten(en) {
+  const cleaned = en.replace(/["]/g, '');
+  if (cleaned.length <= 18) return cleaned;
+  return cleaned.slice(0, 17) + '…';
+}
+
+function render() {
+  const item = DATA[currentCat].items[currentIdx];
+
+  card.classList.add('fading');
+  setTimeout(() => {
+    englishEl.textContent = item.en;
+    koreanEl.textContent = item.ko;
+    contextEl.innerHTML = item.ctx;
+    const q = getQuadrant(item.x, item.y);
+    quadrantTagEl.textContent = q;
+
+    // Update quadrant insight (the cool part!)
+    const qdata = DATA[currentCat].quadrants && DATA[currentCat].quadrants[q];
+    if (qdata) {
+      document.getElementById('qi-tag').textContent = q + ' · ' + qdata.name;
+      document.getElementById('qi-text').textContent = qdata.insight;
+    }
+    tierTagEl.textContent = item.tier;
+    tierTagEl.className = 'tier-tag ' + (TIER_CLASS[item.tier] || 'tier-ok');
+    card.classList.remove('fading');
+
+    const xPct = Math.round((1 - item.x) / 2 * 100);
+    const yPct = Math.round((1 + item.y) / 2 * 100);
+    meterX.style.width = xPct + '%';
+    meterY.style.width = yPct + '%';
+    meterXVal.textContent = xPct + '%';
+    meterYVal.textContent = yPct + '%';
+
+    animateIcon(iconX, xPct);
+    animateIcon(iconY, yPct);
+  }, 150);
+
+  updateSelected();
+  updateSaveButton();
+}
+
+function animateIcon(el, pct) {
+  const intensity = pct / 100;
+  el.querySelector('svg').style.transform = `scale(${1 + intensity * 0.3}) rotate(${(intensity - 0.5) * 20}deg)`;
+}
+
+function updateSelected() {
+  document.querySelectorAll('.dot-group').forEach(g => {
+    g.classList.toggle('selected', parseInt(g.dataset.idx) === currentIdx);
+  });
+}
+
+function updateSaveButton() {
+  const id = `${currentCat}-${currentIdx}`;
+  const isSaved = saved.find(s => s.id === id);
+  btnSave.classList.toggle('saved', !!isSaved);
+  btnSave.textContent = isSaved ? '✓ 저장됨' : '⭐ 저장';
+}
+
+function renderSaved() {
+  savedCount.textContent = saved.length;
+
+  if (saved.length === 0) {
+    savedBody.innerHTML = `
+      <div class="saved-empty">
+        <span class="ico">⭐</span>
+        마음에 드는 표현을 저장해보세요.<br>
+        나만의 비즈니스 영어 컬렉션이 만들어져요.
+      </div>`;
+    return;
+  }
+
+  const html = `
+    <ul class="saved-list">
+      ${saved.map(s => `
+        <li class="saved-item cat-${s.cat}">
+          <div class="body">
+            <div class="saved-en">${escapeHTML(s.en)}</div>
+            <div class="saved-ko">${escapeHTML(s.ko)}</div>
+            <div class="saved-meta">${s.catLabel.toUpperCase()} · ${s.quadrant || ''} · ${s.tier}</div>
+          </div>
+          <button data-id="${s.id}" aria-label="삭제">×</button>
+        </li>
+      `).join('')}
+    </ul>
+    <div class="saved-actions">
+      <button id="copy-all">📋 전체 복사</button>
+      <button id="clear-all">🗑 전체 삭제</button>
+    </div>`;
+  savedBody.innerHTML = html;
+
+  savedBody.querySelectorAll('.saved-item button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      saved = saved.filter(s => s.id !== btn.dataset.id);
+      storeSaved();
+      renderSaved();
+      updateSaveButton();
+    });
+  });
+
+  document.getElementById('copy-all').addEventListener('click', copyAll);
+  document.getElementById('clear-all').addEventListener('click', clearAll);
+}
+
+function copyAll() {
+  const text = saved.map(s => `[${s.catLabel}] ${s.en}\n   ${s.ko}`).join('\n\n');
+  navigator.clipboard.writeText(text)
+    .then(() => showToast('📋 클립보드에 복사됨'))
+    .catch(() => showToast('복사 실패'));
+}
+
+function clearAll() {
+  if (!confirm('저장한 표현을 모두 삭제할까요?')) return;
+  saved = [];
+  storeSaved();
+  renderSaved();
+  updateSaveButton();
+  showToast('전체 삭제됨');
+}
+
+function loadSaved() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch (e) { return []; }
+}
+
+function storeSaved() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(saved)); }
+  catch (e) {}
+}
+
+function speak(text) {
+  if (!('speechSynthesis' in window)) {
+    showToast('이 브라우저는 음성 미지원');
+    return;
+  }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US';
+  u.rate = 0.92;
+  speechSynthesis.speak(u);
+}
+
+let toastTimer;
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+}
+
+function escapeHTML(s) {
+  return s.replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  const items = DATA[currentCat].items;
+  if (e.key === 'ArrowRight' && currentIdx < items.length - 1) {
+    currentIdx++; render();
+  } else if (e.key === 'ArrowLeft' && currentIdx > 0) {
+    currentIdx--; render();
+  }
+});
+</script>
+
+</body>
+</html>
