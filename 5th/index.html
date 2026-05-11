@@ -2365,21 +2365,57 @@ function __isMinorContentEdit(original, corrected) {
   return false;
 }
 
-// === Deterministic cache — 같은 입력 → 같은 corrected 반환 ===
-// "다시 리뷰" 눌러도 매번 다른 추천 받지 않게.
-const __aiReviewCache = new Map(); // key: mode|target|sentence|korean → result
-function __aiCacheKey(payload) {
-  try {
-    const parts = [
-      payload.mode || '',
-      payload.word?.en || (payload.words || []).map((w) => w.en).join(','),
-      (payload.text || '').trim(),
-      (payload.korean || '').trim(),
-    ];
-    return parts.join('|||');
-  } catch (_) {
-    return '';
+// === Submission History — 같은 단어 슬롯에 대한 학습자의 이전 시도들 ===
+// AI 가 "내가 이전에 어떻게 첨삭했는지 알고" 코칭 톤을 단계적으로 올림.
+// 1차 시도: 일반 grammar 교정
+// 2차 시도 (비슷한 문장): "이미 잡으셨네요! 같은 표현으로 다른 상황 써볼까요?" + 새 예시
+// 3차 시도: 어휘 활용 깊이 코칭 (formality / nuance / 다른 시나리오)
+//
+// 메모리에만 살아있음 (페이지 reload 하면 초기화) — 의도적. 매 세션 새 코칭.
+const __submissionHistory = new Map(); // key: word.en → [{sentence, corrected, why, attemptN, ts}, ...]
+const __MAX_HISTORY = 5;
+
+function __historyKey(payload) {
+  if (payload.mode === 'sentence') return `S|${payload.word?.en || ''}`;
+  if (payload.mode === 'story') {
+    return `T|${(payload.words || []).map((w) => w.en).join('+')}`;
   }
+  return '';
+}
+
+function __getHistory(key) {
+  return __submissionHistory.get(key) || [];
+}
+
+function __recordSubmission(key, entry) {
+  if (!key) return;
+  const arr = __submissionHistory.get(key) || [];
+  arr.push({ ...entry, ts: Date.now() });
+  while (arr.length > __MAX_HISTORY) arr.shift();
+  __submissionHistory.set(key, arr);
+}
+
+// 정규화 — 의미 비교용. 구두점/공백/대소문자 제거.
+function __normalizeForCompare(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9'\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// 새 시도가 이전 시도와 사실상 동일한지 (문자 그대로 또는 동의어 1-2개 차이)
+function __isEssentiallySameAsPrior(currentSentence, history) {
+  if (!history || history.length === 0) return null;
+  const curNorm = __normalizeForCompare(currentSentence);
+  for (let i = history.length - 1; i >= 0; i--) {
+    const h = history[i];
+    const priorNorm = __normalizeForCompare(h.sentence);
+    if (curNorm === priorNorm) return h;
+    // 또는 minor content edit 거리 (1-2 단어 차이)
+    if (__isMinorContentEdit(h.sentence, currentSentence)) return h;
+  }
+  return null;
 }
 
 async function requestSentenceCorrection(word, sentence, koreanContext) {
@@ -2391,33 +2427,56 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
     temperature: 0,
   };
 
-  // === Cache: 같은 입력 → 같은 결과. "다시 리뷰" 반복 시 매번 다른 추천 방지.
-  const cacheKey = __aiCacheKey(payload);
-  if (cacheKey && __aiReviewCache.has(cacheKey)) {
-    const cached = __aiReviewCache.get(cacheKey);
-    return { ...cached, fromCache: true };
+  // === 이전 시도 히스토리 — AI 한테 보내서 단계적 코칭 톤 만들기.
+  const histKey = __historyKey(payload);
+  const history = __getHistory(histKey);
+  const attemptN = history.length + 1;
+  // 사실상 동일한 문장 재제출인지 체크 (이미 같은 코칭 줄 거면 다른 각도로 가야 함)
+  const priorMatch = __isEssentiallySameAsPrior(sentence, history);
+  payload.history = history.slice(-3).map((h) => ({
+    sentence: h.sentence,
+    corrected: h.corrected,
+    why: h.why,
+    attempt: h.attemptN,
+  }));
+  payload.attemptNumber = attemptN;
+  if (priorMatch) {
+    payload.isRepeatSubmission = true;
+    payload.priorCorrected = priorMatch.corrected;
   }
 
   try {
     const result = await callAiReviewEdgeFunction(payload);
 
-    // === 클라이언트 안전망 (강화) ===
-    // AI 가 content word 1-2개만 swap 한 경우 (동의어 리스트에 없는 increase↔raise,
-    // make↔create, see↔view 등 포함) → 원문 그대로 반환. 진짜 grammar 교정만 살림.
-    if (__isMinorContentEdit(sentence, result.corrected)) {
-      try {
-        console.log('[ai-review] minor content swap detected → reverting to original',
-          sentence, '→', result.corrected);
-      } catch (_) {}
+    // === 동일 문장 재제출인데 AI 가 아직 새 swap 만 던지는 경우 → 코칭 모드로 강제 전환 ===
+    if (priorMatch && __isMinorContentEdit(sentence, result.corrected)) {
+      const coachingTip = __buildCoachingFallback(word, sentence, attemptN, history);
+      const out = {
+        corrected: sentence,
+        diff_html: escapeHtml(sentence),
+        why: coachingTip,
+        originalInput: sentence,
+        isFallback: false,
+        isCoachingMode: true,
+        attemptNumber: attemptN,
+      };
+      __recordSubmission(histKey, { sentence, corrected: sentence, why: coachingTip, attemptN });
+      return out;
+    }
+
+    // === 안전망: 동의어 리스트 밖 swap (increase↔raise, make↔create 등) 도 차단.
+    // 1차 시도일 때만 적용 — 2차+ 부턴 위에서 코칭 모드 처리.
+    if (!priorMatch && __isMinorContentEdit(sentence, result.corrected)) {
       const out = {
         corrected: sentence,
         diff_html: escapeHtml(sentence),
         why: '이미 충분히 자연스러워요! 비즈니스 영어로 그대로 가셔도 OK 입니다 🧡',
         originalInput: sentence,
         isFallback: false,
-        isAlreadyNatural: true, // UI 측 sticky 처리용 플래그
+        isAlreadyNatural: true,
+        attemptNumber: attemptN,
       };
-      if (cacheKey) __aiReviewCache.set(cacheKey, out);
+      __recordSubmission(histKey, { sentence, corrected: sentence, why: out.why, attemptN });
       return out;
     }
 
@@ -2426,8 +2485,14 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
       diff_html: buildWordDiffHtml(sentence, result.corrected),
       originalInput: sentence,
       isFallback: false,
+      attemptNumber: attemptN,
     };
-    if (cacheKey) __aiReviewCache.set(cacheKey, out);
+    __recordSubmission(histKey, {
+      sentence,
+      corrected: result.corrected,
+      why: result.why,
+      attemptN,
+    });
     return out;
   } catch (e) {
     console.warn('[ai-review] sentence fallback:', e);
@@ -2439,6 +2504,35 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
       isFallback: true,
     };
   }
+}
+
+// === 코칭 fallback — 같은 문장 재제출 + AI 가 또 사소한 swap 만 던질 때.
+// 단계별로 다른 톤의 코칭 메시지를 보냄. 매번 같은 거 아니라 시나리오를 바꿔서.
+function __buildCoachingFallback(word, sentence, attemptN, history) {
+  const target = word?.en || '';
+  const def = word?.def || '';
+
+  // 단계별 코칭 시나리오 풀 (랜덤 아닌 attemptN 기반 결정적 선택)
+  const scenarios = [
+    {
+      tip: `이 문장 이미 자연스러워요 🧡 같은 "${target}" 표현으로 **다른 상황**을 영작해보세요. 예: 팀 회의가 아니라 1:1 보고 상황에서 어떻게 쓸까요?`,
+    },
+    {
+      tip: `"${target}" 잘 쓰셨어요! 이번엔 **더 격식 있는 자리** (임원 보고 / 외부 클라이언트 미팅) 에서 같은 의미를 어떻게 표현할지 한 문장 더 써보세요.`,
+    },
+    {
+      tip: `반대로 **이메일 한 줄**로 "${target}" 을 짧고 단호하게 써보면? Slack 보낼 때 톤으로요.`,
+    },
+    {
+      tip: `이번엔 **상대가 동의 안 할 때** "${target}" 을 어떻게 부드럽게 꺼낼지 써보세요. 같은 표현, 다른 정치적 무게.`,
+    },
+    {
+      tip: `같은 "${target}" 을 **부정문**으로 한 번 써볼까요? "We shouldn't ${target.toLowerCase()}..." 처럼 거꾸로 활용해보세요.`,
+    },
+  ];
+  const idx = Math.min(attemptN - 2, scenarios.length - 1); // 2차 시도부터 idx 0
+  const safe = scenarios[Math.max(0, idx)];
+  return safe.tip;
 }
 
 function buildLocalStoryCorrection(words, text) {
@@ -2474,23 +2568,49 @@ async function requestStoryCorrection(words, text, koreanContext) {
     korean: (koreanContext || '').trim() || undefined,
   };
 
-  // Cache — 같은 입력 → 같은 결과 (재호출 시 다른 추천 방지)
-  const cacheKey = __aiCacheKey(payload);
-  if (cacheKey && __aiReviewCache.has(cacheKey)) {
-    const cached = __aiReviewCache.get(cacheKey);
-    return { ...cached, fromCache: true };
+  // 히스토리 기반 단계적 코칭
+  const histKey = __historyKey(payload);
+  const history = __getHistory(histKey);
+  const attemptN = history.length + 1;
+  const priorMatch = __isEssentiallySameAsPrior(text, history);
+  payload.history = history.slice(-3).map((h) => ({
+    sentence: h.sentence,
+    corrected: h.corrected,
+    why: h.why,
+    attempt: h.attemptN,
+  }));
+  payload.attemptNumber = attemptN;
+  if (priorMatch) {
+    payload.isRepeatSubmission = true;
+    payload.priorCorrected = priorMatch.corrected;
   }
 
   try {
     const result = await callAiReviewEdgeFunction(payload);
 
-    // 보너스 스토리에도 minor content edit 가드 적용 — content word 1-2개만
-    // swap 한 거면 원문 유지 (단, syn_examples 는 응답에서 보존).
-    if (__isMinorContentEdit(text, result.corrected)) {
-      try {
-        console.log('[ai-review story] minor swap detected → revert',
-          text, '→', result.corrected);
-      } catch (_) {}
+    // 동일 스토리 재제출인데 AI 가 또 사소한 swap → 코칭 모드
+    if (priorMatch && __isMinorContentEdit(text, result.corrected)) {
+      const wordList = (words || []).map((w) => w.en).join(', ');
+      const tipPool = [
+        `흐름 이미 자연스러워요 🧡 같은 3표현 (${wordList}) 으로 **다른 시나리오** 한 번 더 써볼까요? 회의 → 이메일로 옮기면 어떻게 바뀔지.`,
+        `이번엔 **상대가 부정적으로 반응할 때** 어떻게 같은 3표현을 자연스럽게 녹일지 써보세요.`,
+        `**더 짧게** — 3문장이 아니라 2문장으로 압축해서 같은 메시지 전달해보세요. 임원 보고 톤으로요.`,
+      ];
+      const tip = tipPool[Math.min(attemptN - 2, tipPool.length - 1)] || tipPool[0];
+      const synExamples = Array.isArray(result.syn_examples) ? result.syn_examples : [];
+      const out = {
+        corrected: text,
+        diff_html: escapeHtml(text),
+        why: tip,
+        syn_examples: synExamples,
+        isCoachingMode: true,
+        attemptNumber: attemptN,
+      };
+      __recordSubmission(histKey, { sentence: text, corrected: text, why: tip, attemptN });
+      return out;
+    }
+
+    if (!priorMatch && __isMinorContentEdit(text, result.corrected)) {
       const synExamples = Array.isArray(result.syn_examples) ? result.syn_examples : [];
       const out = {
         corrected: text,
@@ -2498,8 +2618,9 @@ async function requestStoryCorrection(words, text, koreanContext) {
         why: '이미 흐름 좋아요! 그대로 가셔도 OK 입니다 🧡',
         syn_examples: synExamples,
         isAlreadyNatural: true,
+        attemptNumber: attemptN,
       };
-      if (cacheKey) __aiReviewCache.set(cacheKey, out);
+      __recordSubmission(histKey, { sentence: text, corrected: text, why: out.why, attemptN });
       return out;
     }
     // 클라이언트 사이드 방어 — 메인 어휘만 보존 강제 (유의어는 syn_examples 로 따로 노출).
@@ -2524,8 +2645,9 @@ async function requestStoryCorrection(words, text, koreanContext) {
         why: `이미 잘 쓰셨어요! AI 가 ${droppedMains.slice(0, 3).map((p) => `"${p}"`).join(', ')} 어휘를 빼려고 해서 원문 그대로 둘게요.`,
         syn_examples: [],
         isAlreadyNatural: true,
+        attemptNumber: attemptN,
       };
-      if (cacheKey) __aiReviewCache.set(cacheKey, out);
+      __recordSubmission(histKey, { sentence: text, corrected: text, why: out.why, attemptN });
       return out;
     }
     // syn_examples 가 응답에 있으면 그대로 패스 — 클라이언트에서 별도 섹션 렌더.
@@ -2534,8 +2656,14 @@ async function requestStoryCorrection(words, text, koreanContext) {
       ...result,
       diff_html: buildWordDiffHtml(text, result.corrected),
       syn_examples: synExamples,
+      attemptNumber: attemptN,
     };
-    if (cacheKey) __aiReviewCache.set(cacheKey, out);
+    __recordSubmission(histKey, {
+      sentence: text,
+      corrected: result.corrected,
+      why: result.why,
+      attemptN,
+    });
     return out;
   } catch (e) {
     console.warn('[ai-review] story fallback:', e);

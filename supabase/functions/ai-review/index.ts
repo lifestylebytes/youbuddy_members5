@@ -155,10 +155,31 @@ Field rules:
 
 Do not include markdown, code fences, or any prose outside the JSON.`;
 
+interface PriorAttempt {
+  sentence: string;
+  corrected: string;
+  why?: string;
+  attempt?: number;
+}
+
+function buildHistoryBlock(history?: PriorAttempt[], isRepeat?: boolean): string {
+  if (!history || history.length === 0) return '';
+  const lines = history.map((h, i) => {
+    const n = h.attempt ?? i + 1;
+    return `Attempt #${n}: student wrote "${h.sentence}" → you returned "${h.corrected}"${h.why ? ` (you said: ${h.why})` : ''}`;
+  }).join('\n');
+  const repeatNote = isRepeat
+    ? `\n*** This new attempt is ESSENTIALLY THE SAME as a prior attempt above. DO NOT correct it again — they already saw that correction. Switch to COACHING MODE: return the sentence verbatim and in "why" give a SHORT Korean coaching tip that pushes them to try a DIFFERENT scenario, formality level, channel (Slack vs email), or tense. NEVER suggest yet another single-word swap. ***`
+    : `\n*** This is iteration ${history.length + 1}. The student has been working on this phrase. Reference what they got right before. If this new attempt has no grammar issue, RETURN VERBATIM and praise specifically what improved. ***`;
+  return `=== Prior attempts (memory across turns) ===\n${lines}${repeatNote}\n=== End prior attempts ===\n\n`;
+}
+
 function buildSentenceUserMessage(
   word: { en: string; def?: string },
   sentence: string,
   korean?: string,
+  history?: PriorAttempt[],
+  isRepeat?: boolean,
 ) {
   // Korean context (the 한국어 문장 the student wrote first) is the source of truth
   // for meaning. Read it BEFORE the English attempt so the model anchors on the
@@ -166,7 +187,8 @@ function buildSentenceUserMessage(
   const koreanBlock = (korean || '').trim()
     ? `Korean sentence the student wrote (source of intent — match this meaning): "${korean!.trim()}"\n`
     : '';
-  return `${koreanBlock}Phrase being practiced (KEEP THIS in the output): "${word.en}" (${word.def || ''})
+  const historyBlock = buildHistoryBlock(history, isRepeat);
+  return `${historyBlock}${koreanBlock}Phrase being practiced (KEEP THIS in the output): "${word.en}" (${word.def || ''})
 Student's English attempt: "${sentence}"
 
 Your goal: make this sentence sound like something a native English business speaker would naturally say in a real meeting / email / Slack — while keeping "${word.en}" inside.
@@ -180,6 +202,8 @@ function buildStoryUserMessage(
   words: { en: string; def?: string; syn?: string[] }[],
   text: string,
   korean?: string,
+  history?: PriorAttempt[],
+  isRepeat?: boolean,
 ) {
   const lines = (words || []).map((w) => {
     const synList = Array.isArray(w.syn) && w.syn.length
@@ -190,7 +214,8 @@ function buildStoryUserMessage(
   const koreanBlock = (korean || '').trim()
     ? `Korean context (what the student meant, in their own words): "${korean!.trim()}"\n`
     : '';
-  return `${koreanBlock}The student is tying today's 3 expressions into a short business-scenario mini story.
+  const historyBlock = buildHistoryBlock(history, isRepeat);
+  return `${historyBlock}${koreanBlock}The student is tying today's 3 expressions into a short business-scenario mini story.
 Each main expression has optional synonyms the student MAY have practiced as alternative phrasings:
 ${lines}
 
@@ -326,15 +351,29 @@ serve(async (req) => {
   if (text.length > 800) return json({ error: 'text too long' }, 400);
 
   try {
+    // Prior attempts (optional) — 같은 단어 슬롯에 대한 이전 시도들.
+    // 있으면 단계별 코칭 모드로 전환 — 똑같은 swap 반복 X.
+    const rawHistory = Array.isArray(body?.history) ? body.history : [];
+    const history: PriorAttempt[] = rawHistory
+      .filter((h: any) => h && typeof h.sentence === 'string' && typeof h.corrected === 'string')
+      .slice(-3) // 최근 3개만
+      .map((h: any) => ({
+        sentence: String(h.sentence).slice(0, 500),
+        corrected: String(h.corrected).slice(0, 500),
+        why: h.why ? String(h.why).slice(0, 300) : undefined,
+        attempt: typeof h.attempt === 'number' ? h.attempt : undefined,
+      }));
+    const isRepeat = Boolean(body?.isRepeatSubmission);
+
     let userMessage: string;
     if (mode === 'sentence') {
       const word = body?.word;
       if (!word?.en) return json({ error: 'word required' }, 400);
-      userMessage = buildSentenceUserMessage(word, text, korean);
+      userMessage = buildSentenceUserMessage(word, text, korean, history, isRepeat);
     } else if (mode === 'story') {
       const words = Array.isArray(body?.words) ? body.words : [];
       if (words.length < 1) return json({ error: 'words required' }, 400);
-      userMessage = buildStoryUserMessage(words, text, korean);
+      userMessage = buildStoryUserMessage(words, text, korean, history, isRepeat);
     } else {
       return json({ error: 'mode must be sentence|story' }, 400);
     }
