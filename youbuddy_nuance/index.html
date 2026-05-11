@@ -1181,5 +1181,360 @@ document.addEventListener('keydown', e => {
 });
 </script>
 
+<!-- ============================================================
+     CTA · 유비챌 6기 + 1일1비 안내
+     ============================================================ -->
+<style>
+  .cta-section {
+    max-width: 540px;
+    margin: 56px auto 0;
+    padding-top: 48px;
+    border-top: 1px dashed var(--rule);
+  }
+  .cta-eyebrow {
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--ink-soft);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .cta-eyebrow .dot {
+    display:inline-block; width:6px; height:6px; border-radius:50%;
+    background: var(--dis-deep); margin: 0 8px; vertical-align: 2px;
+  }
+  .cta-headline {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    line-height: 1.35;
+    margin-bottom: 8px;
+  }
+  .cta-sub {
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    line-height: 1.65;
+    margin-bottom: 28px;
+    word-break: keep-all;
+  }
+
+  /* 비교 표 — 두 프로덕트 구분 명확히 */
+  .cta-compare {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    padding: 16px 4px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+  }
+  .cta-compare table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  .cta-compare th, .cta-compare td {
+    padding: 9px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .cta-compare th {
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--rule);
+  }
+  .cta-compare th.product-a {
+    color: var(--dis-deep);
+    text-align: center;
+  }
+  .cta-compare th.product-b {
+    color: var(--req-deep);
+    text-align: center;
+  }
+  .cta-compare td.row-label {
+    font-weight: 600;
+    color: var(--ink-soft);
+    font-size: 11.5px;
+    width: 22%;
+  }
+  .cta-compare td.cell-a, .cta-compare td.cell-b {
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .cta-compare tr + tr td {
+    border-top: 1px solid var(--rule);
+  }
+
+  /* 카드 — 두 프로덕트 각각 */
+  .cta-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .cta-card {
+    border-radius: 16px;
+    padding: 22px 20px 20px;
+    border: 1.5px solid;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-card.youbuddy {
+    background: var(--dis-bg);
+    border-color: var(--dis-mid);
+  }
+  .cta-card.daily {
+    background: var(--req-bg);
+    border-color: var(--req-mid);
+  }
+  .cta-card .badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
+  }
+  .cta-card.youbuddy .badge {
+    background: var(--dis-deep);
+    color: #fff;
+  }
+  .cta-card.daily .badge {
+    background: var(--req-deep);
+    color: #fff;
+  }
+  .cta-card .name {
+    font-size: 19px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.015em;
+    margin-bottom: 4px;
+  }
+  .cta-card .name .em {
+    font-weight: 700;
+    font-size: 13px;
+    margin-left: 6px;
+    color: var(--ink-soft);
+    letter-spacing: 0;
+  }
+  .cta-card .tagline {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 14px;
+    line-height: 1.55;
+    word-break: keep-all;
+  }
+  .cta-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 18px 0;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+  .cta-card ul li {
+    padding-left: 18px;
+    position: relative;
+  }
+  .cta-card ul li::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 11px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+  }
+  .cta-card.youbuddy ul li::before { background: var(--dis-deep); }
+  .cta-card.daily ul li::before { background: var(--req-deep); }
+  .cta-card .who {
+    background: rgba(255,255,255,0.6);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  .cta-card .who b {
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .cta-card .cta-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 13px 16px;
+    border-radius: 12px;
+    font-size: 14.5px;
+    font-weight: 800;
+    text-decoration: none;
+    color: #fff;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+    letter-spacing: -0.01em;
+  }
+  .cta-card.youbuddy .cta-btn { background: var(--dis-deep); }
+  .cta-card.daily .cta-btn { background: var(--req-deep); }
+  .cta-card .cta-btn:hover {
+    transform: translateY(-1px);
+    opacity: 0.94;
+  }
+  .cta-card .cta-btn .arrow {
+    transition: transform 0.2s ease;
+  }
+  .cta-card .cta-btn:hover .arrow {
+    transform: translateX(2px);
+  }
+  .cta-card .sub-link {
+    display: block;
+    text-align: center;
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    text-decoration: none;
+  }
+  .cta-card .sub-link:hover {
+    color: var(--ink);
+  }
+
+  /* footer */
+  .cta-footer {
+    text-align: center;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    letter-spacing: 0.02em;
+  }
+  .cta-footer a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    margin: 0 6px;
+  }
+  .cta-footer a:hover { color: var(--ink); }
+
+  @media (max-width: 480px) {
+    .cta-headline { font-size: 19px; }
+    .cta-compare table { font-size: 11.5px; }
+    .cta-compare th, .cta-compare td { padding: 8px 8px; }
+    .cta-card .name { font-size: 17.5px; }
+  }
+</style>
+
+<section class="cta-section" aria-labelledby="cta-title">
+  <div class="cta-eyebrow"><span class="dot"></span>NEXT STEP<span class="dot"></span></div>
+  <h2 class="cta-headline" id="cta-title">이 표현들, 실제로 써먹고 싶다면?</h2>
+  <p class="cta-sub">
+    뉘앙스만 알면 90%는 무용지물이에요. 실전에 박는 두 가지 방식 중 본인 스타일 골라보세요.
+  </p>
+
+  <!-- 비교 표: 헷갈림 방지 -->
+  <div class="cta-compare" role="table" aria-label="유비챌 6기 vs 1일1비 비교">
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th class="product-a">유비챌 6기</th>
+          <th class="product-b">1일1비</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="row-label">한 줄</td>
+          <td class="cell-a">같이 가는 4주 챌린지</td>
+          <td class="cell-b">혼자 깨는 30일 게임</td>
+        </tr>
+        <tr>
+          <td class="row-label">형식</td>
+          <td class="cell-a">코호트 + 단톡 + 발표</td>
+          <td class="cell-b">외국계 입사 시뮬레이션</td>
+        </tr>
+        <tr>
+          <td class="row-label">킥</td>
+          <td class="cell-a">사람 있어서 안 무너짐</td>
+          <td class="cell-b">레벨업 욕심으로 과몰입</td>
+        </tr>
+        <tr>
+          <td class="row-label">기간</td>
+          <td class="cell-a">4주 (20일)</td>
+          <td class="cell-b">30일 수습 → 정규직</td>
+        </tr>
+        <tr>
+          <td class="row-label">지금</td>
+          <td class="cell-a">6기 모집 중</td>
+          <td class="cell-b">베타 테스터 모집</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 카드 2개 -->
+  <div class="cta-cards">
+
+    <!-- 유비챌 6기 -->
+    <article class="cta-card youbuddy">
+      <span class="badge">YOUBUDDY · 6기</span>
+      <div class="name">유비챌 <span class="em">유버디 비즈 영어 챌린지</span></div>
+      <p class="tagline">
+        혼자 안 해도 되는 4주 챌린지. 같은 기수 멤버들이랑 매일 인증, 주 1회 그룹 미팅, 4주 중 1주는 내가 발표.
+      </p>
+      <ul>
+        <li>매일 단어/표현 + 내 문장 만들기 → 카톡 인증</li>
+        <li>주 1회 90분 라이브 미팅 (롤플레이 + 피드백)</li>
+        <li>20일 중 18일 인증 시 수료증 발급</li>
+        <li>프리미엄: 1:1 코칭 + PT 발표 우선권</li>
+      </ul>
+      <div class="who">
+        <b>이런 분에게:</b> 혼자 하면 3일 안에 무너지는데, 같은 목표 가진 사람들 옆에 있으면 끝까지 가는 타입.
+      </div>
+      <a href="https://youbuddy.co.kr/#waitlist" class="cta-btn" target="_blank" rel="noopener">
+        6기 등록·웨이팅 신청 <span class="arrow">→</span>
+      </a>
+      <a href="https://youbuddy.co.kr" class="sub-link" target="_blank" rel="noopener">
+        상세 소개 보기 · youbuddy.co.kr
+      </a>
+    </article>
+
+    <!-- 1일1비 -->
+    <article class="cta-card daily">
+      <span class="badge">DAILY · 베타</span>
+      <div class="name">1일1비 <span class="em">1일 1비즈니스 표현</span></div>
+      <p class="tagline">
+        외국계 회사 입사 시뮬레이션. 사번 받고 회의·이메일·승진 미션 깨면서 표현 익히는 게임 형식. 솔로 학습용.
+      </p>
+      <ul>
+        <li>매일 1표현 · 실전 비즈 상황극 미션</li>
+        <li>레벨 시스템 (신입 → 대리 → 과장 → 임원)</li>
+        <li>회사 안 다녀도 알아야 하는 어휘만 모음</li>
+        <li>현재 베타 — 정식 런칭 전 저렴한 가격 보장</li>
+      </ul>
+      <div class="who">
+        <b>이런 분에게:</b> 단톡 부담스럽고 발표 싫음. 혼자 게임처럼 깨는 게 더 끝까지 가는 타입.
+      </div>
+      <a href="https://www.instagram.com/youbuddy_day/" class="cta-btn" target="_blank" rel="noopener">
+        베타 입사 신청 (@youbuddy_day) <span class="arrow">→</span>
+      </a>
+      <a href="https://www.instagram.com/youbuddy_day/" class="sub-link" target="_blank" rel="noopener">
+        DM으로 "입사" 보내면 안내드려요
+      </a>
+    </article>
+
+  </div>
+
+  <div class="cta-footer">
+    © YOUBUDDY ·
+    <a href="https://youbuddy.co.kr" target="_blank" rel="noopener">youbuddy.co.kr</a> ·
+    <a href="https://www.instagram.com/youbuddy_day/" target="_blank" rel="noopener">@youbuddy_day</a>
+  </div>
+</section>
+
 </body>
 </html>
