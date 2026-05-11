@@ -2235,82 +2235,200 @@ async function callAiReviewEdgeFunction(payload) {
   };
 }
 
-// 클라이언트 측 동의어 교체 감지 — AI 가 어떤 룰 무시하고 한 단어만 동의어로 바꾼 경우 잡아냄.
-// 입력/출력에 단어 1개 차이만 있고 그 한 쌍이 알려진 동의어 교체면 → 원문 그대로 (no-edit) 처리.
-const __AI_SYN_PAIRS = [
-  ['recognize', 'acknowledge'],
-  ['begin', 'start'], ['begin', 'kick off'], ['start', 'kick off'],
-  ['discuss', 'talk about'], ['discuss', 'go over'], ['talk about', 'go over'],
-  ['use', 'utilize'], ['use', 'leverage'], ['utilize', 'leverage'],
-  ['show', 'demonstrate'], ['show', 'illustrate'], ['demonstrate', 'illustrate'],
-  ['help', 'assist'], ['help', 'support'], ['assist', 'support'],
-  ['finish', 'complete'], ['finish', 'wrap up'], ['complete', 'wrap up'],
-  ['many', 'several'], ['many', 'multiple'], ['several', 'multiple'],
-  ['get', 'obtain'], ['get', 'receive'], ['obtain', 'receive'],
-  ['think', 'believe'],
-  ['big', 'large'], ['big', 'significant'], ['large', 'significant'],
-  ['fast', 'quick'], ['fast', 'rapid'], ['quick', 'rapid'],
-  ['need', 'require'],
-  ['ensure', 'make sure'],
-  ['determine', 'find out'], ['determine', 'figure out'], ['find out', 'figure out'],
-  ['end', 'conclude'],
-  ['accept', 'agree to'],
-  ['give', 'provide'],
-];
-function __isPureSynSwap(original, corrected) {
-  if (!original || !corrected) return false;
-  const norm = (s) => String(s).toLowerCase().trim();
-  // 단어 토큰화 — 구두점/공백 제외
-  const oTokens = (norm(original).match(/[a-z]+(?:'[a-z]+)?/gi) || []);
-  const cTokens = (norm(corrected).match(/[a-z]+(?:'[a-z]+)?/gi) || []);
-  if (oTokens.length !== cTokens.length) return false;
-  // 정확히 한 단어 차이 + 그 차이 단어 쌍이 동의어 리스트에 있어야 함
-  let diffs = 0;
-  let pair = null;
-  for (let i = 0; i < oTokens.length; i++) {
-    if (oTokens[i] !== cTokens[i]) {
-      diffs++;
-      if (diffs > 1) return false;
-      pair = [oTokens[i], cTokens[i]];
-    }
+// 클라이언트 측 "사소한 swap" 감지 — AI 가 진짜 grammar 교정이 아니라 단순히
+// content word 1-2개를 다른 단어로 바꾼 경우 모두 잡아냄. 동의어 리스트에 의존 X.
+//
+// 원리: 양쪽 토큰 차이를 비교해서
+//  - 차이가 모두 STRUCTURAL_WORDS (관사/전치사/be동사/조동사/접속사 등) 이면 → 진짜 grammar 교정. 허용.
+//  - 차이가 1~2개 content word 면 → stylistic swap. 차단 (원문 유지).
+//  - 차이가 3개 이상 또는 큰 구조 변경 → 진짜 rewrite. 허용.
+// → 리스트에 없는 동의어 (increase↔raise, see↔view, make↔create 등) 도 다 잡힘.
+
+const __STRUCTURAL_WORDS = new Set([
+  // 관사
+  'a', 'an', 'the',
+  // 전치사 (대표)
+  'to', 'of', 'in', 'on', 'at', 'for', 'with', 'from', 'by', 'about',
+  'into', 'onto', 'out', 'up', 'down', 'over', 'under', 'through',
+  'during', 'after', 'before', 'between', 'among', 'against', 'across',
+  // be 동사 + 조동사
+  'is', 'are', 'was', 'were', 'be', 'been', 'being', 'am',
+  'do', 'does', 'did', 'doing', 'done',
+  'have', 'has', 'had', 'having',
+  'will', 'would', 'can', 'could', 'shall', 'should', 'may', 'might', 'must',
+  // 접속사
+  'and', 'or', 'but', 'so', 'yet', 'because', 'if', 'though', 'although',
+  'while', 'whereas', 'when', 'where', 'why', 'how', 'that', 'which',
+  // 부정
+  'not', "n't", "'s", "'re", "'ve", "'ll", "'d", "'m",
+  // 대명사 (대부분)
+  'it', 'its', 'this', 'that', 'these', 'those',
+  'i', 'you', 'we', 'they', 'he', 'she',
+  'my', 'your', 'our', 'their', 'his', 'her',
+  'me', 'us', 'them', 'him',
+]);
+
+function __tokenize(s) {
+  return (String(s || '').toLowerCase().match(/[a-z]+(?:'[a-z]+)?/g) || []);
+}
+
+// 양쪽 토큰 차이 (multiset diff) 계산.
+// returns { onlyInO: [...], onlyInC: [...] }
+function __wordSetDiff(o, c) {
+  const oMap = new Map();
+  const cMap = new Map();
+  o.forEach((t) => oMap.set(t, (oMap.get(t) || 0) + 1));
+  c.forEach((t) => cMap.set(t, (cMap.get(t) || 0) + 1));
+  const onlyInO = [];
+  const onlyInC = [];
+  for (const [t, n] of oMap) {
+    const cN = cMap.get(t) || 0;
+    for (let i = 0; i < Math.max(0, n - cN); i++) onlyInO.push(t);
   }
-  if (diffs !== 1 || !pair) return false;
-  const [a, b] = pair;
-  return __AI_SYN_PAIRS.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
+  for (const [t, n] of cMap) {
+    const oN = oMap.get(t) || 0;
+    for (let i = 0; i < Math.max(0, n - oN); i++) onlyInC.push(t);
+  }
+  return { onlyInO, onlyInC };
+}
+
+// 한 단어가 다른 단어의 inflection (어형 변화) 인지 — 같은 lemma 추정.
+// e.g. "start" / "started" / "starting" — 시제만 다른 거. 진짜 grammar 교정.
+function __isSameLemma(a, b) {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const short = a.length <= b.length ? a : b;
+  const long = a.length <= b.length ? b : a;
+  if (short.length < 4) return false;
+  // long 이 short 로 시작 + 변형 접미사 ('s', 'ed', 'ing', 'es', 'd', 'ied' 등)
+  if (long.startsWith(short)) {
+    const rest = long.slice(short.length);
+    return /^(s|es|ed|d|ing|er|or|ly|ies|ied)$/.test(rest);
+  }
+  // -y → -ies / -ied
+  if (short.endsWith('y') && long.startsWith(short.slice(0, -1))) {
+    const rest = long.slice(short.length - 1);
+    return /^(ies|ied)$/.test(rest);
+  }
+  return false;
+}
+
+// AI 가 의미 보존하면서 1-2개 content word 만 바꾼 경우 = stylistic swap.
+// 진짜 grammar/구조 교정이 아니면 차단.
+function __isMinorContentEdit(original, corrected) {
+  if (!original || !corrected) return false;
+  if (original.trim() === corrected.trim()) return false;
+
+  const o = __tokenize(original);
+  const c = __tokenize(corrected);
+
+  // 길이 차이 너무 크면 → real rewrite. 허용.
+  if (Math.abs(o.length - c.length) > 2) return false;
+  if (o.length === 0 || c.length === 0) return false;
+
+  const { onlyInO, onlyInC } = __wordSetDiff(o, c);
+
+  // 1) 차이가 모두 structural (관사/전치사/be동사 등) → 진짜 grammar 교정. 허용.
+  const allStructural = (arr) => arr.length > 0 && arr.every((t) => __STRUCTURAL_WORDS.has(t));
+  if (
+    (onlyInO.length === 0 || allStructural(onlyInO)) &&
+    (onlyInC.length === 0 || allStructural(onlyInC)) &&
+    (onlyInO.length + onlyInC.length > 0)
+  ) {
+    return false;
+  }
+
+  // 2) 차이 단어들이 같은 lemma (시제 변환 등) 만이면 → 진짜 grammar 교정. 허용.
+  //    e.g. "start" → "started" (시제 교정)
+  if (onlyInO.length === onlyInC.length && onlyInO.length <= 2) {
+    let allInflection = true;
+    const oSorted = [...onlyInO].sort();
+    const cSorted = [...onlyInC].sort();
+    for (let i = 0; i < oSorted.length; i++) {
+      if (!__isSameLemma(oSorted[i], cSorted[i])) {
+        allInflection = false;
+        break;
+      }
+    }
+    if (allInflection && oSorted.length > 0) return false;
+  }
+
+  // 3) content word 1-2개 swap + 큰 구조 변경 없음 → stylistic swap. 차단.
+  const oContent = onlyInO.filter((t) => !__STRUCTURAL_WORDS.has(t));
+  const cContent = onlyInC.filter((t) => !__STRUCTURAL_WORDS.has(t));
+  if (oContent.length <= 2 && cContent.length <= 2 && (oContent.length + cContent.length) > 0) {
+    // 추가로 — content swap 인데 의미 카테고리가 너무 다르면 (e.g. "money" → "team") 진짜 의미 교정.
+    // 하지만 이 경우엔 진짜 의미 바뀐 거니까 fallback 으로 원문 유지하는 게 안전.
+    return true;
+  }
+
+  return false;
+}
+
+// === Deterministic cache — 같은 입력 → 같은 corrected 반환 ===
+// "다시 리뷰" 눌러도 매번 다른 추천 받지 않게.
+const __aiReviewCache = new Map(); // key: mode|target|sentence|korean → result
+function __aiCacheKey(payload) {
+  try {
+    const parts = [
+      payload.mode || '',
+      payload.word?.en || (payload.words || []).map((w) => w.en).join(','),
+      (payload.text || '').trim(),
+      (payload.korean || '').trim(),
+    ];
+    return parts.join('|||');
+  } catch (_) {
+    return '';
+  }
 }
 
 async function requestSentenceCorrection(word, sentence, koreanContext) {
+  const payload = {
+    mode: 'sentence',
+    word: { en: word.en, def: word.def },
+    text: sentence,
+    korean: (koreanContext || '').trim() || undefined,
+    temperature: 0,
+  };
+
+  // === Cache: 같은 입력 → 같은 결과. "다시 리뷰" 반복 시 매번 다른 추천 방지.
+  const cacheKey = __aiCacheKey(payload);
+  if (cacheKey && __aiReviewCache.has(cacheKey)) {
+    const cached = __aiReviewCache.get(cacheKey);
+    return { ...cached, fromCache: true };
+  }
+
   try {
-    const result = await callAiReviewEdgeFunction({
-      mode: 'sentence',
-      word: { en: word.en, def: word.def },
-      text: sentence,
-      // Korean intent sentence (한국어 문장) so the model can match the
-      // learner's actual meaning instead of guessing from English alone.
-      korean: (koreanContext || '').trim() || undefined,
-      // 결정론적 응답 요청 — 같은 input → 같은 corrected 가 나오도록 (Edge Function 이 respect 한다고 가정).
-      temperature: 0,
-    });
-    // 클라이언트 안전망: AI 가 동의어 교체만 한 경우 (recognize ↔ acknowledge 등) 강제 원문 처리
-    // — Edge Function 의 system prompt 룰이 무시됐을 때를 위한 fallback.
-    if (__isPureSynSwap(sentence, result.corrected)) {
-      try { console.log('[ai-review] pure synonym swap detected → reverting to original', sentence, '→', result.corrected); } catch (_) {}
-      return {
+    const result = await callAiReviewEdgeFunction(payload);
+
+    // === 클라이언트 안전망 (강화) ===
+    // AI 가 content word 1-2개만 swap 한 경우 (동의어 리스트에 없는 increase↔raise,
+    // make↔create, see↔view 등 포함) → 원문 그대로 반환. 진짜 grammar 교정만 살림.
+    if (__isMinorContentEdit(sentence, result.corrected)) {
+      try {
+        console.log('[ai-review] minor content swap detected → reverting to original',
+          sentence, '→', result.corrected);
+      } catch (_) {}
+      const out = {
         corrected: sentence,
         diff_html: escapeHtml(sentence),
-        why: '이미 자연스러워요! AI 가 동의어 추천만 해서 원문 그대로 가도 OK 입니다.',
+        why: '이미 충분히 자연스러워요! 비즈니스 영어로 그대로 가셔도 OK 입니다 🧡',
         originalInput: sentence,
         isFallback: false,
+        isAlreadyNatural: true, // UI 측 sticky 처리용 플래그
       };
+      if (cacheKey) __aiReviewCache.set(cacheKey, out);
+      return out;
     }
-    // Always recompute diff client-side so we can show WORD-level changes
-    // (server returns whole-sentence <del>/<ins>, which looks too aggressive).
-    return {
+
+    const out = {
       ...result,
       diff_html: buildWordDiffHtml(sentence, result.corrected),
       originalInput: sentence,
       isFallback: false,
     };
+    if (cacheKey) __aiReviewCache.set(cacheKey, out);
+    return out;
   } catch (e) {
     console.warn('[ai-review] sentence fallback:', e);
     const local = buildLocalCorrection(word, sentence);
@@ -2318,7 +2436,7 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
       ...local,
       diff_html: buildWordDiffHtml(sentence, local.corrected),
       originalInput: sentence,
-      isFallback: true, // 네트워크/AI 에러로 local fallback 임을 표시 (UI 에서 "잘 썼어요" 오인 방지)
+      isFallback: true,
     };
   }
 }
@@ -2345,18 +2463,45 @@ function buildLocalStoryCorrection(words, text) {
 }
 
 async function requestStoryCorrection(words, text, koreanContext) {
+  const payload = {
+    mode: 'story',
+    words: (words || []).map((w) => ({
+      en: w.en,
+      def: w.def,
+      syn: Array.isArray(w.syn) ? w.syn : [],
+    })),
+    text,
+    korean: (koreanContext || '').trim() || undefined,
+  };
+
+  // Cache — 같은 입력 → 같은 결과 (재호출 시 다른 추천 방지)
+  const cacheKey = __aiCacheKey(payload);
+  if (cacheKey && __aiReviewCache.has(cacheKey)) {
+    const cached = __aiReviewCache.get(cacheKey);
+    return { ...cached, fromCache: true };
+  }
+
   try {
-    const result = await callAiReviewEdgeFunction({
-      mode: 'story',
-      // syn 도 같이 보냄 — 사용자가 메인 대신 유의어로 썼어도 보존되도록 서버에서 인정.
-      words: (words || []).map((w) => ({
-        en: w.en,
-        def: w.def,
-        syn: Array.isArray(w.syn) ? w.syn : [],
-      })),
-      text,
-      korean: (koreanContext || '').trim() || undefined,
-    });
+    const result = await callAiReviewEdgeFunction(payload);
+
+    // 보너스 스토리에도 minor content edit 가드 적용 — content word 1-2개만
+    // swap 한 거면 원문 유지 (단, syn_examples 는 응답에서 보존).
+    if (__isMinorContentEdit(text, result.corrected)) {
+      try {
+        console.log('[ai-review story] minor swap detected → revert',
+          text, '→', result.corrected);
+      } catch (_) {}
+      const synExamples = Array.isArray(result.syn_examples) ? result.syn_examples : [];
+      const out = {
+        corrected: text,
+        diff_html: escapeHtml(text),
+        why: '이미 흐름 좋아요! 그대로 가셔도 OK 입니다 🧡',
+        syn_examples: synExamples,
+        isAlreadyNatural: true,
+      };
+      if (cacheKey) __aiReviewCache.set(cacheKey, out);
+      return out;
+    }
     // 클라이언트 사이드 방어 — 메인 어휘만 보존 강제 (유의어는 syn_examples 로 따로 노출).
     // 메인 어휘 자체가 통째로 사라진 슬롯이 있으면 fallback.
     const corrected = String(result.corrected || text);
@@ -2373,20 +2518,25 @@ async function requestStoryCorrection(words, text, koreanContext) {
     });
     if (droppedMains.length > 0) {
       console.warn('[ai-review] entire slot dropped — falling back:', droppedMains);
-      return {
+      const out = {
         corrected: text,
         diff_html: buildWordDiffHtml(text, text),
         why: `이미 잘 쓰셨어요! AI 가 ${droppedMains.slice(0, 3).map((p) => `"${p}"`).join(', ')} 어휘를 빼려고 해서 원문 그대로 둘게요.`,
         syn_examples: [],
+        isAlreadyNatural: true,
       };
+      if (cacheKey) __aiReviewCache.set(cacheKey, out);
+      return out;
     }
     // syn_examples 가 응답에 있으면 그대로 패스 — 클라이언트에서 별도 섹션 렌더.
     const synExamples = Array.isArray(result.syn_examples) ? result.syn_examples : [];
-    return {
+    const out = {
       ...result,
       diff_html: buildWordDiffHtml(text, result.corrected),
       syn_examples: synExamples,
     };
+    if (cacheKey) __aiReviewCache.set(cacheKey, out);
+    return out;
   } catch (e) {
     console.warn('[ai-review] story fallback:', e);
     const local = buildLocalStoryCorrection(words, text);

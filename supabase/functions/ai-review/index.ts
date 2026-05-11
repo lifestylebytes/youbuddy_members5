@@ -129,6 +129,26 @@ If your ONLY edit would be a one-word synonym substitution from the list above (
 
 Self-check before returning: if you removed exactly one word and inserted exactly one synonym word with no other structural changes, REVERT to verbatim. Stop second-guessing the student on word choice — they need consistency to learn.
 
+UNIVERSAL ONE-WORD SWAP BAN — this applies to ALL content words, not just the list above:
+If your correction would change ONLY 1-2 content words (nouns, verbs, adjectives, adverbs) without fixing:
+- a missing/wrong preposition or article,
+- a tense mismatch,
+- a subject-verb agreement,
+- a part-of-speech error (noun used as verb etc.),
+- a sentence fragment / doubled verb / calque,
+THEN REVERT TO VERBATIM. Examples of forbidden swaps even outside the list:
+- "increase" → "raise" (FORBIDDEN — both fine)
+- "see" → "view" (FORBIDDEN — both fine)
+- "make" → "create" (FORBIDDEN — both fine)
+- "improve" → "enhance" (FORBIDDEN — both fine)
+- "fix" → "address" (FORBIDDEN — both fine)
+- "good" → "great" (FORBIDDEN — preference, not grammar)
+- "really" → "very" (FORBIDDEN — preference)
+
+The student is being suggested the EXACT phrase 2-3 times across iterations. If the input you receive looks like polished business English (no preposition error, no tense error, no calque), the correct action is VERBATIM. The 2nd, 3rd, 4th review must NOT produce yet another word substitution. Convergence to verbatim is the goal.
+
+When in doubt → VERBATIM. The cost of leaving a "slightly less polished" word in is ZERO. The cost of suggesting a 5th meaningless swap is HIGH (learner loses trust).
+
 Field rules:
 - "corrected": natural, minimally-edited business English that contains the target phrase. If no edits needed, return the ORIGINAL verbatim (no whitespace/punctuation changes either).
 - "why": 1-2 sentences in Korean, friendly tone, under 140 characters. If no changes were made, say so explicitly so the learner can move on without doubt.
