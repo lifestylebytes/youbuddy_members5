@@ -4098,27 +4098,30 @@ function isNonparticipant(member) {
   return candidates.some((c) => list.includes(c));
 }
 // 멤버 정렬용 비교 함수 — 모든 사람이 같은 순서로 보이도록.
-// 우선순위: 본인 → 운영자(유버디) → 프리미엄 → 베이직 → 무참여자
-// 같은 그룹 안에서는 progress desc → streak desc.
+// 우선순위: 본인 → 운영자(유버디) → 프리미엄 → 베이직
+// 같은 tier 안에서: 참여율(progress) desc → 영어 이름 (없으면 한글) asc.
+// 무참여자도 같은 로직 안에서 자연스럽게 본인 tier 맨 아래로 (참여율 0).
 function memberSortCompare(a, b) {
   // 1) 본인 — 항상 맨 위
   const aMe = a.me ? 1 : 0;
   const bMe = b.me ? 1 : 0;
   if (aMe !== bMe) return bMe - aMe;
-  // 2) 무참여자 — 맨 아래
-  const aNon = isNonparticipant(a) ? 1 : 0;
-  const bNon = isNonparticipant(b) ? 1 : 0;
-  if (aNon !== bNon) return aNon - bNon;
-  // 3) 운영자 (유버디) — 본인 다음
+  // 2) 운영자 (유버디) — 본인 다음
   const aOp = a.isOperator ? 1 : 0;
   const bOp = b.isOperator ? 1 : 0;
   if (aOp !== bOp) return bOp - aOp;
-  // 4) Tier — premium 먼저, basic 나중
+  // 3) Tier — premium 먼저, basic 나중
   const tierWeight = (m) => (m.tier === 'premium' ? 0 : 1);
   const tw = tierWeight(a) - tierWeight(b);
   if (tw !== 0) return tw;
-  // 5) 같은 그룹 안에서: progress desc → streak desc
-  return (b.progress - a.progress) || (b.streak - a.streak);
+  // 4) 같은 tier 안에서 참여율 높은 순 (progress desc)
+  const pa = Number(a.progress || 0);
+  const pb = Number(b.progress || 0);
+  if (pa !== pb) return pb - pa;
+  // 5) 참여율 동률 시 — 영어 이름 (없으면 한글) 알파벳/가나다순
+  const koCollator = window.__koCollator || (window.__koCollator = new Intl.Collator('ko', { numeric: true, sensitivity: 'base' }));
+  const nameOf = (m) => (m.englishName || '').trim() || (m.name || '');
+  return koCollator.compare(nameOf(a), nameOf(b));
 }
 // Week 1 (Day 1~5) 한 번도 인증 안 한 멤버 — 자동 검출용.
 function isWeek1Zero(member) {
@@ -7745,34 +7748,38 @@ function Checkboard() {
       }
     }
   }
-  // 정렬: (1) 로그인한 본인 항상 최상단 — 티어 무관, (2) 무참여자 (블록 리스트) 항상 맨 아래,
-  // (3) 그 다음 프리미엄 → 베이직, (4) 같은 그룹 내에서는 한글 이름 ㄱ~ㅎ 가나다순.
+  // 정렬 로직 (대시보드 회원 순서):
+  //   (1) 로그인한 본인 → 항상 맨 위
+  //   (2) 운영자 (유버디) → 본인 다음 (2번째)
+  //   (3) 프리미엄 멤버 → 참여율 높은 순 → 영어 이름 알파벳 순
+  //   (4) 베이직 멤버 → 참여율 높은 순 → 영어 이름 알파벳 순
+  // → 무참여자도 같은 로직 안에서 자연스럽게 본인 티어 맨 아래로 (참여율 0).
   const tierRank = (m) => (cbTierOf(m) === 'premium' ? 0 : 1);
   // Collator 매 render 마다 새로 만들면 비용 누적 — 한 번만 만들고 재사용.
   const koCollator = window.__koCollator || (window.__koCollator = new Intl.Collator('ko', { numeric: true, sensitivity: 'base' }));
   // 표시명 기준 정렬 키 — 화면에 보이는 이름 (영어 닉네임 있으면 영어) 으로 정렬해야
-  // "Andy 다음에 Song" 같은 시각적 순서가 모든 뷰어한테 동일하게 보임. name (한글) 으로 정렬하면
-  // 보이는 화면이랑 안 맞음.
+  // "Andy 다음에 Song" 같은 시각적 순서가 모든 뷰어한테 동일하게 보임.
   const sortNameOf = (m) => {
     const en = (m.englishName || '').trim();
     return en || (m.name || '');
   };
+  // 참여율 — m.progress (인증한 day 수). 동일 cohort 라 총 day 가 같으므로 절대값으로 비교 OK.
+  // 정시/지각 무관 "참여했다" 카운트 (verifiedDays 길이 기반).
+  const participationOf = (m) => Number(m.progress || 0);
   const orderedMembers = [...allMembers].sort((a, b) => {
     // 1) me → 항상 맨 위
     if (a.me !== b.me) return a.me ? -1 : 1;
-    // 2) 무참여자 → 맨 아래
-    const aNon = isNonparticipant(a) ? 1 : 0;
-    const bNon = isNonparticipant(b) ? 1 : 0;
-    if (aNon !== bNon) return aNon - bNon;
-    // 3) 운영자 (유버디) → me 다음
+    // 2) 운영자 (유버디) → me 다음 (단, me 가 본인 운영자면 위 단계서 처리됨)
     const aOp = a.isOperator ? 1 : 0;
     const bOp = b.isOperator ? 1 : 0;
     if (aOp !== bOp) return bOp - aOp;
-    // 4) tier — premium 먼저
+    // 3) tier — premium 먼저
     const ta = tierRank(a), tb = tierRank(b);
     if (ta !== tb) return ta - tb;
-    // 5) 같은 그룹 안에서 표시명 기준 알파벳/가나다순
-    //    (Andy/Song 같은 영어 닉네임 있으면 영어, 없으면 한글 이름)
+    // 4) 같은 tier 안에서 참여율 높은 순 (내림차순)
+    const pa = participationOf(a), pb = participationOf(b);
+    if (pa !== pb) return pb - pa;
+    // 5) 참여율 동률 시 — 영어 이름 (없으면 한글) 알파벳/가나다순
     return koCollator.compare(sortNameOf(a), sortNameOf(b));
   });
   // ── 성능 최적화 — 50명 × 21셀 = 1050 노드를 el() 로 일일이 만들면 매 render 마다 무거움.
