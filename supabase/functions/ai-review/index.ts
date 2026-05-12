@@ -59,6 +59,7 @@ EDIT ONLY when ONE of these is genuinely true:
 (1) Grammar is broken — missing/wrong preposition, wrong article, wrong tense, subject-verb disagreement.
    ✗ "drill down our metrics" → ✓ "drill down into our metrics" (missing "into")
    ✗ "Why don't we discuss?" → ✓ "Why don't we discuss this?" (missing object)
+   ✗ "Our feature and loyalty IS our edge" → ✓ "Our feature and loyalty ARE our edge" (plural subject → "are")
 (2) Sentence fragment that doesn't make sense as standalone.
    ✗ "or Break down." → merge into complete clause
 (3) Doubled / redundant verbs (Korean-English transfer).
@@ -66,6 +67,18 @@ EDIT ONLY when ONE of these is genuinely true:
 (4) Wrong part-of-speech (noun used as verb / vice versa).
    ✗ "we need a Deconstruct" → ✓ "we need to deconstruct it"
 (5) Severely unnatural calque that an English speaker would not say at all.
+(6) MIXED-LANGUAGE INPUT — student wrote Korean/Japanese/Chinese characters inside English (often because they didn't know the word). You MUST translate those non-English characters into natural English equivalents in the corrected output.
+   ✗ "customer 충성도 is our edge" → ✓ "customer loyalty is our edge"
+   ✗ "We should 협상 the price" → ✓ "We should negotiate the price"
+   ✗ "Let's 보류 it for now" → ✓ "Let's hold off on it for now"
+   This is NEVER optional. If the input has non-ASCII characters mid-sentence, you MUST translate them. Return verbatim is FORBIDDEN here.
+
+⚠️ MANDATORY EDIT TRIGGERS (override the "default to verbatim" instinct):
+- Any non-English (Korean/Japanese/Chinese/etc.) characters appearing in the middle of the English sentence → translate them.
+- Subject-verb disagreement (singular subject + plural verb or vice versa) → fix.
+- Wrong tense given the time context → fix.
+- Missing required preposition / article → add.
+These are NOT stylistic preferences. They are real grammar issues. Always fix them.
 
 DO NOT EDIT when:
 - The sentence is grammatically correct but you "feel" a slightly different word would sound better → LEAVE IT.
@@ -188,14 +201,20 @@ function buildSentenceUserMessage(
     ? `Korean sentence the student wrote (source of intent — match this meaning): "${korean!.trim()}"\n`
     : '';
   const historyBlock = buildHistoryBlock(history, isRepeat);
+  // Detect if the English attempt has Korean (or other non-ASCII) characters mixed in.
+  // 그러면 AI 에게 "이건 무조건 번역해야 함" 명시.
+  const hasKr = /[^\x00-\x7F]/.test(sentence);
+  const mixedLangHint = hasKr
+    ? `\n⚠️ The student's English attempt CONTAINS Korean characters (e.g. 충성도, 협상, etc.). You MUST translate those Korean words into natural English equivalents in the corrected output. Returning verbatim with Korean characters still inside is FORBIDDEN. Use the Korean context (if given) and the English context to pick the right translation. Example: "customer 충성도" → "customer loyalty". If you're unsure of the exact word, pick the most natural business-English equivalent and explain briefly in "why".\n`
+    : '';
   return `${historyBlock}${koreanBlock}Phrase being practiced (KEEP THIS in the output): "${word.en}" (${word.def || ''})
 Student's English attempt: "${sentence}"
-
-Your goal: make this sentence sound like something a native English business speaker would naturally say in a real meeting / email / Slack — while keeping "${word.en}" inside.
+${mixedLangHint}
+Your goal: make this sentence sound like something a native English business speaker would naturally say in a real meeting / email / Slack — while keeping "${word.en}" inside. Also fix any clear grammar issues (subject-verb agreement, mixed-language characters, tense, articles, prepositions).
 
 Return JSON:
-- "corrected": a polished, native-sounding business English sentence. **MUST contain "${word.en}"** (or a minimal grammatical inflection — e.g. "${word.en}d" / "${word.en}ing" / pluralized — never a synonym swap). MUST convey the same meaning as the Korean sentence above (if provided). Improve fluency: fix awkward word order, non-native phrasing, weird prepositions, clunky structure. Tone: business meeting / professional Slack / email-ready — clear, confident, concise. Avoid casual slang AND avoid stiff/archaic phrasing. **Edit aggressively for naturalness, but preserve the student's core intent + the target phrase.** If the sentence already reads as if a fluent native speaker wrote it (no awkward edges), return it VERBATIM.
-- "why": 1-2 Korean sentences (≤140 chars). **If unchanged, say so warmly ("이미 자연스러워요! 그대로 가셔도 됩니다.")** — otherwise briefly explain what type of fix you made (e.g. "어순을 자연스럽게 / 전치사 교정 / 비즈니스 톤으로 다듬음.").`;
+- "corrected": a polished, native-sounding business English sentence. **MUST contain "${word.en}"** (or a minimal grammatical inflection — e.g. "${word.en}d" / "${word.en}ing" / pluralized — never a synonym swap). MUST convey the same meaning as the Korean sentence above (if provided). MUST be entirely in English (no Korean/Japanese characters left in). Improve fluency: fix awkward word order, non-native phrasing, weird prepositions, clunky structure. Tone: business meeting / professional Slack / email-ready — clear, confident, concise. Avoid casual slang AND avoid stiff/archaic phrasing. **Edit aggressively for naturalness, but preserve the student's core intent + the target phrase.** If the sentence already reads as if a fluent native speaker wrote it (no awkward edges AND no Korean characters AND grammar is solid), return it VERBATIM.
+- "why": 1-2 Korean sentences (≤140 chars). **If unchanged, say so warmly ("이미 자연스러워요! 그대로 가셔도 됩니다.")** — otherwise briefly explain what type of fix you made (e.g. "한국어 표현 번역 / 어순 / 전치사 교정 / 주어-동사 일치 등").`;
 }
 
 function buildStoryUserMessage(

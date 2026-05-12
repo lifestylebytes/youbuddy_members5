@@ -2313,11 +2313,31 @@ function __isSameLemma(a, b) {
   return false;
 }
 
+// 한국어 등 비라틴 문자 포함 여부
+function __hasNonLatinChars(s) {
+  // ASCII 외 문자 = 한글/한자/일본어 등. 진짜 교정 필요 케이스로 본다.
+  return /[^\x00-\x7F]/.test(s || '');
+}
+
 // AI 가 의미 보존하면서 1-2개 content word 만 바꾼 경우 = stylistic swap.
 // 진짜 grammar/구조 교정이 아니면 차단.
 function __isMinorContentEdit(original, corrected) {
   if (!original || !corrected) return false;
   if (original.trim() === corrected.trim()) return false;
+
+  // === 한국어 섞인 입력은 절대 minor swap 으로 보지 말 것 ===
+  // 학습자가 "customer 충성도 is competitive edge" 처럼 한영 혼용했으면
+  // AI 가 한국어를 영어로 옮기는 게 진짜 교정 작업. 가로채면 X.
+  const oHasKr = __hasNonLatinChars(original);
+  const cHasKr = __hasNonLatinChars(corrected);
+  if (oHasKr || cHasKr) {
+    // 비라틴 문자 → 라틴 (한 → 영) 또는 그 반대로 변환되는 건 진짜 교정.
+    if (oHasKr !== cHasKr) return false;
+    // 양쪽 다 한국어 섞여있는데 다른 경우 (한국어 부분이 다르면) → 진짜 교정
+    const oKrPart = (original.match(/[^\x00-\x7F]+/g) || []).join(' ');
+    const cKrPart = (corrected.match(/[^\x00-\x7F]+/g) || []).join(' ');
+    if (oKrPart !== cKrPart) return false;
+  }
 
   const o = __tokenize(original);
   const c = __tokenize(corrected);
@@ -6064,31 +6084,17 @@ function showPeerTicker(peer) {
   const peerDisplay = peerMember ? displayName(peerMember) : (peer.user || '');
   const peerInitial = peerMember ? safeInitial(peerMember) : ((peer.avatar || peer.user || '').slice(0,1));
 
-  // 문장 미리보기 (길이 제한)
-  const sentencePreview = (peer.sentence || '').trim().slice(0, 90);
-  // 단어 (Day vocab) 정보 — peer.dayN + peer.wordIdx 가 있으면 매칭, 없으면 sentence 안에서 vocab 탐지.
-  let wordHint = '';
-  try {
-    const dayN = Number(peer.dayN || state.currentDay || 0);
-    if (dayN > 0) {
-      const day = (typeof getDay === 'function') ? getDay(dayN) : null;
-      const words = (day && day.words) || [];
-      // Try to find which vocab the sentence used
-      const matched = words.find((w) => w.en && new RegExp('\\b' + w.en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(sentencePreview));
-      if (matched) wordHint = `${matched.en} · ${matched.def || ''}`;
-    }
-  } catch (_) {}
-
+  // ⬇️ 단순화: 이름 + "문장 제출했어요" 만. 문장 미리보기/단어 힌트 제거.
+  // 학습 중 AI 첨삭 받을 때 큰 미리보기가 화면 위로 튀어나오던 문제 해결.
+  // 누가 올렸다는 것만 가볍게 알림.
   const node = el('div', { class: 'peer-ticker' });
-  // inline override — 좀 더 풍부한 컨텐트, 가로 max-width 늘림
-  node.style.maxWidth = '380px';
+  // 컴팩트 — alarm 크기 작게, 자체 ellipsis 로 절대 안 튀어나옴.
+  node.style.maxWidth = '260px';
   node.innerHTML = `
     <span class="pt-pulse"></span>
     <div class="pt-avatar">${escapeHtml(peerInitial)}</div>
-    <div class="pt-text" style="flex:1;min-width:0;">
-      <div class="pt-label" style="font-weight:800;line-height:1.3;">${escapeHtml(peerDisplay)}님이 문장 제출했어요</div>
-      ${sentencePreview ? `<div style="margin-top:4px;font-size:12px;color:rgba(0,0,0,0.7);line-height:1.45;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">"${escapeHtml(sentencePreview)}"</div>` : ''}
-      ${wordHint ? `<div style="margin-top:3px;font-size:10.5px;color:var(--orange-dark);font-weight:700;letter-spacing:-0.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📌 ${escapeHtml(wordHint)}</div>` : ''}
+    <div class="pt-body" style="font-weight:600;font-size:12.5px;color:var(--ink);line-height:1.3;">
+      <b style="font-weight:800;">${escapeHtml(peerDisplay)}</b>님이 문장 제출했어요
     </div>`;
   node.addEventListener('click', () => {
     // Scroll to peer sentences section if present
@@ -6098,11 +6104,15 @@ function showPeerTicker(peer) {
     setTimeout(() => node.remove(), 280);
   });
   document.body.appendChild(node);
+  // 표시 시간 — 4.2초. AI 첨삭 중에는 dismiss 우선순위 X (사라지면 그만, 다시 안 뜸).
+  // 단, AI 첨삭 중 (.ai-correction-loading 같은 표식) 이면 살짝 더 짧게 (사용자 흐름 방해 X).
+  const isAiActive = !!document.querySelector('[data-ai-reviewing="1"]');
+  const dwell = isAiActive ? 2400 : 4200;
   setTimeout(() => {
     if (!node.isConnected) return;
     node.classList.add('out');
     setTimeout(() => node.remove(), 280);
-  }, 5200); // 더 길게 보여줘 — 5초
+  }, dwell);
 }
 
 function shouldIgnoreSwipeTarget(target) {
