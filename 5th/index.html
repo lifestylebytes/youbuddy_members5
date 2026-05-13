@@ -7926,6 +7926,8 @@ function Checkboard() {
     JSON.stringify(state.verified || {}),
     JSON.stringify(state.verified_time || {}),
     !!window.__registeredLoaded,
+    // 운영자 view 일 때 한글 이름 inline 표시되므로 fingerprint 에 포함 (operator 토글 시 재렌더 보장)
+    !!(state.isOperator || state.isStaff),
     orderedMembers.length,
     orderedMembers.map((m) => {
       const v = Array.isArray(m.verifiedDays) ? m.verifiedDays.join(',') : '';
@@ -7962,12 +7964,19 @@ function Checkboard() {
     const memberRef = m.member_key || m.name;
     const memberTz = (memberTimezoneText(m) || '').trim();
     const showTz = memberTz && memberTz !== '+0h';
+    // 운영자/스태프 view — 영어 닉네임 옆에 작은 한글 이름 inline 노출 (멤버 매핑 빠르게)
+    const isOpView = (state.isOperator || state.isStaff) && !m.me;
+    const krShadow = isOpView
+      && m.name && m.englishName && m.englishName.trim()
+      && m.name.trim() !== m.englishName.trim()
+      ? m.name.trim() : '';
     const nameHtml = `
       <div class="${nameCls}" style="cursor:pointer;" data-member-ref="${escAttr(memberRef)}">
         <div class="tiny-av ${resolveAvatarColor(m)}">${safeInitial(m)}</div>
         <div style="min-width:0;overflow:hidden;flex:1 1 auto;">
           <div style="display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden;">
             <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto;">${escapeHtml(displayName(m))}</span>
+            ${krShadow ? `<span style="font-size:10px;color:var(--muted);font-weight:500;flex-shrink:0;letter-spacing:-0.01em;opacity:0.85;" title="한글 이름 (운영자 view 전용)">· ${escapeHtml(krShadow)}</span>` : ''}
             ${premiumPill(m)}
             ${showTz ? `<span style="font-size:9.5px;font-family:var(--font-mono);color:var(--muted);font-weight:500;flex-shrink:0;letter-spacing:-0.02em;" title="한국(KST) 대비 시차">${escapeHtml(memberTz)}</span>` : ''}
           </div>
@@ -13447,18 +13456,26 @@ function PremiumPage() {
       }, '프리미엄 전용 · 다음 기수 프리뷰');
       ctaRow.appendChild(previewPill);
     } else if (iAmPresenter) {
-      // 내가 발표자 — 미팅 전/후로 CTA 분기.
+      // 내가 발표자 — 미팅 전/후로 CTA 분기. 항상 '발표 준비' + '미팅 노트' 둘 다 노출.
       if (isPast) {
-        // 미팅 이미 끝남 → '사후 메모 남기기' 모드. meeting-notes 페이지로.
-        //   '발표 준비하기' 가 미팅 후에도 그대로 뜨면 의미 없음 (이미 발표함).
+        // 미팅 이미 끝남 → '사후 메모' 가 primary, '발표 자료 다시 보기' 는 secondary.
         const memoBtn = el('button', {
           class: 'btn btn-primary',
           style: { flex: '1', minWidth: '160px' },
           onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
         }, hasNotes ? `📝 발표 회고 이어쓰기 (${tpCount}개)` : '📝 사후 메모 남기기');
         ctaRow.appendChild(memoBtn);
+        const prepBtn2 = el('button', {
+          class: 'btn',
+          style: { background: '#fff', color: 'var(--ink-soft)', border: '1px solid rgba(231,221,200,0.9)', fontSize: '12.5px' },
+          onClick: () => {
+            window.__currentPresenterWeek = m.n;
+            go('presenter-prep');
+          }
+        }, '🎤 발표 자료 다시 보기');
+        ctaRow.appendChild(prepBtn2);
       } else {
-        // 미팅 전 → 발표 준비 + 자리 내려놓기 옵션.
+        // 미팅 전 → 발표 준비 (primary) + 미팅 노트 (secondary) + 자리 내려놓기 (tertiary).
         const prepBtn = el('button', {
           class: 'btn btn-primary',
           style: { flex: '1', minWidth: '160px' },
@@ -13468,6 +13485,12 @@ function PremiumPage() {
           }
         }, '🎤 발표 준비하기');
         ctaRow.appendChild(prepBtn);
+        const notesBtn = el('button', {
+          class: 'btn',
+          style: { flex: '1', minWidth: '160px', background: '#fff', color: 'var(--ink)', border: '1px solid rgba(231,221,200,0.9)' },
+          onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
+        }, hasNotes ? `📝 미팅 노트 (${tpCount}개)` : '📝 미팅 노트 준비하기');
+        ctaRow.appendChild(notesBtn);
         const releaseBtn = el('button', {
           class: 'btn',
           style: { background: 'transparent', color: 'var(--ink-soft)', border: '1px solid rgba(231,221,200,0.9)', fontSize: '12px' },
