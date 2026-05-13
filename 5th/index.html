@@ -5581,13 +5581,19 @@ function render() {
                   : '0 10px 24px -10px rgba(169,139,184,0.7)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               },
-              title: iAmP
+              title: iAmP && isPastWk
+                ? `📝 Week ${thisWk.n} 발표 회고 메모`
+                : iAmP
                 ? `🎤 내 발표 준비 (Week ${thisWk.n})`
                 : rem === 0
                 ? `Week ${thisWk.n} 자리 마감 · 메모 쓰기`
                 : `Week ${thisWk.n} 발표 자리 잡기 (${rem}자리 남음)`,
               onClick: () => {
-                if (iAmP) {
+                if (iAmP && isPastWk) {
+                  // 발표자였지만 미팅 끝남 → 사후 메모 모드 (meeting-notes 페이지)
+                  window.__currentMeetingId = `m${thisWk.n}`;
+                  go('meeting-notes');
+                } else if (iAmP) {
                   window.__currentPresenterWeek = thisWk.n;
                   go('presenter-prep');
                 } else {
@@ -5595,7 +5601,7 @@ function render() {
                 }
               },
             });
-            fab.innerHTML = '🎤';
+            fab.innerHTML = (iAmP && isPastWk) ? '📝' : '🎤';
 
             // Small ring showing remaining slots (오렌지점 3개 vs 빈점). 내가 발표자면 리본.
             if (iAmP) {
@@ -13441,17 +13447,27 @@ function PremiumPage() {
       }, '프리미엄 전용 · 다음 기수 프리뷰');
       ctaRow.appendChild(previewPill);
     } else if (iAmPresenter) {
-      // 내가 발표자 → 준비하러 가기 + 자리 내려놓기.
-      const prepBtn = el('button', {
-        class: 'btn btn-primary',
-        style: { flex: '1', minWidth: '160px' },
-        onClick: () => {
-          window.__currentPresenterWeek = m.n;
-          go('presenter-prep');
-        }
-      }, '🎤 발표 준비하기');
-      ctaRow.appendChild(prepBtn);
-      if (!isPast) {
+      // 내가 발표자 — 미팅 전/후로 CTA 분기.
+      if (isPast) {
+        // 미팅 이미 끝남 → '사후 메모 남기기' 모드. meeting-notes 페이지로.
+        //   '발표 준비하기' 가 미팅 후에도 그대로 뜨면 의미 없음 (이미 발표함).
+        const memoBtn = el('button', {
+          class: 'btn btn-primary',
+          style: { flex: '1', minWidth: '160px' },
+          onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
+        }, hasNotes ? `📝 발표 회고 이어쓰기 (${tpCount}개)` : '📝 사후 메모 남기기');
+        ctaRow.appendChild(memoBtn);
+      } else {
+        // 미팅 전 → 발표 준비 + 자리 내려놓기 옵션.
+        const prepBtn = el('button', {
+          class: 'btn btn-primary',
+          style: { flex: '1', minWidth: '160px' },
+          onClick: () => {
+            window.__currentPresenterWeek = m.n;
+            go('presenter-prep');
+          }
+        }, '🎤 발표 준비하기');
+        ctaRow.appendChild(prepBtn);
         const releaseBtn = el('button', {
           class: 'btn',
           style: { background: 'transparent', color: 'var(--ink-soft)', border: '1px solid rgba(231,221,200,0.9)', fontSize: '12px' },
