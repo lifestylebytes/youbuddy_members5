@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Week 3 · Live Conducting Deck (Prototype) · YOUBUDDY</title>
+<title>Week 3 · Live Practice (Prototype v2) · YOUBUDDY</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
 <style>
   :root {
@@ -22,723 +22,631 @@
     --lilac-bg: rgba(169,139,184,0.14);
     --gold: #FCE8B2;
     --green: #6FAE6C;
-    --green-bg: rgba(111,174,108,0.13);
   }
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif}
-  html,body{background:var(--cream);color:var(--ink);height:100%;overflow:hidden}
-  body{display:flex;flex-direction:column;height:100vh}
+  html,body{background:var(--cream);color:var(--ink)}
+  body{min-height:100vh;padding-bottom:60px}
 
-  /* ============ HEADER ============ */
-  .hdr{
-    flex-shrink:0;background:var(--ink);color:#fff;padding:14px 22px;
-    display:flex;align-items:center;gap:24px;border-bottom:3px solid var(--gold);
-  }
-  .hdr-title{font-size:14px;font-weight:600;letter-spacing:0.02em;color:var(--gold)}
-  .hdr-title b{color:#fff;font-weight:800;margin:0 6px}
-  .timer{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:18px;font-weight:700;color:var(--gold);min-width:90px}
-  .hdr-section{flex:1;display:flex;align-items:center;gap:12px}
-  .progress{flex:1;height:6px;background:rgba(255,255,255,0.12);border-radius:99px;overflow:hidden;max-width:240px}
-  .progress-fill{height:100%;background:linear-gradient(90deg,var(--orange),var(--gold));transition:width 0.4s ease;border-radius:99px}
-  .progress-label{font-size:12px;color:rgba(255,255,255,0.7);letter-spacing:0.02em;white-space:nowrap}
-  .hdr-icon-btn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;
-    padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:-0.005em}
-  .hdr-icon-btn:hover{background:rgba(255,255,255,0.18)}
-
-  /* ============ MAIN GRID ============ */
-  .main{flex:1;display:grid;grid-template-columns:1fr 340px;gap:0;overflow:hidden}
-  .stage{padding:28px 36px;overflow-y:auto;background:linear-gradient(180deg,var(--cream) 0%,var(--paper) 100%)}
-  .panel{background:#fff;border-left:1px solid var(--line);padding:18px;overflow-y:auto;display:flex;flex-direction:column;gap:18px}
-
-  /* ============ STAGE — SCRIPT ============ */
-  .scenario-pill{
-    display:inline-flex;align-items:center;gap:8px;background:var(--lilac-bg);color:var(--lilac-dark);
-    padding:8px 14px;border-radius:99px;font-size:11.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;
-    margin-bottom:14px;
-  }
-  .scenario-title{font-size:24px;font-weight:800;letter-spacing:-0.018em;line-height:1.3;margin-bottom:24px;color:var(--ink)}
-  .scenario-title em{font-style:normal;color:var(--orange-dark)}
-  .section-note{font-size:12.5px;color:var(--muted);background:rgba(231,221,200,0.4);
-    border-left:3px solid var(--lilac);padding:10px 14px;border-radius:6px;margin-bottom:24px;line-height:1.55}
-
-  .line{
-    margin:14px 0;padding:14px 18px;border-radius:14px;border:1px solid transparent;
-    background:transparent;transition:all 0.25s ease;cursor:pointer;
-    display:grid;grid-template-columns:64px 1fr;gap:14px;align-items:start;
-  }
-  .line:hover{background:rgba(255,255,255,0.5)}
-  .line.past{opacity:0.5}
-  .line.past:hover{opacity:0.75}
-  .line.current{
-    background:linear-gradient(135deg,#FFF6E5 0%,#FFEFD0 100%);
-    border-color:var(--orange);
-    box-shadow:0 12px 30px -16px rgba(240,125,56,0.4);
-    transform:scale(1.005);
-  }
-  .line.next-up{background:rgba(252,232,178,0.32);border-color:rgba(252,232,178,0.8)}
-  .line.future{opacity:0.45}
-  .line.is-mine{border-left:4px solid var(--lilac)}
-
-  .slot-tag{
-    display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;
-    background:#fff;border:1.5px solid var(--line);padding:6px 10px;border-radius:10px;
-    font-size:10.5px;font-weight:700;color:var(--ink-soft);letter-spacing:0.03em;
-    min-width:60px;
-  }
-  .line.current .slot-tag{background:var(--orange);color:#fff;border-color:var(--orange)}
-  .line.next-up .slot-tag{background:var(--gold);color:#8A5B0E;border-color:var(--gold)}
-  .line.is-mine .slot-tag{background:var(--lilac);color:#fff;border-color:var(--lilac)}
-  .slot-tag-id{font-size:10px;opacity:0.75;letter-spacing:0.1em}
-  .slot-tag-name{font-size:12px;font-weight:800;letter-spacing:-0.01em}
-
-  .line-body{display:flex;flex-direction:column;gap:6px}
-  .line-en{font-size:17px;font-weight:600;line-height:1.5;letter-spacing:-0.005em;color:var(--ink)}
-  .line.current .line-en{font-size:22px;font-weight:800}
-  .line-kr{font-size:13.5px;color:var(--ink-soft);line-height:1.55;font-style:italic}
-  .line.current .line-kr{font-size:15px;color:var(--muted)}
-  .line-hidden{
-    display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px;
-    background:rgba(169,139,184,0.14);color:var(--lilac-dark);
-    font-size:11.5px;font-weight:700;cursor:pointer;border:1px dashed rgba(169,139,184,0.5);
-    align-self:flex-start;
-  }
-  .line-hidden:hover{background:rgba(169,139,184,0.24)}
-  .line-mine-kronly .line-en{display:none}
-  .line-mine-kronly .line-kr{font-size:24px;font-weight:700;font-style:normal;color:var(--ink);line-height:1.4}
-  .line-mine-kronly .line-en-reveal{display:inline-flex}
-
-  /* ============ PANEL ============ */
-  .panel-section{display:flex;flex-direction:column;gap:8px}
-  .panel-h{font-size:11px;font-weight:800;letter-spacing:0.14em;color:var(--muted);text-transform:uppercase}
-  .panel-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--paper)}
-  .panel-row.active{background:var(--orange-bg);border:1.5px solid var(--orange)}
-  .panel-row.next{background:rgba(252,232,178,0.45);border:1.5px solid var(--gold)}
-  .slot-chip{
-    width:28px;height:28px;border-radius:8px;background:var(--ink);color:#fff;
-    font-size:10.5px;font-weight:800;display:grid;place-items:center;letter-spacing:0.05em;flex-shrink:0;
-  }
-  .slot-chip.coach{background:var(--lilac)}
-  .panel-row.active .slot-chip{background:var(--orange)}
-  .slot-name{flex:1;font-size:12.5px;font-weight:600;color:var(--ink);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .slot-input{
-    flex:1;border:none;background:transparent;outline:none;font-size:12.5px;font-weight:600;color:var(--ink);
-    padding:2px 4px;border-radius:6px;
-  }
-  .slot-input:focus{background:#fff;box-shadow:0 0 0 2px var(--orange)}
-  .me-pin{
-    border:none;background:rgba(169,139,184,0.18);color:var(--lilac-dark);font-size:10px;
-    padding:3px 7px;border-radius:99px;font-weight:700;cursor:pointer;letter-spacing:-0.005em;
-  }
-  .me-pin.active{background:var(--lilac);color:#fff}
-
-  .now-bar{
-    background:linear-gradient(135deg,#1F1630 0%,#3A2A52 100%);color:#fff;
-    padding:14px 16px;border-radius:14px;display:flex;flex-direction:column;gap:6px;
-  }
-  .now-label{font-size:10px;letter-spacing:0.18em;font-weight:700;color:var(--gold);text-transform:uppercase}
-  .now-name{font-size:18px;font-weight:800;letter-spacing:-0.012em}
-  .now-next{font-size:12px;color:rgba(252,232,178,0.85);margin-top:4px;line-height:1.4}
-
-  .pill-btn{
-    border:1px solid var(--line);background:#fff;color:var(--ink);
-    padding:10px 14px;border-radius:12px;font-size:12.5px;font-weight:700;cursor:pointer;
-    display:flex;align-items:center;gap:8px;letter-spacing:-0.005em;
-  }
-  .pill-btn:hover{background:var(--paper);border-color:var(--orange)}
-  .pill-btn.primary{background:var(--orange);color:#fff;border-color:var(--orange);box-shadow:0 6px 14px -6px rgba(240,125,56,0.5)}
-  .pill-btn.primary:hover{background:var(--orange-dark)}
-  .pill-btn.lilac{background:var(--lilac);color:#fff;border-color:var(--lilac)}
-  .pill-btn.lilac:hover{background:var(--lilac-dark)}
-  .pill-btn.danger-soft{color:var(--orange-dark);border-color:rgba(240,125,56,0.3)}
-
-  .vocab-list{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto}
-  .vocab-item{
-    display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;
-    background:var(--paper);font-size:12px;font-weight:600;cursor:pointer;border:1px solid transparent;
-  }
-  .vocab-item.checked{background:var(--green-bg);color:var(--ink);border-color:rgba(111,174,108,0.4)}
-  .vocab-check{
-    width:18px;height:18px;border-radius:6px;border:1.5px solid var(--line);background:#fff;
-    display:grid;place-items:center;font-size:11px;font-weight:800;flex-shrink:0;
-  }
-  .vocab-item.checked .vocab-check{background:var(--green);border-color:var(--green);color:#fff}
-  .vocab-day{font-size:9.5px;font-weight:800;color:var(--muted);letter-spacing:0.1em}
-  .vocab-en{flex:1;letter-spacing:-0.005em}
-
-  /* ============ FOOTER CONTROLS ============ */
-  .footer{
-    flex-shrink:0;background:#fff;border-top:1px solid var(--line);padding:14px 22px;
-    display:flex;align-items:center;gap:10px;justify-content:center;
-  }
-  .footer .pill-btn{padding:12px 18px;font-size:13.5px}
-  .footer .ctrl-group{display:flex;gap:6px}
-  .key-hint{font-size:10.5px;color:var(--muted);margin-left:auto;letter-spacing:-0.005em}
-
-  /* ============ CHORAL OVERLAY ============ */
-  .choral-overlay{
-    position:fixed;inset:0;background:linear-gradient(135deg,rgba(31,22,48,0.95) 0%,rgba(58,42,82,0.95) 100%);
-    z-index:100;display:none;align-items:center;justify-content:center;flex-direction:column;gap:32px;color:#fff;
-    backdrop-filter:blur(8px);
-  }
-  .choral-overlay.on{display:flex}
-  .choral-title{font-size:96px;font-weight:900;letter-spacing:-0.04em;text-align:center;
-    background:linear-gradient(135deg,var(--gold),#FFC773);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .choral-en{font-size:42px;font-weight:700;color:#fff;letter-spacing:-0.01em;text-align:center;max-width:900px;line-height:1.3}
-  .choral-kr{font-size:20px;color:rgba(252,232,178,0.85);text-align:center;font-weight:500}
-  .choral-close{border:2px solid var(--gold);background:transparent;color:var(--gold);
-    padding:14px 28px;border-radius:99px;font-size:14px;font-weight:800;cursor:pointer}
-
-  /* ============ AI COACH POPUP ============ */
-  .ai-popup{
-    position:fixed;right:24px;bottom:90px;width:340px;background:#fff;
-    border-radius:18px;box-shadow:0 24px 60px -20px rgba(0,0,0,0.3);
-    padding:18px;display:none;flex-direction:column;gap:10px;z-index:50;
-    border:1px solid var(--line);
-  }
-  .ai-popup.on{display:flex}
-  .ai-popup-h{font-size:11px;font-weight:800;color:var(--orange-dark);letter-spacing:0.1em;text-transform:uppercase}
-  .ai-popup-body{font-size:13.5px;color:var(--ink);line-height:1.6}
-  .ai-popup-alt{padding:10px 12px;background:var(--paper);border-radius:10px;font-size:13px;font-weight:600;color:var(--ink)}
-  .ai-popup-close{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:12px;align-self:flex-end}
-
-  /* ============ NOTES PANEL ============ */
-  .notes-input{
-    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
-    font-size:12.5px;font-family:inherit;color:var(--ink);resize:vertical;min-height:48px;
-    background:#FFFEFA;
-  }
-  .notes-input:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(240,125,56,0.1)}
-
-  /* Scrollbar */
-  .stage::-webkit-scrollbar,.panel::-webkit-scrollbar,.vocab-list::-webkit-scrollbar{width:8px}
-  .stage::-webkit-scrollbar-thumb,.panel::-webkit-scrollbar-thumb,.vocab-list::-webkit-scrollbar-thumb{
-    background:rgba(138,122,92,0.3);border-radius:99px
-  }
-  .stage::-webkit-scrollbar-thumb:hover,.panel::-webkit-scrollbar-thumb:hover{background:rgba(138,122,92,0.5)}
-
-  /* responsive */
-  @media (max-width:900px){
-    .main{grid-template-columns:1fr}
-    .panel{display:none}
-    .stage{padding:18px 16px}
-    .scenario-title{font-size:18px}
-  }
-
-  /* PROTOTYPE BANNER */
   .proto-banner{
     background:linear-gradient(135deg,#FFE8D1 0%,#FFF1DD 100%);color:var(--orange-dark);
     text-align:center;padding:6px;font-size:11px;font-weight:700;letter-spacing:0.05em;
     border-bottom:1px dashed rgba(240,125,56,0.4);
+  }
+
+  /* Meeting Info Banner */
+  .meeting-info{
+    background:linear-gradient(135deg,rgba(169,139,184,0.12) 0%,rgba(252,232,178,0.30) 100%);
+    border-bottom:1px solid var(--line);padding:12px 22px;
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  }
+  .mi-block{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .mi-title{font-size:13px;font-weight:800;color:var(--ink);letter-spacing:-0.01em}
+  .mi-title b{color:var(--lilac-dark);margin-right:4px}
+  .mi-date{font-size:11.5px;color:var(--ink-soft);font-weight:600}
+  .mi-date .tz{font-size:10.5px;color:var(--muted);font-weight:500;margin-left:6px}
+  .mi-spacer{flex:1}
+  .mi-meet{
+    padding:9px 16px;border-radius:12px;background:var(--lilac);color:#fff;
+    font-size:12.5px;font-weight:700;text-decoration:none;
+    display:inline-flex;align-items:center;gap:6px;letter-spacing:-0.005em;
+    box-shadow:0 6px 14px -6px rgba(169,139,184,0.6);
+  }
+  .mi-meet:hover{background:var(--lilac-dark);transform:translateY(-1px)}
+  .mi-copy{
+    background:transparent;border:1px solid rgba(107,79,125,0.3);color:var(--lilac-dark);
+    padding:8px 12px;border-radius:10px;font-size:11.5px;font-weight:700;cursor:pointer;
+    display:inline-flex;align-items:center;gap:5px;
+  }
+  .mi-copy:hover{background:rgba(169,139,184,0.1)}
+  @media (max-width:600px){
+    .meeting-info{padding:10px 16px;gap:10px}
+    .mi-title{font-size:12px}
+    .mi-meet{padding:7px 12px;font-size:11.5px}
+  }
+
+  /* HEADER */
+  .hdr{
+    background:var(--ink);color:#fff;padding:14px 22px;
+    display:flex;align-items:center;gap:18px;flex-wrap:wrap;border-bottom:3px solid var(--gold);
+  }
+  .hdr-title{font-size:14px;font-weight:600;color:var(--gold)}
+  .hdr-title b{color:#fff;font-weight:800;margin:0 6px}
+  .timer{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:18px;font-weight:700;color:var(--gold);min-width:90px}
+  .hdr-icon-btn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;
+    padding:7px 12px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer}
+  .hdr-icon-btn:hover{background:rgba(255,255,255,0.18)}
+  .hdr-spacer{flex:1}
+  .names-input{
+    background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);color:#fff;
+    padding:8px 12px;border-radius:10px;font-size:12.5px;min-width:280px;outline:none;
+    font-family:inherit;
+  }
+  .names-input::placeholder{color:rgba(255,255,255,0.4)}
+  .names-input:focus{border-color:var(--gold);background:rgba(255,255,255,0.14)}
+
+  /* CONTAINER */
+  .wrap{max-width:980px;margin:0 auto;padding:24px 22px}
+
+  /* SITUATION NAV */
+  .sit-nav{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+  .sit-tab{
+    padding:9px 14px;border-radius:99px;background:#fff;border:1.5px solid var(--line);
+    font-size:12.5px;font-weight:700;cursor:pointer;color:var(--ink-soft);
+    display:flex;align-items:center;gap:6px;
+  }
+  .sit-tab:hover{border-color:var(--orange)}
+  .sit-tab.active{background:var(--orange);color:#fff;border-color:var(--orange);box-shadow:0 6px 14px -6px rgba(240,125,56,0.5)}
+  .sit-tab .num{font-size:10px;background:rgba(0,0,0,0.08);padding:2px 6px;border-radius:99px}
+  .sit-tab.active .num{background:rgba(255,255,255,0.22)}
+
+  /* SITUATION CARD */
+  .sit-card{
+    background:linear-gradient(160deg,#FFFDF7 0%,#FBF3E2 100%);
+    border:1.5px solid var(--line);border-radius:24px;padding:32px;
+    box-shadow:0 24px 60px -28px rgba(58,42,82,0.18);margin-bottom:24px;
+  }
+  .sit-emoji{font-size:56px;line-height:1;margin-bottom:14px}
+  .sit-title{font-size:28px;font-weight:900;letter-spacing:-0.022em;line-height:1.25;color:var(--ink);margin-bottom:16px}
+  .sit-meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+  .sit-pill{
+    display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;
+    background:var(--lilac-bg);color:var(--lilac-dark);font-size:11.5px;font-weight:700;letter-spacing:-0.005em;
+  }
+  .sit-pill.orange{background:var(--orange-bg);color:var(--orange-dark)}
+  .sit-pill.gold{background:rgba(252,232,178,0.5);color:#8A5B0E}
+  .sit-setting{
+    background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:14px;
+    font-size:15px;line-height:1.65;color:var(--ink);letter-spacing:-0.005em;
+  }
+  .sit-setting b{color:var(--orange-dark);font-weight:700}
+  .sit-hint{
+    font-size:13px;color:var(--muted);line-height:1.6;padding:10px 14px;
+    background:rgba(252,232,178,0.4);border-radius:10px;margin-bottom:18px;
+  }
+  .sit-hint b{color:var(--ink-soft);font-weight:700}
+
+  /* PICKER */
+  .picker-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .picker-btn{
+    padding:12px 18px;border-radius:14px;background:var(--ink);color:#fff;border:none;
+    font-size:14px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:8px;letter-spacing:-0.005em;
+  }
+  .picker-btn:hover{background:#1a1109}
+  .picker-btn.secondary{background:#fff;color:var(--ink);border:1px solid var(--line);font-weight:700}
+  .picker-result{
+    flex:1;min-width:240px;padding:14px 18px;border-radius:14px;
+    background:linear-gradient(135deg,var(--gold) 0%,#FFC773 100%);
+    color:#5A3B12;font-size:15px;font-weight:800;letter-spacing:-0.01em;
+    display:none;align-items:center;gap:10px;
+  }
+  .picker-result.on{display:flex}
+  .picker-result .arrow{margin:0 8px;color:#A2752E;font-weight:700}
+
+  /* VOCAB POOL */
+  .pool-h{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .pool-title{font-size:18px;font-weight:800;letter-spacing:-0.015em;color:var(--ink)}
+  .pool-sub{font-size:12.5px;color:var(--muted);font-weight:500}
+  .pool-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .pool-filter{
+    padding:7px 13px;border-radius:99px;background:#fff;border:1px solid var(--line);
+    font-size:12px;font-weight:700;cursor:pointer;color:var(--ink-soft);
+  }
+  .pool-filter:hover{border-color:var(--orange)}
+  .pool-filter.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .pool-filter.bm.active{background:var(--lilac);border-color:var(--lilac)}
+
+  .vocab-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+  .vocab-card{
+    background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;
+    display:flex;flex-direction:column;gap:6px;position:relative;cursor:pointer;
+    transition:all 0.15s ease;
+  }
+  .vocab-card:hover{border-color:var(--orange);transform:translateY(-1px);box-shadow:0 12px 24px -16px rgba(0,0,0,0.12)}
+  .vocab-card.suggested{border-color:rgba(240,125,56,0.55);background:linear-gradient(135deg,#FFFDF7 0%,#FFF5E5 100%)}
+  .vocab-card.bookmarked{background:linear-gradient(135deg,#FFFDF7 0%,#F4ECFA 100%)}
+  .vocab-card-h{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .vocab-day{
+    font-size:10px;font-weight:800;letter-spacing:0.08em;color:var(--muted);
+    background:var(--paper);padding:3px 7px;border-radius:99px;flex-shrink:0;
+  }
+  .vocab-card.suggested .vocab-day{background:var(--orange-bg);color:var(--orange-dark)}
+  .bm-btn{
+    background:transparent;border:none;cursor:pointer;font-size:18px;line-height:1;
+    color:var(--line);transition:transform 0.15s ease;padding:2px 4px;
+  }
+  .bm-btn:hover{transform:scale(1.2)}
+  .bm-btn.on{color:var(--lilac)}
+  .vocab-en{font-size:16px;font-weight:800;letter-spacing:-0.01em;color:var(--ink);line-height:1.3}
+  .vocab-kr{font-size:13px;color:var(--ink-soft);line-height:1.45;font-style:italic}
+  .vocab-ex{
+    font-size:11.5px;color:var(--muted);line-height:1.55;padding-top:6px;border-top:1px dashed var(--line);
+    display:none;
+  }
+  .vocab-card.expanded .vocab-ex{display:block}
+  .vocab-ex b{color:var(--ink-soft);font-weight:700}
+  .vocab-suggest-pill{
+    position:absolute;top:-6px;right:8px;font-size:9.5px;font-weight:800;letter-spacing:0.05em;
+    background:var(--orange);color:#fff;padding:3px 8px;border-radius:99px;
+  }
+
+  /* SUGGESTED CHIPS */
+  .sit-suggest{margin-top:14px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .sit-suggest-label{font-size:11.5px;font-weight:700;color:var(--ink-soft);letter-spacing:-0.005em}
+  .sit-suggest-chip{
+    padding:6px 11px;border-radius:99px;background:var(--orange-bg);color:var(--orange-dark);
+    font-size:12px;font-weight:700;
+  }
+
+  /* FOOTER NAV */
+  .footer-nav{
+    position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);
+    padding:12px 22px;display:flex;align-items:center;justify-content:center;gap:10px;z-index:30;
+  }
+  .footer-btn{
+    padding:11px 18px;border-radius:99px;background:#fff;border:1px solid var(--line);
+    font-size:13px;font-weight:700;cursor:pointer;color:var(--ink);
+  }
+  .footer-btn:hover{background:var(--paper);border-color:var(--orange)}
+  .footer-btn.primary{background:var(--orange);color:#fff;border-color:var(--orange)}
+  .footer-btn.primary:hover{background:var(--orange-dark)}
+  .footer-status{font-size:11.5px;color:var(--muted);margin:0 6px}
+
+  /* RESPONSIVE */
+  @media (max-width:600px){
+    .wrap{padding:16px}
+    .sit-card{padding:20px}
+    .sit-title{font-size:22px}
+    .sit-emoji{font-size:42px}
+    .names-input{min-width:auto;flex:1}
   }
 </style>
 </head>
 <body>
 
 <div class="proto-banner">
-  🧪 PROTOTYPE · Week 3 Live Conducting Deck — 컨펌 받기 전 임시 페이지
+  🧪 PROTOTYPE v2 · Week 3 Live Practice — 상황 중심 + 단어 풀 + 북마크 동기화
 </div>
 
-<!-- ============ HEADER ============ -->
-<header class="hdr">
-  <div class="hdr-title">⭐ <b>WEEK 3</b> · Small talk × Day 11–13</div>
-  <div class="timer" id="timer">00:00</div>
-  <div class="hdr-section">
-    <div class="progress"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-    <div class="progress-label" id="sectionLabel">Section 1/5 · Warmup</div>
+<!-- MEETING INFO BANNER -->
+<div class="meeting-info">
+  <div class="mi-block">
+    <div class="mi-title"><b>WEEK 3</b> · Small talk × Day 11~13</div>
+    <div class="mi-date">📅 5월 14일 (목) · 21:00~22:00 <span class="tz">Asia/Seoul</span></div>
   </div>
-  <button class="hdr-icon-btn" id="btnTimer">⏯ 타이머</button>
-  <button class="hdr-icon-btn" id="btnReset">↻ 리셋</button>
+  <div class="mi-spacer"></div>
+  <button class="mi-copy" id="btnCopyMeet">📋 링크 복사</button>
+  <a class="mi-meet" href="https://meet.google.com/swc-ritf-wec" target="_blank" rel="noopener">
+    🎥 Google Meet 열기 →
+  </a>
+</div>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-title">⭐ <b>WEEK 3</b> · Live Practice</div>
+  <div class="timer" id="timer">00:00</div>
+  <button class="hdr-icon-btn" id="btnTimer">⏯</button>
+  <button class="hdr-icon-btn" id="btnTimerReset">↻</button>
+  <div class="hdr-spacer"></div>
+  <input class="names-input" id="namesInput"
+         placeholder="참가자 이름 (쉼표로 구분, 랜덤 뽑기에 사용돼요)"
+         value="진송, 수진, Brad, Hera, Jess, Lin, Rachel" />
 </header>
 
-<!-- ============ MAIN ============ -->
-<div class="main">
+<div class="wrap">
 
-  <!-- STAGE -->
-  <div class="stage" id="stage">
-    <div class="scenario-pill"><span>🎭</span><span id="sectionTime">0–5</span> · <span id="sectionName">Warmup</span></div>
-    <div class="scenario-title" id="sectionTitle">
-      Week 3 · <em>Small talk × Day 11~13 vocab</em>
-    </div>
-    <div class="section-note" id="sectionNote">M1 = Coach 진행. M7·M8 자유 발화 (질문 + 픽 발표).</div>
+  <!-- SITUATION TABS -->
+  <div class="sit-nav" id="sitNav"></div>
 
-    <div id="linesContainer"></div>
+  <!-- SITUATION CARD -->
+  <div class="sit-card" id="sitCard"></div>
+
+  <!-- VOCAB POOL -->
+  <div class="pool-h">
+    <div class="pool-title">📚 Day 1~13 단어 풀</div>
+    <div class="pool-sub">대화에 끼워넣을 수 있는 표현들. 모르는 건 🔖 북마크 — '나' 탭에 자동 동기화</div>
   </div>
+  <div class="pool-filters" id="poolFilters"></div>
+  <div class="vocab-grid" id="vocabGrid"></div>
 
-  <!-- PANEL -->
-  <div class="panel">
-    <!-- Now Speaking -->
-    <div class="now-bar">
-      <div class="now-label">🟢 NOW SPEAKING</div>
-      <div class="now-name" id="nowName">— 시작 대기 —</div>
-      <div class="now-next" id="nowNext">▶ 다음 버튼으로 시작하세요</div>
-    </div>
-
-    <!-- Choral + AI Coach buttons -->
-    <div style="display:flex;gap:8px">
-      <button class="pill-btn lilac" id="btnChoral" style="flex:1;justify-content:center">🔁 다같이 합창</button>
-      <button class="pill-btn" id="btnAi" style="flex:1;justify-content:center">💡 AI 코치</button>
-    </div>
-
-    <!-- Slot Map -->
-    <div class="panel-section">
-      <div class="panel-h">🎭 슬롯 매핑 (실명 입력)</div>
-      <div id="slotMap" style="display:flex;flex-direction:column;gap:6px"></div>
-    </div>
-
-    <!-- Vocab Tally -->
-    <div class="panel-section">
-      <div class="panel-h">✅ Day 11~13 단어 체크 (자연스럽게 발화)</div>
-      <div class="vocab-list" id="vocabList"></div>
-      <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:4px" id="vocabSummary">0 / 9 자연스럽게 발화됨</div>
-    </div>
-
-    <!-- Live notes -->
-    <div class="panel-section">
-      <div class="panel-h">📝 진행자 메모 (미팅 후 자동 저장)</div>
-      <textarea class="notes-input" id="notesInput" placeholder="예: M5가 'bite the bullet' 자연스럽게 썼다 / M3 'sugarcoat' 좀 어색"></textarea>
-    </div>
-  </div>
 </div>
 
-<!-- ============ FOOTER ============ -->
-<footer class="footer">
-  <div class="ctrl-group">
-    <button class="pill-btn" id="btnPrevSec">⏮ 이전 섹션</button>
-    <button class="pill-btn" id="btnPrevLine">← 이전 라인</button>
-  </div>
-  <button class="pill-btn primary" id="btnNextLine">▶ 다음 라인 (Space)</button>
-  <div class="ctrl-group">
-    <button class="pill-btn" id="btnNextSec">다음 섹션 ⏭</button>
-  </div>
-  <div class="key-hint">Space · ← → · 1~5 (섹션)</div>
-</footer>
-
-<!-- ============ CHORAL OVERLAY ============ -->
-<div class="choral-overlay" id="choralOverlay">
-  <div class="choral-title">다같이! 🔁</div>
-  <div class="choral-en" id="choralEn">—</div>
-  <div class="choral-kr" id="choralKr">—</div>
-  <button class="choral-close" id="choralClose">완료 (Esc)</button>
-</div>
-
-<!-- ============ AI POPUP ============ -->
-<div class="ai-popup" id="aiPopup">
-  <div class="ai-popup-h">💡 AI 코치 · 진행자만 보임</div>
-  <div class="ai-popup-body">현재 라인 다른 식으로 말해보면:</div>
-  <div class="ai-popup-alt" id="aiAlt">—</div>
-  <button class="ai-popup-close" id="aiClose">닫기</button>
+<!-- FOOTER -->
+<div class="footer-nav">
+  <button class="footer-btn" id="btnPrevSit">⏮ 이전 상황</button>
+  <div class="footer-status" id="footerStatus">상황 1 / 4</div>
+  <button class="footer-btn primary" id="btnNextSit">다음 상황 ⏭</button>
 </div>
 
 <script>
 /* ====================================================================
-   WEEK 3 SCRIPT — 5 sections × M1~M10 슬롯
-   index.html 의 weekly_meetings[2] 내용을 그대로 가져옴
+   DATA
 ==================================================================== */
-const SECTIONS = [
-  {
-    time: '0–5', label: 'Warmup', name: 'Small talk 구조 + vocab pick',
-    note: 'M1 = Coach 진행. M7·M8 자유 발화 (질문 + 픽 발표).',
-    lines: [
-      { speaker: 'M1', en: "Welcome to Week 3 — small talk with Day 11 through 13 vocab. Pick three words you'd actually slip into a coffee chat.", ko: 'Week 3에 오신 걸 환영합니다 — Day 11~13 단어를 small talk 에 자연스럽게 끼워넣는 시간이에요. 커피 마시면서 진짜 쓸 만한 단어 3개 골라보세요.' },
-      { speaker: 'M1', en: "Small talk has three beats — opener, transition, closer. Today the trick is sliding Day 11–13 vocab between them.", ko: 'Small talk 는 세 박자예요 — 시작 / 전환 / 마무리. 오늘 핵심은 그 사이사이에 Day 11~13 단어를 끼우는 거예요.' },
-      { speaker: 'M7', en: "Quick question — does it count if I use the word during the transition itself?", ko: '잠깐 — transition 중에 단어 써도 카운트 돼요?' },
-      { speaker: 'M1', en: "Absolutely. That's the cleanest move — pivoting from weather to work with a Day 12 word.", ko: '당연하죠. 그게 제일 깔끔해요 — 날씨에서 일 얘기로 Day 12 단어 하나 끼고 넘어가는 거.' },
-      { speaker: 'M7', en: "Mine's 'blank canvas,' 'competitive edge,' and 'pain point.'", ko: "저는 'blank canvas', 'competitive edge', 'pain point' 로 갈게요." },
-      { speaker: 'M8', en: "I'll take 'reinvent the wheel,' 'game changer,' and 'bite the bullet.'", ko: "저는 'reinvent the wheel', 'game changer', 'bite the bullet' 가져갈게요." },
-    ],
-  },
-  {
-    time: '5–15', label: 'Pair 1 · 탕비실 talk', name: 'Day 11 vocab',
-    note: 'M2 = Conversationalist A (신규 프로젝트 들어감). M3 = Listener B (작년 flow 알고 있음). M1 (Coach) 끝에 한 마디.',
-    lines: [
-      { speaker: 'M2', en: "Hey — how was your weekend?", ko: '어, 주말 어떻게 보냈어요?' },
-      { speaker: 'M3', en: "Quiet. You?", ko: '조용히요. 그쪽은요?' },
-      { speaker: 'M2', en: "Same. By the way — are you on the new onboarding project?", ko: '저도요. 그건 그렇고 — 신규 온보딩 프로젝트 같이 들어가셨어요?' },
-      { speaker: 'M3', en: "Yeah, we're starting from a blank canvas this time.", ko: '네, 이번엔 완전 백지부터 시작이에요.', vocab: 'Blank canvas' },
-      { speaker: 'M2', en: "Really? Aren't we kind of reinventing the wheel?", ko: '진짜요? 쓸데없이 처음부터 다시 만드는 거 아니에요?', vocab: 'Reinvent the wheel' },
-      { speaker: 'M3', en: "Honestly the old one only scratched the surface. New segment, new behavior.", ko: '솔직히 옛날 거는 겉만 건드리고 끝났어요. 새 세그먼트라 행동 패턴도 달라요.', vocab: 'Scratch the surface' },
-      { speaker: 'M2', en: "Fair enough. Let's grab coffee later and you can walk me through it.", ko: '그러네요. 이따 커피 마시면서 자세히 좀 풀어주세요.' },
-      { speaker: 'M3', en: "Sure — ping me after 3.", ko: '좋아요 — 3시 이후로 핑 주세요.' },
-      { speaker: 'M1', en: "Nice — 'by the way' did the heavy lifting. The transition made Day 11 words feel natural, not a quiz.", ko: "좋네요 — 'by the way' 한 줄이 핵심이었어요. transition 덕분에 Day 11 단어가 시험 같지 않고 자연스러웠어요." },
-    ],
-  },
-  {
-    time: '15–25', label: 'Pair 2 · Zoom 대기', name: 'Day 12 vocab + bonus',
-    note: 'M4 = 해외 팀 매니저. M5 = 시장 분석 담당. 5분 대기 시간 → Day 12 풀세트 + Day 13 보너스.',
-    lines: [
-      { speaker: 'M4', en: "We've got a few minutes — quick question. What do you think our real value proposition is for the SMB segment?", ko: '몇 분 남았으니까 — 잠깐 물어볼게요. SMB 세그먼트에서 우리 핵심 가치 제안이 실제로 뭐라고 생각해요?', vocab: 'Value proposition' },
-      { speaker: 'M5', en: "Honestly, speed of setup. That's our competitive edge — competitors take three days, we take ten minutes.", ko: '솔직히 setup 속도요. 그게 우리 경쟁 우위예요 — 경쟁사는 3일, 우리는 10분이면 끝나거든요.', vocab: 'Competitive edge' },
-      { speaker: 'M4', en: "Speaking of speed — the new auto-config feature could be a real game changer if QA holds up.", ko: '속도 얘기 나와서 — 새 auto-config 기능, QA 만 버텨주면 진짜 판 뒤집을 수 있어요.', vocab: 'Game changer' },
-      { speaker: 'M5', en: "Agreed. The pain point we keep hearing is 'I don't have time to configure' — and this kills it.", ko: "동의해요. 계속 듣는 pain point 가 '설정할 시간이 없다' 인데, 이게 그걸 해결해줘요.", vocab: 'Pain point' },
-      { speaker: 'M4', en: "If marketing leans on those three — proposition, edge, and the game changer — the launch story writes itself.", ko: '마케팅이 그 세 개만 잡으면 — 가치 제안 / 경쟁 우위 / 게임 체인저 — 런칭 스토리 그냥 나와요.' },
-      { speaker: 'M5', en: "I'll flag that to the comms lead. Ah — looks like the rest just joined.", ko: '커뮤니케이션 리드한테 전달할게요. 아 — 나머지 분들 들어오셨네요.' },
-      { speaker: 'M4', en: "Perfect timing. Let's catch up properly after the standup.", ko: '타이밍 굿이네요. 스탠드업 끝나고 다시 얘기해요.' },
-    ],
-  },
-  {
-    time: '25–35', label: 'Observer debrief', name: '체크리스트 발표',
-    note: 'M6 = Observer (발표 진행). M7·M8 자유 코멘트.',
-    lines: [
-      { speaker: 'M6', en: "Quick debrief — Pair 1 hit all three Day 11 words. 'By the way' carried the transition.", ko: "회고 빠르게 — Pair 1은 Day 11 단어 3개 다 썼어요. 'by the way' 가 결정적이었어요." },
-      { speaker: 'M6', en: "Pair 2 used the full Day 12 set — 'value proposition,' 'competitive edge,' 'game changer' — plus 'pain point' as a bonus.", ko: "Pair 2는 Day 12 풀세트에 Day 13 'pain point' 까지 보너스." },
-      { speaker: 'M6', en: "Honest call — 'reinventing the wheel' as a question form sounded slightly forced. Anyone catch it?", ko: "솔직히 — 'reinventing the wheel' 을 의문문으로 쓴 게 살짝 어색했어요. 다른 분들도 느끼셨어요?" },
-      { speaker: 'M7', en: "Same — 'aren't we just repeating last quarter?' might feel more conversational.", ko: "저도요 — 'aren't we just repeating last quarter?' 가 더 대화 같았을 듯요." },
-      { speaker: 'M8', en: "Or 'didn't we already do this?' — same point, less idiom.", ko: "아니면 'didn't we already do this?' — 같은 뜻인데 관용어 빼고." },
-      { speaker: 'M6', en: "Good calls. Flagging 'reinvent the wheel' for re-drill.", ko: "좋은 지적이에요. 'reinvent the wheel' 재시도 표시할게요." },
-    ],
-  },
-  {
-    time: '35–40', label: 'Re-drill + close', name: '본인 1단어 발표',
-    note: 'M1 (Coach) 마무리. M2 가 재연 → M3/M4/M5/M6 가 이번 주 진짜 쓸 단어 1개 발표.',
-    lines: [
-      { speaker: 'M1', en: "M2 — try that line again, but use the question form M7 suggested.", ko: 'M2 자리 — M7이 제안한 의문문 형태로 다시 해볼까요.' },
-      { speaker: 'M2', en: "Wait — didn't we already do this last quarter? Feels like we're just adding paint.", ko: '잠깐 — 작년 분기에 한 거 아니에요? 그냥 페인트만 다시 칠하는 느낌인데.' },
-      { speaker: 'M1', en: "Much better — and 'adding paint' is your own metaphor, even better. Last round — one word each.", ko: "훨씬 좋아요 — 'adding paint' 본인 표현이라 더 좋네요. 마지막 — 한 명씩 돌아가며." },
-      { speaker: 'M2', en: "Mine's 'blank canvas' — kickoff is Tuesday.", ko: "저는 'blank canvas' — 화요일에 킥오프거든요.", vocab: 'Blank canvas' },
-      { speaker: 'M3', en: "'Scratch the surface' — for my QBR follow-up.", ko: "저는 'scratch the surface' — QBR 팔로업에 쓸게요.", vocab: 'Scratch the surface' },
-      { speaker: 'M4', en: "'Competitive edge' — investor meeting on Wednesday.", ko: "저는 'competitive edge' — 수요일 투자자 미팅이요.", vocab: 'Competitive edge' },
-      { speaker: 'M5', en: "Mine's 'bite the bullet.' Time to rewrite that auth flow.", ko: "저는 'bite the bullet' — auth flow 갈아엎을 때 됐어요.", vocab: 'Bite the bullet' },
-      { speaker: 'M6', en: "And mine's 'pain point' — customer interview Friday.", ko: "저는 'pain point' — 금요일 고객 인터뷰에서요.", vocab: 'Pain point' },
-      { speaker: 'M1', en: "Great work. See you Day 17.", ko: '수고하셨어요. Day 17에 봐요.' },
-    ],
-  },
+const ALL_VOCAB = [
+  // Day 1
+  { day: 1, idx: 0, en: 'Set the stage', kr: '판을 깔다 · 분위기 조성', ex: '오늘 회의는 분기 목표 정렬을 위한 판을 깔아두는 자리입니다.' },
+  { day: 1, idx: 1, en: 'Anchor', kr: '기준점 잡다 · 흔들리지 않게 고정', ex: '이번 분기는 매출보다 retention 을 핵심 기준으로 잡읍시다.' },
+  { day: 1, idx: 2, en: 'Key driver', kr: '핵심 동인 · 성과를 끌어올리는 진짜 이유', ex: '재방문율이 우리 매출의 진짜 핵심 동인이에요.' },
+  // Day 2
+  { day: 2, idx: 0, en: 'Gut check', kr: '직감 점검 · 빠른 현실성 체크', ex: '본격 분석 들어가기 전에 직감으로 한 번 점검해봅시다.' },
+  { day: 2, idx: 1, en: 'Vetting process', kr: '검증 과정 · 깐깐한 심사', ex: '벤더 선정 전에 검증 절차부터 거쳐야 해요.' },
+  { day: 2, idx: 2, en: 'Viability', kr: '실행 가능성 · 진짜 돈이 되나', ex: '이 아이디어는 가능성 있는데 사업성은 좀 더 따져봐야 해요.' },
+  // Day 3
+  { day: 3, idx: 0, en: 'First pass', kr: '초안 한 번 잡기 · 일단 빠르게', ex: '디테일은 나중에 — 일단 초안으로 한 번 잡아봅시다.' },
+  { day: 3, idx: 1, en: 'Get it over the line', kr: '어렵사리 끝내다 · 마침내 넘기기', ex: '마지막 검토만 끝내고 어렵사리 마감 넘기죠.' },
+  { day: 3, idx: 2, en: 'Front-load', kr: '초반에 몰아서 하다', ex: '리스크 큰 작업은 초반에 몰아서 처리합시다.' },
+  // Day 4
+  { day: 4, idx: 0, en: 'Unpack', kr: '풀어서 분석하다', ex: '이 데이터, 한 번 풀어서 분석해볼까요?' },
+  { day: 4, idx: 1, en: 'Flesh out', kr: '디테일 채워 구체화', ex: '아이디어 좋아요 — 이번 주 안에 디테일 살을 붙여주세요.' },
+  { day: 4, idx: 2, en: 'Drill down', kr: '깊이 파고들다', ex: '여기서 좀 더 깊이 파고들어볼까요?' },
+  // Day 5
+  { day: 5, idx: 0, en: 'Get buy-in', kr: '적극적 지지 얻기', ex: '진행 전에 임원 buy-in 부터 받아야 해요.' },
+  { day: 5, idx: 1, en: 'Call the shots', kr: '결정권 쥐고 진두지휘', ex: '이 프로젝트는 누가 결정권 가지고 진두지휘해요?' },
+  { day: 5, idx: 2, en: 'Move in lockstep', kr: '발맞춰 혼연일체', ex: '디자인이랑 엔지니어링이 발맞춰 혼연일체로 가야 해요.' },
+  // Day 6
+  { day: 6, idx: 0, en: 'Constructive criticism', kr: '건설적인 비판', ex: '이건 인신공격 아니라, 건설적인 비판이에요.' },
+  { day: 6, idx: 1, en: 'Sugarcoat', kr: '듣기 좋게 포장', ex: '좋게 포장 안 할게요 — 이번 분기 목표 못 채웠어요.' },
+  { day: 6, idx: 2, en: 'Take it offline', kr: '회의 밖에서 따로 얘기', ex: '좋은 포인트지만, 회의 끝나고 따로 얘기하시죠.' },
+  // Day 7
+  { day: 7, idx: 0, en: "Play devil's advocate", kr: '일부러 반대 입장 · 딴지', ex: '잠깐 딴지 좀 걸어볼게요 — 만약 서버 터지면요?' },
+  { day: 7, idx: 1, en: 'Middle ground', kr: '타협점 · 절충안', ex: '속도랑 퀄리티 사이에서 타협점을 찾아야 해요.' },
+  { day: 7, idx: 2, en: 'Meet halfway', kr: '서로 양보해서 합의', ex: '가격을 낮춰주시면 저희도 양보해서 물량을 늘리겠습니다.' },
+  // Day 8
+  { day: 8, idx: 0, en: 'Cut to the chase', kr: '본론으로 바로', ex: '우리 10분밖에 없으니까 본론으로 바로 갑시다.' },
+  { day: 8, idx: 1, en: 'Timebox', kr: '제한 시간 두기', ex: '이 논의는 딱 15분으로 시간 박아둡시다.' },
+  { day: 8, idx: 2, en: 'Give time back', kr: '남은 시간 돌려주기', ex: '안건 다 다뤘으니, 남은 10분은 돌려드릴게요.' },
+  // Day 9
+  { day: 9, idx: 0, en: 'Go-to person', kr: '핵심 담당 · 만능 해결사', ex: '데이터 분석 관련은 사라가 우리 만능 해결사예요.' },
+  { day: 9, idx: 1, en: 'Heavy lifting', kr: '가장 빡센 핵심 작업', ex: '디자인 쪽 가장 빡센 작업은 에이전시가 맡을 거예요.' },
+  { day: 9, idx: 2, en: "Step on someone's toes", kr: '남의 영역 침범', ex: '돕고 싶은데, 담당자 선 넘는 건 싫어요.' },
+  // Day 10
+  { day: 10, idx: 0, en: 'Elephant in the room', kr: '모두 알지만 꺼내기 꺼리는 문제', ex: '불편하지만 이 문제부터 짚고 갑시다 — 예산이 반토막 났어요.' },
+  { day: 10, idx: 1, en: 'Read the room', kr: '분위기 파악 · 눈치', ex: '리스크 큰 아이디어는 분위기 보고 꺼내야 해요.' },
+  { day: 10, idx: 2, en: 'Benefit of the doubt', kr: '일단 좋게 믿어주기', ex: '그분 평소 시간 약속 잘 지키니까, 일단 좋게 봐줍시다.' },
+  // Day 11
+  { day: 11, idx: 0, en: 'Blank canvas', kr: '백지 상태에서 시작', ex: '이번엔 백지부터 다시 그려보죠.' },
+  { day: 11, idx: 1, en: 'Reinvent the wheel', kr: '쓸데없이 처음부터 다시', ex: '템플릿 있는데 굳이 처음부터 다시 만들 필요 있어요?' },
+  { day: 11, idx: 2, en: 'Scratch the surface', kr: '겉만 건드린 수준', ex: '이번 분석은 솔직히 겉만 건드린 수준이에요.' },
+  // Day 12
+  { day: 12, idx: 0, en: 'Value proposition', kr: '핵심 가치 제안', ex: 'SMB 시장에서 우리 핵심 가치 제안이 뭔지 다시 정리해야 해요.' },
+  { day: 12, idx: 1, en: 'Competitive edge', kr: '경쟁 우위 · 우리만의 강점', ex: '빠른 배포 속도가 우리 진짜 경쟁 우위예요.' },
+  { day: 12, idx: 2, en: 'Game changer', kr: '판도 뒤집는 혁신', ex: 'AI 자동 설정 기능이 진짜 판 뒤집을 거예요.' },
+  // Day 13
+  { day: 13, idx: 0, en: 'Pain point', kr: '핵심 불편 사항', ex: '고객이 가장 답답해하는 pain point 부터 잡읍시다.' },
+  { day: 13, idx: 1, en: 'Bite the bullet', kr: '눈 딱 감고 정면 돌파', ex: '눈 딱 감고 인증 모듈부터 다시 짭시다.' },
+  { day: 13, idx: 2, en: 'Stumbling block', kr: '진행 막는 걸림돌', ex: '예산 승인이 우리 가장 큰 걸림돌이에요.' },
 ];
 
-const WEEK_VOCAB = [
-  { en: 'Blank canvas', day: 11 },
-  { en: 'Reinvent the wheel', day: 11 },
-  { en: 'Scratch the surface', day: 11 },
-  { en: 'Value proposition', day: 12 },
-  { en: 'Competitive edge', day: 12 },
-  { en: 'Game changer', day: 12 },
-  { en: 'Pain point', day: 13 },
-  { en: 'Bite the bullet', day: 13 },
-  { en: 'Stumbling block', day: 13 },
+const SITUATIONS = [
+  {
+    emoji: '☕',
+    title: '탕비실에서 우연히 마주침',
+    setting: '<b>탕비실</b>에서 옆 부서 동료가 커피 내리고 있어요. 가볍게 주말 얘기로 시작해서, "By the way…" 로 자연스럽게 신규 프로젝트 얘기로 흘러가보세요.',
+    hint: '<b>Opener</b> (주말 어땠어요?) → <b>By the way</b> → 신규 프로젝트 얘기 → <b>Closer</b> (이따 커피 한 잔)',
+    duration: '3~5분',
+    role: '2명 (옆 부서 동료끼리)',
+    suggested: ['Blank canvas', 'Reinvent the wheel', 'Scratch the surface'],
+  },
+  {
+    emoji: '🎥',
+    title: 'Zoom 스탠드업 대기 5분',
+    setting: '해외 팀과 Zoom 연결했는데 본인 + 1명만 들어와 있고 나머지 5명 아직 안 들어옴. 어색한 <b>5분 pause</b> 를 small talk 으로 채워보세요. "Quick question for you…" 로 시작하면 자연스러워요.',
+    hint: '<b>Quick question</b> → 비즈 화제 하나 → <b>Speaking of</b> → 같은 주제 확장 → <b>Closer</b> (다 들어오셨네요)',
+    duration: '5분',
+    role: '2명 (같은 팀 동료끼리)',
+    suggested: ['Value proposition', 'Competitive edge', 'Game changer'],
+  },
+  {
+    emoji: '✈️',
+    title: '컨퍼런스 라운지 재회',
+    setting: '업계 컨퍼런스 라운지에서 작년에 잠깐 본 거래처 PM 마주침. <b>flight 30분</b> 남았어요. 가볍게 안부 묻고 본인 팀 근황 얘기하면서 관계 쌓아보세요.',
+    hint: '<b>Glad we ran into each other</b> → 팀 근황 → 본인 pain point 한 마디 → <b>Let\'s catch up properly</b>',
+    duration: '5분',
+    role: '2명 (거래처 PM끼리)',
+    suggested: ['Pain point', 'Bite the bullet', 'Stumbling block'],
+  },
+  {
+    emoji: '🎯',
+    title: '자유 — Day 1~13 전체 mix',
+    setting: '본인이 자주 만나는 <b>실제 비즈 상황</b> 하나를 골라 2-3분 짧게 풀어보세요. 4주간 배운 단어 중에서 자연스럽게 끼울 수 있는 거 1-3개만 골라 써보면 OK.',
+    hint: '본인 상황 1줄 설정 → 단어 풀에서 쓸 단어 미리 1-3개 픽 → 자유롭게 대화',
+    duration: '2~3분',
+    role: '1~3명',
+    suggested: [], // 자유 — 다 추천
+  },
 ];
-
-/* AI alternatives (mock) — 실제는 ai-review Edge Function 호출로 교체 */
-const AI_ALTS = {
-  "Aren't we kind of reinventing the wheel?": "Didn't we already do this last quarter? Feels like we're just adding paint.",
-  "Honestly the old one only scratched the surface.": "Honestly we barely got past the basics last time — a lot of it stayed at the surface level.",
-  "What do you think our real value proposition is for the SMB segment?": "What's the one reason an SMB would pick us over the others — what's our real value here?",
-};
 
 /* ====================================================================
    STATE
 ==================================================================== */
 const state = {
-  sec: 0,
-  line: -1,
-  slots: ['Gaby (유버디)','진송','수진','은선','Brad','Hera','Jess','Lin','Rachel','태윤'], // M1~M10
-  meSlot: 0,
-  vocabChecked: new Set(),
-  timerStart: null,
-  timerElapsed: 0,
-  timerRunning: false,
+  sit: 0,
+  filter: 'all', // 'all' | 'thisweek' | 'lastweek' | 'bookmarks'
+  bookmarks: {}, // {'d11-0': true}
+  expanded: {},  // {'d11-0': true}
+  timer: { start: null, elapsed: 0, running: false },
+  pickerResult: null,
 };
 
-/* Restore from localStorage */
-try {
-  const saved = JSON.parse(localStorage.getItem('proto_conductor_v1') || '{}');
-  if (Array.isArray(saved.slots)) state.slots = saved.slots;
-  if (typeof saved.meSlot === 'number') state.meSlot = saved.meSlot;
-} catch(_){}
+/* Read bookmarks from main app (yb5_state_cache_v2) */
+const LS_KEY = 'yb5_state_cache_v2';
+function loadBookmarks() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    const st = parsed.state || parsed || {};
+    return st.bookmarks || {};
+  } catch(_) { return {}; }
+}
+function saveBookmarks(bm) {
+  try {
+    const raw = localStorage.getItem(LS_KEY) || '{}';
+    const parsed = JSON.parse(raw);
+    const st = parsed.state || parsed || {};
+    st.bookmarks = bm;
+    if (parsed.state) parsed.state = st;
+    else Object.assign(parsed, st);
+    localStorage.setItem(LS_KEY, JSON.stringify(parsed));
+  } catch(_) {}
+}
+state.bookmarks = loadBookmarks();
 
-function save() {
-  localStorage.setItem('proto_conductor_v1', JSON.stringify({
-    slots: state.slots, meSlot: state.meSlot
-  }));
+/* ====================================================================
+   HELPERS
+==================================================================== */
+function vkey(v) { return `d${v.day}-${v.idx}`; }
+function escapeHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function getNames() {
+  return (document.getElementById('namesInput').value || '')
+    .split(',').map(s => s.trim()).filter(Boolean);
 }
 
 /* ====================================================================
-   RENDER
+   RENDER — Situation Tabs
 ==================================================================== */
-function renderHeader() {
-  const sec = SECTIONS[state.sec];
-  document.getElementById('sectionLabel').textContent = `Section ${state.sec+1}/${SECTIONS.length} · ${sec.label}`;
-  document.getElementById('sectionTime').textContent = sec.time;
-  document.getElementById('sectionName').textContent = sec.label;
-  document.getElementById('sectionTitle').innerHTML = `${sec.label} · <em>${sec.name}</em>`;
-  document.getElementById('sectionNote').textContent = sec.note;
-  // progress
-  const totalLines = SECTIONS.reduce((s, sx) => s + sx.lines.length, 0);
-  let done = 0;
-  for (let i = 0; i < state.sec; i++) done += SECTIONS[i].lines.length;
-  done += Math.max(0, state.line + 1);
-  const pct = Math.min(100, (done / totalLines) * 100);
-  document.getElementById('progressFill').style.width = pct + '%';
+function renderTabs() {
+  const nav = document.getElementById('sitNav');
+  nav.innerHTML = '';
+  SITUATIONS.forEach((s, i) => {
+    const tab = document.createElement('button');
+    tab.className = 'sit-tab' + (i === state.sit ? ' active' : '');
+    tab.innerHTML = `<span>${s.emoji}</span><span>${escapeHtml(s.title)}</span><span class="num">${i+1}</span>`;
+    tab.onclick = () => { state.sit = i; state.pickerResult = null; renderAll(); };
+    nav.appendChild(tab);
+  });
+  document.getElementById('footerStatus').textContent = `상황 ${state.sit + 1} / ${SITUATIONS.length}`;
 }
 
-function renderLines() {
-  const sec = SECTIONS[state.sec];
-  const container = document.getElementById('linesContainer');
-  container.innerHTML = '';
-  sec.lines.forEach((ln, idx) => {
-    const isCurrent = idx === state.line;
-    const isPast = idx < state.line;
-    const isNextUp = idx === state.line + 1;
-    const isFuture = idx > state.line + 2;
-    const isMine = parseSlot(ln.speaker) === state.meSlot;
+/* ====================================================================
+   RENDER — Situation Card
+==================================================================== */
+function renderCard() {
+  const sit = SITUATIONS[state.sit];
+  const card = document.getElementById('sitCard');
+  const suggestPills = sit.suggested.length
+    ? `<div class="sit-suggest">
+        <span class="sit-suggest-label">💡 이 상황에 자연스러운 표현:</span>
+        ${sit.suggested.map(s => `<span class="sit-suggest-chip">${escapeHtml(s)}</span>`).join('')}
+      </div>`
+    : `<div class="sit-suggest">
+        <span class="sit-suggest-label">💡 단어 풀 전체에서 자유롭게 골라 쓰세요</span>
+      </div>`;
+  const resultHtml = state.pickerResult
+    ? `<div class="picker-result on">🎯 시작 <span class="arrow">→</span> ${escapeHtml(state.pickerResult)}</div>`
+    : `<div class="picker-result"></div>`;
+  card.innerHTML = `
+    <div class="sit-emoji">${sit.emoji}</div>
+    <div class="sit-title">${escapeHtml(sit.title)}</div>
+    <div class="sit-meta">
+      <span class="sit-pill orange">⏱ ${sit.duration}</span>
+      <span class="sit-pill">👥 ${sit.role}</span>
+      <span class="sit-pill gold">상황 ${state.sit + 1} / ${SITUATIONS.length}</span>
+    </div>
+    <div class="sit-setting">${sit.setting}</div>
+    <div class="sit-hint">💡 진행 힌트: ${sit.hint}</div>
+    <div class="picker-row">
+      <button class="picker-btn" id="btnPick">🎲 누가 시작?</button>
+      <button class="picker-btn secondary" id="btnPickAgain">↻ 다시</button>
+      ${resultHtml}
+    </div>
+    ${suggestPills}
+  `;
+  document.getElementById('btnPick').onclick = pickRandom;
+  document.getElementById('btnPickAgain').onclick = pickRandom;
+}
 
-    const row = document.createElement('div');
-    let cls = 'line';
-    if (isCurrent) cls += ' current';
-    else if (isPast) cls += ' past';
-    else if (isNextUp) cls += ' next-up';
-    else if (isFuture) cls += ' future';
-    if (isMine && (isCurrent || isNextUp)) cls += ' is-mine line-mine-kronly';
-    row.className = cls;
-    row.onclick = () => { state.line = idx; render(); };
+function pickRandom() {
+  const names = getNames();
+  const sit = SITUATIONS[state.sit];
+  // role 에서 "2명" 같은 숫자 추출
+  const m = /(\d+)/.exec(sit.role);
+  const need = m ? parseInt(m[1], 10) : 2;
+  if (names.length < need) {
+    state.pickerResult = `이름이 부족해요 (헤더에서 ${need}명 이상 입력)`;
+    renderCard();
+    return;
+  }
+  const shuffled = [...names].sort(() => Math.random() - 0.5);
+  const picked = shuffled.slice(0, need);
+  state.pickerResult = picked.join('  ·  ');
+  renderCard();
+}
 
-    const slotIdx = parseSlot(ln.speaker);
-    const name = state.slots[slotIdx] || '';
-    row.innerHTML = `
-      <div class="slot-tag">
-        <span class="slot-tag-id">${ln.speaker}</span>
-        <span class="slot-tag-name">${escapeHtml(name.split(' ')[0])}</span>
-      </div>
-      <div class="line-body">
-        ${ isMine && (isCurrent || isNextUp)
-          ? `<div class="line-kr">${escapeHtml(ln.ko)}</div>
-             <button class="line-hidden line-en-reveal" data-idx="${idx}">▶ 영어 reveal (안 보이게)</button>`
-          : `<div class="line-en">${escapeHtml(ln.en)}</div>
-             <div class="line-kr">${escapeHtml(ln.ko)}</div>`
-        }
-        ${ln.vocab ? `<div style="margin-top:4px;font-size:10.5px;font-weight:800;color:var(--orange-dark);letter-spacing:0.05em">📌 ${escapeHtml(ln.vocab)}</div>` : ''}
-      </div>
-    `;
-    container.appendChild(row);
+/* ====================================================================
+   RENDER — Vocab Pool
+==================================================================== */
+function renderFilters() {
+  const root = document.getElementById('poolFilters');
+  const bmCount = Object.values(state.bookmarks).filter(Boolean).length;
+  const filters = [
+    { id: 'all',       label: '전체',          count: ALL_VOCAB.length },
+    { id: 'thisweek',  label: 'Day 11~13',    count: ALL_VOCAB.filter(v => v.day >= 11).length },
+    { id: 'lastweek',  label: 'Day 1~10',     count: ALL_VOCAB.filter(v => v.day <= 10).length },
+    { id: 'bookmarks', label: `🔖 내 북마크`,   count: bmCount },
+  ];
+  root.innerHTML = filters.map(f =>
+    `<button class="pool-filter ${state.filter === f.id ? 'active' : ''} ${f.id === 'bookmarks' ? 'bm' : ''}"
+             data-id="${f.id}">${escapeHtml(f.label)} <span style="opacity:0.55;font-weight:500">${f.count}</span></button>`
+  ).join('');
+  root.querySelectorAll('[data-id]').forEach(btn => {
+    btn.onclick = () => { state.filter = btn.dataset.id; renderAll(); };
+  });
+}
 
-    if (isCurrent) {
-      setTimeout(() => row.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
-    }
+function renderGrid() {
+  const grid = document.getElementById('vocabGrid');
+  const sit = SITUATIONS[state.sit];
+  const suggested = new Set(sit.suggested);
+  let list = ALL_VOCAB;
+  if (state.filter === 'thisweek')      list = list.filter(v => v.day >= 11);
+  else if (state.filter === 'lastweek') list = list.filter(v => v.day <= 10);
+  else if (state.filter === 'bookmarks')list = list.filter(v => state.bookmarks[vkey(v)]);
+
+  // 상황 추천 단어 먼저 정렬
+  list = [...list].sort((a, b) => {
+    const aS = suggested.has(a.en) ? 0 : 1;
+    const bS = suggested.has(b.en) ? 0 : 1;
+    if (aS !== bS) return aS - bS;
+    return a.day - b.day || a.idx - b.idx;
   });
 
-  // wire reveal buttons
-  container.querySelectorAll('.line-en-reveal').forEach(btn => {
+  if (!list.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:32px;text-align:center;color:var(--muted);font-size:13px;">
+      ${state.filter === 'bookmarks' ? '🔖 아직 북마크한 단어가 없어요. 카드 우측 상단 북마크 아이콘 눌러보세요.' : '단어가 없어요.'}
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(v => {
+    const k = vkey(v);
+    const bm = !!state.bookmarks[k];
+    const sg = suggested.has(v.en);
+    const ex = !!state.expanded[k];
+    return `
+      <div class="vocab-card ${sg?'suggested':''} ${bm?'bookmarked':''} ${ex?'expanded':''}" data-k="${k}">
+        ${sg ? '<span class="vocab-suggest-pill">이 상황에 추천</span>' : ''}
+        <div class="vocab-card-h">
+          <span class="vocab-day">DAY ${v.day}</span>
+          <button class="bm-btn ${bm?'on':''}" data-bm="${k}" title="${bm?'북마크 해제':'북마크'}">${bm?'🔖':'🤍'}</button>
+        </div>
+        <div class="vocab-en">${escapeHtml(v.en)}</div>
+        <div class="vocab-kr">${escapeHtml(v.kr)}</div>
+        <div class="vocab-ex"><b>예:</b> ${escapeHtml(v.ex)}</div>
+      </div>
+    `;
+  }).join('');
+
+  // wire bookmark + expand
+  grid.querySelectorAll('.bm-btn').forEach(btn => {
     btn.onclick = (e) => {
       e.stopPropagation();
-      const idx = +btn.dataset.idx;
-      const parent = btn.closest('.line');
-      parent.classList.remove('line-mine-kronly');
-      const ln = SECTIONS[state.sec].lines[idx];
-      const body = parent.querySelector('.line-body');
-      body.innerHTML = `
-        <div class="line-en">${escapeHtml(ln.en)}</div>
-        <div class="line-kr">${escapeHtml(ln.ko)}</div>
-        ${ln.vocab ? `<div style="margin-top:4px;font-size:10.5px;font-weight:800;color:var(--orange-dark);letter-spacing:0.05em">📌 ${escapeHtml(ln.vocab)}</div>` : ''}
-      `;
+      const k = btn.dataset.bm;
+      state.bookmarks[k] = !state.bookmarks[k];
+      if (!state.bookmarks[k]) delete state.bookmarks[k];
+      saveBookmarks(state.bookmarks);
+      renderFilters();
+      renderGrid();
     };
   });
-}
-
-function renderNowBar() {
-  const sec = SECTIONS[state.sec];
-  const cur = sec.lines[state.line];
-  const next = sec.lines[state.line + 1];
-  if (!cur) {
-    document.getElementById('nowName').textContent = '— 시작 대기 —';
-    document.getElementById('nowNext').textContent = '▶ 다음 라인 버튼으로 시작';
-  } else {
-    const slotIdx = parseSlot(cur.speaker);
-    const nm = state.slots[slotIdx] || '';
-    document.getElementById('nowName').textContent = `${cur.speaker} · ${nm.split(' ')[0]}`;
-    if (next) {
-      const nslot = parseSlot(next.speaker);
-      const nname = state.slots[nslot] || '';
-      const ahead = 1;
-      document.getElementById('nowNext').textContent = `▶ 다음 (${ahead}줄 후): ${next.speaker} · ${nname.split(' ')[0]}`;
-    } else {
-      document.getElementById('nowNext').textContent = '↓ 이번 섹션 마지막 라인';
-    }
-  }
-}
-
-function renderSlotMap() {
-  const sm = document.getElementById('slotMap');
-  sm.innerHTML = '';
-  const sec = SECTIONS[state.sec];
-  const cur = sec.lines[state.line];
-  const next = sec.lines[state.line + 1];
-  const curSlot = cur ? parseSlot(cur.speaker) : -1;
-  const nextSlot = next ? parseSlot(next.speaker) : -1;
-
-  state.slots.forEach((nm, i) => {
-    const row = document.createElement('div');
-    let rowCls = 'panel-row';
-    if (i === curSlot) rowCls += ' active';
-    else if (i === nextSlot) rowCls += ' next';
-    row.className = rowCls;
-    row.innerHTML = `
-      <div class="slot-chip ${i===0?'coach':''}">M${i+1}</div>
-      <input class="slot-input" value="${escapeHtml(nm)}" data-slot="${i}" placeholder="이름..." />
-      <button class="me-pin ${i===state.meSlot?'active':''}" data-me="${i}">${i===state.meSlot?'나':'나로'}</button>
-    `;
-    sm.appendChild(row);
-  });
-  sm.querySelectorAll('.slot-input').forEach(inp => {
-    inp.onchange = (e) => {
-      state.slots[+e.target.dataset.slot] = e.target.value;
-      save();
-      render();
+  grid.querySelectorAll('.vocab-card').forEach(card => {
+    card.onclick = () => {
+      const k = card.dataset.k;
+      state.expanded[k] = !state.expanded[k];
+      renderGrid();
     };
   });
-  sm.querySelectorAll('.me-pin').forEach(btn => {
-    btn.onclick = () => {
-      state.meSlot = +btn.dataset.me;
-      save();
-      render();
-    };
-  });
-}
-
-function renderVocab() {
-  const list = document.getElementById('vocabList');
-  list.innerHTML = '';
-  WEEK_VOCAB.forEach(v => {
-    const checked = state.vocabChecked.has(v.en);
-    const item = document.createElement('div');
-    item.className = 'vocab-item' + (checked ? ' checked' : '');
-    item.innerHTML = `
-      <span class="vocab-check">${checked ? '✓' : ''}</span>
-      <span class="vocab-day">D${v.day}</span>
-      <span class="vocab-en">${escapeHtml(v.en)}</span>
-    `;
-    item.onclick = () => {
-      if (state.vocabChecked.has(v.en)) state.vocabChecked.delete(v.en);
-      else state.vocabChecked.add(v.en);
-      renderVocab();
-    };
-    list.appendChild(item);
-  });
-  document.getElementById('vocabSummary').textContent = `${state.vocabChecked.size} / ${WEEK_VOCAB.length} 자연스럽게 발화됨`;
-}
-
-function render() {
-  renderHeader();
-  renderLines();
-  renderNowBar();
-  renderSlotMap();
-}
-
-/* ====================================================================
-   NAVIGATION
-==================================================================== */
-function nextLine() {
-  const sec = SECTIONS[state.sec];
-  if (state.line < sec.lines.length - 1) {
-    state.line++;
-    // auto-check vocab when current line has one
-    const cur = sec.lines[state.line];
-    if (cur && cur.vocab) state.vocabChecked.add(cur.vocab);
-    render(); renderVocab();
-  } else if (state.sec < SECTIONS.length - 1) {
-    state.sec++; state.line = -1;
-    render();
-  }
-}
-function prevLine() {
-  if (state.line > -1) state.line--;
-  else if (state.sec > 0) { state.sec--; state.line = SECTIONS[state.sec].lines.length - 1; }
-  render();
-}
-function nextSec() {
-  if (state.sec < SECTIONS.length - 1) { state.sec++; state.line = -1; render(); }
-}
-function prevSec() {
-  if (state.sec > 0) { state.sec--; state.line = -1; render(); }
 }
 
 /* ====================================================================
    TIMER
 ==================================================================== */
 function tickTimer() {
-  if (!state.timerRunning) return;
-  const elapsed = state.timerElapsed + (Date.now() - state.timerStart);
-  const sec = Math.floor(elapsed / 1000);
+  if (!state.timer.running) return;
+  const el = state.timer.elapsed + (Date.now() - state.timer.start);
+  const sec = Math.floor(el / 1000);
   const mm = String(Math.floor(sec / 60)).padStart(2,'0');
   const ss = String(sec % 60).padStart(2,'0');
   document.getElementById('timer').textContent = `${mm}:${ss}`;
 }
 setInterval(tickTimer, 250);
-
 document.getElementById('btnTimer').onclick = () => {
-  if (state.timerRunning) {
-    state.timerElapsed += Date.now() - state.timerStart;
-    state.timerRunning = false;
+  if (state.timer.running) {
+    state.timer.elapsed += Date.now() - state.timer.start;
+    state.timer.running = false;
   } else {
-    state.timerStart = Date.now();
-    state.timerRunning = true;
+    state.timer.start = Date.now();
+    state.timer.running = true;
   }
 };
-document.getElementById('btnReset').onclick = () => {
-  if (!confirm('타이머 + 진행 상태 초기화할까요?')) return;
-  state.sec = 0; state.line = -1; state.timerElapsed = 0; state.timerRunning = false; state.vocabChecked.clear();
+document.getElementById('btnTimerReset').onclick = () => {
+  state.timer.elapsed = 0; state.timer.running = false;
   document.getElementById('timer').textContent = '00:00';
-  render(); renderVocab();
 };
 
 /* ====================================================================
-   BUTTONS / KEYBOARD
+   NAV
 ==================================================================== */
-document.getElementById('btnNextLine').onclick = nextLine;
-document.getElementById('btnPrevLine').onclick = prevLine;
-document.getElementById('btnNextSec').onclick = nextSec;
-document.getElementById('btnPrevSec').onclick = prevSec;
+document.getElementById('btnNextSit').onclick = () => {
+  state.sit = (state.sit + 1) % SITUATIONS.length;
+  state.pickerResult = null;
+  renderAll();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+document.getElementById('btnPrevSit').onclick = () => {
+  state.sit = (state.sit - 1 + SITUATIONS.length) % SITUATIONS.length;
+  state.pickerResult = null;
+  renderAll();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
 
-document.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-  if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); nextLine(); }
-  else if (e.key === 'ArrowLeft') { e.preventDefault(); prevLine(); }
-  else if (e.key >= '1' && e.key <= '5') {
-    const target = (+e.key) - 1;
-    if (target >= 0 && target < SECTIONS.length) { state.sec = target; state.line = -1; render(); }
+/* ====================================================================
+   MEET LINK COPY
+==================================================================== */
+document.getElementById('btnCopyMeet').onclick = async () => {
+  const url = 'https://meet.google.com/swc-ritf-wec';
+  try {
+    await navigator.clipboard.writeText(url);
+    const btn = document.getElementById('btnCopyMeet');
+    const original = btn.innerHTML;
+    btn.innerHTML = '✓ 복사됨!';
+    setTimeout(() => { btn.innerHTML = original; }, 1400);
+  } catch(_) {
+    alert(url);
   }
-  else if (e.key === 'Escape') closeChoral();
-});
-
-/* ====================================================================
-   CHORAL OVERLAY
-==================================================================== */
-document.getElementById('btnChoral').onclick = () => {
-  const sec = SECTIONS[state.sec];
-  const cur = sec.lines[state.line] || sec.lines[0];
-  document.getElementById('choralEn').textContent = cur.en;
-  document.getElementById('choralKr').textContent = cur.ko;
-  document.getElementById('choralOverlay').classList.add('on');
-};
-function closeChoral() { document.getElementById('choralOverlay').classList.remove('on'); }
-document.getElementById('choralClose').onclick = closeChoral;
-document.getElementById('choralOverlay').onclick = (e) => {
-  if (e.target.id === 'choralOverlay') closeChoral();
 };
 
 /* ====================================================================
-   AI POPUP (mock)
+   INIT
 ==================================================================== */
-document.getElementById('btnAi').onclick = () => {
-  const sec = SECTIONS[state.sec];
-  const cur = sec.lines[state.line];
-  if (!cur) return;
-  const alt = AI_ALTS[cur.en] || `(이 라인은 AI 대안 mock 데이터 없음. 실제 배포 시 ai-review Edge Function 호출 → 자연스러운 대안 자동 제시)`;
-  document.getElementById('aiAlt').textContent = alt;
-  document.getElementById('aiPopup').classList.add('on');
-};
-document.getElementById('aiClose').onclick = () => document.getElementById('aiPopup').classList.remove('on');
-
-/* ====================================================================
-   UTILS
-==================================================================== */
-function parseSlot(speaker) {
-  const m = /M(\d+)/.exec(speaker || '');
-  return m ? parseInt(m[1],10) - 1 : -1;
+function renderAll() {
+  renderTabs();
+  renderCard();
+  renderFilters();
+  renderGrid();
 }
-function escapeHtml(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-
-/* Init */
-render();
-renderVocab();
+renderAll();
 </script>
 </body>
 </html>
