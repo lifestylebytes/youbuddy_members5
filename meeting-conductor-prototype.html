@@ -405,27 +405,84 @@ const state = {
   pickerResult: null,
 };
 
-/* Read bookmarks from main app (yb5_state_cache_v2) */
+/* ============================================================
+   Bookmark sync with main app — yb5_state_cache_v2
+   ------------------------------------------------------------
+   Main 앱에서 bookmark 토글 시 두 가지 state 가 같이 업데이트됨:
+     1) state.bookmarks['d{N}-{idx}'] = true          ← truthy 체크용
+     2) state.pitch_vocab[] 에 { word, note, source:'daily', sourceKey:'d{N}-{idx}' }
+        ← 실제 '나' 탭 단어장 화면에 표시되는 배열
+   prototype 도 두 개 다 업데이트해야 '나' 탭에 단어가 떠요.
+============================================================ */
 const LS_KEY = 'yb5_state_cache_v2';
-function loadBookmarks() {
+
+function _loadCache() {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    const st = parsed.state || parsed || {};
-    return st.bookmarks || {};
-  } catch(_) { return {}; }
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(_) { return null; }
 }
-function saveBookmarks(bm) {
+function _saveCache(parsed) {
   try {
-    const raw = localStorage.getItem(LS_KEY) || '{}';
-    const parsed = JSON.parse(raw);
-    const st = parsed.state || parsed || {};
-    st.bookmarks = bm;
-    if (parsed.state) parsed.state = st;
-    else Object.assign(parsed, st);
+    parsed.cached_at = new Date().toISOString();
     localStorage.setItem(LS_KEY, JSON.stringify(parsed));
   } catch(_) {}
+}
+function loadBookmarks() {
+  const parsed = _loadCache();
+  if (!parsed) return {};
+  const st = parsed.state || parsed || {};
+  return st.bookmarks || {};
+}
+// vocab obj (en, kr) 도 받아서 pitch_vocab 까지 한 번에 동기화.
+function toggleBookmarkSynced(vocabObj, on) {
+  let parsed = _loadCache();
+  if (!parsed) parsed = { member_key: null, state: {} };
+  if (!parsed.state) parsed.state = {};
+  const st = parsed.state;
+  if (!st.bookmarks) st.bookmarks = {};
+  if (!Array.isArray(st.pitch_vocab)) st.pitch_vocab = [];
+
+  const sourceKey = `d${vocabObj.day}-${vocabObj.idx}`;
+  const wLower = String(vocabObj.en || '').toLowerCase().trim();
+
+  if (on) {
+    // 1) state.bookmarks 토글 ON
+    st.bookmarks[sourceKey] = true;
+    // 2) pitch_vocab upsert (단어 기준 dedupe + 앞으로 올림)
+    const existing = st.pitch_vocab.find(v => String(v.word || '').toLowerCase().trim() === wLower);
+    if (existing) {
+      if (!existing.sourceKey) existing.sourceKey = sourceKey;
+      if (!existing.source || existing.source === 'manual') existing.source = 'daily';
+      if (!existing.note && vocabObj.kr) existing.note = vocabObj.kr;
+      st.pitch_vocab = [existing, ...st.pitch_vocab.filter(v => v !== existing)];
+    } else {
+      st.pitch_vocab = [
+        {
+          word: vocabObj.en,
+          note: vocabObj.kr || '',
+          source: 'daily',
+          sourceKey,
+          savedAt: new Date().toISOString(),
+        },
+        ...st.pitch_vocab,
+      ];
+    }
+  } else {
+    // OFF — bookmarks delete + pitch_vocab 에서 매칭 항목 제거
+    delete st.bookmarks[sourceKey];
+    st.pitch_vocab = st.pitch_vocab.filter(v => {
+      if (v.sourceKey === sourceKey) return false;
+      if (String(v.word || '').toLowerCase().trim() === wLower && v.source === 'daily') return false;
+      return true;
+    });
+  }
+
+  _saveCache(parsed);
+
+  // 메모리 state 도 일치시킴
+  state.bookmarks = { ...st.bookmarks };
 }
 state.bookmarks = loadBookmarks();
 
@@ -588,9 +645,17 @@ function renderGrid() {
     btn.onclick = (e) => {
       e.stopPropagation();
       const k = btn.dataset.bm;
-      state.bookmarks[k] = !state.bookmarks[k];
-      if (!state.bookmarks[k]) delete state.bookmarks[k];
-      saveBookmarks(state.bookmarks);
+      // 'd{day}-{idx}' 키에서 vocab obj 복원
+      const m = /^d(\d+)-(\d+)$/.exec(k);
+      const v = m ? ALL_VOCAB.find(x => x.day === +m[1] && x.idx === +m[2]) : null;
+      const willTurnOn = !state.bookmarks[k];
+      // bookmarks + pitch_vocab 동시 sync — main 앱 '나' 탭 단어장에 즉시 반영.
+      if (v) toggleBookmarkSynced(v, willTurnOn);
+      else {
+        // fallback (vocab obj 못 찾으면 bookmarks 만)
+        if (willTurnOn) state.bookmarks[k] = true;
+        else delete state.bookmarks[k];
+      }
       renderFilters();
       renderGrid();
     };
