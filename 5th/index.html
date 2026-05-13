@@ -15399,7 +15399,10 @@ function MeetingNotesPage(meetingId) {
     }
 
     // ---- 🎬 Script + Vocab tracker + Mini scenarios + Recap (meta.script 있을 때만) ----
-    if (meta.script) {
+    // Week 3 부턴 라이브 연습 deck (/meeting-conductor-prototype.html) 가 이 역할 흡수 →
+    // 미팅 대본 / 단어 체크 / 미니 롤플레이 / 오늘의 회고 모두 숨김. 데이터(meta.script)
+    // 는 보존 (다른 경로에서 weekVocab 참조 가능성).
+    if (meta.script && meta.n !== 3) {
       const sc = meta.script;
 
       // 어휘 주황 볼드 하이라이트 — 모든 카드 (대본, 미니 시나리오 등) 공용
