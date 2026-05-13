@@ -429,28 +429,38 @@ function _saveCache(parsed) {
     localStorage.setItem(LS_KEY, JSON.stringify(parsed));
   } catch(_) {}
 }
-function loadBookmarks() {
-  const parsed = _loadCache();
-  if (!parsed) return {};
-  const st = parsed.state || parsed || {};
-  return st.bookmarks || {};
+// parsed.state 가 항상 존재하도록 정규화 (main 앱은 항상 parsed.state.bookmarks 만 봄)
+function _normalizeCache(parsed) {
+  if (!parsed) parsed = { member_key: null, cached_at: null, state: {} };
+  if (!parsed.state || typeof parsed.state !== 'object') {
+    // 옛 prototype 이 root 에 bookmarks 쓴 케이스 복구
+    parsed.state = {
+      bookmarks: parsed.bookmarks || {},
+      pitch_vocab: parsed.pitch_vocab || [],
+    };
+    delete parsed.bookmarks;
+    delete parsed.pitch_vocab;
+  }
+  if (!parsed.state.bookmarks || typeof parsed.state.bookmarks !== 'object') parsed.state.bookmarks = {};
+  if (!Array.isArray(parsed.state.pitch_vocab)) parsed.state.pitch_vocab = [];
+  return parsed;
 }
-// vocab obj (en, kr) 도 받아서 pitch_vocab 까지 한 번에 동기화.
+function loadBookmarks() {
+  const parsed = _normalizeCache(_loadCache());
+  return { ...parsed.state.bookmarks };
+}
+
+// vocab obj (en, kr) 받아서 bookmarks + pitch_vocab 동시 sync.
+// fresh read → mutate → write 패턴. in-memory stale state 절대 신뢰 X.
 function toggleBookmarkSynced(vocabObj, on) {
-  let parsed = _loadCache();
-  if (!parsed) parsed = { member_key: null, state: {} };
-  if (!parsed.state) parsed.state = {};
+  const parsed = _normalizeCache(_loadCache());
   const st = parsed.state;
-  if (!st.bookmarks) st.bookmarks = {};
-  if (!Array.isArray(st.pitch_vocab)) st.pitch_vocab = [];
 
   const sourceKey = `d${vocabObj.day}-${vocabObj.idx}`;
   const wLower = String(vocabObj.en || '').toLowerCase().trim();
 
   if (on) {
-    // 1) state.bookmarks 토글 ON
     st.bookmarks[sourceKey] = true;
-    // 2) pitch_vocab upsert (단어 기준 dedupe + 앞으로 올림)
     const existing = st.pitch_vocab.find(v => String(v.word || '').toLowerCase().trim() === wLower);
     if (existing) {
       if (!existing.sourceKey) existing.sourceKey = sourceKey;
@@ -470,7 +480,6 @@ function toggleBookmarkSynced(vocabObj, on) {
       ];
     }
   } else {
-    // OFF — bookmarks delete + pitch_vocab 에서 매칭 항목 제거
     delete st.bookmarks[sourceKey];
     st.pitch_vocab = st.pitch_vocab.filter(v => {
       if (v.sourceKey === sourceKey) return false;
@@ -480,10 +489,34 @@ function toggleBookmarkSynced(vocabObj, on) {
   }
 
   _saveCache(parsed);
-
-  // 메모리 state 도 일치시킴
+  // 메모리 state 도 fresh localStorage 기준으로 재동기화
   state.bookmarks = { ...st.bookmarks };
 }
+
+// 현재 bookmark on/off 상태를 항상 localStorage 에서 직접 읽음 (stale in-memory X).
+function isBookmarkedFresh(sourceKey) {
+  const parsed = _normalizeCache(_loadCache());
+  return !!parsed.state.bookmarks[sourceKey];
+}
+
+// 다른 탭에서 main 앱이 localStorage 덮어쓰면 자동 재렌더 (양방향 sync)
+window.addEventListener('storage', (e) => {
+  if (e.key !== LS_KEY) return;
+  state.bookmarks = loadBookmarks();
+  try { renderFilters(); renderGrid(); } catch(_) {}
+});
+
+// 탭으로 돌아올 때 (focus / visibility) 도 한 번 다시 읽기
+window.addEventListener('focus', () => {
+  state.bookmarks = loadBookmarks();
+  try { renderFilters(); renderGrid(); } catch(_) {}
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  state.bookmarks = loadBookmarks();
+  try { renderFilters(); renderGrid(); } catch(_) {}
+});
+
 state.bookmarks = loadBookmarks();
 
 /* ====================================================================
@@ -645,16 +678,20 @@ function renderGrid() {
     btn.onclick = (e) => {
       e.stopPropagation();
       const k = btn.dataset.bm;
-      // 'd{day}-{idx}' 키에서 vocab obj 복원
       const m = /^d(\d+)-(\d+)$/.exec(k);
       const v = m ? ALL_VOCAB.find(x => x.day === +m[1] && x.idx === +m[2]) : null;
-      const willTurnOn = !state.bookmarks[k];
-      // bookmarks + pitch_vocab 동시 sync — main 앱 '나' 탭 단어장에 즉시 반영.
+      // 토글 결정은 LocalStorage 의 fresh 상태 기준 — in-memory stale 상태 안 씀.
+      // (다른 탭에서 main 앱이 덮어썼을 수 있어서)
+      const isOn = isBookmarkedFresh(k);
+      const willTurnOn = !isOn;
       if (v) toggleBookmarkSynced(v, willTurnOn);
       else {
-        // fallback (vocab obj 못 찾으면 bookmarks 만)
-        if (willTurnOn) state.bookmarks[k] = true;
-        else delete state.bookmarks[k];
+        // vocab obj 못 찾는 비정상 케이스 — bookmarks 만 토글
+        const parsed = _normalizeCache(_loadCache());
+        if (willTurnOn) parsed.state.bookmarks[k] = true;
+        else delete parsed.state.bookmarks[k];
+        _saveCache(parsed);
+        state.bookmarks = loadBookmarks();
       }
       renderFilters();
       renderGrid();
