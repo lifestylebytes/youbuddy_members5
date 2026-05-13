@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Week 3 · Live Conducting Deck (Prototype) · YOUBUDDY</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FFFDF7;
+    --paper: #F7EFDE;
+    --paper-2: #F1E6CF;
+    --ink: #2A1F14;
+    --ink-soft: #5B4A32;
+    --muted: #8A7A5C;
+    --line: #E7DDC8;
+    --orange: #F07D38;
+    --orange-dark: #C95721;
+    --orange-bg: rgba(240,125,56,0.10);
+    --lilac: #A98BB8;
+    --lilac-dark: #6B4F7D;
+    --lilac-bg: rgba(169,139,184,0.14);
+    --gold: #FCE8B2;
+    --green: #6FAE6C;
+    --green-bg: rgba(111,174,108,0.13);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif}
+  html,body{background:var(--cream);color:var(--ink);height:100%;overflow:hidden}
+  body{display:flex;flex-direction:column;height:100vh}
+
+  /* ============ HEADER ============ */
+  .hdr{
+    flex-shrink:0;background:var(--ink);color:#fff;padding:14px 22px;
+    display:flex;align-items:center;gap:24px;border-bottom:3px solid var(--gold);
+  }
+  .hdr-title{font-size:14px;font-weight:600;letter-spacing:0.02em;color:var(--gold)}
+  .hdr-title b{color:#fff;font-weight:800;margin:0 6px}
+  .timer{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:18px;font-weight:700;color:var(--gold);min-width:90px}
+  .hdr-section{flex:1;display:flex;align-items:center;gap:12px}
+  .progress{flex:1;height:6px;background:rgba(255,255,255,0.12);border-radius:99px;overflow:hidden;max-width:240px}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--orange),var(--gold));transition:width 0.4s ease;border-radius:99px}
+  .progress-label{font-size:12px;color:rgba(255,255,255,0.7);letter-spacing:0.02em;white-space:nowrap}
+  .hdr-icon-btn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;
+    padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:-0.005em}
+  .hdr-icon-btn:hover{background:rgba(255,255,255,0.18)}
+
+  /* ============ MAIN GRID ============ */
+  .main{flex:1;display:grid;grid-template-columns:1fr 340px;gap:0;overflow:hidden}
+  .stage{padding:28px 36px;overflow-y:auto;background:linear-gradient(180deg,var(--cream) 0%,var(--paper) 100%)}
+  .panel{background:#fff;border-left:1px solid var(--line);padding:18px;overflow-y:auto;display:flex;flex-direction:column;gap:18px}
+
+  /* ============ STAGE — SCRIPT ============ */
+  .scenario-pill{
+    display:inline-flex;align-items:center;gap:8px;background:var(--lilac-bg);color:var(--lilac-dark);
+    padding:8px 14px;border-radius:99px;font-size:11.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;
+    margin-bottom:14px;
+  }
+  .scenario-title{font-size:24px;font-weight:800;letter-spacing:-0.018em;line-height:1.3;margin-bottom:24px;color:var(--ink)}
+  .scenario-title em{font-style:normal;color:var(--orange-dark)}
+  .section-note{font-size:12.5px;color:var(--muted);background:rgba(231,221,200,0.4);
+    border-left:3px solid var(--lilac);padding:10px 14px;border-radius:6px;margin-bottom:24px;line-height:1.55}
+
+  .line{
+    margin:14px 0;padding:14px 18px;border-radius:14px;border:1px solid transparent;
+    background:transparent;transition:all 0.25s ease;cursor:pointer;
+    display:grid;grid-template-columns:64px 1fr;gap:14px;align-items:start;
+  }
+  .line:hover{background:rgba(255,255,255,0.5)}
+  .line.past{opacity:0.5}
+  .line.past:hover{opacity:0.75}
+  .line.current{
+    background:linear-gradient(135deg,#FFF6E5 0%,#FFEFD0 100%);
+    border-color:var(--orange);
+    box-shadow:0 12px 30px -16px rgba(240,125,56,0.4);
+    transform:scale(1.005);
+  }
+  .line.next-up{background:rgba(252,232,178,0.32);border-color:rgba(252,232,178,0.8)}
+  .line.future{opacity:0.45}
+  .line.is-mine{border-left:4px solid var(--lilac)}
+
+  .slot-tag{
+    display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;
+    background:#fff;border:1.5px solid var(--line);padding:6px 10px;border-radius:10px;
+    font-size:10.5px;font-weight:700;color:var(--ink-soft);letter-spacing:0.03em;
+    min-width:60px;
+  }
+  .line.current .slot-tag{background:var(--orange);color:#fff;border-color:var(--orange)}
+  .line.next-up .slot-tag{background:var(--gold);color:#8A5B0E;border-color:var(--gold)}
+  .line.is-mine .slot-tag{background:var(--lilac);color:#fff;border-color:var(--lilac)}
+  .slot-tag-id{font-size:10px;opacity:0.75;letter-spacing:0.1em}
+  .slot-tag-name{font-size:12px;font-weight:800;letter-spacing:-0.01em}
+
+  .line-body{display:flex;flex-direction:column;gap:6px}
+  .line-en{font-size:17px;font-weight:600;line-height:1.5;letter-spacing:-0.005em;color:var(--ink)}
+  .line.current .line-en{font-size:22px;font-weight:800}
+  .line-kr{font-size:13.5px;color:var(--ink-soft);line-height:1.55;font-style:italic}
+  .line.current .line-kr{font-size:15px;color:var(--muted)}
+  .line-hidden{
+    display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px;
+    background:rgba(169,139,184,0.14);color:var(--lilac-dark);
+    font-size:11.5px;font-weight:700;cursor:pointer;border:1px dashed rgba(169,139,184,0.5);
+    align-self:flex-start;
+  }
+  .line-hidden:hover{background:rgba(169,139,184,0.24)}
+  .line-mine-kronly .line-en{display:none}
+  .line-mine-kronly .line-kr{font-size:24px;font-weight:700;font-style:normal;color:var(--ink);line-height:1.4}
+  .line-mine-kronly .line-en-reveal{display:inline-flex}
+
+  /* ============ PANEL ============ */
+  .panel-section{display:flex;flex-direction:column;gap:8px}
+  .panel-h{font-size:11px;font-weight:800;letter-spacing:0.14em;color:var(--muted);text-transform:uppercase}
+  .panel-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--paper)}
+  .panel-row.active{background:var(--orange-bg);border:1.5px solid var(--orange)}
+  .panel-row.next{background:rgba(252,232,178,0.45);border:1.5px solid var(--gold)}
+  .slot-chip{
+    width:28px;height:28px;border-radius:8px;background:var(--ink);color:#fff;
+    font-size:10.5px;font-weight:800;display:grid;place-items:center;letter-spacing:0.05em;flex-shrink:0;
+  }
+  .slot-chip.coach{background:var(--lilac)}
+  .panel-row.active .slot-chip{background:var(--orange)}
+  .slot-name{flex:1;font-size:12.5px;font-weight:600;color:var(--ink);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .slot-input{
+    flex:1;border:none;background:transparent;outline:none;font-size:12.5px;font-weight:600;color:var(--ink);
+    padding:2px 4px;border-radius:6px;
+  }
+  .slot-input:focus{background:#fff;box-shadow:0 0 0 2px var(--orange)}
+  .me-pin{
+    border:none;background:rgba(169,139,184,0.18);color:var(--lilac-dark);font-size:10px;
+    padding:3px 7px;border-radius:99px;font-weight:700;cursor:pointer;letter-spacing:-0.005em;
+  }
+  .me-pin.active{background:var(--lilac);color:#fff}
+
+  .now-bar{
+    background:linear-gradient(135deg,#1F1630 0%,#3A2A52 100%);color:#fff;
+    padding:14px 16px;border-radius:14px;display:flex;flex-direction:column;gap:6px;
+  }
+  .now-label{font-size:10px;letter-spacing:0.18em;font-weight:700;color:var(--gold);text-transform:uppercase}
+  .now-name{font-size:18px;font-weight:800;letter-spacing:-0.012em}
+  .now-next{font-size:12px;color:rgba(252,232,178,0.85);margin-top:4px;line-height:1.4}
+
+  .pill-btn{
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:10px 14px;border-radius:12px;font-size:12.5px;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;gap:8px;letter-spacing:-0.005em;
+  }
+  .pill-btn:hover{background:var(--paper);border-color:var(--orange)}
+  .pill-btn.primary{background:var(--orange);color:#fff;border-color:var(--orange);box-shadow:0 6px 14px -6px rgba(240,125,56,0.5)}
+  .pill-btn.primary:hover{background:var(--orange-dark)}
+  .pill-btn.lilac{background:var(--lilac);color:#fff;border-color:var(--lilac)}
+  .pill-btn.lilac:hover{background:var(--lilac-dark)}
+  .pill-btn.danger-soft{color:var(--orange-dark);border-color:rgba(240,125,56,0.3)}
+
+  .vocab-list{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto}
+  .vocab-item{
+    display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;
+    background:var(--paper);font-size:12px;font-weight:600;cursor:pointer;border:1px solid transparent;
+  }
+  .vocab-item.checked{background:var(--green-bg);color:var(--ink);border-color:rgba(111,174,108,0.4)}
+  .vocab-check{
+    width:18px;height:18px;border-radius:6px;border:1.5px solid var(--line);background:#fff;
+    display:grid;place-items:center;font-size:11px;font-weight:800;flex-shrink:0;
+  }
+  .vocab-item.checked .vocab-check{background:var(--green);border-color:var(--green);color:#fff}
+  .vocab-day{font-size:9.5px;font-weight:800;color:var(--muted);letter-spacing:0.1em}
+  .vocab-en{flex:1;letter-spacing:-0.005em}
+
+  /* ============ FOOTER CONTROLS ============ */
+  .footer{
+    flex-shrink:0;background:#fff;border-top:1px solid var(--line);padding:14px 22px;
+    display:flex;align-items:center;gap:10px;justify-content:center;
+  }
+  .footer .pill-btn{padding:12px 18px;font-size:13.5px}
+  .footer .ctrl-group{display:flex;gap:6px}
+  .key-hint{font-size:10.5px;color:var(--muted);margin-left:auto;letter-spacing:-0.005em}
+
+  /* ============ CHORAL OVERLAY ============ */
+  .choral-overlay{
+    position:fixed;inset:0;background:linear-gradient(135deg,rgba(31,22,48,0.95) 0%,rgba(58,42,82,0.95) 100%);
+    z-index:100;display:none;align-items:center;justify-content:center;flex-direction:column;gap:32px;color:#fff;
+    backdrop-filter:blur(8px);
+  }
+  .choral-overlay.on{display:flex}
+  .choral-title{font-size:96px;font-weight:900;letter-spacing:-0.04em;text-align:center;
+    background:linear-gradient(135deg,var(--gold),#FFC773);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .choral-en{font-size:42px;font-weight:700;color:#fff;letter-spacing:-0.01em;text-align:center;max-width:900px;line-height:1.3}
+  .choral-kr{font-size:20px;color:rgba(252,232,178,0.85);text-align:center;font-weight:500}
+  .choral-close{border:2px solid var(--gold);background:transparent;color:var(--gold);
+    padding:14px 28px;border-radius:99px;font-size:14px;font-weight:800;cursor:pointer}
+
+  /* ============ AI COACH POPUP ============ */
+  .ai-popup{
+    position:fixed;right:24px;bottom:90px;width:340px;background:#fff;
+    border-radius:18px;box-shadow:0 24px 60px -20px rgba(0,0,0,0.3);
+    padding:18px;display:none;flex-direction:column;gap:10px;z-index:50;
+    border:1px solid var(--line);
+  }
+  .ai-popup.on{display:flex}
+  .ai-popup-h{font-size:11px;font-weight:800;color:var(--orange-dark);letter-spacing:0.1em;text-transform:uppercase}
+  .ai-popup-body{font-size:13.5px;color:var(--ink);line-height:1.6}
+  .ai-popup-alt{padding:10px 12px;background:var(--paper);border-radius:10px;font-size:13px;font-weight:600;color:var(--ink)}
+  .ai-popup-close{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:12px;align-self:flex-end}
+
+  /* ============ NOTES PANEL ============ */
+  .notes-input{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+    font-size:12.5px;font-family:inherit;color:var(--ink);resize:vertical;min-height:48px;
+    background:#FFFEFA;
+  }
+  .notes-input:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(240,125,56,0.1)}
+
+  /* Scrollbar */
+  .stage::-webkit-scrollbar,.panel::-webkit-scrollbar,.vocab-list::-webkit-scrollbar{width:8px}
+  .stage::-webkit-scrollbar-thumb,.panel::-webkit-scrollbar-thumb,.vocab-list::-webkit-scrollbar-thumb{
+    background:rgba(138,122,92,0.3);border-radius:99px
+  }
+  .stage::-webkit-scrollbar-thumb:hover,.panel::-webkit-scrollbar-thumb:hover{background:rgba(138,122,92,0.5)}
+
+  /* responsive */
+  @media (max-width:900px){
+    .main{grid-template-columns:1fr}
+    .panel{display:none}
+    .stage{padding:18px 16px}
+    .scenario-title{font-size:18px}
+  }
+
+  /* PROTOTYPE BANNER */
+  .proto-banner{
+    background:linear-gradient(135deg,#FFE8D1 0%,#FFF1DD 100%);color:var(--orange-dark);
+    text-align:center;padding:6px;font-size:11px;font-weight:700;letter-spacing:0.05em;
+    border-bottom:1px dashed rgba(240,125,56,0.4);
+  }
+</style>
+</head>
+<body>
+
+<div class="proto-banner">
+  🧪 PROTOTYPE · Week 3 Live Conducting Deck — 컨펌 받기 전 임시 페이지
+</div>
+
+<!-- ============ HEADER ============ -->
+<header class="hdr">
+  <div class="hdr-title">⭐ <b>WEEK 3</b> · Small talk × Day 11–13</div>
+  <div class="timer" id="timer">00:00</div>
+  <div class="hdr-section">
+    <div class="progress"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="progress-label" id="sectionLabel">Section 1/5 · Warmup</div>
+  </div>
+  <button class="hdr-icon-btn" id="btnTimer">⏯ 타이머</button>
+  <button class="hdr-icon-btn" id="btnReset">↻ 리셋</button>
+</header>
+
+<!-- ============ MAIN ============ -->
+<div class="main">
+
+  <!-- STAGE -->
+  <div class="stage" id="stage">
+    <div class="scenario-pill"><span>🎭</span><span id="sectionTime">0–5</span> · <span id="sectionName">Warmup</span></div>
+    <div class="scenario-title" id="sectionTitle">
+      Week 3 · <em>Small talk × Day 11~13 vocab</em>
+    </div>
+    <div class="section-note" id="sectionNote">M1 = Coach 진행. M7·M8 자유 발화 (질문 + 픽 발표).</div>
+
+    <div id="linesContainer"></div>
+  </div>
+
+  <!-- PANEL -->
+  <div class="panel">
+    <!-- Now Speaking -->
+    <div class="now-bar">
+      <div class="now-label">🟢 NOW SPEAKING</div>
+      <div class="now-name" id="nowName">— 시작 대기 —</div>
+      <div class="now-next" id="nowNext">▶ 다음 버튼으로 시작하세요</div>
+    </div>
+
+    <!-- Choral + AI Coach buttons -->
+    <div style="display:flex;gap:8px">
+      <button class="pill-btn lilac" id="btnChoral" style="flex:1;justify-content:center">🔁 다같이 합창</button>
+      <button class="pill-btn" id="btnAi" style="flex:1;justify-content:center">💡 AI 코치</button>
+    </div>
+
+    <!-- Slot Map -->
+    <div class="panel-section">
+      <div class="panel-h">🎭 슬롯 매핑 (실명 입력)</div>
+      <div id="slotMap" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+
+    <!-- Vocab Tally -->
+    <div class="panel-section">
+      <div class="panel-h">✅ Day 11~13 단어 체크 (자연스럽게 발화)</div>
+      <div class="vocab-list" id="vocabList"></div>
+      <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:4px" id="vocabSummary">0 / 9 자연스럽게 발화됨</div>
+    </div>
+
+    <!-- Live notes -->
+    <div class="panel-section">
+      <div class="panel-h">📝 진행자 메모 (미팅 후 자동 저장)</div>
+      <textarea class="notes-input" id="notesInput" placeholder="예: M5가 'bite the bullet' 자연스럽게 썼다 / M3 'sugarcoat' 좀 어색"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="ctrl-group">
+    <button class="pill-btn" id="btnPrevSec">⏮ 이전 섹션</button>
+    <button class="pill-btn" id="btnPrevLine">← 이전 라인</button>
+  </div>
+  <button class="pill-btn primary" id="btnNextLine">▶ 다음 라인 (Space)</button>
+  <div class="ctrl-group">
+    <button class="pill-btn" id="btnNextSec">다음 섹션 ⏭</button>
+  </div>
+  <div class="key-hint">Space · ← → · 1~5 (섹션)</div>
+</footer>
+
+<!-- ============ CHORAL OVERLAY ============ -->
+<div class="choral-overlay" id="choralOverlay">
+  <div class="choral-title">다같이! 🔁</div>
+  <div class="choral-en" id="choralEn">—</div>
+  <div class="choral-kr" id="choralKr">—</div>
+  <button class="choral-close" id="choralClose">완료 (Esc)</button>
+</div>
+
+<!-- ============ AI POPUP ============ -->
+<div class="ai-popup" id="aiPopup">
+  <div class="ai-popup-h">💡 AI 코치 · 진행자만 보임</div>
+  <div class="ai-popup-body">현재 라인 다른 식으로 말해보면:</div>
+  <div class="ai-popup-alt" id="aiAlt">—</div>
+  <button class="ai-popup-close" id="aiClose">닫기</button>
+</div>
+
+<script>
+/* ====================================================================
+   WEEK 3 SCRIPT — 5 sections × M1~M10 슬롯
+   index.html 의 weekly_meetings[2] 내용을 그대로 가져옴
+==================================================================== */
+const SECTIONS = [
+  {
+    time: '0–5', label: 'Warmup', name: 'Small talk 구조 + vocab pick',
+    note: 'M1 = Coach 진행. M7·M8 자유 발화 (질문 + 픽 발표).',
+    lines: [
+      { speaker: 'M1', en: "Welcome to Week 3 — small talk with Day 11 through 13 vocab. Pick three words you'd actually slip into a coffee chat.", ko: 'Week 3에 오신 걸 환영합니다 — Day 11~13 단어를 small talk 에 자연스럽게 끼워넣는 시간이에요. 커피 마시면서 진짜 쓸 만한 단어 3개 골라보세요.' },
+      { speaker: 'M1', en: "Small talk has three beats — opener, transition, closer. Today the trick is sliding Day 11–13 vocab between them.", ko: 'Small talk 는 세 박자예요 — 시작 / 전환 / 마무리. 오늘 핵심은 그 사이사이에 Day 11~13 단어를 끼우는 거예요.' },
+      { speaker: 'M7', en: "Quick question — does it count if I use the word during the transition itself?", ko: '잠깐 — transition 중에 단어 써도 카운트 돼요?' },
+      { speaker: 'M1', en: "Absolutely. That's the cleanest move — pivoting from weather to work with a Day 12 word.", ko: '당연하죠. 그게 제일 깔끔해요 — 날씨에서 일 얘기로 Day 12 단어 하나 끼고 넘어가는 거.' },
+      { speaker: 'M7', en: "Mine's 'blank canvas,' 'competitive edge,' and 'pain point.'", ko: "저는 'blank canvas', 'competitive edge', 'pain point' 로 갈게요." },
+      { speaker: 'M8', en: "I'll take 'reinvent the wheel,' 'game changer,' and 'bite the bullet.'", ko: "저는 'reinvent the wheel', 'game changer', 'bite the bullet' 가져갈게요." },
+    ],
+  },
+  {
+    time: '5–15', label: 'Pair 1 · 탕비실 talk', name: 'Day 11 vocab',
+    note: 'M2 = Conversationalist A (신규 프로젝트 들어감). M3 = Listener B (작년 flow 알고 있음). M1 (Coach) 끝에 한 마디.',
+    lines: [
+      { speaker: 'M2', en: "Hey — how was your weekend?", ko: '어, 주말 어떻게 보냈어요?' },
+      { speaker: 'M3', en: "Quiet. You?", ko: '조용히요. 그쪽은요?' },
+      { speaker: 'M2', en: "Same. By the way — are you on the new onboarding project?", ko: '저도요. 그건 그렇고 — 신규 온보딩 프로젝트 같이 들어가셨어요?' },
+      { speaker: 'M3', en: "Yeah, we're starting from a blank canvas this time.", ko: '네, 이번엔 완전 백지부터 시작이에요.', vocab: 'Blank canvas' },
+      { speaker: 'M2', en: "Really? Aren't we kind of reinventing the wheel?", ko: '진짜요? 쓸데없이 처음부터 다시 만드는 거 아니에요?', vocab: 'Reinvent the wheel' },
+      { speaker: 'M3', en: "Honestly the old one only scratched the surface. New segment, new behavior.", ko: '솔직히 옛날 거는 겉만 건드리고 끝났어요. 새 세그먼트라 행동 패턴도 달라요.', vocab: 'Scratch the surface' },
+      { speaker: 'M2', en: "Fair enough. Let's grab coffee later and you can walk me through it.", ko: '그러네요. 이따 커피 마시면서 자세히 좀 풀어주세요.' },
+      { speaker: 'M3', en: "Sure — ping me after 3.", ko: '좋아요 — 3시 이후로 핑 주세요.' },
+      { speaker: 'M1', en: "Nice — 'by the way' did the heavy lifting. The transition made Day 11 words feel natural, not a quiz.", ko: "좋네요 — 'by the way' 한 줄이 핵심이었어요. transition 덕분에 Day 11 단어가 시험 같지 않고 자연스러웠어요." },
+    ],
+  },
+  {
+    time: '15–25', label: 'Pair 2 · Zoom 대기', name: 'Day 12 vocab + bonus',
+    note: 'M4 = 해외 팀 매니저. M5 = 시장 분석 담당. 5분 대기 시간 → Day 12 풀세트 + Day 13 보너스.',
+    lines: [
+      { speaker: 'M4', en: "We've got a few minutes — quick question. What do you think our real value proposition is for the SMB segment?", ko: '몇 분 남았으니까 — 잠깐 물어볼게요. SMB 세그먼트에서 우리 핵심 가치 제안이 실제로 뭐라고 생각해요?', vocab: 'Value proposition' },
+      { speaker: 'M5', en: "Honestly, speed of setup. That's our competitive edge — competitors take three days, we take ten minutes.", ko: '솔직히 setup 속도요. 그게 우리 경쟁 우위예요 — 경쟁사는 3일, 우리는 10분이면 끝나거든요.', vocab: 'Competitive edge' },
+      { speaker: 'M4', en: "Speaking of speed — the new auto-config feature could be a real game changer if QA holds up.", ko: '속도 얘기 나와서 — 새 auto-config 기능, QA 만 버텨주면 진짜 판 뒤집을 수 있어요.', vocab: 'Game changer' },
+      { speaker: 'M5', en: "Agreed. The pain point we keep hearing is 'I don't have time to configure' — and this kills it.", ko: "동의해요. 계속 듣는 pain point 가 '설정할 시간이 없다' 인데, 이게 그걸 해결해줘요.", vocab: 'Pain point' },
+      { speaker: 'M4', en: "If marketing leans on those three — proposition, edge, and the game changer — the launch story writes itself.", ko: '마케팅이 그 세 개만 잡으면 — 가치 제안 / 경쟁 우위 / 게임 체인저 — 런칭 스토리 그냥 나와요.' },
+      { speaker: 'M5', en: "I'll flag that to the comms lead. Ah — looks like the rest just joined.", ko: '커뮤니케이션 리드한테 전달할게요. 아 — 나머지 분들 들어오셨네요.' },
+      { speaker: 'M4', en: "Perfect timing. Let's catch up properly after the standup.", ko: '타이밍 굿이네요. 스탠드업 끝나고 다시 얘기해요.' },
+    ],
+  },
+  {
+    time: '25–35', label: 'Observer debrief', name: '체크리스트 발표',
+    note: 'M6 = Observer (발표 진행). M7·M8 자유 코멘트.',
+    lines: [
+      { speaker: 'M6', en: "Quick debrief — Pair 1 hit all three Day 11 words. 'By the way' carried the transition.", ko: "회고 빠르게 — Pair 1은 Day 11 단어 3개 다 썼어요. 'by the way' 가 결정적이었어요." },
+      { speaker: 'M6', en: "Pair 2 used the full Day 12 set — 'value proposition,' 'competitive edge,' 'game changer' — plus 'pain point' as a bonus.", ko: "Pair 2는 Day 12 풀세트에 Day 13 'pain point' 까지 보너스." },
+      { speaker: 'M6', en: "Honest call — 'reinventing the wheel' as a question form sounded slightly forced. Anyone catch it?", ko: "솔직히 — 'reinventing the wheel' 을 의문문으로 쓴 게 살짝 어색했어요. 다른 분들도 느끼셨어요?" },
+      { speaker: 'M7', en: "Same — 'aren't we just repeating last quarter?' might feel more conversational.", ko: "저도요 — 'aren't we just repeating last quarter?' 가 더 대화 같았을 듯요." },
+      { speaker: 'M8', en: "Or 'didn't we already do this?' — same point, less idiom.", ko: "아니면 'didn't we already do this?' — 같은 뜻인데 관용어 빼고." },
+      { speaker: 'M6', en: "Good calls. Flagging 'reinvent the wheel' for re-drill.", ko: "좋은 지적이에요. 'reinvent the wheel' 재시도 표시할게요." },
+    ],
+  },
+  {
+    time: '35–40', label: 'Re-drill + close', name: '본인 1단어 발표',
+    note: 'M1 (Coach) 마무리. M2 가 재연 → M3/M4/M5/M6 가 이번 주 진짜 쓸 단어 1개 발표.',
+    lines: [
+      { speaker: 'M1', en: "M2 — try that line again, but use the question form M7 suggested.", ko: 'M2 자리 — M7이 제안한 의문문 형태로 다시 해볼까요.' },
+      { speaker: 'M2', en: "Wait — didn't we already do this last quarter? Feels like we're just adding paint.", ko: '잠깐 — 작년 분기에 한 거 아니에요? 그냥 페인트만 다시 칠하는 느낌인데.' },
+      { speaker: 'M1', en: "Much better — and 'adding paint' is your own metaphor, even better. Last round — one word each.", ko: "훨씬 좋아요 — 'adding paint' 본인 표현이라 더 좋네요. 마지막 — 한 명씩 돌아가며." },
+      { speaker: 'M2', en: "Mine's 'blank canvas' — kickoff is Tuesday.", ko: "저는 'blank canvas' — 화요일에 킥오프거든요.", vocab: 'Blank canvas' },
+      { speaker: 'M3', en: "'Scratch the surface' — for my QBR follow-up.", ko: "저는 'scratch the surface' — QBR 팔로업에 쓸게요.", vocab: 'Scratch the surface' },
+      { speaker: 'M4', en: "'Competitive edge' — investor meeting on Wednesday.", ko: "저는 'competitive edge' — 수요일 투자자 미팅이요.", vocab: 'Competitive edge' },
+      { speaker: 'M5', en: "Mine's 'bite the bullet.' Time to rewrite that auth flow.", ko: "저는 'bite the bullet' — auth flow 갈아엎을 때 됐어요.", vocab: 'Bite the bullet' },
+      { speaker: 'M6', en: "And mine's 'pain point' — customer interview Friday.", ko: "저는 'pain point' — 금요일 고객 인터뷰에서요.", vocab: 'Pain point' },
+      { speaker: 'M1', en: "Great work. See you Day 17.", ko: '수고하셨어요. Day 17에 봐요.' },
+    ],
+  },
+];
+
+const WEEK_VOCAB = [
+  { en: 'Blank canvas', day: 11 },
+  { en: 'Reinvent the wheel', day: 11 },
+  { en: 'Scratch the surface', day: 11 },
+  { en: 'Value proposition', day: 12 },
+  { en: 'Competitive edge', day: 12 },
+  { en: 'Game changer', day: 12 },
+  { en: 'Pain point', day: 13 },
+  { en: 'Bite the bullet', day: 13 },
+  { en: 'Stumbling block', day: 13 },
+];
+
+/* AI alternatives (mock) — 실제는 ai-review Edge Function 호출로 교체 */
+const AI_ALTS = {
+  "Aren't we kind of reinventing the wheel?": "Didn't we already do this last quarter? Feels like we're just adding paint.",
+  "Honestly the old one only scratched the surface.": "Honestly we barely got past the basics last time — a lot of it stayed at the surface level.",
+  "What do you think our real value proposition is for the SMB segment?": "What's the one reason an SMB would pick us over the others — what's our real value here?",
+};
+
+/* ====================================================================
+   STATE
+==================================================================== */
+const state = {
+  sec: 0,
+  line: -1,
+  slots: ['Gaby (유버디)','진송','수진','은선','Brad','Hera','Jess','Lin','Rachel','태윤'], // M1~M10
+  meSlot: 0,
+  vocabChecked: new Set(),
+  timerStart: null,
+  timerElapsed: 0,
+  timerRunning: false,
+};
+
+/* Restore from localStorage */
+try {
+  const saved = JSON.parse(localStorage.getItem('proto_conductor_v1') || '{}');
+  if (Array.isArray(saved.slots)) state.slots = saved.slots;
+  if (typeof saved.meSlot === 'number') state.meSlot = saved.meSlot;
+} catch(_){}
+
+function save() {
+  localStorage.setItem('proto_conductor_v1', JSON.stringify({
+    slots: state.slots, meSlot: state.meSlot
+  }));
+}
+
+/* ====================================================================
+   RENDER
+==================================================================== */
+function renderHeader() {
+  const sec = SECTIONS[state.sec];
+  document.getElementById('sectionLabel').textContent = `Section ${state.sec+1}/${SECTIONS.length} · ${sec.label}`;
+  document.getElementById('sectionTime').textContent = sec.time;
+  document.getElementById('sectionName').textContent = sec.label;
+  document.getElementById('sectionTitle').innerHTML = `${sec.label} · <em>${sec.name}</em>`;
+  document.getElementById('sectionNote').textContent = sec.note;
+  // progress
+  const totalLines = SECTIONS.reduce((s, sx) => s + sx.lines.length, 0);
+  let done = 0;
+  for (let i = 0; i < state.sec; i++) done += SECTIONS[i].lines.length;
+  done += Math.max(0, state.line + 1);
+  const pct = Math.min(100, (done / totalLines) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+function renderLines() {
+  const sec = SECTIONS[state.sec];
+  const container = document.getElementById('linesContainer');
+  container.innerHTML = '';
+  sec.lines.forEach((ln, idx) => {
+    const isCurrent = idx === state.line;
+    const isPast = idx < state.line;
+    const isNextUp = idx === state.line + 1;
+    const isFuture = idx > state.line + 2;
+    const isMine = parseSlot(ln.speaker) === state.meSlot;
+
+    const row = document.createElement('div');
+    let cls = 'line';
+    if (isCurrent) cls += ' current';
+    else if (isPast) cls += ' past';
+    else if (isNextUp) cls += ' next-up';
+    else if (isFuture) cls += ' future';
+    if (isMine && (isCurrent || isNextUp)) cls += ' is-mine line-mine-kronly';
+    row.className = cls;
+    row.onclick = () => { state.line = idx; render(); };
+
+    const slotIdx = parseSlot(ln.speaker);
+    const name = state.slots[slotIdx] || '';
+    row.innerHTML = `
+      <div class="slot-tag">
+        <span class="slot-tag-id">${ln.speaker}</span>
+        <span class="slot-tag-name">${escapeHtml(name.split(' ')[0])}</span>
+      </div>
+      <div class="line-body">
+        ${ isMine && (isCurrent || isNextUp)
+          ? `<div class="line-kr">${escapeHtml(ln.ko)}</div>
+             <button class="line-hidden line-en-reveal" data-idx="${idx}">▶ 영어 reveal (안 보이게)</button>`
+          : `<div class="line-en">${escapeHtml(ln.en)}</div>
+             <div class="line-kr">${escapeHtml(ln.ko)}</div>`
+        }
+        ${ln.vocab ? `<div style="margin-top:4px;font-size:10.5px;font-weight:800;color:var(--orange-dark);letter-spacing:0.05em">📌 ${escapeHtml(ln.vocab)}</div>` : ''}
+      </div>
+    `;
+    container.appendChild(row);
+
+    if (isCurrent) {
+      setTimeout(() => row.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+    }
+  });
+
+  // wire reveal buttons
+  container.querySelectorAll('.line-en-reveal').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const idx = +btn.dataset.idx;
+      const parent = btn.closest('.line');
+      parent.classList.remove('line-mine-kronly');
+      const ln = SECTIONS[state.sec].lines[idx];
+      const body = parent.querySelector('.line-body');
+      body.innerHTML = `
+        <div class="line-en">${escapeHtml(ln.en)}</div>
+        <div class="line-kr">${escapeHtml(ln.ko)}</div>
+        ${ln.vocab ? `<div style="margin-top:4px;font-size:10.5px;font-weight:800;color:var(--orange-dark);letter-spacing:0.05em">📌 ${escapeHtml(ln.vocab)}</div>` : ''}
+      `;
+    };
+  });
+}
+
+function renderNowBar() {
+  const sec = SECTIONS[state.sec];
+  const cur = sec.lines[state.line];
+  const next = sec.lines[state.line + 1];
+  if (!cur) {
+    document.getElementById('nowName').textContent = '— 시작 대기 —';
+    document.getElementById('nowNext').textContent = '▶ 다음 라인 버튼으로 시작';
+  } else {
+    const slotIdx = parseSlot(cur.speaker);
+    const nm = state.slots[slotIdx] || '';
+    document.getElementById('nowName').textContent = `${cur.speaker} · ${nm.split(' ')[0]}`;
+    if (next) {
+      const nslot = parseSlot(next.speaker);
+      const nname = state.slots[nslot] || '';
+      const ahead = 1;
+      document.getElementById('nowNext').textContent = `▶ 다음 (${ahead}줄 후): ${next.speaker} · ${nname.split(' ')[0]}`;
+    } else {
+      document.getElementById('nowNext').textContent = '↓ 이번 섹션 마지막 라인';
+    }
+  }
+}
+
+function renderSlotMap() {
+  const sm = document.getElementById('slotMap');
+  sm.innerHTML = '';
+  const sec = SECTIONS[state.sec];
+  const cur = sec.lines[state.line];
+  const next = sec.lines[state.line + 1];
+  const curSlot = cur ? parseSlot(cur.speaker) : -1;
+  const nextSlot = next ? parseSlot(next.speaker) : -1;
+
+  state.slots.forEach((nm, i) => {
+    const row = document.createElement('div');
+    let rowCls = 'panel-row';
+    if (i === curSlot) rowCls += ' active';
+    else if (i === nextSlot) rowCls += ' next';
+    row.className = rowCls;
+    row.innerHTML = `
+      <div class="slot-chip ${i===0?'coach':''}">M${i+1}</div>
+      <input class="slot-input" value="${escapeHtml(nm)}" data-slot="${i}" placeholder="이름..." />
+      <button class="me-pin ${i===state.meSlot?'active':''}" data-me="${i}">${i===state.meSlot?'나':'나로'}</button>
+    `;
+    sm.appendChild(row);
+  });
+  sm.querySelectorAll('.slot-input').forEach(inp => {
+    inp.onchange = (e) => {
+      state.slots[+e.target.dataset.slot] = e.target.value;
+      save();
+      render();
+    };
+  });
+  sm.querySelectorAll('.me-pin').forEach(btn => {
+    btn.onclick = () => {
+      state.meSlot = +btn.dataset.me;
+      save();
+      render();
+    };
+  });
+}
+
+function renderVocab() {
+  const list = document.getElementById('vocabList');
+  list.innerHTML = '';
+  WEEK_VOCAB.forEach(v => {
+    const checked = state.vocabChecked.has(v.en);
+    const item = document.createElement('div');
+    item.className = 'vocab-item' + (checked ? ' checked' : '');
+    item.innerHTML = `
+      <span class="vocab-check">${checked ? '✓' : ''}</span>
+      <span class="vocab-day">D${v.day}</span>
+      <span class="vocab-en">${escapeHtml(v.en)}</span>
+    `;
+    item.onclick = () => {
+      if (state.vocabChecked.has(v.en)) state.vocabChecked.delete(v.en);
+      else state.vocabChecked.add(v.en);
+      renderVocab();
+    };
+    list.appendChild(item);
+  });
+  document.getElementById('vocabSummary').textContent = `${state.vocabChecked.size} / ${WEEK_VOCAB.length} 자연스럽게 발화됨`;
+}
+
+function render() {
+  renderHeader();
+  renderLines();
+  renderNowBar();
+  renderSlotMap();
+}
+
+/* ====================================================================
+   NAVIGATION
+==================================================================== */
+function nextLine() {
+  const sec = SECTIONS[state.sec];
+  if (state.line < sec.lines.length - 1) {
+    state.line++;
+    // auto-check vocab when current line has one
+    const cur = sec.lines[state.line];
+    if (cur && cur.vocab) state.vocabChecked.add(cur.vocab);
+    render(); renderVocab();
+  } else if (state.sec < SECTIONS.length - 1) {
+    state.sec++; state.line = -1;
+    render();
+  }
+}
+function prevLine() {
+  if (state.line > -1) state.line--;
+  else if (state.sec > 0) { state.sec--; state.line = SECTIONS[state.sec].lines.length - 1; }
+  render();
+}
+function nextSec() {
+  if (state.sec < SECTIONS.length - 1) { state.sec++; state.line = -1; render(); }
+}
+function prevSec() {
+  if (state.sec > 0) { state.sec--; state.line = -1; render(); }
+}
+
+/* ====================================================================
+   TIMER
+==================================================================== */
+function tickTimer() {
+  if (!state.timerRunning) return;
+  const elapsed = state.timerElapsed + (Date.now() - state.timerStart);
+  const sec = Math.floor(elapsed / 1000);
+  const mm = String(Math.floor(sec / 60)).padStart(2,'0');
+  const ss = String(sec % 60).padStart(2,'0');
+  document.getElementById('timer').textContent = `${mm}:${ss}`;
+}
+setInterval(tickTimer, 250);
+
+document.getElementById('btnTimer').onclick = () => {
+  if (state.timerRunning) {
+    state.timerElapsed += Date.now() - state.timerStart;
+    state.timerRunning = false;
+  } else {
+    state.timerStart = Date.now();
+    state.timerRunning = true;
+  }
+};
+document.getElementById('btnReset').onclick = () => {
+  if (!confirm('타이머 + 진행 상태 초기화할까요?')) return;
+  state.sec = 0; state.line = -1; state.timerElapsed = 0; state.timerRunning = false; state.vocabChecked.clear();
+  document.getElementById('timer').textContent = '00:00';
+  render(); renderVocab();
+};
+
+/* ====================================================================
+   BUTTONS / KEYBOARD
+==================================================================== */
+document.getElementById('btnNextLine').onclick = nextLine;
+document.getElementById('btnPrevLine').onclick = prevLine;
+document.getElementById('btnNextSec').onclick = nextSec;
+document.getElementById('btnPrevSec').onclick = prevSec;
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); nextLine(); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); prevLine(); }
+  else if (e.key >= '1' && e.key <= '5') {
+    const target = (+e.key) - 1;
+    if (target >= 0 && target < SECTIONS.length) { state.sec = target; state.line = -1; render(); }
+  }
+  else if (e.key === 'Escape') closeChoral();
+});
+
+/* ====================================================================
+   CHORAL OVERLAY
+==================================================================== */
+document.getElementById('btnChoral').onclick = () => {
+  const sec = SECTIONS[state.sec];
+  const cur = sec.lines[state.line] || sec.lines[0];
+  document.getElementById('choralEn').textContent = cur.en;
+  document.getElementById('choralKr').textContent = cur.ko;
+  document.getElementById('choralOverlay').classList.add('on');
+};
+function closeChoral() { document.getElementById('choralOverlay').classList.remove('on'); }
+document.getElementById('choralClose').onclick = closeChoral;
+document.getElementById('choralOverlay').onclick = (e) => {
+  if (e.target.id === 'choralOverlay') closeChoral();
+};
+
+/* ====================================================================
+   AI POPUP (mock)
+==================================================================== */
+document.getElementById('btnAi').onclick = () => {
+  const sec = SECTIONS[state.sec];
+  const cur = sec.lines[state.line];
+  if (!cur) return;
+  const alt = AI_ALTS[cur.en] || `(이 라인은 AI 대안 mock 데이터 없음. 실제 배포 시 ai-review Edge Function 호출 → 자연스러운 대안 자동 제시)`;
+  document.getElementById('aiAlt').textContent = alt;
+  document.getElementById('aiPopup').classList.add('on');
+};
+document.getElementById('aiClose').onclick = () => document.getElementById('aiPopup').classList.remove('on');
+
+/* ====================================================================
+   UTILS
+==================================================================== */
+function parseSlot(speaker) {
+  const m = /M(\d+)/.exec(speaker || '');
+  return m ? parseInt(m[1],10) - 1 : -1;
+}
+function escapeHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* Init */
+render();
+renderVocab();
+</script>
+</body>
+</html>
