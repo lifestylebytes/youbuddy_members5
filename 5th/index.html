@@ -1420,11 +1420,12 @@ sugarcoat 사실 메신저에선 거의 안 써요…! ㅋㅋ
         signupCloseDate: '2026-05-13',
         title: 'Week 3 — Small talk × Day 11~13',
         desc: 'Small talk 에 Day 11~13 단어 9개 자연스럽게 녹이기',
-        status: 'upcoming',
+        status: 'done',
         zoom: 'Google Meet',
         meetUrl: 'https://meet.google.com/swc-ritf-wec',
+        recordingUrl: 'https://drive.google.com/file/d/1GtAwWfo-4D1hkmDW4u5i0o-8HWgG1QFz/view?usp=sharing',
         // 버디가 미팅 후 직접 채움 — recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
-        recap: '',
+        recap: '🎬 [Week 3 미팅 다시보기 →](https://drive.google.com/file/d/1GtAwWfo-4D1hkmDW4u5i0o-8HWgG1QFz/view?usp=sharing)\n\n어제 못 오신 분도, 다시 듣고 싶은 분도 위 링크에서 풀버전 보실 수 있어요.',
         pptUrl: '',
         scenario: {
           setting: 'Small talk 3종 (탕비실 talk / 스탠드업 대기 / 컨퍼런스) × Day 11~13 단어 9개',
@@ -6453,28 +6454,33 @@ function getNotifications() {
     cta: { label: '학습 탭으로 →', kind: 'go', target: 'weeks' },
   });
 
-  // 2-b. 매주 금요일 wrap-up — 그 주차가 도달된 멤버에게 노출. 주차별 v{N} 마커.
-  // currentDay 가 그 주의 마지막 날 (5/10/15/20) 이상이면 알림함에 띄움.
+  // 2-b. 매주 wrap-up 알림 — 시험 전날 (목/Day 4,9,14,19) 부터 노출.
   // 시험 통과 / 데드라인 지난 사람한테는 노출 X.
   try {
     const cDay = Number(state.currentDay) || 0;
     (CHALLENGE.weeks || []).forEach((wk) => {
       const lastDay = wk.days[wk.days.length - 1].day;
-      if (cDay < lastDay) return;
+      // 시험 전날부터 노출 (lastDay - 1) — 미리 마음의 준비 + 설문 인지
+      if (cDay < lastDay - 1) return;
       if (state.bingo_done && state.bingo_done[String(wk.n)]) return;
       if (typeof isReviewLocked === 'function' && isReviewLocked(wk.n)) return;
-      // 도달 알림 시각 — Day N 의 21시 (저녁) 로 박아둠 (정렬 안정).
+      const isEve = cDay === lastDay - 1; // 전날 = 'D-1'
       const dateStr = (typeof dayDate === 'function')
-        ? (() => { try { const d = dayDate(lastDay); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}T21:00:00`; } catch(_) { return '2026-05-08T21:00:00'; } })()
+        ? (() => { try { const d = dayDate(lastDay - (isEve ? 1 : 0)); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}T21:00:00`; } catch(_) { return '2026-05-08T21:00:00'; } })()
         : '2026-05-08T21:00:00';
+      const isMiniWeek = (wk.n === 2 || wk.n === 3);
       list.push({
         id: `week-wrapup-w${wk.n}`,
-        icon: '🎉',
+        icon: isEve ? '🔔' : '🎉',
         color: '#F07D38',
-        title: wk.n === 4 ? '🏆 챌린지 마무리 — 파이널 테스트 시간' : `Week ${wk.n} 끝 — 진짜 외우기 시간`,
-        body: '이번 주 단어 다 외워졌나 빠르게 체크. 통과하면 잠금화면 단어장 보상 🎁',
+        title: wk.n === 4
+          ? (isEve ? '🏆 내일 파이널 테스트 — 4주 종합' : '🏆 챌린지 마무리 — 파이널 테스트 시간')
+          : (isEve ? `🔔 내일 Week ${wk.n} 진짜 외우기 + ${isMiniWeek ? '1분 회고' : '주간 설문'}` : `Week ${wk.n} 끝 — 진짜 외우기 + ${isMiniWeek ? '1분 회고' : '주간 설문'} 시간`),
+        body: isEve
+          ? `Day ${lastDay} 에 ${isMiniWeek ? '1분 회고 → 시험' : '주간 설문 + 시험'} 한 번에. 미리 마음 준비 🧡`
+          : `이번 주 단어 다 외워졌나 빠르게 체크. ${isMiniWeek ? '1분 회고 먼저 → 시험.' : '설문 먼저 → 시험.'} 통과하면 잠금화면 단어장 보상 🎁`,
         createdAt: dateStr,
-        cta: { label: '🚀 진짜 외우기 풀러가기 →', kind: 'go-week-review', weekN: wk.n },
+        cta: { label: isEve ? '미리 학습 탭 보기 →' : '🚀 진짜 외우기 풀러가기 →', kind: isEve ? 'go' : 'go-week-review', target: 'weeks', weekN: wk.n },
       });
     });
   } catch (_) {}
@@ -9713,6 +9719,54 @@ function WeekReviewPage(weekN) {
   window.__weekReviewActiveStage = window.__weekReviewActiveStage || {};
   const activeStage = window.__weekReviewActiveStage[weekN] || 0; // 0 = stage 선택 화면
 
+  // 미니 설문 게이팅 — Week 2·3 는 mini 설문 안 끝나면 시험 진입 차단.
+  // Week 1·4 는 main 설문 사용 (mainDone OR miniDone). 이미 통과한 사람은 reward 보러 들어올 수 있어야 함.
+  // 운영자는 우회 (테스트 / 시연용).
+  const surveyData = (state.week_survey || {})[String(weekN)] || {};
+  const surveyMainDone = !!(surveyData.at && !surveyData.skipped);
+  const surveyMiniDone = !!(surveyData.mini && surveyData.mini.at);
+  const alreadyPassed = !!(state.bingo_done && state.bingo_done[String(weekN)]);
+  const isOpBypass = (state.isOperator || state.isStaff) && !state.operatorViewAsMember;
+  const surveyRequired = (weekN === 2 || weekN === 3); // mini-only 주차
+  const surveyDone = surveyRequired ? surveyMiniDone : (surveyMainDone || surveyMiniDone);
+
+  if (surveyRequired && !surveyDone && !alreadyPassed && !isOpBypass) {
+    // 설문 게이트 페이지
+    const gatePage = el('div', { class: 'page' });
+    const head2 = el('div', { class: 'topbar' });
+    const back2 = el('button', { class: 'icon-btn', onClick: () => go('weeks') });
+    back2.innerHTML = Icon('arrowLeft', 16);
+    head2.appendChild(back2);
+    head2.appendChild(el('div', { style: { fontWeight: '800', fontSize: '16px' } }, weekReviewLabelShort(weekN)));
+    head2.appendChild(el('div', { class: 'icon-btn', style: { visibility: 'hidden' } }));
+    gatePage.appendChild(head2);
+    const gateCard = el('div', {
+      style: {
+        margin: '24px 18px', padding: '32px 22px', borderRadius: '20px',
+        background: 'linear-gradient(135deg, #F5F1FA 0%, #FFF5E6 100%)',
+        border: '1px solid rgba(155,127,174,0.32)',
+        textAlign: 'center',
+      },
+    });
+    gateCard.innerHTML = `
+      <div style="font-size:44px;line-height:1;margin-bottom:10px;">📝</div>
+      <div class="kicker" style="color:var(--lilac-dark, #6B4F7D);">1분만, 시험 전에</div>
+      <div style="margin-top:8px;font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">Week ${weekN} 짧은 회고부터<br>풀어볼까요?</div>
+      <div class="t-small" style="margin-top:10px;color:var(--ink-soft);line-height:1.55;font-size:13px;">
+        3문항 ≤ 30초. 다음 주가 더 좋아질 거예요.<br/>
+        끝나면 자동으로 시험으로 넘어가요.
+      </div>
+    `;
+    gatePage.appendChild(gateCard);
+    const startBtn = el('button', {
+      class: 'btn btn-primary btn-full',
+      style: { margin: '0 18px', background: 'var(--lilac, #A98BB8)', color: '#fff', border: 'none', fontSize: '14px', padding: '14px' },
+      onClick: () => { showMiniWeekSurvey = weekN; render(); },
+    }, '📝 1분 회고 풀기 →');
+    gatePage.appendChild(startBtn);
+    return gatePage;
+  }
+
   const page = el('div', { class: 'page' });
 
   // Topbar
@@ -10218,6 +10272,106 @@ function renderBingoMode(page, weekN, week, isPremium) {
   const reviewDoneAtTop = state.bingo_done && state.bingo_done[String(weekN)];
   if (reviewDoneAtTop) {
     const jpgAllowedTop = weekN <= 3;
+
+    // 틀린 단어 복습 카드 — bingo_boss_results[weekN].wrongWords 노출 + 단어장 저장
+    const bossResult = (state.bingo_boss_results || {})[String(weekN)];
+    const wrongWords = Array.isArray(bossResult && bossResult.wrongWords) ? bossResult.wrongWords : [];
+    if (wrongWords.length > 0) {
+      const wrongCard = el('div', {
+        style: {
+          padding: '20px 18px', borderRadius: '20px',
+          background: 'linear-gradient(135deg, #FFF6E5 0%, #FFEBC8 100%)',
+          border: '1px solid rgba(240,125,56,0.35)',
+          marginBottom: '16px',
+        },
+      });
+      wrongCard.innerHTML = `
+        <div class="kicker" style="color:var(--orange-dark);">📚 틀린 단어 복습</div>
+        <div style="margin-top:6px;font-size:15.5px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">${wrongWords.length}개 단어 — 단어장에 저장해서 다음에 다시 보세요</div>
+      `;
+      const list = el('div', { style: { marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '8px' } });
+      wrongWords.forEach((w) => {
+        const key = w.sourceDay != null ? `d${w.sourceDay}-?` : null;
+        // pitch_vocab 에 이미 있으면 'saved' 상태
+        const alreadySaved = (state.pitch_vocab || []).some(v =>
+          String(v.word || '').toLowerCase().trim() === String(w.en || '').toLowerCase().trim()
+        );
+        const row = el('div', {
+          style: {
+            display: 'flex', alignItems: 'center', gap: '10px',
+            padding: '10px 12px', background: '#fff', borderRadius: '12px',
+            border: '1px solid var(--line)',
+          },
+        });
+        row.innerHTML = `
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.005em;">${escapeHtml(w.en || '')}</div>
+            ${w.kr ? `<div style="font-size:11.5px;color:var(--ink-soft);margin-top:2px;">${escapeHtml(w.kr)}</div>` : ''}
+          </div>
+        `;
+        const saveBtn = el('button', {
+          style: {
+            padding: '7px 12px', borderRadius: '99px', border: '1px solid',
+            background: alreadySaved ? 'var(--orange)' : '#fff',
+            color: alreadySaved ? '#fff' : 'var(--orange-dark)',
+            borderColor: 'var(--orange)',
+            fontSize: '11.5px', fontWeight: '700', cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', gap: '4px',
+            flexShrink: 0,
+          },
+          onClick: () => {
+            if (typeof addToVocabBank === 'function') {
+              addToVocabBank({
+                word: w.en,
+                note: w.kr || '',
+                source: 'boss_wrong',
+                sourceKey: w.sourceDay != null ? `d${w.sourceDay}-boss-wrong` : '',
+              });
+              saveState();
+              showToast(`🔖 "${w.en}" 단어장에 저장됨`);
+              render();
+            }
+          },
+        }, alreadySaved ? '✓ 저장됨' : '🔖 단어장 저장');
+        row.appendChild(saveBtn);
+        list.appendChild(row);
+      });
+      wrongCard.appendChild(list);
+
+      // 전체 저장 버튼 (모두 한 번에)
+      const allSavedCount = wrongWords.filter(w =>
+        (state.pitch_vocab || []).some(v => String(v.word || '').toLowerCase().trim() === String(w.en || '').toLowerCase().trim())
+      ).length;
+      if (allSavedCount < wrongWords.length) {
+        const saveAllBtn = el('button', {
+          style: {
+            width: '100%', marginTop: '12px', padding: '12px',
+            borderRadius: '12px', background: 'var(--orange)', color: '#fff',
+            border: 'none', fontSize: '13px', fontWeight: '800', cursor: 'pointer',
+          },
+          onClick: () => {
+            let added = 0;
+            wrongWords.forEach(w => {
+              if (typeof addToVocabBank === 'function') {
+                addToVocabBank({
+                  word: w.en,
+                  note: w.kr || '',
+                  source: 'boss_wrong',
+                  sourceKey: w.sourceDay != null ? `d${w.sourceDay}-boss-wrong` : '',
+                });
+                added++;
+              }
+            });
+            saveState();
+            showToast(`🔖 ${added}개 단어 단어장에 저장됨`);
+            render();
+          },
+        }, `📥 ${wrongWords.length - allSavedCount}개 전부 단어장에 저장`);
+        wrongCard.appendChild(saveAllBtn);
+      }
+      page.appendChild(wrongCard);
+    }
+
     const rewardCardTop = el('div', { style: { padding: '24px 22px', borderRadius: '24px', background: 'linear-gradient(135deg, #E8F5E9 0%, #F0F8E8 100%)', border: '1px solid rgba(74,160,124,0.4)', textAlign: 'center', marginBottom: '16px' } });
     rewardCardTop.innerHTML = `
       <div style="font-size:48px;line-height:1;margin-bottom:8px;">✨</div>
@@ -11083,10 +11237,17 @@ window.__bingoFinishBoss = (weekN) => {
   state.bingo_done = state.bingo_done || {};
   if (!state.bingo_done[String(weekN)]) state.bingo_done[String(weekN)] = new Date().toISOString();
   state.bingo_boss_results = state.bingo_boss_results || {};
+  // wrongWords — drill.wrongWords 에 push 한 단어들. 중복 dedupe.
+  const wrongMap = {};
+  (drill.wrongWords || []).forEach(w => {
+    if (!w || !w.en) return;
+    if (!wrongMap[w.en]) wrongMap[w.en] = { en: w.en, kr: w.kr || w.def || '', sourceDay: w.sourceDay || null };
+  });
   state.bingo_boss_results[String(weekN)] = {
     score: drill.score || 0,
     total: drill.queue.length || 10,
     at: new Date().toISOString(),
+    wrongWords: Object.values(wrongMap),
   };
   saveState();
   window.__bingoDrill[weekN] = null;
@@ -11164,8 +11325,10 @@ window.__bingoDrillPickChoice = (weekN, idx) => {
       render();
     }, 700);
   } else {
-    // 오답 → 정답 노출 (학습), 한 번 더 클릭으로 다음
+    // 오답 → 정답 노출 (학습), 한 번 더 클릭으로 다음 + wrongWords 에 기록
     drill.revealAnswer = true;
+    drill.wrongWords = drill.wrongWords || [];
+    if (w) drill.wrongWords.push(w);
   }
   render();
 };
@@ -11174,6 +11337,9 @@ window.__bingoDrillSkip = (weekN) => {
   if (!drill || drill.done) return;
   const w = drill.queue[drill.idx];
   if (w) recordVocabSkip(w.en);
+  // 스킵 = 틀린 거 (학습 복습 대상)
+  drill.wrongWords = drill.wrongWords || [];
+  if (w) drill.wrongWords.push(w);
   drill.idx += 1;
   drill.value = '';
   drill.pickedIdx = null;
@@ -18176,6 +18342,11 @@ function SettingsModal() {
             <button id="__settingsShowMiniSurveyW2" data-week="2" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">⚡ W2 미니 설문</button>
             <button id="__settingsResetMySurveyW2" data-week="2" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">↺ 내 W2 응답 초기화</button>
           </div>
+          <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
+            <button id="__settingsShowMiniSurveyW3" data-week="3" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">⚡ W3 미니 설문</button>
+            <button id="__settingsResetMySurveyW3" data-week="3" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">↺ 내 W3 응답 초기화</button>
+            <button id="__settingsResetMyBingoW3" data-week="3" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">↺ 내 W3 시험 초기화</button>
+          </div>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
           <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📱 잠금화면 단어장 다운로드</div>
@@ -18475,6 +18646,41 @@ function SettingsModal() {
       delete state.week_survey['2'];
       try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
       showToast('내 Week 2 설문 응답 초기화 — 다시 작성 가능');
+      render();
+    };
+    // Operator: ⚡ W3 미니 설문 미리보기
+    const showMiniSurveyW3Btn = document.getElementById('__settingsShowMiniSurveyW3');
+    if (showMiniSurveyW3Btn) showMiniSurveyW3Btn.onclick = () => {
+      showSettings = false;
+      showMiniWeekSurvey = 3;
+      render();
+    };
+    // Operator: ↺ 내 W3 응답 초기화
+    const resetMySurveyW3Btn = document.getElementById('__settingsResetMySurveyW3');
+    if (resetMySurveyW3Btn) resetMySurveyW3Btn.onclick = () => {
+      state.week_survey = state.week_survey || {};
+      delete state.week_survey['3'];
+      try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
+      showToast('내 Week 3 설문 응답 초기화 — 시험 진입 시 설문부터 떠요');
+      render();
+    };
+    // Operator: ↺ 내 W3 시험 초기화 (bingo + boss_results 둘 다)
+    const resetMyBingoW3Btn = document.getElementById('__settingsResetMyBingoW3');
+    if (resetMyBingoW3Btn) resetMyBingoW3Btn.onclick = () => {
+      if (!confirm('내 Week 3 시험 진행도 + 통과 기록 다 지워요. 진행할까요?')) return;
+      state.bingo_done = state.bingo_done || {};
+      state.bingo_boss_results = state.bingo_boss_results || {};
+      state.bingo_marked = state.bingo_marked || {};
+      state.bingo = state.bingo || {};
+      delete state.bingo_done['3'];
+      delete state.bingo_boss_results['3'];
+      delete state.bingo_marked['3'];
+      delete state.bingo['3'];
+      if (window.__bingoSelected) { delete window.__bingoSelected[3]; delete window.__bingoSelected['3']; }
+      if (window.__bingoDrill) { delete window.__bingoDrill[3]; delete window.__bingoDrill['3']; }
+      if (window.__bingoSentenceReveal) { delete window.__bingoSentenceReveal[3]; delete window.__bingoSentenceReveal['3']; }
+      try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
+      showToast('내 Week 3 시험 초기화 완료');
       render();
     };
     // Operator: 🔔 주간 퀴즈 팝업 — 미리보기 (Week 1)
