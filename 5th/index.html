@@ -16822,19 +16822,22 @@ function QuizPage() {
         </div>
       `;
       if (!showFeedback) {
-        const input = el('input', {
-          type: 'text',
-          class: 'input',
-          placeholder: '빈칸에 들어갈 영어 표현',
-          value: userAnswer,
-          style: { width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid var(--line)', borderRadius: '10px', fontFamily: 'inherit' },
-        });
+        // input 직접 createElement — el() helper 의 setAttribute('value') 보다 .value property 가 안정적
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'input';
+        input.placeholder = '빈칸에 들어갈 영어 표현';
+        input.value = userAnswer;
+        input.autocomplete = 'off';
+        input.autocapitalize = 'off';
+        input.spellcheck = false;
+        input.style.cssText = 'width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:10px;font-family:inherit;background:#FFFEFA;';
         input.addEventListener('input', (e) => {
           state.personal_quiz_fill_answers['f'+fi] = e.target.value;
           saveState();
         });
-        // re-render on blur to update progress count (debounced via blur to avoid focus loss)
-        input.addEventListener('blur', () => { render(); });
+        // ❌ blur re-render 제거 — 진행도 업데이트는 다음 사용자 액션 (탭 전환/제출) 때 자동 반영.
+        //    blur → render() 가 input 노드 자체를 destroy → click 자체가 안 먹히는 증상.
         card.appendChild(input);
       } else {
         // 제출 후 — 정답·내 답 비교 표시
@@ -17045,9 +17048,16 @@ function CertPage() {
   dl.innerHTML = `${Icon('download', 16)} 인증서 다운로드 ${overall < 80 ? '(80% 완주 시 열림)' : ''}`;
   page.appendChild(dl);
 
-  // ---- Cert profile 상태 표시 (유저에게 "발표 주제/강점/다음스텝" 이 어디서 오는지 안내) ----
+  // ---- Cert profile 상태 표시 — keyVocab 은 personal_quiz 에서 자동 추출됨 ----
   const cp = state.cert_profile;
-  const hasProfile = !!(cp && (cp.topic || (cp.strengths||[]).length || (cp.growth||[]).length || (cp.keyVocab||[]).length));
+  // personal_quiz 의 fill_items + items.hint 단어들에서 자동 추출 → 수료증 keyVocab.
+  // (운영자가 매번 JSON 주입할 필요 X)
+  const autoKeyVocab = (() => {
+    const fillVocab = (state.personal_quiz?.fill_items || [])
+      .map(it => String(it.en || '').trim()).filter(Boolean);
+    return Array.from(new Set(fillVocab));
+  })();
+  const hasProfileExtras = !!(cp && (cp.topic || (cp.strengths||[]).length || (cp.growth||[]).length));
   const infoCard = el('div', {
     class: 'card card-flat',
     style: { marginTop: '18px', padding: '14px 16px' },
@@ -17055,49 +17065,11 @@ function CertPage() {
   infoCard.innerHTML = `
     <div class="kicker">수료증에 들어가는 정보</div>
     <p class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.6;">
-      이름 · 닉네임 · 직무 · 인증 ${done}일 · 저장한 어휘 ${(state.pitch_vocab||[]).length}개 · 챌린지 기간 · Final Vocabulary (최대 10개)${hasProfile ? ' · 발표 요약 ✅' : ''}
+      이름 · 닉네임 · 직무 · 인증 ${done}일 · 저장한 어휘 ${(state.pitch_vocab||[]).length}개 · 챌린지 기간 · Final Vocabulary (최대 10개)
+      ${autoKeyVocab.length > 0 ? `<br/>· <b style="color:var(--orange-dark);">Key Vocabulary (${autoKeyVocab.length}개)</b> — 내 약점 퀴즈 단어 자동 반영 ✨` : ''}
+      ${hasProfileExtras ? '<br/>· 발표 요약 (운영자 주입)' : ''}
     </p>`;
   page.appendChild(infoCard);
-
-  // ---- 운영자 전용 — cert_profile 주입 패널 ----
-  if (state.isOperator) {
-    const opCard = el('div', {
-      class: 'card card-flat',
-      style: { marginTop: '12px', padding: '16px 18px', border: '1.5px dashed rgba(0,0,0,0.15)' },
-    });
-    opCard.appendChild(el('div', { class: 'kicker' }, 'OPERATOR · INJECT CERT PROFILE'));
-    opCard.appendChild(el('p', { class: 't-small', style: { marginTop: '6px', color: 'var(--ink-soft)' } },
-      'JSON: {"topic":"...","strengths":["...","..."],"growth":["..."],"keyVocab":["set the stage","roll out"]}'));
-    const ta = el('textarea', {
-      class: 'textarea',
-      style: { width: '100%', minHeight: '140px', marginTop: '8px', fontFamily: 'monospace', fontSize: '12px' },
-      placeholder: '{"topic":"...","strengths":[...],"growth":[...],"keyVocab":[...]}',
-    });
-    if (cp) ta.value = JSON.stringify(cp, null, 2);
-    opCard.appendChild(ta);
-    const btnRow = el('div', { style: { display: 'flex', gap: '8px', marginTop: '10px' } });
-    const injectBtn = el('button', { class: 'btn btn-lilac', onClick: () => {
-      try {
-        const parsed = JSON.parse(ta.value);
-        if (window.__injectCertProfile(parsed)) {
-          showToast('✅ 수료증 프로필 주입됨');
-        }
-      } catch (e) {
-        showToast('JSON 파싱 실패: ' + e.message);
-      }
-    } }, '주입');
-    btnRow.appendChild(injectBtn);
-    if (cp) {
-      const clearBtn = el('button', { class: 'btn btn-ghost', onClick: () => {
-        if (!confirm('cert_profile 지울까요?')) return;
-        window.__clearCertProfile();
-        showToast('지웠어요');
-      } }, '지우기');
-      btnRow.appendChild(clearBtn);
-    }
-    opCard.appendChild(btnRow);
-    page.appendChild(opCard);
-  }
 
   return page;
 }
@@ -22919,6 +22891,28 @@ function downloadCertificate(name, done, total, overall) {
     } catch (_) {}
   }
 
+  // keyVocab 자동 추출 — personal_quiz.fill_items 의 en 단어들 dedupe.
+  // 운영자가 별도 JSON 주입 안 해도 수료증 'Key Vocabulary' 섹션 자동 채워짐.
+  // state.cert_profile 에 별도로 들어있으면 그것도 merge (운영자 수동 추가).
+  const autoKeyVocab = Array.from(new Set(
+    (state.personal_quiz?.fill_items || [])
+      .map(it => String(it.en || '').trim())
+      .filter(Boolean)
+  ));
+  const baseProfile = state.cert_profile || {};
+  const mergedKeyVocab = (() => {
+    const manual = Array.isArray(baseProfile.keyVocab) ? baseProfile.keyVocab : [];
+    const seen = new Set();
+    const out = [];
+    [...autoKeyVocab, ...manual].forEach(v => {
+      const norm = String(v).trim().toLowerCase();
+      if (!norm || seen.has(norm)) return;
+      seen.add(norm); out.push(v);
+    });
+    return out;
+  })();
+  const mergedProfile = { ...baseProfile, keyVocab: mergedKeyVocab };
+
   const html = buildCertHtml({
     name,
     englishName,
@@ -22930,7 +22924,7 @@ function downloadCertificate(name, done, total, overall) {
     startDate: startDate.replace(/-/g, '.'),
     endDate: endDate.replace(/-/g, '.'),
     days: daysSpan,
-    profile: state.cert_profile,
+    profile: mergedProfile,
     finalVocab,
   });
   const filename = `youbuddy-certificate-${(englishName || name || 'member').replace(/\s+/g, '_')}.html`;
