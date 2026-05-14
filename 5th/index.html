@@ -10391,11 +10391,31 @@ function renderBingoMode(page, weekN, week, isPremium) {
     page.appendChild(rewardCardTop);
 
     // 주간 설문 — 보스 통과 후 reward 카드 바로 아래.
-    // 한 번 제출하면 thank-you 카드. 패스 누른 사람은 "다시 답변하고 싶어요" 옵션.
+    // Week 2·3 (mini 주차): 시험 전 게이트에서 이미 미니 설문 끝남 → 인라인 카드 X.
+    //                       대신 작은 '✓ 회고 마쳤어요' 배지.
+    // Week 1·4 (메인 주차): 메인 설문 → 인라인이 아닌 popup (showSurveyFillModal) 으로 자동 노출.
     const surveyKey = String(weekN);
     const existingSurvey = state.week_survey && state.week_survey[surveyKey];
-    if (existingSurvey && existingSurvey.at && !existingSurvey.skipped) {
-      // 이미 제출 — thank-you 카드
+    const miniDone = !!(existingSurvey && existingSurvey.mini && existingSurvey.mini.at);
+    const mainDone = !!(existingSurvey && existingSurvey.at && !existingSurvey.skipped);
+    const isMiniWeek = (weekN === 2 || weekN === 3);
+
+    if (isMiniWeek) {
+      // mini 주차 — 이미 게이트에서 했어요. 작은 배지만.
+      if (miniDone) {
+        const miniBadge = el('div', {
+          style: {
+            marginTop: '4px', padding: '12px 16px', borderRadius: '14px',
+            background: 'rgba(155,127,174,0.10)', border: '1px solid rgba(155,127,174,0.25)',
+            textAlign: 'center', marginBottom: '16px',
+            fontSize: '12.5px', color: 'var(--ink-soft)', lineHeight: '1.55',
+          },
+        });
+        miniBadge.innerHTML = `<b style="color:#6B4F7D;">✓ 1분 회고 마쳤어요</b> — 의견 그대로 Week ${weekN + 1} 에 반영돼요 🧡`;
+        page.appendChild(miniBadge);
+      }
+    } else if (mainDone) {
+      // Week 1·4 메인 주차 — 제출 완료 — thank-you 카드
       const done = el('div', {
         style: {
           marginTop: '4px', padding: '20px', borderRadius: '20px',
@@ -10407,12 +10427,31 @@ function renderBingoMode(page, weekN, week, isPremium) {
       done.innerHTML = `
         <div style="font-size:32px;line-height:1;">🙏</div>
         <div style="margin-top:8px;font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">설문 답변 고마워요</div>
-        <div class="t-small" style="margin-top:6px;color:var(--ink-soft);font-size:12px;line-height:1.5;">${escapeHtml(existingSurvey.at.slice(0, 16).replace('T', ' '))} 에 제출됨. Week ${weekN + 1} 가 더 좋아질 거예요.</div>
+        <div class="t-small" style="margin-top:6px;color:var(--ink-soft);font-size:12px;line-height:1.5;">${escapeHtml(existingSurvey.at.slice(0, 16).replace('T', ' '))} 에 제출됨. Week ${weekN + 1} 가 더 좋아질 거요.</div>
       `;
       page.appendChild(done);
     } else {
-      // 미제출 or 패스 처리됨 → 다시 노출
-      page.appendChild(renderWeekSurveyCard(weekN));
+      // Week 1·4 메인 미제출 — 인라인 카드 대신 popup 으로 + 트리거 버튼
+      const surveyBtn = el('button', {
+        style: {
+          width: '100%', marginTop: '4px', marginBottom: '16px',
+          padding: '14px 18px', borderRadius: '18px',
+          background: 'linear-gradient(135deg, #F5F1FA 0%, #FFF5E6 100%)',
+          border: '1px solid rgba(155,127,174,0.32)',
+          cursor: 'pointer', textAlign: 'left',
+          display: 'flex', alignItems: 'center', gap: '14px',
+        },
+        onClick: () => { showSurveyFillModal = weekN; render(); },
+      });
+      surveyBtn.innerHTML = `
+        <div style="flex-shrink:0;width:42px;height:42px;border-radius:14px;background:rgba(155,127,174,0.18);display:grid;place-items:center;font-size:20px;">📝</div>
+        <div style="flex:1;min-width:0;text-align:left;">
+          <div style="font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">Week ${weekN} 회고 1분만 부탁드려요</div>
+          <div class="t-small" style="margin-top:3px;font-size:11.5px;color:var(--ink-soft);line-height:1.5;">의견 그대로 Week ${weekN + 1} 에 반영돼요. 답변은 운영진만 봐요.</div>
+        </div>
+        <div style="flex-shrink:0;color:#7B5E8C;font-size:14px;font-weight:800;">→</div>
+      `;
+      page.appendChild(surveyBtn);
     }
   }
 
@@ -21042,9 +21081,17 @@ function SurveyFillModal() {
   const isSubmitted = !!(existing && existing.at && !existing.skipped);
 
   // 본문 — submitted 상태면 thank-you + mini-summary, 아니면 설문 카드
+  // 스크롤·드래그 가능: overflowY auto + iOS 모멘텀 스크롤 + 바디 스크롤 분리
   const body = el('div', {
     'data-survey-modal-body': '1',
-    style: { padding: '14px 18px 18px', overflowY: 'auto', flex: '1' },
+    style: {
+      padding: '14px 18px 18px',
+      overflowY: 'auto',
+      flex: '1',
+      WebkitOverflowScrolling: 'touch',
+      overscrollBehavior: 'contain',
+      touchAction: 'pan-y',
+    },
   });
   if (isSubmitted) {
     // Thank-you + Mini-summary
