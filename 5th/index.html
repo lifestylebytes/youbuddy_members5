@@ -21168,12 +21168,21 @@ function MiniWeekSurveyModal() {
   const wk = (CHALLENGE.weeks || []).find((w) => w.n === weekN);
   if (!wk) { showMiniWeekSurvey = null; return el('div'); }
 
-  // draft 상태
+  // draft 상태 — 신규 필드 update_loved, next_week_wish 추가
   if (!window.__miniSurveyDraft) window.__miniSurveyDraft = {};
   if (!window.__miniSurveyDraft[weekN]) {
-    window.__miniSurveyDraft[weekN] = { hardest: '', amount: '', comment: '' };
+    window.__miniSurveyDraft[weekN] = {
+      update_loved: [],   // 이번 주 업데이트 중 좋았던 거 (multi)
+      hardest: '',
+      amount: '',
+      next_week_wish: [], // 다음 주 우선순위 (multi)
+      comment: '',
+    };
   }
   const draft = window.__miniSurveyDraft[weekN];
+  // 옛 draft (3필드만) → 신규 필드 보강
+  if (!Array.isArray(draft.update_loved)) draft.update_loved = [];
+  if (!Array.isArray(draft.next_week_wish)) draft.next_week_wish = [];
 
   // close(opts):
   //   { mark: 'skip' } — 패스 버튼 누른 경우만 영구 skipped 마킹 (다음에 안 뜸)
@@ -21205,8 +21214,10 @@ function MiniWeekSurveyModal() {
     state.week_survey = state.week_survey || {};
     const cur = state.week_survey[String(weekN)] || {};
     cur.mini = {
+      update_loved: Array.isArray(draft.update_loved) ? draft.update_loved : [],
       hardest: draft.hardest || '',
       amount: draft.amount || '',
+      next_week_wish: Array.isArray(draft.next_week_wish) ? draft.next_week_wish : [],
       comment: (draft.comment || '').trim(),
       at: new Date().toISOString(),
       skipped: false,
@@ -21216,6 +21227,50 @@ function MiniWeekSurveyModal() {
     showToast('🙏 답변 고마워요! 시험 시작할게요');
     proceed();
   };
+
+  // 이번 주 업데이트 recap — 주차별 하드코딩 (멤버한테 보이는 것만)
+  const WEEK_UPDATES = {
+    '2': [
+      { id: 'syn_expand', emoji: '✨', label: '유의어 박스 커짐 + 발음 듣기' },
+      { id: 'boss_save', emoji: '📚', label: '단어시험 오답 → 단어장 저장 옵션' },
+      { id: 'premium_20', emoji: '💎', label: '(P) 단어 시험 최대 20개' },
+    ],
+    '3': [
+      { id: 'ai_kr', emoji: '✨', label: 'AI 첨삭이 한국어 섞인 영작도 번역 ("충성도" → loyalty)' },
+      { id: 'boss_wrong_save', emoji: '📚', label: '시험에서 틀린 단어 → 결과 화면에서 단어장 저장' },
+      { id: 'peer_alarm', emoji: '🔔', label: '동료가 문장 올리면 실시간 알림 (탕비실 가족느낌)' },
+      { id: 'meeting_live', emoji: '🎬', label: '미팅 페이지에 "이렇게 진행돼요" 가이드 카드' },
+      { id: 'survey_first', emoji: '📝', label: '시험 전 1분 회고로 직접 의견 전달 (지금 이거!)' },
+      { id: 'pq_fill', emoji: '💎', label: '(P) 내 약점 퀴즈에 빈칸 채우기 페이지 추가' },
+    ],
+    '4': [
+      { id: 'final_test', emoji: '🏆', label: 'Week 4 = Day 1~20 종합 파이널 테스트' },
+    ],
+  };
+  const updates = WEEK_UPDATES[String(weekN)] || [];
+
+  // 다음 주 우선순위 옵션 — 주차별
+  const NEXT_WISH = {
+    '2': [
+      { id: 'more_examples', label: '✏️ 본인 문장 예시 더 많이' },
+      { id: 'voice_input', label: '🎙 음성 입력 안정화' },
+      { id: 'ai_grammar', label: '🧠 AI 문법 깊이 분석' },
+      { id: 'spaced', label: '🔁 매일 오답 자동 복습' },
+    ],
+    '3': [
+      { id: 'final_report', label: '📊 4주 종합 리포트 (자주 틀린 단어 / 강점)' },
+      { id: 'final_test', label: '🎯 Day 1~20 종합 단어 테스트' },
+      { id: 'cert_preview', label: '🏆 수료증 미리보기' },
+      { id: 'script_archive', label: '📜 4주간 내 문장 모아보기' },
+      { id: 'pronunciation', label: '🔊 발음 연습 모드' },
+      { id: 'premium_chat', label: '💎 프리미엄 단톡' },
+    ],
+    '4': [
+      { id: 'next_cohort', label: '🚀 다음 기수 우선 등록' },
+      { id: 'lessons_archive', label: '📚 4주 학습 자료 영구 보관' },
+    ],
+  };
+  const wishes = NEXT_WISH[String(weekN)] || [];
 
   // 해당 주차 단어 (메인 + premium 이면 syn) 모으기
   const vocab = [];
@@ -21248,16 +21303,21 @@ function MiniWeekSurveyModal() {
     style: { padding: '18px 20px 14px', borderBottom: '1px solid var(--line)', flexShrink: '0', display: 'flex', alignItems: 'center', gap: '10px' },
   });
   header.innerHTML = `
-    <div style="font-size:20px;line-height:1;">⚡</div>
+    <div style="font-size:20px;line-height:1;">📝</div>
     <div style="flex:1;min-width:0;">
-      <div style="font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">시험 시작 전 30초만</div>
-      <div style="margin-top:2px;font-size:11.5px;color:var(--muted);">3문항 답하면 운영진이 다음 주 더 잘 만들어요</div>
+      <div style="font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">Week ${weekN} 회고 · Week ${weekN + 1} 더 좋게</div>
+      <div style="margin-top:2px;font-size:11.5px;color:var(--muted);">1분만 — 본인 의견 다음 주에 그대로 반영해요</div>
     </div>
     <button id="__miniSurveyClose" style="background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">✕</button>
   `;
   modal.appendChild(header);
 
-  const body = el('div', { style: { padding: '14px 18px 18px', overflowY: 'auto', flex: '1' } });
+  const body = el('div', {
+    style: {
+      padding: '14px 18px 18px', overflowY: 'auto', flex: '1',
+      WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', touchAction: 'pan-y',
+    },
+  });
   const sectionH = (n, title) => `
     <div style="margin-top:${n === 1 ? '4px' : '20px'};padding-top:${n === 1 ? '0' : '16px'};border-top:${n === 1 ? 'none' : '1px dashed rgba(155,127,174,0.2)'};">
       <div style="display:flex;align-items:baseline;gap:8px;">
@@ -21267,16 +21327,52 @@ function MiniWeekSurveyModal() {
     </div>
   `;
 
-  body.innerHTML = `
-    ${sectionH(1, `Week ${weekN} 단어 중 가장 헷갈렸던 1개?`)}
+  // 1) 이번 주 업데이트 recap (있을 때만)
+  const updateRecapHtml = updates.length === 0 ? '' : `
+    <div style="padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#FFF5E6 0%,#FFE5D9 100%);border:1px solid var(--orange-soft);margin-bottom:6px;">
+      <div style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:var(--orange-dark);text-transform:uppercase;">🎁 이번 주 업데이트 — 의견 반영본</div>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
+        ${updates.map(u => `
+          <div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--ink);line-height:1.5;">
+            <span style="flex-shrink:0;font-size:14px;line-height:1.3;">${u.emoji}</span>
+            <span>${escapeHtml(u.label)}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  // 2) Q1: 이번 주 업데이트 중 좋았던 거 (multi)
+  const q1Html = updates.length === 0 ? '' : `
+    ${sectionH(1, '이번 주 업데이트 중 어떤 게 제일 좋았어요? (여러 개 OK)')}
+    <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
+      ${updates.map(u => {
+        const active = (draft.update_loved || []).includes(u.id);
+        return `<button data-mini-loved="${escapeHtml(u.id)}" style="width:100%;text-align:left;padding:10px 12px;border-radius:12px;background:${active ? 'rgba(240,125,56,0.14)' : '#fff'};color:var(--ink);border:1.5px solid ${active ? 'var(--orange)' : 'var(--line)'};font-size:12.5px;font-weight:${active ? '700' : '500'};cursor:pointer;display:flex;align-items:flex-start;gap:8px;line-height:1.45;">
+          <span style="flex-shrink:0;width:18px;height:18px;border-radius:5px;border:1.5px solid ${active ? 'var(--orange)' : 'var(--line)'};background:${active ? 'var(--orange)' : '#fff'};color:#fff;display:grid;place-items:center;font-size:11px;font-weight:800;margin-top:1px;">${active ? '✓' : ''}</span>
+          <span style="flex:1;text-align:left;">${u.emoji} ${escapeHtml(u.label)}</span>
+        </button>`;
+      }).join('')}
+      <button data-mini-loved="none_noticed" style="width:100%;text-align:left;padding:10px 12px;border-radius:12px;background:${(draft.update_loved || []).includes('none_noticed') ? 'rgba(154,139,115,0.12)' : '#fff'};color:var(--muted);border:1.5px solid ${(draft.update_loved || []).includes('none_noticed') ? 'rgba(154,139,115,0.5)' : 'var(--line)'};font-size:12px;cursor:pointer;line-height:1.45;">
+        🤔 잘 못 봤어요 / 그냥 그랬어요
+      </button>
+    </div>
+  `;
+
+  // 3) Q2: hardest vocab (existing)
+  const q2Html = `
+    ${sectionH(updates.length ? 2 : 1, `이번 주 가장 헷갈렸던 단어 1개?`)}
     <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
       ${vocab.map((v) => {
         const active = draft.hardest === v.en;
         return `<button data-mini-hardest="${escapeHtml(v.en)}" style="padding:8px 12px;border-radius:999px;background:${active ? 'var(--ink)' : '#fff'};color:${active ? 'var(--cream)' : 'var(--ink)'};border:1px solid ${active ? 'var(--ink)' : 'var(--line)'};font-size:12px;font-weight:${active ? '700' : '500'};cursor:pointer;">${escapeHtml(v.en)}</button>`;
       }).join('')}
     </div>
+  `;
 
-    ${sectionH(2, '학습 분량 어땠어요?')}
+  // 4) Q3: amount
+  const q3Html = `
+    ${sectionH(updates.length ? 3 : 2, '학습 분량 어땠어요?')}
     <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
       ${[
         { v: 'just_right', label: '😌 적당했어요' },
@@ -21288,9 +21384,36 @@ function MiniWeekSurveyModal() {
         return `<button data-mini-amount="${escapeHtml(o.v)}" style="width:100%;text-align:left;padding:11px 14px;border-radius:12px;background:${active ? 'var(--ink)' : '#fff'};color:${active ? 'var(--cream)' : 'var(--ink)'};border:1px solid ${active ? 'var(--ink)' : 'var(--line)'};font-size:13px;font-weight:${active ? '700' : '500'};cursor:pointer;">${escapeHtml(o.label)}</button>`;
       }).join('')}
     </div>
+  `;
 
-    ${sectionH(3, '한 줄 코멘트 (선택)')}
-    <textarea id="__miniSurveyComment" maxlength="200" placeholder="예) 발음 어려웠어요 / Day 8 빡셨음 / 미팅 너무 좋았어요 ..." style="width:100%;margin-top:8px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:13px;font-family:inherit;line-height:1.5;color:var(--ink);resize:vertical;min-height:60px;box-sizing:border-box;">${escapeHtml(draft.comment || '')}</textarea>
+  // 5) Q4: next_week_wish (multi)
+  const q4Html = wishes.length === 0 ? '' : `
+    ${sectionH(updates.length ? 4 : 3, `Week ${weekN + 1} 에 이거 있으면 좋겠어요 (복수 선택)`)}
+    <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
+      ${wishes.map(w => {
+        const active = (draft.next_week_wish || []).includes(w.id);
+        return `<button data-mini-wish="${escapeHtml(w.id)}" style="width:100%;text-align:left;padding:10px 12px;border-radius:12px;background:${active ? 'rgba(155,127,174,0.16)' : '#fff'};color:var(--ink);border:1.5px solid ${active ? '#A98BB8' : 'var(--line)'};font-size:12.5px;font-weight:${active ? '700' : '500'};cursor:pointer;display:flex;align-items:flex-start;gap:8px;line-height:1.45;">
+          <span style="flex-shrink:0;width:18px;height:18px;border-radius:5px;border:1.5px solid ${active ? '#A98BB8' : 'var(--line)'};background:${active ? '#A98BB8' : '#fff'};color:#fff;display:grid;place-items:center;font-size:11px;font-weight:800;margin-top:1px;">${active ? '✓' : ''}</span>
+          <span style="flex:1;text-align:left;">${escapeHtml(w.label)}</span>
+        </button>`;
+      }).join('')}
+    </div>
+  `;
+
+  // 6) Q5 (optional): comment
+  const qCommentN = updates.length ? (wishes.length ? 5 : 4) : (wishes.length ? 4 : 3);
+  const commentHtml = `
+    ${sectionH(qCommentN, '한 줄 (선택) — 위 옵션에 없는 거')}
+    <textarea id="__miniSurveyComment" maxlength="200" placeholder="예) 발음 어려웠어요 / Day 13 빡셨음 / 미팅 너무 좋았어요 ..." style="width:100%;margin-top:8px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:13px;font-family:inherit;line-height:1.5;color:var(--ink);resize:vertical;min-height:60px;box-sizing:border-box;">${escapeHtml(draft.comment || '')}</textarea>
+  `;
+
+  body.innerHTML = `
+    ${updateRecapHtml}
+    ${q1Html}
+    ${q2Html}
+    ${q3Html}
+    ${q4Html}
+    ${commentHtml}
 
     <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px;">
       <button id="__miniSurveySubmit" class="btn btn-primary btn-full" style="background:var(--orange);border:none;font-size:14px;padding:14px;">답변하고 시험 시작 →</button>
@@ -21325,6 +21448,62 @@ function MiniWeekSurveyModal() {
           b.style.color = active ? 'var(--cream)' : 'var(--ink)';
           b.style.borderColor = active ? 'var(--ink)' : 'var(--line)';
           b.style.fontWeight = active ? '700' : '500';
+        });
+      });
+    });
+    // Q1 update_loved (multi-select)
+    body.querySelectorAll('[data-mini-loved]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-mini-loved');
+        draft.update_loved = Array.isArray(draft.update_loved) ? draft.update_loved : [];
+        const idx = draft.update_loved.indexOf(id);
+        if (idx >= 0) draft.update_loved.splice(idx, 1);
+        else draft.update_loved.push(id);
+        // 'none_noticed' 누르면 나머지 해제 + 본인만 활성. 다른 거 누르면 'none_noticed' 자동 해제.
+        if (id === 'none_noticed' && draft.update_loved.includes('none_noticed')) {
+          draft.update_loved = ['none_noticed'];
+        } else if (id !== 'none_noticed') {
+          draft.update_loved = draft.update_loved.filter(x => x !== 'none_noticed');
+        }
+        // 인플레이스 visual 업데이트
+        body.querySelectorAll('[data-mini-loved]').forEach((b) => {
+          const bid = b.getAttribute('data-mini-loved');
+          const active = draft.update_loved.includes(bid);
+          const isNone = bid === 'none_noticed';
+          const accentBg = isNone ? 'rgba(154,139,115,0.12)' : 'rgba(240,125,56,0.14)';
+          const accentBorder = isNone ? 'rgba(154,139,115,0.5)' : 'var(--orange)';
+          b.style.background = active ? accentBg : '#fff';
+          b.style.borderColor = active ? accentBorder : 'var(--line)';
+          b.style.fontWeight = active ? '700' : '500';
+          const checkbox = b.querySelector('span:first-child');
+          if (checkbox) {
+            checkbox.style.background = active && !isNone ? 'var(--orange)' : (active && isNone ? 'rgba(154,139,115,0.5)' : '#fff');
+            checkbox.style.borderColor = active ? accentBorder : 'var(--line)';
+            checkbox.textContent = active ? '✓' : '';
+          }
+        });
+      });
+    });
+    // Q4 next_week_wish (multi-select)
+    body.querySelectorAll('[data-mini-wish]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-mini-wish');
+        draft.next_week_wish = Array.isArray(draft.next_week_wish) ? draft.next_week_wish : [];
+        const idx = draft.next_week_wish.indexOf(id);
+        if (idx >= 0) draft.next_week_wish.splice(idx, 1);
+        else draft.next_week_wish.push(id);
+        body.querySelectorAll('[data-mini-wish]').forEach((b) => {
+          const bid = b.getAttribute('data-mini-wish');
+          const active = draft.next_week_wish.includes(bid);
+          b.style.background = active ? 'rgba(155,127,174,0.16)' : '#fff';
+          b.style.borderColor = active ? '#A98BB8' : 'var(--line)';
+          b.style.fontWeight = active ? '700' : '500';
+          const checkbox = b.querySelector('span:first-child');
+          if (checkbox) {
+            checkbox.style.background = active ? '#A98BB8' : '#fff';
+            checkbox.style.borderColor = active ? '#A98BB8' : 'var(--line)';
+            checkbox.textContent = active ? '✓' : '';
+          }
         });
       });
     });
