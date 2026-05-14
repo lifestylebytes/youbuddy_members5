@@ -16677,6 +16677,26 @@ function QuizPage() {
     `${weekN ? `Week ${weekN} 발표 스크립트 기반 · ` : ''}당신이 놓쳤던 표현 위주로 ${mcItems.length + fillItems.length}문항. 틀려도 OK — 다시 만나면 기억에 남아요.`
   ));
 
+  // ── 운영자 전용: 현재 퀴즈 비우기 (새 JSON 주입 위해 잠금 상태로 돌아가기)
+  if (state.isOperator || state.tier === 'premium') {
+    const resetRow = el('div', { style: { marginTop: '10px', display: 'flex', justifyContent: 'flex-end' } });
+    const clearBtn = el('button', {
+      style: {
+        padding: '6px 12px', borderRadius: '99px',
+        background: 'transparent', border: '1px solid var(--line)',
+        color: 'var(--muted)', fontSize: '11.5px', fontWeight: '600', cursor: 'pointer',
+      },
+      onClick: () => {
+        if (!confirm('현재 퀴즈를 지우고 새 JSON 주입 화면으로 돌아갈까요?\n(응답 기록도 다 지워져요)')) return;
+        window.__clearPersonalQuiz();
+        window.__pqTab = null;
+        showToast('퀴즈 비웠어요 — 새 JSON 주입 가능');
+      },
+    }, '🗑 현재 퀴즈 비우기 (재주입용)');
+    resetRow.appendChild(clearBtn);
+    page.appendChild(resetRow);
+  }
+
   // ── 탭 nav
   const tabNav = el('div', { style: { display: 'flex', gap: '6px', marginTop: '14px', marginBottom: '12px', borderBottom: '1px solid var(--line)' } });
   const mkTab = (key, label, total, count, locked) => {
