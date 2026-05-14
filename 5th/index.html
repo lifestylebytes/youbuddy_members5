@@ -16560,6 +16560,84 @@ function QuizPage() {
       page.appendChild(opCard);
     }
 
+    // ─────────── OPERATOR · PUSH TO MEMBER ───────────
+    // 운영자 전용: 멤버 한 명 골라서 그 사람 app_state 에 직접 푸시.
+    // 멤버는 본인 페이지 들어가면 이미 채워져 있음 (paste 작업 X).
+    if (state.isOperator) {
+      const pushCard = el('div', {
+        class: 'card card-flat',
+        style: { marginTop: '14px', padding: '16px 18px', border: '1.5px solid var(--orange-soft)', background: 'rgba(240,125,56,0.04)' },
+      });
+      pushCard.appendChild(el('div', { class: 'kicker', style: { color: 'var(--orange-dark)' } }, '📤 OPERATOR · PUSH TO MEMBER'));
+      pushCard.appendChild(el('p', { class: 't-small', style: { marginTop: '6px', color: 'var(--ink-soft)', lineHeight: '1.55' } },
+        '멤버 한 명 골라서 그 사람 계정에 직접 푸시 — 멤버는 paste 작업 X, 본인 페이지 들어가면 이미 채워져 있음.'));
+
+      // 멤버 셀렉트 (premium 만, 본인 제외)
+      const select = el('select', {
+        style: { width: '100%', marginTop: '10px', padding: '10px 12px', fontSize: '13px', border: '1px solid var(--line)', borderRadius: '10px', background: '#fff', fontFamily: 'inherit' },
+      });
+      select.appendChild(el('option', { value: '' }, '— 푸시 대상 멤버 선택 —'));
+      const rows = (typeof memberSummaryCache !== 'undefined' && Array.isArray(memberSummaryCache.rows))
+        ? memberSummaryCache.rows : [];
+      const premiumMembers = rows
+        .filter(r => r.tier === 'premium' && r.member_key && r.member_key !== memberKey())
+        .sort((a, b) => (a.english_name || a.member_name || '').localeCompare(b.english_name || b.member_name || ''));
+      premiumMembers.forEach(r => {
+        const label = (r.english_name && r.english_name.trim())
+          ? `${r.english_name} · ${r.member_name}`
+          : (r.member_name || r.member_key);
+        select.appendChild(el('option', { value: r.member_key }, label));
+      });
+      pushCard.appendChild(select);
+
+      const ta2 = el('textarea', {
+        class: 'textarea',
+        style: { width: '100%', minHeight: '120px', marginTop: '8px', fontFamily: 'monospace', fontSize: '12px', padding: '10px', borderRadius: '10px', border: '1px solid var(--line)' },
+        placeholder: '{"week": 3, "items": [...], "fill_items": [...]}',
+      });
+      pushCard.appendChild(ta2);
+
+      const pushBtnRow = el('div', { style: { display: 'flex', gap: '8px', marginTop: '10px' } });
+      const pushBtn = el('button', {
+        class: 'btn btn-primary',
+        style: { background: 'var(--orange)', border: 'none', color: '#fff' },
+        onClick: async () => {
+          const targetKey = select.value;
+          if (!targetKey) { showToast('멤버 먼저 선택하세요'); return; }
+          if (!hasSupabase()) { showToast('Supabase 연결 안 됨'); return; }
+          let parsed;
+          try { parsed = JSON.parse(ta2.value); }
+          catch (e) { showToast('JSON 파싱 실패: ' + e.message); return; }
+          if (!parsed || (!Array.isArray(parsed.items) && !Array.isArray(parsed.fill_items))) {
+            showToast('items / fill_items 둘 다 비어있어요'); return;
+          }
+          pushBtn.disabled = true;
+          pushBtn.textContent = '📤 푸시 중...';
+          try {
+            const res = await supabaseRpc('operator_push_personal_quiz', {
+              p_cohort: CHALLENGE.cohort || '5기',
+              p_target_member_key: targetKey,
+              p_quiz: parsed,
+            });
+            const name = (res && res.member_name) || targetKey;
+            const itemsN = (res && res.items_count) || 0;
+            const fillN = (res && res.fill_items_count) || 0;
+            showToast(`✅ ${name} → 4지선다 ${itemsN} / 빈칸 ${fillN} 푸시 완료`);
+            select.value = ''; ta2.value = '';
+          } catch (e) {
+            console.error('[push personal quiz] failed', e);
+            showToast('푸시 실패: ' + String(e?.message || e).slice(0, 80));
+          } finally {
+            pushBtn.disabled = false;
+            pushBtn.textContent = '📤 푸시';
+          }
+        },
+      }, '📤 푸시');
+      pushBtnRow.appendChild(pushBtn);
+      pushCard.appendChild(pushBtnRow);
+      page.appendChild(pushCard);
+    }
+
     // 왜 이렇게 만들었는지 설명 카드 (교육적)
     const whyCard = el('div', {
       class: 'card card-flat',
