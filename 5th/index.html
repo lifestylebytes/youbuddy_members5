@@ -10271,7 +10271,8 @@ function renderBingoMode(page, weekN, week, isPremium) {
       const key = `d${d.day}-${idx}`;
       const ko = (state.sentence_notes?.[key] || '').trim();
       const en = (state.community_edits?.[`me-${key}`]?.sentence || state.sentences?.[key] || '').trim();
-      if (ko || en) myWeekSentences.push({ key, day: d.day, en: w.en, koSentence: ko, enSentence: en });
+      // 이번 주 모든 단어를 다 노출 — 안 쓴 칸은 친근 톤 fallback 메시지로.
+      myWeekSentences.push({ key, day: d.day, en: w.en, kr: w.def, koSentence: ko, enSentence: en });
     });
   });
   if (myWeekSentences.length) {
@@ -10301,16 +10302,24 @@ function renderBingoMode(page, weekN, week, isPremium) {
           transition: 'all 0.18s ease',
         },
       });
+      // 어떤 단어인지 보여주는 작은 태그 — 본인이 KR/EN 둘 다 안 쓴 단어도 어떤 거였는지 인지 가능.
+      const wordTag = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <span style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;color:var(--muted);background:rgba(255,255,255,0.6);padding:3px 7px;border-radius:99px;">DAY ${s.day}</span>
+        <span style="font-size:12px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.005em;">${escapeHtml(s.en)}</span>
+        ${s.kr ? `<span style="font-size:11px;color:var(--muted);font-weight:500;">· ${escapeHtml(s.kr)}</span>` : ''}
+      </div>`;
+
       card.innerHTML = `
+        ${wordTag}
         ${s.koSentence
           ? `<div style="font-size:14.5px;color:var(--ink);line-height:1.55;font-weight:600;">${escapeHtml(s.koSentence)}</div>`
-          : '<div class="t-small" style="color:var(--muted);font-style:italic;">한국어 문장 비어있음</div>'}
+          : '<div class="t-small" style="color:var(--muted);font-style:italic;line-height:1.55;">이 문장은 한글을 적지 않았어요 😅</div>'}
         ${s.enSentence ? `
           <div data-act="toggle-en" style="margin-top:10px;padding:8px 0;cursor:pointer;position:relative;">
             <div style="font-size:13.5px;line-height:1.6;color:var(--ink);${isOpen ? '' : 'filter:blur(5px);user-select:none;'}transition:filter 0.25s ease;">${enHtml}</div>
             ${!isOpen ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;"><span style="background:rgba(255,255,255,0.85);padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700;color:var(--orange-dark);box-shadow:0 2px 8px rgba(0,0,0,0.06);">👀 탭해서 영어 보기</span></div>` : ''}
           </div>
-        ` : `<div class="t-small" style="margin-top:8px;color:var(--muted);font-style:italic;">영어 문장 안 적으셨어요</div>`}
+        ` : `<div class="t-small" style="margin-top:8px;color:var(--muted);font-style:italic;line-height:1.55;">이 문장은 영어를 적지 않았어요 😅</div>`}
         <button data-act="toggle-mark" style="display:flex;align-items:center;gap:6px;margin-top:10px;padding:6px 10px;border-radius:10px;background:${isMarked ? 'var(--orange)' : 'transparent'};color:${isMarked ? '#fff' : 'var(--orange-dark)'};border:1px solid ${isMarked ? 'var(--orange)' : 'var(--orange-soft)'};cursor:pointer;font-size:11.5px;font-weight:700;">
           <span>${isMarked ? '✓' : '○'}</span><span>${isMarked ? '복습 큐에 담음' : '기억 안나요'}</span>
         </button>
