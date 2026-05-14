@@ -16522,15 +16522,20 @@ function QuizPage() {
 
     page.appendChild(lockedCard);
 
-    // 운영자 전용 — 퀴즈 JSON 붙여넣어서 바로 주입 (자기 계정 한정).
-    if (state.isOperator) {
+    // 퀴즈 JSON 붙여넣어서 바로 주입 — 본인 state 한정.
+    // 운영자가 멤버별로 JSON 만들어 DM 으로 전달 → 멤버가 본인 페이지에서 paste.
+    // 운영자: 'OPERATOR · INJECT QUIZ' / 프리미엄 일반: '내 맞춤 퀴즈 받기' 톤 분리.
+    if (state.isOperator || state.tier === 'premium') {
+      const isOp = !!state.isOperator;
       const opCard = el('div', {
         class: 'card card-flat',
         style: { marginTop: '14px', padding: '16px 18px', border: '1.5px dashed rgba(0,0,0,0.15)' },
       });
-      opCard.appendChild(el('div', { class: 'kicker' }, 'OPERATOR · INJECT QUIZ'));
+      opCard.appendChild(el('div', { class: 'kicker' }, isOp ? 'OPERATOR · INJECT QUIZ' : '✨ 운영자한테 받은 JSON 붙여넣기'));
       opCard.appendChild(el('p', { class: 't-small', style: { marginTop: '6px', color: 'var(--ink-soft)', lineHeight: '1.55' } },
-        'JSON: { week, items: [{q, options, a, hint}], fill_items: [{prompt, en, hint}] } — items=4지선다 / fill_items=빈칸 채우기 (prompt에서 en을 자동으로 빈칸 처리)'));
+        isOp
+          ? 'JSON: { week, items: [{q, options, a, hint}], fill_items: [{prompt, en, hint}] } — items=4지선다 / fill_items=빈칸 채우기'
+          : '운영자가 본인 발표 스크립트 보고 만든 JSON 을 DM 으로 보내요. 받으면 여기에 붙여넣고 주입 누르세요.'));
       const ta = el('textarea', {
         class: 'textarea',
         style: { width: '100%', minHeight: '120px', marginTop: '8px', fontFamily: 'monospace', fontSize: '12px' },
