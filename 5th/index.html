@@ -1855,8 +1855,10 @@ const defaultState = () => ({
   checkpoints: {},                // { "d1-record": true }
   quiz_answers: {},               // { "q0": 1 }
   verify_settings: { includeSyn: false, questionCount: 10 }, // 단어 시험 설정 (premium 만 includeSyn=true / count=20 가능)
-  personal_quiz: null,            // { items:[{q,options,a,hint}], basedOnScript:'', injectedAt:'...', week:N } — Gaby 가 발표 후 스크립트 기반으로 직접 주입
-  personal_quiz_answers: {},      // { "q0": 1 } — personal_quiz 에 대한 응답 (CHALLENGE.premium.quiz 와 분리)
+  personal_quiz: null,            // { items:[{q,options,a,hint}], fill_items:[{prompt,en,hint}], basedOnScript, injectedAt, week } — Gaby 가 발표 후 스크립트 기반으로 직접 주입
+  personal_quiz_answers: {},      // { "q0": 1 } — page1 4지선다 응답
+  personal_quiz_fill_answers: {}, // { "f0": "set the stage" } — page2 빈칸 채우기 응답
+  personal_quiz_submitted: { mc: false, fill: false }, // 페이지별 제출 여부 — 제출 후 정답·점수 표시, '다시 풀기' 로 reset
   bookmarks: {},                  // { "d1-0": true }
   saved_syns: {},                 // { "d1-0::Pave the way": true } 유의어 북마크
   community_likes: {},            // { "p1": true }
@@ -1929,6 +1931,8 @@ const PERSISTED_STATE_KEYS = [
   'verify_settings',
   'personal_quiz',
   'personal_quiz_answers',
+  'personal_quiz_fill_answers',
+  'personal_quiz_submitted',
   'bookmarks',
   'saved_syns',
   'community_likes',
@@ -16525,8 +16529,8 @@ function QuizPage() {
         style: { marginTop: '14px', padding: '16px 18px', border: '1.5px dashed rgba(0,0,0,0.15)' },
       });
       opCard.appendChild(el('div', { class: 'kicker' }, 'OPERATOR · INJECT QUIZ'));
-      opCard.appendChild(el('p', { class: 't-small', style: { marginTop: '6px', color: 'var(--ink-soft)' } },
-        'JSON 형식: {"week":1,"items":[{"q":"...","options":["a","b","c","d"],"a":0,"hint":"문법"}]}'));
+      opCard.appendChild(el('p', { class: 't-small', style: { marginTop: '6px', color: 'var(--ink-soft)', lineHeight: '1.55' } },
+        'JSON: { week, items: [{q, options, a, hint}], fill_items: [{prompt, en, hint}] } — items=4지선다 / fill_items=빈칸 채우기 (prompt에서 en을 자동으로 빈칸 처리)'));
       const ta = el('textarea', {
         class: 'textarea',
         style: { width: '100%', minHeight: '120px', marginTop: '8px', fontFamily: 'monospace', fontSize: '12px' },
@@ -16567,66 +16571,241 @@ function QuizPage() {
     return page;
   }
 
-  // ---- Ready: state.personal_quiz.items 로 렌더 ----
+  // ---- Ready: state.personal_quiz.items + fill_items 로 렌더 (2-페이지 탭) ----
   const pq = state.personal_quiz;
-  const items = pq.items || [];
+  const mcItems = pq.items || [];
+  const fillItems = pq.fill_items || [];
   const injectedAt = pq.injectedAt ? new Date(pq.injectedAt) : null;
   const weekN = pq.week != null ? Number(pq.week) : null;
 
+  // 탭 상태 (모듈 레벨 — 페이지 reload 시 첫 탭으로 초기화)
+  if (!window.__pqTab) window.__pqTab = mcItems.length ? 'mc' : 'fill';
+  // fill_items 없는 경우 자동 mc 탭으로
+  if (window.__pqTab === 'fill' && fillItems.length === 0) window.__pqTab = 'mc';
+  if (window.__pqTab === 'mc' && mcItems.length === 0) window.__pqTab = 'fill';
+  const activeTab = window.__pqTab;
+  const submitted = state.personal_quiz_submitted || { mc: false, fill: false };
+
+  // 진행도
+  const mcAnswered = Object.keys(state.personal_quiz_answers || {}).length;
+  const fillAnswered = Object.keys(state.personal_quiz_fill_answers || {}).filter(k => (state.personal_quiz_fill_answers[k] || '').trim()).length;
+
   page.appendChild(el('p', { class: 't-body', style: { marginTop: '8px' } },
-    `${weekN ? `Week ${weekN} 발표 스크립트 기반 · ` : ''}당신이 놓쳤던 표현 위주로 ${items.length}문항 뽑았어요. 틀려도 괜찮아요 — 다시 만나면 기억에 남아요.`
+    `${weekN ? `Week ${weekN} 발표 스크립트 기반 · ` : ''}당신이 놓쳤던 표현 위주로 ${mcItems.length + fillItems.length}문항. 틀려도 OK — 다시 만나면 기억에 남아요.`
   ));
 
-  const stack = el('div', { class: 'stack', style: { marginTop: '18px' } });
-  let correct = 0;
-  items.forEach((q, qi) => {
-    const card = el('div', { class: 'quiz-card' });
-    card.innerHTML = `
-      <div class="row-between" style="margin-bottom:6px;">
-        <span class="kicker">Q${qi+1} / ${items.length}</span>
-        <span class="badge">${q.hint || ''}</span>
-      </div>
-      <div class="quiz-question">${q.q}</div>`;
-    (q.options || []).forEach((opt, oi) => {
-      const chosen = state.personal_quiz_answers['q'+qi];
-      const answered = chosen !== undefined;
-      let cls = 'quiz-option';
-      if (answered) {
-        if (oi === q.a) cls += ' correct';
-        else if (oi === chosen) cls += ' wrong';
-      } else if (chosen === oi) {
-        cls += ' selected';
-      }
-      const b = el('button', {
-        class: cls,
+  // ── 탭 nav
+  const tabNav = el('div', { style: { display: 'flex', gap: '6px', marginTop: '14px', marginBottom: '12px', borderBottom: '1px solid var(--line)' } });
+  const mkTab = (key, label, total, count, locked) => {
+    const isActive = activeTab === key;
+    const btn = el('button', {
+      style: {
+        flex: '1', padding: '12px 8px', background: 'transparent', border: 'none',
+        borderBottom: '2px solid ' + (isActive ? 'var(--lilac)' : 'transparent'),
+        color: locked ? 'var(--muted)' : (isActive ? 'var(--lilac-dark)' : 'var(--ink-soft)'),
+        fontWeight: '700', fontSize: '13px', cursor: locked ? 'not-allowed' : 'pointer',
+        opacity: locked ? 0.5 : 1,
+      },
+      onClick: () => { if (!locked) { window.__pqTab = key; render(); } },
+    });
+    btn.innerHTML = `<div>${label}</div>${total > 0 ? `<div style="font-size:10.5px;font-weight:500;margin-top:3px;opacity:0.75;">${count}/${total}</div>` : ''}`;
+    return btn;
+  };
+  tabNav.appendChild(mkTab('mc', '① 객관식', mcItems.length, mcAnswered, mcItems.length === 0));
+  tabNav.appendChild(mkTab('fill', '② 빈칸 채우기', fillItems.length, fillAnswered, fillItems.length === 0));
+  page.appendChild(tabNav);
+
+  // ───────── PAGE 1: 객관식 ─────────
+  if (activeTab === 'mc' && mcItems.length > 0) {
+    const stack = el('div', { class: 'stack' });
+    let correct = 0;
+    mcItems.forEach((q, qi) => {
+      const card = el('div', { class: 'quiz-card' });
+      card.innerHTML = `
+        <div class="row-between" style="margin-bottom:6px;">
+          <span class="kicker">Q${qi+1} / ${mcItems.length}</span>
+          <span class="badge">${q.hint || ''}</span>
+        </div>
+        <div class="quiz-question">${q.q}</div>`;
+      (q.options || []).forEach((opt, oi) => {
+        const chosen = state.personal_quiz_answers['q'+qi];
+        const answered = chosen !== undefined;
+        let cls = 'quiz-option';
+        if (submitted.mc) {
+          if (oi === q.a) cls += ' correct';
+          else if (oi === chosen) cls += ' wrong';
+        } else if (chosen === oi) {
+          cls += ' selected';
+        }
+        const b = el('button', {
+          class: cls,
+          onClick: () => {
+            if (submitted.mc) return;
+            state.personal_quiz_answers['q'+qi] = oi;
+            saveState();
+            render();
+          }
+        }, opt);
+        card.appendChild(b);
+      });
+      if (state.personal_quiz_answers['q'+qi] === q.a) correct++;
+      stack.appendChild(card);
+    });
+    page.appendChild(stack);
+
+    // 제출 또는 점수+다시풀기
+    if (submitted.mc) {
+      const score = el('div', { class: 'card card-flat', style: { marginTop: '20px', textAlign: 'center' } });
+      score.innerHTML = `
+        <div class="kicker">SCORE · 객관식</div>
+        <div class="serif" style="font-size:44px;line-height:1;color:var(--orange);margin-top:6px;">${correct}<span style="color:var(--muted);">/${mcItems.length}</span></div>
+        <div class="t-small" style="margin-top:6px;">${correct === mcItems.length ? '완벽 🎉' : '틀린 문항 한 번 더 보고 빈칸 채우기로 넘어가요'}</div>`;
+      page.appendChild(score);
+
+      const retryBtn = el('button', {
+        class: 'btn btn-ghost btn-full',
+        style: { marginTop: '14px' },
         onClick: () => {
-          if (state.personal_quiz_answers['q'+qi] !== undefined) return;
-          state.personal_quiz_answers['q'+qi] = oi;
+          state.personal_quiz_answers = {};
+          state.personal_quiz_submitted = { ...submitted, mc: false };
           saveState();
           render();
-        }
-      }, opt);
-      card.appendChild(b);
+        },
+      }, '↻ 객관식 다시 풀기');
+      page.appendChild(retryBtn);
+
+      if (fillItems.length > 0) {
+        const nextBtn = el('button', {
+          class: 'btn btn-lilac btn-full',
+          style: { marginTop: '8px' },
+          onClick: () => { window.__pqTab = 'fill'; render(); window.scrollTo(0, 0); },
+        }, '② 빈칸 채우기 풀러가기 →');
+        page.appendChild(nextBtn);
+      }
+    } else {
+      const allDone = mcAnswered === mcItems.length;
+      const submitBtn = el('button', {
+        class: 'btn btn-primary btn-full',
+        style: { marginTop: '20px', opacity: allDone ? 1 : 0.5 },
+        onClick: () => {
+          if (!allDone) { showToast(`${mcItems.length - mcAnswered}개 더 풀어주세요`); return; }
+          state.personal_quiz_submitted = { ...submitted, mc: true };
+          saveState();
+          render();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+      }, allDone ? '✅ 제출하기' : `${mcAnswered}/${mcItems.length} 풀고 제출`);
+      page.appendChild(submitBtn);
+    }
+  }
+
+  // ───────── PAGE 2: 빈칸 채우기 ─────────
+  if (activeTab === 'fill' && fillItems.length > 0) {
+    const explain = el('div', {
+      class: 'card card-flat',
+      style: { padding: '12px 14px', background: 'rgba(169,139,184,0.08)', border: '1px dashed rgba(169,139,184,0.3)', marginBottom: '14px' },
     });
-    if (state.personal_quiz_answers['q'+qi] === q.a) correct++;
-    stack.appendChild(card);
-  });
-  page.appendChild(stack);
+    explain.innerHTML = `<p class="t-small" style="color:var(--ink-soft);line-height:1.55;">📝 본인 발표 대본에 있던 문장이에요. 빈칸에 들어갈 영어 표현을 직접 타이핑해보세요.</p>`;
+    page.appendChild(explain);
 
-  const score = el('div', { class: 'card card-flat', style: { marginTop: '20px', textAlign: 'center' } });
-  const answered = Object.keys(state.personal_quiz_answers).length;
-  score.innerHTML = `
-    <div class="kicker">SCORE</div>
-    <div class="serif" style="font-size:44px;line-height:1;color:var(--orange);margin-top:6px;">${correct}<span style="color:var(--muted);">/${items.length}</span></div>
-    <div class="t-small" style="margin-top:6px;">${answered === items.length ? '완료! PT에서 틀린 문항 리뷰해볼게요.' : answered + '문항 풀었어요.'}</div>`;
-  page.appendChild(score);
+    const stack = el('div', { class: 'stack' });
+    let fillCorrect = 0;
+    const normalize = (s) => String(s || '').trim().toLowerCase().replace(/[.,!?:;"']/g, '').replace(/\s+/g, ' ');
 
-  const resetBtn = el('button', {
-    class: 'btn btn-ghost btn-full',
-    style: { marginTop: '14px' },
-    onClick: () => { state.personal_quiz_answers = {}; saveState(); render(); },
-  }, '다시 풀기');
-  page.appendChild(resetBtn);
+    fillItems.forEach((it, fi) => {
+      const split = (typeof computeQuizSplit === 'function')
+        ? computeQuizSplit({ en: it.en || '', prompt: it.prompt || '' })
+        : { mode: '1blank', parts: [it.prompt || '', ''], answer: it.en || '' };
+
+      const userAnswer = state.personal_quiz_fill_answers['f'+fi] || '';
+      const ans = String(it.en || '');
+      const isCorrect = normalize(userAnswer) === normalize(ans);
+      if (isCorrect) fillCorrect++;
+
+      const card = el('div', { class: 'quiz-card', style: { padding: '16px 14px' } });
+      const showFeedback = submitted.fill;
+
+      // 1blank 만 지원 (split.mode === '1blank') — 2blank 케이스는 fallback
+      const pre = (split.parts && split.parts[0]) || '';
+      const post = (split.parts && split.parts[1]) || '';
+
+      card.innerHTML = `
+        <div class="row-between" style="margin-bottom:8px;">
+          <span class="kicker">F${fi+1} / ${fillItems.length}</span>
+          ${it.hint ? `<span class="badge">${escapeHtml(it.hint)}</span>` : ''}
+        </div>
+        <div style="font-size:15px;line-height:1.7;color:var(--ink);margin-bottom:12px;">
+          ${escapeHtml(pre)}<span style="display:inline-block;min-width:120px;border-bottom:2px solid ${showFeedback ? (isCorrect ? 'var(--green)' : '#E64545') : 'var(--orange)'};margin:0 4px;padding:0 6px;font-weight:700;color:${showFeedback ? (isCorrect ? 'var(--green)' : '#E64545') : 'var(--orange-dark)'};">${escapeHtml(userAnswer || '___')}</span>${escapeHtml(post)}
+        </div>
+      `;
+      if (!showFeedback) {
+        const input = el('input', {
+          type: 'text',
+          class: 'input',
+          placeholder: '빈칸에 들어갈 영어 표현',
+          value: userAnswer,
+          style: { width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid var(--line)', borderRadius: '10px', fontFamily: 'inherit' },
+        });
+        input.addEventListener('input', (e) => {
+          state.personal_quiz_fill_answers['f'+fi] = e.target.value;
+          saveState();
+        });
+        // re-render on blur to update progress count (debounced via blur to avoid focus loss)
+        input.addEventListener('blur', () => { render(); });
+        card.appendChild(input);
+      } else {
+        // 제출 후 — 정답·내 답 비교 표시
+        const feedback = el('div', {
+          style: { marginTop: '8px', padding: '10px 12px', borderRadius: '10px',
+            background: isCorrect ? 'rgba(111,174,108,0.12)' : 'rgba(230,69,69,0.08)',
+            border: '1px solid ' + (isCorrect ? 'rgba(111,174,108,0.3)' : 'rgba(230,69,69,0.25)'),
+            fontSize: '12.5px', lineHeight: '1.55', color: 'var(--ink-soft)' },
+        });
+        feedback.innerHTML = isCorrect
+          ? `<b style="color:var(--green);">✓ 정답</b>`
+          : `<b style="color:#C13D3D;">✗ 정답:</b> <span style="color:var(--ink);font-weight:700;">${escapeHtml(ans)}</span>${userAnswer ? `<br/><span style="opacity:0.7;">내 답: ${escapeHtml(userAnswer)}</span>` : '<br/><span style="opacity:0.7;font-style:italic;">미응답</span>'}`;
+        card.appendChild(feedback);
+      }
+      stack.appendChild(card);
+    });
+    page.appendChild(stack);
+
+    // 제출 또는 점수+다시풀기
+    if (submitted.fill) {
+      const score = el('div', { class: 'card card-flat', style: { marginTop: '20px', textAlign: 'center' } });
+      score.innerHTML = `
+        <div class="kicker">SCORE · 빈칸</div>
+        <div class="serif" style="font-size:44px;line-height:1;color:var(--orange);margin-top:6px;">${fillCorrect}<span style="color:var(--muted);">/${fillItems.length}</span></div>
+        <div class="t-small" style="margin-top:6px;">${fillCorrect === fillItems.length ? '완벽 🎉 본인 대본 어휘 완전 내재화!' : '틀린 표현은 본인 대본 다시 한 번 읽어보세요'}</div>`;
+      page.appendChild(score);
+
+      const retryBtn = el('button', {
+        class: 'btn btn-ghost btn-full',
+        style: { marginTop: '14px' },
+        onClick: () => {
+          state.personal_quiz_fill_answers = {};
+          state.personal_quiz_submitted = { ...submitted, fill: false };
+          saveState();
+          render();
+        },
+      }, '↻ 빈칸 다시 풀기');
+      page.appendChild(retryBtn);
+    } else {
+      const allFilled = fillAnswered === fillItems.length;
+      const submitBtn = el('button', {
+        class: 'btn btn-primary btn-full',
+        style: { marginTop: '20px', opacity: allFilled ? 1 : 0.5 },
+        onClick: () => {
+          if (!allFilled) { showToast(`${fillItems.length - fillAnswered}개 더 채워주세요`); return; }
+          state.personal_quiz_submitted = { ...submitted, fill: true };
+          saveState();
+          render();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+      }, allFilled ? '✅ 제출하기' : `${fillAnswered}/${fillItems.length} 채우고 제출`);
+      page.appendChild(submitBtn);
+    }
+  }
 
   return page;
 }
@@ -22771,25 +22950,36 @@ window.__clearCertProfile = function() {
 //   __injectPersonalQuiz({ week: 2, basedOnScript: '...', items: [{ q, options, a, hint }, ...] })
 // 로컬 상태에 반영 + Supabase 싱크. 다른 유저에게 주입하려면 서버단 SQL 로 해야 함.
 window.__injectPersonalQuiz = function(quiz) {
-  if (!quiz || !Array.isArray(quiz.items) || quiz.items.length === 0) {
-    console.warn('[injectPersonalQuiz] Expected { items: [...], ...}');
+  if (!quiz) {
+    console.warn('[injectPersonalQuiz] Expected { items: [...], fill_items: [...], ...}');
+    return false;
+  }
+  const items = Array.isArray(quiz.items) ? quiz.items : [];
+  const fillItems = Array.isArray(quiz.fill_items) ? quiz.fill_items : [];
+  if (items.length === 0 && fillItems.length === 0) {
+    console.warn('[injectPersonalQuiz] items / fill_items 둘 다 비어있음');
     return false;
   }
   state.personal_quiz = {
-    items: quiz.items,
+    items,
+    fill_items: fillItems,
     basedOnScript: quiz.basedOnScript || '',
     injectedAt: new Date().toISOString(),
     week: quiz.week != null ? Number(quiz.week) : null,
   };
   state.personal_quiz_answers = {};
+  state.personal_quiz_fill_answers = {};
+  state.personal_quiz_submitted = { mc: false, fill: false };
   saveState({ immediate: true });
   render();
-  console.log('[injectPersonalQuiz] OK — %d문항 주입됨, week=%s', quiz.items.length, String(quiz.week));
+  console.log('[injectPersonalQuiz] OK — 4지선다 %d / 빈칸 %d, week=%s', items.length, fillItems.length, String(quiz.week));
   return true;
 };
 window.__clearPersonalQuiz = function() {
   state.personal_quiz = null;
   state.personal_quiz_answers = {};
+  state.personal_quiz_fill_answers = {};
+  state.personal_quiz_submitted = { mc: false, fill: false };
   saveState({ immediate: true });
   render();
   console.log('[clearPersonalQuiz] OK');
