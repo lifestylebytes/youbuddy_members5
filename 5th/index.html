@@ -6467,7 +6467,7 @@ function getNotifications() {
         id: `week-wrapup-w${wk.n}`,
         icon: '🎉',
         color: '#F07D38',
-        title: `Week ${wk.n} 끝 — 진짜 외우기 시간`,
+        title: wk.n === 4 ? '🏆 챌린지 마무리 — 파이널 테스트 시간' : `Week ${wk.n} 끝 — 진짜 외우기 시간`,
         body: '이번 주 단어 다 외워졌나 빠르게 체크. 통과하면 잠금화면 단어장 보상 🎁',
         createdAt: dateStr,
         cta: { label: '🚀 진짜 외우기 풀러가기 →', kind: 'go-week-review', weekN: wk.n },
@@ -8309,12 +8309,12 @@ function WeeksPage() {
       const limitColor = isEmphasized ? 'rgba(255,255,255,0.85)' : '#C95721';
       if (effectivelyLocked) {
         reviewBtn.innerHTML = `
-          <span>🔒 Week ${w.n} 진짜 외우기 · 기간 종료</span>
+          <span>🔒 ${weekReviewLabelShort(w.n)} · 기간 종료</span>
           <span style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:-0.005em;">Day ${deadlineDay}까지였어요</span>
         `;
       } else {
         reviewBtn.innerHTML = `
-          <span>🧠 Week ${w.n} 진짜 외우기 — 3단계 복습${previewTag}</span>
+          <span>${w.n === 4 ? '🏆' : '🧠'} ${weekReviewLabelShort(w.n)}${w.n === 4 ? ' (Day 1~20 종합)' : ' — 3단계 복습'}${previewTag}</span>
           <span style="font-size:11px;font-weight:700;color:${limitColor};letter-spacing:-0.005em;">⏰ 다음 주 (Day ${deadlineDay})까지만 도전 가능</span>
         `;
       }
@@ -9448,42 +9448,57 @@ const STAGE_META = {
 };
 
 // 한 주에서 모든 어휘 (메인 + 옵션으로 유의어) 끌어오기.
+// Week 4 = 파이널 테스트 (Day 1~20 종합). 라벨 통일 헬퍼.
+function weekReviewLabel(weekN) {
+  return Number(weekN) === 4 ? '🏆 파이널 테스트' : `Week ${weekN} 진짜 외우기`;
+}
+function weekReviewLabelShort(weekN) {
+  return Number(weekN) === 4 ? '파이널 테스트' : `Week ${weekN} 진짜 외우기`;
+}
+
 function _collectWeekVocab(weekN, includeSyn) {
-  const week = (CHALLENGE.weeks || []).find((w) => w.n === weekN);
-  if (!week) return [];
+  // Week 4 = 파이널 테스트. Day 1~20 전체 어휘 풀에서 출제.
+  // 그 외 주는 기존대로 해당 주 어휘만 (Day 11~15 → Week 3).
+  const isFinal = Number(weekN) === 4;
+  const weeks = isFinal
+    ? (CHALLENGE.weeks || [])
+    : ((CHALLENGE.weeks || []).filter((w) => w.n === weekN));
+  if (!weeks.length) return [];
   const out = [];
-  (week.days || []).forEach((d) => {
-    (d.words || []).forEach((w, i) => {
-      // 멤버 본인이 쓴 문장 우선 — 챌린지의 핵심 목적: 본인 대본/문장 가져가기.
-      // 본인이 안 쓴 경우만 preset 예문 fallback.
-      const sKey = `d${d.day}-${i}`;
-      const myEn = (state.sentences && state.sentences[sKey] || '').toString().trim();
-      const myKr = (state.sentence_notes && state.sentence_notes[sKey] || '').toString().trim();
-      const usingMy = !!myEn;
-      out.push({
-        en: w.en,
-        kr: w.def,
-        kind: 'main',
-        sourceMain: w.en,
-        sourceDay: d.day,
-        prompt: usingMy ? myEn : (w.ex_en || ''),
-        prompt_kr: usingMy ? myKr : (w.ex_kr || ''),
-        isMine: usingMy,
-      });
-      if (includeSyn && Array.isArray(w.syn)) {
-        w.syn.forEach((syn) => {
-          out.push({
-            en: syn,
-            kr: (typeof synonymMeaning === 'function' ? synonymMeaning(syn) : '') || w.def,
-            kind: 'syn',
-            sourceMain: w.en,
-            sourceDay: d.day,
-            prompt: '',
-            prompt_kr: '',
-            isMine: false,
-          });
+  weeks.forEach((week) => {
+    (week.days || []).forEach((d) => {
+      (d.words || []).forEach((w, i) => {
+        // 멤버 본인이 쓴 문장 우선 — 챌린지의 핵심 목적: 본인 대본/문장 가져가기.
+        // 본인이 안 쓴 경우만 preset 예문 fallback.
+        const sKey = `d${d.day}-${i}`;
+        const myEn = (state.sentences && state.sentences[sKey] || '').toString().trim();
+        const myKr = (state.sentence_notes && state.sentence_notes[sKey] || '').toString().trim();
+        const usingMy = !!myEn;
+        out.push({
+          en: w.en,
+          kr: w.def,
+          kind: 'main',
+          sourceMain: w.en,
+          sourceDay: d.day,
+          prompt: usingMy ? myEn : (w.ex_en || ''),
+          prompt_kr: usingMy ? myKr : (w.ex_kr || ''),
+          isMine: usingMy,
         });
-      }
+        if (includeSyn && Array.isArray(w.syn)) {
+          w.syn.forEach((syn) => {
+            out.push({
+              en: syn,
+              kr: (typeof synonymMeaning === 'function' ? synonymMeaning(syn) : '') || w.def,
+              kind: 'syn',
+              sourceMain: w.en,
+              sourceDay: d.day,
+              prompt: '',
+              prompt_kr: '',
+              isMine: false,
+            });
+          });
+        }
+      });
     });
   });
   return out;
@@ -9605,7 +9620,7 @@ function WeekReviewPage(weekN) {
     const backLk = el('button', { class: 'icon-btn', onClick: () => go('weeks') });
     backLk.innerHTML = Icon('arrowLeft', 16);
     headLk.appendChild(backLk);
-    headLk.appendChild(el('div', { style: { fontWeight: '800', fontSize: '16px' } }, `Week ${weekN} 진짜 외우기`));
+    headLk.appendChild(el('div', { style: { fontWeight: '800', fontSize: '16px' } }, weekReviewLabelShort(weekN)));
     headLk.appendChild(el('div', { class: 'icon-btn', style: { visibility: 'hidden' } }));
     lockedPage.appendChild(headLk);
     const lastDay = week.days[week.days.length - 1].day;
@@ -9662,7 +9677,7 @@ function WeekReviewPage(weekN) {
     const back = el('button', { class: 'icon-btn', onClick: () => go('weeks') });
     back.innerHTML = Icon('arrowLeft', 16);
     head.appendChild(back);
-    head.appendChild(el('div', { style: { fontWeight: '800', fontSize: '16px' } }, `Week ${weekN} 진짜 외우기`));
+    head.appendChild(el('div', { style: { fontWeight: '800', fontSize: '16px' } }, weekReviewLabelShort(weekN)));
     head.appendChild(el('div', { class: 'icon-btn', style: { visibility: 'hidden' } }));
     page.appendChild(head);
     const card = el('div', {
@@ -9675,7 +9690,7 @@ function WeekReviewPage(weekN) {
     card.innerHTML = `
       <div style="font-size:48px;line-height:1;margin-bottom:10px;">🔒</div>
       <div class="kicker" style="color:var(--muted);">도전 기간 종료</div>
-      <div style="margin-top:8px;font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">Week ${weekN} 진짜 외우기는<br>Day ${reviewDeadlineDay(weekN)} 까지만 가능했어요</div>
+      <div style="margin-top:8px;font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">${weekReviewLabelShort(weekN)}는<br>Day ${reviewDeadlineDay(weekN)} 까지만 가능했어요</div>
       <div class="t-small" style="margin-top:10px;color:var(--ink-soft);line-height:1.55;font-size:12.5px;">아쉽지만 이번엔 다음 주차에서 만나요 — 새 단어가 또 기다리고 있어요!</div>
     `;
     page.appendChild(card);
@@ -9709,7 +9724,7 @@ function WeekReviewPage(weekN) {
   } });
   back.innerHTML = Icon('arrowLeft', 16);
   head.appendChild(back);
-  head.appendChild(el('div', { style: { fontWeight: '800', fontSize: '16px' } }, `Week ${weekN} 진짜 외우기`));
+  head.appendChild(el('div', { style: { fontWeight: '800', fontSize: '16px' } }, weekReviewLabelShort(weekN)));
   const spacer = el('div', { class: 'icon-btn', style: { visibility: 'hidden' } });
   head.appendChild(spacer);
   page.appendChild(head);
@@ -19906,7 +19921,7 @@ function WeeklyQuizPopupModal() {
       </div>
     </div>
     <div style="padding:18px 22px 22px;display:flex;flex-direction:column;gap:8px;">
-      <button id="__wqGo" class="btn btn-primary btn-full" style="background:var(--orange);border:none;font-size:14px;padding:14px;">${allDone ? `🚀 Week ${weekN} 진짜 외우기 시작 →` : '📅 학습 탭에서 진도 확인하기 →'}</button>
+      <button id="__wqGo" class="btn btn-primary btn-full" style="background:var(--orange);border:none;font-size:14px;padding:14px;">${allDone ? `🚀 ${weekReviewLabelShort(weekN)} 시작 →` : '📅 학습 탭에서 진도 확인하기 →'}</button>
       <button id="__wqLater" class="btn btn-ghost btn-full" style="background:transparent;border:1px solid var(--line);color:var(--muted);font-size:12px;padding:10px;">나중에</button>
     </div>
   `;
@@ -19958,6 +19973,12 @@ const SURVEY_WEAK_WORDS_BY_WEEK = {
     { en: 'Scratch the surface', ko: '겉만 건드린 수준', ex_en: 'This report only scratches the surface of the problem.' },
     { en: 'Bite the bullet', ko: '눈 딱 감고 정면 돌파', ex_en: "I'll just bite the bullet and finish the docs tonight." },
     { en: 'Stumbling block', ko: '진행을 막는 걸림돌', ex_en: 'Budget approval has been our biggest stumbling block.' },
+  ],
+  // Week 4 = 파이널 테스트 (Day 1~20 종합). 4주간 누적 약점 어휘 (idiom·길이·다중표현 기준 후보).
+  '4': [
+    { en: 'Move in lockstep', ko: '발 맞춰 협력하다', ex_en: 'Marketing and sales need to move in lockstep on this.' },
+    { en: "Play devil's advocate", ko: '의도적으로 반대 입장', ex_en: "Let me play devil's advocate for a second." },
+    { en: 'Bite the bullet', ko: '눈 딱 감고 정면 돌파', ex_en: "I'll just bite the bullet and finish the docs tonight." },
   ],
 };
 
