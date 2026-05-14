@@ -18344,8 +18344,9 @@ function SettingsModal() {
           </div>
           <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
             <button id="__settingsShowMiniSurveyW3" data-week="3" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12.5px;padding:10px 8px;">⚡ W3 미니 설문</button>
-            <button id="__settingsResetMySurveyW3" data-week="3" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">↺ 내 W3 응답 초기화</button>
-            <button id="__settingsResetMyBingoW3" data-week="3" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">↺ 내 W3 시험 초기화</button>
+            <button id="__settingsResetMySurveyW3" data-week="3" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">↺ W3 설문만</button>
+            <button id="__settingsResetMyBingoW3" data-week="3" class="btn btn-ghost" style="flex:1 1 100px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);font-size:12.5px;padding:10px 8px;">↺ W3 시험만</button>
+            <button id="__settingsResetW3All" data-week="3" class="btn btn-primary" style="flex:1 1 100%;background:var(--orange);color:#fff;border:none;font-size:13px;padding:11px;font-weight:800;">🔄 W3 전체 초기화 (시험 + 설문 + 진행도)</button>
           </div>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
@@ -18664,23 +18665,55 @@ function SettingsModal() {
       showToast('내 Week 3 설문 응답 초기화 — 시험 진입 시 설문부터 떠요');
       render();
     };
-    // Operator: ↺ 내 W3 시험 초기화 (bingo + boss_results 둘 다)
-    const resetMyBingoW3Btn = document.getElementById('__settingsResetMyBingoW3');
-    if (resetMyBingoW3Btn) resetMyBingoW3Btn.onclick = () => {
-      if (!confirm('내 Week 3 시험 진행도 + 통과 기록 다 지워요. 진행할까요?')) return;
+    // 헬퍼 — Week N 시험 진행도 + 캐시 깔끔하게 wipe
+    function _wipeBingoStateForWeek(weekN) {
+      const key = String(weekN);
       state.bingo_done = state.bingo_done || {};
       state.bingo_boss_results = state.bingo_boss_results || {};
       state.bingo_marked = state.bingo_marked || {};
       state.bingo = state.bingo || {};
-      delete state.bingo_done['3'];
-      delete state.bingo_boss_results['3'];
-      delete state.bingo_marked['3'];
-      delete state.bingo['3'];
-      if (window.__bingoSelected) { delete window.__bingoSelected[3]; delete window.__bingoSelected['3']; }
-      if (window.__bingoDrill) { delete window.__bingoDrill[3]; delete window.__bingoDrill['3']; }
-      if (window.__bingoSentenceReveal) { delete window.__bingoSentenceReveal[3]; delete window.__bingoSentenceReveal['3']; }
+      delete state.bingo_done[key];
+      delete state.bingo_boss_results[key];
+      delete state.bingo_marked[key];
+      delete state.bingo[key];
+      if (window.__bingoSelected) { delete window.__bingoSelected[weekN]; delete window.__bingoSelected[key]; }
+      if (window.__bingoDrill) { delete window.__bingoDrill[weekN]; delete window.__bingoDrill[key]; }
+      if (window.__bingoSentenceReveal) { delete window.__bingoSentenceReveal[weekN]; delete window.__bingoSentenceReveal[key]; }
+      if (window.__weekReviewActiveStage) { delete window.__weekReviewActiveStage[weekN]; delete window.__weekReviewActiveStage[key]; }
+      if (window.__weekReviewUi) {
+        Object.keys(window.__weekReviewUi).forEach(k => {
+          if (k.startsWith(`${weekN}-s`) || k.startsWith(`${key}-s`)) delete window.__weekReviewUi[k];
+        });
+      }
+    }
+
+    // Operator: ↺ W3 시험만 (bingo + boss_results)
+    const resetMyBingoW3Btn = document.getElementById('__settingsResetMyBingoW3');
+    if (resetMyBingoW3Btn) resetMyBingoW3Btn.onclick = () => {
+      if (!confirm('내 Week 3 시험 진행도 + 통과 기록 다 지워요. 진행할까요?')) return;
+      _wipeBingoStateForWeek(3);
       try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
       showToast('내 Week 3 시험 초기화 완료');
+      render();
+    };
+
+    // Operator: 🔄 W3 전체 초기화 — 시험 + 설문 + UI cache 한 방에
+    const resetW3AllBtn = document.getElementById('__settingsResetW3All');
+    if (resetW3AllBtn) resetW3AllBtn.onclick = () => {
+      if (!confirm('🔄 Week 3 전체 초기화 — 시험 통과 / 설문 응답 / 진행도 / UI 캐시 다 지워요.\n\n진행할까요?')) return;
+      _wipeBingoStateForWeek(3);
+      state.week_survey = state.week_survey || {};
+      delete state.week_survey['3'];
+      state.weekly_quiz_popup_seen = state.weekly_quiz_popup_seen || {};
+      delete state.weekly_quiz_popup_seen.v3;
+      state.friday_redirect_seen = state.friday_redirect_seen || {};
+      delete state.friday_redirect_seen['3'];
+      state.notifications_read = state.notifications_read || {};
+      delete state.notifications_read['week-wrapup-w3'];
+      if (window.__wrapupTriggeredSession) delete window.__wrapupTriggeredSession['3'];
+      try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
+      showToast('🔄 Week 3 전체 초기화 — 처음부터 다시 가능');
+      showSettings = false;
       render();
     };
     // Operator: 🔔 주간 퀴즈 팝업 — 미리보기 (Week 1)
