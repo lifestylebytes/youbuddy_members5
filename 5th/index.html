@@ -7287,6 +7287,22 @@ function HomePage() {
         }
       }, 600);
     }
+
+    // Day 15 (Friday 보스 테스트일) — 지금까지 누적 가장 많이 틀린 main 단어 5개 동적 팝업.
+    // 서버 RPC get_cohort_vocab_stats 에서 weakness_score 기준 top 5 (main only, syn 제외).
+    // seenKey = 'day15-top-wrong' (preset 의 'day15' 와 분리 — 둘 다 노출 가능).
+    if (cDay === 15 && !seen['day15-top-wrong'] && !showSpacedRepeatPopup) {
+      setTimeout(async () => {
+        if (showSpacedRepeatPopup || (state.spaced_repeat_seen || {})['day15-top-wrong']) return;
+        try {
+          const ctx = await __buildTopWrongPopup();
+          if (ctx && Array.isArray(ctx.words) && ctx.words.length > 0 && !showSpacedRepeatPopup) {
+            showSpacedRepeatPopup = { dayN: 15, _seenKey: 'day15-top-wrong', ...ctx };
+            render();
+          }
+        } catch (e) { try { console.warn('[top-wrong-popup] failed', e); } catch(_){} }
+      }, 1200);
+    }
   } catch (e) {}
 
   // 매주 금요일 (=Day 5/10/15/20) 자동 wrap-up 팝업 — "지금 풀러가기 / 주말에 보기" 선택지.
@@ -20676,6 +20692,54 @@ const SURVEY_WEAK_WORDS_BY_WEEK = {
   ],
 };
 
+// 동적 Top Wrong 팝업 — Day 15 등에서 cohort vocab stats 기반으로 top 5 main 단어 추출.
+// syn 제외 (CHALLENGE.weeks 의 main words 만 포함).
+async function __buildTopWrongPopup(limit = 5) {
+  if (typeof supabaseRpc !== 'function') return null;
+  const cohort = (CHALLENGE && CHALLENGE.cohort) || '5기';
+  const data = await supabaseRpc('get_cohort_vocab_stats', { p_cohort: cohort });
+  const words = Array.isArray(data && data.words) ? data.words : [];
+  if (words.length === 0) return null;
+
+  // CHALLENGE 의 main 단어들만 화이트리스트 (syn 제외)
+  const mainMap = {}; // lowercase → { en, def, ex_en, day }
+  (CHALLENGE.weeks || []).forEach((wk) => {
+    (wk.days || []).forEach((d) => {
+      (d.words || []).forEach((w) => {
+        const key = String(w.en || '').toLowerCase().trim();
+        if (key) mainMap[key] = { en: w.en, def: w.def, ex_en: w.ex_en, day: d.day };
+      });
+    });
+  });
+
+  const filtered = words
+    .filter((s) => mainMap[String(s.word || '').toLowerCase().trim()])
+    .sort((a, b) => (Number(b.weakness_score) || 0) - (Number(a.weakness_score) || 0))
+    .slice(0, limit);
+
+  if (filtered.length === 0) return null;
+
+  const popupWords = filtered.map((s) => {
+    const meta = mainMap[String(s.word || '').toLowerCase().trim()] || {};
+    const fwTotal = (Number(s.first_correct) || 0) + (Number(s.first_wrong) || 0);
+    const fwRate = fwTotal > 0 ? Math.round(((Number(s.first_correct) || 0) / fwTotal) * 100) : 0;
+    const ws = Number(s.weakness_score) || 0;
+    return {
+      en: meta.en || s.word,
+      ko: meta.def || '',
+      ex_en: meta.ex_en || '',
+      stat: `Day ${meta.day || '?'} · 약점 ${ws}점 · 첫시도 정답률 ${fwRate}%`,
+    };
+  });
+
+  return {
+    title: '지금까지 가장 많이 틀린 단어 Top 5',
+    subtitle: '실제 통계 기반 · 시험 전 한 번 더 짚고 가요',
+    words: popupWords,
+    quiz: true,
+  };
+}
+
 const SPACED_REPEAT_PRESETS = {
   // Day 7 (Week 2 시작) — Week 1 top 3 약점 어휘 (실제 데이터 기반).
   '7': {
@@ -20736,10 +20800,12 @@ function SpacedRepeatPopupModal() {
   const ctx = showSpacedRepeatPopup;
   if (!ctx) return el('div');
   const dayKey = String(ctx.dayN);
+  // 커스텀 seen key 가 있으면 그걸 사용, 없으면 기본 `day${dayN}` (dynamic Day 15 top-wrong 같은 경우)
+  const seenKey = ctx._seenKey || `day${dayKey}`;
   const close = (markSeen = true) => {
     if (markSeen) {
       state.spaced_repeat_seen = state.spaced_repeat_seen || {};
-      state.spaced_repeat_seen[`day${dayKey}`] = true;
+      state.spaced_repeat_seen[seenKey] = true;
       try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
     }
     showSpacedRepeatPopup = null;
