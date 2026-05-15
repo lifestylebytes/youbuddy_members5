@@ -5306,6 +5306,7 @@ async function openPresenterScriptModal(targetKey, weekN) {
   // 본인이면 로컬 state 즉시 사용 (서버 lag 무시)
   let entry = null;
   const isMe = String(targetKey) === String(memberKey());
+  const isOp = !!(state.isOperator || state.isStaff);
   if (isMe) {
     const prep = (state.presenter_prep || {})[PRESENTER_KEY(weekN)] || {};
     entry = {
@@ -5319,7 +5320,9 @@ async function openPresenterScriptModal(targetKey, weekN) {
       script: prep.script || '',
     };
   } else {
-    await loadCohortPresenterScripts();
+    // 운영자/스태프 → 항상 force refresh (멤버가 방금 업로드한 거 즉시 보기)
+    // 일반 멤버 → 캐시 사용 (한 세션 한 번)
+    await loadCohortPresenterScripts({ force: isOp });
     entry = findPresenterScript(targetKey, weekN);
   }
 
@@ -5335,7 +5338,10 @@ async function openPresenterScriptModal(targetKey, weekN) {
           <div style="font-size:10.5px;letter-spacing:0.16em;font-weight:800;color:var(--lilac);">🎤 WEEK ${weekN} · 발표자 대본</div>
           <div style="margin-top:6px;font-size:22px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.2;">${escapeHtml(name)}${isMe ? ' <span style="font-size:11px;font-weight:700;color:var(--lilac);background:rgba(169,139,184,0.18);padding:2px 8px;border-radius:999px;margin-left:4px;vertical-align:middle;">나</span>' : ''}</div>
         </div>
-        <button data-close-presenter-modal="1" aria-label="닫기" style="flex-shrink:0;background:rgba(0,0,0,0.06);border:none;width:36px;height:36px;border-radius:999px;font-size:20px;line-height:1;color:var(--ink);cursor:pointer;display:grid;place-items:center;transition:background 0.15s;">×</button>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          ${(!isMe) ? `<button data-refresh-presenter-modal="1" aria-label="새로고침" title="서버에서 최신 대본 다시 받기" style="background:rgba(169,139,184,0.14);border:none;width:36px;height:36px;border-radius:999px;font-size:14px;color:#6B4F7D;cursor:pointer;display:grid;place-items:center;font-weight:800;">🔄</button>` : ''}
+          <button data-close-presenter-modal="1" aria-label="닫기" style="background:rgba(0,0,0,0.06);border:none;width:36px;height:36px;border-radius:999px;font-size:20px;line-height:1;color:var(--ink);cursor:pointer;display:grid;place-items:center;transition:background 0.15s;">×</button>
+        </div>
       </div>
     </div>
     <div style="padding:20px 24px 24px;overflow-y:auto;flex:1;background:#fff;">
@@ -5350,6 +5356,22 @@ async function openPresenterScriptModal(targetKey, weekN) {
   // close 버튼 wire
   const closeBtn = modal.querySelector('[data-close-presenter-modal]');
   if (closeBtn) closeBtn.onclick = closeModal;
+  // 새로고침 버튼 — force refresh + 모달 재오픈 (안 닫고 in-place 업데이트)
+  const refreshBtn = modal.querySelector('[data-refresh-presenter-modal]');
+  if (refreshBtn) refreshBtn.onclick = async () => {
+    refreshBtn.style.opacity = '0.5';
+    refreshBtn.textContent = '⏳';
+    try {
+      await loadCohortPresenterScripts({ force: true });
+      closeModal();
+      setTimeout(() => openPresenterScriptModal(targetKey, weekN), 100);
+      showToast('🔄 최신 대본 다시 받았어요');
+    } catch (e) {
+      refreshBtn.style.opacity = '1';
+      refreshBtn.textContent = '🔄';
+      showToast('새로고침 실패 — 잠시 후 다시 시도');
+    }
+  };
 }
 window.__openPresenterScript = openPresenterScriptModal;
 
