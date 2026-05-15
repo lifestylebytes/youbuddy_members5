@@ -5557,6 +5557,7 @@ function render() {
     else if (currentPage === 'screenshot-guide') page = ScreenshotGuidePage();
     else if (currentPage === 'week-survey-result') page = WeekSurveyResultPage();
     else if (currentPage === 'vocab-stats') page = VocabStatsPage();
+    else if (currentPage === 'final-report') page = FinalReportPage();
     else page = HomePage();
 
     app.appendChild(page);
@@ -10434,6 +10435,12 @@ function renderBingoMode(page, weekN, week, isPremium) {
       ` : `
         <div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:rgba(154,139,115,0.12);border:1px dashed rgba(154,139,115,0.4);color:var(--muted);font-size:12px;line-height:1.55;">📦 잠금화면 배경은 Week 1~3 까지. Week 4 는 챌린지 마무리 종합 보상 패키지로 따로 드려요 ✨</div>
       `}
+      ${weekN === 4 ? `
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+          <button onclick="go('final-report')" class="btn btn-full" style="background:linear-gradient(135deg,#1F1630 0%,#3A2A52 100%);color:#fff;border:none;font-size:14px;padding:13px;font-weight:800;letter-spacing:-0.01em;">📊 4주 종합 리포트 보기 + 다운로드 →</button>
+          <button onclick="go('scripts')" class="btn btn-full" style="background:#fff;color:var(--ink);border:1px solid var(--line);font-size:13px;padding:11px;font-weight:700;">📜 4주간 내 문장 모아보기 →</button>
+        </div>
+      ` : ''}
     `;
     page.appendChild(rewardCardTop);
 
@@ -17357,6 +17364,17 @@ function CertPage() {
     </p>`;
   page.appendChild(infoCard);
 
+  // 📊 4주 종합 리포트 + 📜 문장 모아보기 quick links
+  const linksCard = el('div', { class: 'card card-flat', style: { marginTop: '12px', padding: '14px 16px' } });
+  linksCard.innerHTML = `
+    <div class="kicker">📦 챌린지 마무리 패키지</div>
+    <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+      <button onclick="go('final-report')" class="btn btn-full" style="background:linear-gradient(135deg,#1F1630 0%,#3A2A52 100%);color:#fff;border:none;font-size:13.5px;padding:12px;font-weight:800;letter-spacing:-0.01em;">📊 4주 종합 리포트 보기 →</button>
+      <button onclick="go('scripts')" class="btn btn-full" style="background:#fff;color:var(--ink);border:1px solid var(--line);font-size:13px;padding:11px;font-weight:700;">📜 4주간 내 문장 모아보기 →</button>
+    </div>
+  `;
+  page.appendChild(linksCard);
+
   return page;
 }
 
@@ -18459,6 +18477,11 @@ function SettingsModal() {
           </div>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
+          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📊 4주 종합 리포트 미리보기</div>
+          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">Day 20 멤버한테 노출될 종합 리포트 + HTML 다운로드. 운영자는 인증 부족해도 다운로드 가능.</div>
+          <button id="__settingsOpenFinalReport" class="btn btn-ghost btn-full" style="margin-top:10px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);">📊 종합 리포트 미리보기</button>
+        </div>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
           <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📉 약점 어휘 분석</div>
           <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">멤버들이 단어시험 풀 때 어떤 단어를 가장 많이 틀렸는지 / 힌트 봤는지 / 스킵했는지 한 큐에. 약점도 점수로 약한 단어부터 정렬됨. JSON/CSV 다운로드.</div>
           <button id="__settingsOpenVocabStats" class="btn btn-ghost btn-full" style="margin-top:10px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);">📉 약점 어휘 분석 열기</button>
@@ -18739,6 +18762,12 @@ function SettingsModal() {
     const lockscreenW3Btn = document.getElementById('__settingsLockscreenW3');
     if (lockscreenW3Btn) lockscreenW3Btn.onclick = () => {
       try { window.__bingoDownloadJpg(3); showSettings = false; render(); } catch (_) { showToast('다운로드 실패'); }
+    };
+    // Operator: 📊 4주 종합 리포트 미리보기
+    const openFinalReportBtn = document.getElementById('__settingsOpenFinalReport');
+    if (openFinalReportBtn) openFinalReportBtn.onclick = () => {
+      showSettings = false;
+      go('final-report');
     };
     // Operator: ↺ 내 W2 응답 초기화 (테스트용)
     const resetMySurveyW2Btn = document.getElementById('__settingsResetMySurveyW2');
@@ -19260,6 +19289,325 @@ function MemberCardModal(memberRef) {
   backdrop.appendChild(modal);
   return backdrop;
 }
+
+/* ============================================================
+   FINAL REPORT PAGE — 4주 종합 리포트
+   Day 20 도달 시 모두에게 노출. 18일 이상 완주자는 HTML 다운로드 가능.
+   운영자/스태프는 항상 미리보기 가능.
+   ============================================================ */
+function FinalReportPage() {
+  const page = el('div', { class: 'page', style: { paddingBottom: '120px' } });
+  const head = el('div', { class: 'topbar' });
+  const back = el('button', { class: 'icon-btn', onClick: () => go('profile') });
+  back.innerHTML = Icon('arrowLeft', 16);
+  head.appendChild(back);
+  head.appendChild(el('div', { class: 'brand-name' }, '4주 종합 리포트'));
+  head.appendChild(el('div', { class: 'icon-btn', style: { visibility: 'hidden' } }));
+  page.appendChild(head);
+
+  const isOpStaff = !!((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
+  const cDay = Number(state.currentDay) || 0;
+  // 통계 계산
+  const total = CHALLENGE.total_days || 20;
+  const verifiedDays = Array.from({ length: total }, (_, i) => i + 1).filter((d) => state.verified && state.verified['d' + d]);
+  const verifiedCount = verifiedDays.length;
+  const lateCount = verifiedDays.filter((d) => state.verified_late && state.verified_late['d' + d]).length;
+  const onTimeCount = verifiedCount - lateCount;
+  // 작성 문장 수 / AI 첨삭 횟수
+  let sentenceCount = 0;
+  let aiCount = 0;
+  Object.keys(state.sentences || {}).forEach((k) => {
+    if ((state.sentences[k] || '').trim()) sentenceCount++;
+  });
+  Object.keys(state.ai_feedback || {}).forEach((k) => {
+    const fb = state.ai_feedback[k];
+    if (fb && fb.corrected && !fb.isError) aiCount++;
+  });
+  // 단어장 저장 수
+  const bankSize = Array.isArray(state.pitch_vocab) ? state.pitch_vocab.length : 0;
+  // 시험 성적
+  const bossResults = state.bingo_boss_results || {};
+  const weeklyScores = [1, 2, 3, 4].map((n) => {
+    const r = bossResults[String(n)];
+    return r ? { week: n, score: r.score || 0, total: r.total || 10, at: r.at } : { week: n, score: null, total: 10 };
+  });
+  // 미팅 / 발표 (프리미엄)
+  const isPremium = state.tier === 'premium';
+  const meetingsDone = (CHALLENGE.premium && CHALLENGE.premium.weekly_meetings)
+    ? CHALLENGE.premium.weekly_meetings.filter((m) => m.status === 'done').length : 0;
+  const presentedCount = (() => {
+    try {
+      const signups = state.presenterSignups || {};
+      return (CHALLENGE.premium.weekly_meetings || []).filter((m) => {
+        const arr = signups['w' + m.n] || [];
+        return arr.some((s) => s.uid === state.uid || s.memberKey === state.memberKey || s.member_key === memberKey());
+      }).length;
+    } catch (_) { return 0; }
+  })();
+  // 본인 약점 단어 Top 5 (vocab_stats firstResult='wrong' 우선)
+  const myStats = state.vocab_stats || {};
+  const weakWords = Object.entries(myStats)
+    .map(([key, st]) => {
+      const c = Number(st.c || 0), w = Number(st.w || 0), h = Number(st.h || 0), s = Number(st.s || 0);
+      const total = c + w + s;
+      const wrongRate = total > 0 ? Math.round(((w + s) / total) * 100) : 0;
+      const firstWrong = st.firstResult === 'wrong' || st.firstHinted;
+      const score = wrongRate + (firstWrong ? 30 : 0) + (h * 5);
+      return { word: key, c, w, h, s, score, firstWrong };
+    })
+    .filter(x => (x.c + x.w + x.s) > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+  // weakWords 에 영어/한국어 메타 붙이기
+  const wordMeta = {};
+  (CHALLENGE.weeks || []).forEach((wk) => {
+    (wk.days || []).forEach((d) => {
+      (d.words || []).forEach((w) => {
+        wordMeta[String(w.en || '').toLowerCase()] = { en: w.en, def: w.def, day: d.day };
+      });
+    });
+  });
+  weakWords.forEach((wk) => {
+    const m = wordMeta[wk.word.toLowerCase()] || {};
+    wk.en = m.en || wk.word; wk.def = m.def || ''; wk.day = m.day || null;
+  });
+  // 본인 베스트 문장 5개 — AI 첨삭 안 받은 (또는 그대로 OK 받은) sentence 우선
+  const bestSentences = [];
+  (CHALLENGE.weeks || []).forEach((wk) => {
+    (wk.days || []).forEach((d) => {
+      (d.words || []).forEach((w, i) => {
+        const k = `d${d.day}-${i}`;
+        const s = (state.sentences && state.sentences[k] || '').trim();
+        if (!s || s.length < 15) return;
+        const fb = state.ai_feedback && state.ai_feedback[k];
+        const isAlreadyNatural = fb && (fb.isAlreadyNatural || (fb.corrected && fb.corrected.trim() === s));
+        bestSentences.push({
+          en: s, dayN: d.day, wordEn: w.en, wordDef: w.def,
+          score: (isAlreadyNatural ? 100 : 0) + s.length,
+        });
+      });
+    });
+  });
+  bestSentences.sort((a, b) => b.score - a.score);
+  const top5Sentences = bestSentences.slice(0, 5);
+
+  const overall = Math.round((verifiedCount / total) * 100);
+  const isCompletion = verifiedCount >= 18; // 수료 기준
+  const canDownload = isCompletion || isOpStaff;
+
+  // ─── Hero
+  const hero = el('div', {
+    style: {
+      margin: '8px 18px 14px', padding: '24px 22px', borderRadius: '24px',
+      background: 'linear-gradient(135deg, #FFF5E6 0%, #FFE5D9 50%, #F4ECFA 100%)',
+      border: '1px solid var(--orange-soft)', textAlign: 'center',
+    },
+  });
+  hero.innerHTML = `
+    <div class="kicker" style="color:var(--orange-dark);">📊 ${CHALLENGE.cohort} 종합 리포트</div>
+    <div style="margin-top:10px;font-size:24px;font-weight:800;letter-spacing:-0.02em;line-height:1.3;">
+      <span class="serif">${escapeHtml(state.englishName || state.name || '버디')}</span>님의<br>4주 챌린지 마무리
+    </div>
+    <div style="margin-top:14px;display:inline-flex;align-items:baseline;gap:6px;">
+      <span class="serif" style="font-size:54px;line-height:1;color:var(--orange);font-weight:700;">${verifiedCount}</span>
+      <span style="font-size:18px;color:var(--ink-soft);font-weight:600;">/ ${total}일</span>
+    </div>
+    <div style="margin-top:8px;font-size:13px;color:var(--ink-soft);">전체 인증률 <b style="color:var(--orange-dark);">${overall}%</b></div>
+    ${isCompletion ? '<div style="margin-top:10px;display:inline-block;padding:5px 12px;border-radius:99px;background:rgba(34,179,106,0.18);color:#1F8F58;font-size:11.5px;font-weight:800;letter-spacing:0.05em;">🏆 수료 자격 충족 (18일+)</div>' : '<div style="margin-top:10px;font-size:11.5px;color:var(--muted);">수료증 = 18일 이상 인증</div>'}
+  `;
+  page.appendChild(hero);
+
+  // ─── 학습 통계
+  const statsCard = el('div', { class: 'card', style: { margin: '0 18px 12px', padding: '16px 18px', borderRadius: '18px' } });
+  statsCard.innerHTML = `
+    <div class="kicker">📌 학습 통계</div>
+    <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12.5px;">
+      <div style="padding:10px 12px;border-radius:12px;background:var(--paper);">
+        <div style="color:var(--muted);font-size:10.5px;letter-spacing:0.06em;font-weight:700;">인증</div>
+        <div style="margin-top:4px;font-size:15px;font-weight:800;color:var(--ink);">${verifiedCount} / ${total}일</div>
+        <div style="margin-top:2px;font-size:11px;color:var(--ink-soft);">정시 ${onTimeCount} · 지각 ${lateCount}</div>
+      </div>
+      <div style="padding:10px 12px;border-radius:12px;background:var(--paper);">
+        <div style="color:var(--muted);font-size:10.5px;letter-spacing:0.06em;font-weight:700;">작성 문장</div>
+        <div style="margin-top:4px;font-size:15px;font-weight:800;color:var(--ink);">${sentenceCount} / 60개</div>
+        <div style="margin-top:2px;font-size:11px;color:var(--ink-soft);">${Math.round((sentenceCount/60)*100)}% 채움</div>
+      </div>
+      <div style="padding:10px 12px;border-radius:12px;background:var(--paper);">
+        <div style="color:var(--muted);font-size:10.5px;letter-spacing:0.06em;font-weight:700;">AI 첨삭</div>
+        <div style="margin-top:4px;font-size:15px;font-weight:800;color:var(--ink);">${aiCount}회</div>
+      </div>
+      <div style="padding:10px 12px;border-radius:12px;background:var(--paper);">
+        <div style="color:var(--muted);font-size:10.5px;letter-spacing:0.06em;font-weight:700;">단어장</div>
+        <div style="margin-top:4px;font-size:15px;font-weight:800;color:var(--ink);">${bankSize}개 저장</div>
+      </div>
+    </div>
+  `;
+  page.appendChild(statsCard);
+
+  // ─── 시험 성적
+  const testCard = el('div', { class: 'card', style: { margin: '0 18px 12px', padding: '16px 18px', borderRadius: '18px' } });
+  const testRowsHtml = weeklyScores.map((r) => {
+    const label = r.week === 4 ? '🏆 파이널 (Day 1~20)' : `Week ${r.week}`;
+    if (r.score === null) {
+      return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13px;"><span style="flex:1;color:var(--muted);">${label}</span><span style="color:var(--muted);font-size:11.5px;">아직 안 풀었음</span></div>`;
+    }
+    const pct = Math.round((r.score / r.total) * 100);
+    const pass = pct >= 70;
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13px;">
+        <span style="flex:1;color:var(--ink);font-weight:600;">${label}</span>
+        <span style="flex:0 0 100px;height:8px;background:#F0E8D8;border-radius:4px;overflow:hidden;position:relative;">
+          <span style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:${pass ? 'var(--green)' : 'var(--orange)'};border-radius:4px;"></span>
+        </span>
+        <span style="flex:0 0 70px;text-align:right;font-family:var(--font-mono);font-size:11.5px;color:var(--ink);">${r.score}/${r.total} (${pct}%)</span>
+      </div>
+    `;
+  }).join('');
+  testCard.innerHTML = `
+    <div class="kicker">🎯 시험 성적</div>
+    <div style="margin-top:10px;">${testRowsHtml}</div>
+  `;
+  page.appendChild(testCard);
+
+  // ─── 약점 단어 Top 5
+  if (weakWords.length > 0) {
+    const weakCard = el('div', { class: 'card', style: { margin: '0 18px 12px', padding: '16px 18px', borderRadius: '18px' } });
+    weakCard.innerHTML = `
+      <div class="kicker">📚 본인 약점 단어 Top ${weakWords.length}</div>
+      <div class="t-small" style="margin-top:4px;color:var(--muted);font-size:11.5px;">자주 틀린 / 힌트 본 / 스킵한 단어 기반</div>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">
+        ${weakWords.map((w) => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--paper);">
+            <span style="flex:0 0 40px;font-size:9.5px;font-weight:800;color:var(--muted);letter-spacing:0.05em;">DAY ${w.day || '?'}</span>
+            <span style="flex:1;font-size:13px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${escapeHtml(w.en)}</span>
+            <span style="flex:0 0 auto;font-size:10.5px;color:var(--ink-soft);">${escapeHtml(w.def || '')}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    page.appendChild(weakCard);
+  }
+
+  // ─── 본인 베스트 문장
+  if (top5Sentences.length > 0) {
+    const bestCard = el('div', { class: 'card', style: { margin: '0 18px 12px', padding: '16px 18px', borderRadius: '18px' } });
+    bestCard.innerHTML = `
+      <div class="kicker">📜 4주간 본인 베스트 문장</div>
+      <div class="t-small" style="margin-top:4px;color:var(--muted);font-size:11.5px;">AI 가 '이미 자연스러워요' 한 문장 + 길이 기준</div>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+        ${top5Sentences.map((s) => `
+          <div style="padding:10px 12px;border-radius:10px;background:var(--paper);border:1px solid rgba(231,221,200,0.5);">
+            <div style="display:flex;align-items:baseline;gap:8px;">
+              <span style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:0.06em;">DAY ${s.dayN}</span>
+              <span style="font-size:10.5px;font-weight:700;color:var(--orange-dark);background:var(--orange-ghost);padding:1px 6px;border-radius:4px;">${escapeHtml(s.wordEn)}</span>
+            </div>
+            <p style="margin:6px 0 0;font-size:13.5px;line-height:1.5;color:var(--ink);">${escapeHtml(s.en)}</p>
+          </div>
+        `).join('')}
+      </div>
+      <button class="btn btn-ghost btn-full" style="margin-top:12px;border:1px solid var(--line);color:var(--ink-soft);font-size:12.5px;padding:10px;" onclick="go('scripts')">📜 4주간 내 문장 전체 보기 →</button>
+    `;
+    page.appendChild(bestCard);
+  }
+
+  // ─── 미팅 (프리미엄)
+  if (isPremium) {
+    const meetCard = el('div', { class: 'card', style: { margin: '0 18px 12px', padding: '16px 18px', borderRadius: '18px' } });
+    meetCard.innerHTML = `
+      <div class="kicker">🎤 미팅 & 발표 (프리미엄)</div>
+      <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12.5px;">
+        <div style="padding:10px 12px;border-radius:12px;background:var(--paper);">
+          <div style="color:var(--muted);font-size:10.5px;letter-spacing:0.06em;font-weight:700;">미팅 참여</div>
+          <div style="margin-top:4px;font-size:15px;font-weight:800;color:var(--ink);">${meetingsDone} / 4회</div>
+        </div>
+        <div style="padding:10px 12px;border-radius:12px;background:var(--paper);">
+          <div style="color:var(--muted);font-size:10.5px;letter-spacing:0.06em;font-weight:700;">발표</div>
+          <div style="margin-top:4px;font-size:15px;font-weight:800;color:var(--ink);">${presentedCount}회</div>
+        </div>
+      </div>
+    `;
+    page.appendChild(meetCard);
+  }
+
+  // ─── 다음 단계
+  const nextCard = el('div', {
+    style: {
+      margin: '0 18px 14px', padding: '18px 20px', borderRadius: '20px',
+      background: 'linear-gradient(135deg, #1F1630 0%, #3A2A52 100%)', color: '#fff',
+    },
+  });
+  nextCard.innerHTML = `
+    <div class="kicker" style="color:#FCE8B2;">🚀 다음 단계</div>
+    <ul style="margin:10px 0 0;padding:0;list-style:none;font-size:13px;line-height:1.7;">
+      <li>· 📜 4주간 내 문장 모아보기 (Notion export 가능)</li>
+      <li>· 🏆 수료증 다운로드 (18일+ 인증 시)</li>
+      <li>· 🎁 다음 기수 (6기) 우선 등록권 — 단톡으로 안내</li>
+    </ul>
+  `;
+  page.appendChild(nextCard);
+
+  // ─── 다운로드 버튼 (HTML)
+  const dlWrap = el('div', { style: { margin: '0 18px 24px' } });
+  const dlBtn = el('button', {
+    class: 'btn btn-primary btn-full',
+    style: {
+      background: canDownload ? 'var(--orange)' : 'rgba(154,139,115,0.18)',
+      color: canDownload ? '#fff' : 'var(--muted)',
+      border: 'none', fontSize: '14px', padding: '14px', fontWeight: '800',
+      cursor: canDownload ? 'pointer' : 'not-allowed',
+    },
+    onClick: () => {
+      if (!canDownload) { showToast(`수료 기준 (18일+ 인증) 충족 시 다운로드 가능해요. 현재 ${verifiedCount}/20`); return; }
+      window.__downloadFinalReport();
+    },
+  }, canDownload ? '📥 4주 종합 리포트 다운로드 (HTML)' : `🔒 18일+ 인증 시 활성화 (${verifiedCount}/20)`);
+  dlWrap.appendChild(dlBtn);
+  if (isOpStaff && !isCompletion) {
+    const opNote = el('div', {
+      style: { marginTop: '6px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(125,92,255,0.10)', color: '#5C53A5', fontSize: '11px', textAlign: 'center', fontWeight: '700' },
+    }, '⚙ 운영자 미리보기 모드 — 인증 부족해도 다운로드 가능');
+    dlWrap.appendChild(opNote);
+  }
+  page.appendChild(dlWrap);
+
+  return page;
+}
+
+// HTML 다운로드 함수 — 위 페이지 콘텐츠를 standalone HTML 로 저장
+window.__downloadFinalReport = function() {
+  const reportPage = FinalReportPage();
+  // <a> 안의 onClick / button 들 다 제거하고 정적 HTML 만 추출
+  const cleanHtml = reportPage.outerHTML
+    .replace(/<button[\s\S]*?<\/button>/g, '')
+    .replace(/onclick="[^"]*"/g, '')
+    .replace(/<div class="topbar">[\s\S]*?<\/div>\s*<div/, '<div');
+  const name = (state.englishName || state.name || 'member').replace(/\s+/g, '_');
+  const filename = `youbuddy-${CHALLENGE.cohort}-report-${name}.html`;
+  const fullHtml = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>YOUBUDDY ${CHALLENGE.cohort} 종합 리포트 — ${escapeHtml(state.englishName || state.name || '')}</title>
+<style>
+body { font-family: -apple-system, 'Noto Sans KR', sans-serif; background: #FFFDF7; color: #2A1F14; padding: 20px; max-width: 720px; margin: 0 auto; }
+.page { background: transparent; }
+.card { background: #fff; border: 1px solid #E7DDC8; border-radius: 18px; padding: 16px 18px; margin-bottom: 12px; }
+.kicker { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; color: #8A7A5C; text-transform: uppercase; }
+.serif { font-family: 'Cormorant Garamond', Georgia, serif; }
+.t-small { font-size: 11.5px; color: #5B4A32; }
+ul { list-style: none; padding: 0; }
+:root { --orange: #F07D38; --orange-dark: #C95721; --orange-soft: #E7C9B3; --orange-ghost: rgba(240,125,56,0.16); --ink: #2A1F14; --ink-soft: #5B4A32; --muted: #8A7A5C; --line: #E7DDC8; --paper: #F7EFDE; --green: #6FAE6C; --font-mono: 'JetBrains Mono', ui-monospace, monospace; }
+</style>
+</head>
+<body>${cleanHtml}</body>
+</html>`;
+  const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+  showToast('📥 4주 종합 리포트 받았어요');
+};
 
 /* ============================================================
    SCRIPTS PAGE — 내 대본 모음
