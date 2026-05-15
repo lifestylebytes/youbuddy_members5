@@ -19865,18 +19865,47 @@ function WeekSurveyResultPage() {
   }
   page.appendChild(listSection);
 
-  // ─── 미니 설문 (시험 입구 3문항) 결과 ───
+  // ─── 미니 설문 결과 (시험 입구 멀티 셀렉트) ───
   const miniResponses = Array.isArray(data.mini_responses) ? data.mini_responses : [];
   const miniHardestDist = (summary.mini_hardest_dist) || {};
   const miniAmountDist = (summary.mini_amount_dist) || {};
+  const miniLovedDist = (summary.mini_update_loved_dist) || {};
+  const miniWishDist = (summary.mini_wish_dist) || {};
   const miniCount = Number(summary.mini_count || 0);
+  // ID → 라벨 매핑 — 클라이언트 코드와 동기화 유지 (변경 시 둘 다 수정)
+  const updateLovedLabels = {
+    'ai_kr': '✨ AI 한국어 번역',
+    'boss_wrong_save': '📚 시험 틀린 단어 단어장 저장',
+    'peer_alarm': '🔔 동료 알림',
+    'meeting_live': '🎬 미팅 진행 가이드',
+    'survey_first': '📝 시험 전 1분 회고',
+    'pq_fill': '💎 빈칸 채우기',
+    'syn_expand': '✨ 유의어 박스 확장',
+    'boss_save': '📚 오답 단어 저장 옵션',
+    'premium_20': '💎 단어 시험 20개',
+    'none_noticed': '🤔 잘 못 봤음',
+  };
+  const wishLabels = {
+    'final_report': '📊 4주 종합 리포트',
+    'final_test': '🎯 Day 1~20 종합 테스트',
+    'script_archive': '📜 4주간 내 문장 모아보기',
+    'cert_preview': '🏆 수료증 미리보기',
+    'pronunciation': '🔊 발음 연습',
+    'premium_chat': '💎 프리미엄 단톡',
+    'more_examples': '✏️ 본인 문장 예시',
+    'voice_input': '🎙 음성 입력 안정화',
+    'ai_grammar': '🧠 AI 문법 깊이 분석',
+    'spaced': '🔁 매일 오답 자동 복습',
+    'next_cohort': '🚀 다음 기수 우선 등록',
+    'lessons_archive': '📚 4주 자료 영구 보관',
+  };
 
   const miniSection = el('div', { style: { padding: '0 20px 24px' } });
   miniSection.appendChild(el('div', {
     style: { paddingTop: '16px', borderTop: '1px dashed var(--line)', marginBottom: '10px' }
   }, ''));
   miniSection.appendChild(el('div', { class: 'kicker', style: { color: '#7B5E8C', marginBottom: '8px' } },
-    `⚡ 미니 설문 (시험 입구 · 3문항) — ${miniCount}건`));
+    `⚡ 미니 설문 (시험 입구 · 멀티 셀렉트) · ${miniCount}건`));
 
   if (miniCount === 0 && !miniResponses.length) {
     miniSection.appendChild(el('div', {
@@ -19917,14 +19946,57 @@ function WeekSurveyResultPage() {
         </div>`;
     }).join('');
 
+    // 신규: update_loved · next_week_wish 분포 (멀티 셀렉트라 totalRespondents 와 별개)
+    const lovedTotal = Object.values(miniLovedDist).reduce((s, v) => s + Number(v), 0);
+    const lovedEntries = Object.entries(miniLovedDist)
+      .sort((a, b) => Number(b[1]) - Number(a[1]));
+    const lovedHtml = lovedEntries.length ? lovedEntries.map(([id, n]) => {
+      const pct = lovedTotal > 0 ? Math.round((Number(n) / Math.max(miniCount, 1)) * 100) : 0;
+      const label = updateLovedLabels[id] || id;
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;font-size:12.5px;">
+          <span style="flex:1;color:var(--ink);font-weight:600;">${escapeHtml(label)}</span>
+          <span style="flex:0 0 130px;height:8px;background:#F0E8D8;border-radius:4px;overflow:hidden;position:relative;">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:#E8743C;border-radius:4px;"></span>
+          </span>
+          <span style="flex:0 0 60px;text-align:right;font-family:var(--font-mono);font-size:11.5px;color:var(--muted);">${n}명 · ${pct}%</span>
+        </div>`;
+    }).join('') : '<div style="color:var(--muted);font-size:12px;">응답 없음</div>';
+
+    const wishTotal = Object.values(miniWishDist).reduce((s, v) => s + Number(v), 0);
+    const wishEntries = Object.entries(miniWishDist)
+      .sort((a, b) => Number(b[1]) - Number(a[1]));
+    const wishHtml = wishEntries.length ? wishEntries.map(([id, n]) => {
+      const pct = wishTotal > 0 ? Math.round((Number(n) / Math.max(miniCount, 1)) * 100) : 0;
+      const label = wishLabels[id] || id;
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;font-size:12.5px;">
+          <span style="flex:1;color:var(--ink);font-weight:600;">${escapeHtml(label)}</span>
+          <span style="flex:0 0 130px;height:8px;background:#F0E8D8;border-radius:4px;overflow:hidden;position:relative;">
+            <span style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:#A98BB8;border-radius:4px;"></span>
+          </span>
+          <span style="flex:0 0 60px;text-align:right;font-family:var(--font-mono);font-size:11.5px;color:var(--muted);">${n}명 · ${pct}%</span>
+        </div>`;
+    }).join('') : '<div style="color:var(--muted);font-size:12px;">응답 없음</div>';
+
     const distCards = el('div');
     distCards.innerHTML = `
       <div style="padding:14px 16px;border-radius:14px;background:#fff;border:1px solid var(--line);margin-bottom:10px;">
-        <div style="font-size:13px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">가장 헷갈린 단어 (Top 8)</div>
+        <div style="font-size:13px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">🎁 이번 주 좋았던 업데이트 (다중 선택)</div>
+        <div class="t-small" style="margin-top:2px;color:var(--muted);font-size:11px;">%는 ${miniCount}명 중 선택한 비율</div>
+        <div style="margin-top:8px;">${lovedHtml}</div>
+      </div>
+      <div style="padding:14px 16px;border-radius:14px;background:#fff;border:1px solid var(--line);margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">🚀 다음 주 우선순위 (다중 선택)</div>
+        <div class="t-small" style="margin-top:2px;color:var(--muted);font-size:11px;">멤버들이 원하는 다음 주 기능</div>
+        <div style="margin-top:8px;">${wishHtml}</div>
+      </div>
+      <div style="padding:14px 16px;border-radius:14px;background:#fff;border:1px solid var(--line);margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">📌 가장 헷갈린 단어 (Top 8)</div>
         <div style="margin-top:8px;">${hardestHtml}</div>
       </div>
       <div style="padding:14px 16px;border-radius:14px;background:#fff;border:1px solid var(--line);margin-bottom:10px;">
-        <div style="font-size:13px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">학습 분량</div>
+        <div style="font-size:13px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">⏱ 학습 분량</div>
         <div style="margin-top:8px;">${amountHtml}</div>
       </div>
     `;
@@ -19939,6 +20011,20 @@ function WeekSurveyResultPage() {
         });
         const tier = r.tier === 'premium' ? '<span style="font-size:9.5px;font-weight:700;background:rgba(192,132,252,0.18);color:#7B4FB8;padding:2px 6px;border-radius:999px;">PREMIUM</span>' : '<span style="font-size:9.5px;font-weight:700;background:rgba(240,125,56,0.16);color:var(--orange-dark);padding:2px 6px;border-radius:999px;">BASIC</span>';
         const name = r.english_name || r.name || '익명';
+        // update_loved + next_week_wish 칩들
+        const lovedArr = Array.isArray(r.update_loved) ? r.update_loved : [];
+        const wishArr = Array.isArray(r.next_week_wish) ? r.next_week_wish : [];
+        const lovedChips = lovedArr.length === 0 ? '' : `
+          <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;font-size:10.5px;">
+            <span style="padding:2px 6px;border-radius:6px;background:rgba(232,116,60,0.10);color:var(--orange-dark);font-weight:700;">🎁 좋았던:</span>
+            ${lovedArr.map(id => `<span style="padding:2px 7px;border-radius:6px;background:rgba(232,116,60,0.18);color:var(--orange-dark);font-weight:600;">${escapeHtml(updateLovedLabels[id] || id)}</span>`).join('')}
+          </div>`;
+        const wishChips = wishArr.length === 0 ? '' : `
+          <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;font-size:10.5px;">
+            <span style="padding:2px 6px;border-radius:6px;background:rgba(155,127,174,0.10);color:#7B5E8C;font-weight:700;">🚀 다음 주:</span>
+            ${wishArr.map(id => `<span style="padding:2px 7px;border-radius:6px;background:rgba(155,127,174,0.18);color:#7B5E8C;font-weight:600;">${escapeHtml(wishLabels[id] || id)}</span>`).join('')}
+          </div>`;
+
         card.innerHTML = `
           <div style="display:flex;align-items:center;gap:8px;">
             <span style="font-size:13px;font-weight:800;color:var(--ink);">${escapeHtml(name)}</span>
@@ -19949,6 +20035,8 @@ function WeekSurveyResultPage() {
             <span style="padding:3px 8px;border-radius:8px;background:rgba(240,125,56,0.12);color:var(--orange-dark);font-weight:700;font-family:var(--font-mono);">📌 ${escapeHtml(r.hardest || '-')}</span>
             <span style="padding:3px 8px;border-radius:8px;background:rgba(155,127,174,0.12);color:#7B5E8C;font-weight:700;">${escapeHtml(amountLabels[r.amount] || r.amount || '-')}</span>
           </div>
+          ${lovedChips}
+          ${wishChips}
           ${r.comment ? `<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:#fff;border:1px solid var(--line-soft);font-size:12px;color:var(--ink);line-height:1.5;">💬 ${escapeHtml(r.comment)}</div>` : ''}
         `;
         miniSection.appendChild(card);

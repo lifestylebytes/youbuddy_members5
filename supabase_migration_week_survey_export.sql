@@ -164,6 +164,8 @@ mini_responses as (
       'tier', tier,
       'hardest', survey -> 'mini' ->> 'hardest',
       'amount', survey -> 'mini' ->> 'amount',
+      'update_loved', coalesce(survey -> 'mini' -> 'update_loved', '[]'::jsonb),
+      'next_week_wish', coalesce(survey -> 'mini' -> 'next_week_wish', '[]'::jsonb),
       'comment', coalesce(survey -> 'mini' ->> 'comment', ''),
       'at', survey -> 'mini' ->> 'at'
     ) order by survey -> 'mini' ->> 'at' desc
@@ -181,6 +183,25 @@ mini_amount_dist as (
   select jsonb_object_agg(a, n) as dist from (
     select coalesce(survey -> 'mini' ->> 'amount', 'unknown') as a, count(*) as n
     from mini_only_rows group by 1
+  ) x
+),
+-- 신규: update_loved · next_week_wish 는 배열이라 unnest 후 카운트
+mini_update_loved_unnest as (
+  select jsonb_array_elements_text(coalesce(survey -> 'mini' -> 'update_loved', '[]'::jsonb)) as item
+  from mini_only_rows
+),
+mini_update_loved_dist as (
+  select jsonb_object_agg(item, n) as dist from (
+    select item, count(*) as n from mini_update_loved_unnest group by 1
+  ) x
+),
+mini_wish_unnest as (
+  select jsonb_array_elements_text(coalesce(survey -> 'mini' -> 'next_week_wish', '[]'::jsonb)) as item
+  from mini_only_rows
+),
+mini_wish_dist as (
+  select jsonb_object_agg(item, n) as dist from (
+    select item, count(*) as n from mini_wish_unnest group by 1
   ) x
 )
 select jsonb_build_object(
@@ -206,7 +227,9 @@ select jsonb_build_object(
     'want_w2_dist', coalesce((select dist from want_w2_dist), '{}'::jsonb),
     'mini_count', (select count(*) from mini_only_rows),
     'mini_hardest_dist', coalesce((select dist from mini_hardest_dist), '{}'::jsonb),
-    'mini_amount_dist', coalesce((select dist from mini_amount_dist), '{}'::jsonb)
+    'mini_amount_dist', coalesce((select dist from mini_amount_dist), '{}'::jsonb),
+    'mini_update_loved_dist', coalesce((select dist from mini_update_loved_dist), '{}'::jsonb),
+    'mini_wish_dist', coalesce((select dist from mini_wish_dist), '{}'::jsonb)
   ),
   'responses', (select list from responses),
   'mini_responses', (select list from mini_responses)
