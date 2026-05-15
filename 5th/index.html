@@ -8500,7 +8500,16 @@ function buildVerifyQuestions(dayN) {
 }
 
 function normalizeQuizAnswer(value='') {
-  return String(value).trim().toLowerCase().replace(/\s+/g, ' ');
+  return String(value)
+    .trim()
+    .toLowerCase()
+    // 스마트 따옴표 (U+2018·2019 etc.) → 일반 어포스트로피. 모바일 키보드 자동 변환 대응.
+    .replace(/[‘’‚‛′ʼ]/g, "'")
+    .replace(/[“”„‟″]/g, '"')
+    // 끝 부호 제거 — '맞게 썼는데 안 넘어감' 의 #1 원인 (Set the stage. 같은 케이스)
+    .replace(/[.!?,;:]+$/g, '')
+    // 다중 공백 → 단일
+    .replace(/\s+/g, ' ');
 }
 // 퀴즈 정답 비교 — 하이픈·스페이스 변형 + 시제 변형 + 분리형 phrasal verb 다 인정.
 // "front-load" / "front load" / "frontload" 다 같은 답.
@@ -11379,6 +11388,20 @@ window.__bingoDrillCheck = (weekN, value) => {
     drill.value = '';
     drill.reveal = false;
     setTimeout(() => render(), 700);
+  } else {
+    // 디버깅 — 사용자가 '정답 맞췄는데 안 넘어감' 신고 시 잡기 위해
+    // 정답 길이만큼 입력했는데 mismatch 면 콘솔에 자세히 로그 (운영자/스태프만)
+    try {
+      if ((state.isOperator || state.isStaff) && value && value.length >= (w.en || '').length) {
+        const norm = (s) => String(s || '').trim().toLowerCase().replace(/[‘’]/g, "'").replace(/[.!?,;:]+$/g, '').replace(/\s+/g, ' ');
+        console.warn('[bingo-mismatch]',
+          'target=', JSON.stringify(w.en),
+          'input=', JSON.stringify(value),
+          'norm-target=', JSON.stringify(norm(w.en)),
+          'norm-input=', JSON.stringify(norm(value))
+        );
+      }
+    } catch (_) {}
   }
 };
 // 객관식 (boss 의 recognition 모드) — 클릭으로 답.
