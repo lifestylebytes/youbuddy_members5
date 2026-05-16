@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet">
+<!-- PDF 단어집 빌드용 (FinalReportPage 의 4주 단어집 다운로드) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
 <style>
 :root {
   --ivory: #FBF7F0;
@@ -977,6 +979,12 @@ const REWARD_VIDEOS = {
   // Day 20 (금·챌린지 마지막) — I chased my dreams for 1 year (꿈 좇기 1년 회고 — 마무리 영감)
   20: 'https://www.youtube.com/watch?v=rQyRkS-xKEk',
 };
+
+/* ============================================================
+   외부 링크 — 6기 신청
+   ============================================================ */
+// 6기 신청 페이지 — lifestylebytes 상세 페이지 (youbuddy.co.kr 도 이쪽으로 라우팅됨)
+const COHORT_6_APPLY_URL = 'https://lifestylebytes.github.io/youbuddy-challenge/';
 
 /* ============================================================
    DATA — challenge content (4 weeks × 5 days = 20 days)
@@ -10436,9 +10444,18 @@ function renderBingoMode(page, weekN, week, isPremium) {
         <div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:rgba(154,139,115,0.12);border:1px dashed rgba(154,139,115,0.4);color:var(--muted);font-size:12px;line-height:1.55;">📦 잠금화면 배경은 Week 1~3 까지. Week 4 는 챌린지 마무리 종합 보상 패키지로 따로 드려요 ✨</div>
       `}
       ${weekN === 4 ? `
+        <div style="margin-top:14px;padding:14px;border-radius:14px;background:rgba(255,255,255,0.92);border:1px solid var(--line);text-align:left;">
+          <div style="font-size:12.5px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">🎓 4주 마무리 — 이렇게 이어가시면 돼요</div>
+          <ol style="margin:8px 0 0;padding-left:18px;color:var(--ink-soft);font-size:11.5px;line-height:1.65;">
+            <li>📊 종합 리포트 들어가서 본인 4주 stats 확인</li>
+            <li>📥 4주 단어집 PDF 다운로드 → 졸업 후에도 펼쳐보는 본인 사전</li>
+            <li>📜 본인 문장 아카이브 (Notion export)</li>
+            <li>🎁 6기 신청 (얼리버드 자리 한정)</li>
+          </ol>
+        </div>
         <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
-          <button onclick="go('final-report')" class="btn btn-full" style="background:linear-gradient(135deg,#1F1630 0%,#3A2A52 100%);color:#fff;border:none;font-size:14px;padding:13px;font-weight:800;letter-spacing:-0.01em;">📊 4주 종합 리포트 보기 + 다운로드 →</button>
-          <button onclick="go('scripts')" class="btn btn-full" style="background:#fff;color:var(--ink);border:1px solid var(--line);font-size:13px;padding:11px;font-weight:700;">📜 4주간 내 문장 모아보기 →</button>
+          <button onclick="go('final-report')" class="btn btn-full" style="background:linear-gradient(135deg,#1F1630 0%,#3A2A52 100%);color:#fff;border:none;font-size:14px;padding:13px;font-weight:800;letter-spacing:-0.01em;">📊 4주 종합 리포트 보러 가기 →</button>
+          <button onclick="window.__yb_apply6th()" class="btn btn-full" style="background:var(--orange);color:#fff;border:none;font-size:13.5px;padding:12px;font-weight:800;letter-spacing:-0.01em;">🎁 6기 신청하러 가기 →</button>
         </div>
       ` : ''}
     `;
@@ -11483,6 +11500,15 @@ window.__bingoReset = (weekN) => {
   delete state.bingo[String(weekN)];
   saveState();
   render();
+};
+
+/* ============================================================
+   6기 신청 페이지 열기 — Final Report / Week 4 reward 의 졸업 CTA
+   ============================================================ */
+window.__yb_apply6th = function() {
+  const sep = COHORT_6_APPLY_URL.includes('?') ? '&' : '?';
+  const url = `${COHORT_6_APPLY_URL}${sep}ref=5th_finalreport`;
+  window.open(url, '_blank', 'noopener,noreferrer');
 };
 
 // 단어장 JPG 다운로드 — iPhone 잠금화면 사이즈 (1170×2532).
@@ -19359,17 +19385,30 @@ function FinalReportPage() {
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
   // weakWords 에 영어/한국어 메타 붙이기
+  // 본 단어 + 유의어 둘 다 인덱싱. 유의어는 부모 단어의 day 를 상속.
   const wordMeta = {};
   (CHALLENGE.weeks || []).forEach((wk) => {
     (wk.days || []).forEach((d) => {
       (d.words || []).forEach((w) => {
-        wordMeta[String(w.en || '').toLowerCase()] = { en: w.en, def: w.def, day: d.day };
+        const mainKey = String(w.en || '').toLowerCase();
+        wordMeta[mainKey] = { en: w.en, def: w.def, day: d.day };
+        // 프리미엄 학습에서 등장하는 유의어도 같은 day 기준으로 매핑
+        (Array.isArray(w.syn) ? w.syn : []).forEach((s) => {
+          const synKey = String(s || '').toLowerCase().trim();
+          if (!synKey) return;
+          if (!wordMeta[synKey]) {
+            // SYNONYM_GLOSSARY 에 등록된 한국어 정의가 있으면 그걸 사용
+            const synDef = (typeof SYNONYM_GLOSSARY !== 'undefined' && SYNONYM_GLOSSARY[synKey]) ? SYNONYM_GLOSSARY[synKey] : `(${w.en} 유의어)`;
+            wordMeta[synKey] = { en: s, def: synDef, day: d.day, parentEn: w.en };
+          }
+        });
       });
     });
   });
   weakWords.forEach((wk) => {
     const m = wordMeta[wk.word.toLowerCase()] || {};
     wk.en = m.en || wk.word; wk.def = m.def || ''; wk.day = m.day || null;
+    wk.parentEn = m.parentEn || null;
   });
   // 본인 베스트 문장 5개 — AI 첨삭 안 받은 (또는 그대로 OK 받은) sentence 우선
   const bestSentences = [];
@@ -19469,26 +19508,11 @@ function FinalReportPage() {
   `;
   page.appendChild(testCard);
 
-  // ─── 약점 단어 Top 5
-  if (weakWords.length > 0) {
-    const weakCard = el('div', { class: 'card', style: { margin: '0 18px 12px', padding: '16px 18px', borderRadius: '18px' } });
-    weakCard.innerHTML = `
-      <div class="kicker">📚 본인 약점 단어 Top ${weakWords.length}</div>
-      <div class="t-small" style="margin-top:4px;color:var(--muted);font-size:11.5px;">자주 틀린 / 힌트 본 / 스킵한 단어 기반</div>
-      <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">
-        ${weakWords.map((w) => `
-          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--paper);">
-            <span style="flex:0 0 40px;font-size:9.5px;font-weight:800;color:var(--muted);letter-spacing:0.05em;">DAY ${w.day || '?'}</span>
-            <span style="flex:1;font-size:13px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${escapeHtml(w.en)}</span>
-            <span style="flex:0 0 auto;font-size:10.5px;color:var(--ink-soft);">${escapeHtml(w.def || '')}</span>
-          </div>
-        `).join('')}
-      </div>
-    `;
-    page.appendChild(weakCard);
-  }
+  // ─────────────────────────────────────────────────────────────
+  // PHASE 1 · 회상 (자랑 클라이맥스 = 베스트 문장 → 미팅 → 약점 단어 마지막)
+  // ─────────────────────────────────────────────────────────────
 
-  // ─── 본인 베스트 문장
+  // ─── 본인 베스트 문장 (자랑 — Phase 1 의 따뜻한 피크)
   if (top5Sentences.length > 0) {
     const bestCard = el('div', { class: 'card', style: { margin: '0 18px 12px', padding: '16px 18px', borderRadius: '18px' } });
     bestCard.innerHTML = `
@@ -19529,51 +19553,436 @@ function FinalReportPage() {
     page.appendChild(meetCard);
   }
 
-  // ─── 다음 단계
-  const nextCard = el('div', {
+  // ─── 약점 단어 Top 5 (Phase 1 마지막 — 다음 학습 미끼로 자연스럽게 연결)
+  if (weakWords.length > 0) {
+    const weakCard = el('div', { class: 'card', style: { margin: '0 18px 12px', padding: '16px 18px', borderRadius: '18px' } });
+    weakCard.innerHTML = `
+      <div class="kicker">📚 본인 약점 단어 Top ${weakWords.length}</div>
+      <div class="t-small" style="margin-top:4px;color:var(--muted);font-size:11.5px;">자주 틀린 / 힌트 본 / 스킵한 단어 기반 · 졸업 후 다시 봐야 할 단어</div>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">
+        ${weakWords.map((w) => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--paper);">
+            <span style="flex:0 0 40px;font-size:9.5px;font-weight:800;color:var(--muted);letter-spacing:0.05em;">DAY ${w.day || '?'}</span>
+            <span style="flex:1;font-size:13px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${escapeHtml(w.en)}</span>
+            <span style="flex:0 0 auto;font-size:10.5px;color:var(--ink-soft);">${escapeHtml(w.def || '')}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    page.appendChild(weakCard);
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // PHASE 2 · 다음 학습 가이드 (복습 어떻게? = PDF 단어집 다운로드 메인 CTA)
+  // ─────────────────────────────────────────────────────────────
+  const guideCard = el('div', {
     style: {
-      margin: '0 18px 14px', padding: '18px 20px', borderRadius: '20px',
-      background: 'linear-gradient(135deg, #1F1630 0%, #3A2A52 100%)', color: '#fff',
+      margin: '18px 18px 12px', padding: '20px 20px 18px', borderRadius: '22px',
+      background: 'linear-gradient(135deg, #FFF7E6 0%, #FAEFDC 100%)',
+      border: '1px solid var(--orange-soft)',
     },
   });
-  nextCard.innerHTML = `
-    <div class="kicker" style="color:#FCE8B2;">🚀 다음 단계</div>
-    <ul style="margin:10px 0 0;padding:0;list-style:none;font-size:13px;line-height:1.7;">
-      <li>· 📜 4주간 내 문장 모아보기 (Notion export 가능)</li>
-      <li>· 🏆 수료증 다운로드 (18일+ 인증 시)</li>
-      <li>· 🎁 다음 기수 (6기) 우선 등록권 — 단톡으로 안내</li>
-    </ul>
+  guideCard.innerHTML = `
+    <div class="kicker" style="color:var(--orange-dark);">📦 졸업 후 어떻게 이어갈까</div>
+    <div style="margin-top:8px;font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;line-height:1.35;">4주 단어집 들고 가세요</div>
+    <p style="margin:8px 0 0;font-size:12.5px;color:var(--ink-soft);line-height:1.6;">
+      Day 1~20 단어 60개 + 유의어 + 예문 + 5기 동기들이 쓴 베스트 문장 + 본인 베스트 문장,<br>
+      가장 많이 틀린 단어 순서까지 <b>한 권의 PDF 단어집</b>으로. 졸업 후 펼쳐보는 본인 사전.
+    </p>
   `;
-  page.appendChild(nextCard);
 
-  // ─── 다운로드 버튼 (HTML)
-  const dlWrap = el('div', { style: { margin: '0 18px 24px' } });
-  const dlBtn = el('button', {
+  // PDF 다운로드 메인 버튼
+  const pdfBtnWrap = el('div', { style: { marginTop: '12px' } });
+  const pdfBtn = el('button', {
     class: 'btn btn-primary btn-full',
     style: {
       background: canDownload ? 'var(--orange)' : 'rgba(154,139,115,0.18)',
       color: canDownload ? '#fff' : 'var(--muted)',
       border: 'none', fontSize: '14px', padding: '14px', fontWeight: '800',
       cursor: canDownload ? 'pointer' : 'not-allowed',
+      letterSpacing: '-0.01em',
     },
     onClick: () => {
       if (!canDownload) { showToast(`수료 기준 (18일+ 인증) 충족 시 다운로드 가능해요. 현재 ${verifiedCount}/20`); return; }
-      window.__downloadFinalReport();
+      if (typeof window.__downloadFinalPdfBook === 'function') window.__downloadFinalPdfBook();
+      else window.__downloadFinalReport();
     },
-  }, canDownload ? '📥 4주 종합 리포트 다운로드 (HTML)' : `🔒 18일+ 인증 시 활성화 (${verifiedCount}/20)`);
-  dlWrap.appendChild(dlBtn);
+  }, canDownload ? '📥 4주 단어집 PDF 다운로드' : `🔒 18일+ 인증 시 활성화 (${verifiedCount}/20)`);
+  pdfBtnWrap.appendChild(pdfBtn);
+  guideCard.appendChild(pdfBtnWrap);
+
+  // 보조 액션 — 문장 모아보기 (Notion export)
+  const subBtn = el('button', {
+    class: 'btn btn-full',
+    style: {
+      marginTop: '8px', background: '#fff', color: 'var(--ink)',
+      border: '1px solid var(--line)', fontSize: '13px', padding: '11px', fontWeight: '700',
+      letterSpacing: '-0.01em', cursor: 'pointer',
+    },
+    onClick: () => go('scripts'),
+  }, '📜 본인 문장 아카이브 (Notion export) →');
+  guideCard.appendChild(subBtn);
+
   if (isOpStaff && !isCompletion) {
     const opNote = el('div', {
-      style: { marginTop: '6px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(125,92,255,0.10)', color: '#5C53A5', fontSize: '11px', textAlign: 'center', fontWeight: '700' },
+      style: { marginTop: '10px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(125,92,255,0.10)', color: '#5C53A5', fontSize: '11px', textAlign: 'center', fontWeight: '700' },
     }, '⚙ 운영자 미리보기 모드 — 인증 부족해도 다운로드 가능');
-    dlWrap.appendChild(opNote);
+    guideCard.appendChild(opNote);
   }
-  page.appendChild(dlWrap);
+  page.appendChild(guideCard);
+
+  // ─────────────────────────────────────────────────────────────
+  // PHASE 3 · 6기 CTA (단일 강조)
+  // ─────────────────────────────────────────────────────────────
+  const cohortCard = el('div', {
+    style: {
+      margin: '0 18px 24px', padding: '22px 20px', borderRadius: '22px',
+      background: 'linear-gradient(135deg, #1F1630 0%, #3A2A52 100%)', color: '#fff',
+      textAlign: 'center',
+    },
+  });
+  cohortCard.innerHTML = `
+    <div style="font-size:30px;line-height:1;">🎁</div>
+    <div class="kicker" style="margin-top:8px;color:#FCE8B2;">5기 출신 우선 등록권</div>
+    <div style="margin-top:8px;font-size:18px;font-weight:800;letter-spacing:-0.02em;line-height:1.35;">
+      6기는 5기 의견을 더해<br>더 업그레이드 됐어요
+    </div>
+    <ul style="margin:14px 0 0;padding:0;list-style:none;font-size:12.5px;line-height:1.75;color:#F1E0BA;text-align:left;">
+      <li style="padding:6px 0;border-bottom:1px solid rgba(252,232,178,0.12);">✨ 한국화된 단어 빼고 더 native 한 단어들로 큐레이션</li>
+      <li style="padding:6px 0;border-bottom:1px solid rgba(252,232,178,0.12);">📋 더 강화된 출석 체크 (4기 연속 불참 시 Block 제도)</li>
+      <li style="padding:6px 0;">📝 매주 내가 작문한 문장으로 어휘 테스트 가능</li>
+    </ul>
+  `;
+  const cohortBtn = el('button', {
+    style: {
+      marginTop: '16px', width: '100%', padding: '14px', borderRadius: '14px',
+      background: 'var(--orange)', color: '#fff', border: 'none',
+      fontSize: '14px', fontWeight: '800', letterSpacing: '-0.01em', cursor: 'pointer',
+    },
+    onClick: () => window.__yb_apply6th(),
+  }, '🎁 6기 신청하러 가기 →');
+  cohortCard.appendChild(cohortBtn);
+  page.appendChild(cohortCard);
 
   return page;
 }
 
-// HTML 다운로드 함수 — 위 페이지 콘텐츠를 standalone HTML 로 저장
+/* ============================================================
+   PDF 단어집 빌더 — 4주 학습 자료 archive (졸업 선물)
+   ------------------------------------------------------------
+   구조:
+   - 표지: cohort + 본인 이름 + 인증 점수 + 수료증 배지 + 목차
+   - Section 1: 가장 많이 틀린 단어 Top 10 (본인 약점 stats 기반, 유의어 포함)
+   - Section 2: 4주 단어 전체 60개 (단어 + 정의 + 유의어 + 예문 EN/KR + nuance)
+   - Section 3: 본인 베스트 문장 Top 10 (AI natural 우선)
+   - 마무리: 졸업 인사 페이지
+   ============================================================ */
+window.__downloadFinalPdfBook = function() {
+  if (typeof window.html2pdf !== 'function') {
+    showToast('PDF 라이브러리 로딩 중. 5초 후 다시 시도해주세요 🧡');
+    return;
+  }
+
+  // ─── 데이터 수집
+  const total = CHALLENGE.total_days || 20;
+  const verifiedDays = Array.from({ length: total }, (_, i) => i + 1).filter((d) => state.verified && state.verified['d' + d]);
+  const verifiedCount = verifiedDays.length;
+  const userName = (state.englishName || state.name || '버디').replace(/\s+/g, ' ').trim();
+  const cohortName = CHALLENGE.cohort || '5기';
+  const today = new Date().toISOString().slice(0, 10);
+
+  // 단어 메타 인덱스 (본 단어 + 유의어)
+  const wordIndex = {};
+  (CHALLENGE.weeks || []).forEach((wk) => {
+    (wk.days || []).forEach((d) => {
+      (d.words || []).forEach((w) => {
+        const mainKey = String(w.en || '').toLowerCase();
+        wordIndex[mainKey] = { en: w.en, def: w.def, day: d.day, week: wk.n, isSyn: false };
+        (Array.isArray(w.syn) ? w.syn : []).forEach((s) => {
+          const synKey = String(s || '').toLowerCase().trim();
+          if (!synKey || wordIndex[synKey]) return;
+          const synDef = (typeof SYNONYM_GLOSSARY !== 'undefined' && SYNONYM_GLOSSARY[synKey]) ? SYNONYM_GLOSSARY[synKey] : `(${w.en} 유의어)`;
+          wordIndex[synKey] = { en: s, def: synDef, day: d.day, week: wk.n, parentEn: w.en, isSyn: true };
+        });
+      });
+    });
+  });
+
+  // 약점 단어 Top 10 (Section 1)
+  const myStats = state.vocab_stats || {};
+  const allWeakWords = Object.entries(myStats)
+    .map(([key, st]) => {
+      const c = Number(st.c || 0), w = Number(st.w || 0), h = Number(st.h || 0), s = Number(st.s || 0);
+      const tot = c + w + s;
+      const wrongRate = tot > 0 ? Math.round(((w + s) / tot) * 100) : 0;
+      const firstWrong = st.firstResult === 'wrong' || st.firstHinted;
+      const score = wrongRate + (firstWrong ? 30 : 0) + (h * 5);
+      return { word: key, c, w, h, s, score, firstWrong, tot };
+    })
+    .filter(x => x.tot > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+  allWeakWords.forEach((wk) => {
+    const m = wordIndex[wk.word.toLowerCase()] || {};
+    wk.en = m.en || wk.word;
+    wk.def = m.def || '';
+    wk.day = m.day || null;
+    wk.week = m.week || null;
+    wk.parentEn = m.parentEn || null;
+    wk.isSyn = !!m.isSyn;
+  });
+
+  // 본인 베스트 문장 Top 10 (Section 3)
+  const bestSentences = [];
+  (CHALLENGE.weeks || []).forEach((wk) => {
+    (wk.days || []).forEach((d) => {
+      (d.words || []).forEach((w, i) => {
+        const k = `d${d.day}-${i}`;
+        const sentence = (state.sentences?.[k] || '').trim();
+        if (!sentence || sentence.length < 15) return;
+        const fb = state.ai_feedback?.[k];
+        const isAlreadyNatural = fb && (fb.isAlreadyNatural || (fb.corrected && fb.corrected.trim() === sentence));
+        bestSentences.push({
+          en: sentence,
+          ko: (state.sentence_notes?.[k] || '').trim(),
+          dayN: d.day,
+          wordEn: w.en,
+          score: (isAlreadyNatural ? 100 : 0) + Math.min(sentence.length, 150),
+        });
+      });
+    });
+  });
+  bestSentences.sort((a, b) => b.score - a.score);
+  const top10Sentences = bestSentences.slice(0, 10);
+
+  // ─── HTML 빌드 (escapeHtml 은 전역에 존재)
+  const safe = (v) => escapeHtml(String(v == null ? '' : v));
+
+  const coverHtml = `
+    <section class="pdf-cover">
+      <div class="cover-kicker">YOUBUDDY ${safe(cohortName)} · 4주 단어집</div>
+      <h1 class="cover-title">${safe(userName)}님의<br>비즈니스 영어 핸드북</h1>
+      <div class="cover-num-wrap">
+        <div class="cover-num">${verifiedCount}<span>/${total}일</span></div>
+        <div class="cover-sub">전체 인증률 ${Math.round((verifiedCount/total)*100)}%</div>
+        ${verifiedCount >= 18 ? '<div class="cover-badge">🏆 수료 자격 충족 (18일 이상)</div>' : ''}
+      </div>
+      <div class="cover-toc">
+        <div class="toc-title">목차</div>
+        <ol>
+          <li><b>가장 많이 틀린 단어 Top ${allWeakWords.length || 10}</b> — 졸업 후 우선 복습용</li>
+          <li><b>4주 단어 전체</b> — Day 1~20 / 60개 + 유의어 + 예문</li>
+          ${top10Sentences.length > 0 ? `<li><b>본인 베스트 문장 Top ${top10Sentences.length}</b> — 4주 동안 만든 본인 voice</li>` : ''}
+        </ol>
+      </div>
+      <div class="cover-footer">${today} · YOUBUDDY ${safe(cohortName)}</div>
+    </section>
+  `;
+
+  const section1Html = allWeakWords.length > 0 ? `
+    <section class="pdf-section">
+      <div class="section-num">SECTION 01</div>
+      <h1 class="section-title">📚 가장 많이 틀린 단어 Top ${allWeakWords.length}</h1>
+      <p class="section-desc">자주 틀리거나 힌트 본 단어 기반 · 졸업 후 가장 먼저 다시 봐야 할 단어들</p>
+      ${allWeakWords.map((w, i) => `
+        <div class="weak-item">
+          <div class="weak-rank">${i+1}</div>
+          <div class="weak-main">
+            <div class="weak-day">DAY ${w.day || '?'} · WEEK ${w.week || '?'}${w.isSyn ? ' · 유의어' : ''}</div>
+            <div class="weak-en">${safe(w.en)}</div>
+            <div class="weak-def">${safe(w.def || '')}</div>
+            ${w.isSyn && w.parentEn ? `<div class="weak-parent">↳ 본 단어: <b>${safe(w.parentEn)}</b></div>` : ''}
+          </div>
+          ${w.w > 0 ? `<div class="weak-stat">${w.w}회 틀림</div>` : ''}
+        </div>
+      `).join('')}
+    </section>
+  ` : '';
+
+  const section2Html = `
+    <section class="pdf-section">
+      <div class="section-num">SECTION 02</div>
+      <h1 class="section-title">📖 4주 단어 전체</h1>
+      <p class="section-desc">Week 1~4 / Day 1~20 / 총 60개 단어 + 품사 + 정의 + 유의어 + 실전 예문</p>
+      ${(CHALLENGE.weeks || []).map(wk => `
+        <h3 class="week-heading">Week ${wk.n}. ${safe(wk.title || '')}</h3>
+        ${(wk.days || []).map(d => `
+          <div class="day-block">
+            <div class="day-heading">DAY ${d.day} — ${safe(d.title || '')}</div>
+            ${(d.words || []).map(w => `
+              <div class="word-card">
+                <div class="word-main">
+                  <span class="word-en">${safe(w.en)}</span>
+                  ${w.pos ? `<span class="word-pos">${safe(w.pos)}</span>` : ''}
+                </div>
+                <div class="word-def">${safe(w.def || '')}</div>
+                ${w.ex_en ? `
+                  <div class="word-ex">
+                    <div class="word-ex-en">"${safe(w.ex_en)}"</div>
+                    ${w.ex_kr ? `<div class="word-ex-kr">${safe(w.ex_kr)}</div>` : ''}
+                  </div>
+                ` : ''}
+                ${(Array.isArray(w.syn) && w.syn.length > 0) ? `
+                  <div class="word-syn">
+                    <span class="syn-label">유의어</span>
+                    <span class="syn-list">${w.syn.map(s => safe(s)).join(' · ')}</span>
+                  </div>
+                ` : ''}
+                ${w.nuance ? `<div class="word-nuance">💡 ${safe(w.nuance)}</div>` : ''}
+              </div>
+            `).join('')}
+          </div>
+        `).join('')}
+      `).join('')}
+    </section>
+  `;
+
+  const section3Html = top10Sentences.length > 0 ? `
+    <section class="pdf-section">
+      <div class="section-num">SECTION 03</div>
+      <h1 class="section-title">✨ 본인 베스트 문장 Top ${top10Sentences.length}</h1>
+      <p class="section-desc">${safe(cohortName)} 4주 동안 ${safe(userName)}님이 직접 쓴 문장 중 AI 가 'natural' 평가한 문장 우선</p>
+      ${top10Sentences.map((s, i) => `
+        <div class="best-sent">
+          <div class="best-sent-meta">
+            <span class="best-sent-num">#${i+1}</span>
+            <span class="best-sent-day">DAY ${s.dayN}</span>
+            <span class="best-sent-word">${safe(s.wordEn)}</span>
+          </div>
+          <div class="best-sent-en">"${safe(s.en)}"</div>
+          ${s.ko ? `<div class="best-sent-ko">— ${safe(s.ko)}</div>` : ''}
+        </div>
+      `).join('')}
+    </section>
+  ` : '';
+
+  const closingHtml = `
+    <section class="pdf-closing">
+      <div class="closing-heart">💛</div>
+      <div class="closing-title">4주 동안 정말 수고하셨어요</div>
+      <p class="closing-body">
+        ${safe(userName)}님이 4주 동안 만든 ${top10Sentences.length}개의 본인 문장은,<br>
+        영어가 머릿속에 자리 잡았다는 가장 명확한 증거예요.<br><br>
+        이 단어집을 책상 앞에 두고,<br>
+        어렵던 단어 다시 마주칠 때마다 한 번씩 펼쳐보세요.<br>
+        ${safe(userName)}님만의 본인 사전이 되어줄 거예요.
+      </p>
+      <div class="closing-sign">— YOUBUDDY 운영진 일동 · ${safe(cohortName)}</div>
+    </section>
+  `;
+
+  const pdfCss = `
+    <style>
+      * { box-sizing: border-box; }
+      body { font-family: 'Pretendard Variable', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif; color: #2A1F14; line-height: 1.55; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+      section { padding: 24mm 18mm; min-height: 280mm; page-break-after: always; }
+      section:last-child { page-break-after: auto; }
+
+      /* Cover */
+      .pdf-cover { background: linear-gradient(135deg, #FFF5E6 0%, #FFE5D9 55%, #F4ECFA 100%); text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40mm 18mm; }
+      .cover-kicker { font-size: 11px; font-weight: 800; letter-spacing: 0.2em; color: #C95721; text-transform: uppercase; }
+      .cover-title { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.25; margin: 22px 0 0; color: #2A1F14; }
+      .cover-num-wrap { margin-top: 36px; }
+      .cover-num { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 72px; font-weight: 700; color: #E8743C; line-height: 1; }
+      .cover-num span { font-size: 22px; color: #5A4A36; margin-left: 6px; font-family: 'Pretendard Variable', sans-serif; font-weight: 600; }
+      .cover-sub { margin-top: 10px; font-size: 13px; color: #5A4A36; }
+      .cover-badge { margin-top: 16px; display: inline-block; padding: 7px 18px; border-radius: 99px; background: rgba(34,179,106,0.22); color: #1F8F58; font-size: 12px; font-weight: 800; letter-spacing: 0.05em; }
+      .cover-toc { margin-top: 44px; padding: 22px 26px; background: rgba(255,255,255,0.75); border: 1px solid rgba(231,221,200,0.7); border-radius: 18px; text-align: left; max-width: 380px; }
+      .toc-title { font-size: 10.5px; font-weight: 800; color: #9A8B73; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 10px; }
+      .cover-toc ol { margin: 0; padding-left: 22px; font-size: 13px; color: #2A1F14; }
+      .cover-toc li { margin-bottom: 8px; line-height: 1.5; }
+      .cover-footer { margin-top: 54px; font-size: 11px; color: #9A8B73; letter-spacing: 0.1em; }
+
+      /* Section common */
+      .pdf-section { background: #FFFDF7; }
+      .section-num { font-size: 11px; font-weight: 800; color: #C95721; letter-spacing: 0.2em; }
+      .section-title { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 10px 0 6px; color: #2A1F14; line-height: 1.25; }
+      .section-desc { font-size: 12px; color: #5A4A36; margin: 0 0 22px; line-height: 1.6; }
+
+      /* Section 1 - weak words */
+      .weak-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; margin-bottom: 8px; border-radius: 12px; background: #F7EFDE; border: 1px solid rgba(231,221,200,0.5); page-break-inside: avoid; }
+      .weak-rank { flex: 0 0 28px; height: 28px; border-radius: 50%; background: #E8743C; color: #fff; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+      .weak-main { flex: 1; min-width: 0; }
+      .weak-day { font-size: 9.5px; font-weight: 800; color: #9A8B73; letter-spacing: 0.08em; }
+      .weak-en { font-size: 16px; font-weight: 800; color: #2A1F14; letter-spacing: -0.01em; margin: 3px 0; }
+      .weak-def { font-size: 11.5px; color: #5A4A36; line-height: 1.5; }
+      .weak-parent { margin-top: 4px; font-size: 10px; color: #9A8B73; font-style: italic; }
+      .weak-stat { flex: 0 0 auto; font-size: 10.5px; color: #C95721; font-weight: 700; padding: 4px 9px; background: #FDF0E2; border-radius: 99px; white-space: nowrap; }
+
+      /* Section 2 - all words */
+      .week-heading { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; color: #C95721; margin: 26px 0 8px; padding-bottom: 6px; border-bottom: 2px solid #E8743C; page-break-after: avoid; }
+      .week-heading:first-of-type { margin-top: 0; }
+      .day-block { margin-top: 14px; page-break-inside: avoid; }
+      .day-heading { font-size: 13px; font-weight: 800; color: #2A1F14; letter-spacing: -0.01em; margin-bottom: 8px; padding: 6px 11px; background: #F1E6CF; border-radius: 6px; }
+      .word-card { margin-bottom: 9px; padding: 12px 14px; background: #F7EFDE; border-radius: 10px; border: 1px solid rgba(231,221,200,0.5); page-break-inside: avoid; }
+      .word-main { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+      .word-en { font-size: 16px; font-weight: 800; color: #2A1F14; letter-spacing: -0.01em; }
+      .word-pos { font-size: 10px; color: #9A8B73; font-style: italic; padding: 1px 6px; background: rgba(154,139,115,0.12); border-radius: 4px; }
+      .word-def { margin-top: 4px; font-size: 12px; color: #2A1F14; font-weight: 600; line-height: 1.55; }
+      .word-ex { margin-top: 7px; padding: 8px 11px; background: rgba(255,253,247,0.7); border-radius: 6px; border-left: 3px solid #E8743C; }
+      .word-ex-en { font-size: 11.5px; color: #2A1F14; line-height: 1.55; font-style: italic; }
+      .word-ex-kr { margin-top: 3px; font-size: 10.5px; color: #5A4A36; line-height: 1.55; }
+      .word-syn { margin-top: 7px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 10.5px; }
+      .syn-label { font-size: 9px; font-weight: 800; color: #9A8B73; letter-spacing: 0.08em; padding: 1.5px 6px; background: rgba(154,139,115,0.14); border-radius: 3px; }
+      .syn-list { color: #C95721; font-weight: 600; }
+      .word-nuance { margin-top: 7px; font-size: 10.5px; color: #5A4A36; line-height: 1.55; padding: 7px 9px; background: rgba(252,232,178,0.22); border-radius: 6px; }
+
+      /* Section 3 - best sentences */
+      .best-sent { margin-bottom: 11px; padding: 13px 15px; background: #F7EFDE; border-radius: 12px; border-left: 3px solid #E8743C; page-break-inside: avoid; }
+      .best-sent-meta { display: flex; align-items: center; gap: 8px; font-size: 10px; }
+      .best-sent-num { color: #E8743C; font-weight: 800; }
+      .best-sent-day { font-weight: 800; color: #9A8B73; letter-spacing: 0.06em; }
+      .best-sent-word { color: #C95721; background: #FDF0E2; padding: 1.5px 7px; border-radius: 4px; font-weight: 700; }
+      .best-sent-en { margin-top: 8px; font-size: 14px; line-height: 1.55; color: #2A1F14; font-style: italic; }
+      .best-sent-ko { margin-top: 4px; font-size: 11.5px; color: #5A4A36; line-height: 1.55; }
+
+      /* Closing */
+      .pdf-closing { background: linear-gradient(135deg, #1F1630 0%, #3A2A52 100%); color: #fff; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; page-break-after: auto; padding: 40mm 18mm; }
+      .closing-heart { font-size: 52px; line-height: 1; }
+      .closing-title { margin-top: 16px; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+      .closing-body { margin-top: 20px; font-size: 13.5px; line-height: 1.75; color: #F1E0BA; max-width: 460px; }
+      .closing-sign { margin-top: 40px; font-size: 12px; color: #C8B89A; letter-spacing: 0.06em; }
+    </style>
+  `;
+
+  // 컨테이너 (화면 밖에 박아두고 html2pdf 가 read 만 하도록)
+  const container = document.createElement('div');
+  container.id = '__yb_pdf_container';
+  container.style.cssText = 'position:fixed;top:-99999px;left:0;width:210mm;background:#FFFDF7;z-index:-1;';
+  container.innerHTML = pdfCss + coverHtml + section1Html + section2Html + section3Html + closingHtml;
+  document.body.appendChild(container);
+
+  const fname = `youbuddy-${cohortName}-단어집-${userName.replace(/\s+/g, '_')}.pdf`;
+  showToast('📥 PDF 생성 중... 60단어 + 유의어 + 예문 만드는 중 (10~20초)');
+
+  // 폰트 로드 대기 — 한글 깨짐 방지
+  const fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+  fontsReady.then(() => {
+    return window.html2pdf().set({
+      margin: 0,
+      filename: fname,
+      image: { type: 'jpeg', quality: 0.96 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#FFFDF7',
+        windowWidth: 794, // 210mm @ 96dpi
+        letterRendering: true,
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+      pagebreak: { mode: ['css', 'legacy'] },
+    }).from(container).save();
+  }).then(() => {
+    container.remove();
+    showToast('📥 4주 단어집 다운로드 완료 🧡');
+  }).catch((err) => {
+    console.error('[PDF] download failed:', err);
+    container.remove();
+    showToast('PDF 생성 실패. 다시 시도하시거나 운영자에게 알려주세요.');
+  });
+};
+
+// HTML 다운로드 함수 — fallback (PDF 실패 시 / 운영자 디버깅용)
 window.__downloadFinalReport = function() {
   const reportPage = FinalReportPage();
   // <a> 안의 onClick / button 들 다 제거하고 정적 HTML 만 추출

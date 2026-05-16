@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YOUBUDDY 5기 — 4주 후</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;800;900&family=Playfair+Display:ital,wght@0,400;0,800;0,900;1,400;1,800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F2EAD8;
+    --paper-deep: #E8DCC4;
+    --ink: #1A1612;
+    --ink-soft: #4A3C30;
+    --crimson: #7E1E1A;
+    --crimson-deep: #5B1310;
+    --mustard: #C49531;
+    --mustard-soft: #DCB95C;
+    --line: #C8B89A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%; overflow: hidden;
+    font-family: 'Noto Serif KR', 'Playfair Display', Georgia, serif;
+    background: #1A1612;
+    color: var(--ink);
+  }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    background-image:
+      radial-gradient(ellipse at top left, rgba(196, 149, 49, 0.08), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(126, 30, 26, 0.12), transparent 50%);
+    background-color: #1A1612;
+  }
+
+  /* 16:9 frame — scales with viewport, dark surrounding letterbox */
+  .frame {
+    position: relative;
+    width: min(96vw, calc(96vh * 16 / 9));
+    aspect-ratio: 16 / 9;
+    background: var(--paper);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+    overflow: hidden;
+    /* subtle paper grain via repeating noise-ish gradient */
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, rgba(0,0,0,0.04) 50%, transparent 50%),
+      radial-gradient(1px 1px at 70% 80%, rgba(0,0,0,0.04) 50%, transparent 50%),
+      radial-gradient(1px 1px at 50% 50%, rgba(0,0,0,0.03) 50%, transparent 50%);
+    background-size: 4px 4px, 6px 6px, 5px 5px;
+    background-color: var(--paper);
+  }
+
+  .slide {
+    position: absolute; inset: 0;
+    padding: 4.5% 5.5%;
+    display: flex; flex-direction: column;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.35s ease;
+  }
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  /* Top masthead — every slide */
+  .masthead {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-bottom: 0.6vw;
+    border-bottom: 2.5px solid var(--ink);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(10px, 0.95vw, 13px);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .masthead-l { display: flex; gap: 1.5vw; align-items: baseline; }
+  .masthead-l .vol { color: var(--crimson); font-weight: 800; }
+  .masthead-r { color: var(--ink-soft); }
+
+  /* Bottom marker */
+  .footer-bar {
+    margin-top: auto;
+    padding-top: 1vw;
+    border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(9px, 0.85vw, 12px);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .footer-bar .num {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    font-size: clamp(20px, 2.4vw, 32px);
+    color: var(--crimson);
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  /* === SLIDE 1: COVER === */
+  .cover-body { flex: 1; display: grid; grid-template-columns: 1fr 1.3fr; gap: 4%; padding-top: 2vw; align-items: stretch; }
+  .cover-l {
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding-right: 2vw;
+    border-right: 1px solid var(--line);
+  }
+  .cover-issue {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: clamp(20px, 2.5vw, 36px);
+    color: var(--crimson);
+    line-height: 1.1;
+  }
+  .cover-issue b { font-style: normal; font-weight: 900; }
+  .cover-meta-block {
+    display: flex; flex-direction: column; gap: 0.6vw;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(11px, 1vw, 14px);
+    letter-spacing: 0.06em;
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .cover-meta-block b { color: var(--crimson); font-weight: 700; }
+  .cover-r { display: flex; flex-direction: column; justify-content: center; }
+  .cover-mini-kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(10px, 0.95vw, 13px);
+    letter-spacing: 0.22em;
+    color: var(--mustard);
+    font-weight: 700;
+    margin-bottom: 1.2vw;
+  }
+  .cover-headline {
+    font-family: 'Noto Serif KR', serif;
+    font-weight: 900;
+    font-size: clamp(48px, 6.5vw, 110px);
+    line-height: 0.95;
+    letter-spacing: -0.035em;
+    color: var(--ink);
+  }
+  .cover-headline em {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 800;
+    color: var(--crimson);
+  }
+  .cover-subhead {
+    margin-top: 1.5vw;
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(15px, 1.5vw, 22px);
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 36em;
+  }
+
+  /* === SLIDE 2: 4 ITEMS — Index Style === */
+  .idx-head { padding-top: 2vw; padding-bottom: 1.5vw; }
+  .idx-h {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 800;
+    font-size: clamp(36px, 5vw, 80px);
+    line-height: 1;
+    color: var(--ink);
+    letter-spacing: -0.03em;
+  }
+  .idx-h b { font-style: normal; color: var(--crimson); font-weight: 900; }
+  .idx-sub {
+    margin-top: 0.8vw;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(11px, 1vw, 14px);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .idx-list { flex: 1; display: flex; flex-direction: column; }
+  .idx-row {
+    display: grid;
+    grid-template-columns: clamp(60px, 7vw, 110px) 1.4fr 2.2fr;
+    gap: 2vw;
+    align-items: center;
+    padding: 1.6vw 0;
+    border-top: 1px solid var(--line);
+  }
+  .idx-row:last-child { border-bottom: 1px solid var(--line); }
+  .idx-num {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    font-size: clamp(36px, 5vw, 78px);
+    line-height: 0.9;
+    color: var(--mustard);
+    letter-spacing: -0.04em;
+  }
+  .idx-row:hover .idx-num { color: var(--crimson); }
+  .idx-title {
+    font-family: 'Noto Serif KR', serif;
+    font-weight: 800;
+    font-size: clamp(20px, 2.2vw, 34px);
+    color: var(--ink);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  .idx-desc {
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(13px, 1.2vw, 17px);
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+  .idx-desc b { color: var(--ink); font-weight: 700; }
+
+  /* === SLIDE 3: VOCAB + CERT === */
+  .spread { flex: 1; display: grid; grid-template-columns: 1.2fr 1fr; gap: 4%; padding-top: 1.5vw; }
+  .col-h-kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(10px, 0.9vw, 12px);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--mustard);
+    font-weight: 700;
+    margin-bottom: 0.6vw;
+  }
+  .col-h {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 800;
+    font-size: clamp(22px, 2.6vw, 38px);
+    color: var(--ink);
+    line-height: 1.1;
+    margin-bottom: 1.2vw;
+    letter-spacing: -0.02em;
+  }
+  .col-h b { font-style: normal; color: var(--crimson); }
+
+  .vocab-list { display: flex; flex-direction: column; gap: 1vw; }
+  .vocab-item {
+    border-left: 3px solid var(--crimson);
+    padding: 0.5vw 0 0.5vw 1.2vw;
+  }
+  .vocab-en {
+    font-family: 'Playfair Display', serif;
+    font-weight: 800;
+    font-style: italic;
+    font-size: clamp(16px, 1.7vw, 22px);
+    color: var(--crimson);
+    line-height: 1;
+  }
+  .vocab-en::before { content: '"'; opacity: 0.5; }
+  .vocab-en::after { content: '"'; opacity: 0.5; }
+  .vocab-mine {
+    margin-top: 0.4vw;
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(13px, 1.2vw, 17px);
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .vocab-mine mark {
+    background: linear-gradient(180deg, transparent 50%, rgba(196,149,49,0.4) 50%);
+    color: var(--ink);
+    padding: 0 0.1em;
+  }
+  .vocab-source {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(9px, 0.8vw, 11px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-top: 0.3vw;
+  }
+
+  .cert-stage {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    padding: 1vw 0;
+  }
+  .cert {
+    width: 100%;
+    background: var(--paper-deep);
+    border: 1px solid var(--ink);
+    padding: 2vw 2.4vw;
+    position: relative;
+  }
+  .cert::before, .cert::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    background: var(--crimson);
+    border-radius: 50%;
+  }
+  .cert::before { top: -7px; left: -7px; }
+  .cert::after { bottom: -7px; right: -7px; }
+  .cert-mini-kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(9px, 0.85vw, 11px);
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--crimson);
+    font-weight: 700;
+    text-align: center;
+  }
+  .cert-h {
+    text-align: center;
+    margin-top: 0.8vw;
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    font-style: italic;
+    font-size: clamp(22px, 2.6vw, 38px);
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .cert-divider {
+    width: 30%;
+    margin: 1vw auto;
+    height: 2px;
+    background: var(--ink);
+  }
+  .cert-name {
+    text-align: center;
+    font-family: 'Noto Serif KR', serif;
+    font-weight: 900;
+    font-size: clamp(28px, 3.4vw, 48px);
+    color: var(--crimson);
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+  .cert-meta {
+    text-align: center;
+    margin-top: 0.6vw;
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(11px, 1vw, 14px);
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+  .cert-stats {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    margin-top: 1.2vw; padding-top: 1vw;
+    border-top: 1px dashed var(--line);
+    text-align: center;
+  }
+  .cert-stat-num {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    font-size: clamp(20px, 2.2vw, 30px);
+    color: var(--crimson);
+  }
+  .cert-stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(8px, 0.75vw, 10px);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-top: 0.3vw;
+  }
+
+  /* === SLIDE 4: PULL QUOTE / CTA === */
+  .quote-page {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 5%;
+    padding-top: 3vw;
+    align-items: center;
+  }
+  .quote-l { display: flex; flex-direction: column; gap: 1.5vw; }
+  .quote-num {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    font-size: clamp(80px, 13vw, 220px);
+    line-height: 0.85;
+    color: var(--crimson);
+    letter-spacing: -0.06em;
+  }
+  .quote-num-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(12px, 1.1vw, 16px);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    font-weight: 700;
+  }
+  .quote-r { padding-left: 3vw; border-left: 4px solid var(--crimson); }
+  .quote-mark {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(60px, 8vw, 120px);
+    line-height: 0.6;
+    color: var(--mustard);
+    margin-bottom: 0.5vw;
+  }
+  .quote-text {
+    font-family: 'Noto Serif KR', serif;
+    font-style: italic;
+    font-size: clamp(20px, 2.4vw, 38px);
+    line-height: 1.35;
+    color: var(--ink);
+    letter-spacing: -0.015em;
+    font-weight: 600;
+  }
+  .quote-text em { font-style: normal; color: var(--crimson); font-weight: 900; }
+  .quote-attribution {
+    margin-top: 2vw;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(11px, 1vw, 14px);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    font-weight: 700;
+  }
+  .quote-attribution::before { content: '— '; }
+
+  /* Nav */
+  .nav {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 14px; align-items: center;
+    padding: 8px 18px;
+    background: rgba(26,22,18,0.9);
+    border-radius: 999px;
+    border: 1px solid rgba(196,149,49,0.4);
+    z-index: 100;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .nav button {
+    background: none; border: none; color: var(--paper);
+    cursor: pointer; font-size: 16px;
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .nav button:hover { background: rgba(196,149,49,0.2); color: var(--mustard); }
+  .nav .pgnum { color: var(--mustard-soft); font-size: 11px; letter-spacing: 0.16em; padding: 0 4px; }
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <!-- ================== SLIDE 1: COVER ================== -->
+  <section class="slide active">
+    <div class="masthead">
+      <div class="masthead-l">
+        <span class="vol">Vol. 5</span>
+        <span>YOUBUDDY · BUSINESS ENGLISH CHALLENGE</span>
+      </div>
+      <div class="masthead-r">2026 · APR 30 · WEEK 1</div>
+    </div>
+
+    <div class="cover-body">
+      <div class="cover-l">
+        <div class="cover-issue">
+          <b>Issue №01.</b><br/>
+          <em>Welcome &<br/>What's Ahead</em>
+        </div>
+        <div class="cover-meta-block">
+          <div>SPECIAL FEATURE</div>
+          <div><b>4주 후</b> 여러분 손에<br/>실제로 남는 것들</div>
+          <div style="margin-top:1vw;color:var(--ink-soft);">— 단어장, PT 대본,<br/>&nbsp;&nbsp;&nbsp;수료증, 동기 7명</div>
+        </div>
+      </div>
+      <div class="cover-r">
+        <div class="cover-mini-kicker">★ THE PAYOFF</div>
+        <h1 class="cover-headline">
+          끝나면<br/>
+          <em>이만큼이</em><br/>
+          남는다.
+        </h1>
+        <p class="cover-subhead">
+          외운 어휘를 잊는 게 아니라, 본인 업무 상황으로 직접 써본 어휘.
+          한 번 써본 영어는 도망가지 않는다.
+        </p>
+      </div>
+    </div>
+
+    <div class="footer-bar">
+      <span>WEEK 1 · ORIENTATION</span>
+      <span class="num">01</span>
+      <span>YOUBUDDY 5</span>
+    </div>
+  </section>
+
+  <!-- ================== SLIDE 2: INDEX OF 4 ================== -->
+  <section class="slide">
+    <div class="masthead">
+      <div class="masthead-l">
+        <span class="vol">Vol. 5</span>
+        <span>WHAT YOU GET</span>
+      </div>
+      <div class="masthead-r">FEATURE №01</div>
+    </div>
+
+    <div class="idx-head">
+      <h2 class="idx-h"><b>네 가지가</b> 남는다.</h2>
+      <div class="idx-sub">— After 28 days, here's what you walk away with</div>
+    </div>
+
+    <div class="idx-list">
+      <div class="idx-row">
+        <div class="idx-num">01</div>
+        <div class="idx-title">나만의 영문<br/>단어장</div>
+        <div class="idx-desc">매일 풀리는 어휘 1개를 <b>본인 업무 상황으로</b> 한 문장씩. 4주면 60+ 본인 문장이 단어장에 차곡차곡. 외운 게 아니라 써본 거라 절대 도망 안 감.</div>
+      </div>
+      <div class="idx-row">
+        <div class="idx-num">02</div>
+        <div class="idx-title">영문 PT 대본<br/>(7분)</div>
+        <div class="idx-desc">미팅에서 실제로 발표한 본인 토크. 주제 잡기 → 어휘 구성 → 코치 피드백까지. <b>지금 회사 미팅에서 그대로 써먹을 수 있는</b> 완성 스크립트.</div>
+      </div>
+      <div class="idx-row">
+        <div class="idx-num">03</div>
+        <div class="idx-title">디지털<br/>수료증</div>
+        <div class="idx-desc">이름 · 완주율 · 코호트 · 발표 주차 다 박힌 디지털 수료증. <b>LinkedIn 에 그대로 올릴 수 있는</b> 정식 포맷.</div>
+      </div>
+      <div class="idx-row">
+        <div class="idx-num">04</div>
+        <div class="idx-title">챌린지<br/>동기 7명</div>
+        <div class="idx-desc">4주간 같이 영어 미팅 한 동지들. 끝난 후에도 <b>업무 영어 고민 나누는 네트워크</b>로 이어짐. 서로 PT 보고 피드백 주는 사이.</div>
+      </div>
+    </div>
+
+    <div class="footer-bar">
+      <span>FEATURE · 01</span>
+      <span class="num">02</span>
+      <span>YOUBUDDY 5</span>
+    </div>
+  </section>
+
+  <!-- ================== SLIDE 3: VOCAB + CERT SPREAD ================== -->
+  <section class="slide">
+    <div class="masthead">
+      <div class="masthead-l">
+        <span class="vol">Vol. 5</span>
+        <span>SAMPLE PAGES</span>
+      </div>
+      <div class="masthead-r">FEATURE №02 · 03</div>
+    </div>
+
+    <div class="spread">
+      <div class="spread-l">
+        <div class="col-h-kicker">№01 · WORD BANK</div>
+        <h3 class="col-h"><b>본인 직무로</b><br/>녹인 한 문장.</h3>
+        <div class="vocab-list">
+          <div class="vocab-item">
+            <div class="vocab-en">front-load</div>
+            <div class="vocab-mine">I always <mark>front-loaded</mark> the heaviest tasks on Monday morning so my brain is fresh.</div>
+            <div class="vocab-source">DAY 04 · DAILY · 마케팅 PM</div>
+          </div>
+          <div class="vocab-item">
+            <div class="vocab-en">loop in</div>
+            <div class="vocab-mine">Let me <mark>loop in</mark> the design team before we finalize this proposal.</div>
+            <div class="vocab-source">DAY 07 · BONUS STORY · 디자이너</div>
+          </div>
+          <div class="vocab-item">
+            <div class="vocab-en">circle back</div>
+            <div class="vocab-mine">I'll <mark>circle back</mark> tomorrow with the budget numbers.</div>
+            <div class="vocab-source">DAY 11 · MEETING · 재무 팀</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spread-r">
+        <div class="col-h-kicker">№03 · CERTIFICATE</div>
+        <h3 class="col-h">완주의 <b>증거.</b></h3>
+        <div class="cert-stage">
+          <div class="cert">
+            <div class="cert-mini-kicker">★ Certificate of Completion ★</div>
+            <h4 class="cert-h">YOUBUDDY 5</h4>
+            <div class="cert-divider"></div>
+            <div class="cert-name">홍길동</div>
+            <div class="cert-meta">2026.04.27 — 05.24<br/>PREMIUM · WEEK 3 발표자</div>
+            <div class="cert-stats">
+              <div>
+                <div class="cert-stat-num">20/20</div>
+                <div class="cert-stat-label">DAILY</div>
+              </div>
+              <div>
+                <div class="cert-stat-num">4/4</div>
+                <div class="cert-stat-label">MEETING</div>
+              </div>
+              <div>
+                <div class="cert-stat-num">100%</div>
+                <div class="cert-stat-label">완주</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bar">
+      <span>SAMPLE · WORD BANK + CERT</span>
+      <span class="num">03</span>
+      <span>YOUBUDDY 5</span>
+    </div>
+  </section>
+
+  <!-- ================== SLIDE 4: PULL QUOTE / CTA ================== -->
+  <section class="slide">
+    <div class="masthead">
+      <div class="masthead-l">
+        <span class="vol">Vol. 5</span>
+        <span>EDITOR'S NOTE</span>
+      </div>
+      <div class="masthead-r">CLOSING</div>
+    </div>
+
+    <div class="quote-page">
+      <div class="quote-l">
+        <div class="quote-num">5</div>
+        <div class="quote-num-sub">분 / 매일</div>
+      </div>
+      <div class="quote-r">
+        <div class="quote-mark">"</div>
+        <p class="quote-text">
+          매일 5분이 만들어내는 4주.<br/>
+          4주 후, <em>완전히 다른 영어.</em>
+        </p>
+        <div class="quote-attribution">유버디 · 5기 · WEEK 1</div>
+      </div>
+    </div>
+
+    <div class="footer-bar">
+      <span>EDITOR'S NOTE · WELCOME</span>
+      <span class="num">04</span>
+      <span>YOUBUDDY 5 / END</span>
+    </div>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button id="prev">←</button>
+  <span class="pgnum" id="pgnum">01 / 04</span>
+  <button id="next">→</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const pgnum = document.getElementById('pgnum');
+  let cur = 0;
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function goTo(i) {
+    if (i < 0 || i >= slides.length) return;
+    slides[cur].classList.remove('active');
+    cur = i;
+    slides[cur].classList.add('active');
+    pgnum.textContent = pad(cur + 1) + ' / ' + pad(slides.length);
+  }
+  document.getElementById('prev').addEventListener('click', () => goTo(cur - 1));
+  document.getElementById('next').addEventListener('click', () => goTo(cur + 1));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); goTo(cur + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); goTo(cur - 1); }
+    if (e.key === 'Home') goTo(0);
+    if (e.key === 'End') goTo(slides.length - 1);
+  });
+  document.body.addEventListener('click', (e) => {
+    if (e.target.closest('.nav')) return;
+    if (e.clientX > window.innerWidth * 0.5) goTo(cur + 1); else goTo(cur - 1);
+  });
+</script>
+</body>
+</html>
