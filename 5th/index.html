@@ -11899,11 +11899,16 @@ window.__openFinalTestResults = async function () {
     const s = (data && data.summary) || {};
     const rows = (data && Array.isArray(data.responses)) ? data.responses : [];
     const esc = (v) => escapeHtml(String(v == null ? '' : v));
+    // 저장 시각은 UTC ISO → 한국시간(KST)으로 변환해서 표시 (UTC 그대로면 9시간 빨라 헷갈림).
+    const fmtKST = (iso) => {
+      try { const d = new Date(iso); if (isNaN(d.getTime())) return (iso || '').slice(0, 16).replace('T', ' '); return d.toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 16); }
+      catch (e) { return (iso || '').slice(0, 16).replace('T', ' '); }
+    };
     const pill = (label, val) => `<div style="flex:1;min-width:78px;text-align:center;padding:10px 8px;border:1px solid var(--line);border-radius:12px;background:#FFFDF7;"><div style="font-size:15px;font-weight:800;color:var(--orange-dark);">${esc(val)}</div><div style="font-size:10px;color:var(--muted);margin-top:2px;">${esc(label)}</div></div>`;
     const summaryHtml = [pill('응시', `${s.completed ?? 0}/${s.total_members ?? 0}`), pill('완료율', `${s.completion_rate ?? 0}%`), pill('평균', `${s.score_avg ?? 0}`), pill('PDF', `${s.pdf_downloaded ?? 0}`), pill('노션', `${s.notion_downloaded ?? 0}`)].join('');
     const rowsHtml = rows.length ? rows.map((r) => `
       <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;">
-        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:var(--ink);">${esc(r.english_name || r.name)}</div><div style="font-size:10.5px;color:var(--muted);">${esc((r.at || '').slice(0, 16).replace('T', ' '))} · 시도 ${esc(r.attempts || 1)}회</div></div>
+        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:var(--ink);">${esc(r.english_name || r.name)}</div><div style="font-size:10.5px;color:var(--muted);">${esc(fmtKST(r.at))} KST · 시도 ${esc(r.attempts || 1)}회</div></div>
         <div style="font-size:14px;font-weight:800;color:var(--orange-dark);white-space:nowrap;">${esc(r.score)}/${esc(r.total)}</div>
         <div style="font-size:11px;color:var(--muted);text-align:right;min-width:48px;white-space:nowrap;">${r.pdf_at ? '📥' : '–'} ${r.notion_at ? '📜' : '–'}</div>
       </div>`).join('') : '<div style="text-align:center;color:var(--muted);padding:24px 0;">아직 응시한 멤버가 없어요.</div>';
