@@ -17329,8 +17329,8 @@ function QuizPage() {
 
   // ─────────── OPERATOR · 퀴즈 주입 / 멤버에게 푸시 ───────────
   // Claude 가 만든 JSON 붙여넣기 → 내 계정 미리보기(주입) 또는 특정 멤버에게 직접 푸시.
-  // 운영자/스태프 전용 + '일반 회원처럼 보기' OFF 일 때만 노출 (다른 운영자 UI 와 동일). 일반 멤버는 절대 안 보임.
-  if ((state.isOperator || state.isStaff) && !state.operatorViewAsMember) {
+  // 운영자(유버디) 본인만 + '일반 회원처럼 보기' OFF 일 때만 노출. 스태프(이규태/이지흔)·일반 멤버는 안 보임.
+  if (state.isOperator && !state.operatorViewAsMember) {
     try { requestMemberSummaries(); } catch (e) {}
     const opCard = el('div', { class: 'card card-flat', style: { marginTop: '14px', padding: '14px 16px', border: '1.5px dashed rgba(240,125,56,0.4)', background: 'rgba(240,125,56,0.04)' } });
     opCard.appendChild(el('div', { class: 'kicker', style: { color: 'var(--orange-dark)' } }, '📤 OPERATOR · 퀴즈 주입 / 푸시'));
