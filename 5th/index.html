@@ -14319,7 +14319,7 @@ function PremiumPage() {
           class: 'btn btn-primary',
           style: { flex: '1', minWidth: '160px' },
           onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
-        }, hasNotes ? `📝 발표 회고 이어쓰기 (${tpCount}개)` : '📝 사후 메모 남기기');
+        }, hasNotes ? `📝 발표 회고 이어쓰기 (${tpCount}개)` : '📝 미팅 노트 보기');
         ctaRow.appendChild(memoBtn);
         const prepBtn2 = el('button', {
           class: 'btn',
@@ -14364,7 +14364,7 @@ function PremiumPage() {
         class: 'btn',
         style: { flex: '1', minWidth: '160px', background: '#fff', color: 'var(--ink)', border: '1px solid rgba(231,221,200,0.9)' },
         onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
-      }, hasNotes ? `📝 내 메모 보기 (${tpCount}개)` : '📝 사후 메모 남기기');
+      }, hasNotes ? `📝 내 메모 보기 (${tpCount}개)` : '📝 미팅 노트 보기');
       ctaRow.appendChild(notesBtn);
     } else if (!weekHasPresenter(m.n)) {
       // 이 주는 발표가 없는 주 (Week 1 온보딩/자기소개). signup/lock 체크보다 먼저
@@ -19914,9 +19914,12 @@ function FinalReportPage() {
     },
     onClick: () => {
       if (!canDownload) {
-        showToast(finalTestDone
-          ? `18일 이상 인증해야 받을 수 있어요. 현재 ${verifiedCount}/20`
-          : `18일+ 인증 & 파이널 테스트 완료 시 받을 수 있어요. 현재 ${verifiedCount}/20${finalTestDone ? '' : ' · 파이널 미완료'}`);
+        // 남은 조건만 안내 (이미 충족한 건 언급 X).
+        let msg;
+        if (!isCompletion && !finalTestDone) msg = `18일+ 인증 & 파이널 테스트 완료 시 받을 수 있어요. 현재 ${verifiedCount}/20 · 파이널 미완료`;
+        else if (!isCompletion) msg = `18일 이상 인증하면 받을 수 있어요. 현재 ${verifiedCount}/20`;
+        else msg = '파이널 테스트만 보면 받을 수 있어요! (18일 인증 완료 ✓)';
+        showToast(msg);
         return;
       }
       // 4주 단어집 PDF — 구글 드라이브 링크로 이동 (인앱 생성 대신).
@@ -19924,7 +19927,13 @@ function FinalReportPage() {
       showToast('구글 드라이브에서 4주 단어집 PDF를 열어요 🧡');
       window.open(driveUrl, '_blank', 'noopener');
     },
-  }, canDownload ? '📥 4주 단어집 PDF 다운로드' : `🔒 18일+ 인증 & 파이널 완료 시 활성화 (${verifiedCount}/20)`);
+  }, canDownload
+    ? '📥 4주 단어집 PDF 다운로드'
+    : ((!isCompletion && !finalTestDone)
+        ? `🔒 18일+ 인증 & 파이널 완료 시 활성화 (${verifiedCount}/20)`
+        : (!isCompletion
+            ? `🔒 18일+ 인증 시 활성화 (${verifiedCount}/20)`
+            : '🔒 파이널 테스트 완료 시 활성화 (18일 인증 ✓)')));
   pdfBtnWrap.appendChild(pdfBtn);
   guideCard.appendChild(pdfBtnWrap);
 
