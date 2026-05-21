@@ -1678,7 +1678,7 @@ const MEMBER_DIRECTORY = [
      - isStaff:   통계 (완주율·인증률·"5기 39명") 에서 제외, 보드에는 보임, 운영팀 배지는 UI 에서 숨김
      - hidden:    보드/랭킹/커뮤니티 어디에도 안 보임 (본인 로그인해도 '나' 슬롯만 보임, 다른 사람 눈엔 없음) */
   { code: '00', id: 'op1', name: '유버디', color: 'ink',   tier: 'premium', role: '운영팀', isOperator: true,  isStaff: true },
-  { code: '42', id: 'op2', name: '이규태', color: 'ink',   tier: 'premium', role: '운영팀', isStaff: true },
+  { code: '42', id: 'op2', name: '이규태', color: 'ink',   tier: 'premium' }, // 운영팀 → 일반 멤버 강등 (테스트용). 복구하려면 role:'운영팀', isStaff:true 다시 추가.
   { code: '43', id: 'op3', name: '이지흔', color: 'cream', tier: 'basic',   role: '운영팀', isStaff: true },
   { code: '44', id: 'ghost1', name: '모모', color: 'cream', tier: 'basic',  hidden: true, ghost: true, isStaff: true },
 
@@ -19651,11 +19651,13 @@ function FinalReportPage() {
   const lateCount = verifiedDays.filter((d) => state.verified_late && state.verified_late['d' + d]).length;
   const onTimeCount = verifiedCount - lateCount;
   // 작성 문장 수 / AI 첨삭 횟수
+  // 60개 단어 슬롯(d{day}-{idx})만 카운트 — story/hook 등 다른 키까지 세서 60 초과(예: 71)로 깨지던 버그 수정.
   let sentenceCount = 0;
   let aiCount = 0;
-  Object.keys(state.sentences || {}).forEach((k) => {
-    if ((state.sentences[k] || '').trim()) sentenceCount++;
-  });
+  (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((d) => (d.words || []).forEach((w, i) => {
+    const k = `d${d.day}-${i}`;
+    if ((state.sentences && state.sentences[k] || '').trim()) sentenceCount++;
+  })));
   Object.keys(state.ai_feedback || {}).forEach((k) => {
     const fb = state.ai_feedback[k];
     if (fb && fb.corrected && !fb.isError) aiCount++;
@@ -19675,15 +19677,8 @@ function FinalReportPage() {
     ? 4
     : ((CHALLENGE.premium && CHALLENGE.premium.weekly_meetings)
       ? CHALLENGE.premium.weekly_meetings.filter((m) => m.status === 'done').length : 0);
-  const presentedCount = (() => {
-    try {
-      const signups = state.presenterSignups || {};
-      return (CHALLENGE.premium.weekly_meetings || []).filter((m) => {
-        const arr = signups['w' + m.n] || [];
-        return arr.some((s) => s.uid === state.uid || s.memberKey === state.memberKey || s.member_key === memberKey());
-      }).length;
-    } catch (_) { return 0; }
-  })();
+  // 발표 횟수 — 프리미엄은 1로 고정 (운영자 정책). 그 외엔 0.
+  const presentedCount = isPremium ? 1 : 0;
   // 본인 약점 단어 Top 5 (vocab_stats firstResult='wrong' 우선)
   const myStats = state.vocab_stats || {};
   const weakWords = Object.entries(myStats)
@@ -24438,8 +24433,10 @@ function buildCertHtml({ name, englishName, role, done, total, overall, vocabCou
     --f-sans:'Noto Sans KR',sans-serif;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
+  html { overflow-x:hidden; }
   body {
     min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 20px;
+    overflow-x:hidden; max-width:100%;
     background:
       radial-gradient(ellipse 80% 60% at 20% 10%, #FFE2CC 0%, transparent 55%),
       radial-gradient(ellipse 70% 50% at 85% 80%, #FBD0B2 0%, transparent 50%),
@@ -24621,6 +24618,24 @@ function buildCertHtml({ name, englishName, role, done, total, overall, vocabCou
     </footer>
   </div>
 </div>
+<script>
+(function(){
+  function fit(){
+    var c=document.querySelector('.cert'); if(!c) return;
+    c.style.transform=''; c.style.marginBottom='';
+    var avail=Math.min(window.innerWidth-16,794);
+    var s=avail/794;
+    if(s>=1) return;
+    var h=c.offsetHeight;
+    c.style.transformOrigin='top center';
+    c.style.transform='scale('+s+')';
+    c.style.marginBottom=(-(h*(1-s)))+'px';
+  }
+  window.addEventListener('resize',fit);
+  window.addEventListener('load',fit);
+  if(document.readyState==='loading'){window.addEventListener('DOMContentLoaded',fit);}else{fit();}
+})();
+<\/script>
 </body>
 </html>`;
 }
