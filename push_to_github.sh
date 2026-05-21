@@ -1,81 +1,63 @@
 #!/bin/bash
-# YOUBUDDY 5기 베타 — 커밋 + 푸시 스크립트
-# 실행: bash /Users/gyo/Downloads/youbuddy-challenge-claude/push_to_github.sh
+# YOUBUDDY 5기 — 커밋 + 푸시 스크립트
+# 실행:  bash push_to_github.sh   (Mac, 이 폴더 안에서)
 #
-# ⚠️  landing page (/index.html) 은 buddy 명시 허락 전까지 커밋에서 제외.
+# ⚠️  landing page (/index.html) 은 커밋에서 제외 (변경 안 함).
 set -e
 
-REPO="/Users/gyo/Downloads/youbuddy-challenge-claude"
+# 스크립트가 있는 폴더 = repo 루트 (경로 하드코딩 X)
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO"
+echo "==> repo: $REPO"
 
 echo "==> 오래된 락 파일 정리..."
 rm -f .git/index.lock .git/HEAD.lock .git/index.lock.* .git/HEAD.lock.* 2>/dev/null || true
 rm -rf .git/rebase-merge .git/rebase-merge.* 2>/dev/null || true
-find .git/objects -name "tmp_obj_*" -delete 2>/dev/null || true
 find .git -name "*.lock" -delete 2>/dev/null || true
 
 echo "==> 현재 상태:"
 git status --short
 git log --oneline -3
 
-# 5th/index.html + SQL 파일 + push_to_github.sh 만 stage. 루트 index.html 은 제외.
+# 이번 작업분만 stage. 루트 index.html · 임시 산출물(pdf/json) 은 제외.
 echo ""
-echo "==> 5th/index.html + SQL 마이그레이션 + push_to_github.sh stage..."
-git add 5th/index.html push_to_github.sh supabase_migration_meeting_consent.sql
+echo "==> stage: 5th/index.html + final test export SQL + ai-review edge fn + 이 스크립트"
+git add 5th/index.html \
+        supabase_migration_final_test_export.sql \
+        supabase/functions/ai-review/index.ts \
+        push_to_github.sh
 
 if ! git diff --cached --quiet; then
   echo ""
-  echo "==> 변경 사항 커밋..."
-  git commit -m "프리미엄 미팅 녹화/분석 사전 동의 팝업 (개인정보보호법 v2) + 운영자 감사 모달
+  echo "==> 커밋..."
+  git commit -m "Week4 파이널 테스트 개편 + self-serve 약점퀴즈 + 미팅 단어 랜덤기 + 완주 플로우
 
-(A) Meeting Consent Modal v2 — 한국 개인정보보호법 준수
-- 제15조 필수 4항목 모두 명시: 수집 항목 / 수집·이용 목적 / 보유·이용 기간
-  / 동의 거부권.
-- 제23조 생체정보(얼굴·음성) 별도 동의 — 체크박스 '(필수) 생체정보 수집·이용 동의'.
-- 제26조 처리위탁 수탁자 공개 — Google LLC(Meet 녹화) / Anthropic(AI 분석)
-  + 체크박스 '(필수) 처리 위탁 동의'.
-- 두 체크박스 모두 체크돼야 '동의하고 계속' 버튼 활성화 (JS disabled/opacity 토글).
-- 개인정보 보호책임자 명시: 유버디 · youbuddy.co@gmail.com.
-- CONSENT_VERSION 1 -> 2 승격 -> v1 동의자도 법적으로 강화된 v2 로 재동의 유도.
+[파이널 테스트]
+- Week4 = 파이널 테스트 (OX3 + 객관식4 + 빈칸3 채점 + 작문3 무점수). Day1~20 60단어 풀.
+- 통과 기준 없이 제출=완료, 점수 표시, 재응시. 답안 draft 보관 → 재렌더에도 안 날아감.
+- PDF 다운로드 버튼 → 구글 드라이브 링크. 마감 5/24(일) 21:00 자동 닫힘.
+- 결과/다운로드 state 저장(final_test, final_downloads) + 운영자 export RPC.
 
-(B) 프리미엄 탭 진입시에도 팝업 자동 오픈
-- PremiumPage() 상단에 동의 가드 추가. MeetingNotesPage 안 거치고
-  바로 Google Meet 링크로 입장하는 멤버도 반드시 팝업을 보게 됨.
-- premium tier + 미동의 + 모달 미오픈 모두 만족할 때만 setTimeout(250) 으로
-  오픈 -> render 루프 방지.
-- MeetingNotesPage 의 기존 가드도 유지 (이중 안전장치).
+[홈/대시보드]
+- 파이널 완료 배너(다시 풀기) + 4주 학습자료 다운로드 배너 + 다운로드 안내 팝업(PDF·노션·리포트 3버튼).
+- PDF까지 받은 완주자 축하 팝업(60어휘/120유의어 + 후기 링크).
+- 5/22 18:00 이후 6기 안내 팝업 1회.
 
-(C) 운영자 면제 해제
-- isOperator/isStaff 도 팝업 대상. 본인도 프리미엄 참가자라 녹화됨 + QA 가능.
-- 설정 > OPERATOR ONLY > '내 동의 초기화 (테스트용)' 버튼 추가 ->
-  팝업 다시 보고 싶을 때 원클릭 리셋. 내 현재 상태(동의/미동의 + 시각)도
-  인라인 표시.
+[약점 퀴즈 — self-serve 교체]
+- 발표 게이팅/4지선다/운영자 주입 의존 제거. '대사 붙여넣기 → 문장당 1빈칸' 단일 플로우.
+- 힌트 = 단어별 첫 글자 마스킹(M____ B___). 운영자 패널 복원(JSON 주입/멤버 푸시).
 
-(D) 운영자 감사 모달 (Consent Audit)
-- 설정 > OPERATOR ONLY > '미팅 동의 감사 · 동의 현황 열기'.
-- 프리미엄 9명별 동의 여부 + 시각 + 버전 리스트. 초록 도트=동의, 회색=대기.
-- 서버 RPC get_cohort_consent_audit (supabase_migration_meeting_consent.sql)
-  에서 app_state->'meeting_consent' JSONB 필드 추출해서 flat row 로 반환.
-- RPC 미적용 시 toast 로 migration 적용 안내.
+[미팅]
+- Week4 미팅(#meeting/m4) hero 아래 단어 랜덤기(전체60/Week4 15 선택) + Google Meet 링크 연결.
 
-(E) 상단 재유도 배너
-- 모달 '나중에' 로 닫은 premium 유저에게 MeetingNotesPage 상단에 일관된
-  배너 표시 ('미팅 녹화/분석 동의가 아직 없어요 · 자세히 ->').
-- 클릭시 모달 재오픈.
+[기타]
+- 수료 인증/리포트: 프리미엄 주간미팅 4/4, 인증서 '어휘 60개·유의어 120개'.
+- 운영자 설정: Day 점프 드롭다운(Day20=마지막날 시뮬레이션).
+- 단어집 PDF 설명 문구 정리.
 
-(F) State + 퍼시스턴스
-- defaultState.meeting_consent = null 추가.
-- PERSISTED_STATE_KEYS 에 'meeting_consent' 추가 -> upsert_member_app_state
-  로 서버 자동 동기화.
-- 기록 구조: { accepted, at(ISO), version, tz, memberKey, memberName,
-  englishName, consents: { biometric, delegation } }.
-
-(G) SQL 마이그레이션 (신규)
-- supabase_migration_meeting_consent.sql: get_cohort_consent_audit(p_cohort)
-  RPC 생성. SECURITY DEFINER + STABLE.
-- 실행 방법: Supabase Dashboard > SQL Editor 에 파일 붙여넣기 > Run.
-
-(이전 staff toggle + avatar color fix 커밋들도 함께 올라감.)"
+[SQL]
+- supabase_migration_final_test_export.sql: get_cohort_final_test(p_cohort) RPC 신규.
+  → Supabase Dashboard > SQL Editor 에 붙여넣고 Run 해야 운영자 결과 조회 동작."
 fi
 
 echo ""
@@ -89,3 +71,6 @@ git push origin main
 echo ""
 echo "완료 ✅  https://github.com/lifestylebytes/youbuddy_members5"
 echo "1~2분 후 youbuddy.co.kr/5th 에 반영됩니다."
+echo ""
+echo "※ 운영자 '파이널 테스트 결과 (JSON)' 버튼을 쓰려면 Supabase SQL Editor 에"
+echo "   supabase_migration_final_test_export.sql 한 번 실행하세요."

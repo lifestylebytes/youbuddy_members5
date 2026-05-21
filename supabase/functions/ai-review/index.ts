@@ -316,7 +316,10 @@ function correctedContainsTarget(corrected: string, target: string): boolean {
   return c.includes(root);
 }
 
-async function callOpenAI(userMessage: string): Promise<string> {
+// 번역 전용 시스템 프롬프트 — self-serve 빈칸 퀴즈의 영어 문장 → 자연스러운 한국어.
+const TRANSLATE_SYSTEM = `You are a professional English→Korean translator for a business-English learning app. Translate each English sentence into natural, conversational Korean (존댓말, business tone). Be faithful and concise. Do NOT add explanations or notes. Always reply as strict JSON only.`;
+
+async function callOpenAI(userMessage: string, systemPrompt: string = SYSTEM_PROMPT): Promise<string> {
   const key = Deno.env.get('OPENAI_API_KEY');
   if (!key) throw new Error('OPENAI_API_KEY not set');
   const res = await fetch(OPENAI_URL, {
@@ -335,7 +338,7 @@ async function callOpenAI(userMessage: string): Promise<string> {
       // hoping the model stays within braces.
       response_format: { type: 'json_object' },
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },
       ],
     }),
@@ -361,7 +364,31 @@ serve(async (req) => {
     return json({ error: 'invalid json' }, 400);
   }
 
-  const mode = body?.mode; // 'sentence' | 'story'
+  const mode = body?.mode; // 'sentence' | 'story' | 'translate'
+
+  // ── translate 모드 — 영어 문장 배열 → 한국어 번역 배열 (self-serve 빈칸 퀴즈용)
+  if (mode === 'translate') {
+    const sentences = Array.isArray(body?.sentences)
+      ? body.sentences.map((s: any) => String(s || '').slice(0, 400)).filter(Boolean).slice(0, 40)
+      : [];
+    if (sentences.length === 0) return json({ error: 'sentences required' }, 400);
+    try {
+      const userMessage = 'Translate each of the following English sentences into natural conversational Korean. '
+        + 'Return ONLY JSON: {"translations": ["...", ...]} with EXACTLY the same number of items in the SAME order.\n'
+        + sentences.map((s: string, i: number) => `${i + 1}. ${s}`).join('\n');
+      const raw = await callOpenAI(userMessage, TRANSLATE_SYSTEM);
+      const parsed = extractJson(raw);
+      let translations = Array.isArray(parsed?.translations)
+        ? parsed.translations.map((t: any) => String(t || ''))
+        : [];
+      while (translations.length < sentences.length) translations.push('');
+      if (translations.length > sentences.length) translations = translations.slice(0, sentences.length);
+      return json({ translations });
+    } catch (e) {
+      return json({ error: 'translate failed: ' + String((e as any)?.message || e).slice(0, 200) }, 500);
+    }
+  }
+
   const text = String(body?.text || '').trim();
   // Korean intent sentence (optional). Used as the meaning anchor so the model
   // doesn't guess when the learner's English is ambiguous.

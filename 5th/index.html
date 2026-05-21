@@ -1611,6 +1611,7 @@ sugarcoat 사실 메신저에선 거의 안 써요…! ㅋㅋ
         desc: '20일 전체 단어를 한 롤플레이에 녹여내기 — bingo 식 체크',
         status: 'upcoming',
         zoom: 'Google Meet',
+        meetUrl: 'https://meet.google.com/fjd-spsn-vfp',
         // 버디가 미팅 후 직접 채움 — recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
         recap: '',
         pptUrl: '',
@@ -1893,6 +1894,10 @@ const defaultState = () => ({
   bingo_done: {},                   // { "1": "2026-04-30T..." } 한 주차의 첫 drill 완주 타임스탬프 — 홈 배너 / 보상 분기용.
   bingo_boss_results: {},           // { "1": { score, total, at } } 유버디 검증 (랜덤 10개) 점수 — 운영자 분석.
   week_survey: {},                  // { "1": { nps, difficulty, time, ai_help, ux, stuck, want_w2: [], comment, at } } 주간 설문.
+  final_test: null,                 // 파이널 테스트 결과 { score, total, at, attempts, answers, writing } — 통과 기준 없이 제출=완료.
+  final_downloads: {},              // { pdf_at, notion_at } 4주 단어집 PDF / 노션 문장 다운로드 기록 (운영자 export 용).
+  cohort6_popup_seen: false,        // 5/22 오후 6시 이후 1회 노출되는 6기 안내 팝업 본 상태.
+  cohort_complete_popup_seen: false,// PDF까지 다 받은 완주자에게 1회 노출되는 완주 축하 팝업 본 상태.
   meeting_briefing_open: {},        // { "m1-intro": true } 미팅 노트 페이지의 "브리핑" 펼침 상태 — 새로고침/15초 sync 에도 유지.
   nonparticipant_list: [],          // ['강태윤', ...] Week 1 무참여자 — 대시보드 맨 아래로 + 향후 기능 제한 대상.
   recording_popup_seen: {},         // { "m1": true } 미팅 다시보기 팝업을 본 상태. 한 번 X 누르면 다시 안 뜸.
@@ -1965,6 +1970,10 @@ const PERSISTED_STATE_KEYS = [
   'bingo_done',
   'bingo_boss_results',
   'week_survey',
+  'final_test',
+  'final_downloads',
+  'cohort6_popup_seen',
+  'cohort_complete_popup_seen',
   'meeting_briefing_open',
   'recording_popup_seen',
   'weekly_quiz_popup_seen',
@@ -2375,6 +2384,28 @@ async function callAiReviewEdgeFunction(payload) {
     diff_html: data.diff_html || escapeHtml(data.corrected),
     why: data.why || '표현이 더 자연스럽게 들리도록 다듬었어요.',
   };
+}
+
+// 영어 문장 배열 → 한국어 번역 배열 (ai-review 엣지 함수 translate 모드).
+// 실패하면 throw — 호출부에서 graceful 하게 한국어 없이 진행.
+async function callAiTranslate(sentences) {
+  if (!hasSupabase()) throw new Error('no supabase');
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-review`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ mode: 'translate', sentences }),
+  });
+  if (!res.ok) {
+    const t = await res.text().catch(() => '');
+    throw new Error(`translate ${res.status}: ${t.slice(0, 160)}`);
+  }
+  const data = await res.json();
+  if (!data || !Array.isArray(data.translations)) throw new Error('translate bad shape');
+  return data.translations;
 }
 
 // 클라이언트 측 "사소한 swap" 감지 — AI 가 진짜 grammar 교정이 아니라 단순히
@@ -4283,9 +4314,15 @@ function reviewDeadlineDay(weekN) {
   if (!Number.isFinite(n) || n < 1) return CHALLENGE.total_days || 20;
   return Math.min((n + 1) * 5, CHALLENGE.total_days || 20);
 }
+// 파이널(Week 4) 도전 마감 — currentDay 가 20 에서 멈춰 day-기반 잠금이 안 걸리므로 실제 캘린더 날짜로 마감.
+// 이 날(포함)까지 도전 가능, 다음 날부터 자동으로 닫힘.
+const FINAL_REVIEW_DEADLINE_AT = '2026-05-24T21:00:00'; // 일요일(5/24) 밤 9시
+const FINAL_REVIEW_DEADLINE_LABEL = '일요일(5/24) 밤 9시';
 function isReviewLocked(weekN) {
   // 운영자/스태프 (operatorViewAsMember false) 는 데드라인 무시
   if ((state.isOperator || state.isStaff) && !state.operatorViewAsMember) return false;
+  // Week 4 (파이널) 은 실제 날짜·시각 기준 — 5/24 밤 9시 지나면 닫힘.
+  if (Number(weekN) === 4) { try { return Date.now() > new Date(FINAL_REVIEW_DEADLINE_AT).getTime(); } catch (e) { return false; } }
   const today = Number(state.currentDay) || 0;
   return today > reviewDeadlineDay(weekN);
 }
@@ -5553,6 +5590,7 @@ function render() {
     }
     else if (currentPage === 'premium') page = PremiumPage();
     else if (currentPage === 'week-review') page = WeekReviewPage(window.__currentReviewWeek || 1);
+    else if (currentPage === 'final-test') page = FinalTestPage();
     else if (currentPage === 'presenter-prep') page = PresenterPrepPage(window.__currentPresenterWeek);
     else if (currentPage === 'pitch-prep') page = PitchPrepPage();
     else if (currentPage === 'meeting-notes') page = MeetingNotesPage(window.__currentMeetingId);
@@ -7295,6 +7333,8 @@ function TabBar() {
    ============================================================ */
 function HomePage() {
   requestMemberSummaries();
+  // 5/22 오후 6시 이후 6기 안내 팝업 1회 자동 노출.
+  setTimeout(() => { try { window.__maybeShowCohort6Popup(); } catch (e) {} }, 300);
   // me.progress / me.streak 는 verify 직후 stale 할 수 있어요 (서버 스냅샷이 hourly 라서).
   // 홈 진입시마다 로컬 state 기준으로 재싱크해서 "프리미엄 0/8 인증" 같이
   // 방금 인증한 내 기록이 반영 안 되는 문제를 막아요.
@@ -7538,8 +7578,28 @@ function HomePage() {
     // 복습 완료 여부 — bingo_done flag 확인
     const isReviewed = !!(state.bingo_done && state.bingo_done[String(targetWeek.n)]);
     if (isReviewed) {
-      // 통과한 사람한텐 홈 배너 숨김 — 매번 보이면 oversaturate.
-      // JPG 다운로드는 학습 탭 → Week 카드 → 진짜 외우기 → reward card 에서 다시 받을 수 있음.
+      // Week 4(파이널)은 숨기지 않고 '완료 + 다시 풀기' 배너로. 클릭하면 파이널 테스트 재응시.
+      if (targetWeek.n === 4) {
+        const doneBanner = el('div', {
+          style: {
+            margin: '18px 0 16px', padding: '16px 18px', borderRadius: '20px',
+            background: 'linear-gradient(135deg, #E8F5E9 0%, #F0F8E8 100%)',
+            border: '1px solid rgba(74,160,124,0.4)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: '14px',
+          },
+          onClick: () => { try { window.__startFinalTest(); } catch (e) {} },
+        });
+        doneBanner.innerHTML = `
+          <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;background:rgba(34,179,106,0.18);display:grid;place-items:center;font-size:24px;">✅</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">🏆 파이널 테스트 완료</div>
+            <div class="t-small" style="margin-top:4px;font-size:12px;color:var(--ink-soft);line-height:1.5;">탭하면 다시 풀 수 있어요 · 다시 풀기 →</div>
+          </div>
+          <div style="flex-shrink:0;color:#22B36A;font-size:18px;font-weight:800;">↻</div>`;
+        page.appendChild(doneBanner);
+        return;
+      }
+      // 다른 주차는 통과 시 홈 배너 숨김 (oversaturate 방지).
       return;
     }
     // 미통과자 — 도전 기간 안 지났으면 카운트다운 배너 강조
@@ -7557,20 +7617,52 @@ function HomePage() {
       reviewBanner.style.background = 'linear-gradient(135deg, #FFE5D9 0%, #FFD1B8 100%)';
       reviewBanner.style.borderColor = 'rgba(232,116,60,0.5)';
     }
+    // Week 4 = 파이널 테스트 — 문구 분기 + PDF 보상 안내.
+    const isFinalWeek = targetWeek.n === 4;
+    const bannerIcon = isFinalWeek ? '🏆' : (isUrgent ? '⏰' : '🧠');
+    const bannerTitle = isFinalWeek ? 'Week 4 파이널 테스트 도전 갈까요?' : `Week ${targetWeek.n} 단어.. 진짜 다 외워졌을까요?`;
+    const bannerCta = isFinalWeek ? '파이널 테스트 풀러 가기 →' : '주간 테스트 보러가기 →';
     reviewBanner.innerHTML = `
-      <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;background:${isUrgent ? 'rgba(232,116,60,0.30)' : 'rgba(240,125,56,0.18)'};display:grid;place-items:center;font-size:24px;">${isUrgent ? '⏰' : '🧠'}</div>
+      <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;background:${isUrgent ? 'rgba(232,116,60,0.30)' : 'rgba(240,125,56,0.18)'};display:grid;place-items:center;font-size:24px;">${bannerIcon}</div>
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
-          <div style="font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">Week ${targetWeek.n} 단어.. 진짜 다 외워졌을까요?</div>
+          <div style="font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${bannerTitle}</div>
           ${isPreview ? '<span style="font-size:9.5px;font-weight:700;background:rgba(125,92,255,0.18);color:#5C53A5;padding:2px 7px;border-radius:999px;">미리보기</span>' : ''}
         </div>
-        <div class="t-small" style="margin-top:5px;font-size:12.5px;color:var(--orange-dark);font-weight:700;letter-spacing:-0.01em;display:inline-flex;align-items:center;gap:4px;">주간 테스트 보러가기 →</div>
+        <div class="t-small" style="margin-top:5px;font-size:12.5px;color:var(--orange-dark);font-weight:700;letter-spacing:-0.01em;display:inline-flex;align-items:center;gap:4px;">${bannerCta}</div>
+        ${isFinalWeek ? `<div class="t-small" style="margin-top:6px;font-size:12px;color:var(--ink-soft);font-weight:600;letter-spacing:-0.01em;line-height:1.5;">이거 풀면 4주 단어집 PDF를 받을 수 있어요 🧡</div>` : ''}
         <div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:${isUrgent ? '#C95721' : 'rgba(201,87,33,0.12)'};color:${isUrgent ? '#fff' : '#C95721'};font-size:11px;font-weight:800;letter-spacing:-0.005em;">
-          ⏰ 다음 주 (Day ${deadlineDay})까지만 도전 가능
+          ⏰ ${isFinalWeek ? FINAL_REVIEW_DEADLINE_LABEL : `다음 주 (Day ${deadlineDay})`}까지만 도전 가능
         </div>
       </div>
     `;
     page.appendChild(reviewBanner);
+  })();
+
+  // 파이널 완료자 — 메인보드에 4주 단어집 PDF / 내 문장 다운로드 배너 오픈.
+  (() => {
+    const finalDone = !!(state.bingo_done && state.bingo_done['4']) || !!(state.final_test && state.final_test.at);
+    if (!finalDone) return;
+    const dl = state.final_downloads || {};
+    const gotPdf = !!dl.pdf_at;
+    const dlBanner = el('div', {
+      style: {
+        margin: '0 0 16px', padding: '16px 18px', borderRadius: '20px',
+        background: 'linear-gradient(135deg, #FFF7E6 0%, #FAEFDC 100%)',
+        border: '1px solid var(--orange-soft)', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: '14px',
+      },
+      onClick: () => window.__openFinalDownloads(),
+    });
+    dlBanner.innerHTML = `
+      <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;background:rgba(240,125,56,0.18);display:grid;place-items:center;font-size:24px;">🎁</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">🏆 파이널 완료! 4주 학습 자료 받기</div>
+        <div class="t-small" style="margin-top:4px;font-size:12px;color:var(--ink-soft);line-height:1.5;">4주 단어집 PDF + 내 전체 문장(노션용) 다운로드${gotPdf ? ' · <span style=\"color:#22B36A;font-weight:700;\">✓ PDF 받음</span>' : ''}</div>
+      </div>
+      <div style="flex-shrink:0;color:var(--orange-dark);font-size:16px;font-weight:800;">→</div>
+    `;
+    page.appendChild(dlBanner);
   })();
 
   // 직전 주 설문 응답 안 한 사람한테 홈 배너 노출.
@@ -8355,7 +8447,7 @@ function WeeksPage() {
         onClick: (ev) => {
           ev.stopPropagation();
           if (effectivelyLocked) {
-            showToast(`도전 기간 종료 — Week ${w.n} 복습은 Day ${deadlineDay}까지만 가능했어요`);
+            showToast(`도전 기간 종료 — Week ${w.n} 복습은 ${w.n === 4 ? '5/24' : `Day ${deadlineDay}`}까지만 가능했어요`);
             return;
           }
           window.__currentReviewWeek = w.n;
@@ -8367,12 +8459,12 @@ function WeeksPage() {
       if (effectivelyLocked) {
         reviewBtn.innerHTML = `
           <span>🔒 ${weekReviewLabelShort(w.n)} · 기간 종료</span>
-          <span style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:-0.005em;">Day ${deadlineDay}까지였어요</span>
+          <span style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:-0.005em;">${w.n === 4 ? '5/24' : `Day ${deadlineDay}`}까지였어요</span>
         `;
       } else {
         reviewBtn.innerHTML = `
           <span>${w.n === 4 ? '🏆' : '🧠'} ${weekReviewLabelShort(w.n)}${w.n === 4 ? ' (Day 1~20 종합)' : ' — 3단계 복습'}${previewTag}</span>
-          <span style="font-size:11px;font-weight:700;color:${limitColor};letter-spacing:-0.005em;">⏰ 다음 주 (Day ${deadlineDay})까지만 도전 가능</span>
+          <span style="font-size:11px;font-weight:700;color:${limitColor};letter-spacing:-0.005em;">⏰ ${w.n === 4 ? FINAL_REVIEW_DEADLINE_LABEL : `다음 주 (Day ${deadlineDay})`}까지만 도전 가능</span>
         `;
       }
       card.appendChild(reviewBtn);
@@ -9756,7 +9848,7 @@ function WeekReviewPage(weekN) {
     card.innerHTML = `
       <div style="font-size:48px;line-height:1;margin-bottom:10px;">🔒</div>
       <div class="kicker" style="color:var(--muted);">도전 기간 종료</div>
-      <div style="margin-top:8px;font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">${weekReviewLabelShort(weekN)}는<br>Day ${reviewDeadlineDay(weekN)} 까지만 가능했어요</div>
+      <div style="margin-top:8px;font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">${weekReviewLabelShort(weekN)}는<br>${Number(weekN) === 4 ? '5/24' : `Day ${reviewDeadlineDay(weekN)}`} 까지만 가능했어요</div>
       <div class="t-small" style="margin-top:10px;color:var(--ink-soft);line-height:1.55;font-size:12.5px;">아쉽지만 이번엔 다음 주차에서 만나요 — 새 단어가 또 기다리고 있어요!</div>
     `;
     page.appendChild(card);
@@ -10885,12 +10977,26 @@ function renderBossIntro(page, weekN, week, drill) {
       <div style="width:42px;height:42px;border-radius:50%;background:rgba(240,125,56,0.18);display:grid;place-items:center;font-size:22px;">🌟</div>
       <div style="flex:1;">
         <div style="font-size:14px;font-weight:800;color:var(--ink);">유버디</div>
-        <div class="t-small" style="font-size:11px;color:var(--muted);">Week ${weekN} 마지막 관문</div>
+        <div class="t-small" style="font-size:11px;color:var(--muted);">${Number(weekN) === 4 ? '파이널 테스트 · Day 1~20 종합' : `Week ${weekN} 마지막 관문`}</div>
       </div>
       <span class="t-small mono" style="font-size:10px;color:var(--orange-dark);background:var(--orange-ghost);padding:3px 8px;border-radius:999px;font-weight:800;">FINAL</span>
     </div>
     <!-- Bubbles (왼쪽 정렬, 카톡 톤) -->
     <div style="padding:18px;display:flex;flex-direction:column;gap:8px;">
+      ${Number(weekN) === 4 ? `
+      <div style="align-self:flex-start;max-width:80%;padding:10px 14px;border-radius:18px 18px 18px 4px;background:#fff;border:1px solid rgba(231,221,200,0.7);color:var(--ink);font-size:14px;line-height:1.55;">
+        4주 동안 정말 잘 오셨어요 👏
+      </div>
+      <div style="align-self:flex-start;max-width:85%;padding:10px 14px;border-radius:18px 18px 18px 4px;background:#fff;border:1px solid rgba(231,221,200,0.7);color:var(--ink);font-size:14px;line-height:1.55;">
+        마지막으로 Day 1~20 전체 단어로, 진짜 외워졌는지 같이 한번 볼까요? 😊
+      </div>
+      <div style="align-self:flex-start;max-width:85%;padding:10px 14px;border-radius:18px 18px 18px 4px;background:#fff;border:1px solid rgba(231,221,200,0.7);color:var(--ink);font-size:14px;line-height:1.55;">
+        OX · 객관식 · 빈칸 + 마지막에 작문 3문장까지. 점수는 참고용이라 부담 갖지 마세요 🧡
+      </div>
+      <div style="align-self:flex-start;max-width:85%;padding:10px 14px;border-radius:18px 18px 18px 4px;background:rgba(240,125,56,0.10);border:1px solid var(--orange-soft);color:var(--orange-dark);font-size:13px;line-height:1.55;font-weight:700;">
+        한 10분이면 끝나요. 다 풀면 <b>4주 단어집 PDF</b>를 받을 수 있어요 ✨
+      </div>
+      ` : `
       <div style="align-self:flex-start;max-width:80%;padding:10px 14px;border-radius:18px 18px 18px 4px;background:#fff;border:1px solid rgba(231,221,200,0.7);color:var(--ink);font-size:14px;line-height:1.55;">
         잘 했어요 👏
       </div>
@@ -10903,10 +11009,11 @@ function renderBossIntro(page, weekN, week, drill) {
       <div style="align-self:flex-start;max-width:85%;padding:10px 14px;border-radius:18px 18px 18px 4px;background:rgba(240,125,56,0.10);border:1px solid var(--orange-soft);color:var(--orange-dark);font-size:13px;line-height:1.55;font-weight:700;">
         Week ${weekN} 중에서 <b>랜덤</b>으로 골라봤어요. 원래 약했던 거 진짜 외워졌는지 한번 테스트해볼게요 🤓
       </div>
+      `}
     </div>
     <!-- Action — 건너뛰기 X, 통과만. 운영자만 skip 가능. -->
     <div style="padding:0 18px 18px;display:flex;flex-direction:column;gap:8px;">
-      <button onclick="window.__bingoStartBoss(${weekN})" style="width:100%;padding:14px;border-radius:14px;background:var(--ink);color:var(--cream);border:none;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:-0.01em;">🎲 마지막 관문 도전 (10문제)</button>
+      <button onclick="${Number(weekN) === 4 ? 'window.__startFinalTest()' : `window.__bingoStartBoss(${weekN})`}" style="width:100%;padding:14px;border-radius:14px;background:var(--ink);color:var(--cream);border:none;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:-0.01em;">${Number(weekN) === 4 ? '🏆 파이널 테스트 시작 (약 10분)' : '🎲 마지막 관문 도전 (10문제)'}</button>
       ${((state.isOperator || state.isStaff) && !state.operatorViewAsMember) ? `
         <button onclick="window.__bingoOperatorSkipFinal(${weekN})" style="width:100%;padding:10px;border-radius:10px;background:rgba(125,92,255,0.10);color:#5C53A5;border:1px dashed rgba(125,92,255,0.4);font-size:11.5px;font-weight:700;cursor:pointer;">⚙️ 운영자 — 파이널 건너뛰기 (완료 화면으로)</button>
       ` : ''}
@@ -11394,6 +11501,416 @@ window.__bingoOperatorSkipFinal = (weekN) => {
   }
   showToast('⚙️ 파이널 건너뛰기 — 완료 화면으로');
   render();
+};
+
+/* ============================================================
+   파이널 테스트 (Week 4) — OX · 객관식 · 빈칸 · 작문 4섹션
+   - 채점: OX 3 + 객관식 4 + 빈칸 3 = 10문항. 작문 3문장은 무점수.
+   - 통과 기준 없음: 제출 = 완료. 점수만 표시 + 재응시 가능.
+   - 결과/다운로드는 state 에 저장 → app_state 동기화 → 운영자 export.
+   ============================================================ */
+function __collectFinalPool() {
+  const pool = [];
+  (CHALLENGE.weeks || []).forEach((wk) => {
+    (wk.days || []).forEach((d) => {
+      (d.words || []).forEach((w) => {
+        if (!w || !w.en || !w.def) return;
+        pool.push({ en: w.en, def: w.def, ex_en: w.ex_en || '', ex_kr: w.ex_kr || '', day: d.day });
+      });
+    });
+  });
+  return pool;
+}
+function __ftShuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+window.__startFinalTest = function () {
+  const pool = __collectFinalPool();
+  if (pool.length < 10) { showToast('파이널 테스트 단어 풀이 부족해요. 운영자에게 알려주세요.'); return; }
+  const shuffled = __ftShuffle(pool);
+  const allDefs = pool.map((w) => w.def).filter(Boolean);
+  let cursor = 0;
+  const take = (n) => shuffled.slice(cursor, cursor += n);
+
+  // OX 3 — 단어-뜻 매칭 진위 (절반 정도 거짓)
+  const oxWords = take(3);
+  const ox = oxWords.map((w, i) => {
+    const makeTrue = (i % 2 === 0); // O,X,O 패턴
+    let shownDef = w.def;
+    if (!makeTrue) {
+      const others = allDefs.filter((d) => d !== w.def);
+      if (others.length) shownDef = others[Math.floor(Math.random() * others.length)];
+    }
+    return { en: w.en, shownDef, answer: shownDef === w.def };
+  });
+
+  // 객관식 4 — 영어 표현 → 한국어 뜻 4지선다
+  const mcWords = take(4);
+  const mc = mcWords.map((w) => {
+    const distract = __ftShuffle(allDefs.filter((d) => d !== w.def)).slice(0, 3);
+    const choices = __ftShuffle([w.def, ...distract]);
+    return { en: w.en, def: w.def, choices, correctIdx: choices.indexOf(w.def) };
+  });
+
+  // 빈칸 3 — 예문 cloze (예문에 단어가 직접 들어간 것만)
+  const usedSoFar = new Set([...oxWords, ...mcWords]);
+  const fillCandidates = shuffled.filter((w) => {
+    if (usedSoFar.has(w) || !w.ex_en) return false;
+    const re = new RegExp(String(w.en).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    return re.test(w.ex_en);
+  });
+  const fillWords = fillCandidates.slice(0, 3);
+  const fill = fillWords.map((w) => {
+    const re = new RegExp(String(w.en).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const m = w.ex_en.match(re);
+    return { en: w.en, def: w.def, pre: w.ex_en.slice(0, m.index), post: w.ex_en.slice(m.index + m[0].length), ex_kr: w.ex_kr };
+  });
+
+  // 작문 3 — 단어로 문장 만들기 (무점수)
+  const used = new Set([...oxWords, ...mcWords, ...fillWords]);
+  const writingWords = shuffled.filter((w) => !used.has(w)).slice(0, 3);
+  const writing = writingWords.map((w) => ({ en: w.en, def: w.def }));
+
+  window.__finalTestSession = {
+    ox, mc, fill, writing,
+    gradedTotal: ox.length + mc.length + fill.length,
+    submitted: false, score: 0, result: null,
+  };
+  go('final-test');
+};
+
+window.__submitFinalTest = function () {
+  const sess = window.__finalTestSession;
+  if (!sess || sess.submitted) return;
+  const draft = sess.draft || (sess.draft = { ox: {}, mc: {}, fill: {}, writing: {} });
+  // 제출 직전 최신 DOM 값 → draft 동기화 (리스너 누락/모바일 IME 대비). 폼이 없으면 기존 draft 사용.
+  const root = document.querySelector('[data-final-test-form]');
+  if (root) {
+    sess.ox.forEach((q, i) => { const s = root.querySelector(`input[name="ftox-${i}"]:checked`); if (s) draft.ox[i] = s.value; });
+    sess.mc.forEach((q, i) => { const s = root.querySelector(`input[name="ftmc-${i}"]:checked`); if (s) draft.mc[i] = Number(s.value); });
+    sess.fill.forEach((q, i) => { const inp = root.querySelector(`[data-ftfill="${i}"]`); if (inp) draft.fill[i] = inp.value; });
+    sess.writing.forEach((q, i) => { const ta = root.querySelector(`[data-ftwriting="${i}"]`); if (ta) draft.writing[i] = ta.value; });
+  }
+  let score = 0;
+  const answers = { ox: [], mc: [], fill: [], writing: [] };
+
+  sess.ox.forEach((q, i) => {
+    const val = draft.ox[i] != null ? draft.ox[i] : null; // 'O' | 'X'
+    const correct = val != null && ((val === 'O') === q.answer);
+    if (correct) score += 1;
+    answers.ox.push({ en: q.en, picked: val, correct });
+  });
+  sess.mc.forEach((q, i) => {
+    const idx = draft.mc[i] == null ? -1 : Number(draft.mc[i]);
+    const correct = idx === q.correctIdx;
+    if (correct) score += 1;
+    answers.mc.push({ en: q.en, pickedIdx: idx, correct });
+  });
+  sess.fill.forEach((q, i) => {
+    const val = (draft.fill[i] || '').trim();
+    const correct = val.toLowerCase() === String(q.en).toLowerCase();
+    if (correct) score += 1;
+    answers.fill.push({ en: q.en, typed: val, correct });
+  });
+  sess.writing.forEach((q, i) => {
+    answers.writing.push({ en: q.en, text: (draft.writing[i] || '').trim() });
+  });
+
+  const total = sess.gradedTotal;
+  sess.score = score;
+  sess.submitted = true;
+  sess.result = { score, total, answers };
+
+  const prev = state.final_test || {};
+  state.final_test = {
+    score, total,
+    at: new Date().toISOString(),
+    attempts: (Number(prev.attempts) || 0) + 1,
+    answers,
+    writing: answers.writing,
+  };
+  // Week 4 완료 처리 — 보상/설문/리포트 플로우 트리거
+  state.bingo_done = state.bingo_done || {};
+  if (!state.bingo_done['4']) state.bingo_done['4'] = new Date().toISOString();
+  state.bingo_boss_results = state.bingo_boss_results || {};
+  state.bingo_boss_results['4'] = { score, total, at: new Date().toISOString(), final: true };
+  try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+  showToast('🏆 파이널 테스트 제출 완료!');
+  render();
+  try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) {}
+};
+
+function FinalTestPage() {
+  const sess = window.__finalTestSession;
+  const page = el('div', { class: 'page', style: { paddingBottom: '120px' } });
+  const head = el('div', { class: 'topbar' });
+  const back = el('button', { class: 'icon-btn', onClick: () => { go('weeks'); } });
+  back.innerHTML = Icon('arrowLeft', 16);
+  head.appendChild(back);
+  head.appendChild(el('div', { class: 'brand-name' }, '🏆 파이널 테스트'));
+  head.appendChild(el('div', { class: 'icon-btn', style: { visibility: 'hidden' } }));
+  page.appendChild(head);
+
+  if (!sess) {
+    const empty = el('div', { style: { margin: '40px 18px', textAlign: 'center', color: 'var(--ink-soft)' } });
+    empty.innerHTML = `<div style="font-size:40px;">🏆</div><div style="margin-top:10px;font-size:14px;line-height:1.6;">파이널 테스트 세션이 없어요.<br>아래 버튼으로 시작해주세요.</div>`;
+    page.appendChild(empty);
+    const startBtn = el('button', { class: 'btn btn-primary btn-full', style: { margin: '0 18px', background: 'var(--orange)', border: 'none', color: '#fff', padding: '14px' }, onClick: () => window.__startFinalTest() }, '🏆 파이널 테스트 시작');
+    page.appendChild(startBtn);
+    return page;
+  }
+
+  if (sess.submitted && sess.result) {
+    return __renderFinalTestResult(page, sess);
+  }
+
+  const safe = (v) => escapeHtml(String(v == null ? '' : v));
+  // 입력 draft — 재렌더(15초 서버 동기화 등)에도 답이 안 날아가게 세션에 보관 + 재렌더 시 복원.
+  sess.draft = sess.draft || { ox: {}, mc: {}, fill: {}, writing: {} };
+  const draft = sess.draft;
+  const attr = (v) => String(v == null ? '' : v).replace(/"/g, '&quot;');
+
+  const intro = el('div', { style: { margin: '8px 18px 14px', padding: '18px 20px', borderRadius: '20px', background: 'linear-gradient(135deg, #FFF5E6 0%, #FFE5D9 100%)', border: '1px solid var(--orange-soft)' } });
+  intro.innerHTML = `
+    <div class="kicker" style="color:var(--orange-dark);">🏆 파이널 테스트 · Day 1~20 종합</div>
+    <div style="margin-top:8px;font-size:16px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">OX · 객관식 · 빈칸 + 작문 3문장</div>
+    <div class="t-small" style="margin-top:8px;color:var(--ink-soft);font-size:12.5px;line-height:1.6;">채점은 OX·객관식·빈칸 <b>${sess.gradedTotal}문항</b>만 (작문은 점수 없이 기록만). 통과/탈락 없이 제출하면 완료돼요. <b>한 10분</b>이면 끝나요 🧡</div>
+  `;
+  page.appendChild(intro);
+
+  const form = el('div', { 'data-final-test-form': '1', style: { margin: '0 18px' } });
+
+  const sectionHead = (badge, title, desc) => `
+    <div style="margin:18px 0 10px;">
+      <span style="display:inline-block;font-size:10px;font-weight:800;letter-spacing:0.12em;color:#C95721;background:rgba(201,87,33,0.10);padding:3px 9px;border-radius:999px;">${badge}</span>
+      <div style="margin-top:7px;font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${title}</div>
+      ${desc ? `<div class="t-small" style="margin-top:3px;font-size:11.5px;color:var(--muted);line-height:1.5;">${desc}</div>` : ''}
+    </div>`;
+  const qCard = (inner) => `<div style="padding:14px 16px;margin-bottom:10px;background:#fff;border:1px solid var(--line);border-radius:14px;">${inner}</div>`;
+
+  let html = '';
+  // ── SECTION 1 · OX
+  html += sectionHead('SECTION 1 · OX', 'O / X 퀴즈', '단어와 뜻이 맞으면 O, 아니면 X');
+  sess.ox.forEach((q, i) => {
+    html += qCard(`
+      <div style="font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.55;">${i + 1}. "<b>${safe(q.en)}</b>" 의 뜻은 "${safe(q.shownDef)}" 이다.</div>
+      <div style="display:flex;gap:10px;margin-top:10px;">
+        <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:14px;font-weight:800;"><input type="radio" name="ftox-${i}" value="O" style="accent-color:#22B36A;"${draft.ox[i] === 'O' ? ' checked' : ''}> O (맞다)</label>
+        <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:14px;font-weight:800;"><input type="radio" name="ftox-${i}" value="X" style="accent-color:#E64545;"${draft.ox[i] === 'X' ? ' checked' : ''}> X (아니다)</label>
+      </div>`);
+  });
+  // ── SECTION 2 · 객관식
+  html += sectionHead('SECTION 2 · 객관식', '뜻 고르기', '영어 표현에 맞는 한국어 뜻을 골라요');
+  sess.mc.forEach((q, i) => {
+    const opts = q.choices.map((c, ci) => `
+      <label style="display:flex;align-items:flex-start;gap:8px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;margin-top:6px;cursor:pointer;font-size:13px;line-height:1.5;color:var(--ink);"><input type="radio" name="ftmc-${i}" value="${ci}" style="margin-top:2px;accent-color:#F07D38;"${String(draft.mc[i]) === String(ci) ? ' checked' : ''}> <span>${safe(c)}</span></label>`).join('');
+    html += qCard(`
+      <div style="font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.55;">${i + 1}. "<b>${safe(q.en)}</b>" 의 뜻으로 알맞은 것은?</div>
+      <div style="margin-top:6px;">${opts}</div>`);
+  });
+  // ── SECTION 3 · 빈칸
+  html += sectionHead('SECTION 3 · 빈칸', '빈칸 채우기', '예문 빈칸에 알맞은 표현을 영어로 입력');
+  sess.fill.forEach((q, i) => {
+    html += qCard(`
+      <div style="font-size:13.5px;color:var(--ink);line-height:1.7;">${i + 1}. ${safe(q.pre)}<span style="display:inline-block;min-width:70px;border-bottom:2px solid var(--orange);text-align:center;color:var(--orange-dark);font-weight:800;">______</span>${safe(q.post)}</div>
+      ${q.ex_kr ? `<div class="t-small" style="margin-top:5px;font-size:11.5px;color:var(--muted);line-height:1.5;">${safe(q.ex_kr)}</div>` : ''}
+      <input data-ftfill="${i}" type="text" autocomplete="off" autocapitalize="off" value="${attr(draft.fill[i] || '')}" placeholder="여기에 영어로 입력" style="width:100%;margin-top:9px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;box-sizing:border-box;" />`);
+  });
+  // ── SECTION 4 · 작문 (무점수)
+  html += sectionHead('SECTION 4 · 작문 (점수 없음)', '내 문장 만들기', '아래 표현으로 짧은 문장 3개. 점수에는 안 들어가요 — 편하게!');
+  sess.writing.forEach((q, i) => {
+    html += qCard(`
+      <div style="font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.55;">${i + 1}. "<b>${safe(q.en)}</b>" <span style="font-weight:500;color:var(--muted);font-size:12px;">· ${safe(q.def)}</span></div>
+      <textarea data-ftwriting="${i}" rows="2" placeholder="이 표현으로 문장을 만들어보세요" style="width:100%;margin-top:9px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;box-sizing:border-box;resize:vertical;font-family:inherit;">${safe(draft.writing[i] || '')}</textarea>`);
+  });
+
+  form.innerHTML = html;
+  page.appendChild(form);
+
+  // 입력할 때마다 draft 에 즉시 보관 → 재렌더돼도 위에서 복원됨.
+  const syncDraft = () => {
+    sess.ox.forEach((q, i) => { const s = form.querySelector(`input[name="ftox-${i}"]:checked`); if (s) draft.ox[i] = s.value; });
+    sess.mc.forEach((q, i) => { const s = form.querySelector(`input[name="ftmc-${i}"]:checked`); if (s) draft.mc[i] = Number(s.value); });
+    sess.fill.forEach((q, i) => { const inp = form.querySelector(`[data-ftfill="${i}"]`); if (inp) draft.fill[i] = inp.value; });
+    sess.writing.forEach((q, i) => { const ta = form.querySelector(`[data-ftwriting="${i}"]`); if (ta) draft.writing[i] = ta.value; });
+  };
+  form.addEventListener('input', syncDraft);
+  form.addEventListener('change', syncDraft);
+
+  const submitWrap = el('div', { style: { margin: '18px 18px 0' } });
+  const submitBtn = el('button', {
+    class: 'btn btn-primary btn-full',
+    style: { width: '100%', background: 'var(--ink)', color: 'var(--cream)', border: 'none', fontSize: '15px', padding: '15px', fontWeight: '800', letterSpacing: '-0.01em' },
+    onClick: () => window.__submitFinalTest(),
+  }, '제출하고 결과 보기 →');
+  submitWrap.appendChild(submitBtn);
+  page.appendChild(submitWrap);
+  return page;
+}
+
+function __renderFinalTestResult(page, sess) {
+  const safe = (v) => escapeHtml(String(v == null ? '' : v));
+  const r = sess.result;
+  const pct = r.total ? Math.round((r.score / r.total) * 100) : 0;
+  const hero = el('div', { style: { margin: '8px 18px 14px', padding: '26px 22px', borderRadius: '24px', background: 'linear-gradient(135deg, #1F1630 0%, #3A2A52 100%)', color: '#fff', textAlign: 'center' } });
+  hero.innerHTML = `
+    <div style="font-size:46px;line-height:1;">🏆</div>
+    <div class="kicker" style="color:#FCE8B2;margin-top:8px;">파이널 테스트 완료</div>
+    <div style="margin-top:8px;font-size:30px;font-weight:800;letter-spacing:-0.02em;">${r.score} <span style="font-size:18px;color:#C8B89A;">/ ${r.total}</span></div>
+    <div style="margin-top:6px;font-size:13px;color:#F1E0BA;line-height:1.5;">채점 문항 정답률 ${pct}% · 작문 3문장은 점수 없이 기록됐어요</div>
+    <div style="margin-top:6px;font-size:12px;color:#C8B89A;">4주 동안 정말 수고 많으셨어요 🧡</div>
+  `;
+  page.appendChild(hero);
+
+  // 간단 리뷰 — 틀린 것만 정답 노출
+  const review = el('div', { style: { margin: '0 18px 14px' } });
+  let rHtml = '<div class="kicker" style="color:var(--orange-dark);margin-bottom:8px;">📋 채점 결과</div>';
+  const line = (label, ok, detail) => `<div style="display:flex;align-items:flex-start;gap:8px;padding:9px 12px;background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;"><span style="flex-shrink:0;">${ok ? '✅' : '❌'}</span><div style="flex:1;min-width:0;font-size:12.5px;line-height:1.5;color:var(--ink);">${label}${detail ? `<div style="margin-top:2px;font-size:11px;color:var(--muted);">${detail}</div>` : ''}</div></div>`;
+  (r.answers.ox || []).forEach((a, i) => { rHtml += line(`OX ${i + 1} · <b>${safe(a.en)}</b>`, a.correct, a.correct ? '' : '정답을 다시 확인해보세요'); });
+  (r.answers.mc || []).forEach((a, i) => { rHtml += line(`객관식 ${i + 1} · <b>${safe(a.en)}</b>`, a.correct, ''); });
+  (r.answers.fill || []).forEach((a, i) => { rHtml += line(`빈칸 ${i + 1} · <b>${safe(a.en)}</b>`, a.correct, a.correct ? '' : `입력: "${safe(a.typed || '—')}" → 정답: ${safe(a.en)}`); });
+  review.innerHTML = rHtml;
+  page.appendChild(review);
+
+  // CTA — PDF 다운로드 안내 + 다시 풀기 + 리포트
+  const ctaWrap = el('div', { style: { margin: '4px 18px 0', display: 'flex', flexDirection: 'column', gap: '8px' } });
+  const pdfBtn = el('button', { class: 'btn btn-primary btn-full', style: { background: 'var(--orange)', color: '#fff', border: 'none', fontSize: '14px', padding: '14px', fontWeight: '800' }, onClick: () => window.__openFinalDownloads() }, '🎁 4주 단어집 PDF · 내 문장 받기 →');
+  const reportBtn = el('button', { class: 'btn btn-full', style: { background: 'linear-gradient(135deg,#1F1630 0%,#3A2A52 100%)', color: '#fff', border: 'none', fontSize: '13.5px', padding: '12px', fontWeight: '800' }, onClick: () => go('final-report') }, '📊 4주 종합 리포트 보기 →');
+  const retryBtn = el('button', { class: 'btn btn-full', style: { background: '#fff', color: 'var(--ink)', border: '1px solid var(--line)', fontSize: '13px', padding: '11px', fontWeight: '700' }, onClick: () => window.__startFinalTest() }, '🔄 다시 풀기');
+  ctaWrap.appendChild(pdfBtn);
+  ctaWrap.appendChild(reportBtn);
+  ctaWrap.appendChild(retryBtn);
+  page.appendChild(ctaWrap);
+  return page;
+}
+
+// 다운로드 안내 팝업 — 4주 단어집 PDF + 내 전체 문장(노션용). 다운로드 기록 state 저장.
+window.__openFinalDownloads = function () {
+  const existing = document.querySelector('[data-final-download-popup]');
+  if (existing) existing.remove();
+  const driveUrl = 'https://drive.google.com/file/d/1XtUOYO21HuOFeMzTQfWslmTmDoEUPVQk/view?usp=sharing';
+  const backdrop = el('div', { class: 'modal-backdrop', 'data-final-download-popup': '1' });
+  const close = () => { backdrop.remove(); };
+  backdrop.onclick = (e) => { if (e.target === backdrop) close(); };
+  const modal = el('div', { class: 'modal', style: { width: 'min(92vw, 380px)', padding: '0', borderRadius: '24px', overflow: 'hidden', background: '#fff', border: '1px solid var(--line)' } });
+  modal.innerHTML = `
+    <div style="position:relative;padding:26px 22px 18px;background:linear-gradient(135deg, #FFF1E5 0%, #FFE4D0 100%);text-align:center;">
+      <button data-fd-close style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,0.7);border:none;color:var(--ink-soft);font-size:14px;cursor:pointer;">✕</button>
+      <div style="font-size:42px;line-height:1;">🎁</div>
+      <div class="kicker" style="color:var(--orange-dark);margin-top:6px;">졸업 선물</div>
+      <div style="margin-top:6px;font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.35;">4주 학습 자료, 챙겨가세요</div>
+      <div class="t-small" style="margin-top:8px;font-size:12px;color:var(--ink-soft);line-height:1.55;">졸업 후에도 펼쳐보는 본인 사전이에요.<br>두 가지 다 받아두세요 🧡</div>
+    </div>
+    <div style="padding:18px 20px 14px;display:flex;flex-direction:column;gap:12px;">
+      <div style="padding:14px;border:1px solid var(--orange-soft);border-radius:14px;">
+        <div style="font-size:13.5px;font-weight:800;color:var(--ink);">📥 4주 단어집 PDF</div>
+        <div class="t-small" style="margin-top:4px;font-size:11.5px;color:var(--muted);line-height:1.55;">Day 1~20 단어 60개 + 유의어 + 예문. 구글 드라이브에서 열려요.</div>
+        <button data-fd-pdf class="btn btn-primary btn-full" style="margin-top:10px;background:var(--orange);border:none;color:#fff;font-size:13.5px;padding:12px;font-weight:800;">단어집 PDF 받기 →</button>
+      </div>
+      <button data-fd-report class="btn btn-full" style="background:linear-gradient(135deg,#1F1630 0%,#3A2A52 100%);color:#fff;border:none;font-size:13.5px;padding:13px;font-weight:800;letter-spacing:-0.01em;">📊 4주 종합 리포트 보기 →</button>
+      <div style="padding:14px;border:1px solid var(--line);border-radius:14px;">
+        <div style="font-size:13.5px;font-weight:800;color:var(--ink);">📜 내 전체 문장 (노션용)</div>
+        <div class="t-small" style="margin-top:4px;font-size:11.5px;color:var(--muted);line-height:1.55;">4주 동안 내가 직접 쓴 문장을 노션으로 옮겨 보관할 수 있어요.</div>
+        <button data-fd-notion class="btn btn-full" style="margin-top:10px;background:#fff;border:1px solid var(--line);color:var(--ink);font-size:13.5px;padding:12px;font-weight:800;">내 문장 내보내기 →</button>
+      </div>
+    </div>
+  `;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  const markDownload = (key) => {
+    state.final_downloads = state.final_downloads || {};
+    state.final_downloads[key] = new Date().toISOString();
+    try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+  };
+  modal.querySelector('[data-fd-close]').onclick = close;
+  modal.querySelector('[data-fd-report]').onclick = () => { close(); go('final-report'); };
+  modal.querySelector('[data-fd-pdf]').onclick = () => {
+    markDownload('pdf_at');
+    showToast('구글 드라이브에서 4주 단어집 PDF를 열어요 🧡');
+    window.open(driveUrl, '_blank', 'noopener');
+    // 파이널까지 끝낸 사람이 PDF 까지 받으면 = 완주 → 축하 팝업.
+    const finalDone = !!(state.final_test && state.final_test.at) || !!(state.bingo_done && state.bingo_done['4']);
+    if (finalDone) {
+      close();
+      setTimeout(() => { try { window.__showCohortCompletePopup(); } catch (e) {} }, 500);
+    }
+  };
+  modal.querySelector('[data-fd-notion]').onclick = () => {
+    markDownload('notion_at');
+    close();
+    go('scripts');
+  };
+};
+
+// 완주 축하 팝업 — 파이널까지 끝내고 단어집 PDF 까지 받은 사람에게 1회.
+window.__showCohortCompletePopup = function () {
+  if (state.cohort_complete_popup_seen) return;
+  if (document.querySelector('[data-cohort-complete-popup]')) return;
+  state.cohort_complete_popup_seen = true;
+  try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+  const reviewUrl = 'https://www.latpeed.com/products/en0l_';
+  const cohort = (typeof CHALLENGE !== 'undefined' && CHALLENGE.cohort) || '';
+  const backdrop = el('div', { class: 'modal-backdrop', 'data-cohort-complete-popup': '1' });
+  const close = () => backdrop.remove();
+  backdrop.onclick = (e) => { if (e.target === backdrop) close(); };
+  const modal = el('div', { class: 'modal', style: { width: 'min(92vw, 380px)', padding: '0', borderRadius: '24px', overflow: 'hidden', background: '#fff', border: '1px solid var(--line)' } });
+  modal.innerHTML = `
+    <div style="position:relative;padding:30px 24px 24px;background:linear-gradient(135deg,#FFF1E5 0%,#FFE4D0 55%,#F4ECFA 100%);text-align:center;">
+      <button data-cc-close style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,0.7);border:none;color:var(--ink-soft);font-size:14px;cursor:pointer;">✕</button>
+      <div style="font-size:52px;line-height:1;">🎉</div>
+      <div style="margin-top:10px;font-size:21px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;line-height:1.3;">축하합니다!<br>유비챌 ${escapeHtml(cohort)}를 완벽하게<br>해내셨어요!!!!</div>
+      <div class="t-small" style="margin-top:12px;font-size:13px;color:var(--ink-soft);line-height:1.65;">총 <b>60개의 어휘</b>와 <b>120개의 유의어</b>를 학습하셨습니다.<br>정말 대단해요 🧡</div>
+      <div style="margin-top:12px;font-size:13.5px;color:var(--ink);font-weight:800;line-height:1.55;">후기 한 번만 남겨주세요!</div>
+    </div>
+    <div style="padding:18px 22px 22px;display:flex;flex-direction:column;gap:8px;">
+      <button data-cc-review class="btn btn-primary btn-full" style="background:var(--orange);border:none;color:#fff;font-size:14px;padding:14px;font-weight:800;">✍️ 후기 남기러 가기 →</button>
+      <button data-cc-later class="btn btn-full" style="background:transparent;border:1px solid var(--line);color:var(--muted);font-size:12px;padding:10px;">나중에</button>
+    </div>`;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  modal.querySelector('[data-cc-close]').onclick = close;
+  modal.querySelector('[data-cc-later]').onclick = close;
+  modal.querySelector('[data-cc-review]').onclick = () => { window.open(reviewUrl, '_blank', 'noopener'); close(); };
+};
+
+// 6기 안내 팝업 — 5/22 오후 6시 이후 1회 자동 노출. 내용/버튼은 종합 리포트의 6기 카드 그대로.
+const COHORT6_POPUP_AT = '2026-05-22T18:00:00';
+window.__maybeShowCohort6Popup = function () {
+  try {
+    if (state.cohort6_popup_seen) return;
+    if (Date.now() < new Date(COHORT6_POPUP_AT).getTime()) return;
+    if (document.querySelector('[data-cohort6-popup]')) return;
+  } catch (e) { return; }
+  const backdrop = el('div', { class: 'modal-backdrop', 'data-cohort6-popup': '1' });
+  const dismiss = () => {
+    state.cohort6_popup_seen = true;
+    try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+    backdrop.remove();
+  };
+  backdrop.onclick = (e) => { if (e.target === backdrop) dismiss(); };
+  const modal = el('div', { class: 'modal', style: { width: 'min(92vw, 380px)', padding: '0', borderRadius: '24px', overflow: 'hidden', background: 'linear-gradient(135deg, #1F1630 0%, #3A2A52 100%)', border: 'none' } });
+  modal.innerHTML = `
+    <div style="position:relative;padding:26px 22px 22px;color:#fff;text-align:center;">
+      <button data-c6-close style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,0.14);border:none;color:#fff;font-size:14px;cursor:pointer;">✕</button>
+      <div style="font-size:30px;line-height:1;">🎁</div>
+      <div class="kicker" style="margin-top:8px;color:#FCE8B2;">5기 출신 우선 등록권</div>
+      <div style="margin-top:8px;font-size:18px;font-weight:800;letter-spacing:-0.02em;line-height:1.35;">6기는 5기 의견을 더해<br>더 업그레이드 됐어요</div>
+      <ul style="margin:14px 0 0;padding:0;list-style:none;font-size:12.5px;line-height:1.75;color:#F1E0BA;text-align:left;">
+        <li style="padding:6px 0;border-bottom:1px solid rgba(252,232,178,0.12);">✨ 한국화된 단어 빼고 더 native 한 단어들로 큐레이션</li>
+        <li style="padding:6px 0;border-bottom:1px solid rgba(252,232,178,0.12);">📋 더 강화된 출석 체크 (4기 연속 불참 시 Block 제도)</li>
+        <li style="padding:6px 0;">📝 매주 내가 작문한 문장으로 어휘 테스트 가능</li>
+      </ul>
+      <button data-c6-apply style="margin-top:16px;width:100%;padding:14px;border-radius:14px;background:var(--orange);color:#fff;border:none;font-size:14px;font-weight:800;letter-spacing:-0.01em;cursor:pointer;">🎁 6기 신청하러 가기 →</button>
+      <button data-c6-later style="margin-top:8px;width:100%;padding:10px;border-radius:12px;background:transparent;color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.18);font-size:12px;font-weight:700;cursor:pointer;">나중에</button>
+    </div>
+  `;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  modal.querySelector('[data-c6-close]').onclick = dismiss;
+  modal.querySelector('[data-c6-later]').onclick = dismiss;
+  modal.querySelector('[data-c6-apply]').onclick = () => { dismiss(); try { window.__yb_apply6th(); } catch (e) {} };
 };
 
 window.__bingoDrillCheck = (weekN, value) => {
@@ -13983,31 +14500,25 @@ function PremiumPage() {
 
   // Quiz + Cert cards
   const doubleRow = el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '20px' } });
-  const pqState = personalQuizState();
-  const pqLocked = pqState !== 'ready';
-  const pqSubcopy = (() => {
-    if (pqState === 'ready') {
-      const total = (state.personal_quiz?.items || []).length;
-      const answered = Object.keys(state.personal_quiz_answers || {}).length;
-      return `내 스크립트 기반 · ${answered}/${total}문항`;
-    }
-    if (pqState === 'not_signed_up') return '🔒 발표 자리 먼저 잡아요';
-    if (pqState === 'before_present') return '🔒 발표 끝나면 열려요';
-    return '⏳ 스크립트 기반 퀴즈 준비중';
-  })();
+  // self-serve 빈칸 퀴즈 — 게이팅 없음. 대사 붙여넣으면 바로 생성.
+  const pqItems = (state.personal_quiz && Array.isArray(state.personal_quiz.fill_items)) ? state.personal_quiz.fill_items : [];
+  const pqHas = pqItems.length > 0;
+  const pqSubmitted = (state.personal_quiz_submitted || {}).fill;
+  const pqSubcopy = pqHas
+    ? (pqSubmitted ? '✅ 풀이 완료 · 다시 풀기' : `내 대사 빈칸 ${pqItems.length}문항`)
+    : '내 대사 붙여넣고 시작';
   const quizCard = el('button', {
     class: 'card',
     style: {
       textAlign: 'left',
       cursor: 'pointer',
       border: 'none',
-      background: pqLocked ? '#F6EEFA' : 'var(--cream)',
-      opacity: pqLocked ? '0.78' : '1',
+      background: 'var(--cream)',
     },
     onClick: () => go('quiz'),
   });
   quizCard.innerHTML = `
-    <div style="font-size:22px;">${pqLocked ? '🔒' : '🧩'}</div>
+    <div style="font-size:22px;">🧩</div>
     <div class="kicker" style="margin-top:8px;">PERSONAL QUIZ</div>
     <div class="h3" style="margin-top:4px;">내 약점 퀴즈</div>
     <div class="t-small" style="margin-top:4px;">${pqSubcopy}</div>`;
@@ -15280,6 +15791,53 @@ function MeetingNotesPage(meetingId) {
       </div>
     </div>`;
   page.appendChild(hero);
+
+  // ── Week 4 미팅 준비 · 단어 랜덤기 — 전체(60개) / Week 4만 선택. 단어/뜻/예문(영·한) 하나씩.
+  if (Number(meta.n) === 4) {
+    const scope = window.__m4RandScope || 'all';
+    const buildPool = (sc) => {
+      const arr = [];
+      (CHALLENGE.weeks || []).forEach((wk) => {
+        if (sc === 'week4' && Number(wk.n) !== 4) return;
+        (wk.days || []).forEach((d) => (d.words || []).forEach((w) => { if (w && w.en) arr.push(w); }));
+      });
+      return arr;
+    };
+    const pool = buildPool(scope);
+    if (pool.length) {
+      if (!window.__m4RandWord || pool.indexOf(window.__m4RandWord) === -1) { window.__m4RandWord = pool[Math.floor(Math.random() * pool.length)]; window.__m4RandCount = window.__m4RandCount || 1; }
+      const w = window.__m4RandWord;
+      const rc = el('div', { style: { margin: '0 0 16px', padding: '20px', borderRadius: '22px', background: 'linear-gradient(135deg, #FFF5E6 0%, #FFE5D9 100%)', border: '1px solid var(--orange-soft)', textAlign: 'center' } });
+      const tab = (key, label) => `<button data-rand-scope="${key}" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--orange-soft);background:${scope === key ? 'var(--orange)' : '#fff'};color:${scope === key ? '#fff' : 'var(--orange-dark)'};font-size:12.5px;font-weight:800;cursor:pointer;">${label}</button>`;
+      rc.innerHTML = `
+        <div class="kicker" style="color:var(--orange-dark);">🎲 단어 랜덤기 · ${window.__m4RandCount}번째</div>
+        <div style="display:flex;gap:8px;margin-top:10px;">${tab('all', '전체 (60개)')}${tab('week4', 'Week 4만')}</div>
+        <div style="margin-top:16px;font-size:30px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;line-height:1.2;">${escapeHtml(w.en)}${w.pos ? ` <span style="font-size:13px;font-weight:600;color:var(--muted);font-style:italic;">${escapeHtml(w.pos)}</span>` : ''}</div>
+        <div style="margin-top:8px;font-size:15px;font-weight:700;color:var(--orange-dark);">${escapeHtml(w.def || '')}</div>
+        ${w.ex_en ? `<div style="margin-top:14px;padding:12px 14px;background:rgba(255,255,255,0.75);border-radius:14px;border:1px solid rgba(231,221,200,0.7);text-align:left;">
+          <div style="font-size:14px;line-height:1.6;color:var(--ink);font-style:italic;">"${escapeHtml(w.ex_en)}"</div>
+          ${w.ex_kr ? `<div style="margin-top:5px;font-size:12.5px;color:var(--ink-soft);line-height:1.55;">${escapeHtml(w.ex_kr)}</div>` : ''}
+        </div>` : ''}
+        ${(Array.isArray(w.syn) && w.syn.length) ? `<div style="margin-top:10px;font-size:11.5px;color:var(--muted);">유의어 · ${w.syn.map((s) => escapeHtml(s)).join(' · ')}</div>` : ''}
+      `;
+      rc.querySelectorAll('[data-rand-scope]').forEach((b) => b.addEventListener('click', () => {
+        const sc = b.getAttribute('data-rand-scope');
+        if (sc === (window.__m4RandScope || 'all')) return;
+        window.__m4RandScope = sc;
+        const np = buildPool(sc);
+        window.__m4RandWord = np[Math.floor(Math.random() * np.length)];
+        window.__m4RandCount = 1;
+        render();
+      }));
+      const btn = el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '14px', background: 'var(--orange)', border: 'none', color: '#fff', fontWeight: '800', padding: '13px' }, onClick: () => {
+        let nw = window.__m4RandWord;
+        if (pool.length > 1) { let g = 0; while (nw === window.__m4RandWord && g < 40) { nw = pool[Math.floor(Math.random() * pool.length)]; g++; } }
+        window.__m4RandWord = nw; window.__m4RandCount = (window.__m4RandCount || 1) + 1; render();
+      } }, '🎲 다음 단어 →');
+      rc.appendChild(btn);
+      page.appendChild(rc);
+    }
+  }
 
   // 🎬 미팅 진행 화면 바로가기 — Week 3 부터 도입.
   //    클릭하면 화면 공유용 deck 이 새 탭으로 열림. Gaby 가 Zoom 공유.
@@ -16744,549 +17302,258 @@ function generateMeetingMarkdown(meetingId) {
    QUIZ PAGE
    ============================================================ */
 function QuizPage() {
-  if (state.tier !== 'premium') return premiumGatePage({ titleRest: '개인 퀴즈' });
+  if (state.tier !== 'premium') return premiumGatePage({ titleRest: '내 약점 퀴즈' });
   const page = el('div', { class: 'page' });
   const head = el('div', { class: 'topbar' });
   const back = el('button', { class: 'icon-btn', onClick: () => go('premium') });
   back.innerHTML = Icon('arrowLeft', 16);
   head.appendChild(back);
-  head.appendChild(el('div', { class: 'brand-name' }, '내 퀴즈'));
+  head.appendChild(el('div', { class: 'brand-name' }, '내 약점 퀴즈'));
   head.appendChild(el('div', { style: { width: '38px' } }));
   page.appendChild(head);
 
-  page.appendChild(el('div', { class: 'kicker' }, 'PREMIUM · PERSONAL QUIZ'));
+  page.appendChild(el('div', { class: 'kicker' }, 'PREMIUM · 내 대사 빈칸 퀴즈'));
   page.appendChild(el('h1', { class: 'h1', style: { marginTop: '6px' } },
-    (() => { const s = el('span'); s.innerHTML = '<span class="serif">Pinpoint</span> 내 약점'; return s; })()));
+    (() => { const s = el('span'); s.innerHTML = '내 <span class="serif">대사</span>로 보는 빈칸 퀴즈'; return s; })()));
 
-  const pqStatus = personalQuizState();
+  // ─────────── OPERATOR · 퀴즈 주입 / 멤버에게 푸시 ───────────
+  // Claude 가 만든 JSON 붙여넣기 → 내 계정 미리보기(주입) 또는 특정 멤버에게 직접 푸시.
+  // 멤버 뷰(operatorViewAsMember)와 무관하게 운영자/스태프면 항상 노출 — 멤버에게 퀴즈 넣는 운영 도구라서.
+  if (state.isOperator || state.isStaff) {
+    try { requestMemberSummaries(); } catch (e) {}
+    const opCard = el('div', { class: 'card card-flat', style: { marginTop: '14px', padding: '14px 16px', border: '1.5px dashed rgba(240,125,56,0.4)', background: 'rgba(240,125,56,0.04)' } });
+    opCard.appendChild(el('div', { class: 'kicker', style: { color: 'var(--orange-dark)' } }, '📤 OPERATOR · 퀴즈 주입 / 푸시'));
+    opCard.appendChild(el('p', { class: 't-small', style: { marginTop: '6px', color: 'var(--ink-soft)', lineHeight: '1.5' } },
+      '대사 → Claude 가 JSON 만들어주면 여기 붙여넣기. 형식: { "fill_items": [ { "pre","en","post","hint"(한국어 뜻),"ko"(문장 한국어) } ] }'));
+    const ta = el('textarea', { class: 'textarea', style: { width: '100%', minHeight: '120px', marginTop: '8px', fontFamily: 'monospace', fontSize: '12px', padding: '10px', border: '1px solid var(--line)', borderRadius: '10px', boxSizing: 'border-box' }, placeholder: '{"fill_items":[{"pre":"Let me ","en":"set the stage","post":" for today.","hint":"판을 깔다","ko":"오늘 판을 깔아볼게요."}]}' });
+    opCard.appendChild(ta);
+    const parseQuiz = () => {
+      try {
+        const o = JSON.parse(ta.value);
+        if (!o || (!Array.isArray(o.fill_items) && !Array.isArray(o.items))) { showToast('fill_items 배열이 필요해요'); return null; }
+        return o;
+      } catch (e) { showToast('JSON 파싱 실패: ' + e.message); return null; }
+    };
+    const injectBtn = el('button', { class: 'btn btn-lilac', style: { marginTop: '10px', width: '100%' }, onClick: () => { const o = parseQuiz(); if (!o) return; if (window.__injectPersonalQuiz(o)) showToast('✅ 내 계정에 주입 완료 (미리보기)'); } }, '내 계정에 주입 (미리보기)');
+    opCard.appendChild(injectBtn);
+    const select = el('select', { style: { width: '100%', marginTop: '10px', padding: '10px 12px', fontSize: '13px', border: '1px solid var(--line)', borderRadius: '10px', background: '#fff', fontFamily: 'inherit' } });
+    select.appendChild(el('option', { value: '' }, '— 푸시 대상 멤버 선택 —'));
+    const rows = (typeof memberSummaryCache !== 'undefined' && Array.isArray(memberSummaryCache.rows)) ? memberSummaryCache.rows : [];
+    rows.filter((r) => r.tier === 'premium' && r.member_key && r.member_key !== memberKey())
+      .sort((a, b) => (a.english_name || a.member_name || '').localeCompare(b.english_name || b.member_name || ''))
+      .forEach((r) => { select.appendChild(el('option', { value: r.member_key }, (r.english_name || r.member_name || r.member_key))); });
+    opCard.appendChild(select);
+    const pushBtn = el('button', { class: 'btn btn-primary', style: { marginTop: '8px', width: '100%', background: 'var(--orange)', border: 'none', color: '#fff' }, onClick: async () => {
+      const o = parseQuiz(); if (!o) return;
+      const mk = select.value; if (!mk) { showToast('푸시할 멤버를 선택해주세요'); return; }
+      if (!hasSupabase()) { showToast('Supabase 연결이 안 돼있어요.'); return; }
+      pushBtn.disabled = true; const orig = pushBtn.textContent; pushBtn.textContent = '⏳ 푸시 중...';
+      try {
+        const res = await supabaseRpc('operator_push_personal_quiz', { p_cohort: CHALLENGE.cohort, p_target_member_key: mk, p_quiz: o });
+        const fillN = (res && res.fill_items_count) || (Array.isArray(o.fill_items) ? o.fill_items.length : 0);
+        showToast(`✅ 푸시 완료 · 빈칸 ${fillN}문항`);
+      } catch (e) { showToast('푸시 실패: ' + String(e?.message || e).slice(0, 80) + ' (마이그레이션 확인)'); }
+      finally { pushBtn.disabled = false; pushBtn.textContent = orig; }
+    } }, '📤 선택 멤버에게 푸시');
+    opCard.appendChild(pushBtn);
+    page.appendChild(opCard);
+  }
 
-  // ---- Gated: 아직 열리지 않은 상태 ----
-  if (pqStatus !== 'ready') {
-    const lockedCopy = {
-      not_signed_up: {
-        icon: '🎤',
-        title: '먼저 발표 자리를 잡아주세요',
-        body: '내 약점 퀴즈는 <b>본인 PT 발표 스크립트</b> 기반으로 제작돼요. 주간 미팅에서 발표 자리를 잡고, 실제로 발표를 끝내면 맞춤 퀴즈를 받을 수 있어요.',
-        cta: '주간 미팅으로 가기',
-        ctaAction: () => go('premium'),
-      },
-      before_present: {
-        icon: '📆',
-        title: '발표가 끝나면 열려요',
-        body: '발표일이 지나면 제가 제출하신 스크립트를 바탕으로 <b>당신만을 위한 퀴즈</b>를 만들어 드릴게요. 발표 준비에 집중해 주세요.',
-        cta: '발표 준비하러 가기',
-        ctaAction: () => {
-          const w = myPresenterWeek();
-          if (w != null) {
-            window.__currentPresenterWeek = w;
-            go('presenter-prep');
-          } else {
-            go('premium');
-          }
-        },
-      },
-      waiting_inject: {
-        icon: '⏳',
-        title: '맞춤 퀴즈 준비 중',
-        body: '발표 스크립트 잘 받았어요. 며칠 안에 <b>당신이 놓쳤던 표현 위주의 퀴즈</b>가 이 페이지에 올라올 거예요. 도착하면 알려드릴게요!',
-        cta: '프리미엄 홈으로',
-        ctaAction: () => go('premium'),
-      },
-    }[pqStatus];
+  const pq = state.personal_quiz;
+  const hasQuiz = pq && Array.isArray(pq.fill_items) && pq.fill_items.length > 0;
 
-    const lockedCard = el('div', {
-      class: 'card card-flat',
-      style: {
-        marginTop: '24px',
-        padding: '32px 22px',
-        textAlign: 'center',
-        border: '1.5px dashed rgba(169,139,184,0.4)',
-        background: 'linear-gradient(160deg, #FFFDF7 0%, #F6EEFA 100%)',
-      },
+  // ───────── 대사 입력 화면 ─────────
+  if (!hasQuiz) {
+    const intro = el('p', { class: 't-body', style: { marginTop: '8px', color: 'var(--ink-soft)', lineHeight: '1.6' } });
+    intro.innerHTML = '발표 대본·이메일·메모… 본인이 쓴 영어 <b>대사</b>를 붙여넣으면, 이번 기수 단어 60개를 찾아 <b>문장마다 한 칸씩</b> 빈칸으로 만들어 드려요. 힌트 보면서 직접 채워보세요.';
+    page.appendChild(intro);
+
+    const card = el('div', { class: 'card card-flat', style: { marginTop: '16px', padding: '16px 18px' } });
+    card.appendChild(el('div', { class: 'kicker', style: { color: 'var(--orange-dark)' } }, '✍️ 내 대사 붙여넣기'));
+    const ta = el('textarea', {
+      class: 'textarea',
+      style: { width: '100%', minHeight: '160px', marginTop: '10px', fontSize: '14px', lineHeight: '1.6', padding: '12px', border: '1px solid var(--line)', borderRadius: '12px', fontFamily: 'inherit', boxSizing: 'border-box' },
+      placeholder: '예) Let me set the stage for today. First, I want to circle back on last week...',
     });
-    const iconEl = el('div', { style: { fontSize: '44px', lineHeight: '1' } }, lockedCopy.icon);
-    lockedCard.appendChild(iconEl);
-    const titleEl = el('h2', { class: 'h2', style: { marginTop: '12px' } }, lockedCopy.title);
-    lockedCard.appendChild(titleEl);
-    const bodyEl = el('p', { class: 't-body', style: { marginTop: '10px', color: 'var(--ink-soft)', lineHeight: '1.6' } });
-    bodyEl.innerHTML = lockedCopy.body;
-    lockedCard.appendChild(bodyEl);
-
-    const ctaBtn = el('button', {
-      class: 'btn btn-lilac',
-      style: { marginTop: '18px' },
-      onClick: lockedCopy.ctaAction,
-    }, lockedCopy.cta);
-    lockedCard.appendChild(ctaBtn);
-
-    page.appendChild(lockedCard);
-
-    // 퀴즈 JSON 붙여넣어서 바로 주입 — 본인 state 한정.
-    // 운영자가 멤버별로 JSON 만들어 DM 으로 전달 → 멤버가 본인 페이지에서 paste.
-    // 운영자: 'OPERATOR · INJECT QUIZ' / 프리미엄 일반: '내 맞춤 퀴즈 받기' 톤 분리.
-    if (state.isOperator || state.tier === 'premium') {
-      const isOp = !!state.isOperator;
-      const opCard = el('div', {
-        class: 'card card-flat',
-        style: { marginTop: '14px', padding: '16px 18px', border: '1.5px dashed rgba(0,0,0,0.15)' },
-      });
-      opCard.appendChild(el('div', { class: 'kicker' }, isOp ? 'OPERATOR · INJECT QUIZ' : '✨ 운영자한테 받은 JSON 붙여넣기'));
-      opCard.appendChild(el('p', { class: 't-small', style: { marginTop: '6px', color: 'var(--ink-soft)', lineHeight: '1.55' } },
-        isOp
-          ? 'JSON: { week, items: [{q, options, a, hint}], fill_items: [{prompt, en, hint}] } — items=4지선다 / fill_items=빈칸 채우기'
-          : '운영자가 본인 발표 스크립트 보고 만든 JSON 을 DM 으로 보내요. 받으면 여기에 붙여넣고 주입 누르세요.'));
-      const ta = el('textarea', {
-        class: 'textarea',
-        style: { width: '100%', minHeight: '120px', marginTop: '8px', fontFamily: 'monospace', fontSize: '12px' },
-        placeholder: '{"week": 1, "items": [...]}'
-      });
-      opCard.appendChild(ta);
-      const btnRow = el('div', { style: { display: 'flex', gap: '8px', marginTop: '10px' } });
-      const injectBtn = el('button', { class: 'btn btn-lilac', onClick: () => {
-        try {
-          const parsed = JSON.parse(ta.value);
-          if (window.__injectPersonalQuiz(parsed)) {
-            showToast('✅ 퀴즈 주입 완료');
-          } else {
-            showToast('JSON 형식 확인해주세요');
-          }
-        } catch (e) {
-          showToast('JSON 파싱 실패: ' + e.message);
-        }
-      } }, '주입');
-      btnRow.appendChild(injectBtn);
-      opCard.appendChild(btnRow);
-      page.appendChild(opCard);
-    }
-
-    // ─────────── OPERATOR · PUSH TO MEMBER ───────────
-    // 운영자 전용: 멤버 한 명 골라서 그 사람 app_state 에 직접 푸시.
-    // 멤버는 본인 페이지 들어가면 이미 채워져 있음 (paste 작업 X).
-    if (state.isOperator) {
-      const pushCard = el('div', {
-        class: 'card card-flat',
-        style: { marginTop: '14px', padding: '16px 18px', border: '1.5px solid var(--orange-soft)', background: 'rgba(240,125,56,0.04)' },
-      });
-      pushCard.appendChild(el('div', { class: 'kicker', style: { color: 'var(--orange-dark)' } }, '📤 OPERATOR · PUSH TO MEMBER'));
-      pushCard.appendChild(el('p', { class: 't-small', style: { marginTop: '6px', color: 'var(--ink-soft)', lineHeight: '1.55' } },
-        '멤버 한 명 골라서 그 사람 계정에 직접 푸시 — 멤버는 paste 작업 X, 본인 페이지 들어가면 이미 채워져 있음.'));
-
-      // 멤버 셀렉트 (premium 만, 본인 제외)
-      const select = el('select', {
-        style: { width: '100%', marginTop: '10px', padding: '10px 12px', fontSize: '13px', border: '1px solid var(--line)', borderRadius: '10px', background: '#fff', fontFamily: 'inherit' },
-      });
-      select.appendChild(el('option', { value: '' }, '— 푸시 대상 멤버 선택 —'));
-      const rows = (typeof memberSummaryCache !== 'undefined' && Array.isArray(memberSummaryCache.rows))
-        ? memberSummaryCache.rows : [];
-      const premiumMembers = rows
-        .filter(r => r.tier === 'premium' && r.member_key && r.member_key !== memberKey())
-        .sort((a, b) => (a.english_name || a.member_name || '').localeCompare(b.english_name || b.member_name || ''));
-      premiumMembers.forEach(r => {
-        const label = (r.english_name && r.english_name.trim())
-          ? `${r.english_name} · ${r.member_name}`
-          : (r.member_name || r.member_key);
-        select.appendChild(el('option', { value: r.member_key }, label));
-      });
-      pushCard.appendChild(select);
-
-      const ta2 = el('textarea', {
-        class: 'textarea',
-        style: { width: '100%', minHeight: '120px', marginTop: '8px', fontFamily: 'monospace', fontSize: '12px', padding: '10px', borderRadius: '10px', border: '1px solid var(--line)' },
-        placeholder: '{"week": 3, "items": [...], "fill_items": [...]}',
-      });
-      pushCard.appendChild(ta2);
-
-      const pushBtnRow = el('div', { style: { display: 'flex', gap: '8px', marginTop: '10px' } });
-      const pushBtn = el('button', {
-        class: 'btn btn-primary',
-        style: { background: 'var(--orange)', border: 'none', color: '#fff' },
-        onClick: async () => {
-          const targetKey = select.value;
-          if (!targetKey) { showToast('멤버 먼저 선택하세요'); return; }
-          if (!hasSupabase()) { showToast('Supabase 연결 안 됨'); return; }
-          let parsed;
-          try { parsed = JSON.parse(ta2.value); }
-          catch (e) { showToast('JSON 파싱 실패: ' + e.message); return; }
-          if (!parsed || (!Array.isArray(parsed.items) && !Array.isArray(parsed.fill_items))) {
-            showToast('items / fill_items 둘 다 비어있어요'); return;
-          }
-          pushBtn.disabled = true;
-          pushBtn.textContent = '📤 푸시 중...';
-          try {
-            const res = await supabaseRpc('operator_push_personal_quiz', {
-              p_cohort: CHALLENGE.cohort || '5기',
-              p_target_member_key: targetKey,
-              p_quiz: parsed,
-            });
-            const name = (res && res.member_name) || targetKey;
-            const itemsN = (res && res.items_count) || 0;
-            const fillN = (res && res.fill_items_count) || 0;
-            showToast(`✅ ${name} → 4지선다 ${itemsN} / 빈칸 ${fillN} 푸시 완료`);
-            select.value = ''; ta2.value = '';
-          } catch (e) {
-            console.error('[push personal quiz] failed', e);
-            showToast('푸시 실패: ' + String(e?.message || e).slice(0, 80));
-          } finally {
-            pushBtn.disabled = false;
-            pushBtn.textContent = '📤 푸시';
-          }
-        },
-      }, '📤 푸시');
-      pushBtnRow.appendChild(pushBtn);
-      pushCard.appendChild(pushBtnRow);
-      page.appendChild(pushCard);
-    }
-
-    // 왜 이렇게 만들었는지 설명 카드 (교육적)
-    const whyCard = el('div', {
-      class: 'card card-flat',
-      style: { marginTop: '14px', padding: '16px 18px', background: '#FFFDF7' },
-    });
-    whyCard.innerHTML = `
-      <div class="kicker">WHY PERSONAL?</div>
-      <p class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.6;">
-        일반 퀴즈 대신 <b>당신의 발표 스크립트에서 뽑은 표현</b>만 가지고 퀴즈를 만들어요.
-        틀리는 곳이 진짜 당신이 영어에서 반복해서 놓치는 패턴이거든요. 발표 후에 가장 기억에 남는 타이밍에 풀어야 뇌에 남아요.
-      </p>`;
-    page.appendChild(whyCard);
-
+    ta.value = (pq && pq.script) || '';
+    card.appendChild(ta);
+    const genBtn = el('button', {
+      class: 'btn btn-primary btn-full',
+      style: { marginTop: '12px', background: 'var(--orange)', border: 'none', color: '#fff', padding: '14px', fontWeight: '800' },
+      onClick: () => window.__buildSelfQuiz(ta.value),
+    }, '🎯 빈칸 퀴즈 만들기');
+    card.appendChild(genBtn);
+    page.appendChild(card);
     return page;
   }
 
-  // ---- Ready: state.personal_quiz.items + fill_items 로 렌더 (2-페이지 탭) ----
-  const pq = state.personal_quiz;
-  const mcItems = pq.items || [];
-  const fillItems = pq.fill_items || [];
-  const injectedAt = pq.injectedAt ? new Date(pq.injectedAt) : null;
-  const weekN = pq.week != null ? Number(pq.week) : null;
+  // ───────── 퀴즈 화면 ─────────
+  const fillItems = pq.fill_items;
+  const submitted = (state.personal_quiz_submitted || {}).fill;
+  const answersObj = state.personal_quiz_fill_answers || (state.personal_quiz_fill_answers = {});
+  const normalize = (s) => String(s || '').trim().toLowerCase().replace(/[.,!?:;"']/g, '').replace(/\s+/g, ' ');
+  const answeredN = fillItems.filter((_, fi) => (answersObj['f' + fi] || '').trim()).length;
 
-  // 탭 상태 (모듈 레벨 — 페이지 reload 시 첫 탭으로 초기화)
-  if (!window.__pqTab) window.__pqTab = mcItems.length ? 'mc' : 'fill';
-  // fill_items 없는 경우 자동 mc 탭으로
-  if (window.__pqTab === 'fill' && fillItems.length === 0) window.__pqTab = 'mc';
-  if (window.__pqTab === 'mc' && mcItems.length === 0) window.__pqTab = 'fill';
-  const activeTab = window.__pqTab;
-  const submitted = state.personal_quiz_submitted || { mc: false, fill: false };
+  page.appendChild(el('p', { class: 't-body', style: { marginTop: '8px', color: 'var(--ink-soft)' } },
+    `내 대사에서 이번 기수 단어 ${fillItems.length}개를 빈칸으로 만들었어요. 문장마다 한 칸씩, 힌트 보면서 채워보세요.`));
 
-  // 진행도
-  const mcAnswered = Object.keys(state.personal_quiz_answers || {}).length;
-  const fillAnswered = Object.keys(state.personal_quiz_fill_answers || {}).filter(k => (state.personal_quiz_fill_answers[k] || '').trim()).length;
+  const resetRow = el('div', { style: { marginTop: '10px', display: 'flex', justifyContent: 'flex-end' } });
+  const newBtn = el('button', {
+    style: { padding: '6px 12px', borderRadius: '99px', background: 'transparent', border: '1px solid var(--line)', color: 'var(--muted)', fontSize: '11.5px', fontWeight: '600', cursor: 'pointer' },
+    onClick: () => {
+      if (!confirm('새 대사로 다시 만들까요? 지금 답안은 사라져요.')) return;
+      state.personal_quiz = null;
+      state.personal_quiz_fill_answers = {};
+      state.personal_quiz_submitted = { ...(state.personal_quiz_submitted || {}), fill: false };
+      saveState();
+      render();
+    },
+  }, '✍️ 새 대사로 다시 만들기');
+  resetRow.appendChild(newBtn);
+  page.appendChild(resetRow);
 
-  page.appendChild(el('p', { class: 't-body', style: { marginTop: '8px' } },
-    `${weekN ? `Week ${weekN} 발표 스크립트 기반 · ` : ''}당신이 놓쳤던 표현 위주로 ${mcItems.length + fillItems.length}문항. 틀려도 OK — 다시 만나면 기억에 남아요.`
-  ));
+  const stack = el('div', { class: 'stack', style: { marginTop: '12px' } });
+  let correct = 0;
+  fillItems.forEach((it, fi) => {
+    const reEn = new RegExp(String(it.en).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    let pre = (it.pre != null) ? it.pre : ((it.prompt || '').split(reEn)[0] || it.prompt || '');
+    let post = it.post;
+    if (post == null) {
+      const m = (it.prompt || '').match(reEn);
+      post = m ? (it.prompt).slice(m.index + m[0].length) : '';
+    }
+    const userAnswer = answersObj['f' + fi] || '';
+    const isCorrect = normalize(userAnswer) === normalize(it.en);
+    if (isCorrect) correct++;
+    const showFeedback = submitted;
+    const card = el('div', { class: 'quiz-card', style: { padding: '16px 14px' } });
+    card.innerHTML = `
+      <div class="row-between" style="margin-bottom:8px;">
+        <span class="kicker">Q${fi + 1} / ${fillItems.length}</span>
+        ${it.hint ? `<span class="badge">${escapeHtml(it.hint)}</span>` : ''}
+      </div>
+      <div style="font-size:15px;line-height:1.7;color:var(--ink);margin-bottom:12px;">
+        ${escapeHtml(pre)}<span style="display:inline-block;min-width:120px;border-bottom:2px solid ${showFeedback ? (isCorrect ? 'var(--green)' : '#E64545') : 'var(--orange)'};margin:0 4px;padding:0 6px;font-weight:700;color:${showFeedback ? (isCorrect ? 'var(--green)' : '#E64545') : 'var(--orange-dark)'};">${escapeHtml(userAnswer || '___')}</span>${escapeHtml(post)}
+      </div>
+      ${it.ko ? `<div class="t-small" style="margin-bottom:10px;font-size:12.5px;color:var(--ink-soft);line-height:1.55;background:rgba(169,139,184,0.08);border-radius:8px;padding:8px 10px;">💬 ${escapeHtml(it.ko)}</div>` : (pq.translating ? `<div class="t-small" style="margin-bottom:10px;font-size:11.5px;color:var(--muted);font-style:italic;">💬 한국어 번역 불러오는 중…</div>` : '')}`;
+    if (!showFeedback) {
+      const input = document.createElement('input');
+      input.type = 'text'; input.className = 'input';
+      input.placeholder = '빈칸에 들어갈 영어 표현';
+      input.value = userAnswer; input.autocomplete = 'off'; input.autocapitalize = 'off'; input.spellcheck = false;
+      input.style.cssText = 'width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:10px;font-family:inherit;background:#FFFEFA;';
+      input.addEventListener('input', (e) => { answersObj['f' + fi] = e.target.value; saveState(); });
+      card.appendChild(input);
+      const hintBtn = el('button', {
+        style: { marginTop: '8px', padding: '6px 12px', borderRadius: '99px', background: 'transparent', border: '1px solid var(--orange-soft)', color: 'var(--orange-dark)', fontSize: '11.5px', fontWeight: '700', cursor: 'pointer' },
+        onClick: (ev) => {
+          const t = ev.currentTarget;
+          t.textContent = '💡 ' + buildVerifyHintMask(it.en);
+          t.style.letterSpacing = '0.12em';
+          t.style.fontFamily = 'var(--font-mono, monospace)';
+          t.disabled = true; t.style.opacity = '0.85';
+        },
+      }, '💡 힌트 보기 (첫 글자)');
+      card.appendChild(hintBtn);
+    } else {
+      const feedback = el('div', { style: { marginTop: '8px', padding: '10px 12px', borderRadius: '10px', background: isCorrect ? 'rgba(111,174,108,0.12)' : 'rgba(230,69,69,0.08)', border: '1px solid ' + (isCorrect ? 'rgba(111,174,108,0.3)' : 'rgba(230,69,69,0.25)'), fontSize: '12.5px', lineHeight: '1.55', color: 'var(--ink-soft)' } });
+      feedback.innerHTML = isCorrect
+        ? `<b style="color:var(--green);">✓ 정답</b>`
+        : `<b style="color:#C13D3D;">✗ 정답:</b> <span style="color:var(--ink);font-weight:700;">${escapeHtml(it.en)}</span>${userAnswer ? `<br/><span style="opacity:0.7;">내 답: ${escapeHtml(userAnswer)}</span>` : '<br/><span style="opacity:0.7;font-style:italic;">미응답</span>'}`;
+      card.appendChild(feedback);
+    }
+    stack.appendChild(card);
+  });
+  page.appendChild(stack);
 
-  // ── 운영자 전용: 현재 퀴즈 비우기 (새 JSON 주입 위해 잠금 상태로 돌아가기)
-  if (state.isOperator || state.tier === 'premium') {
-    const resetRow = el('div', { style: { marginTop: '10px', display: 'flex', justifyContent: 'flex-end' } });
-    const clearBtn = el('button', {
-      style: {
-        padding: '6px 12px', borderRadius: '99px',
-        background: 'transparent', border: '1px solid var(--line)',
-        color: 'var(--muted)', fontSize: '11.5px', fontWeight: '600', cursor: 'pointer',
-      },
+  if (submitted) {
+    const score = el('div', { class: 'card card-flat', style: { marginTop: '20px', textAlign: 'center' } });
+    score.innerHTML = `
+      <div class="kicker">SCORE</div>
+      <div class="serif" style="font-size:44px;line-height:1;color:var(--orange);margin-top:6px;">${correct}<span style="color:var(--muted);">/${fillItems.length}</span></div>
+      <div class="t-small" style="margin-top:6px;">${correct === fillItems.length ? '완벽 🎉 내 대사 어휘 완전 내재화!' : '틀린 표현은 내 대사 다시 한 번 읽어보세요'}</div>`;
+    page.appendChild(score);
+    const retryBtn = el('button', { class: 'btn btn-ghost btn-full', style: { marginTop: '14px' },
+      onClick: () => { state.personal_quiz_fill_answers = {}; state.personal_quiz_submitted = { ...(state.personal_quiz_submitted || {}), fill: false }; saveState(); render(); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} } }, '↻ 다시 풀기');
+    page.appendChild(retryBtn);
+  } else {
+    const allFilled = answeredN === fillItems.length;
+    const submitBtn = el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '20px', opacity: allFilled ? 1 : 0.5 },
       onClick: () => {
-        if (!confirm('현재 퀴즈를 지우고 새 JSON 주입 화면으로 돌아갈까요?\n(응답 기록도 다 지워져요)')) return;
-        window.__clearPersonalQuiz();
-        window.__pqTab = null;
-        showToast('퀴즈 비웠어요 — 새 JSON 주입 가능');
-      },
-    }, '🗑 현재 퀴즈 비우기 (재주입용)');
-    resetRow.appendChild(clearBtn);
-    page.appendChild(resetRow);
+        if (!allFilled) { showToast(`${fillItems.length - answeredN}개 더 채워주세요`); return; }
+        state.personal_quiz_submitted = { ...(state.personal_quiz_submitted || {}), fill: true };
+        saveState(); render(); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {}
+      } }, allFilled ? '✅ 제출하기' : `${answeredN}/${fillItems.length} 채우고 제출`);
+    page.appendChild(submitBtn);
   }
-
-  // ── 탭 nav
-  const tabNav = el('div', { style: { display: 'flex', gap: '6px', marginTop: '14px', marginBottom: '12px', borderBottom: '1px solid var(--line)' } });
-  const mkTab = (key, label, total, count, locked) => {
-    const isActive = activeTab === key;
-    const btn = el('button', {
-      style: {
-        flex: '1', padding: '12px 8px', background: 'transparent', border: 'none',
-        borderBottom: '2px solid ' + (isActive ? 'var(--lilac)' : 'transparent'),
-        color: locked ? 'var(--muted)' : (isActive ? 'var(--lilac-dark)' : 'var(--ink-soft)'),
-        fontWeight: '700', fontSize: '13px', cursor: locked ? 'not-allowed' : 'pointer',
-        opacity: locked ? 0.5 : 1,
-      },
-      onClick: () => { if (!locked) { window.__pqTab = key; render(); } },
-    });
-    btn.innerHTML = `<div>${label}</div>${total > 0 ? `<div style="font-size:10.5px;font-weight:500;margin-top:3px;opacity:0.75;">${count}/${total}</div>` : ''}`;
-    return btn;
-  };
-  tabNav.appendChild(mkTab('mc', '① 객관식', mcItems.length, mcAnswered, mcItems.length === 0));
-  tabNav.appendChild(mkTab('fill', '② 빈칸 채우기', fillItems.length, fillAnswered, fillItems.length === 0));
-  page.appendChild(tabNav);
-
-  // ───────── PAGE 1: 객관식 ─────────
-  if (activeTab === 'mc' && mcItems.length > 0) {
-    const stack = el('div', { class: 'stack' });
-    let correct = 0;
-    mcItems.forEach((q, qi) => {
-      const card = el('div', { class: 'quiz-card' });
-      card.innerHTML = `
-        <div class="row-between" style="margin-bottom:6px;">
-          <span class="kicker">Q${qi+1} / ${mcItems.length}</span>
-          <span class="badge">${q.hint || ''}</span>
-        </div>
-        <div class="quiz-question">${q.q}</div>`;
-      (q.options || []).forEach((opt, oi) => {
-        const chosen = state.personal_quiz_answers['q'+qi];
-        const answered = chosen !== undefined;
-        let cls = 'quiz-option';
-        if (submitted.mc) {
-          if (oi === q.a) cls += ' correct';
-          else if (oi === chosen) cls += ' wrong';
-        } else if (chosen === oi) {
-          cls += ' selected';
-        }
-        const b = el('button', {
-          class: cls,
-          onClick: () => {
-            if (submitted.mc) return;
-            state.personal_quiz_answers['q'+qi] = oi;
-            saveState();
-            render();
-          }
-        }, opt);
-        card.appendChild(b);
-      });
-      if (state.personal_quiz_answers['q'+qi] === q.a) correct++;
-      stack.appendChild(card);
-    });
-    page.appendChild(stack);
-
-    // 제출 또는 점수+다시풀기
-    if (submitted.mc) {
-      const score = el('div', { class: 'card card-flat', style: { marginTop: '20px', textAlign: 'center' } });
-      score.innerHTML = `
-        <div class="kicker">SCORE · 객관식</div>
-        <div class="serif" style="font-size:44px;line-height:1;color:var(--orange);margin-top:6px;">${correct}<span style="color:var(--muted);">/${mcItems.length}</span></div>
-        <div class="t-small" style="margin-top:6px;">${correct === mcItems.length ? '완벽 🎉' : '틀린 문항 한 번 더 보고 빈칸 채우기로 넘어가요'}</div>`;
-      page.appendChild(score);
-
-      const retryBtn = el('button', {
-        class: 'btn btn-ghost btn-full',
-        style: { marginTop: '14px' },
-        onClick: () => {
-          state.personal_quiz_answers = {};
-          state.personal_quiz_submitted = { ...submitted, mc: false };
-          saveState();
-          render();
-        },
-      }, '↻ 객관식 다시 풀기');
-      page.appendChild(retryBtn);
-
-      if (fillItems.length > 0) {
-        const nextBtn = el('button', {
-          class: 'btn btn-lilac btn-full',
-          style: { marginTop: '8px' },
-          onClick: () => { window.__pqTab = 'fill'; render(); window.scrollTo(0, 0); },
-        }, '② 빈칸 채우기 풀러가기 →');
-        page.appendChild(nextBtn);
-      }
-    } else {
-      const allDone = mcAnswered === mcItems.length;
-      const submitBtn = el('button', {
-        class: 'btn btn-primary btn-full',
-        style: { marginTop: '20px', opacity: allDone ? 1 : 0.5 },
-        onClick: () => {
-          if (!allDone) { showToast(`${mcItems.length - mcAnswered}개 더 풀어주세요`); return; }
-          state.personal_quiz_submitted = { ...submitted, mc: true };
-          saveState();
-          render();
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        },
-      }, allDone ? '✅ 제출하기' : `${mcAnswered}/${mcItems.length} 풀고 제출`);
-      page.appendChild(submitBtn);
-    }
-  }
-
-  // ───────── PAGE 2: 빈칸 채우기 ─────────
-  if (activeTab === 'fill' && fillItems.length > 0) {
-    const explain = el('div', {
-      class: 'card card-flat',
-      style: { padding: '12px 14px', background: 'rgba(169,139,184,0.08)', border: '1px dashed rgba(169,139,184,0.3)', marginBottom: '14px' },
-    });
-    explain.innerHTML = `<p class="t-small" style="color:var(--ink-soft);line-height:1.55;">📝 본인 발표 대본에 있던 문장이에요. 빈칸에 들어갈 영어 표현을 직접 타이핑해보세요.</p>`;
-    page.appendChild(explain);
-
-    const stack = el('div', { class: 'stack' });
-    let fillCorrect = 0;
-    const normalize = (s) => String(s || '').trim().toLowerCase().replace(/[.,!?:;"']/g, '').replace(/\s+/g, ' ');
-
-    fillItems.forEach((it, fi) => {
-      const split = (typeof computeQuizSplit === 'function')
-        ? computeQuizSplit({ en: it.en || '', prompt: it.prompt || '' })
-        : { mode: '1blank', parts: [it.prompt || '', ''], answer: it.en || '' };
-
-      const userAnswer = state.personal_quiz_fill_answers['f'+fi] || '';
-      const ans = String(it.en || '');
-      const isCorrect = normalize(userAnswer) === normalize(ans);
-      if (isCorrect) fillCorrect++;
-
-      const card = el('div', { class: 'quiz-card', style: { padding: '16px 14px' } });
-      const showFeedback = submitted.fill;
-
-      // 1blank 만 지원 (split.mode === '1blank') — 2blank 케이스는 fallback
-      const pre = (split.parts && split.parts[0]) || '';
-      const post = (split.parts && split.parts[1]) || '';
-
-      card.innerHTML = `
-        <div class="row-between" style="margin-bottom:8px;">
-          <span class="kicker">F${fi+1} / ${fillItems.length}</span>
-          ${it.hint ? `<span class="badge">${escapeHtml(it.hint)}</span>` : ''}
-        </div>
-        <div style="font-size:15px;line-height:1.7;color:var(--ink);margin-bottom:12px;">
-          ${escapeHtml(pre)}<span style="display:inline-block;min-width:120px;border-bottom:2px solid ${showFeedback ? (isCorrect ? 'var(--green)' : '#E64545') : 'var(--orange)'};margin:0 4px;padding:0 6px;font-weight:700;color:${showFeedback ? (isCorrect ? 'var(--green)' : '#E64545') : 'var(--orange-dark)'};">${escapeHtml(userAnswer || '___')}</span>${escapeHtml(post)}
-        </div>
-      `;
-      if (!showFeedback) {
-        // input 직접 createElement — el() helper 의 setAttribute('value') 보다 .value property 가 안정적
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'input';
-        input.placeholder = '빈칸에 들어갈 영어 표현';
-        input.value = userAnswer;
-        input.autocomplete = 'off';
-        input.autocapitalize = 'off';
-        input.spellcheck = false;
-        input.style.cssText = 'width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:10px;font-family:inherit;background:#FFFEFA;';
-        input.addEventListener('input', (e) => {
-          state.personal_quiz_fill_answers['f'+fi] = e.target.value;
-          saveState();
-        });
-        // ❌ blur re-render 제거 — 진행도 업데이트는 다음 사용자 액션 (탭 전환/제출) 때 자동 반영.
-        //    blur → render() 가 input 노드 자체를 destroy → click 자체가 안 먹히는 증상.
-        card.appendChild(input);
-      } else {
-        // 제출 후 — 정답·내 답 비교 표시
-        const feedback = el('div', {
-          style: { marginTop: '8px', padding: '10px 12px', borderRadius: '10px',
-            background: isCorrect ? 'rgba(111,174,108,0.12)' : 'rgba(230,69,69,0.08)',
-            border: '1px solid ' + (isCorrect ? 'rgba(111,174,108,0.3)' : 'rgba(230,69,69,0.25)'),
-            fontSize: '12.5px', lineHeight: '1.55', color: 'var(--ink-soft)' },
-        });
-        feedback.innerHTML = isCorrect
-          ? `<b style="color:var(--green);">✓ 정답</b>`
-          : `<b style="color:#C13D3D;">✗ 정답:</b> <span style="color:var(--ink);font-weight:700;">${escapeHtml(ans)}</span>${userAnswer ? `<br/><span style="opacity:0.7;">내 답: ${escapeHtml(userAnswer)}</span>` : '<br/><span style="opacity:0.7;font-style:italic;">미응답</span>'}`;
-        card.appendChild(feedback);
-      }
-      stack.appendChild(card);
-    });
-    page.appendChild(stack);
-
-    // 제출 또는 점수+다시풀기
-    if (submitted.fill) {
-      const score = el('div', { class: 'card card-flat', style: { marginTop: '20px', textAlign: 'center' } });
-      score.innerHTML = `
-        <div class="kicker">SCORE · 빈칸</div>
-        <div class="serif" style="font-size:44px;line-height:1;color:var(--orange);margin-top:6px;">${fillCorrect}<span style="color:var(--muted);">/${fillItems.length}</span></div>
-        <div class="t-small" style="margin-top:6px;">${fillCorrect === fillItems.length ? '완벽 🎉 본인 대본 어휘 완전 내재화!' : '틀린 표현은 본인 대본 다시 한 번 읽어보세요'}</div>`;
-      page.appendChild(score);
-
-      const retryBtn = el('button', {
-        class: 'btn btn-ghost btn-full',
-        style: { marginTop: '14px' },
-        onClick: () => {
-          state.personal_quiz_fill_answers = {};
-          state.personal_quiz_submitted = { ...submitted, fill: false };
-          saveState();
-          render();
-        },
-      }, '↻ 빈칸 다시 풀기');
-      page.appendChild(retryBtn);
-    } else {
-      const allFilled = fillAnswered === fillItems.length;
-      const submitBtn = el('button', {
-        class: 'btn btn-primary btn-full',
-        style: { marginTop: '20px', opacity: allFilled ? 1 : 0.5 },
-        onClick: () => {
-          if (!allFilled) { showToast(`${fillItems.length - fillAnswered}개 더 채워주세요`); return; }
-          state.personal_quiz_submitted = { ...submitted, fill: true };
-          saveState();
-          render();
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        },
-      }, allFilled ? '✅ 제출하기' : `${fillAnswered}/${fillItems.length} 채우고 제출`);
-      page.appendChild(submitBtn);
-    }
-  }
-
-  // ─────────── OPERATOR · PUSH TO MEMBER (항상 노출) ───────────
-  // 본인이 이미 풀었어도 운영자는 다른 멤버한테 푸시할 수 있어야 함.
-  if (state.isOperator) {
-    const pushCard = el('div', {
-      class: 'card card-flat',
-      style: { marginTop: '24px', padding: '16px 18px', border: '1.5px solid var(--orange-soft)', background: 'rgba(240,125,56,0.04)' },
-    });
-    pushCard.appendChild(el('div', { class: 'kicker', style: { color: 'var(--orange-dark)' } }, '📤 OPERATOR · PUSH TO MEMBER'));
-    pushCard.appendChild(el('p', { class: 't-small', style: { marginTop: '6px', color: 'var(--ink-soft)', lineHeight: '1.55' } },
-      '멤버 한 명 골라서 그 사람 계정에 직접 푸시 — 멤버는 paste 작업 X, 본인 페이지 들어가면 이미 채워져 있음.'));
-
-    const select = el('select', {
-      style: { width: '100%', marginTop: '10px', padding: '10px 12px', fontSize: '13px', border: '1px solid var(--line)', borderRadius: '10px', background: '#fff', fontFamily: 'inherit' },
-    });
-    select.appendChild(el('option', { value: '' }, '— 푸시 대상 멤버 선택 —'));
-    const rows = (typeof memberSummaryCache !== 'undefined' && Array.isArray(memberSummaryCache.rows))
-      ? memberSummaryCache.rows : [];
-    const premiumMembers = rows
-      .filter(r => r.tier === 'premium' && r.member_key && r.member_key !== memberKey())
-      .sort((a, b) => (a.english_name || a.member_name || '').localeCompare(b.english_name || b.member_name || ''));
-    premiumMembers.forEach(r => {
-      const label = (r.english_name && r.english_name.trim())
-        ? `${r.english_name} · ${r.member_name}`
-        : (r.member_name || r.member_key);
-      select.appendChild(el('option', { value: r.member_key }, label));
-    });
-    pushCard.appendChild(select);
-
-    const ta3 = el('textarea', {
-      class: 'textarea',
-      style: { width: '100%', minHeight: '120px', marginTop: '8px', fontFamily: 'monospace', fontSize: '12px', padding: '10px', borderRadius: '10px', border: '1px solid var(--line)' },
-      placeholder: '{"week": 3, "items": [...], "fill_items": [...]}',
-    });
-    pushCard.appendChild(ta3);
-
-    const pushBtn = el('button', {
-      class: 'btn btn-primary',
-      style: { background: 'var(--orange)', border: 'none', color: '#fff', marginTop: '10px' },
-      onClick: async () => {
-        const targetKey = select.value;
-        if (!targetKey) { showToast('멤버 먼저 선택하세요'); return; }
-        if (!hasSupabase()) { showToast('Supabase 연결 안 됨'); return; }
-        let parsed;
-        try { parsed = JSON.parse(ta3.value); }
-        catch (e) { showToast('JSON 파싱 실패: ' + e.message); return; }
-        if (!parsed || (!Array.isArray(parsed.items) && !Array.isArray(parsed.fill_items))) {
-          showToast('items / fill_items 둘 다 비어있어요'); return;
-        }
-        pushBtn.disabled = true;
-        pushBtn.textContent = '📤 푸시 중...';
-        try {
-          const res = await supabaseRpc('operator_push_personal_quiz', {
-            p_cohort: CHALLENGE.cohort || '5기',
-            p_target_member_key: targetKey,
-            p_quiz: parsed,
-          });
-          const name = (res && res.member_name) || targetKey;
-          const itemsN = (res && res.items_count) || 0;
-          const fillN = (res && res.fill_items_count) || 0;
-          showToast(`✅ ${name} → 4지선다 ${itemsN} / 빈칸 ${fillN} 푸시 완료`);
-          select.value = ''; ta3.value = '';
-        } catch (e) {
-          console.error('[push personal quiz] failed', e);
-          showToast('푸시 실패: ' + String(e?.message || e).slice(0, 80));
-        } finally {
-          pushBtn.disabled = false;
-          pushBtn.textContent = '📤 푸시';
-        }
-      },
-    }, '📤 푸시');
-    pushCard.appendChild(pushBtn);
-    page.appendChild(pushCard);
-  }
-
   return page;
+}
+
+// 내 대사 → 이번 기수 본단어 60개 찾아 문장당 1빈칸 퀴즈 생성.
+window.__buildSelfQuiz = function (script) {
+  const text = String(script || '').trim();
+  if (text.length < 10) { showToast('대사를 조금 더 길게 붙여넣어 주세요 (한 문장 이상).'); return; }
+  const words = [];
+  (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((d) => (d.words || []).forEach((w) => {
+    if (w && w.en && w.def) words.push({ en: w.en, def: w.def });
+  })));
+  words.sort((a, b) => b.en.length - a.en.length);
+  const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const sentences = (text.match(/[^.!?\n]+[.!?]*/g) || []).map((s) => s.trim()).filter((s) => s.length > 0);
+  const items = [];
+  sentences.forEach((sent) => {
+    let best = null;
+    words.forEach((w) => {
+      let re;
+      try { re = new RegExp('\\b' + esc(w.en) + '\\b', 'i'); } catch (e) { return; }
+      const m = sent.match(re);
+      if (m) {
+        const idx = m.index;
+        if (!best || idx < best.idx || (idx === best.idx && w.en.length > best.en.length)) {
+          best = { idx, len: m[0].length, en: w.en, def: w.def };
+        }
+      }
+    });
+    if (!best) return;
+    items.push({
+      pre: sent.slice(0, best.idx),
+      post: sent.slice(best.idx + best.len),
+      en: best.en,
+      hint: best.def,
+    });
+  });
+  if (items.length === 0) {
+    showToast('대사에 이번 기수 단어가 없어요. 배운 단어를 넣어 다시 써보세요!');
+    return;
+  }
+  state.personal_quiz = { selfServe: true, script: text, at: new Date().toISOString(), fill_items: items, translating: false };
+  state.personal_quiz_fill_answers = {};
+  state.personal_quiz_submitted = { ...(state.personal_quiz_submitted || {}), fill: false };
+  try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+  showToast(`🎯 빈칸 ${items.length}개 만들었어요!`);
+  render();
+  try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {}
+};
+
+// 퀴즈 문장들 한국어 번역 → 각 item.ko 에 채우고 재렌더. 실패해도 graceful.
+function __translateQuizSentences() {
+  const pq = state.personal_quiz;
+  if (!pq || !Array.isArray(pq.fill_items) || !pq.fill_items.length) return;
+  if (!((typeof hasSupabase === 'function') && hasSupabase())) { pq.translating = false; return; }
+  const sentences = pq.fill_items.map((it) => `${it.pre}${it.en}${it.post}`);
+  callAiTranslate(sentences).then((trans) => {
+    const cur = state.personal_quiz;
+    if (!cur || !Array.isArray(cur.fill_items)) return;
+    cur.fill_items.forEach((it, i) => { if (trans[i]) it.ko = String(trans[i]); });
+    cur.translating = false;
+    try { saveState(); } catch (e) {}
+    render();
+  }).catch(() => {
+    const cur = state.personal_quiz;
+    if (cur) cur.translating = false;
+    try { saveState(); } catch (e) {}
+    render();
+  });
 }
 
 /* ============================================================
@@ -17309,7 +17576,8 @@ function CertPage() {
   const pqItems = (state.personal_quiz && Array.isArray(state.personal_quiz.items))
     ? state.personal_quiz.items : [];
   const quizDone = pqItems.length > 0 && Object.keys(state.personal_quiz_answers || {}).length >= pqItems.length;
-  const meetingsDone = CHALLENGE.premium.weekly_meetings.filter(m => m.status === 'done').length;
+  // 프리미엄은 주간 미팅 4회 모두 참여로 인정 (운영자 정책 — 5/21 이후 일괄 4/4).
+  const meetingsDone = (state.tier === 'premium') ? 4 : CHALLENGE.premium.weekly_meetings.filter(m => m.status === 'done').length;
   // 프레젠터 = 각 주차에서 내가 발표자로 자리 잡아 실제 발표한 횟수.
   const presentedWeeks = (() => {
     try {
@@ -18429,19 +18697,18 @@ function SettingsModal() {
       <div style="margin-top:14px;padding:14px;border-radius:14px;background:#FFF7EF;border:1px solid rgba(240,125,56,0.18);">
         <div class="kicker" style="color:var(--orange-dark);">OPERATOR ONLY</div>
         <div style="margin-top:10px;">
-          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">⏩ Day 점프 (운영자 전용)</div>
-          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">운영자 본인의 currentDay 를 임의 점프시켜서 Day N 콘텐츠 미리 풀어볼 때 쓰는 거. 다른 멤버한텐 영향 없음. ${Number.isFinite(Number(state.operatorDayOverride)) ? `<span style="color:#16A34A;font-weight:700;">· 현재 Day ${state.operatorDayOverride} 로 점프 중</span>` : `<span style="color:var(--muted);font-weight:600;">· 캘린더 기준 (override 없음)</span>`}</div>
-          <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
-            <button id="__settingsDayJumpDown" class="btn btn-ghost" style="flex:0 0 auto;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);min-width:56px;">−</button>
-            <div style="flex:1;text-align:center;font-size:18px;font-weight:800;color:var(--ink);background:rgba(240,125,56,0.08);border-radius:12px;padding:8px;">Day ${Number.isFinite(Number(state.operatorDayOverride)) ? state.operatorDayOverride : computeCurrentDay()}</div>
-            <button id="__settingsDayJumpUp" class="btn btn-ghost" style="flex:0 0 auto;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);min-width:56px;">+</button>
-          </div>
+          <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">⏩ Day 점프 · 마지막 날 시뮬레이션 (운영자 전용)</div>
+          <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">운영자 본인의 currentDay 를 원하는 Day 로 점프시켜 미리 풀어볼 때 쓰는 거. <b>Day 20 을 고르면 마지막 날(파이널 테스트 → 설문 → 단어집 PDF) 흐름을 그대로 시뮬레이션</b>할 수 있어요. 다른 멤버한텐 영향 없음. ${Number.isFinite(Number(state.operatorDayOverride)) ? `<span style="color:#16A34A;font-weight:700;">· 현재 Day ${state.operatorDayOverride} 로 점프 중</span>` : `<span style="color:var(--muted);font-weight:600;">· 캘린더 기준 (override 없음)</span>`}</div>
+          <select id="__settingsDayJumpSelect" style="width:100%;margin-top:10px;padding:11px 12px;border-radius:12px;border:1px solid rgba(240,125,56,0.32);background:rgba(240,125,56,0.06);color:var(--ink);font-size:14px;font-weight:800;-webkit-appearance:menulist;appearance:menulist;">
+            ${Array.from({ length: 20 }, (_, i) => i + 1).map((n) => { const ov = state.operatorDayOverride; const cur = (ov != null && Number.isFinite(Number(ov))) ? Number(ov) : computeCurrentDay(); return `<option value="${n}"${cur === n ? ' selected' : ''}>Day ${n}${n === 20 ? ' · 마지막 날 (파이널 테스트)' : ''}</option>`; }).join('')}
+          </select>
           <button id="__settingsDayJumpReset" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;font-size:12px;">${Number.isFinite(Number(state.operatorDayOverride)) ? '↺ 캘린더 기준으로 되돌리기' : '캘린더 기준 (override 없음)'}</button>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
           <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📦 코호트 데이터 백업</div>
           <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">전체 멤버의 app_state · 커뮤니티 글 · 댓글 · 저장 · 발표자 자리 · 인증 이벤트를 한 큐에 JSON 으로 다운로드. 노션·구글 드라이브·iCloud 어디든 옮겨 보관해두면 만일의 데이터 사고 대비 가능.</div>
           <button id="__settingsExportCohort" class="btn btn-ghost btn-full" style="margin-top:10px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;">📦 코호트 데이터 다운로드 (JSON)</button>
+          <button id="__settingsExportFinalTest" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);">📊 파이널 테스트 결과 · 다운로드 현황 (JSON)</button>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(240,125,56,0.22);">
           <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🚫 무참여자 리스트 (블록 리스트)</div>
@@ -18661,6 +18928,38 @@ function SettingsModal() {
       } finally {
         exportCohortBtn.innerHTML = originalText;
         exportCohortBtn.disabled = false;
+      }
+    };
+
+    // Operator: 📊 파이널 테스트 결과 · 다운로드 현황 (JSON)
+    const exportFinalBtn = document.getElementById('__settingsExportFinalTest');
+    if (exportFinalBtn) exportFinalBtn.onclick = async () => {
+      if (!hasSupabase()) { showToast('Supabase 연결이 안 돼있어요.'); return; }
+      const original = exportFinalBtn.innerHTML;
+      exportFinalBtn.innerHTML = '⏳ 가져오는 중...';
+      exportFinalBtn.disabled = true;
+      try {
+        const data = await supabaseRpc('get_cohort_final_test', { p_cohort: CHALLENGE.cohort });
+        if (!data) throw new Error('빈 응답');
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const today = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = `youbuddy-${CHALLENGE.cohort}-final-test-${today}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        const s = data.summary || {};
+        showToast(`✅ 완료 — 응시 ${s.completed ?? 0}명 · PDF ${s.pdf_downloaded ?? 0} · 노션 ${s.notion_downloaded ?? 0}`);
+      } catch (e) {
+        console.error('final test export failed', e);
+        showToast(`불러오기 실패: ${String(e?.message || e).slice(0, 80)} (마이그레이션 적용 확인)`);
+      } finally {
+        exportFinalBtn.innerHTML = original;
+        exportFinalBtn.disabled = false;
       }
     };
 
@@ -18959,25 +19258,19 @@ function SettingsModal() {
       }
     };
 
-    // Operator: ⏩ Day 점프 (테스트용 — Day 2 미리 풀어보기 등)
-    const dayJumpDownBtn = document.getElementById('__settingsDayJumpDown');
-    const dayJumpUpBtn = document.getElementById('__settingsDayJumpUp');
+    // Operator: ⏩ Day 점프 드롭다운 (테스트용 — Day 20 = 마지막 날 시뮬레이션)
+    const dayJumpSelect = document.getElementById('__settingsDayJumpSelect');
     const dayJumpResetBtn = document.getElementById('__settingsDayJumpReset');
     const setOperatorDay = (n) => {
       const clamped = Math.max(1, Math.min(20, Number(n)));
       state.operatorDayOverride = clamped;
       state.currentDay = clamped;
       try { saveState({ immediate: true }); } catch(e) { try { saveState(); } catch(_){} }
-      showToast(`Day ${clamped} 로 점프했어요 🚀`);
+      showToast(clamped === 20 ? 'Day 20 · 마지막 날 시뮬레이션 시작 🏁' : `Day ${clamped} 로 점프했어요 🚀`);
       render();
     };
-    if (dayJumpDownBtn) dayJumpDownBtn.onclick = () => {
-      const cur = Number.isFinite(Number(state.operatorDayOverride)) ? Number(state.operatorDayOverride) : computeCurrentDay();
-      setOperatorDay(cur - 1);
-    };
-    if (dayJumpUpBtn) dayJumpUpBtn.onclick = () => {
-      const cur = Number.isFinite(Number(state.operatorDayOverride)) ? Number(state.operatorDayOverride) : computeCurrentDay();
-      setOperatorDay(cur + 1);
+    if (dayJumpSelect) dayJumpSelect.onchange = (e) => {
+      setOperatorDay(e.target.value);
     };
     if (dayJumpResetBtn) dayJumpResetBtn.onclick = () => {
       state.operatorDayOverride = null;
@@ -19359,8 +19652,11 @@ function FinalReportPage() {
   });
   // 미팅 / 발표 (프리미엄)
   const isPremium = state.tier === 'premium';
-  const meetingsDone = (CHALLENGE.premium && CHALLENGE.premium.weekly_meetings)
-    ? CHALLENGE.premium.weekly_meetings.filter((m) => m.status === 'done').length : 0;
+  // 프리미엄은 주간 미팅 4회 모두 참여로 인정 (운영자 정책 — 5/21 이후 일괄 4/4).
+  const meetingsDone = (state.tier === 'premium')
+    ? 4
+    : ((CHALLENGE.premium && CHALLENGE.premium.weekly_meetings)
+      ? CHALLENGE.premium.weekly_meetings.filter((m) => m.status === 'done').length : 0);
   const presentedCount = (() => {
     try {
       const signups = state.presenterSignups || {};
@@ -19586,8 +19882,7 @@ function FinalReportPage() {
     <div class="kicker" style="color:var(--orange-dark);">📦 졸업 후 어떻게 이어갈까</div>
     <div style="margin-top:8px;font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;line-height:1.35;">4주 단어집 들고 가세요</div>
     <p style="margin:8px 0 0;font-size:12.5px;color:var(--ink-soft);line-height:1.6;">
-      Day 1~20 단어 60개 + 유의어 + 예문 + 5기 동기들이 쓴 베스트 문장 + 본인 베스트 문장,<br>
-      가장 많이 틀린 단어 순서까지 <b>한 권의 PDF 단어집</b>으로. 졸업 후 펼쳐보는 본인 사전.
+      Day 1~20 단어 60개 + 유의어 + 예문을 <b>한 권의 PDF 단어집</b>으로.<br>졸업 후 펼쳐보는 본인 사전.
     </p>
   `;
 
@@ -19604,8 +19899,10 @@ function FinalReportPage() {
     },
     onClick: () => {
       if (!canDownload) { showToast(`수료 기준 (18일+ 인증) 충족 시 다운로드 가능해요. 현재 ${verifiedCount}/20`); return; }
-      if (typeof window.__downloadFinalPdfBook === 'function') window.__downloadFinalPdfBook();
-      else window.__downloadFinalReport();
+      // 4주 단어집 PDF — 구글 드라이브 링크로 이동 (인앱 생성 대신).
+      const driveUrl = 'https://drive.google.com/file/d/1XtUOYO21HuOFeMzTQfWslmTmDoEUPVQk/view?usp=sharing';
+      showToast('구글 드라이브에서 4주 단어집 PDF를 열어요 🧡');
+      window.open(driveUrl, '_blank', 'noopener');
     },
   }, canDownload ? '📥 4주 단어집 PDF 다운로드' : `🔒 18일+ 인증 시 활성화 (${verifiedCount}/20)`);
   pdfBtnWrap.appendChild(pdfBtn);
@@ -22532,8 +22829,8 @@ function WeekWrapupPopupModal() {
       <button id="__wupClose" style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,0.7);border:none;color:var(--ink-soft);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
       <div style="font-size:48px;line-height:1;margin-bottom:8px;">🎉</div>
       <div class="kicker" style="color:var(--orange-dark);">WEEK ${weekN} 끝</div>
-      <div style="margin-top:8px;font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.3;">이번 주 단어<br>다 외워졌나 빠르게 체크?</div>
-      <div style="margin-top:10px;font-size:13px;color:var(--ink-soft);line-height:1.6;">3단계 복습 + 보상 받기 (잠금화면 단어장 🎁)<br>10분이면 끝나요.</div>
+      <div style="margin-top:8px;font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.3;">${weekN === 4 ? '유비챌 모든 단어를<br>학습했어요!' : '이번 주 단어<br>다 외워졌나 빠르게 체크?'}</div>
+      <div style="margin-top:10px;font-size:13px;color:var(--ink-soft);line-height:1.6;">${weekN === 4 ? '이번 주 단어 테스트 보고<br>파이널 퀴즈까지 한번 볼까요?' : '3단계 복습 + 보상 받기 (잠금화면 단어장 🎁)<br>10분이면 끝나요.'}</div>
     </div>
     <div style="padding:18px 22px 22px;display:flex;flex-direction:column;gap:8px;">
       <button id="__wupGo" class="btn btn-primary btn-full" style="background:var(--orange);border:none;font-size:14px;padding:14px;">🚀 지금 풀러가기 →</button>
@@ -24039,7 +24336,7 @@ async function copyMarkdown() {
 // 수동 데이터: state.cert_profile (topic, strengths, growth, keyVocab, finalVocab) — Gaby 가 발급 시 주입.
 // 수동 데이터 없으면 해당 섹션은 자연스럽게 숨김.
 // ============================================================
-function buildCertHtml({ name, englishName, role, done, total, overall, vocabCount, startDate, endDate, days, profile, finalVocab }) {
+function buildCertHtml({ name, englishName, role, done, total, overall, vocabCount, startDate, endDate, days, profile, finalVocab, tier }) {
   const displayName = (englishName || name || '').trim();
   const koName = (englishName && name && englishName !== name) ? `<span>· ${escapeHtml(name)}</span>` : '';
   const nameHtml = `${escapeHtml(displayName)}<span>님</span>${koName}`;
@@ -24271,7 +24568,7 @@ function buildCertHtml({ name, englishName, role, done, total, overall, vocabCou
       </div>
       <div class="stats-row">
         <div class="stat-pill"><span class="stat-value">${overall}%</span><span class="stat-label">${overall >= 100 ? '프리미엄 완주' : '전체 진행률'}</span></div>
-        <div class="stat-pill"><span class="stat-value">어휘 ${vocabCount}개</span><span class="stat-label">+ 단어테스트</span></div>
+        <div class="stat-pill"><span class="stat-value">${tier === 'premium' ? '어휘 60개 · 유의어 120개' : `어휘 ${vocabCount}개`}</span><span class="stat-label">+ 단어테스트</span></div>
         <div class="stat-pill"><span class="stat-value">${days} Days</span><span class="stat-label">${dateRange}</span></div>
         <div class="stat-pill"><span class="stat-value">${done}/${total}</span><span class="stat-label">인증 완료</span></div>
       </div>
@@ -24373,6 +24670,7 @@ function downloadCertificate(name, done, total, overall) {
     days: daysSpan,
     profile: mergedProfile,
     finalVocab,
+    tier: state.tier,
   });
   const filename = `youbuddy-certificate-${(englishName || name || 'member').replace(/\s+/g, '_')}.html`;
   download(filename, html, 'text/html;charset=utf-8');
