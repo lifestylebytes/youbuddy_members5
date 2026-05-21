@@ -1869,6 +1869,7 @@ const defaultState = () => ({
   personal_quiz_answers: {},      // { "q0": 1 } — page1 4지선다 응답
   personal_quiz_fill_answers: {}, // { "f0": "set the stage" } — page2 빈칸 채우기 응답
   personal_quiz_submitted: { mc: false, fill: false }, // 페이지별 제출 여부 — 제출 후 정답·점수 표시, '다시 풀기' 로 reset
+  personal_quiz_done: false,      // 개인 퀴즈를 한 번이라도 제출했는지 (수료 인증 체크용, 다시풀기/리셋해도 유지).
   bookmarks: {},                  // { "d1-0": true }
   saved_syns: {},                 // { "d1-0::Pave the way": true } 유의어 북마크
   community_likes: {},            // { "p1": true }
@@ -1947,6 +1948,7 @@ const PERSISTED_STATE_KEYS = [
   'personal_quiz_answers',
   'personal_quiz_fill_answers',
   'personal_quiz_submitted',
+  'personal_quiz_done',
   'bookmarks',
   'saved_syns',
   'community_likes',
@@ -11791,6 +11793,12 @@ window.__openFinalDownloads = function () {
   const existing = document.querySelector('[data-final-download-popup]');
   if (existing) existing.remove();
   const driveUrl = 'https://drive.google.com/file/d/1XtUOYO21HuOFeMzTQfWslmTmDoEUPVQk/view?usp=sharing';
+  // 단어집 PDF 게이트 = 18일+ 인증 AND 파이널 테스트 완료 (운영자/스태프 예외).
+  const __fdTotal = (typeof CHALLENGE !== 'undefined' && CHALLENGE.total_days) || 20;
+  let __fdVc = 0; for (let __d = 1; __d <= __fdTotal; __d++) { if ((state.verified && state.verified['d' + __d]) || (state.verified_late && state.verified_late['d' + __d])) __fdVc++; }
+  const __fdFinalDone = !!(state.final_test && state.final_test.at) || !!(state.bingo_done && state.bingo_done['4']);
+  const __fdIsOp = (state.isOperator || state.isStaff) && !state.operatorViewAsMember;
+  const canGetPdf = (__fdVc >= 18 && __fdFinalDone) || __fdIsOp;
   const backdrop = el('div', { class: 'modal-backdrop', 'data-final-download-popup': '1' });
   const close = () => { backdrop.remove(); };
   backdrop.onclick = (e) => { if (e.target === backdrop) close(); };
@@ -11827,15 +11835,18 @@ window.__openFinalDownloads = function () {
   modal.querySelector('[data-fd-close]').onclick = close;
   modal.querySelector('[data-fd-report]').onclick = () => { close(); go('final-report'); };
   modal.querySelector('[data-fd-pdf]').onclick = () => {
+    if (!canGetPdf) {
+      showToast(__fdFinalDone
+        ? `18일 이상 인증해야 단어집 PDF를 받을 수 있어요. 현재 ${__fdVc}/20`
+        : `18일+ 인증 & 파이널 테스트 완료 시 받을 수 있어요. 현재 ${__fdVc}/20 · 파이널 미완료`);
+      return;
+    }
     markDownload('pdf_at');
     showToast('구글 드라이브에서 4주 단어집 PDF를 열어요 🧡');
     window.open(driveUrl, '_blank', 'noopener');
-    // 파이널까지 끝낸 사람이 PDF 까지 받으면 = 완주 → 축하 팝업.
-    const finalDone = !!(state.final_test && state.final_test.at) || !!(state.bingo_done && state.bingo_done['4']);
-    if (finalDone) {
-      close();
-      setTimeout(() => { try { window.__showCohortCompletePopup(); } catch (e) {} }, 500);
-    }
+    // PDF 까지 받으면 = 완주 → 축하 팝업.
+    close();
+    setTimeout(() => { try { window.__showCohortCompletePopup(); } catch (e) {} }, 500);
   };
   modal.querySelector('[data-fd-notion]').onclick = () => {
     markDownload('notion_at');
@@ -17318,8 +17329,8 @@ function QuizPage() {
 
   // ─────────── OPERATOR · 퀴즈 주입 / 멤버에게 푸시 ───────────
   // Claude 가 만든 JSON 붙여넣기 → 내 계정 미리보기(주입) 또는 특정 멤버에게 직접 푸시.
-  // 멤버 뷰(operatorViewAsMember)와 무관하게 운영자/스태프면 항상 노출 — 멤버에게 퀴즈 넣는 운영 도구라서.
-  if (state.isOperator || state.isStaff) {
+  // 운영자/스태프 전용 + '일반 회원처럼 보기' OFF 일 때만 노출 (다른 운영자 UI 와 동일). 일반 멤버는 절대 안 보임.
+  if ((state.isOperator || state.isStaff) && !state.operatorViewAsMember) {
     try { requestMemberSummaries(); } catch (e) {}
     const opCard = el('div', { class: 'card card-flat', style: { marginTop: '14px', padding: '14px 16px', border: '1.5px dashed rgba(240,125,56,0.4)', background: 'rgba(240,125,56,0.04)' } });
     opCard.appendChild(el('div', { class: 'kicker', style: { color: 'var(--orange-dark)' } }, '📤 OPERATOR · 퀴즈 주입 / 푸시'));
@@ -17480,8 +17491,11 @@ function QuizPage() {
     const allFilled = answeredN === fillItems.length;
     const submitBtn = el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '20px', opacity: allFilled ? 1 : 0.5 },
       onClick: () => {
-        if (!allFilled) { showToast(`${fillItems.length - answeredN}개 더 채워주세요`); return; }
+        // 클릭 시점의 실제 입력값으로 다시 계산 (렌더 이후 타이핑한 것도 반영 — 재렌더 의존 X).
+        const liveFilled = fillItems.filter((_, fi) => (answersObj['f' + fi] || '').trim()).length;
+        if (liveFilled < fillItems.length) { showToast(`${fillItems.length - liveFilled}개 더 채워주세요`); return; }
         state.personal_quiz_submitted = { ...(state.personal_quiz_submitted || {}), fill: true };
+        state.personal_quiz_done = true; // 한 번 제출 = 수료 인증 '개인 퀴즈 완료' 영구 체크.
         saveState(); render(); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {}
       } }, allFilled ? '✅ 제출하기' : `${answeredN}/${fillItems.length} 채우고 제출`);
     page.appendChild(submitBtn);
@@ -17572,10 +17586,13 @@ function CertPage() {
 
   const done = completedCount();
   const total = CHALLENGE.total_days;
-  // Personal Quiz done = Gaby 가 personal_quiz 를 주입했고, 모든 문항 응답 완료.
+  // Personal Quiz done = 개인 퀴즈(빈칸/객관식)를 한 번이라도 제출했으면 완료.
+  // personal_quiz_done(영구 플래그) 우선, 없으면 현재 제출 상태 / 옛 MC 응답 기준으로도 인정.
   const pqItems = (state.personal_quiz && Array.isArray(state.personal_quiz.items))
     ? state.personal_quiz.items : [];
-  const quizDone = pqItems.length > 0 && Object.keys(state.personal_quiz_answers || {}).length >= pqItems.length;
+  const quizDone = !!state.personal_quiz_done
+    || !!(state.personal_quiz_submitted && state.personal_quiz_submitted.fill)
+    || (pqItems.length > 0 && Object.keys(state.personal_quiz_answers || {}).length >= pqItems.length);
   // 프리미엄은 주간 미팅 4회 모두 참여로 인정 (운영자 정책 — 5/21 이후 일괄 4/4).
   const meetingsDone = (state.tier === 'premium') ? 4 : CHALLENGE.premium.weekly_meetings.filter(m => m.status === 'done').length;
   // 프레젠터 = 각 주차에서 내가 발표자로 자리 잡아 실제 발표한 횟수.
@@ -19628,7 +19645,8 @@ function FinalReportPage() {
   const cDay = Number(state.currentDay) || 0;
   // 통계 계산
   const total = CHALLENGE.total_days || 20;
-  const verifiedDays = Array.from({ length: total }, (_, i) => i + 1).filter((d) => state.verified && state.verified['d' + d]);
+  // 인증 시간 지나서 한 것(late)도 인정 — verified 또는 verified_late 둘 중 하나라도 있으면 카운트.
+  const verifiedDays = Array.from({ length: total }, (_, i) => i + 1).filter((d) => (state.verified && state.verified['d' + d]) || (state.verified_late && state.verified_late['d' + d]));
   const verifiedCount = verifiedDays.length;
   const lateCount = verifiedDays.filter((d) => state.verified_late && state.verified_late['d' + d]).length;
   const onTimeCount = verifiedCount - lateCount;
@@ -19727,8 +19745,10 @@ function FinalReportPage() {
   const top5Sentences = bestSentences.slice(0, 5);
 
   const overall = Math.round((verifiedCount / total) * 100);
-  const isCompletion = verifiedCount >= 18; // 수료 기준
-  const canDownload = isCompletion || isOpStaff;
+  const isCompletion = verifiedCount >= 18; // 수료 기준 (18일+ 인증)
+  // 단어집 PDF = 18일+ 인증 AND 파이널 테스트 완료 (운영자/스태프는 예외).
+  const finalTestDone = !!(state.final_test && state.final_test.at) || !!(state.bingo_done && state.bingo_done['4']);
+  const canDownload = (isCompletion && finalTestDone) || isOpStaff;
 
   // ─── Hero
   const hero = el('div', {
@@ -19898,13 +19918,18 @@ function FinalReportPage() {
       letterSpacing: '-0.01em',
     },
     onClick: () => {
-      if (!canDownload) { showToast(`수료 기준 (18일+ 인증) 충족 시 다운로드 가능해요. 현재 ${verifiedCount}/20`); return; }
+      if (!canDownload) {
+        showToast(finalTestDone
+          ? `18일 이상 인증해야 받을 수 있어요. 현재 ${verifiedCount}/20`
+          : `18일+ 인증 & 파이널 테스트 완료 시 받을 수 있어요. 현재 ${verifiedCount}/20${finalTestDone ? '' : ' · 파이널 미완료'}`);
+        return;
+      }
       // 4주 단어집 PDF — 구글 드라이브 링크로 이동 (인앱 생성 대신).
       const driveUrl = 'https://drive.google.com/file/d/1XtUOYO21HuOFeMzTQfWslmTmDoEUPVQk/view?usp=sharing';
       showToast('구글 드라이브에서 4주 단어집 PDF를 열어요 🧡');
       window.open(driveUrl, '_blank', 'noopener');
     },
-  }, canDownload ? '📥 4주 단어집 PDF 다운로드' : `🔒 18일+ 인증 시 활성화 (${verifiedCount}/20)`);
+  }, canDownload ? '📥 4주 단어집 PDF 다운로드' : `🔒 18일+ 인증 & 파이널 완료 시 활성화 (${verifiedCount}/20)`);
   pdfBtnWrap.appendChild(pdfBtn);
   guideCard.appendChild(pdfBtnWrap);
 
