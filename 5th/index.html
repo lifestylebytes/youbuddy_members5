@@ -1609,11 +1609,13 @@ sugarcoat 사실 메신저에선 거의 안 써요…! ㅋㅋ
         signupCloseDate: '2026-05-20',
         title: 'Week 4 — Full vocab recap',
         desc: '20일 전체 단어를 한 롤플레이에 녹여내기 — bingo 식 체크',
-        status: 'upcoming',
+        status: 'done',
         zoom: 'Google Meet',
         meetUrl: 'https://meet.google.com/fjd-spsn-vfp',
+        // 미팅 다시보기 (Google Drive 공유 링크). 멤버 권한 필요할 수 있음.
+        recordingUrl: 'https://drive.google.com/file/d/1OaTWqzTzcAgkBffzWzbKmiaVazB0dDBV/view?usp=sharing',
         // 버디가 미팅 후 직접 채움 — recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
-        recap: '',
+        recap: '🎬 [Week 4 미팅 다시보기 →](https://drive.google.com/file/d/1OaTWqzTzcAgkBffzWzbKmiaVazB0dDBV/view?usp=sharing)\n\n어제 못 오신 분도, 다시 듣고 싶은 분도 위 링크에서 풀버전 보실 수 있어요.',
         pptUrl: '',
         scenario: {
           setting: 'Quarterly review · 본인 업 상황 briefing + 의견 충돌 + alignment',
@@ -22512,6 +22514,7 @@ function MiniWeekSurveyModal() {
   if (!window.__miniSurveyDraft[weekN]) {
     window.__miniSurveyDraft[weekN] = {
       update_loved: [],   // 이번 주 업데이트 중 좋았던 거 (multi)
+      difficulty: null,   // 단어 난이도 (1~5) — Week 4 등 업데이트 없는 주차에서 Q1 로 사용
       hardest: '',
       amount: '',
       next_week_wish: [], // 다음 주 우선순위 (multi)
@@ -22564,6 +22567,7 @@ function MiniWeekSurveyModal() {
     const cur = state.week_survey[String(weekN)] || {};
     cur.mini = {
       update_loved: Array.isArray(draft.update_loved) ? draft.update_loved : [],
+      difficulty: (draft.difficulty != null ? draft.difficulty : null),
       hardest: draft.hardest || '',
       amount: draft.amount || '',
       next_week_wish: Array.isArray(draft.next_week_wish) ? draft.next_week_wish : [],
@@ -22591,11 +22595,9 @@ function MiniWeekSurveyModal() {
       { id: 'meeting_live', emoji: '🎬', label: '미팅 페이지에 "이렇게 진행돼요" 가이드 카드' },
       { id: 'survey_first', emoji: '📝', label: '시험 전 1분 회고로 직접 의견 전달 (지금 이거!)' },
     ],
-    '4': [
-      { id: 'final_test', emoji: '🏆', label: 'Day 1~20 종합 파이널 테스트' },
-      { id: 'vocab_pdf', emoji: '📥', label: '4주 단어집 PDF 다운로드' },
-      { id: 'final_report', emoji: '📊', label: '4주 종합 리포트 (약점·강점 분석)' },
-    ],
+    // Week 4 는 파이널/PDF 가 설문 시점엔 아직 안 보여서 '업데이트 좋았던 것' 질문 X.
+    // → updates 비워두면 Q1 이 '단어 난이도' 질문으로 대체됨 (아래 q1Html).
+    '4': [],
   };
   const updates = WEEK_UPDATES[String(weekN)] || [];
 
@@ -22695,8 +22697,23 @@ function MiniWeekSurveyModal() {
     </div>
   `;
 
-  // 2) Q1: 이번 주 업데이트 중 좋았던 거 (multi)
-  const q1Html = updates.length === 0 ? '' : `
+  // 2) Q1 — 업데이트 있는 주차(2·3)면 '좋았던 업데이트', 없는 주차(4)면 '단어 난이도'.
+  const DIFF_OPTS = [
+    { v: 1, label: '😴 너무 쉬웠어요' },
+    { v: 2, label: '🙂 쉬운 편' },
+    { v: 3, label: '👍 딱 적당했어요' },
+    { v: 4, label: '😮‍💨 어려운 편' },
+    { v: 5, label: '🥵 너무 어려웠어요' },
+  ];
+  const q1Html = updates.length === 0 ? `
+    ${sectionH(1, '이번 주 단어 난이도는 어땠어요?')}
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+      ${DIFF_OPTS.map((o) => {
+        const active = Number(draft.difficulty) === o.v;
+        return `<button data-mini-difficulty="${o.v}" style="width:100%;text-align:left;padding:11px 14px;border-radius:12px;background:${active ? 'var(--ink)' : '#fff'};color:${active ? 'var(--cream)' : 'var(--ink)'};border:1px solid ${active ? 'var(--ink)' : 'var(--line)'};font-size:13px;font-weight:${active ? '700' : '500'};cursor:pointer;">${escapeHtml(o.label)}</button>`;
+      }).join('')}
+    </div>
+  ` : `
     ${sectionH(1, '이번 주 업데이트 중 어떤 게 제일 좋았어요? (여러 개 OK)')}
     <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
       ${updates.map(u => {
@@ -22714,7 +22731,7 @@ function MiniWeekSurveyModal() {
 
   // 3) Q2: hardest vocab (existing)
   const q2Html = `
-    ${sectionH(updates.length ? 2 : 1, `이번 주 가장 헷갈렸던 단어 1개?`)}
+    ${sectionH(2, `이번 주 가장 헷갈렸던 단어 1개?`)}
     <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
       ${vocab.map((v) => {
         const active = draft.hardest === v.en;
@@ -22725,7 +22742,7 @@ function MiniWeekSurveyModal() {
 
   // 4) Q3: amount
   const q3Html = `
-    ${sectionH(updates.length ? 3 : 2, '학습 분량 어땠어요?')}
+    ${sectionH(3, '학습 분량(단어 수) 어땠어요?')}
     <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
       ${[
         { v: 'just_right', label: '😌 적당했어요' },
@@ -22741,7 +22758,7 @@ function MiniWeekSurveyModal() {
 
   // 5) Q4: next_week_wish (multi)
   const q4Html = wishes.length === 0 ? '' : `
-    ${sectionH(updates.length ? 4 : 3, `${weekN >= 4 ? '다음 기수에' : 'Week ' + (weekN + 1) + ' 에'} 이거 있으면 좋겠어요 (복수 선택)`)}
+    ${sectionH(4, `${weekN >= 4 ? '다음 기수에' : 'Week ' + (weekN + 1) + ' 에'} 이거 있으면 좋겠어요 (복수 선택)`)}
     <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
       ${wishes.map(w => {
         const active = (draft.next_week_wish || []).includes(w.id);
@@ -22754,7 +22771,7 @@ function MiniWeekSurveyModal() {
   `;
 
   // 6) Q5 (required): comment 한 줄 — 위 옵션 외 진짜 후기
-  const qCommentN = updates.length ? (wishes.length ? 5 : 4) : (wishes.length ? 4 : 3);
+  const qCommentN = wishes.length ? 5 : 4;
   const commentHtml = `
     ${sectionH(qCommentN, '진짜 후기 한 줄 (필수 · 5자 이상)')}
     <textarea id="__miniSurveyComment" maxlength="300" placeholder="예) 아니 이 프로그램 너무 도움돼요.. 단어 벌써 다 외웠어요&#10;예) 특히 매번 이 화면 띄워놓고 있으니까 저절로 외워져요&#10;예) Day 13 빡셌는데 미팅 너무 좋았어요!" style="width:100%;margin-top:8px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:13px;font-family:inherit;line-height:1.5;color:var(--ink);resize:vertical;min-height:90px;box-sizing:border-box;">${escapeHtml(draft.comment || '')}</textarea>
@@ -22797,6 +22814,19 @@ function MiniWeekSurveyModal() {
         draft.amount = btn.getAttribute('data-mini-amount');
         body.querySelectorAll('[data-mini-amount]').forEach((b) => {
           const active = b.getAttribute('data-mini-amount') === draft.amount;
+          b.style.background = active ? 'var(--ink)' : '#fff';
+          b.style.color = active ? 'var(--cream)' : 'var(--ink)';
+          b.style.borderColor = active ? 'var(--ink)' : 'var(--line)';
+          b.style.fontWeight = active ? '700' : '500';
+        });
+      });
+    });
+    // Q1 (Week 4) — 단어 난이도 (단일 선택)
+    body.querySelectorAll('[data-mini-difficulty]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        draft.difficulty = Number(btn.getAttribute('data-mini-difficulty'));
+        body.querySelectorAll('[data-mini-difficulty]').forEach((b) => {
+          const active = Number(b.getAttribute('data-mini-difficulty')) === draft.difficulty;
           b.style.background = active ? 'var(--ink)' : '#fff';
           b.style.color = active ? 'var(--cream)' : 'var(--ink)';
           b.style.borderColor = active ? 'var(--ink)' : 'var(--line)';
