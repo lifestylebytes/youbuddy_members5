@@ -6981,6 +6981,7 @@ const lookupCode = (raw) => {
 // 'register' = 신규 등록 위저드(코드 필요). 로그아웃하면 'login' 으로 보내서 재등록처럼 안 보이게.
 let __authMode = null;
 let __loginName = '';
+let __loginCode = '';
 let __loginBusy = false;
 let __onboardStep = 0;   // 0: name+nick+code+timezone, 1: goal, 2: role+yoe, 3: focus+issue
 let __onboardDraft = {
@@ -7080,13 +7081,17 @@ function LoginPage() {
     <div class="kicker">로그인</div>
     <h2 style="margin:6px 0 12px;font-size:20px;font-weight:800;letter-spacing:-0.02em;">다시 오신 걸 환영해요</h2>
     <p class="t-body" style="font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:16px;">
-      등록할 때 쓴 <b>이름</b>으로 로그인해요. 접속 코드는 처음 등록할 때만 필요하고, 이후엔 이름만으로 들어와요.
+      등록할 때 쓴 <b>이름</b>과 <b>접속 코드</b>로 로그인해요. 본인 확인용이라 다른 사람은 들어올 수 없어요.
     </p>
-    <label style="display:grid;gap:6px;margin-bottom:6px;">
+    <label style="display:grid;gap:6px;margin-bottom:12px;">
       <span class="kicker" style="color:var(--muted);">이름</span>
       <input id="__loginNameInp" class="input" type="text" placeholder="예: 홍길동" value="${escapeHtml(__loginName)}" autocomplete="name" />
     </label>
-    <p id="__loginHint" style="margin:6px 0 0;font-size:11px;color:var(--muted);">등록할 때 입력한 이름과 똑같이 적어주세요.</p>
+    <label style="display:grid;gap:6px;margin-bottom:6px;">
+      <span class="kicker" style="color:var(--muted);">접속 코드</span>
+      <input id="__loginCodeInp" class="input" type="text" placeholder="운영팀이 보내드린 접속 코드" value="${escapeHtml(__loginCode)}" autocomplete="off" inputmode="numeric" />
+    </label>
+    <p id="__loginHint" style="margin:6px 0 0;font-size:11px;color:var(--muted);">등록할 때 입력한 이름·코드와 똑같이 적어주세요.</p>
   `;
   page.appendChild(card);
 
@@ -7105,10 +7110,15 @@ function LoginPage() {
 
   setTimeout(() => {
     const inp = document.getElementById('__loginNameInp');
+    const codeInp = document.getElementById('__loginCodeInp');
     if (inp) {
       inp.oninput = (e) => { __loginName = e.target.value; };
       inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); __doLogin(); } };
       inp.focus();
+    }
+    if (codeInp) {
+      codeInp.oninput = (e) => { __loginCode = e.target.value; };
+      codeInp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); __doLogin(); } };
     }
   }, 0);
   return page;
@@ -7122,10 +7132,19 @@ async function __doLogin() {
     const h = document.getElementById('__loginHint');
     if (h) { h.textContent = msg; h.style.color = warn ? 'var(--orange-dark)' : 'var(--muted)'; }
   };
+  const code = (__loginCode || '').trim();
   if (!name) { setHint('이름을 입력해주세요.', true); return; }
+  if (!code) { setHint('접속 코드를 입력해주세요. 본인 확인용이에요.', true); return; }
+  // 코드 검증: 유효하지 않거나, 개인 코드인데 이름이 다르면 차단 (남이 못 들어오게).
+  const match = (typeof lookupCode === 'function') ? lookupCode(code) : null;
+  if (!match) { setHint('접속 코드가 맞지 않아요. 다시 확인해주세요.', true); return; }
+  if (!match.generic && match.name && name !== match.name) {
+    setHint('이름과 접속 코드가 일치하지 않아요. 다시 확인해주세요.', true);
+    return;
+  }
   if (!hasSupabase()) {
     // 서버 없음(로컬 데모) = 재로그인 판별 불가 → 신규 등록으로.
-    __authMode = 'register'; __onboardStep = 0; __onboardDraft.name = name; render(); return;
+    __authMode = 'register'; __onboardStep = 0; __onboardDraft.name = name; __onboardDraft.code = code; render(); return;
   }
   __loginBusy = true; setHint('기존 기록을 확인하고 있어요…', false); render();
   const dirByName = (typeof MEMBER_DIRECTORY !== 'undefined') ? MEMBER_DIRECTORY.find((m) => m.name === name) : null;
@@ -7143,11 +7162,13 @@ async function __doLogin() {
       (typeof remote.role === 'string' && remote.role.trim().length > 0)
     )
   );
-  // 디렉토리에 등록된 멤버(운영자·스태프 등)는 서버 가입 기록이 없어도 입장 허용.
-  // (유버디/운영팀 등은 코드로 들어오던 계정이라 별도 가입 레코드가 없을 수 있음)
+  // 코드·이름은 맞지만 서버 가입 기록이 없고 디렉토리 멤버도 아님 = 사실상 첫 등록.
+  // (운영자·스태프는 디렉토리에 있어 기록 없어도 통과) → 신규 등록으로 부드럽게 이어줌.
   if (!remotelyRegistered && !dirByName) {
     __loginBusy = false;
-    setHint('등록된 이름을 찾지 못했어요. 처음이라면 아래 "신규 등록"으로 시작해주세요.', true);
+    __authMode = 'register'; __onboardStep = 0;
+    __onboardDraft.name = name; __onboardDraft.code = code;
+    showToast('처음이시네요! 간단한 등록만 마치면 돼요.');
     render();
     return;
   }
@@ -7156,7 +7177,9 @@ async function __doLogin() {
   state.name = name;
   state.accountKey = probeKey;
   if (!state.timezoneOffsetText) { state.timezoneOffsetText = '+0h'; state.timezoneOffsetMinutes = DEFAULT_TIMEZONE_OFFSET; }
-  const tierSrc = dirByName;
+  // tier 출처: 코드 매치(match) 우선, 없으면 디렉토리(dirByName).
+  const tierSrc = match || dirByName;
+  state.accessCode = code;
   if (state.tierOverride === 'basic') state.tier = 'basic';
   else if (state.tierOverride === 'premium') state.tier = 'premium';
   else if (tierSrc && tierSrc.tier) state.tier = tierSrc.tier;
@@ -7175,6 +7198,7 @@ async function __doLogin() {
   __loginBusy = false;
   __authMode = null;
   __loginName = '';
+  __loginCode = '';
   showToast(`다시 만나서 반가워요, ${state.name}!`);
   currentPage = 'home';
   saveRoute();
@@ -24944,6 +24968,7 @@ window.__logoutBeta = () => {
   // 로그아웃 = 이미 등록한 사람. 신규 등록처럼 안 보이게 '로그인' 화면으로.
   __authMode = 'login';
   __loginName = __prevName;
+  __loginCode = '';
   __loginBusy = false;
   showSettings = false;
   showPremiumGate = false;
