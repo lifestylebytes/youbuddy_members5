@@ -1674,7 +1674,7 @@ const MEMBER_DIRECTORY = [
      - isStaff:   통계 (완주율·인증률·"5기 39명") 에서 제외, 보드에는 보임, 운영팀 배지는 UI 에서 숨김
      - hidden:    보드/랭킹/커뮤니티 어디에도 안 보임 (본인 로그인해도 '나' 슬롯만 보임, 다른 사람 눈엔 없음) */
   { code: '00', id: 'op1', name: '유버디', color: 'ink',   tier: 'premium', role: '운영팀', isOperator: true,  isStaff: true },
-  { code: '42', id: 'op2', name: '이규태', color: 'ink',   tier: 'premium' }, // 운영팀 → 일반 멤버 강등 (테스트용). 복구하려면 role:'운영팀', isStaff:true 다시 추가.
+  { code: '42', id: 'op2', name: '이규태', color: 'ink',   tier: 'premium', role: '운영팀', isStaff: true }, // 운영팀 복구 (Day1 사전 테스트 위해 staff 권한)
   { code: '43', id: 'op3', name: '이지흔', color: 'cream', tier: 'basic',   role: '운영팀', isStaff: true },
   { code: '44', id: 'ghost1', name: '모모', color: 'cream', tier: 'basic',  hidden: true, ghost: true, isStaff: true },
 
@@ -1837,7 +1837,7 @@ const defaultState = () => ({
   community_comments: {},         // { "post-id": [{ text, author, createdAt }] }
   meeting_notes: {},              // { "m1": { talk_points:[], meeting_notes: '' } }
   meeting_consent: null,          // { accepted: true, at: ISO, version: 1, tz: '+0h' }, 프리미엄 미팅 녹화/분석 사전 동의 기록. operator 가 감사용으로 열람.
-  operatorPreviewUnlock: false,   // OPERATOR only, 챌린지 시작 전(D-?) 에도 제출/AI/시험 풀어서 전체 플로우 테스트. 운영자 본인한테만 적용됨 (멤버 영향 X).
+  operatorPreviewUnlock: true,    // 6기: 운영자/스태프는 시작 전에도 Day1 제출/AI/시험 미리 가능 (challengeStarted 가 isOperator||isStaff 일 때만 적용 → 일반 멤버는 영향 X). 끄려면 설정(운영자) 토글.
   operatorDayOverride: null,      // OPERATOR only, 운영자가 원하는 Day 번호로 currentDay 강제 점프 (테스트용). null 이면 캘린더 기준.
   presenterSignups: {},           // { "w1": ["member_key_a", "member_key_b"] }, 주차별 선착순 발표자
   presenter_prep: {},             // { "w1": { vocabPicked:[], script:'', privateNotes:'' } }, 본인 발표 준비
@@ -3186,11 +3186,11 @@ const GUIDED_TOUR_STEPS = [
   { page: 'home',      target: '[data-tour="streak-board"]',  title: '데일리 인증 보드', bodyHtml: '여기 내 칸에 매일 인증이 쌓여요. 정시 인증은 1점, 늦으면 0.5점이에요. <b style="color:#E94C6B;font-weight:800;">단, 4번 연속으로 참여하지 않으면 계정이 비활성화돼요</b> (다시 시작하려면 유버디에게 따로 연락주세요). 끝까지 함께 가려고 강하게 잡는 거니 참고해주세요!', body: '여기 내 칸에 매일 인증이 쌓여요. 정시 인증은 1점, 늦으면 0.5점이에요. 단, 4번 연속으로 참여하지 않으면 계정이 비활성화돼요 (다시 시작하려면 유버디에게 따로 연락주세요). 끝까지 함께 가려고 강하게 잡는 거니 참고해주세요!' },
   { page: 'weeks',     target: '[data-tour="tab-weeks"]',     title: '내 학습 탭', body: '오늘 학습은 이 탭이 모여있는 곳이에요. Day 1~20 페이지를 언제든 다시 볼 수 있어요.' },
   { page: 'day', opts: { day: 1, week: 1 }, target: '[data-tour="day-today3"]',      title: '① 오늘의 표현 3개', body: '먼저 오늘 배울 표현 3개를 만나요. 여기 today\'s 3 에서 오늘의 표현을 한눈에 볼 수 있어요.' },
-  { page: 'day', opts: { day: 1, week: 1 }, target: '[data-tour="day-vocab"]',      title: '② 따라 읽기', body: '🔊 발음을 듣고 한 번씩 소리 내어 따라 읽어요. 입으로 굴려봐야 실전에서 나와요.' },
+  { page: 'day', opts: { day: 1, week: 1 }, target: '[data-tour="day-vocab-first"]',      title: '② 따라 읽기', body: '이렇게 표현이 한 장씩 카드로 나와요 (예: #1 Pull in). 🔊 버튼으로 발음을 듣고 한 번씩 소리 내어 따라 읽어요. 입으로 굴려봐야 실전에서 나와요.' },
   { page: 'day', opts: { day: 1, week: 1 }, target: '[data-tour="day-read-check"]', title: '③ 3번 읽기 체크 (필수)', body: '3번 소리 내어 읽었으면 이 버튼을 꼭 눌러주세요. 인증의 첫 단계예요.' },
-  { page: 'day', opts: { day: 1, week: 1 }, target: '[data-tour="day-compose-input"]', title: '④ 영작', body: '한국어 문장을 보고, 오늘 배운 표현으로 이 칸에 영어 문장을 직접 만들어요.' },
-  { page: 'day', opts: { day: 1, week: 1 }, previewSubmit: true, target: '[data-tour="day-ai-btn"]', title: '⑤ AI 첨삭', body: '문장을 제출하면 이 AI 첨삭 버튼이 생겨요. 누르면 AI가 어색한 부분을 자연스럽게 고쳐줘요. (지금은 미리보기로 보여드려요)' },
-  { page: 'community', target: '[data-tour="tab-community"]', title: '커뮤니티', body: '내가 제출한 문장과 동료 문장을 여기서 봐요. 내 문장을 먼저 써야 동료 문장이 열려요.' },
+  { page: 'day', opts: { day: 1, week: 1 }, target: '[data-tour="day-compose-block"]', title: '④ 영작', body: '내가 실제로 쓸 수 있는 말을 한국어로 먼저 작성하고, 그 다음 오늘 배운 표현으로 영어로 써보세요.' },
+  { page: 'day', opts: { day: 1, week: 1 }, previewSubmit: true, target: '[data-tour="day-ai-btn"]', title: '⑤ AI 첨삭', body: '문장을 제출하면 이 AI 첨삭 버튼이 생겨요. 누르면 AI가 어색한 부분을 자연스럽게 고쳐줘요. 베이직은 한 문장당 한 번 받을 수 있고, 프리미엄은 무제한으로 받을 수 있어요.' },
+  { page: 'community', target: '[data-tour="tab-community"]', title: '커뮤니티', body: '내가 제출한 문장과 동료들의 문장을 여기서 함께 봐요. 다른 사람은 어떻게 썼는지 구경하며 표현을 늘려요.' },
   { page: 'home',      target: '[data-tour="streak-board"]',  title: '인증 완료', body: '단어 시험까지 풀면 그날 인증 완료! 홈 보드의 내 칸에 바로 표시돼요.' },
   { page: 'day', opts: { day: 1, week: 1 }, previewVerify: true, target: '[data-tour="day-video"]', title: '오늘의 영상', body: '인증이 끝나면 학습 페이지 맨 위에 "오늘의 영상"이 열려요. 귀가 트이는 짧은 영상으로 가볍게 마무리해요. (지금은 미리보기로 보여드려요)' },
   { page: 'home',      target: null,                          title: '단톡 인증', media: KAKAO_ILLUST, body: '마지막으로 오늘 제출한 문장을 녹음해서 단톡에 올리면 그날 인증이 끝나요. 단톡 인증은 챌린지의 핵심이라 꼭 올려주세요!' },
@@ -3208,11 +3208,13 @@ function __tourNav(s) {
 }
 function startGuidedTour() {
   guidedTourStep = 0;
+  window.__tourLastPositionedStep = null;
   const s = GUIDED_TOUR_STEPS[0];
   __tourNav(s);
 }
 function endGuidedTour(done) {
   guidedTourStep = null;
+  window.__tourLastPositionedStep = null;
   window.__tourVerifyPreview = null;
   window.__tourSubmitPreview = null;
   window.__tourQuizPreview = false;
@@ -3285,12 +3287,16 @@ function GuidedTourOverlay() {
     card.style.top = 'auto'; card.style.bottom = '110px';
   };
   // 대상으로 스크롤 후 측정 (렌더 직후 레이아웃 안정화 대기)
+  // 같은 스텝에서 render() 가 여러 번 불려도(피어 티커/멤버 요약 등) 재스크롤하지 않게 가드.
+  // 스크롤은 스텝이 '바뀔 때만', reposition(링 위치 보정)만 매번 수행 → 깜빡임 제거.
+  const stepChanged = window.__tourLastPositionedStep !== i;
+  window.__tourLastPositionedStep = i;
   setTimeout(() => {
     const t = step.target ? document.querySelector(step.target) : null;
     // 즉시(auto) 스크롤 후 측정해야 위치가 정확함 (smooth 중 측정하면 엉뚱한 곳에 링이 뜸).
-    if (t) { try { t.scrollIntoView({ behavior: 'auto', block: 'center' }); } catch (_) {} }
+    if (stepChanged && t) { try { t.scrollIntoView({ behavior: 'auto', block: 'center' }); } catch (_) {} }
     reposition();
-    setTimeout(reposition, 140); // 레이아웃 안정화 후 한 번 더 보정
+    if (stepChanged) setTimeout(reposition, 140); // 레이아웃 안정화 후 한 번 더 보정
   }, 40);
   return wrap;
 }
@@ -5693,7 +5699,10 @@ function render() {
     let page;
     // Force onboarding for first-visit users. Demo mode bypasses.
     if (!state.onboarded && !__DEMO_MODE__) {
-      page = OnboardingPage();
+      // 로그인 / 신규 등록 분리. 랜딩(__authMode=null)에서 둘 중 하나 선택.
+      if (__authMode === 'register') page = OnboardingPage();
+      else if (__authMode === 'login') page = LoginPage();
+      else page = AuthLandingPage();
       app.appendChild(page);
       // atomic swap, old DOM tree replaced in one operation, scrollY 유지
       root.replaceChildren(app);
@@ -6968,6 +6977,11 @@ const lookupCode = (raw) => {
   if (!k) return null;
   return ONBOARD_CODE_MAP[k] || ONBOARD_CODE_MAP[k.toUpperCase()] || ONBOARD_CODE_MAP[k.toLowerCase()] || null;
 };
+// 인증 화면 모드. null = 시작 랜딩(로그인/신규 등록 선택), 'login' = 로그인(이름만),
+// 'register' = 신규 등록 위저드(코드 필요). 로그아웃하면 'login' 으로 보내서 재등록처럼 안 보이게.
+let __authMode = null;
+let __loginName = '';
+let __loginBusy = false;
 let __onboardStep = 0;   // 0: name+nick+code+timezone, 1: goal, 2: role+yoe, 3: focus+issue
 let __onboardDraft = {
   name: '',
@@ -6991,6 +7005,179 @@ const __FOCUS_AREA_OPTIONS = [
   '발표/데모 스크립트',
 ];
 const __YOE_OPTIONS = ['신입', '1-3년', '4-7년', '8년+', '비공개'];
+
+// 공용 브랜드 헤더 (랜딩/로그인/등록 공통)
+function __authBrand() {
+  const brand = el('div', { style: { textAlign: 'center', marginBottom: '24px' } });
+  brand.innerHTML = `
+    <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--orange-ghost);color:var(--orange-dark);font-size:11px;font-weight:700;letter-spacing:0.1em;">
+      YOUBUDDY · MEMBERS 6
+    </div>
+    <h1 style="margin:16px 0 6px;font-size:28px;line-height:1.15;letter-spacing:-0.03em;font-weight:800;">
+      <span class="serif">비즈니스 영어</span> 챌린지
+    </h1>
+    <p style="margin:0;font-size:13.5px;color:var(--ink-soft);line-height:1.5;">매일 20분, 20일이면 회의 영어가 달라져요.</p>`;
+  return brand;
+}
+function __authPageShell() {
+  return el('div', {
+    class: 'page',
+    style: {
+      minHeight: '100vh',
+      paddingTop: '44px',
+      paddingLeft: '22px',
+      paddingRight: '22px',
+      paddingBottom: '120px',
+      background: 'linear-gradient(180deg, #FFFDF7 0%, #FFF4E6 100%)',
+    }
+  });
+}
+
+// 시작 랜딩: 로그인 / 신규 등록 둘 중 선택. 로그인을 위에(주) 배치.
+function AuthLandingPage() {
+  const page = __authPageShell();
+  page.appendChild(__authBrand());
+
+  const card = el('div', {
+    class: 'card',
+    style: { padding: '24px 20px', borderRadius: '24px', background: '#FFFDF7', border: '1px solid var(--line)', boxShadow: '0 20px 50px -30px rgba(66,48,28,0.2)' }
+  });
+  card.innerHTML = `
+    <h2 style="margin:0 0 6px;font-size:20px;font-weight:800;letter-spacing:-0.02em;">시작할까요?</h2>
+    <p class="t-body" style="font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:18px;">
+      이미 참여 중이면 <b>로그인</b>, 6기에 처음 들어오면 <b>신규 등록</b>을 눌러주세요.
+    </p>`;
+  const loginBtn = el('button', {
+    class: 'btn btn-primary btn-lg',
+    style: { width: '100%', padding: '15px 18px', fontWeight: '700', marginBottom: '10px' },
+    onClick: () => { __authMode = 'login'; __loginName = state.name || ''; render(); },
+  }, '로그인');
+  const regBtn = el('button', {
+    class: 'btn btn-ghost btn-lg',
+    style: { width: '100%', padding: '15px 18px', fontWeight: '700' },
+    onClick: () => { __authMode = 'register'; __onboardStep = 0; render(); },
+  }, '신규 등록 (처음이에요)');
+  card.appendChild(loginBtn);
+  card.appendChild(regBtn);
+  page.appendChild(card);
+
+  const footer = el('p', { style: { marginTop: '18px', textAlign: 'center', fontSize: '11px', color: 'var(--muted)', lineHeight: '1.6' } });
+  footer.innerHTML = '6기 · 2026/6/8 ~ 7/3 · 매일 하루 한 페이지';
+  page.appendChild(footer);
+  return page;
+}
+
+// 로그인: 이름만 입력. 재방문자 전용 (서버 기록 있으면 입장, 없으면 신규 등록 안내).
+function LoginPage() {
+  const page = __authPageShell();
+  page.appendChild(__authBrand());
+
+  const card = el('div', {
+    class: 'card',
+    style: { padding: '24px 20px', borderRadius: '24px', background: '#FFFDF7', border: '1px solid var(--line)', boxShadow: '0 20px 50px -30px rgba(66,48,28,0.2)' }
+  });
+  card.innerHTML = `
+    <div class="kicker">로그인</div>
+    <h2 style="margin:6px 0 12px;font-size:20px;font-weight:800;letter-spacing:-0.02em;">다시 오신 걸 환영해요</h2>
+    <p class="t-body" style="font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:16px;">
+      등록할 때 쓴 <b>이름</b>으로 로그인해요. 접속 코드는 처음 등록할 때만 필요하고, 이후엔 이름만으로 들어와요.
+    </p>
+    <label style="display:grid;gap:6px;margin-bottom:6px;">
+      <span class="kicker" style="color:var(--muted);">이름</span>
+      <input id="__loginNameInp" class="input" type="text" placeholder="예: 홍길동" value="${escapeHtml(__loginName)}" autocomplete="name" />
+    </label>
+    <p id="__loginHint" style="margin:6px 0 0;font-size:11px;color:var(--muted);">등록할 때 입력한 이름과 똑같이 적어주세요.</p>
+  `;
+  page.appendChild(card);
+
+  const loginBtn = el('button', {
+    class: 'btn btn-primary',
+    style: { width: '100%', padding: '15px 18px', fontWeight: '700', marginTop: '18px' },
+    onClick: () => __doLogin(),
+  }, __loginBusy ? '확인 중…' : '로그인');
+  page.appendChild(loginBtn);
+
+  const toReg = el('button', {
+    style: { width: '100%', marginTop: '12px', background: 'transparent', border: 'none', padding: '8px', fontSize: '12.5px', color: 'var(--muted)', textDecoration: 'underline', cursor: 'pointer' },
+    onClick: () => { __authMode = 'register'; __onboardStep = 0; __onboardDraft.name = __loginName || __onboardDraft.name; render(); },
+  }, '처음이신가요? 신규 등록하기');
+  page.appendChild(toReg);
+
+  setTimeout(() => {
+    const inp = document.getElementById('__loginNameInp');
+    if (inp) {
+      inp.oninput = (e) => { __loginName = e.target.value; };
+      inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); __doLogin(); } };
+      inp.focus();
+    }
+  }, 0);
+  return page;
+}
+
+// 이름만으로 재로그인. 서버에 가입 기록이 있으면 입장, 없으면 신규 등록 유도.
+async function __doLogin() {
+  if (__loginBusy) return;
+  const name = (__loginName || '').trim();
+  const setHint = (msg, warn) => {
+    const h = document.getElementById('__loginHint');
+    if (h) { h.textContent = msg; h.style.color = warn ? 'var(--orange-dark)' : 'var(--muted)'; }
+  };
+  if (!name) { setHint('이름을 입력해주세요.', true); return; }
+  if (!hasSupabase()) {
+    // 서버 없음(로컬 데모) = 재로그인 판별 불가 → 신규 등록으로.
+    __authMode = 'register'; __onboardStep = 0; __onboardDraft.name = name; render(); return;
+  }
+  __loginBusy = true; setHint('기존 기록을 확인하고 있어요…', false); render();
+  const dirByName = (typeof MEMBER_DIRECTORY !== 'undefined') ? MEMBER_DIRECTORY.find((m) => m.name === name) : null;
+  const probeKey = name; // 6기: 이름 기준 식별키
+  const prevAccountKey = state.accountKey;
+  state.accountKey = probeKey;
+  let remote = null;
+  try { remote = await loadRemoteState(); } catch (_) { remote = null; }
+  state.accountKey = prevAccountKey;
+  const remotelyRegistered = !!(
+    remote && typeof remote === 'object' && (
+      remote.signedUp === true ||
+      remote.onboarded === true ||
+      (typeof remote.goal === 'string' && remote.goal.trim().length > 0) ||
+      (typeof remote.role === 'string' && remote.role.trim().length > 0)
+    )
+  );
+  if (!remotelyRegistered) {
+    __loginBusy = false;
+    setHint('등록된 이름을 찾지 못했어요. 처음이라면 아래 "신규 등록"으로 시작해주세요.', true);
+    render();
+    return;
+  }
+  // 입장 처리: 서버 상태 병합 후 홈으로.
+  try { mergePersistedState(remote); } catch (_) {}
+  state.name = name;
+  state.accountKey = probeKey;
+  if (!state.timezoneOffsetText) { state.timezoneOffsetText = '+0h'; state.timezoneOffsetMinutes = DEFAULT_TIMEZONE_OFFSET; }
+  const tierSrc = dirByName;
+  if (state.tierOverride === 'basic') state.tier = 'basic';
+  else if (state.tierOverride === 'premium') state.tier = 'premium';
+  else if (tierSrc && tierSrc.tier) state.tier = tierSrc.tier;
+  if (tierSrc) {
+    state.isOperator = !!tierSrc.isOperator;
+    state.isStaff = !!tierSrc.isStaff;
+    state.ghost = !!tierSrc.ghost;
+    if (tierSrc.code) state.accessCode = tierSrc.code;
+  }
+  state.onboarded = true;
+  state.signedUp = true;
+  state.currentDay = computeCurrentDay();
+  bindMeToMembers();
+  saveState({ immediate: true });
+  try { await loadMemberSummaries({ force: true }); } catch (_) {}
+  __loginBusy = false;
+  __authMode = null;
+  __loginName = '';
+  showToast(`다시 만나서 반가워요, ${state.name}!`);
+  currentPage = 'home';
+  saveRoute();
+  render();
+}
 
 function OnboardingPage() {
   // reset draft from state on fresh mount so resume picks up
@@ -7058,10 +7245,10 @@ function OnboardingPage() {
 
   if (__onboardStep === 0) {
     card.innerHTML = `
-      <div class="kicker">step 1 · 시작하기</div>
-      <h2 style="margin:6px 0 12px;font-size:20px;font-weight:800;letter-spacing:-0.02em;">이름과 시차를 입력해요</h2>
+      <div class="kicker">신규 등록 · step 1</div>
+      <h2 style="margin:6px 0 12px;font-size:20px;font-weight:800;letter-spacing:-0.02em;">처음이시군요! 기본 정보를 등록해요</h2>
       <p class="t-body" style="font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:16px;">
-        이름은 커뮤니티에 보이고, 시차는 한국 기준으로 적어요. 한국이면 <b>+0h</b>예요. 접속 코드는 <b>처음 한 번만</b> 필요하고, 이후엔 이름만으로 로그인돼요.
+        이름은 커뮤니티에 보이고, 시차는 한국 기준으로 적어요. 한국이면 <b>+0h</b>예요. 접속 코드는 <b>신규 등록할 때만</b> 필요하고, 다음부터는 이름만으로 로그인해요.
       </p>
       <label style="display:grid;gap:6px;margin-bottom:12px;">
         <span class="kicker" style="color:var(--muted);">이름</span>
@@ -7073,8 +7260,8 @@ function OnboardingPage() {
         <span style="font-size:10.5px;color:var(--muted);">멤버 리스트·카드에 이 이름으로 보여요. 비워두면 한국어 이름으로 표시돼요.</span>
       </label>
       <label style="display:grid;gap:6px;margin-bottom:6px;">
-        <span class="kicker" style="color:var(--muted);">접속 코드 <span style="color:var(--muted);font-weight:400;">(처음 한 번만)</span></span>
-        <input id="__obCode" class="input" type="text" placeholder="처음이면 코드 입력 · 재방문이면 비워두세요" value="${escapeHtml(__onboardDraft.code)}" autocomplete="off" inputmode="numeric" />
+        <span class="kicker" style="color:var(--muted);">접속 코드 <span style="color:var(--muted);font-weight:400;">(신규 등록 필수)</span></span>
+        <input id="__obCode" class="input" type="text" placeholder="운영팀이 보내드린 접속 코드를 입력하세요" value="${escapeHtml(__onboardDraft.code)}" autocomplete="off" inputmode="numeric" />
       </label>
       <label style="display:grid;gap:6px;margin-top:12px;">
         <span class="kicker" style="color:var(--muted);">한국 대비 시차</span>
@@ -7186,6 +7373,15 @@ function OnboardingPage() {
   }, nextLabel);
   navRow.appendChild(next);
   page.appendChild(navRow);
+
+  // 신규 등록 첫 화면에서 '이미 등록했어요? 로그인' 으로 빠져나갈 수 있게.
+  if (__onboardStep === 0) {
+    const toLogin = el('button', {
+      style: { width: '100%', marginTop: '12px', background: 'transparent', border: 'none', padding: '8px', fontSize: '12.5px', color: 'var(--muted)', textDecoration: 'underline', cursor: 'pointer' },
+      onClick: () => { __authMode = 'login'; __loginName = (__onboardDraft.name || '').trim(); render(); },
+    }, '이미 등록했어요? 로그인하기');
+    page.appendChild(toLogin);
+  }
 
   // Hints / footer
   const footer = el('p', {
@@ -7507,9 +7703,9 @@ function HomePage() {
     const cDay = Number(state.currentDay) || 0;
     const preset = SPACED_REPEAT_PRESETS[String(cDay)];
     const seen = state.spaced_repeat_seen || {};
-    if (preset && !seen[`day${cDay}`] && !showSpacedRepeatPopup && challengeStarted()) {
+    if (preset && !seen[`day${cDay}`] && !showSpacedRepeatPopup && challengeStarted() && guidedTourStep === null) {
       setTimeout(() => {
-        if (!showSpacedRepeatPopup && !(state.spaced_repeat_seen || {})[`day${cDay}`]) {
+        if (!showSpacedRepeatPopup && guidedTourStep === null && !(state.spaced_repeat_seen || {})[`day${cDay}`]) {
           showSpacedRepeatPopup = { dayN: cDay, ...preset };
           render();
         }
@@ -7519,7 +7715,7 @@ function HomePage() {
     // Day 15 (Friday 보스 테스트일), 지금까지 누적 가장 많이 틀린 main 단어 5개 동적 팝업.
     // 서버 RPC get_cohort_vocab_stats 에서 weakness_score 기준 top 5 (main only, syn 제외).
     // seenKey = 'day15-top-wrong' (preset 의 'day15' 와 분리, 둘 다 노출 가능).
-    if (cDay === 15 && !seen['day15-top-wrong'] && !showSpacedRepeatPopup && challengeStarted()) {
+    if (cDay === 15 && !seen['day15-top-wrong'] && !showSpacedRepeatPopup && challengeStarted() && guidedTourStep === null) {
       setTimeout(async () => {
         if (showSpacedRepeatPopup || (state.spaced_repeat_seen || {})['day15-top-wrong']) return;
         try {
@@ -7548,10 +7744,10 @@ function HomePage() {
       const sessionTriggered = !!window.__wrapupTriggeredSession[String(weekN)];
       const reviewDone = !!(state.bingo_done && state.bingo_done[String(weekN)]);
       const locked = isReviewLocked(weekN);
-      if (allDaysVerified && !alreadyShown && !sessionTriggered && !reviewDone && !locked && !showWeekWrapupPopup && challengeStarted()) {
+      if (allDaysVerified && !alreadyShown && !sessionTriggered && !reviewDone && !locked && !showWeekWrapupPopup && challengeStarted() && guidedTourStep === null) {
         window.__wrapupTriggeredSession[String(weekN)] = true; // 세션 가드 즉시 set
         setTimeout(() => {
-          if (showWeekWrapupPopup) return;
+          if (showWeekWrapupPopup || guidedTourStep !== null) return;
           if ((state.friday_redirect_seen || {})[String(weekN)]) return;
           showWeekWrapupPopup = weekN;
           render();
@@ -7568,9 +7764,9 @@ function HomePage() {
     const cWeek = Math.min(4, Math.max(1, Math.ceil(cDay / 5)));
     const seenKey = `v${cWeek}`;
     const seen = state.weekly_quiz_popup_seen || {};
-    if (!seen[seenKey] && !showWeeklyQuizPopup && challengeStarted()) {
+    if (!seen[seenKey] && !showWeeklyQuizPopup && challengeStarted() && guidedTourStep === null) {
       setTimeout(() => {
-        if (!showWeeklyQuizPopup && !(state.weekly_quiz_popup_seen || {})[seenKey]) {
+        if (!showWeeklyQuizPopup && guidedTourStep === null && !(state.weekly_quiz_popup_seen || {})[seenKey]) {
           showWeeklyQuizPopup = cWeek;
           render();
         }
@@ -7582,7 +7778,7 @@ function HomePage() {
   // recording_popup_seen[meetingId] === true 면 본 거라 스킵.
   // 운영자/스태프는 본인은 미팅 녹화 만든 사람이지만 그래도 알림 한 번 봐야해서 노출.
   try {
-    if (state.tier === 'premium' && !showRecordingPopup) {
+    if (state.tier === 'premium' && !showRecordingPopup && guidedTourStep === null) {
       const seen = state.recording_popup_seen || {};
       const unseenMeeting = (CHALLENGE.premium.weekly_meetings || []).find(
         (m) => m && m.recordingUrl && !seen[`m${m.n}`]
@@ -7590,7 +7786,7 @@ function HomePage() {
       if (unseenMeeting) {
         // setTimeout 으로 한 tick 미뤄서 HomePage 가 먼저 그려진 후 팝업.
         setTimeout(() => {
-          if (!showRecordingPopup) {
+          if (!showRecordingPopup && guidedTourStep === null) {
             showRecordingPopup = unseenMeeting;
             render();
           }
@@ -12988,9 +13184,9 @@ function DayPage(dayN) {
   try {
     const preset = SPACED_REPEAT_PRESETS[String(dayN)];
     const seen = state.spaced_repeat_seen || {};
-    if (preset && !seen[`day${dayN}`] && !showSpacedRepeatPopup) {
+    if (preset && !seen[`day${dayN}`] && !showSpacedRepeatPopup && guidedTourStep === null) {
       setTimeout(() => {
-        if (!showSpacedRepeatPopup && !(state.spaced_repeat_seen || {})[`day${dayN}`]) {
+        if (!showSpacedRepeatPopup && guidedTourStep === null && !(state.spaced_repeat_seen || {})[`day${dayN}`]) {
           showSpacedRepeatPopup = { dayN, ...preset };
           render();
         }
@@ -13011,12 +13207,14 @@ function DayPage(dayN) {
       prev && Array.isArray(prev.words) && prev.words.length &&
       !seenPR[`day${dayN}`] &&
       !showPreReviewPopup &&
-      !showSpacedRepeatPopup
+      !showSpacedRepeatPopup &&
+      guidedTourStep === null
     ) {
       setTimeout(() => {
         if (
           !showPreReviewPopup &&
           !showSpacedRepeatPopup &&
+          guidedTourStep === null &&
           !(state.prereview_seen || {})[`day${dayN}`]
         ) {
           showPreReviewPopup = { dayN, prevDayN, prev };
@@ -13297,6 +13495,7 @@ function DayPage(dayN) {
     const isNuanceOpen = __storedNuance === undefined ? true : !!__storedNuance;
 
     const card = el('div', { class: 'vocab-card', id: `vocab-anchor-${dayN}-${i}`, style: { padding: '22px', borderRadius: '24px', position: 'relative', scrollMarginTop: '18px' } });
+    if (i === 0) card.setAttribute('data-tour', 'day-vocab-first');
 
     // Top-right action cluster (bookmark + index)
     const actions = el('div', { style: { position: 'absolute', top: '16px', right: '18px', display: 'flex', alignItems: 'center', gap: '10px' } });
@@ -13661,7 +13860,10 @@ function DayPage(dayN) {
     noteTa.style.background = '#fff';
     noteTa.value = noteValue;
     noteWrap.appendChild(noteTa);
-    row.appendChild(noteWrap);
+    // 가이드 투어 ④ 영작: 한국어칸 + 영어칸을 한 블록으로 감싸 함께 강조.
+    const composeBlock = el('div', {});
+    if (i === 0) composeBlock.setAttribute('data-tour', 'day-compose-block');
+    composeBlock.appendChild(noteWrap);
 
     const englishWrap = el('div', {
       style: {
@@ -13688,9 +13890,9 @@ function DayPage(dayN) {
     ta.style.fontSize = '18px';
     ta.style.background = '#fff';
     ta.value = state.sentences[key] || '';
-    if (i === 0) ta.setAttribute('data-tour', 'day-compose-input'); // 가이드 투어: 첫 영작 입력칸 강조용
     englishWrap.appendChild(ta);
-    row.appendChild(englishWrap);
+    composeBlock.appendChild(englishWrap);
+    row.appendChild(composeBlock);
 
     const isSubmitted = !!state.submitted[key] || (window.__tourSubmitPreview === dayN && i === 0); // 가이드 투어 ⑤단계: 첫 문장만 제출 상태로 프리뷰 (AI 버튼 노출용, 실제 제출 X)
     // Dirty 판별: 지금 textarea 값이 "마지막으로 제출한 스냅샷" 과 다르면 dirty.
@@ -24732,10 +24934,15 @@ window.__logoutBeta = () => {
   if (!confirm('로그아웃할까요? 이 기기의 로그인 상태가 초기화돼요.')) return;
   try { localStorage.removeItem(LS_KEY); } catch (_) {}
   try { localStorage.removeItem('demoMode'); } catch (_) {}
+  const __prevName = state.name || '';
   state = defaultState();
   state.currentDay = computeCurrentDay();
   __onboardStep = 0;
   __onboardDraft = { name: '', code: '', goal: '', role: '', roleSkipped: false, timezoneOffsetText: '+0h' };
+  // 로그아웃 = 이미 등록한 사람. 신규 등록처럼 안 보이게 '로그인' 화면으로.
+  __authMode = 'login';
+  __loginName = __prevName;
+  __loginBusy = false;
   showSettings = false;
   showPremiumGate = false;
   activeMemberCard = null;
