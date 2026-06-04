@@ -7143,14 +7143,16 @@ async function __doLogin() {
       (typeof remote.role === 'string' && remote.role.trim().length > 0)
     )
   );
-  if (!remotelyRegistered) {
+  // 디렉토리에 등록된 멤버(운영자·스태프 등)는 서버 가입 기록이 없어도 입장 허용.
+  // (유버디/운영팀 등은 코드로 들어오던 계정이라 별도 가입 레코드가 없을 수 있음)
+  if (!remotelyRegistered && !dirByName) {
     __loginBusy = false;
     setHint('등록된 이름을 찾지 못했어요. 처음이라면 아래 "신규 등록"으로 시작해주세요.', true);
     render();
     return;
   }
   // 입장 처리: 서버 상태 병합 후 홈으로.
-  try { mergePersistedState(remote); } catch (_) {}
+  if (remote && typeof remote === 'object') { try { mergePersistedState(remote); } catch (_) {} }
   state.name = name;
   state.accountKey = probeKey;
   if (!state.timezoneOffsetText) { state.timezoneOffsetText = '+0h'; state.timezoneOffsetMinutes = DEFAULT_TIMEZONE_OFFSET; }
