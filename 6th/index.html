@@ -6021,7 +6021,7 @@ function onboardingTourSteps(tier) {
         emoji: '💎',
         kicker: 'Welcome, Premium',
         title: `${displayName} 님, 환영해요!`,
-        body: `5기 프리미엄은 <b>20일 데일리 루틴 + 주 1회 Zoom 미팅 + Week 2~4 중 한 주 PT 발표</b> 로 굴러가요. 30초만 같이 둘러보고 시작해요.`,
+        body: `6기 프리미엄은 <b>20일 데일리 루틴 + 주 1회 Zoom 미팅 + Week 2~4 중 한 주 PT 발표</b> 로 굴러가요. 30초만 같이 둘러보고 시작해요.`,
       },
       {
         emoji: '📖',
@@ -6061,7 +6061,7 @@ function onboardingTourSteps(tier) {
       emoji: '👋',
       kicker: 'Welcome, Basic',
       title: `${displayName} 님, 환영해요!`,
-      body: `5기 베이직은 <b>20일 데일리 루틴</b> 으로 굴러가요. 매일 3단어 + 짧은 퀴즈 + 짧은 문장 작성. 30초만 같이 둘러보고 시작해요.`,
+      body: `6기 베이직은 <b>20일 데일리 루틴</b> 으로 굴러가요. 매일 3단어 + 짧은 퀴즈 + 짧은 문장 작성. 30초만 같이 둘러보고 시작해요.`,
     },
     {
       emoji: '📖',
@@ -6226,8 +6226,10 @@ function refreshOnboardingTour() {
 
 function ensureOnboardingTour() {
   const existing = document.querySelector('.onboarding-tour-overlay');
-  // 조건: 가입 완료 + 튜어 미완료 + 데모 모드 아님
-  const shouldShow = state.onboarded === true
+  // 조건: 운영자 미리보기(__forceOnboardingTour)로 명시적으로 켰을 때만.
+  // 일반 신규 멤버는 '앱 사용법 가이드 투어'(GUIDED_TOUR_STEPS)만 보고, 이 구버전 환영 투어는 자동으로 안 뜸.
+  const shouldShow = window.__forceOnboardingTour === true
+    && state.onboarded === true
     && state.tour_done !== true
     && !__DEMO_MODE__
     && (state.tier === 'basic' || state.tier === 'premium');
@@ -6249,6 +6251,7 @@ function ensureOnboardingTour() {
 
 function completeOnboardingTour(reachedEnd) {
   state.tour_done = true;
+  window.__forceOnboardingTour = false; // 미리보기 종료, 다시 자동으로 안 뜨게
   // tour_started_tier 는 감사용으로 유지 (어떤 tier 시퀀스로 튜어를 봤는지 기록)
   // Operator preview 모드면 원래 tier 복구 (튜어 보려고 임시로 'basic'/'premium' 세팅했던 걸 되돌림)
   if (state.isOperator && window.__operatorOriginalTier) {
@@ -20059,6 +20062,7 @@ function SettingsModal() {
       state.tour_done = false;
       state.tour_started_tier = tier;
       window.__tourStepIdx = 0;
+      window.__forceOnboardingTour = true; // 운영자 미리보기일 때만 구버전 환영 투어 노출
       showSettings = false;
       try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch(_){} }
       render();
