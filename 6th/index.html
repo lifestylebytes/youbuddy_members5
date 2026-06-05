@@ -7284,9 +7284,9 @@ function OnboardingPage() {
         <input id="__obName" class="input" type="text" placeholder="예: 홍길동" value="${escapeHtml(__onboardDraft.name)}" autocomplete="name" />
       </label>
       <label style="display:grid;gap:6px;margin-bottom:12px;">
-        <span class="kicker" style="color:var(--muted);">영어 닉네임 <span style="color:var(--muted);font-weight:400;">(선택 · 8자 이내)</span></span>
-        <input id="__obEnglishName" class="input" type="text" placeholder="예: Buddy" value="${escapeHtml(__onboardDraft.englishName)}" maxlength="8" autocomplete="off" />
-        <span style="font-size:10.5px;color:var(--muted);">멤버 리스트·카드에 이 이름으로 보여요. 비워두면 한국어 이름으로 표시돼요.</span>
+        <span class="kicker" style="color:var(--muted);">닉네임 <span style="color:var(--muted);font-weight:400;">(선택 · 8자 이내)</span></span>
+        <input id="__obEnglishName" class="input" type="text" placeholder="예: 버디, 길동, Buddy" value="${escapeHtml(__onboardDraft.englishName)}" maxlength="8" autocomplete="off" />
+        <span style="font-size:10.5px;color:var(--muted);">멤버 리스트·카드에 이 이름으로 보여요. 한글·영어 모두 가능해요. 비워두면 위 이름으로 표시돼요.</span>
       </label>
       <label style="display:grid;gap:6px;margin-bottom:6px;">
         <span class="kicker" style="color:var(--muted);">접속 코드 <span style="color:var(--muted);font-weight:400;">(신규 등록 필수)</span></span>
@@ -19373,8 +19373,8 @@ function SettingsModal() {
       <div style="margin-top:6px;padding:12px 14px;border-radius:12px;background:var(--paper);color:var(--ink-soft);font-size:14px;font-weight:600;">${escapeHtml(state.name || '박지혜')}</div>
     </div>
     <div style="margin-top:14px;">
-      <div class="kicker" style="color:var(--muted);">영어 닉네임 <span style="color:var(--muted);font-weight:400;">(선택 · 8자 이내)</span></div>
-      <input id="__settingsEngInput" class="input" type="text" placeholder="예: Buddy" value="${escapeHtml((state.englishName || '').trim())}" maxlength="8" autocomplete="off" style="margin-top:8px;" />
+      <div class="kicker" style="color:var(--muted);">닉네임 <span style="color:var(--muted);font-weight:400;">(선택 · 8자 이내 · 한글·영어 가능)</span></div>
+      <input id="__settingsEngInput" class="input" type="text" placeholder="예: 버디, 길동, Buddy" value="${escapeHtml((state.englishName || '').trim())}" maxlength="8" autocomplete="off" style="margin-top:8px;" />
       <div style="margin-top:6px;font-size:10.5px;color:var(--muted);line-height:1.5;">멤버 리스트·체크보드·커뮤니티 글에 이 이름으로 보여요. 비워두면 한국어 이름으로 표시돼요.</div>
     </div>
     <div style="margin-top:14px;">
