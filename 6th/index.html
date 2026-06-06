@@ -5261,7 +5261,8 @@ async function deleteCommunityPost(dayN, idx) {
 }
 
 async function refreshRemoteStateAndCommunity(opts = {}) {
-  if (!hasSupabase() || !state.onboarded) return false;
+  // 가이드 투어 중에는 백그라운드 sync 가 페이지를 통째로 다시 그려서 투어가 깜빡임 → 투어 끝날 때까지 건너뜀.
+  if (!hasSupabase() || !state.onboarded || guidedTourStep !== null) return false;
   const { force = false } = opts;
   // 사용자가 input/textarea 에 입력 중이거나 직전에 입력했으면 15초 sync 건너뜀.
   // mergePersistedState 가 미저장 키스트로크를 덮어쓰는 race 를 막음.
@@ -5363,7 +5364,7 @@ async function refreshDashboardStats() {
       || !!document.querySelector('[data-presenter-script-modal]')
       || !!document.querySelector('[data-consent-modal]')
     );
-    if (currentPage === 'home' && !modalOpenForDash) requestRender();
+    if (currentPage === 'home' && !modalOpenForDash && guidedTourStep === null) requestRender();
   } catch (e) {
     dashboardStats = {
       todayRate: null,
@@ -5695,7 +5696,7 @@ function render() {
   window.__renderDeferred = false;
   // 글로벌 peer ticker, 어느 페이지에서든 누군가 sentence 올리면 알람 받게.
   // idempotent, 한 번 시작되면 setInterval 로 60s 주기 폴링.
-  try { if (typeof startGlobalPeerTicker === 'function') startGlobalPeerTicker(); } catch (_) {}
+  try { if (state.onboarded && typeof startGlobalPeerTicker === 'function') startGlobalPeerTicker(); } catch (_) {}
   // Daily rollover safety net: if midnight has passed while the app was open
   // (or we hydrated with a stale cached currentDay), recompute against today.
   try {
@@ -6378,6 +6379,8 @@ window.__peerFirstPoll = (window.__peerFirstPoll === undefined) ? true : window.
 async function globalPeerTick() {
   try {
     if (!hasSupabase()) return;
+    // 로그인 전(온보딩/로그인 화면)이나 가이드 투어 중에는 폴링·토스트로 화면을 건드리지 않음 (깜빡임 방지).
+    if (!state.onboarded || guidedTourStep !== null) return;
     // currentDay 가 디바이스 마다 다를 수 있어서, 최근 3일 다 폴링해서 합침.
     // 어떤 날에 글이 올라가도 다른 디바이스에서 잡힘.
     const cDay = Number(state.currentDay) || 1;
