@@ -18328,8 +18328,8 @@ function CertPage() {
   const quizDone = !!state.personal_quiz_done
     || !!(state.personal_quiz_submitted && state.personal_quiz_submitted.fill)
     || (pqItems.length > 0 && Object.keys(state.personal_quiz_answers || {}).length >= pqItems.length);
-  // 프리미엄은 주간 미팅 4회 모두 참여로 인정 (운영자 정책, 5/21 이후 일괄 4/4).
-  const meetingsDone = (state.tier === 'premium') ? 4 : CHALLENGE.premium.weekly_meetings.filter(m => m.status === 'done').length;
+  // 6기: 주간 미팅은 실제 진행(status==='done')된 횟수만 카운트 (시작 전이라 0/4).
+  const meetingsDone = CHALLENGE.premium.weekly_meetings.filter(m => m.status === 'done').length;
   // 프레젠터 = 각 주차에서 내가 발표자로 자리 잡아 실제 발표한 횟수.
   const presentedWeeks = (() => {
     try {
@@ -18411,11 +18411,15 @@ function CertPage() {
   page.appendChild(infoCard);
 
   // 📊 4주 종합 리포트 + 📜 문장 모아보기 quick links
+  // 종합 리포트는 4주차(Day 16+)에 공개. 운영자/스태프는 미리보기 가능.
+  const reportUnlocked = (Number(state.currentDay) || 0) >= 16 || state.isOperator || state.isStaff;
   const linksCard = el('div', { class: 'card card-flat', style: { marginTop: '12px', padding: '14px 16px' } });
   linksCard.innerHTML = `
     <div class="kicker">📦 챌린지 마무리 패키지</div>
     <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
-      <button onclick="go('final-report')" class="btn btn-full" style="background:linear-gradient(135deg,#1F1630 0%,#3A2A52 100%);color:#fff;border:none;font-size:13.5px;padding:12px;font-weight:800;letter-spacing:-0.01em;">📊 4주 종합 리포트 보기 →</button>
+      ${reportUnlocked
+        ? `<button onclick="go('final-report')" class="btn btn-full" style="background:linear-gradient(135deg,#1F1630 0%,#3A2A52 100%);color:#fff;border:none;font-size:13.5px;padding:12px;font-weight:800;letter-spacing:-0.01em;">📊 4주 종합 리포트 보기 →</button>`
+        : `<button disabled class="btn btn-full" style="background:#EFEAE3;color:var(--muted);border:1px solid var(--line);font-size:13.5px;padding:12px;font-weight:700;cursor:not-allowed;">🔒 4주 종합 리포트 (4주차에 공개됩니다)</button>`}
       <button onclick="go('scripts')" class="btn btn-full" style="background:#fff;color:var(--ink);border:1px solid var(--line);font-size:13px;padding:11px;font-weight:700;">📜 4주간 내 문장 모아보기 →</button>
     </div>
   `;
@@ -20441,6 +20445,18 @@ function FinalReportPage() {
 
   const isOpStaff = !!((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
   const cDay = Number(state.currentDay) || 0;
+  // 4주 종합 리포트는 4주차(Day 16+)에 공개. 운영자/스태프는 미리보기 가능.
+  if (cDay < 16 && !isOpStaff) {
+    const locked = el('div', { class: 'card', style: { marginTop: '24px', padding: '28px 20px', textAlign: 'center', background: 'var(--paper)', border: '1px solid var(--line)' } });
+    locked.innerHTML = `
+      <div style="font-size:40px;line-height:1;">🔒</div>
+      <h2 style="margin:14px 0 8px;font-size:18px;font-weight:800;color:var(--ink);">4주차에 공개됩니다</h2>
+      <p class="t-body" style="font-size:13px;color:var(--ink-soft);line-height:1.6;">4주 종합 리포트는 챌린지 4주차(Day 16~20)에 열려요.<br>그때 내 4주 학습 통계와 단어집을 한 번에 받아볼 수 있어요!</p>`;
+    page.appendChild(locked);
+    const homeBtn = el('button', { class: 'btn btn-ghost btn-full', style: { marginTop: '16px' }, onClick: () => goBack('profile') }, '← 돌아가기');
+    page.appendChild(homeBtn);
+    return page;
+  }
   // 통계 계산
   const total = CHALLENGE.total_days || 20;
   // 인증 시간 지나서 한 것(late)도 인정, verified 또는 verified_late 둘 중 하나라도 있으면 카운트.
@@ -20470,13 +20486,11 @@ function FinalReportPage() {
   });
   // 미팅 / 발표 (프리미엄)
   const isPremium = state.tier === 'premium';
-  // 프리미엄은 주간 미팅 4회 모두 참여로 인정 (운영자 정책, 5/21 이후 일괄 4/4).
-  const meetingsDone = (state.tier === 'premium')
-    ? 4
-    : ((CHALLENGE.premium && CHALLENGE.premium.weekly_meetings)
-      ? CHALLENGE.premium.weekly_meetings.filter((m) => m.status === 'done').length : 0);
-  // 발표 횟수, 프리미엄은 1로 고정 (운영자 정책). 그 외엔 0.
-  const presentedCount = isPremium ? 1 : 0;
+  // 6기: 주간 미팅은 실제 진행(status==='done')된 횟수만 카운트 (시작 전이라 0/4).
+  const meetingsDone = (CHALLENGE.premium && CHALLENGE.premium.weekly_meetings)
+    ? CHALLENGE.premium.weekly_meetings.filter((m) => m.status === 'done').length : 0;
+  // 발표 횟수, 실제 발표 전이라 0.
+  const presentedCount = 0;
   // 본인 약점 단어 Top 5 (vocab_stats firstResult='wrong' 우선)
   const myStats = state.vocab_stats || {};
   const weakWords = Object.entries(myStats)
