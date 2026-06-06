@@ -18411,15 +18411,18 @@ function CertPage() {
   page.appendChild(infoCard);
 
   // 📊 4주 종합 리포트 + 📜 문장 모아보기 quick links
-  // 종합 리포트는 4주차(Day 16+)에 공개. 운영자/스태프는 미리보기 가능.
-  const reportUnlocked = (Number(state.currentDay) || 0) >= 16 || state.isOperator || state.isStaff;
+  // 종합 리포트는 4주차(Day 16+)에 공개. 그 전에는 운영자 포함 모두 비활성 버튼.
+  const reportUnlocked = (Number(state.currentDay) || 0) >= 16;
   const linksCard = el('div', { class: 'card card-flat', style: { marginTop: '12px', padding: '14px 16px' } });
   linksCard.innerHTML = `
     <div class="kicker">📦 챌린지 마무리 패키지</div>
     <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
       ${reportUnlocked
         ? `<button onclick="go('final-report')" class="btn btn-full" style="background:linear-gradient(135deg,#1F1630 0%,#3A2A52 100%);color:#fff;border:none;font-size:13.5px;padding:12px;font-weight:800;letter-spacing:-0.01em;">📊 4주 종합 리포트 보기 →</button>`
-        : `<button disabled class="btn btn-full" style="background:#EFEAE3;color:var(--muted);border:1px solid var(--line);font-size:13.5px;padding:12px;font-weight:700;cursor:not-allowed;">🔒 4주 종합 리포트 (4주차에 공개됩니다)</button>`}
+        : `<div>
+             <button disabled class="btn btn-full" style="background:#EFEAE3;color:var(--muted);border:1px solid var(--line);font-size:13.5px;padding:12px;font-weight:700;cursor:not-allowed;opacity:0.75;">📊 4주 종합 리포트 보기</button>
+             <div style="margin-top:5px;text-align:center;font-size:11px;color:var(--muted);">🔒 week4에 공개됩니다</div>
+           </div>`}
       <button onclick="go('scripts')" class="btn btn-full" style="background:#fff;color:var(--ink);border:1px solid var(--line);font-size:13px;padding:11px;font-weight:700;">📜 4주간 내 문장 모아보기 →</button>
     </div>
   `;
