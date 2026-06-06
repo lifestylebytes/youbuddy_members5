@@ -11,7 +11,7 @@ PATH = "/sessions/lucid-gallant-dirac/mnt/youbuddy-challenge-claude/6th/index.ht
 # Day별 goal (en은 큰따옴표, kr은 작은따옴표로 들어감)
 GOALS = {
  1:("Pull in the right people and get the lay of the land.","필요한 사람 모으고 판부터 파악하기."),
- 2:("Get a ballpark, draft a start, and decide who runs point.","대략 추정하고 초안 잡고 담당 정하기."),
+ 2:("Get a ballpark, stub out a start, and decide who runs point.","대략 추정하고 초안 잡고 담당 정하기."),
  3:("Brainstorm freely and nail the table stakes.","자유롭게 펼치되 기본은 확실히."),
  4:("Carve out time, get your ducks in a row, and park the rest.","시간 확보, 준비 완료, 나머지는 보류."),
  5:("See eye to eye and let everyone weigh in.","방향 맞추고 다 같이 의견 보태기."),
