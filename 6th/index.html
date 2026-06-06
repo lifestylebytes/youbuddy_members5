@@ -5282,7 +5282,9 @@ async function refreshRemoteStateAndCommunity(opts = {}) {
     if (remote && typeof remote === 'object') {
       const localJson = JSON.stringify(persistedStateSnapshot());
       const remoteJson = JSON.stringify(remote);
-      if (force || (remoteJson && remoteJson !== localJson)) {
+      // 내용이 실제로 다를 때만 merge+재렌더. force(포커스/가시성 복귀)여도 동일 데이터면
+      // 전체 재렌더를 안 함 → 모바일에서 탭 전환·스크롤·키보드로 포커스가 자주 바뀔 때 깜빡임 제거.
+      if (remoteJson && remoteJson !== localJson) {
         mergePersistedState(remote);
         // Keep localStorage in sync with the server, prevents stale cache
         // from outliving a remote reset across tab/visibility cycles.
