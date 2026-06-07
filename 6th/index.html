@@ -3676,10 +3676,7 @@ function premiumGatePage(opts = {}) {
     <div class="lock-icon">🔒</div>
     <div class="kicker">PREMIUM ONLY</div>
     <h2 class="h1" style="margin-top:8px;"><span class="serif">이 페이지는</span> 프리미엄 전용이에요</h2>
-    <p class="t-body" style="margin-top:10px;">${opts.subtitle || '주간 Google Meet 미팅 (40분 롤플레이 + 개인 PPT 발표 및 피드백) · 개인 퀴즈 · Certification 은 프리미엄 참여자에게만 열려 있어요. 다음 기수 때 프리미엄으로 참여하시면 만나요!'}</p>
-    <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center;">
-      <button class="btn btn-lilac btn-lg" onclick="window.__openPremiumGate()">프리미엄 코드 있어요</button>
-    </div>`;
+    <p class="t-body" style="margin-top:10px;">${opts.subtitle || '주간 Google Meet 미팅 (40분 롤플레이 + 개인 PPT 발표 및 피드백) · 개인 퀴즈 · Certification 은 프리미엄 참여자에게만 열려 있어요. 다음 기수 때 프리미엄으로 참여하시면 만나요!'}</p>`;
   page.appendChild(wrap);
   return page;
 }
@@ -19154,10 +19151,7 @@ function ProfilePage() {
         </div>
       </li>
     </ul>
-    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
-      <button class="btn btn-ghost btn-sm" onclick="window.__openPremiumGate()">프리미엄 코드 있어요</button>
-    </div>
-    <div class="t-small" style="margin-top:10px;color:var(--muted);line-height:1.55;">다음 기수 오픈 알림을 받고 싶으면 단톡방/노션에서 유버디에게 DM 주세요.</div>`;
+    <div class="t-small" style="margin-top:16px;color:var(--muted);line-height:1.55;">다음 기수 오픈 알림을 받고 싶으면 단톡방/노션에서 유버디에게 DM 주세요.</div>`;
   tierCard.innerHTML = tierHtml;
   page.appendChild(tierCard);
 
