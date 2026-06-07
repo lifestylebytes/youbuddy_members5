@@ -3719,7 +3719,8 @@ function memberTimezoneText(member) {
     ? MEMBER_DIRECTORY.find((d) => d.name === member.name || d.name === member.member_name)
     : null;
   const dirTz = dirEntry ? dirEntry.tz : '';
-  return member.timezoneOffsetText || member.timezone_text || dirTz || '';
+  // 운영자 지정 시차(dirTz)가 서버 저장값보다 우선 (멤버가 +0h로 잘못 입력했어도 -14h가 이기게).
+  return dirTz || member.timezoneOffsetText || member.timezone_text || '';
 }
 
 function localStreakCount() {
