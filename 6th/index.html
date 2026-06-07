@@ -3648,7 +3648,20 @@ function zonedNow(offsetMinutes = effectiveTimezoneOffsetMinutes()) {
 }
 
 function premiumPill(member) {
-  const isPremium = member?.me ? state.tier === 'premium' : member?.tier === 'premium';
+  if (!member) return '';
+  let isPremium;
+  if (member.me) {
+    isPremium = state.tier === 'premium';
+  } else {
+    // 디렉토리(MEMBER_DIRECTORY = 소울 오브 트루스) tier 우선.
+    // summary/post 에 과거 프리뷰·테스트로 오염된 tier 가 있어도 디렉토리 값으로 덮어 판정.
+    let tier = member.tier;
+    try {
+      const dir = MEMBER_DIRECTORY.find((d) => d.id === member.id || d.name === member.name);
+      if (dir && dir.tier) tier = dir.tier;
+    } catch (_) {}
+    isPremium = tier === 'premium';
+  }
   return isPremium ? `<span class="badge badge-lilac" style="padding:1px 4px;font-size:7px;line-height:1.1;border-radius:4px;">P</span>` : '';
 }
 
@@ -5111,14 +5124,16 @@ function memberByKey(key) {
   if (summary) {
     const byName = MEMBERS.find((m) => !m.me && m.name === summary.member_name);
     if (byName) return byName;
-    // 서버엔 있는데 MEMBERS 에 없으면 최소 필드로 반환
+    // 서버엔 있는데 MEMBERS 에 없으면 최소 필드로 반환. 디렉토리 tier 우선(오염 방지).
+    const __dirT = (MEMBER_DIRECTORY.find((d) => d.name === summary.member_name) || {}).tier;
+    const __tier = __dirT || summary.tier || 'basic';
     return {
       id: 'remote:' + key,
       name: summary.member_name || key,
       englishName: summary.english_name || '',
-      tier: summary.tier || 'basic',
+      tier: __tier,
       role: summary.role || '',
-      color: summary.tier === 'premium' ? 'orange' : 'mono',
+      color: __tier === 'premium' ? 'orange' : 'mono',
     };
   }
   // fallback: key 가 "code:이름" 형식일 때 이름 뽑아 MEMBERS 매칭
@@ -5357,7 +5372,7 @@ function applyRemoteMemberSummaries(rows = []) {
     // 이유: staff/ghost 가 tierOverride 로 뷰를 뒤집은 상태가 과거에 서버에 올라간 적 있으면
     // 그 값이 summary.tier 로 내려와 보드에서 엉뚱한 색(주황)으로 표시됨.
     // 디렉토리에 등록된 멤버는 디렉토리 tier 가 진실.
-    const dirEntry = MEMBER_DIRECTORY.find((d) => d.id === member.id);
+    const dirEntry = MEMBER_DIRECTORY.find((d) => d.id === member.id) || MEMBER_DIRECTORY.find((d) => d.name === member.name);
     const canonicalTier = dirEntry && dirEntry.tier ? dirEntry.tier : null;
     const nextTier = canonicalTier || summary.tier || member.tier;
     if (nextTier && member.tier !== nextTier) {
@@ -5522,7 +5537,8 @@ async function upsertCommunityPost(dayN, idx) {
     p_member_key: memberKey(),
     p_member_name: state.name || '익명',
     p_member_role: state.role || '',
-    p_member_tier: state.tier || 'basic',
+    // 디렉토리(소울 오브 트루스) tier 저장. state.tier(로컬 뷰)는 프리뷰로 오염될 수 있어 쓰지 않음.
+    p_member_tier: (() => { try { const d = state.accessCode ? lookupCode(state.accessCode) : null; return (d && d.tier) || state.tier || 'basic'; } catch (_) { return state.tier || 'basic'; } })(),
     p_member_team: myTeam(),
     p_member_timezone: state.timezoneOffsetText || '+0h',
     p_day_n: dayN,
@@ -18898,10 +18914,10 @@ function ProfilePage() {
         word: post.word,
         sentence: post.sentence,
         avatar: (post.user || '').slice(0, 2),
-        // me orange, premium peer orange, basic peer cream, community feed 와 통일.
+        // me orange, premium peer orange, basic peer cream. 디렉토리 tier 기준(오염 방지).
         avatarClass: post.member_key === memberKey()
           ? 'orange'
-          : (post.tier === 'premium' ? 'orange' : 'cream'),
+          : (((MEMBER_DIRECTORY.find((d) => d.name === (post.member_name || post.user)) || {}).tier || post.tier) === 'premium' ? 'orange' : 'cream'),
       })),
       ...COMMUNITY_POSTS,
     ]
@@ -19386,11 +19402,10 @@ function CommunityPage() {
       user: post.user,
       team: post.team || 'A',
       avatar: (post.user || '').slice(0, 2),
-      // me 는 항상 orange. 다른 멤버는 tier 기준, premium 은 orange, basic 은 cream.
-      // (예전엔 무조건 cream 으로 떨어져서 프리미엄 멤버가 베이직처럼 보이던 버그)
+      // me 는 항상 orange. 다른 멤버는 디렉토리 tier 기준(오염 방지), premium=orange, basic=cream.
       avatarClass: post.member_key === memberKey()
         ? 'orange'
-        : (post.tier === 'premium' ? 'orange' : 'cream'),
+        : (((MEMBER_DIRECTORY.find((d) => d.name === (post.member_name || post.user)) || {}).tier || post.tier) === 'premium' ? 'orange' : 'cream'),
       word: post.word || '',
       time: formatPostTime(post.created_at),
       sentence: post.sentence,
