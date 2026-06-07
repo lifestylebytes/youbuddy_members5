@@ -975,11 +975,10 @@ body.modal-open { overflow: hidden; touch-action: none; }
 const REWARD_VIDEOS = {
   // 6기 "오늘의 영상" URL 은 운영하면서 받는 대로 아래에 채우면 됩니다.
   // 비어있는 day 는 자동으로 "영상 준비 중" 토스트가 떠요 (에러 아님).
-  // 5기 영상은 5기 day 테마(front-load, drill down 등 5기 단어)에 맞춰 큐레이션된 거라 6기와 안 맞아 비워뒀어요.
-  // 채우는 법: 아래 주석을 풀고 URL 만 넣으면 됩니다.
-  // 1: 'https://www.youtube.com/watch?v=...',
+  // (YouTube/Vimeo/구글드라이브/팟캐스트 링크 모두 OK)
+  1: 'https://www.allearsenglish.com/aee-1433-get-the-lay-of-the-land-when-it-comes-to-business-english/', // Day1: get the lay of the land (All Ears English 팟캐스트, 대화체)
   // 2: 'https://www.youtube.com/watch?v=...',
-  // ... 20 까지 (YouTube/Vimeo/구글드라이브 공유링크 모두 OK)
+  // ... 20 까지
 };
 
 /* ============================================================
@@ -5715,6 +5714,15 @@ function render() {
     return;
   }
   window.__renderDeferred = false;
+  // 운영자 지정 시차(MEMBER_DIRECTORY.tz) 강제 적용. 새로고침만 해도 반영되게 매 렌더에서 enforce
+  // (해외 멤버는 본인이 시차 못 바꾸므로 디렉토리 값이 진실). 미지정 멤버는 no-op.
+  try {
+    if (state.onboarded && typeof MEMBER_DIRECTORY !== 'undefined') {
+      const __md = (state.accessCode && typeof lookupCode === 'function' ? lookupCode(state.accessCode) : null)
+        || MEMBER_DIRECTORY.find((d) => d.name === (state.name || '').trim());
+      if (__md && __md.tz) applyMemberTzOverride(__md);
+    }
+  } catch (_) {}
   // 글로벌 peer ticker, 어느 페이지에서든 누군가 sentence 올리면 알람 받게.
   // idempotent, 한 번 시작되면 setInterval 로 60s 주기 폴링.
   try { if (state.onboarded && typeof startGlobalPeerTicker === 'function') startGlobalPeerTicker(); } catch (_) {}
