@@ -3969,6 +3969,13 @@ function defaultNuance(w) {
 // 각 Day의 메인 표현별 syn 2~3개를 실제 현업 뉘앙스로 짧게 정리한 glossary.
 // 키는 반드시 lowercase. syn 추가 시 원문 대소문자 그대로 lower()만 취하면 됨.
 const SYNONYM_GLOSSARY = {
+  // 6기 Day 1
+  'bring in': '(사람·자원을) 데려오다, 합류시키다',
+  'get (someone) involved': '~를 참여·관여시키다',
+  'get a feel for things': '돌아가는 분위기를 감으로 파악하다',
+  'size up the situation': '상황을 가늠·평가하다',
+  'align expectations': '기대치를 같은 선에 맞추다',
+  'get everyone on the same baseline': '다 같이 같은 출발선에 맞추다',
   // Day 1
   'pave the way': '본격 진입 전 장애물 치워 길을 닦아두다',
   'prepare the ground': '터를 고르고 다져 배경을 조성하다',
@@ -4113,6 +4120,13 @@ const SYNONYM_GLOSSARY = {
 // pair-specific nuance: "메인 표현 vs 해당 syn" 비교해서 실제 현업에서 어떻게 다른지 한줄.
 // key = `${word.en}::${syn}` (대소문자 · 공백 원문 그대로).
 const SYNONYM_NUANCE = {
+  // 6기 Day 1 - Pull in / Get the lay of the land / Level-set
+  'Pull in::Bring in': '"Bring in"이 가장 무난하고 중립적이에요. "Pull in"은 좀 더 적극적으로 끌어당겨 합류시키는 뉘앙스라, 급하거나 의지가 실린 느낌이에요.',
+  'Pull in::Get (someone) involved': '"합류"보다 관여하게 한다에 더 가까워요. "Let\'s get marketing involved early"처럼 초반부터 끼게 할 때 자연스러워요.',
+  'Get the lay of the land::Get a feel for things': '더 가볍고 감각적이에요. 분석보다 분위기 좀 보고요 정도라 캐주얼한 자리에서 편하게 써요.',
+  'Get the lay of the land::Size up the situation': '더 분석적·전략적이에요. 상황을 평가·가늠한다는 판단이 들어가서 진지하고 사무적인 톤이에요.',
+  'Level-set::Align expectations': '가장 격식 있고 명확해요. 회의·이메일에서 기대치 맞추자고 할 때 쓰는 안전한 단골 표현이에요.',
+  'Level-set::Get everyone on the same baseline': '더 구어적이고, 다 같이 같은 출발선이라는 그림이 그려져요. 팀 캐주얼 미팅에서 잘 어울려요.',
   // Day 1 - Set the stage / Anchor / Key driver
   'Set the stage::Pave the way': '"Set the stage"는 무대 셋업처럼 배경 분위기를 까는 뉘앙스, "Pave the way"는 후속 주자가 편하게 들어오도록 장애물을 치워두는 느낌이 강해요.',
   'Set the stage::Prepare the ground': '"Set the stage"가 무대 비유라면 "Prepare the ground"는 농사짓듯 터를 고르는 비유라, 더 차근차근 오래 쓸 기반을 다질 때 어울려요.',
@@ -18659,7 +18673,7 @@ function ProfilePage() {
     { key: 'all',   label: '전체',  count: totalSaved },
     { key: 'word',  label: '단어',  count: bookmarkedEntries.length },
     { key: 'syn',   label: '유의어', count: synonymEntries.length },
-    { key: 'post',  label: '문장',  count: savedCommunityPosts.length },
+    { key: 'post',  label: '예문',  count: savedCommunityPosts.length },
   ];
   const tabBar = el('div', { style: { display: 'flex', gap: '6px', marginTop: '12px', flexWrap: 'wrap' } });
   tabs.forEach((t) => {
