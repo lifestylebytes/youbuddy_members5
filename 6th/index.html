@@ -3714,7 +3714,12 @@ function memberRole(member) {
 function memberTimezoneText(member) {
   if (!member) return '';
   if (member.me) return state.timezoneOffsetText || timezoneShiftLabel();
-  return member.timezoneOffsetText || member.timezone_text || '';
+  // 서버 데이터가 비어도, MEMBER_DIRECTORY 에 운영자 지정 시차(tz)가 있으면 그걸 표시 (해외 멤버 즉시 반영).
+  const dirEntry = (typeof MEMBER_DIRECTORY !== 'undefined')
+    ? MEMBER_DIRECTORY.find((d) => d.name === member.name || d.name === member.member_name)
+    : null;
+  const dirTz = dirEntry ? dirEntry.tz : '';
+  return member.timezoneOffsetText || member.timezone_text || dirTz || '';
 }
 
 function localStreakCount() {
