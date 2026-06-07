@@ -1711,7 +1711,7 @@ const MEMBER_DIRECTORY = [
   { code: '22', id: 'b19', name: '황지영', color: 'cream', tier: 'basic' },
   { code: '23', id: 'b20', name: '황혜민', color: 'cream', tier: 'basic' },
   { code: '24', id: 'b21', name: '지성예', color: 'cream', tier: 'basic' },
-  { code: '25', id: 'b22', name: '허윤형', color: 'cream', tier: 'basic' },
+  { code: '25', id: 'b22', name: '허윤형', color: 'cream', tier: 'basic', tz: '-14h' }, // 해외 거주, 운영자 지정 시차
   { code: '26', id: 'b23', name: '손미경', color: 'cream', tier: 'basic' },
   { code: '27', id: 'b24', name: '곽혜진', color: 'cream', tier: 'basic' },
 ];
@@ -3612,6 +3612,16 @@ function timezoneShiftLabel(offsetMinutes = effectiveTimezoneOffsetMinutes()) {
   return formatShiftValue(offsetMinutes - DEFAULT_TIMEZONE_OFFSET);
 }
 
+// 운영자 지정 시차(MEMBER_DIRECTORY.tz)를 state 에 강제 적용. 해외 거주 멤버용.
+// 멤버 본인은 시차 못 바꾸는 구조라, 디렉토리 값이 진실이 되도록 로그인/온보딩 때 덮어씀.
+function applyMemberTzOverride(src) {
+  if (!src || !src.tz) return;
+  const t = parseTimezoneShift(src.tz);
+  if (t && t.ok) {
+    state.timezoneOffsetText = t.text;
+    state.timezoneOffsetMinutes = t.offsetMinutes;
+  }
+}
 function parseTimezoneShift(raw) {
   const input = String(raw || '').trim().toLowerCase().replace(/\s+/g, '');
   if (!input) {
@@ -7236,6 +7246,7 @@ async function __doLogin() {
     state.ghost = !!tierSrc.ghost;
     if (tierSrc.code) state.accessCode = tierSrc.code;
   }
+  applyMemberTzOverride(tierSrc); // 운영자 지정 시차(해외 멤버) 강제 적용
   state.onboarded = true;
   state.signedUp = true;
   state.currentDay = computeCurrentDay();
@@ -7629,6 +7640,7 @@ async function __onboardAdvance() {
           state.isStaff = !!tierSrc.isStaff;
           state.ghost = !!tierSrc.ghost;
         }
+        applyMemberTzOverride(tierSrc); // 운영자 지정 시차(해외 멤버) 강제 적용
         state.onboarded = true;
         state.signedUp = true; // 서버에 가입 기록이 있으면 로컬에도 플래그 보정
         state.currentDay = computeCurrentDay();
@@ -7708,6 +7720,7 @@ function __finishOnboarding() {
   state.isOperator = !!(m && m.isOperator);
   state.isStaff = !!(m && m.isStaff);
   state.ghost = !!(m && m.ghost);
+  applyMemberTzOverride(m); // 운영자 지정 시차(해외 멤버) 강제 적용
   state.currentDay = computeCurrentDay();
   bindMeToMembers();
   saveState({ immediate: true });
