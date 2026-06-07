@@ -22,7 +22,7 @@ WEEKS = [
                  "syn": ["Get a feel for things", "Size up the situation"],
                  "nuance": "새 팀·새 프로젝트에 막 들어가서 '일단 돌아가는 거 좀 보고요' 할 때 딱이에요."},
                 {"en": "Level-set", "pos": "verb", "src": "new", "def": "다 같이 기대치·이해도를 같은 선에 맞추다",
-                 "ex_en": "Before we dive in, let's level-set on what success looks like.", "ex_kr": "본격적으로 들어가기 전에, 성공이 뭔지부터 눈높이 맞추죠.",
+                 "ex_en": "Before we dive in, let's level-set on what success looks like.", "ex_kr": "본격적으로 들어가기 전에, 성공 기준부터 맞추고 가죠.",
                  "syn": ["Align expectations", "Get everyone on the same baseline"],
                  "nuance": "회의 첫머리에 '우리 기준부터 통일하고 가자'는 뉘앙스. 미국 회사에서 정말 자주 들려요."},
              ]},
