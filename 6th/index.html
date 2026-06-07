@@ -14936,7 +14936,7 @@ function DayPage(dayN) {
    ============================================================ */
 function PremiumPage() {
   // 베이직은 프리미엄 메인 탭도 잠금(미팅 일정·캘린더 노출 금지). 하위 페이지처럼 게이트 화면으로.
-  // (운영자가 베이직 프리뷰 중이어도 동일하게 게이트 — 의도된 프리뷰)
+  // (운영자가 베이직 프리뷰 중이어도 동일하게 게이트, 의도된 프리뷰)
   if (state.tier !== 'premium') return premiumGatePage();
   const page = el('div', { class: 'page' });
   page.appendChild(TopBar());
