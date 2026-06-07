@@ -6006,6 +6006,11 @@ function render() {
       const __md = (state.accessCode && typeof lookupCode === 'function' ? lookupCode(state.accessCode) : null)
         || MEMBER_DIRECTORY.find((d) => d.name === (state.name || '').trim());
       if (__md && __md.tz) applyMemberTzOverride(__md);
+      // 디렉토리 tier 강제. 멤버 state.tier 가 과거 버그/프리뷰로 잘못 박혀도 디렉토리(진실)로 교정.
+      // 운영자·스태프(뷰 토글 필요)와 tierOverride(베이직 프리뷰 중)는 예외.
+      if (__md && __md.tier && !state.isOperator && !state.isStaff && !state.tierOverride && state.tier !== __md.tier) {
+        state.tier = __md.tier;
+      }
     }
   } catch (_) {}
   // 글로벌 peer ticker, 어느 페이지에서든 누군가 sentence 올리면 알람 받게.
@@ -14951,11 +14956,26 @@ function DayPage(dayN) {
    PREMIUM PAGE
    ============================================================ */
 function PremiumPage() {
-  // 베이직은 프리미엄 메인 탭도 잠금(미팅 일정·캘린더 노출 금지). 하위 페이지처럼 게이트 화면으로.
-  // (운영자가 베이직 프리뷰 중이어도 동일하게 게이트, 의도된 프리뷰)
-  if (state.tier !== 'premium') return premiumGatePage();
   const page = el('div', { class: 'page' });
   page.appendChild(TopBar());
+  // 베이직은 메인 프리미엄 탭(미팅 캘린더 등)을 미리보기로 보되, "참여 대상 아님"을 명확히 안내.
+  // (지성예님 케이스: 미팅 일정만 보고 "나 미팅 있나?" 오해 → 배너로 방지. 깊은 페이지는 그대로 잠금.)
+  if (state.tier !== 'premium') {
+    const note = el('div', {
+      style: {
+        margin: '14px 0 4px', padding: '12px 14px', borderRadius: '14px',
+        background: 'rgba(169,139,184,0.12)', border: '1px solid rgba(169,139,184,0.32)',
+        display: 'flex', gap: '10px', alignItems: 'flex-start',
+      }
+    });
+    note.innerHTML = `
+      <span style="font-size:16px;line-height:1.2;">👀</span>
+      <span style="font-size:12.5px;line-height:1.55;color:#6B4F7D;">
+        <b>프리미엄 미리보기예요.</b> 베이직은 주간 미팅·발표 참여 대상이 아니라, 아래 일정은 참고용이에요.
+        베이직은 매일 표현·작문에 집중하면 충분해요! (다음 기수에 프리미엄으로 만나요 💜)
+      </span>`;
+    page.appendChild(note);
+  }
 
   // 프리미엄 탭 진입시 미팅 녹화/분석 동의 팝업 자동 오픈.
   // 미팅 노트 페이지 방문 없이 바로 Google Meet 링크로 들어가는 멤버도
