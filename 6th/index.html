@@ -3763,14 +3763,30 @@ const dayStatus = (d) => {
     }
     return 'done';
   }
+  if (d > state.currentDay) return 'locked';        // 한국 기준 아직 안 열린 날 (내일 이후)
   if (d === state.currentDay) return 'today';
-  if (d < state.currentDay) return 'missed';
-  return 'locked';                                  // 내일 이후, 미리 풀기 없이 둘러보기만
+  // d < state.currentDay (한국 기준 지난 날) 이고 미인증.
+  // 본인 시차 기준으로 그 Day 예정일이 아직 안 지났으면 여전히 정시 인증 가능 → 'today'.
+  // (해외 멤버: 한국은 다음 Day 로 넘어갔어도 본인 현지는 아직 그 Day 라 마감 전.)
+  const scheduled = dayDate(d);
+  const scheduledStr = `${scheduled.getFullYear()}-${String(scheduled.getMonth()+1).padStart(2,'0')}-${String(scheduled.getDate()).padStart(2,'0')}`;
+  if (todayStr() <= scheduledStr) return 'today';
+  return 'missed';                                  // 본인 시차로도 예정일 지남 → 미인증(빈칸)
 };
 
 // 오늘 날짜 (member timezone) YYYY-MM-DD
 function todayStr() {
   const t = zonedNow();
+  const y = t.getFullYear();
+  const m = String(t.getMonth()+1).padStart(2,'0');
+  const d = String(t.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+// 한국(KST, +0h 기준) 오늘 날짜. "콘텐츠 열림(open) 게이트" 전용.
+// 콘텐츠는 운영자가 한국 시간에 공지 내릴 때 모두에게 열려야 하므로 멤버 시차와 무관하게 KST 사용.
+// (마감/지각 판정은 todayStr() = 멤버 시차를 그대로 써서 본인 시간대까지 인정.)
+function koreaTodayStr() {
+  const t = zonedNow(DEFAULT_TIMEZONE_OFFSET);
   const y = t.getFullYear();
   const m = String(t.getMonth()+1).padStart(2,'0');
   const d = String(t.getDate()).padStart(2,'0');
@@ -3841,7 +3857,8 @@ function formatVerifyStamp(vd, vt, tzText) {
 function challengeStarted() {
   // Operator preview unlock, 출시 전 동의 팝업 / 제출 / AI / 단어시험 전체 흐름 검증용.
   if (state.operatorPreviewUnlock === true && (state.isOperator || state.isStaff)) return true;
-  const today = todayStr();
+  // 시작 게이트도 한국 시간 기준 (해외 멤버도 한국 시작일에 함께 열림).
+  const today = koreaTodayStr();
   return today >= CHALLENGE.start_date;
 }
 function daysUntilStart() {
@@ -3902,7 +3919,9 @@ function computeCurrentDay() {
       if (n >= 1 && n <= 20) return n;
     }
   } catch (e) {}
-  const today = todayStr();
+  // 열림(open) 게이트는 한국 시간 기준: 운영자가 한국 시간에 공지 내릴 때 모두에게 열림.
+  // (해외 멤버도 한국 Day 가 열리면 바로 접근 가능. 마감/지각은 별도로 본인 시차 적용.)
+  const today = koreaTodayStr();
   let lastPassedDay = 1;  // 기본 (pre-start 도 1 로 clamp)
   for (let n = 1; n <= 20; n++) {
     const d = dayDate(n);
