@@ -3919,6 +3919,25 @@ function computeCurrentDay() {
 function formatDateKR(date) {
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
+// 특정 시차(offsetMinutes) 기준으로 "오늘이 Day 몇" 인지 계산.
+// 보드에서 남의 행을 그릴 때, 그 멤버의 시차로 today 를 잡아야
+// 한국 시간 기준으로 미리 회색(missed) 처리되는 오류를 막는다.
+function currentDayForOffset(offsetMinutes) {
+  const z = zonedNow(offsetMinutes);
+  const y = z.getFullYear();
+  const m = String(z.getMonth() + 1).padStart(2, '0');
+  const d = String(z.getDate()).padStart(2, '0');
+  const today = `${y}-${m}-${d}`;
+  let last = 1;
+  for (let n = 1; n <= 20; n++) {
+    const dd = dayDate(n);
+    const s = `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, '0')}-${String(dd.getDate()).padStart(2, '0')}`;
+    if (today === s) return n;
+    if (today < s) break;
+    last = n;
+  }
+  return last;
+}
 // 주말 여부, 평일만 challenge day 카운트하므로 토·일은 인증 자체가 없음.
 // 0=Sun, 6=Sat. operatorDayOverride 가 명시적으로 1~20 숫자로 박혀있을 때만
 // 운영자가 평일 시뮬레이션 중이라 판단해서 주말 처리 안 함.
@@ -8907,6 +8926,13 @@ function Checkboard() {
       const peerKey = m.member_key || '';
       const peerTz = memberTimezoneText(m);
       const peerDisplay = displayName(m);
+      // 멤버 본인의 시차로 "오늘 Day" 를 계산. 시차 멤버가 한국 시간 기준으로
+      // 아직 안 지난 날을 미리 회색(missed)으로 보이는 문제 방지.
+      const peerOffset = (function () {
+        const t = parseTimezoneShift(peerTz);
+        return (t && t.ok) ? t.offsetMinutes : effectiveTimezoneOffsetMinutes();
+      })();
+      const peerCurrentDay = currentDayForOffset(peerOffset);
       for (let d = 1; d <= 20; d++) {
         const on = verifiedSet ? verifiedSet.has(d) : (d <= progressNum);
         let cls = 'cb-cell';
@@ -8921,9 +8947,9 @@ function Checkboard() {
           const lateTag = isLate ? ' (지각)' : '';
           const tip = stamp ? `${peerDisplay} · Day ${d} · ${stamp}${lateTag}` : `${peerDisplay} · Day ${d} 완료${lateTag}`;
           titleAttr = ` title="${escAttr(tip)}"`;
-        } else if (d < state.currentDay) cls += ' missed';
-        else if (d === state.currentDay) cls += ' today';
-        else                              cls += ' locked';
+        } else if (d < peerCurrentDay) cls += ' missed';
+        else if (d === peerCurrentDay) cls += ' today';
+        else                            cls += ' locked';
         cellsHtml += `<div class="${cls}"${titleAttr}></div>`;
       }
     }
