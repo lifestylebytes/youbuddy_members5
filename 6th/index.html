@@ -6003,10 +6003,11 @@ function render() {
       const __md = (state.accessCode && typeof lookupCode === 'function' ? lookupCode(state.accessCode) : null)
         || MEMBER_DIRECTORY.find((d) => d.name === (state.name || '').trim());
       if (__md && __md.tz) applyMemberTzOverride(__md);
-      // 디렉토리 tier 강제. 멤버 state.tier 가 과거 버그/프리뷰로 잘못 박혀도 디렉토리(진실)로 교정.
-      // 운영자·스태프(뷰 토글 필요)와 tierOverride(베이직 프리뷰 중)는 예외.
-      if (__md && __md.tier && !state.isOperator && !state.isStaff && !state.tierOverride && state.tier !== __md.tier) {
-        state.tier = __md.tier;
+      // 디렉토리 tier 강제. 일반 멤버(운영자·스태프 아님)는 디렉토리(진실)가 무조건 이김.
+      // tierOverride 는 운영자 프리뷰용인데, 일반 멤버 상태에 남아있으면 오염이므로 같이 제거.
+      if (__md && __md.tier && !state.isOperator && !state.isStaff) {
+        if (state.tierOverride) state.tierOverride = null;
+        if (state.tier !== __md.tier) state.tier = __md.tier;
       }
     }
   } catch (_) {}
