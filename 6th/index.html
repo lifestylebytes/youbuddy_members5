@@ -3742,6 +3742,24 @@ function localStreakCount() {
   return streak;
 }
 
+// 기술 오류 보상 (6기 Day 1): 아래 멤버는 Day 1 을 본인 현지 Day 2 끝까지 '정시'로 인정 +
+// 그 기간 동안 Day 1 을 actionable(오늘처럼) 로 표시. 코드 로그인/이름 매칭 둘 다 커버.
+const DAY1_GRACE_IDS = ['p1', 'b22', 'b4'];          // 서보경, 허윤형, 신지현
+const DAY1_GRACE_NAMES = ['서보경', '허윤형', '신지현'];
+const DAY1_GRACE_THROUGH_DAY = 2;                    // 본인 현지 Day 2 예정일까지 정시
+function day1GraceActiveForMe() {
+  try {
+    const md = (state.accessCode && typeof lookupCode === 'function' ? lookupCode(state.accessCode) : null)
+      || (typeof MEMBER_DIRECTORY !== 'undefined' ? MEMBER_DIRECTORY.find((x) => x.name === (state.name || '').trim()) : null);
+    const nm = (state.name || '').trim();
+    return !!(md && (DAY1_GRACE_IDS.includes(md.id) || DAY1_GRACE_NAMES.includes(md.name)))
+      || DAY1_GRACE_NAMES.includes(nm);
+  } catch (e) { return false; }
+}
+function ymd(dt) {
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+}
+
 // Canonical tile state, drives tile color across WeeksPage, Checkboard, MY PROGRESS chips.
 // Rule (user-facing):
 //   • 'done'      → 정상 인증 (주황): verified on or before the scheduled calendar date
@@ -3750,21 +3768,23 @@ function localStreakCount() {
 //   • 'missed'    → 과거 미인증 (빈칸)
 //   • 'locked'    → 내일(D+1) 이후, 둘러보기는 가능하지만 인증/제출 불가
 const dayStatus = (d) => {
+  // Day 1 유예 대상이면 정시 인정 기준일을 Day 2 예정일로 늘림 (그 외 Day 는 그대로).
+  const lateCutoffDay = (d === 1 && day1GraceActiveForMe()) ? DAY1_GRACE_THROUGH_DAY : d;
   if (state.verified['d'+d]) {
-    // 인증은 됐지만 원래 일차의 캘린더 날짜보다 늦게 인증했다면 'done-late'.
+    // 인증은 됐지만 (유예 반영) 기준 캘린더 날짜보다 늦게 인증했다면 'done-late'.
     const when = state.verified_at && state.verified_at['d'+d];
     if (when) {
-      const scheduled = dayDate(d);
-      const y = scheduled.getFullYear();
-      const m = String(scheduled.getMonth()+1).padStart(2,'0');
-      const day = String(scheduled.getDate()).padStart(2,'0');
-      const scheduledStr = `${y}-${m}-${day}`;
+      const scheduledStr = ymd(dayDate(lateCutoffDay));
       if (when > scheduledStr) return 'done-late';
     }
     return 'done';
   }
   if (d === state.currentDay) return 'today';        // 본인 시차 기준 오늘
-  if (d < state.currentDay) return 'missed';         // 본인 시차 기준 지난 날, 미인증
+  if (d < state.currentDay) {
+    // Day 1 유예: 본인 현지로 아직 Day 2 예정일이 안 지났으면 계속 정시 인증 가능 → 'today'.
+    if (d === 1 && day1GraceActiveForMe() && todayStr() <= ymd(dayDate(DAY1_GRACE_THROUGH_DAY))) return 'today';
+    return 'missed';                                 // 본인 시차 기준 지난 날, 미인증
+  }
   // d > 본인 오늘: 한국시간 기준으로 이미 열린 날이면 'open'(미리 풀기 가능), 아니면 'locked'.
   if (d <= koreaOpenDay()) return 'open';
   return 'locked';                                   // 한국 기준으로도 아직 안 열림
