@@ -2902,8 +2902,14 @@ function basicAiUsedCount(dayN) {
   }, 0);
 }
 
+// 프로모션: 이번 주 금요일(Day 5, 2026-06-12)까지 베이직도 AI 문장 리뷰 무제한.
+// 본인 시차 기준 Day 5 예정일이 지나면 자동 종료(=다시 1회 제한). Day 6(월)부터 원복.
+function basicUnlimitedPromoActive() {
+  try { return todayStr() <= ymd(dayDate(5)); } catch (e) { return false; }
+}
 function canUseAiForSentence(dayN, sentenceKey) {
   if (state.tier === 'premium') return true;
+  if (basicUnlimitedPromoActive()) return true;   // 프로모 기간엔 베이직도 무제한
   return !state.ai_feedback?.[sentenceKey];
 }
 
@@ -14243,7 +14249,9 @@ function DayPage(dayN) {
       <span class="badge ${allSentenceDone ? 'badge-green' : 'badge-orange'}">제출 ${submittedCount}/3</span>
     </div>
     <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">흐름은 <b>한국어 한 문장 → 영어 한 문장</b>이에요. AI 리뷰는 선택이고, 커뮤니티에는 영어 문장만 공유돼요.</div>
-    ${state.tier === 'basic' ? `<div class="t-small" style="margin-top:6px;color:var(--orange-dark);line-height:1.5;"><b>베이직</b>은 문장마다 AI 리뷰를 <b>1번씩만</b> 사용할 수 있어요. 현재: ${basicAiUsed}/3</div>` : ''}
+    ${state.tier === 'basic' ? (basicUnlimitedPromoActive()
+      ? `<div class="t-small" style="margin-top:6px;color:var(--green);line-height:1.5;">🎉 이번 주 금요일(Day 5)까지 <b>베이직도 AI 리뷰 무제한</b>이에요! 문장마다 마음껏 다시 받아보세요.</div>`
+      : `<div class="t-small" style="margin-top:6px;color:var(--orange-dark);line-height:1.5;"><b>베이직</b>은 문장마다 AI 리뷰를 <b>1번씩만</b> 사용할 수 있어요. 현재: ${basicAiUsed}/3</div>`) : ''}
   `;
   s2.appendChild(sentenceNotice);
 
@@ -14460,7 +14468,8 @@ function DayPage(dayN) {
           color: hasCorrection ? 'var(--green)' : 'var(--ink)', borderRadius: '999px',
           fontSize: '13px', fontWeight: '700', whiteSpace: 'nowrap',
           // basic + 이미 리뷰함 → 시각적으로 비활성처럼 보이지만 클릭은 받음 → toast 노출.
-          opacity: (state.tier === 'basic' && hasCorrection) ? 0.55 : 1,
+          // (프로모 기간엔 베이직도 무제한이라 흐리게 처리 안 함)
+          opacity: (state.tier === 'basic' && hasCorrection && !basicUnlimitedPromoActive()) ? 0.55 : 1,
         },
         onClick: async () => {
           if (!canUseAiForSentence(dayN, key)) {
@@ -14810,7 +14819,7 @@ function DayPage(dayN) {
         fontSize: '13px',
         fontWeight: '700',
         whiteSpace: 'nowrap',
-        opacity: (state.tier === 'basic' && !!hookFeedback) ? 0.55 : 1,
+        opacity: (state.tier === 'basic' && !!hookFeedback && !basicUnlimitedPromoActive()) ? 0.55 : 1,
       },
       onClick: async () => {
         const currentVal = (hookTa.value || '').trim();
