@@ -2540,12 +2540,17 @@ function __isMinorContentEdit(original, corrected) {
     if (allInflection && oSorted.length > 0) return false;
   }
 
-  // 3) content word 1-2개 swap + 큰 구조 변경 없음 → stylistic swap. 차단.
+  // 3) content word swap 판정. 단, 단복수/시제 등 같은 lemma 변형은 swap 이 아니라
+  //    진짜 grammar 교정이므로 swap 후보에서 먼저 제거한다. (구조 교정과 동시에 일어나
+  //    길이가 안 맞아 위 inflection 검사를 못 탄 케이스: "projects"→"project" + "the" 추가 등)
   const oContent = onlyInO.filter((t) => !__STRUCTURAL_WORDS.has(t));
   const cContent = onlyInC.filter((t) => !__STRUCTURAL_WORDS.has(t));
-  if (oContent.length <= 2 && cContent.length <= 2 && (oContent.length + cContent.length) > 0) {
-    // 추가로, content swap 인데 의미 카테고리가 너무 다르면 (e.g. "money" → "team") 진짜 의미 교정.
-    // 하지만 이 경우엔 진짜 의미 바뀐 거니까 fallback 으로 원문 유지하는 게 안전.
+  const genuineO = oContent.filter((ot) => !cContent.some((ct) => __isSameLemma(ot, ct)));
+  const genuineC = cContent.filter((ct) => !oContent.some((ot) => __isSameLemma(ot, ct)));
+  // 굴절 변형 빼고 남은 content 차이가 없으면 = 전부 구조·단복수·시제 교정 → 진짜 교정. 허용(차단 안 함).
+  if (genuineO.length === 0 && genuineC.length === 0) return false;
+  // 남은 게 1-2개 content swap (동의어 치환 등) → stylistic swap. 차단.
+  if (genuineO.length <= 2 && genuineC.length <= 2) {
     return true;
   }
 
