@@ -3765,7 +3765,9 @@ const dayStatus = (d) => {
   }
   if (d === state.currentDay) return 'today';        // 본인 시차 기준 오늘
   if (d < state.currentDay) return 'missed';         // 본인 시차 기준 지난 날, 미인증
-  return 'locked';                                   // 본인 시차 기준 내일 이후, 둘러보기만
+  // d > 본인 오늘: 한국시간 기준으로 이미 열린 날이면 'open'(미리 풀기 가능), 아니면 'locked'.
+  if (d <= koreaOpenDay()) return 'open';
+  return 'locked';                                   // 한국 기준으로도 아직 안 열림
 };
 
 // 오늘 날짜 (member timezone) YYYY-MM-DD
@@ -3785,6 +3787,18 @@ function koreaTodayStr() {
   const m = String(t.getMonth()+1).padStart(2,'0');
   const d = String(t.getDate()).padStart(2,'0');
   return `${y}-${m}-${d}`;
+}
+// 한국시간 기준 "열린(open) 최대 Day". 페이지 접근/제출 게이트 전용.
+// (state.currentDay = 멤버 본인 시차 '오늘' 과 분리: 메인 표시는 현지 Day, 접근은 한국 Day.)
+// 운영자/staff 의 operatorDayOverride 가 잡혀있으면 그 값을 우선 (시뮬레이션).
+function koreaOpenDay() {
+  try {
+    if ((state.isOperator || state.isStaff) && Number.isFinite(Number(state.operatorDayOverride))) {
+      const n = Number(state.operatorDayOverride);
+      if (n >= 1 && n <= 20) return n;
+    }
+  } catch (e) {}
+  return currentDayForOffset(DEFAULT_TIMEZONE_OFFSET);
 }
 // 현재 시각 (member timezone) HH:mm, 인증 타임스탬프용
 function nowTimeStr() {
@@ -3851,8 +3865,8 @@ function formatVerifyStamp(vd, vt, tzText) {
 function challengeStarted() {
   // Operator preview unlock, 출시 전 동의 팝업 / 제출 / AI / 단어시험 전체 흐름 검증용.
   if (state.operatorPreviewUnlock === true && (state.isOperator || state.isStaff)) return true;
-  // 시작 게이트도 멤버 본인 시차 기준 (Day 진행과 동일 기준).
-  const today = todayStr();
+  // 시작 게이트는 한국시간 기준 (콘텐츠는 한국 시작일에 모두에게 열림).
+  const today = koreaTodayStr();
   return today >= CHALLENGE.start_date;
 }
 function daysUntilStart() {
@@ -3877,9 +3891,10 @@ function guardFutureDay(dayN) {
     showToast('챌린지는 ' + startDateKR() + '에 시작돼요. 지금은 미리보기만 가능해요.');
     return true;
   }
-  const cur = state.currentDay || 1;
-  if (dayN > cur) {
-    showToast('오늘은 Day ' + cur + '이에요. Day ' + dayN + '은(는) 당일에 풀 수 있어요 (미리보기만 가능).');
+  // 접근/제출 게이트는 한국시간 기준 열린 Day 까지 허용 (해외 멤버도 한국 Day 열리면 바로 가능).
+  const cap = koreaOpenDay();
+  if (dayN > cap) {
+    showToast('Day ' + dayN + '은(는) 아직 안 열렸어요. 당일에 풀 수 있어요 (미리보기만 가능).');
     return true;
   }
   return false;
@@ -8299,6 +8314,7 @@ function HomePage() {
     if (st === 'done') cls = 'on';
     else if (st === 'done-late') cls = 'on late';
     else if (st === 'today') cls = 'today';
+    else if (st === 'open') cls = 'today';   // 한국 기준 열린(미리 풀기) 날, 활성 표시
     else if (st === 'missed') cls = 'missed';
     else if (st === 'locked') cls = 'locked';
     dots.appendChild(el('span', { class: cls }));
@@ -8807,7 +8823,7 @@ function Checkboard() {
   // Kick off per-day peer-time fetches in background so a re-render picks them up.
   // Bounded to days [1 .. currentDay], we only care about already-completed days.
   if (typeof loadPeerVerificationTimes === 'function') {
-    const maxD = Math.min(20, Math.max(1, state.currentDay || 1));
+    const maxD = Math.min(20, Math.max(1, state.currentDay || 1, koreaOpenDay()));
     for (let d = 1; d <= maxD; d++) {
       if (!(window.__peerVerifyTimes || {})[d]) {
         loadPeerVerificationTimes(d).then((map) => {
@@ -8864,6 +8880,7 @@ function Checkboard() {
   //    rowsHtml 50KB 재생성하는 거 자체가 낭비. 간단한 fingerprint 로 캐시 hit 시 재사용.
   const fpParts = [
     state.currentDay,
+    koreaOpenDay(),
     JSON.stringify(state.verified || {}),
     JSON.stringify(state.verified_time || {}),
     !!window.__registeredLoaded,
@@ -8889,6 +8906,7 @@ function Checkboard() {
       if (st === 'done')           cls = 'on';
       else if (st === 'done-late') cls = 'on late';
       else if (st === 'today')     cls = 'today';
+      else if (st === 'open')      cls = 'today';   // 한국 기준 열린(미리 풀기) 날, 활성 테두리
       else if (st === 'missed')    cls = 'missed';
       else if (st === 'locked')    cls = 'locked';
       map[d] = { cls, st };
@@ -8959,7 +8977,8 @@ function Checkboard() {
         const t = parseTimezoneShift(peerTz);
         return (t && t.ok) ? t.offsetMinutes : effectiveTimezoneOffsetMinutes();
       })();
-      const peerCurrentDay = currentDayForOffset(peerOffset);
+      const peerCurrentDay = currentDayForOffset(peerOffset); // 본인 시차 오늘 Day
+      const peerKoreaOpen = koreaOpenDay();                    // 한국 기준 열린 Day
       for (let d = 1; d <= 20; d++) {
         const on = verifiedSet ? verifiedSet.has(d) : (d <= progressNum);
         let cls = 'cb-cell';
@@ -8976,6 +8995,7 @@ function Checkboard() {
           titleAttr = ` title="${escAttr(tip)}"`;
         } else if (d < peerCurrentDay) cls += ' missed';
         else if (d === peerCurrentDay) cls += ' today';
+        else if (d <= peerKoreaOpen) cls += ' today';   // 한국 기준 열린 날 (현지보다 앞) → 활성 테두리
         else                            cls += ' locked';
         cellsHtml += `<div class="${cls}"${titleAttr}></div>`;
       }
@@ -10084,8 +10104,8 @@ function VerifyPage(dayN) {
   `;
   page.appendChild(progress);
 
-  // 내일(D+1) 이후 '미리보기' 배너, 인증/제출 차단 안내
-  if (dayN > (state.currentDay || 1)) {
+  // 한국시간 기준 아직 안 열린 Day 만 '미리보기' 배너, 인증/제출 차단 안내
+  if (dayN > koreaOpenDay()) {
     const previewBanner = el('div', {
       style: {
         marginBottom: '18px',
@@ -13727,7 +13747,7 @@ function DayPage(dayN) {
 
   // Pre-start (챌린지 시작 전) 또는 D+1 이후, 인증/제출 차단 안내 배너
   const preStart = !challengeStarted();
-  if (preStart || dayN > (state.currentDay || 1)) {
+  if (preStart || dayN > koreaOpenDay()) {
     const previewBanner = el('div', {
       style: {
         marginTop: '14px',
@@ -13743,7 +13763,7 @@ function DayPage(dayN) {
     const titleText = preStart ? '챌린지 시작 전 · 미리보기' : '미리보기 전용 Day';
     const bodyText = preStart
       ? `챌린지는 <b>${startDateKR()}</b> (D-${daysUntilStart()}) 에 시작돼요. 지금은 Day 1 ~ 20 <b>전부 미리보기만</b> 가능하고, 문장 제출·AI 리뷰·단어 시험은 <b>${startDateKR()} 부터</b> 풀려요.`
-      : `지금은 Day ${state.currentDay || 1}이에요. Day ${dayN}은(는) <b>예습만 가능</b>하고, 인증·문장 제출·단어 시험은 당일에 풀려요.`;
+      : `Day ${dayN}은(는) 아직 안 열렸어요. <b>예습만 가능</b>하고, 인증·문장 제출·단어 시험은 당일에 풀려요.`;
     previewBanner.innerHTML = `
       <span style="display:inline-grid;place-items:center;width:28px;height:28px;border-radius:10px;background:var(--orange-ghost);color:var(--orange-dark);">${Icon('lock', 14)}</span>
       <div style="flex:1;min-width:0;">
@@ -19348,6 +19368,7 @@ function CommunityPage() {
     });
     picker.innerHTML = `<div class="kicker" style="margin-bottom:10px;">날짜 선택 · Day 1-20</div>`;
     const grid = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' } });
+    const pickerCap = koreaOpenDay(); // 한국 기준 열린 Day 까지 선택 가능
     for (let d = 1; d <= 20; d++) {
       const isSel = d === selectedDay;
       const isToday = d === state.currentDay;
@@ -19366,11 +19387,11 @@ function CommunityPage() {
           border: '1px solid ' + (isSel ? 'var(--ink)' : 'var(--line-soft)'),
           fontSize: '12px',
           fontWeight: isSel ? '800' : '600',
-          cursor: d <= state.currentDay ? 'pointer' : 'not-allowed',
-          opacity: d > state.currentDay ? 0.4 : 1,
+          cursor: d <= pickerCap ? 'pointer' : 'not-allowed',
+          opacity: d > pickerCap ? 0.4 : 1,
           position: 'relative',
         },
-        disabled: d > state.currentDay,
+        disabled: d > pickerCap,
         onClick: () => {
           state.communityDay = d;
           state.communityDayPickerOpen = false;
