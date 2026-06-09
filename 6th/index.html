@@ -2466,7 +2466,7 @@ function __isSameLemma(a, b) {
   if (a === b) return true;
   const short = a.length <= b.length ? a : b;
   const long = a.length <= b.length ? b : a;
-  if (short.length < 4) return false;
+  if (short.length < 3) return false;   // run/runs, use/uses 같은 3글자 어간도 굴절로 인정
   // long 이 short 로 시작 + 변형 접미사 ('s', 'ed', 'ing', 'es', 'd', 'ied' 등)
   if (long.startsWith(short)) {
     const rest = long.slice(short.length);
@@ -2543,13 +2543,17 @@ function __isMinorContentEdit(original, corrected) {
   // 3) content word swap 판정. 단, 단복수/시제 등 같은 lemma 변형은 swap 이 아니라
   //    진짜 grammar 교정이므로 swap 후보에서 먼저 제거한다. (구조 교정과 동시에 일어나
   //    길이가 안 맞아 위 inflection 검사를 못 탄 케이스: "projects"→"project" + "the" 추가 등)
+  // 구조(관사/전치사/be 등) 변화가 diff 에 섞여 있으면 = 진짜 grammar 교정 → 허용(차단 안 함).
+  const hasStructuralDiff = onlyInO.some((t) => __STRUCTURAL_WORDS.has(t)) || onlyInC.some((t) => __STRUCTURAL_WORDS.has(t));
   const oContent = onlyInO.filter((t) => !__STRUCTURAL_WORDS.has(t));
   const cContent = onlyInC.filter((t) => !__STRUCTURAL_WORDS.has(t));
   const genuineO = oContent.filter((ot) => !cContent.some((ct) => __isSameLemma(ot, ct)));
   const genuineC = cContent.filter((ct) => !oContent.some((ot) => __isSameLemma(ot, ct)));
-  // 굴절 변형 빼고 남은 content 차이가 없으면 = 전부 구조·단복수·시제 교정 → 진짜 교정. 허용(차단 안 함).
+  // 굴절(단복수/시제) 변형 빼고 남은 content 차이가 없으면 = 전부 구조·굴절 교정 → 허용.
   if (genuineO.length === 0 && genuineC.length === 0) return false;
-  // 남은 게 1-2개 content swap (동의어 치환 등) → stylistic swap. 차단.
+  // 구조 교정이 섞여 있으면 (관사 추가 등) 동의어 swap 만으로 볼 수 없음 → 허용.
+  if (hasStructuralDiff) return false;
+  // 남은 게 순수 1-2개 content swap (동의어 치환 등) → stylistic swap. 차단.
   if (genuineO.length <= 2 && genuineC.length <= 2) {
     return true;
   }
@@ -2597,11 +2601,17 @@ function __normalizeForCompare(s) {
 }
 
 // 새 시도가 이전 시도와 사실상 동일한지 (문자 그대로 또는 동의어 1-2개 차이)
+// 단, '반복=코칭' 으로 넘기는 건 그 이전 문장이 '교정 없이 통과(이미 맞은)' 했을 때만.
+// 이전에 교정이 필요했던(오류 있던) 문장이면, 비슷한 걸 또 내도 계속 교정해줘야 함.
+// (안 그러면 'i runs', 'that projects' 같은 오류가 남아있는데 "이미 잘 썼어요" 로 넘어가는 버그)
 function __isEssentiallySameAsPrior(currentSentence, history) {
   if (!history || history.length === 0) return null;
   const curNorm = __normalizeForCompare(currentSentence);
   for (let i = history.length - 1; i >= 0; i--) {
     const h = history[i];
+    // 이전 시도가 깨끗했는지 (교정 결과가 입력과 사실상 같음 = 고칠 게 없었음)
+    const wasClean = __normalizeForCompare(h.corrected || '') === __normalizeForCompare(h.sentence || '');
+    if (!wasClean) continue; // 오류 있던 문장은 반복 코칭 대상에서 제외 → 다시 교정
     const priorNorm = __normalizeForCompare(h.sentence);
     if (curNorm === priorNorm) return h;
     // 또는 minor content edit 거리 (1-2 단어 차이)
