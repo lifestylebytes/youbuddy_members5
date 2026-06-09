@@ -3774,6 +3774,16 @@ function day1GraceActiveForMe() {
 function ymd(dt) {
   return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
 }
+// 보드 등에서 임의 멤버가 Day 1 유예 대상인지 (이름/id/member_key 매칭).
+function isDay1GraceMember(m) {
+  if (!m) return false;
+  const nm = (m.name || '').trim();
+  return DAY1_GRACE_NAMES.includes(nm) || DAY1_GRACE_IDS.includes(m.id) || DAY1_GRACE_IDS.includes(m.member_key);
+}
+// 해당 멤버의 Day 1 유예가 '아직 유효'한지 (본인 현지로 Day 2 예정일이 안 지남).
+function day1GraceOpenForOffset(offsetMinutes) {
+  return todayStrForOffset(offsetMinutes) <= ymd(dayDate(DAY1_GRACE_THROUGH_DAY));
+}
 
 // Canonical tile state, drives tile color across WeeksPage, Checkboard, MY PROGRESS chips.
 // Rule (user-facing):
@@ -9014,6 +9024,8 @@ function Checkboard() {
       })();
       const peerCurrentDay = currentDayForOffset(peerOffset); // 본인 시차 오늘 Day
       const peerKoreaOpen = koreaOpenDay();                    // 한국 기준 열린 Day
+      // Day 1 유예 대상(서보경·허윤형·신지현)이고 아직 유예 유효하면 Day 1 을 actionable 로.
+      const peerDay1Grace = isDay1GraceMember(m) && day1GraceOpenForOffset(peerOffset);
       for (let d = 1; d <= 20; d++) {
         const on = verifiedSet ? verifiedSet.has(d) : (d <= progressNum);
         let cls = 'cb-cell';
@@ -9028,7 +9040,8 @@ function Checkboard() {
           const lateTag = isLate ? ' (지각)' : '';
           const tip = stamp ? `${peerDisplay} · Day ${d} · ${stamp}${lateTag}` : `${peerDisplay} · Day ${d} 완료${lateTag}`;
           titleAttr = ` title="${escAttr(tip)}"`;
-        } else if (d < peerCurrentDay) cls += ' missed';
+        } else if (d === 1 && peerDay1Grace) cls += ' today';  // Day1 유예 → 회색(missed) 대신 활성
+        else if (d < peerCurrentDay) cls += ' missed';
         else if (d === peerCurrentDay) cls += ' today';
         else if (d <= peerKoreaOpen) cls += ' today';   // 한국 기준 열린 날 (현지보다 앞) → 활성 테두리
         else                            cls += ' locked';
