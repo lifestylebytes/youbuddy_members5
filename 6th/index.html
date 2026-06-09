@@ -3941,6 +3941,10 @@ function formatDateKR(date) {
 // 특정 시차(offsetMinutes) 기준으로 "오늘이 Day 몇" 인지 계산.
 // 보드에서 남의 행을 그릴 때, 그 멤버의 시차로 today 를 잡아야
 // 한국 시간 기준으로 미리 회색(missed) 처리되는 오류를 막는다.
+function todayStrForOffset(offsetMinutes) {
+  const z = zonedNow(offsetMinutes);
+  return `${z.getFullYear()}-${String(z.getMonth() + 1).padStart(2, '0')}-${String(z.getDate()).padStart(2, '0')}`;
+}
 function currentDayForOffset(offsetMinutes) {
   const z = zonedNow(offsetMinutes);
   const y = z.getFullYear();
@@ -8945,13 +8949,14 @@ function Checkboard() {
       const peerKey = m.member_key || '';
       const peerTz = memberTimezoneText(m);
       const peerDisplay = displayName(m);
-      // 멤버 본인의 시차로 "오늘 Day" 를 계산. 시차 멤버가 한국 시간 기준으로
-      // 아직 안 지난 날을 미리 회색(missed)으로 보이는 문제 방지.
+      // 열림(테두리/오늘) = 한국시간 기준 (멤버 본인 화면과 동일하게 모두 같은 날 열림).
+      // 놓침(missed/빈칸) = 멤버 본인 시차 기준 (현지로 아직 마감 안 지났으면 빈칸 아님).
       const peerOffset = (function () {
         const t = parseTimezoneShift(peerTz);
         return (t && t.ok) ? t.offsetMinutes : effectiveTimezoneOffsetMinutes();
       })();
-      const peerCurrentDay = currentDayForOffset(peerOffset);
+      const peerOpenDay = currentDayForOffset(DEFAULT_TIMEZONE_OFFSET); // 한국시간 열림 Day
+      const peerLocalToday = todayStrForOffset(peerOffset);            // 본인 시차 오늘 날짜
       for (let d = 1; d <= 20; d++) {
         const on = verifiedSet ? verifiedSet.has(d) : (d <= progressNum);
         let cls = 'cb-cell';
@@ -8966,9 +8971,14 @@ function Checkboard() {
           const lateTag = isLate ? ' (지각)' : '';
           const tip = stamp ? `${peerDisplay} · Day ${d} · ${stamp}${lateTag}` : `${peerDisplay} · Day ${d} 완료${lateTag}`;
           titleAttr = ` title="${escAttr(tip)}"`;
-        } else if (d < peerCurrentDay) cls += ' missed';
-        else if (d === peerCurrentDay) cls += ' today';
-        else                            cls += ' locked';
+        } else if (d > peerOpenDay) cls += ' locked';        // 한국 기준 아직 안 열림
+        else if (d === peerOpenDay) cls += ' today';         // 오늘 열린 날 (테두리)
+        else {
+          // d < peerOpenDay, 미인증: 본인 시차로 예정일 지났으면 'missed'(빈칸), 아니면 아직 인증 가능 'today'(테두리).
+          const sc = dayDate(d);
+          const scStr = `${sc.getFullYear()}-${String(sc.getMonth()+1).padStart(2,'0')}-${String(sc.getDate()).padStart(2,'0')}`;
+          cls += (peerLocalToday > scStr) ? ' missed' : ' today';
+        }
         cellsHtml += `<div class="${cls}"${titleAttr}></div>`;
       }
     }
