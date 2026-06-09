@@ -14249,9 +14249,7 @@ function DayPage(dayN) {
       <span class="badge ${allSentenceDone ? 'badge-green' : 'badge-orange'}">제출 ${submittedCount}/3</span>
     </div>
     <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">흐름은 <b>한국어 한 문장 → 영어 한 문장</b>이에요. AI 리뷰는 선택이고, 커뮤니티에는 영어 문장만 공유돼요.</div>
-    ${state.tier === 'basic' ? (basicUnlimitedPromoActive()
-      ? `<div class="t-small" style="margin-top:6px;color:var(--green);line-height:1.5;">🎉 이번 주 금요일(Day 5)까지 <b>베이직도 AI 리뷰 무제한</b>이에요! 문장마다 마음껏 다시 받아보세요.</div>`
-      : `<div class="t-small" style="margin-top:6px;color:var(--orange-dark);line-height:1.5;"><b>베이직</b>은 문장마다 AI 리뷰를 <b>1번씩만</b> 사용할 수 있어요. 현재: ${basicAiUsed}/3</div>`) : ''}
+    ${(state.tier === 'basic' && !basicUnlimitedPromoActive()) ? `<div class="t-small" style="margin-top:6px;color:var(--orange-dark);line-height:1.5;"><b>베이직</b>은 문장마다 AI 리뷰를 <b>1번씩만</b> 사용할 수 있어요. 현재: ${basicAiUsed}/3</div>` : ''}
   `;
   s2.appendChild(sentenceNotice);
 
