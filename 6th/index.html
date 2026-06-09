@@ -6042,9 +6042,15 @@ function render() {
   // (해외 멤버는 본인이 시차 못 바꾸므로 디렉토리 값이 진실). 미지정 멤버는 no-op.
   try {
     if (state.onboarded && typeof MEMBER_DIRECTORY !== 'undefined') {
-      const __md = (state.accessCode && typeof lookupCode === 'function' ? lookupCode(state.accessCode) : null)
-        || MEMBER_DIRECTORY.find((d) => d.name === (state.name || '').trim());
-      if (__md && __md.tz) applyMemberTzOverride(__md);
+      const __nm = (state.name || '').trim();
+      const __enm = (state.englishName || '').trim();
+      const __codeHit = (state.accessCode && typeof lookupCode === 'function') ? lookupCode(state.accessCode) : null;
+      // 코드 매칭이 tz 를 못 실어오는 경우까지 대비해, 디렉토리 원본(이름/영문명/id)도 같이 찾아 tz 보강.
+      const __dirHit = MEMBER_DIRECTORY.find((d) =>
+        d.name === __nm || (__enm && d.name === __enm) || (state.memberId && d.id === state.memberId) || (__codeHit && __codeHit.id && d.id === __codeHit.id));
+      const __md = __codeHit || __dirHit;
+      const __tzSrc = (__md && __md.tz) ? __md : ((__dirHit && __dirHit.tz) ? __dirHit : null);
+      if (__tzSrc) applyMemberTzOverride(__tzSrc);
       // 디렉토리 tier 강제. 일반 멤버(운영자·스태프 아님)는 디렉토리(진실)가 무조건 이김.
       // tierOverride 는 운영자 프리뷰용인데, 일반 멤버 상태에 남아있으면 오염이므로 같이 제거.
       if (__md && __md.tier && !state.isOperator && !state.isStaff) {
@@ -7351,6 +7357,10 @@ const ONBOARD_CODE_MAP = MEMBER_DIRECTORY.reduce((acc, member) => {
     // 빠지면 lookupCode → backfill 이 안 잡혀서 state.isStaff 가 영영 false 로 남는 버그.
     isStaff: !!member.isStaff,
     ghost: !!member.ghost,
+    // 운영자 지정 시차(해외 거주 멤버). 로그인 enforcement 에서 applyMemberTzOverride 가
+    // __md.tz 로 읽어가므로 여기 꼭 실어줘야 함. (빠지면 코드 로그인 시 +0h 로 떨어지는 버그)
+    tz: member.tz || null,
+    id: member.id,
   };
   // 코드 자체 ('01') + 숫자로 변환한 unpadded ('1') 둘 다 등록 -
   // 회원이 "01" 이든 "1" 이든 입력해도 로그인 되도록.
