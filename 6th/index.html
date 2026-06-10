@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- HTML 캐시 최소화: 멤버가 새 배포를 빨리 받도록 (브라우저별 효과 차이 있어 JS 자동 업데이트 체크도 병행) -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
 <title>YouBuddy · 비즈니스 영어 챌린지 6기 학습</title>
 <!-- 파비콘: 로즈레드 배경 + 흰색 소문자 y (인라인 SVG, 하위 라우트 전체 적용) -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='8'%20fill='%23E94C6B'/%3E%3Ctext%20x='16'%20y='23'%20font-family='Arial,Helvetica,sans-serif'%20font-size='22'%20font-weight='700'%20fill='%23ffffff'%20text-anchor='middle'%3Ey%3C/text%3E%3C/svg%3E" />
@@ -972,12 +976,16 @@ body.modal-open { overflow: hidden; touch-action: none; }
    비어있는 day 는 기존처럼 "준비 중" 토스트가 뜸.
    YouTube/Vimeo/구글드라이브 공유링크 등 새 탭에서 열리는 모든 URL OK.
    ============================================================ */
+// 배포 버전 마커. 새로 배포할 때마다 이 값을 바꾸면, 열려있는 멤버 앱이 자동으로 감지해
+// "새 버전 있어요 · 새로고침" 배너를 띄움. (캐시된 옛 버전 멤버 자동 안내용)
+const APP_BUILD = '2026-06-10-2215';
 const REWARD_VIDEOS = {
   // 6기 "오늘의 영상" URL 은 운영하면서 받는 대로 아래에 채우면 됩니다.
   // 비어있는 day 는 자동으로 "영상 준비 중" 토스트가 떠요 (에러 아님).
   // (YouTube/Vimeo/구글드라이브/팟캐스트 링크 모두 OK)
   1: 'https://www.allearsenglish.com/aee-1433-get-the-lay-of-the-land-when-it-comes-to-business-english/', // Day1: get the lay of the land (All Ears English 팟캐스트, 대화체)
   2: 'https://youtu.be/VtspPDHCBMQ?si=wjYiRrAoIzOsu8Z1', // Day2
+  3: 'https://www.youtube.com/watch?v=9PPifK4d0TA', // Day3
   // ... 20 까지
 };
 
@@ -26173,7 +26181,39 @@ window.addEventListener('focus', () => {
 });
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && hasSupabase()) refreshRemoteStateAndCommunity({ force: true });
+  if (!document.hidden) __checkForUpdate();
 });
+
+// === 자동 업데이트 감지 ===
+// 배포된 index.html 의 APP_BUILD 값이 지금 실행 중인 값과 다르면 = 캐시된 옛 버전.
+// 멤버가 직접 하드 새로고침 안 해도 배너로 안내 → 탭하면 새로고침. (입력 중 끊김 방지 위해 자동 reload X)
+let __updateBannerShown = false;
+function __showUpdateBanner() {
+  if (__updateBannerShown) return;
+  __updateBannerShown = true;
+  try {
+    const bar = document.createElement('div');
+    bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:99999;background:#E94C6B;color:#fff;padding:12px 20px;border-radius:999px;box-shadow:0 6px 22px rgba(0,0,0,0.20);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;max-width:92vw;text-align:center;';
+    bar.innerHTML = '✨ 새 버전이 나왔어요 · 탭하면 새로고침';
+    bar.onclick = () => { try { location.reload(true); } catch (e) { location.reload(); } };
+    document.body.appendChild(bar);
+  } catch (e) {}
+}
+function __checkForUpdate() {
+  try {
+    fetch(location.pathname + '?_cb=' + Date.now(), { cache: 'no-store' })
+      .then((r) => (r && r.ok) ? r.text() : null)
+      .then((txt) => {
+        if (!txt) return;
+        const m = txt.match(/APP_BUILD\s*=\s*'([^']+)'/);
+        if (m && m[1] && m[1] !== APP_BUILD) __showUpdateBanner();
+      })
+      .catch(() => {});
+  } catch (e) {}
+}
+setInterval(__checkForUpdate, 5 * 60 * 1000);   // 5분마다 새 배포 확인
+setTimeout(__checkForUpdate, 8000);             // 진입 8초 후 1회
+
 // Operator helper, Gaby 가 devtools 에서 직접 수료증 프로필 주입할 때:
 //   __injectCertProfile({ topic: '...', strengths: ['...','...'], growth: [...], keyVocab: [...] })
 // state.cert_profile 에 반영. buildCertHtml 이 자동으로 읽어감.
