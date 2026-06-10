@@ -976,9 +976,9 @@ body.modal-open { overflow: hidden; touch-action: none; }
    비어있는 day 는 기존처럼 "준비 중" 토스트가 뜸.
    YouTube/Vimeo/구글드라이브 공유링크 등 새 탭에서 열리는 모든 URL OK.
    ============================================================ */
-// 배포 버전 마커. 새로 배포할 때마다 이 값을 바꾸면, 열려있는 멤버 앱이 자동으로 감지해
-// "새 버전 있어요 · 새로고침" 배너를 띄움. (캐시된 옛 버전 멤버 자동 안내용)
-const APP_BUILD = '2026-06-10-2215';
+// 배포 버전 마커(참고용). 자동 업데이트 감지는 서버 ETag 비교로 동작하므로
+// 이 값을 매번 바꿀 필요는 없음. (배포만 되면 ETag 가 자동으로 바뀜)
+const APP_BUILD = '2026-06-10';
 const REWARD_VIDEOS = {
   // 6기 "오늘의 영상" URL 은 운영하면서 받는 대로 아래에 채우면 됩니다.
   // 비어있는 day 는 자동으로 "영상 준비 중" 토스트가 떠요 (에러 아님).
@@ -26199,20 +26199,23 @@ function __showUpdateBanner() {
     document.body.appendChild(bar);
   } catch (e) {}
 }
-function __checkForUpdate() {
+// 가벼운 버전 체크: 전체 파일(1.3MB) 다운로드 X. HEAD 요청으로 헤더(ETag/Last-Modified)만 확인.
+// 배포가 새로 되면 ETag 가 바뀌므로, 진입 시 기준값과 비교만 함. (트래픽 거의 0, 렉 없음)
+function __headTag() {
   try {
-    fetch(location.pathname + '?_cb=' + Date.now(), { cache: 'no-store' })
-      .then((r) => (r && r.ok) ? r.text() : null)
-      .then((txt) => {
-        if (!txt) return;
-        const m = txt.match(/APP_BUILD\s*=\s*'([^']+)'/);
-        if (m && m[1] && m[1] !== APP_BUILD) __showUpdateBanner();
-      })
-      .catch(() => {});
-  } catch (e) {}
+    return fetch(location.pathname, { method: 'HEAD', cache: 'no-store' })
+      .then((r) => (r && r.ok) ? (r.headers.get('etag') || r.headers.get('last-modified') || null) : null)
+      .catch(() => null);
+  } catch (e) { return Promise.resolve(null); }
 }
-setInterval(__checkForUpdate, 5 * 60 * 1000);   // 5분마다 새 배포 확인
-setTimeout(__checkForUpdate, 8000);             // 진입 8초 후 1회
+let __baselineTag = null;
+__headTag().then((v) => { __baselineTag = v; });  // 진입 시 현재 배포본 기준점 잡기
+function __checkForUpdate() {
+  if (__updateBannerShown || !__baselineTag) return;   // 기준점 없으면 조용히 패스 (오탐 방지)
+  __headTag().then((v) => { if (v && v !== __baselineTag) __showUpdateBanner(); });
+}
+setInterval(__checkForUpdate, 5 * 60 * 1000);   // 5분마다 (헤더만이라 부담 거의 없음)
+setTimeout(__checkForUpdate, 30000);            // 진입 30초 후 1회
 
 // Operator helper, Gaby 가 devtools 에서 직접 수료증 프로필 주입할 때:
 //   __injectCertProfile({ topic: '...', strengths: ['...','...'], growth: [...], keyVocab: [...] })
