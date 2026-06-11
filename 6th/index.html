@@ -26800,8 +26800,7 @@ const WEEK1_DECK = [
       + '<div style="display:flex;gap:11px;align-items:flex-start;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">3</span><div><div style="font-size:14.5px;font-weight:800;color:var(--ink);">마무리 · 10분</div><div class="t-small" style="margin-top:2px;color:var(--ink-soft);">오늘 막힌 것 정리 + 다음 주 예고</div></div></div></div>'
       + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(233,76,107,0.2);font-size:13.5px;color:var(--ink);">🎯 목표: "외운 단어를 실제로 입 밖으로 뱉어보기"</div>' },
 
-  { section: '캐치업·골세팅', kicker: '1 · 21:00~21:08', title: '캐치업 & 골 세팅 (8분)',
-    script: '"먼저 근황 한마디씩이요. 그리고 이번 기수에 \'이건 꼭 입에 붙이고 싶다\' 하는 거 한 줄씩, 구체적인 상황이면 더 좋아요." (체크하며 진행)',
+  { section: '캐치업·골세팅', kicker: '1 · 21:00~21:08', title: '캐치업 & 골 세팅 (8분)', goalCapture: true,
     checks: ['근황 한마디씩 (가볍게)', '개인 목표 한 줄 + 구체적 상황 공유', '오늘은 트레이닝 위주라고 안내'],
     html: '<div style="margin-top:6px;padding:14px 16px;border-radius:14px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.25);">'
       + '<div style="font-size:12px;font-weight:800;color:#5C53A5;">✨ 앞으로 특별 강의 로드맵 (미리 기대 심기)</div>'
@@ -26876,6 +26875,26 @@ window.__deckNav = (delta) => {
 window.__deckToggleScript = () => { window.__deckShowScript = !window.__deckShowScript; render(); };
 window.__deckToggleAns = () => { window.__deckRevealAns = !window.__deckRevealAns; render(); };
 window.__deckToggleCheck = (k) => { window.__deckChecks[k] = !window.__deckChecks[k]; render(); };
+window.__deckSaveGoals = async () => {
+  const dr = window.__deckGoalDraft || {};
+  const j = (dr.j || '').trim(), d = (dr.d || '').trim();
+  if (!j && !d) { showToast('받아적은 내용이 없어요'); return; }
+  if (!hasSupabase()) { showToast('서버 연결이 없어요'); return; }
+  showToast('멤버 목표에 추가 중...');
+  try {
+    const mem = await supabaseRpc('get_cohort_member_summaries', { p_cohort: CHALLENGE.cohort });
+    const key = {};
+    (mem || []).forEach((m) => { key[m.member_name] = m.member_key; });
+    const tasks = [];
+    if (j && key['정주혜']) tasks.push(supabaseRpc('append_member_goal', { p_cohort: CHALLENGE.cohort, p_member_key: key['정주혜'], p_text: j }));
+    if (d && key['이도현']) tasks.push(supabaseRpc('append_member_goal', { p_cohort: CHALLENGE.cohort, p_member_key: key['이도현'], p_text: d }));
+    if (!tasks.length) { showToast('해당 멤버를 못 찾았어요 (정주혜·이도현)'); return; }
+    await Promise.all(tasks);
+    window.__deckGoalDraft = {};
+    showToast('저장 완료! 멤버 목표 아래에 추가됐어요 ✅');
+    render();
+  } catch (e) { showToast('저장 실패: ' + ((e && e.message) || e)); }
+};
 function MeetingDeckPage() {
   if (!(state.isOperator || state.isStaff)) {
     const p = el('div', { class: 'page' });
@@ -26927,6 +26946,15 @@ function MeetingDeckPage() {
         + '<span style="font-size:14px;color:' + (on ? '#3B6D11' : 'var(--ink)') + ';' + (on ? 'text-decoration:line-through;opacity:0.7;' : '') + '">' + escapeHtml(c) + '</span></button>';
     });
     body += '</div>';
+  }
+  if (s.goalCapture) {
+    const dr = window.__deckGoalDraft || {};
+    body += '<div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(154,139,115,0.3);">'
+      + '<div style="font-size:13px;font-weight:800;color:var(--ink);">📝 받아적기 → 멤버 목표에 이어붙이기</div>'
+      + '<div class="t-small" style="margin:4px 0 9px;color:var(--ink-soft);line-height:1.5;">말한 목표·상황을 적고 저장하면 각자 앱 목표 <b>아래에 추가</b>돼요 (기존 건 안 지워짐).</div>'
+      + '<input id="__deckGoalJ" class="input" placeholder="정주혜 님 목표·상황" value="' + escapeHtml(dr.j || '') + '" oninput="(window.__deckGoalDraft=window.__deckGoalDraft||{}).j=this.value" />'
+      + '<input id="__deckGoalD" class="input" style="margin-top:8px;" placeholder="이도현 님 목표·상황" value="' + escapeHtml(dr.d || '') + '" oninput="(window.__deckGoalDraft=window.__deckGoalDraft||{}).d=this.value" />'
+      + '<button class="btn btn-primary btn-full" style="margin-top:10px;" onclick="window.__deckSaveGoals()">💾 저장 · 멤버 목표에 추가</button></div>';
   }
   if (s.worksheet) {
     const rev = window.__deckRevealAns;
