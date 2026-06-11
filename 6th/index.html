@@ -17022,7 +17022,7 @@ function MeetingNotesPage(meetingId) {
   const back = el('button', { class: 'icon-btn', onClick: () => goBack('premium') });
   back.innerHTML = Icon('arrowLeft', 16);
   head.appendChild(back);
-  head.appendChild(el('div', { class: 'brand-name' }, '미팅 타임라인'));
+  head.appendChild(el('div', { class: 'brand-name' }, '회의록'));
   // 저장 버튼, 미팅 노트는 '개인 노트' 성격이라 클라우드 동기화가 필요 없음.
   // 매 키스트로크 saveState() 가 이미 localStorage 에 저장 중이라, 이 버튼은
   // '지금까지 적은 게 저장됐다' 는 확인용 역할만 함. 명시적 확정 + 안심용.
@@ -17280,7 +17280,7 @@ function MeetingNotesPage(meetingId) {
   // Segmented control, Timeline vs AI assist
   const seg = el('div', { class: 'mn-seg' });
   const tabs = [
-    { k: 'timeline', label: '📋 타임라인' },
+    { k: 'timeline', label: '📋 회의록' },
     { k: 'ai', label: '✨ AI 요약' },
   ];
   tabs.forEach(t => {
@@ -26900,14 +26900,14 @@ const WEEK1_DECK = [
 
   { section: '다음주 예고', kicker: '다음 주 · 미니 강의 로드맵', title: 'Week 2 · 3 타임라인',
     html: '<div style="display:flex;flex-direction:column;gap:10px;">'
-      + '<div style="padding:14px 16px;border-radius:14px;background:var(--ink);color:var(--cream);">'
-      + '<div style="font-size:11px;letter-spacing:0.06em;color:rgba(251,247,240,0.6);">WEEK 2 · 🎭 외국계 유머 한 스푼</div>'
-      + '<div style="margin-top:8px;font-size:12.5px;color:var(--cream);line-height:1.85;">① 미니 강연 (회의·스몰토크 농담) → ② 핵심 표현 제공 → ③ <b>표현 롤플레잉</b> → ④ 짝 연습 → ⑤ 발표 1명 꼼꼼 피드백</div>'
-      + '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(251,247,240,0.16);font-size:11.5px;color:rgba(251,247,240,0.85);line-height:1.7;">🍬 맛보기: "I won\'t lie..." · "Don\'t ask me, I just got here." · "Oh, that\'s wild." · "No way!"</div></div>'
-      + '<div style="padding:14px 16px;border-radius:14px;background:#3C3489;color:#fff;">'
-      + '<div style="font-size:11px;letter-spacing:0.06em;color:rgba(255,255,255,0.65);">WEEK 3 · 💬 외국계 쿠션어 (부드럽게 말하기)</div>'
-      + '<div style="margin-top:8px;font-size:12.5px;color:#fff;line-height:1.85;">① 미니 강연 (완곡·정중 표현) → ② 핵심 표현 제공 → ③ 표현 롤플레잉 → ④ 짝 연습 → ⑤ 발표 1명 꼼꼼 피드백</div>'
-      + '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.18);font-size:11.5px;color:rgba(255,255,255,0.85);line-height:1.7;">🍬 맛보기: "I might be wrong, but..." · "Just to play devil\'s advocate..." · "Would it be possible to...?"</div></div></div>'
+      + '<div style="padding:14px 16px;border-radius:14px;background:#26331F;color:#ECEFE3;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
+      + '<div style="font-size:11px;letter-spacing:0.06em;color:#FBE7A1;font-weight:800;">WEEK 2 · 🎭 외국계 유머 한 스푼</div>'
+      + '<div style="margin-top:8px;font-size:12.5px;color:#ECEFE3;line-height:1.85;">① 미니 강연 (회의·스몰토크 농담) → ② 핵심 표현 제공 → ③ <b style="color:#fff;">표현 롤플레잉</b> → ④ 짝 연습 → ⑤ 발표 1명 꼼꼼 피드백</div>'
+      + '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.25);font-size:11.5px;color:#C9D6C0;line-height:1.7;">🍬 맛보기: "I won\'t lie..." · "Don\'t ask me, I just got here." · "Oh, that\'s wild." · "No way!"</div></div>'
+      + '<div style="padding:14px 16px;border-radius:14px;background:#22301B;color:#ECEFE3;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
+      + '<div style="font-size:11px;letter-spacing:0.06em;color:#FBE7A1;font-weight:800;">WEEK 3 · 💬 외국계 쿠션어 (부드럽게 말하기)</div>'
+      + '<div style="margin-top:8px;font-size:12.5px;color:#ECEFE3;line-height:1.85;">① 미니 강연 (완곡·정중 표현) → ② 핵심 표현 제공 → ③ 표현 롤플레잉 → ④ 짝 연습 → ⑤ 발표 1명 꼼꼼 피드백</div>'
+      + '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.25);font-size:11.5px;color:#C9D6C0;line-height:1.7;">🍬 맛보기: "I might be wrong, but..." · "Just to play devil\'s advocate..." · "Would it be possible to...?"</div></div></div>'
       + '<div style="margin-top:12px;padding:13px 15px;border-radius:14px;background:#EAF3DE;color:#3B6D11;font-size:13.5px;line-height:1.7;">📅 PT 세션: KST <b>6/20 또는 6/27</b> 중 가능한 시간 받기. 두 분도 가능하면 추가 밋업.</div>' },
 
 ];
