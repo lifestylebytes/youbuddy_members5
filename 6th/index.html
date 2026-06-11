@@ -3171,6 +3171,7 @@ let showPreReviewPopup = null;
 let showSurveyFillModal = null;
 let showMiniWeekSurvey = null; // weekN, 단어 시험 입구에서 띄우는 3문항 미니 설문
 let showWeekWrapupPopup = null; // weekN, 매주 금요일 (Day 5/10/15/20) 자동 노출. "지금 풀러가기 / 주말에 보기"
+let showBestPopup = null; // 이번주 베스트(만점자+최초완주) 팝업 데이터. 현재 운영자 미리보기 전용.
 // 알림 인박스 패널, TopBar 종 누르면 열림.
 let showNotifications = false;
 let toast = null;
@@ -3185,7 +3186,7 @@ let dashboardStats = {
 function anyPopupOpen() {
   return !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
-    || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup);
+    || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup);
 }
 
 function go(page, opts={}) {
@@ -6435,12 +6436,20 @@ function render() {
       const stale = document.querySelector('[data-week-wrapup-popup]');
       if (stale) stale.remove();
     }
+    if (showBestPopup) {
+      if (!document.querySelector('[data-best-popup]')) {
+        document.body.appendChild(BestPopupModal(showBestPopup));
+      }
+    } else {
+      const stale = document.querySelector('[data-best-popup]');
+      if (stale) stale.remove();
+    }
 
     // Mobile modal scroll fix: lock body scroll while any modal is open so the
     // modal's own overflow-y:auto picks up touch scrolling instead of the page
     // behind it bubbling. 취소/저장 버튼이 모바일에서 안 닿던 문제.
     try {
-      const anyModalOpen = !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup);
+      const anyModalOpen = anyPopupOpen();
       if (anyModalOpen) document.body.classList.add('modal-open');
       else document.body.classList.remove('modal-open');
     } catch (_lockErr) {}
@@ -20130,6 +20139,11 @@ function SettingsModal() {
             <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">베이직/프리미엄 단톡방 공지에 넣을 스크린샷 7장을 한 페이지에서 순서대로 캡처할 수 있어요.</div>
             <button id="__settingsOpenScreenshotGuide" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(233,76,107,0.28);color:var(--orange-dark);">📸 스크린샷 가이드 열기</button>
           </div>
+          <div style="margin-top:14px;padding-top:12px;border-top:1px dotted rgba(233,76,107,0.18);">
+            <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🏆 이번주 베스트 팝업 미리보기</div>
+            <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">힌트 없이 만점자 + 최초 5일 완주자 팝업을 <b>실데이터로</b> 미리 봐요. 멤버에겐 아직 안 보여요.</div>
+            <button onclick="showSettings=null;window.__previewBestPopup()" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(233,76,107,0.28);color:var(--orange-dark);">🏆 베스트 팝업 미리보기</button>
+          </div>
         </details>
       </div>
     ` : ''}
@@ -26531,6 +26545,69 @@ function MyReviewPage() {
   page.appendChild(panel);
   setTimeout(() => { try { const i = document.getElementById('__reviewInput'); if (i && document.activeElement !== i) i.focus(); } catch (e) {} }, 60);
   return page;
+}
+
+/* ============================================================
+   이번주 베스트 팝업 (만점자 + 최초 5일 완주). 현재 운영자 미리보기 전용.
+   ============================================================ */
+window.__closeBestPopup = () => { showBestPopup = null; render(); };
+window.__previewBestPopup = async () => {
+  if (!(state.isOperator || state.isStaff)) { showToast('운영자 전용 미리보기예요'); return; }
+  showToast('이번주 베스트 계산 중...');
+  try {
+    const [vs, mem] = await Promise.all([
+      supabaseRpc('get_cohort_vocab_stats', { p_cohort: CHALLENGE.cohort }),
+      supabaseRpc('get_cohort_member_summaries', { p_cohort: CHALLENGE.cohort }),
+    ]);
+    const enMap = {};
+    (mem || []).forEach((m) => { const k = m.member_name || ''; const e = (m.english_name || '').trim(); enMap[k] = e || k; });
+    const agg = {};
+    const words = (vs && vs.words) || [];
+    words.forEach((w) => (w.member_attempts || []).forEach((a) => {
+      const n = a.member_name; agg[n] = agg[n] || { att: 0, clean: 0, w: 0, s: 0, h: 0 };
+      if (a.first_result != null) agg[n].att++;
+      if (a.first_result === 'correct' && !a.first_hinted) agg[n].clean++;
+      agg[n].w += (a.w || 0); agg[n].s += (a.s || 0); agg[n].h += (a.h || 0);
+    }));
+    let maxAtt = 0; Object.values(agg).forEach((v) => { if (v.att > maxAtt) maxAtt = v.att; });
+    const masters = Object.entries(agg)
+      .filter(([n, v]) => v.att > 0 && v.att === maxAtt && v.clean === v.att && v.w === 0 && v.s === 0 && v.h === 0)
+      .map(([n]) => enMap[n] || n);
+    const finishers = (mem || [])
+      .filter((m) => { const vd = new Set((m.verified_days || []).map(Number)); return [1, 2, 3, 4, 5].every((d) => vd.has(d)); })
+      .map((m) => enMap[m.member_name] || m.member_name);
+    showBestPopup = { weekN: 1, masters, maxAtt, finishers };
+    render();
+  } catch (e) {
+    showToast('계산 실패: ' + ((e && e.message) || e));
+  }
+};
+function BestPopupModal(data) {
+  const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
+  overlay.setAttribute('data-best-popup', '1');
+  const masters = data.masters || [];
+  const finishers = data.finishers || [];
+  const card = el('div', { style: { width: '100%', maxWidth: '360px', background: 'var(--paper)', borderRadius: '24px', overflow: 'hidden', maxHeight: '86vh', overflowY: 'auto' } });
+  let html = '<div style="background:#fff;padding:18px 18px 14px;text-align:center;position:relative;">'
+    + '<button onclick="window.__closeBestPopup()" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;">✕</button>'
+    + '<div style="font-size:11px;letter-spacing:0.06em;color:var(--muted);">WEEK ' + (data.weekN || 1) + ' · 단어 시험</div>'
+    + '<div style="font-size:19px;font-weight:800;color:var(--ink);margin-top:4px;">이번주의 단어 마스터 ✨</div>'
+    + '<div style="font-size:12.5px;color:var(--muted);margin-top:4px;">순위 말고, 잘한 사람 다 같이 축하해요</div></div>';
+  html += '<div style="padding:16px 18px 6px;"><div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;"><span style="font-size:18px;">⭐</span><span style="font-size:14px;font-weight:800;color:var(--ink);">힌트 없이 첫시도 만점</span></div>';
+  html += masters.length
+    ? '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + masters.map((n) => '<span style="background:#FBEAF0;color:#72243E;font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;">' + escapeHtml(n) + '</span>').join('') + '</div><div style="font-size:11.5px;color:var(--muted);margin-top:8px;">단어 ' + (data.maxAtt || 0) + '개 전부 힌트 없이 정답 🎉</div>'
+    : '<div style="font-size:13px;color:var(--muted);">아직 무결점 만점자가 없어요. 곧 나와요!</div>';
+  html += '</div>';
+  html += '<div style="padding:14px 18px 18px;"><div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;"><span style="font-size:18px;">🏁</span><span style="font-size:14px;font-weight:800;color:var(--ink);">이번주 가장 먼저 5일 완주</span></div>';
+  html += finishers.length
+    ? '<div style="background:#E1F5EE;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:50%;background:#5DCAA5;color:#04342C;display:flex;align-items:center;justify-content:center;font-size:18px;">🏅</div><div><div style="font-size:14px;font-weight:800;color:#04342C;">' + escapeHtml(finishers[0]) + '</div><div style="font-size:12px;color:#0F6E56;">이번주 5일 인증 가장 먼저 완료</div></div></div>'
+    : '<div style="background:#F1EFE8;border-radius:14px;padding:12px 14px;font-size:13px;color:var(--ink-soft);">아직 5일 완주자가 없어요. <b>금요일(Day 5)</b> 인증으로 정해져요.</div>';
+  html += '</div>';
+  html += '<div style="padding:0 18px 18px;"><button onclick="window.__closeBestPopup()" style="width:100%;background:var(--orange);color:#fff;border:none;border-radius:14px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;">나도 다음주 명단 노려보기</button>'
+    + '<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">👁 운영자 미리보기 · 멤버에겐 아직 안 보여요</div></div>';
+  card.innerHTML = html;
+  overlay.appendChild(card);
+  return overlay;
 }
 
 render();
