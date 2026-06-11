@@ -26825,12 +26825,25 @@ const WEEK1_DECK = [
   { section: '워밍업', kicker: '2 · 워밍업 문항', title: '한국어 뜻 → 영어', worksheet: true,
     script: '"자, 1번부터요. (뜻 읽고 3초 기다림) ... 막히면 화면 오른쪽에 정답이 흐리게 있으니 제가 살짝 보고, 단어 공개한 다음 지난주 문장으로 한 번 더 입에 붙일게요."' },
 
-  { section: '유의어 강의', kicker: '3 · 유의어 미니 강의', title: '가장 헷갈린 3개, 뉘앙스 콕',
-    script: '"방금 막힌 것 중에 이 셋이 있을 거예요. 뉘앙스만 짧게 짚고, 각자 이 표현으로 한 문장씩 만들어볼게요."',
-    html: '<div style="display:flex;flex-direction:column;gap:12px;">'
-      + '<div style="padding:12px 14px;border-radius:12px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.18);"><b style="color:var(--orange-dark);">Level-set</b> vs Align expectations<br><span style="font-size:13px;color:var(--ink-soft);">level-set = 회의 첫머리 "기준부터 통일". align expectations = 기대치 자체를 맞춤. 미국 회사 오프닝엔 level-set이 압도적.</span></div>'
-      + '<div style="padding:12px 14px;border-radius:12px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.18);"><b style="color:var(--orange-dark);">Run point</b> vs Take the lead / Own it<br><span style="font-size:13px;color:var(--ink-soft);">run point = "이 건은 내가 키 잡고 간다"는 단일 책임자 뉘앙스(군대 척후병). take the lead는 더 일반적, own it은 결과까지 책임.</span></div>'
-      + '<div style="padding:12px 14px;border-radius:12px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.18);"><b style="color:var(--orange-dark);">Get the lay of the land</b> vs Get a feel for things<br><span style="font-size:13px;color:var(--ink-soft);">둘 다 "파악". lay of the land는 구조·판세(누가 키맨인지)까지, get a feel은 분위기·감(感) 쪽.</span></div></div>' },
+  { section: '유의어 강의', kicker: '3 · 미니 강의', title: '두 분 일에 바로 쓰는 표현',
+    html: (() => {
+      const line = (en, sent, syn) => '<div style="margin-top:9px;">'
+        + '<div style="font-size:15px;font-weight:800;color:#fff;font-family:var(--font-mono);border-bottom:1.5px dashed rgba(255,255,255,0.35);display:inline-block;padding-bottom:1px;">' + en + '</div>'
+        + '<div style="margin-top:4px;font-size:13px;color:#ECEFE3;line-height:1.5;">' + sent + '</div>'
+        + '<div style="margin-top:2px;font-size:11.5px;color:#A9C3A0;font-style:italic;">' + syn + '</div></div>';
+      return '<div style="background:#26331F;border-radius:18px;padding:18px;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
+        + '<div style="font-size:11px;letter-spacing:0.1em;color:#FBE7A1;font-weight:800;">📋 오늘의 칠판 · 내 일에 붙는 표현</div>'
+        + '<div style="margin-top:14px;font-size:12.5px;font-weight:800;color:#9FE1CB;">🧑‍💼 주혜님 · HR / 온보딩</div>'
+        + line('Level-set', '"Let\'s level-set on what good onboarding looks like."', '≈ get everyone on the same page')
+        + line('Pull in', '"Let me pull in the regional managers first."', '≈ bring in / loop in')
+        + line('Table stakes', '"Clear comms is table stakes for a distributed team."', '≈ the bare minimum')
+        + '<div style="margin-top:16px;font-size:12.5px;font-weight:800;color:#9FE1CB;">🛳️ 도현님 · 크루즈 / 호스피탈리티</div>'
+        + line('Run point', '"I\'ll run point on the excursion desk this week."', '≈ take the lead')
+        + line('Get your ducks in a row', '"Get your ducks in a row before guests board."', '≈ get everything prepped')
+        + line('Carve out', '"I\'ll carve out time each morning to drill phrases."', '≈ set aside / block off')
+        + '</div>'
+        + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">진행: 각자 자기 표현 3개를 <b>본인 상황 한 문장</b>으로 만들어 말해보기. 막히면 칠판 보고.</div>';
+    })() },
 
   { section: 'Paragraph', kicker: '4 · 내 상황 대본 읽기', title: '제가 준비한 문장으로 읽어볼까요?',
     html: '<p style="font-size:15.5px;line-height:1.8;color:var(--ink);"><b>여러분 상황에 맞는 대본</b>을 준비했어요! 오늘 배운 표현 12개가 한 문단에 자연스럽게 다 녹아 있어요. 어떤 문장으로 구성돼 있는지, <b>소리 내어 읽어보는 연습</b>을 해봅시다 🗣️</p>'
@@ -26998,11 +27011,14 @@ function MeetingDeckPage() {
   page.appendChild(wrap);
 
   const isLast = idx === WEEK1_DECK.length - 1;
-  const nav = el('div', { style: { display: 'flex', gap: '10px', marginTop: '18px', position: 'sticky', bottom: '0', background: '#FFFDF7', paddingTop: '12px', paddingBottom: '10px', borderTop: '1px solid rgba(154,139,115,0.18)', zIndex: '5' } });
-  nav.innerHTML = '<button class="btn btn-ghost" style="flex:1;justify-content:center;" onclick="window.__deckNav(-1)"' + (idx === 0 ? ' disabled' : '') + '>' + Icon('arrowLeft', 14) + ' 이전</button>'
+  page.appendChild(el('div', { style: { height: '86px' } })); // 하단 고정 네비 가림 방지 여백
+  const nav = el('div', { style: { position: 'fixed', left: '0', right: '0', bottom: '0', background: '#FFFDF7', borderTop: '1px solid rgba(154,139,115,0.2)', padding: '12px 20px', zIndex: '50', boxShadow: '0 -4px 16px rgba(0,0,0,0.05)' } });
+  const navInner = el('div', { style: { display: 'flex', gap: '10px', maxWidth: '720px', margin: '0 auto' } });
+  navInner.innerHTML = '<button class="btn btn-ghost" style="flex:1;justify-content:center;" onclick="window.__deckNav(-1)"' + (idx === 0 ? ' disabled' : '') + '>' + Icon('arrowLeft', 14) + ' 이전</button>'
     + (isLast
       ? '<button class="btn" style="flex:1.9;justify-content:center;background:var(--green);color:#fff;border:none;" onclick="go(\'meeting-notes\')">✅ 회의 완료 · 회의록 쓰러가기</button>'
       : '<button class="btn btn-primary" style="flex:1.6;justify-content:center;" onclick="window.__deckNav(1)">다음 ' + Icon('arrowRight', 14) + '</button>');
+  nav.appendChild(navInner);
   page.appendChild(nav);
   return page;
 }
