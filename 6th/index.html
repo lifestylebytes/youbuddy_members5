@@ -8274,6 +8274,32 @@ function HomePage() {
     }
   } catch (e) {}
 
+  // 5일 다 완주했는데 그 주 회고 설문 아직 안 한 사람 → 대시보드 진입 시 설문 팝업 1회 자동 노출.
+  // (금요일 wrap-up 과 별개. Day 6+ 처럼 그 주 지나갔어도 설문만 비었으면 계속 챙김. 세션 1회.)
+  try {
+    window.__surveyNudgeSession = window.__surveyNudgeSession || {};
+    const curWeekN = Math.min(4, Math.max(1, Math.ceil((Number(state.currentDay) || 1) / 5)));
+    for (let wN = 1; wN <= curWeekN; wN++) {
+      const wk = (CHALLENGE.weeks || []).find((w) => w.n === wN);
+      const doneAll = !!(wk && weekProgress(wk) === wk.days.length); // 그 주 5일 전부 인증 완료
+      const sv = (state.week_survey || {})[String(wN)] || {};
+      const surveyDone = !!(sv.at && !sv.skipped);                   // 설문 제출 완료(스킵 아님)
+      const sessionShown = !!window.__surveyNudgeSession[String(wN)];
+      if (doneAll && !surveyDone && !sessionShown
+          && !showSurveyFillModal && !showMiniWeekSurvey && !showWeekWrapupPopup
+          && guidedTourStep === null && challengeStarted()) {
+        window.__surveyNudgeSession[String(wN)] = true; // 세션 가드 즉시 set (무한 루프 방지)
+        setTimeout(() => {
+          if (showSurveyFillModal || showMiniWeekSurvey || showWeekWrapupPopup || guidedTourStep !== null) return;
+          // Week 1·4 = 메인 설문(showSurveyFillModal), Week 2·3 = 미니 설문(showMiniWeekSurvey)
+          if (wN === 1 || wN === 4) showSurveyFillModal = wN; else showMiniWeekSurvey = wN;
+          render();
+        }, 700);
+        break; // 한 번에 하나만 (가장 이른 미완 주차)
+      }
+    }
+  } catch (e) {}
+
   // 주간 퀴즈/보상 안내 팝업, 홈 진입 시 1회 자동 노출 (베이직/프리미엄 둘 다).
   // 멤버 currentDay 기준 현재 주차 popup 노출. weekly_quiz_popup_seen.v{N} 마커로 본 상태 추적.
   // 운영자는 설정에서 주차 골라 다시 보기 가능.
