@@ -26404,6 +26404,50 @@ function buildReviewWeakWords() {
   out.sort((a, b) => b.score - a.score);
   return out;
 }
+// 개인 어휘 분석: 숙련도/약점/강점/일자별 성장. state.vocab_stats(로컬, 동기화됨) 기반.
+function buildReviewAnalytics() {
+  const stats = state.vocab_stats || {};
+  const meta = __reviewWordMeta();
+  let attempted = 0, clean = 0, totalHint = 0, totalWrong = 0, totalSkip = 0;
+  const weak = [], strong = [], dayAgg = {};
+  const seenW = new Set(), seenS = new Set();
+  Object.entries(stats).forEach(([key, st]) => {
+    const m = meta[String(key).toLowerCase()];
+    if (!m) return;
+    const c = +(st.c || 0), w = +(st.w || 0), h = +(st.h || 0), s = +(st.s || 0);
+    if (!(st.firstResult != null || (c + w + s) > 0)) return;
+    attempted++;
+    totalHint += h; totalWrong += w; totalSkip += s;
+    const firstClean = st.firstResult === 'correct' && !st.firstHinted;
+    const firstWrong = st.firstResult === 'wrong' || st.firstHinted;
+    const d = m.day || 0;
+    dayAgg[d] = dayAgg[d] || { att: 0, clean: 0 };
+    dayAgg[d].att++; if (firstClean) dayAgg[d].clean++;
+    if (firstClean && w === 0 && s === 0 && h === 0) {
+      clean++;
+      if (!seenS.has(m.en.toLowerCase())) { seenS.add(m.en.toLowerCase()); strong.push({ en: m.en, kr: m.kr }); }
+    }
+    const wscore = (w * 3) + (s * 2) + h + (firstWrong ? 3 : 0);
+    if (wscore > 0 && !seenW.has(m.en.toLowerCase())) {
+      seenW.add(m.en.toLowerCase());
+      weak.push({ en: m.en, kr: m.kr, w, s, h, firstWrong, score: wscore });
+    }
+  });
+  weak.sort((a, b) => b.score - a.score);
+  const accuracy = attempted ? Math.round(clean / attempted * 100) : 0;
+  return { attempted, clean, accuracy, weak, strong, dayAgg, totalHint, totalWrong, totalSkip };
+}
+function __accuracyDonut(pct) {
+  const r = 42, c = 2 * Math.PI * r, off = c * (1 - pct / 100);
+  const col = pct >= 90 ? '#22B36A' : pct >= 75 ? '#3B6D11' : pct >= 50 ? '#BA7517' : '#E24B4A';
+  return '<svg width="116" height="116" viewBox="0 0 100 100"><circle cx="50" cy="50" r="' + r + '" fill="none" stroke="rgba(0,0,0,0.07)" stroke-width="9"/><circle cx="50" cy="50" r="' + r + '" fill="none" stroke="' + col + '" stroke-width="9" stroke-linecap="round" stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + off.toFixed(1) + '" transform="rotate(-90 50 50)"/><text x="50" y="47" text-anchor="middle" font-size="23" font-weight="800" fill="' + col + '">' + pct + '%</text><text x="50" y="62" text-anchor="middle" font-size="8.5" fill="#9A8B73">첫시도 정답률</text></svg>';
+}
+function __levelLabel(pct) {
+  if (pct >= 90) return { t: '표현 장인 🏆', c: '#22B36A' };
+  if (pct >= 75) return { t: '안정권 ✨', c: '#3B6D11' };
+  if (pct >= 50) return { t: '성장 중 📈', c: '#BA7517' };
+  return { t: '워밍업 💪', c: '#E24B4A' };
+}
 function buildReviewMySentences() {
   const out = [];
   (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((d) => (d.words || []).forEach((w, i) => {
@@ -26470,31 +26514,80 @@ function MyReviewPage() {
   const ui = window.__reviewUi;
 
   if (!ui) {
-    const weak = buildReviewWeakWords();
+    const a = buildReviewAnalytics();
+    const weak = a.weak;
     const sentN = buildReviewMySentences().length;
 
-    const report = el('div', { class: 'card', style: { padding: '20px', borderRadius: '22px' } });
-    let rh = '<h2 class="h2" style="font-size:21px;">내 약점 리포트 📋</h2>';
-    if (!weak.length) {
-      rh += '<p class="t-body" style="margin-top:10px;color:var(--ink-soft);">아직 약점으로 잡힌 단어가 없어요. 단어 시험을 보면 내가 헷갈린 단어가 여기 모여요 💪</p>';
+    if (!a.attempted) {
+      const empty = el('div', { class: 'card', style: { padding: '24px', borderRadius: '22px', textAlign: 'center' } });
+      empty.innerHTML = '<div style="font-size:40px;">📋</div><h2 class="h2" style="margin-top:8px;font-size:20px;">아직 분석할 기록이 없어요</h2><p class="t-body" style="margin-top:8px;color:var(--ink-soft);">단어 시험을 한 번 보면 내 정답률·약점·강점이 그래프로 정리돼요. 오늘 학습부터 시작해봐요!</p>';
+      page.appendChild(empty);
     } else {
-      rh += '<p class="t-small" style="margin-top:6px;color:var(--ink-soft);">내가 틀리거나·힌트 본·스킵한 단어예요. 답이랑 같이 먼저 눈에 익히고, 아래 테스트로 확인해요.</p><div style="margin-top:14px;display:flex;flex-direction:column;gap:10px;">';
-      weak.slice(0, 12).forEach((x) => {
-        const tags = [];
-        if (x.w > 0) tags.push('<span style="background:#FCEBEB;color:#A32D2D;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;">틀림 ' + x.w + '</span>');
-        if (x.h > 0) tags.push('<span style="background:#FAEEDA;color:#854F0B;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;">힌트 ' + x.h + '</span>');
-        if (x.s > 0) tags.push('<span style="background:#F1EFE8;color:#5F5E5A;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;">스킵 ' + x.s + '</span>');
-        if (!tags.length && x.firstWrong) tags.push('<span style="background:#FCEBEB;color:#A32D2D;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;">첫시도 막힘</span>');
-        rh += '<div style="padding:12px 14px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.18);">'
-          + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">'
-          + '<span style="font-size:16px;font-weight:800;color:var(--orange-dark);font-family:var(--font-mono);">' + escapeHtml(x.en) + '</span>'
-          + '<span style="display:flex;gap:5px;flex-wrap:wrap;">' + tags.join('') + '</span></div>'
-          + '<div class="t-small" style="margin-top:5px;color:var(--ink-soft);">' + escapeHtml(x.kr) + '</div></div>';
-      });
-      rh += '</div>';
+      const lvl = __levelLabel(a.accuracy);
+      const gauge = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '22px' } });
+      gauge.innerHTML =
+        '<div class="kicker" style="color:var(--orange-dark);">내 어휘 리포트</div>' +
+        '<div style="display:flex;align-items:center;gap:16px;margin-top:10px;">' +
+        '<div style="flex-shrink:0;">' + __accuracyDonut(a.accuracy) + '</div>' +
+        '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:18px;font-weight:800;color:' + lvl.c + ';">' + lvl.t + '</div>' +
+        '<div class="t-small" style="margin-top:4px;color:var(--ink-soft);line-height:1.5;">단어 ' + a.attempted + '개 도전 · 힌트 없이 한 번에 맞춘 게 ' + a.clean + '개</div>' +
+        '<div style="display:flex;gap:7px;margin-top:10px;flex-wrap:wrap;">' +
+        '<span style="background:#EAF3DE;color:#3B6D11;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;">완벽 ' + a.clean + '</span>' +
+        '<span style="background:#FCEBEB;color:#A32D2D;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;">약점 ' + weak.length + '</span>' +
+        '<span style="background:#FAEEDA;color:#854F0B;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;">힌트 ' + a.totalHint + '</span>' +
+        '</div></div></div>';
+      page.appendChild(gauge);
+
+      if (weak.length) {
+        const maxScore = weak[0].score || 1;
+        const bars = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '22px', marginTop: '12px' } });
+        let bh = '<div style="font-size:15px;font-weight:800;color:var(--ink);">가장 약한 표현 Top ' + Math.min(weak.length, 8) + '</div>' +
+          '<div class="t-small" style="margin-top:3px;color:var(--ink-soft);">막대가 길수록 더 헷갈린 표현이에요. 답 보고 익힌 뒤 아래서 테스트!</div>' +
+          '<div style="margin-top:14px;display:flex;flex-direction:column;gap:12px;">';
+        weak.slice(0, 8).forEach((x) => {
+          const pctBar = Math.max(12, Math.round(x.score / maxScore * 100));
+          const tags = [];
+          if (x.w > 0) tags.push('틀림 ' + x.w);
+          if (x.h > 0) tags.push('힌트 ' + x.h);
+          if (x.s > 0) tags.push('스킵 ' + x.s);
+          bh += '<div>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
+            '<span style="font-size:14.5px;font-weight:800;color:var(--orange-dark);font-family:var(--font-mono);">' + escapeHtml(x.en) + '</span>' +
+            '<span style="font-size:10.5px;color:var(--muted);flex-shrink:0;">' + tags.join(' · ') + '</span></div>' +
+            '<div style="margin-top:5px;height:9px;border-radius:999px;background:rgba(154,139,115,0.15);overflow:hidden;"><div style="height:100%;width:' + pctBar + '%;border-radius:999px;background:#D85A30;"></div></div>' +
+            '<div class="t-small" style="margin-top:4px;color:var(--ink-soft);">' + escapeHtml(x.kr) + '</div></div>';
+        });
+        bh += '</div>';
+        bars.innerHTML = bh;
+        page.appendChild(bars);
+      }
+
+      if (a.strong.length) {
+        const sc = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '22px', marginTop: '12px' } });
+        sc.innerHTML = '<div style="font-size:15px;font-weight:800;color:#3B6D11;">이미 입에 붙은 표현 ' + a.strong.length + '개 ✅</div>' +
+          '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:7px;">' +
+          a.strong.slice(0, 16).map((x) => '<span style="background:#EAF3DE;color:#3B6D11;font-size:12.5px;font-weight:700;padding:5px 11px;border-radius:999px;">' + escapeHtml(x.en) + '</span>').join('') +
+          '</div>';
+        page.appendChild(sc);
+      }
+
+      const days = Object.keys(a.dayAgg).map(Number).filter((d) => d > 0).sort((x, y) => x - y);
+      if (days.length >= 2) {
+        const gc = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '22px', marginTop: '12px' } });
+        let gh = '<div style="font-size:15px;font-weight:800;color:var(--ink);">일자별 첫시도 정답률 📈</div><div style="margin-top:14px;display:flex;align-items:flex-end;gap:10px;height:96px;">';
+        days.forEach((d) => {
+          const o = a.dayAgg[d]; const p = o.att ? Math.round(o.clean / o.att * 100) : 0;
+          gh += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">' +
+            '<div style="font-size:10px;color:var(--muted);">' + p + '%</div>' +
+            '<div style="width:100%;max-width:34px;height:' + Math.max(6, Math.round(p * 0.6)) + 'px;border-radius:6px 6px 0 0;background:var(--orange);"></div>' +
+            '<div style="font-size:10px;color:var(--muted);">D' + d + '</div></div>';
+        });
+        gh += '</div>';
+        gc.innerHTML = gh;
+        page.appendChild(gc);
+      }
     }
-    report.innerHTML = rh;
-    page.appendChild(report);
 
     if (weak.length) {
       const t1 = el('button', { class: 'btn btn-primary btn-full btn-lg', style: { marginTop: '14px' }, onClick: () => window.__startReview('weak') });
