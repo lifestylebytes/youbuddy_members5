@@ -1919,6 +1919,7 @@ const defaultState = () => ({
   weekly_quiz_popup_seen: {},       // { "v1": true } 주간 퀴즈/보상 안내 팝업 본 상태. 버전별 키로 다음 주차 새 팝업 재발행 가능.
   friday_redirect_seen: {},         // { "1": true }, Day 5/10/15/20 (= 매주 금요일) 자동 시험 페이지 redirect 본 상태. 주차별 1회만 redirect.
   spaced_repeat_seen: {},           // { "day7": true } Spaced Repetition 팝업 본 상태, Day 시작 시 1회 노출용.
+  review_unlock_seen: false,        // Week 2(Day 6)부터 '내 약점 복습' 기능 잠금 해제 안내 팝업 본 상태.
   prereview_seen: {},               // { "day2": true } 매일 학습 전 "어제 단어 복습" 팝업 본 상태, Day N 진입 시 1회 노출.
   notifications_read: {},           // { "recording-m1": true, "weekly-quiz-v1": true } 종 인박스에서 읽음 처리한 알림.
   operatorViewAsMember: false,      // 운영자/스태프가 "일반 회원처럼 보기" 켜둘 때 true. 운영자 UI 다 숨김.
@@ -1994,6 +1995,7 @@ const PERSISTED_STATE_KEYS = [
   'meeting_briefing_open',
   'recording_popup_seen',
   'weekly_quiz_popup_seen',
+  'review_unlock_seen',
   'spaced_repeat_seen',
   'prereview_seen',
   'notifications_read',
@@ -3172,6 +3174,9 @@ let showSurveyFillModal = null;
 let showMiniWeekSurvey = null; // weekN, 단어 시험 입구에서 띄우는 3문항 미니 설문
 let showWeekWrapupPopup = null; // weekN, 매주 금요일 (Day 5/10/15/20) 자동 노출. "지금 풀러가기 / 주말에 보기"
 let showBestPopup = null; // 이번주 베스트(만점자+최초완주) 팝업 데이터. 현재 운영자 미리보기 전용.
+let showReviewUnlockPopup = false; // Week 2(Day 6) 진입 시 '내 약점 복습' 기능 해제 온보딩 팝업.
+// '내 약점 복습' 기능은 Week 2(Day 6)부터 해제. 다음 기수도 동일(코호트 무관, currentDay 기준).
+function reviewFeatureUnlocked() { return (Number(state.currentDay) || 1) >= 6 || state.isOperator || state.isStaff; }
 // 알림 인박스 패널, TopBar 종 누르면 열림.
 let showNotifications = false;
 let toast = null;
@@ -3186,7 +3191,7 @@ let dashboardStats = {
 function anyPopupOpen() {
   return !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
-    || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup);
+    || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup);
 }
 
 function go(page, opts={}) {
@@ -6444,6 +6449,14 @@ function render() {
       const stale = document.querySelector('[data-best-popup]');
       if (stale) stale.remove();
     }
+    if (showReviewUnlockPopup) {
+      if (!document.querySelector('[data-review-unlock-popup]')) {
+        document.body.appendChild(ReviewUnlockPopupModal());
+      }
+    } else {
+      const stale = document.querySelector('[data-review-unlock-popup]');
+      if (stale) stale.remove();
+    }
 
     // Mobile modal scroll fix: lock body scroll while any modal is open so the
     // modal's own overflow-y:auto picks up touch scrolling instead of the page
@@ -8340,6 +8353,18 @@ function HomePage() {
     }
   } catch (e) {}
 
+  // Week 2(Day 6) 진입 시 '내 약점 복습' 기능 해제 온보딩 팝업 (1회, 코호트 무관).
+  try {
+    if ((Number(state.currentDay) || 1) >= 6 && !state.review_unlock_seen && !showReviewUnlockPopup && !anyPopupOpen() && challengeStarted() && guidedTourStep === null) {
+      setTimeout(() => {
+        if (!showReviewUnlockPopup && !anyPopupOpen() && guidedTourStep === null && !state.review_unlock_seen) {
+          showReviewUnlockPopup = true;
+          render();
+        }
+      }, 500);
+    }
+  } catch (e) {}
+
   // 프리미엄 멤버 → 새로 추가된 미팅 녹화본 팝업 1회 자동 노출.
   // recording_popup_seen[meetingId] === true 면 본 거라 스킵.
   // 운영자/스태프는 본인은 미팅 녹화 만든 사람이지만 그래도 알림 한 번 봐야해서 노출.
@@ -8448,9 +8473,11 @@ function HomePage() {
   ctaBtn.innerHTML = `오늘의 학습 열기 · Day ${state.currentDay} ${Icon('arrowRight', 16)}`;
   hero.appendChild(ctaBtn);
 
-  const reviewBtn = el('button', { class: 'btn btn-full', style: { marginTop: '10px', background: 'rgba(251,247,240,0.1)', color: 'var(--cream)', border: '1px solid rgba(251,247,240,0.22)' }, onClick: () => go('my-review') });
-  reviewBtn.innerHTML = `✍️ 내 약점 복습 ${Icon('arrowRight', 14)}`;
-  hero.appendChild(reviewBtn);
+  if (reviewFeatureUnlocked()) {
+    const reviewBtn = el('button', { class: 'btn btn-full', style: { marginTop: '10px', background: 'rgba(251,247,240,0.1)', color: 'var(--cream)', border: '1px solid rgba(251,247,240,0.22)' }, onClick: () => go('my-review') });
+    reviewBtn.innerHTML = `✍️ 내 약점 복습 ${Icon('arrowRight', 14)}` + ((Number(state.currentDay) || 1) < 6 ? ' <span style="font-size:10px;opacity:0.6;">(운영자 미리보기)</span>' : '');
+    hero.appendChild(reviewBtn);
+  }
 
   page.appendChild(hero);
 
@@ -26511,6 +26538,14 @@ function MyReviewPage() {
   head.innerHTML = '<button class="icon-btn" onclick="window.__exitReview()" style="background:#fff;border:1px solid var(--line);">' + Icon('arrowLeft', 16) + '</button><div class="kicker" style="color:var(--orange-dark);">MY REVIEW · 내 복습</div><div style="width:36px;"></div>';
   page.appendChild(head);
 
+  if (!reviewFeatureUnlocked()) {
+    const lock = el('div', { class: 'card', style: { padding: '28px 22px', borderRadius: '22px', textAlign: 'center' } });
+    lock.innerHTML = '<div style="font-size:40px;">🔒</div><h2 class="h2" style="margin-top:8px;font-size:20px;">Week 2부터 열려요</h2><p class="t-body" style="margin-top:8px;color:var(--ink-soft);">\'내 약점 복습\'은 2주차(Day 6)부터 해제돼요. 1주차 단어를 충분히 쌓아두면, 그때 내 약점만 콕 집어 복습할 수 있어요!</p>';
+    lock.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, onClick: () => go('home') }, '홈으로'));
+    page.appendChild(lock);
+    return page;
+  }
+
   const ui = window.__reviewUi;
 
   if (!ui) {
@@ -26699,6 +26734,30 @@ function BestPopupModal(data) {
   html += '<div style="padding:0 18px 18px;"><button onclick="window.__closeBestPopup()" style="width:100%;background:var(--orange);color:#fff;border:none;border-radius:14px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;">나도 다음주 명단 노려보기</button>'
     + '<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">👁 운영자 미리보기 · 멤버에겐 아직 안 보여요</div></div>';
   card.innerHTML = html;
+  overlay.appendChild(card);
+  return overlay;
+}
+
+window.__closeReviewUnlock = () => { state.review_unlock_seen = true; saveState(); showReviewUnlockPopup = false; render(); };
+window.__goReviewFromUnlock = () => { state.review_unlock_seen = true; saveState(); showReviewUnlockPopup = false; go('my-review'); };
+function ReviewUnlockPopupModal() {
+  const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
+  overlay.setAttribute('data-review-unlock-popup', '1');
+  const card = el('div', { style: { width: '100%', maxWidth: '350px', background: 'var(--paper)', borderRadius: '24px', overflow: 'hidden', maxHeight: '88vh', overflowY: 'auto' } });
+  card.innerHTML =
+    '<div style="background:var(--ink);color:var(--cream);padding:22px 20px;text-align:center;">' +
+    '<div style="font-size:11px;letter-spacing:0.08em;color:rgba(251,247,240,0.6);">WEEK 2 · 새 기능 해제</div>' +
+    '<div style="font-size:40px;margin-top:8px;">✍️</div>' +
+    '<div style="font-size:20px;font-weight:800;margin-top:6px;">\'내 약점 복습\'이 열렸어요!</div></div>' +
+    '<div style="padding:18px 20px;">' +
+    '<p class="t-body" style="color:var(--ink-soft);line-height:1.6;">2주차부터는 <b>내가 틀리고 힌트 본 단어</b>를 모아 리포트로 보여드려요. 정답률·약점 그래프로 실력을 한눈에 보고, 약한 표현만 콕 집어 다시 시험볼 수 있어요.</p>' +
+    '<div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">' +
+    '<div style="font-size:13.5px;color:var(--ink);">📊 내 숙련도 게이지 + 약점 막대그래프</div>' +
+    '<div style="font-size:13.5px;color:var(--ink);">🎯 약한 단어만 다시 시험 (힌트 버튼 포함)</div>' +
+    '<div style="font-size:13.5px;color:var(--ink);">📝 내가 쓴 문장으로 빈칸 테스트 <span style="font-size:10px;background:#ECE8FF;color:#5C53A5;padding:1px 6px;border-radius:999px;">PREMIUM</span></div></div>' +
+    '<button onclick="window.__goReviewFromUnlock()" class="btn btn-primary btn-full" style="margin-top:18px;">지금 내 약점 보러가기 →</button>' +
+    '<button onclick="window.__closeReviewUnlock()" class="btn btn-ghost btn-full" style="margin-top:8px;">나중에</button>' +
+    '</div>';
   overlay.appendChild(card);
   return overlay;
 }
