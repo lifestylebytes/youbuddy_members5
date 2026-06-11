@@ -26889,7 +26889,7 @@ const WEEK1_DECK = [
     html: '<div style="font-size:15px;line-height:1.85;color:var(--ink);">Before my first season on the <b>cruise line</b>, I want to <b>get the lay of the land</b> of how guest services really runs. Let me <b>pull in</b> a senior crew member and <b>level-set</b> on what excellent service looks like on board. Can you give me a <b>ballpark</b> of how many guests each crew handles at dinner? I will <b>stub out</b> a quick welcome script so I am not improvising, and I will <b>run point</b> on the shore-excursion desk this week. Let us <b>brainstorm</b> ways to handle complaints calmly, and <b>whiteboard</b> the check-in flow at the gangway. Friendly, clear English is not extra, it is <b>table stakes</b> in hospitality. I will <b>carve out</b> time each morning to drill phrases and <b>get my ducks in a row</b> before guests board. The themed-night idea sounds fun, but let us <b>put a pin in it</b> until I have settled in.</div>'
       + '<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(154,139,115,0.18);font-size:13.5px;line-height:1.85;color:var(--muted);">크루즈 첫 시즌 전에, 게스트 서비스가 실제로 어떻게 돌아가는지 판세부터 파악하고 싶어요. 선임 크루를 합류시켜서, 배 위에서 \'훌륭한 서비스\'가 뭔지 기준을 맞춰볼게요. 저녁 때 크루 한 명이 게스트를 대략 몇 명 담당하는지 감 잡을 수 있을까요? 즉흥으로 안 하게 환영 멘트 뼈대를 먼저 잡아두고, 이번 주 기항지 투어 데스크는 제가 총괄할게요. 컴플레인을 차분히 다루는 방법을 자유롭게 아이디어 내보고, 승선구 체크인 흐름을 화이트보드에 펼쳐봐요. 친절하고 명확한 영어는 추가가 아니라, 호스피탈리티에선 기본 중의 기본이에요. 매일 아침 표현 연습할 시간을 빼두고, 게스트 승선 전에 준비를 싹 끝내둘게요. 테마 나이트 아이디어도 재밌는데, 제가 적응할 때까지 일단 표시만 해둘게요.</div>' },
 
-  { section: '마무리', kicker: '5 · 21:52~22:00', title: '마무리 체크리스트', passReview: true,
+  { section: '마무리', kicker: '5 · 21:52~22:00', title: '마무리 체크리스트', passReview: true, wrapGoals: true,
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래 4가지를 하나씩 체크하며 마무리하세요.</div>',
     checks: [
       '워크시트(워밍업 슬라이드)로 돌아가 12개 한국어→영어 한 바퀴 · 막혔던 것만 다시 짚기',
@@ -26945,6 +26945,32 @@ function __deckHydrate() {
 }
 window.__deckTogglePass = (i) => { window.__deckPass = window.__deckPass || {}; window.__deckPass[i] = !window.__deckPass[i]; __deckPersist(); render(); };
 window.__deckGoSection = (sec) => { const i = WEEK1_DECK.findIndex((sl) => sl.section === sec); if (i >= 0) { window.__deckIdx = i; window.scrollTo(0, 0); render(); } };
+window.__deckSaveWrap = async () => {
+  const dr = window.__deckWrapDraft || {};
+  const mk = (g, r) => { const p = []; if ((g || '').trim()) p.push('Week 2 목표: ' + g.trim()); if ((r || '').trim()) p.push('복습: ' + r.trim()); return p.join(' / '); };
+  const jt = mk(dr.wj_goal, dr.wj_rev), dt = mk(dr.wd_goal, dr.wd_rev);
+  if (!jt && !dt) { showToast('받아적은 내용이 없어요'); return; }
+  try {
+    state.meeting_notes = state.meeting_notes || {};
+    state.meeting_notes['m1'] = state.meeting_notes['m1'] || {};
+    const wk = state.meeting_notes['m1'].week1 = state.meeting_notes['m1'].week1 || {};
+    wk.wrap = { j: jt, d: dt };
+    saveState();
+  } catch (e) {}
+  if (!hasSupabase()) { showToast('회의록에 저장했어요 (서버 연결 없음)'); return; }
+  showToast('멤버 목표에 추가 중...');
+  try {
+    const mem = await supabaseRpc('get_cohort_member_summaries', { p_cohort: CHALLENGE.cohort });
+    const key = {};
+    (mem || []).forEach((m) => { key[m.member_name] = m.member_key; });
+    const tasks = [];
+    if (jt && key['정주혜']) tasks.push(supabaseRpc('append_member_goal', { p_cohort: CHALLENGE.cohort, p_member_key: key['정주혜'], p_text: jt }));
+    if (dt && key['이도현']) tasks.push(supabaseRpc('append_member_goal', { p_cohort: CHALLENGE.cohort, p_member_key: key['이도현'], p_text: dt }));
+    await Promise.all(tasks);
+    showToast('저장 완료! 멤버 목표에 Week2 추가됐어요 ✅');
+    render();
+  } catch (e) { showToast('저장 실패: ' + ((e && e.message) || e)); }
+};
 window.__m1Save = (field, val) => {
   try {
     state.meeting_notes = state.meeting_notes || {};
@@ -27061,6 +27087,18 @@ function MeetingDeckPage() {
         ? '<div style="margin-top:8px;display:flex;flex-direction:column;gap:5px;">' + passedWords.map((w) => '<div style="font-size:13.5px;color:var(--ink);"><b style="font-family:var(--font-mono);color:var(--orange-dark);">' + escapeHtml(w.en) + '</b> · ' + escapeHtml(w.kr) + '</div>').join('') + '</div>'
         : '<div style="margin-top:6px;font-size:12.5px;color:var(--muted);">표시한 게 없어요. 워밍업 슬라이드에서 막힌 단어를 🔖 표시하면 여기 모여요.</div>')
       + '</div>';
+  }
+  if (s.wrapGoals) {
+    const dr = window.__deckWrapDraft || {};
+    const fld = (id, ph) => '<input id="' + id + '" class="input" style="margin-top:6px;" placeholder="' + ph + '" value="' + escapeHtml(dr[id] || '') + '" oninput="(window.__deckWrapDraft=window.__deckWrapDraft||{})[\'' + id + '\']=this.value" />';
+    body += '<div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(154,139,115,0.3);">'
+      + '<div style="font-size:13px;font-weight:800;color:var(--ink);">📝 다음 주 목표 받아적기 → 멤버 목표에 추가</div>'
+      + '<div class="t-small" style="margin:4px 0 10px;color:var(--ink-soft);line-height:1.5;">저장하면 각자 앱 목표에 "Week 2 목표: ~"로 이어붙어요 (기존 안 지움).</div>'
+      + '<div style="font-size:12px;font-weight:800;color:#5C53A5;margin-bottom:2px;">정주혜 님</div>'
+      + fld('wj_goal', '다음 주 목표 한 줄') + fld('wj_rev', '어떻게 복습할지')
+      + '<div style="font-size:12px;font-weight:800;color:#5C53A5;margin:10px 0 2px;">이도현 님</div>'
+      + fld('wd_goal', '다음 주 목표 한 줄') + fld('wd_rev', '어떻게 복습할지')
+      + '<button class="btn btn-primary btn-full" style="margin-top:12px;" onclick="window.__deckSaveWrap()">💾 저장 · 멤버 목표에 Week2 추가</button></div>';
   }
   card.innerHTML = body;
   col.appendChild(card);
