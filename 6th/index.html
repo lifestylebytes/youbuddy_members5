@@ -3007,6 +3007,7 @@ function routeToHash() {
       case 'week-survey-result':
         return window.__weekSurveyResult ? `#survey/${window.__weekSurveyResult.weekN}` : '#home';
       case 'vocab-stats': return '#vocab-stats';
+      case 'my-review': return '#my-review';
       case 'screenshot-guide': return '#screenshot-guide';
       default: return '';
     }
@@ -3077,6 +3078,9 @@ function applyHashRoute(rawHash) {
       return true;
     case 'vocab-stats':
       currentPage = 'vocab-stats';
+      return true;
+    case 'my-review':
+      currentPage = 'my-review';
       return true;
     case 'survey':
       // #survey/{weekN}, 운영자 전용. RPC 다시 호출해서 결과 페이지 마운트.
@@ -6239,6 +6243,7 @@ function render() {
     else if (currentPage === 'screenshot-guide') page = ScreenshotGuidePage();
     else if (currentPage === 'week-survey-result') page = WeekSurveyResultPage();
     else if (currentPage === 'vocab-stats') page = VocabStatsPage();
+    else if (currentPage === 'my-review') page = MyReviewPage();
     else if (currentPage === 'final-report') page = FinalReportPage();
     else page = HomePage();
 
@@ -8433,6 +8438,10 @@ function HomePage() {
   const ctaBtn = el('button', { class: 'btn btn-primary btn-full btn-lg', style: { marginTop: '18px' }, onClick: () => go('day', { day: state.currentDay }) });
   ctaBtn.innerHTML = `오늘의 학습 열기 · Day ${state.currentDay} ${Icon('arrowRight', 16)}`;
   hero.appendChild(ctaBtn);
+
+  const reviewBtn = el('button', { class: 'btn btn-full', style: { marginTop: '10px', background: 'rgba(251,247,240,0.1)', color: 'var(--cream)', border: '1px solid rgba(251,247,240,0.22)' }, onClick: () => go('my-review') });
+  reviewBtn.innerHTML = `✍️ 내 약점 복습 ${Icon('arrowRight', 14)}`;
+  hero.appendChild(reviewBtn);
 
   page.appendChild(hero);
 
@@ -26343,6 +26352,163 @@ window.__clearPersonalQuiz = function() {
   render();
   console.log('[clearPersonalQuiz] OK');
 };
+
+/* ============================================================
+   내 복습 (개인화): ① 약점 단어 복습  ② 내 문장으로 테스트 (프리미엄 전용)
+   ============================================================ */
+function __reviewWordMeta() {
+  const meta = {};
+  (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((d) => (d.words || []).forEach((w) => {
+    const k = String(w.en || '').toLowerCase();
+    meta[k] = { en: w.en, kr: w.kr || w.def || '', def: w.def || '', day: d.day };
+    (Array.isArray(w.syn) ? w.syn : []).forEach((s) => {
+      const sk = String(s || '').toLowerCase().trim();
+      if (sk && !meta[sk]) {
+        const sd = (typeof SYNONYM_GLOSSARY !== 'undefined' && SYNONYM_GLOSSARY[sk]) ? SYNONYM_GLOSSARY[sk] : ('(' + w.en + ' 유의어)');
+        meta[sk] = { en: s, kr: sd, def: sd, day: d.day };
+      }
+    });
+  })));
+  return meta;
+}
+function buildReviewWeakWords() {
+  const stats = state.vocab_stats || {};
+  const meta = __reviewWordMeta();
+  const out = [];
+  const seen = new Set();
+  Object.entries(stats).forEach(([key, st]) => {
+    const w = +(st.w || 0), h = +(st.h || 0), s = +(st.s || 0);
+    const firstWrong = st.firstResult === 'wrong' || st.firstHinted;
+    if (!(w > 0 || s > 0 || h > 0 || firstWrong)) return;    // 약점 신호 없으면 제외
+    const m = meta[String(key).toLowerCase()];
+    if (!m) return;
+    if (seen.has(m.en.toLowerCase())) return;
+    seen.add(m.en.toLowerCase());
+    const score = (w * 3) + (s * 2) + h + (firstWrong ? 3 : 0);
+    out.push({ en: m.en, kr: m.kr, def: m.def, score });
+  });
+  out.sort((a, b) => b.score - a.score);
+  return out;
+}
+function buildReviewMySentences() {
+  const out = [];
+  (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((d) => (d.words || []).forEach((w, i) => {
+    const k = 'd' + d.day + '-' + i;
+    const corrected = (state.ai_feedback && state.ai_feedback[k] && state.ai_feedback[k].corrected) || '';
+    const raw = (corrected || (state.sentences && state.sentences[k]) || '').trim();
+    if (!raw || raw.length < 8) return;
+    let masked = null;
+    try {
+      const re = new RegExp(String(w.en).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      if (re.test(raw)) masked = raw.replace(re, '______');
+    } catch (e) {}
+    out.push({ en: w.en, kr: w.kr || w.def || '', sentence: raw, masked, day: d.day });
+  })));
+  return out;
+}
+window.__reviewUi = window.__reviewUi || null;
+window.__startReview = (mode) => {
+  if (mode === 'sentence' && !(state.tier === 'premium' || state.isOperator || state.isStaff)) {
+    showToast('내 문장 테스트는 프리미엄 전용이에요 💜');
+    return;
+  }
+  const list = mode === 'sentence' ? buildReviewMySentences() : buildReviewWeakWords();
+  if (!list.length) {
+    showToast(mode === 'sentence' ? '아직 제출한 문장이 없어요. 먼저 영작을 해보세요!' : '복습할 약점 단어가 없어요. 완벽해요 💪');
+    return;
+  }
+  window.__reviewUi = { mode, list, idx: 0, value: '', score: 0, done: false };
+  render();
+};
+window.__setReviewValue = (v) => { if (window.__reviewUi) window.__reviewUi.value = v; };
+window.__submitReview = () => {
+  const ui = window.__reviewUi;
+  if (!ui || ui.done) return;
+  const cur = ui.list[ui.idx];
+  if (!cur) return;
+  if (typeof quizAnswerMatches === 'function' && quizAnswerMatches(ui.value || '', cur.en)) {
+    if (typeof window.__flashCorrect === 'function') window.__flashCorrect();
+    ui.score += 1;
+    setTimeout(() => window.__advanceReview(false), 350);
+  } else {
+    showToast((ui.value || '').trim() ? '아직 정답이 아니에요. 다시 한 번 ✏️' : '먼저 답을 입력해주세요 ✏️');
+  }
+};
+window.__advanceReview = (skipped) => {
+  const ui = window.__reviewUi;
+  if (!ui) return;
+  if (ui.idx >= ui.list.length - 1) { ui.done = true; ui.value = ''; }
+  else { ui.idx += 1; ui.value = ''; }
+  render();
+};
+window.__restartReview = () => { const ui = window.__reviewUi; if (ui) window.__startReview(ui.mode); };
+window.__exitReview = () => { window.__reviewUi = null; go('home'); };
+
+function MyReviewPage() {
+  const page = el('div', { class: 'page' });
+  const isPrem = state.tier === 'premium' || state.isOperator || state.isStaff;
+  const head = el('div', { class: 'row-between', style: { marginBottom: '14px' } });
+  head.innerHTML = '<button class="icon-btn" onclick="window.__exitReview()" style="background:#fff;border:1px solid var(--line);">' + Icon('arrowLeft', 16) + '</button><div class="kicker" style="color:var(--orange-dark);">MY REVIEW · 내 복습</div><div style="width:36px;"></div>';
+  page.appendChild(head);
+
+  const ui = window.__reviewUi;
+
+  if (!ui) {
+    const weakN = buildReviewWeakWords().length;
+    const sentN = buildReviewMySentences().length;
+    const intro = el('div', { class: 'card', style: { padding: '20px', borderRadius: '22px' } });
+    intro.innerHTML =
+      '<h2 class="h2" style="font-size:22px;">내 약점만 콕 집어 복습 ✍️</h2>' +
+      '<p class="t-body" style="margin-top:8px;color:var(--ink-soft);">내가 틀리거나 힌트 본 단어, 내가 쓴 문장으로 다시 시험봐요. 개인 맞춤이라 효율 최고예요.</p>';
+    page.appendChild(intro);
+
+    const c1 = el('button', { class: 'card', style: { width: '100%', textAlign: 'left', padding: '18px 20px', borderRadius: '20px', marginTop: '14px', border: '1px solid rgba(233,76,107,0.28)', cursor: 'pointer', background: '#FFFDF8' }, onClick: () => window.__startReview('weak') });
+    c1.innerHTML = '<div style="display:flex;align-items:center;gap:12px;"><span style="font-size:26px;">🎯</span><div style="flex:1;"><div style="font-size:16px;font-weight:800;color:var(--ink);">약점 단어 복습</div><div class="t-small" style="margin-top:3px;color:var(--ink-soft);">내가 약했던 단어 ' + weakN + '개</div></div>' + Icon('arrowRight', 16) + '</div>';
+    page.appendChild(c1);
+
+    const locked = !isPrem;
+    const c2 = el('button', { class: 'card', style: { width: '100%', textAlign: 'left', padding: '18px 20px', borderRadius: '20px', marginTop: '12px', border: '1px solid rgba(125,92,255,0.3)', cursor: 'pointer', background: locked ? 'rgba(125,92,255,0.05)' : '#FBFAFF', opacity: locked ? 0.75 : 1 }, onClick: () => window.__startReview('sentence') });
+    c2.innerHTML = '<div style="display:flex;align-items:center;gap:12px;"><span style="font-size:26px;">' + (locked ? '🔒' : '📝') + '</span><div style="flex:1;"><div style="font-size:16px;font-weight:800;color:#5C53A5;">내 문장으로 테스트 <span style="font-size:10px;background:#ECE8FF;color:#5C53A5;padding:2px 7px;border-radius:999px;vertical-align:middle;">PREMIUM</span></div><div class="t-small" style="margin-top:3px;color:var(--ink-soft);">' + (locked ? '프리미엄 전용 기능이에요' : '내가 쓴 문장 ' + sentN + '개에서 표현 빈칸 채우기') + '</div></div>' + Icon('arrowRight', 16) + '</div>';
+    page.appendChild(c2);
+    return page;
+  }
+
+  if (ui.done) {
+    const pct = ui.list.length ? Math.round(ui.score / ui.list.length * 100) : 0;
+    const res = el('div', { class: 'card', style: { padding: '28px 22px', borderRadius: '24px', textAlign: 'center' } });
+    res.innerHTML =
+      '<div style="font-size:44px;">' + (pct >= 80 ? '🏆' : pct >= 50 ? '✨' : '💪') + '</div>' +
+      '<div class="h2" style="margin-top:10px;">복습 완료!</div>' +
+      '<div style="margin-top:8px;font-size:40px;font-weight:800;color:var(--orange);">' + ui.score + '<span style="font-size:24px;color:var(--muted);">/' + ui.list.length + '</span></div>' +
+      '<div class="t-small" style="margin-top:6px;color:var(--ink-soft);">정답률 ' + pct + '%</div>';
+    res.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '18px' }, onClick: () => window.__restartReview() }, '다시 풀기'));
+    res.appendChild(el('button', { class: 'btn btn-ghost btn-full', style: { marginTop: '10px' }, onClick: () => { window.__reviewUi = null; render(); } }, '다른 복습 고르기'));
+    page.appendChild(res);
+    return page;
+  }
+
+  const cur = ui.list[ui.idx];
+  const panel = el('div', { class: 'card', style: { padding: '22px', borderRadius: '24px', background: 'var(--ink)', color: 'var(--cream)', borderColor: 'var(--ink)' } });
+  const promptHtml = ui.mode === 'sentence'
+    ? '<div style="font-size:13px;color:rgba(251,247,240,0.6);">내가 쓴 문장 · 빈칸 표현을 채워주세요</div>' +
+      '<div style="margin-top:12px;font-size:18px;line-height:1.6;color:var(--cream);">' + escapeHtml(cur.masked || cur.sentence) + '</div>' +
+      (cur.masked ? '' : '<div style="margin-top:8px;font-size:12px;color:rgba(251,247,240,0.5);">(문장에 표현이 그대로 없어요. 뜻 보고 떠올려보세요)</div>') +
+      '<div style="margin-top:10px;font-size:14px;color:#FCC; color:rgba(251,247,240,0.75);">뜻 · ' + escapeHtml(cur.kr) + '</div>'
+    : '<div style="font-size:13px;color:rgba(251,247,240,0.6);">이 뜻의 영어 표현은?</div>' +
+      '<div style="margin-top:14px;font-size:24px;font-weight:800;color:var(--cream);line-height:1.4;">' + escapeHtml(cur.kr) + '</div>';
+  panel.innerHTML =
+    '<div class="row-between"><span class="kicker" style="color:rgba(251,247,240,0.6)">' + (ui.mode === 'sentence' ? '내 문장 테스트' : '약점 단어 복습') + '</span><span class="badge" style="background:rgba(251,247,240,0.16);color:var(--cream);">' + (ui.idx + 1) + ' / ' + ui.list.length + '</span></div>' +
+    '<div style="margin-top:16px;">' + promptHtml + '</div>' +
+    '<input class="input" id="__reviewInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="margin-top:18px;width:100%;background:rgba(251,247,240,0.1);border:1px solid rgba(251,247,240,0.25);color:var(--cream);" placeholder="여기에 영어로 입력" value="' + escapeHtml(ui.value || '') + '" oninput="window.__setReviewValue(this.value)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();window.__submitReview();}" />' +
+    '<div style="display:flex;gap:8px;margin-top:14px;">' +
+    '<button class="btn btn-primary" style="flex:1.6;justify-content:center;" onclick="window.__submitReview()">' + (ui.idx === ui.list.length - 1 ? '제출하고 채점' : '제출 · 다음') + '</button>' +
+    '<button class="btn btn-ghost" style="flex:1;justify-content:center;background:rgba(251,247,240,0.14);color:var(--cream);border:none;" onclick="window.__advanceReview(true)">' + (ui.idx === ui.list.length - 1 ? '모르겠어요' : 'Skip') + '</button>' +
+    '</div>';
+  page.appendChild(panel);
+  setTimeout(() => { try { const i = document.getElementById('__reviewInput'); if (i && document.activeElement !== i) i.focus(); } catch (e) {} }, 60);
+  return page;
+}
+
 render();
 if (currentPage === 'weeks' || currentPage === 'day') {
   restoreCurrentScroll();
