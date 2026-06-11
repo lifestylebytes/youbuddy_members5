@@ -3010,6 +3010,7 @@ function routeToHash() {
         return window.__weekSurveyResult ? `#survey/${window.__weekSurveyResult.weekN}` : '#home';
       case 'vocab-stats': return '#vocab-stats';
       case 'my-review': return '#my-review';
+      case 'meeting-deck': return '#meeting-deck';
       case 'screenshot-guide': return '#screenshot-guide';
       default: return '';
     }
@@ -3083,6 +3084,9 @@ function applyHashRoute(rawHash) {
       return true;
     case 'my-review':
       currentPage = 'my-review';
+      return true;
+    case 'meeting-deck':
+      currentPage = 'meeting-deck';
       return true;
     case 'survey':
       // #survey/{weekN}, 운영자 전용. RPC 다시 호출해서 결과 페이지 마운트.
@@ -6250,6 +6254,7 @@ function render() {
     else if (currentPage === 'week-survey-result') page = WeekSurveyResultPage();
     else if (currentPage === 'vocab-stats') page = VocabStatsPage();
     else if (currentPage === 'my-review') page = MyReviewPage();
+    else if (currentPage === 'meeting-deck') page = MeetingDeckPage();
     else if (currentPage === 'final-report') page = FinalReportPage();
     else page = HomePage();
 
@@ -17061,6 +17066,13 @@ function MeetingNotesPage(meetingId) {
   head.appendChild(saveBtn);
   page.appendChild(head);
 
+  // Week 1: 발표 모드(슬라이드 덱) 진입 버튼. 운영자가 클릭하며 진행.
+  if (meta.n === 1 && typeof WEEK1_DECK !== 'undefined') {
+    const deckBtn = el('button', { class: 'btn btn-primary btn-full btn-lg', style: { marginBottom: '14px' }, onClick: () => { window.__deckIdx = 0; go('meeting-deck'); } });
+    deckBtn.innerHTML = `🎤 발표 모드 시작 · 슬라이드 ${WEEK1_DECK.length}장 ${Icon('arrowRight', 16)}`;
+    page.appendChild(deckBtn);
+  }
+
   // Hero card, Google Meet 링크 있으면 카드 전체가 클릭해서 새 탭으로 미팅 열림.
   const [y, mo, da] = meta.date.split('-');
   const monShort = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][parseInt(mo,10)-1];
@@ -26760,6 +26772,102 @@ function ReviewUnlockPopupModal() {
     '</div>';
   overlay.appendChild(card);
   return overlay;
+}
+
+/* ============================================================
+   Week 1 프리미엄 미팅 · 발표 슬라이드 덱 (운영자가 클릭하며 진행)
+   ============================================================ */
+const WEEK1_DECK = [
+  { kicker: 'WEEK 1 · ORIENTATION & GOAL SETTING', title: '오늘 우리가 할 것',
+    html: '<p style="font-size:16px;line-height:1.7;color:var(--ink-soft);">60분. 가볍게 캐치업하고, <b>Day 1~4 표현 12개 + 유의어</b>를 머리에서 입으로 옮기는 시간이에요.</p>'
+      + '<div style="margin-top:16px;padding:14px 16px;border-radius:14px;background:#FFF7EC;border:1px solid rgba(233,76,107,0.2);font-size:14px;color:var(--ink);line-height:1.7;">'
+      + '👋 ANDY · 정주혜 (두 분 다 경험자)<br>🎥 Mason/서보경 님은 녹화 제공<br>🎯 목표: "외운 단어를 실제로 뱉어보기"</div>' },
+
+  { kicker: '1 · 21:00~21:08', title: '캐치업 & 골 세팅 (8분)',
+    html: '<ul style="font-size:15px;line-height:1.9;color:var(--ink);padding-left:18px;">'
+      + '<li>근황 한마디씩 (가볍게)</li>'
+      + '<li>이번 기수 개인 목표 한 줄 + <b>구체적 상황</b> 공유 ("이번엔 ~를 입에 붙이고 싶다")</li>'
+      + '<li>오늘은 트레이닝 위주라고 안내하고 바로 넘어가기</li></ul>'
+      + '<div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.25);">'
+      + '<div style="font-size:12px;font-weight:800;color:#5C53A5;">✨ 앞으로 특별 강의 로드맵 (미리 기대 심기)</div>'
+      + '<div style="margin-top:8px;font-size:13.5px;line-height:1.8;color:var(--ink);">2주차 · 농담(유머) 강의 + 발표 1명 꼼꼼 피드백<br>3주차 · 외국계 쿠션어 강의 + 발표 1명 꼼꼼 피드백<br>4주차 · 전체 어휘 랩업</div></div>' },
+
+  { kicker: '2 · 21:08~21:16', title: '워밍업: 한국어 뜻 → 영어 즉답 (8분)',
+    html: '<div style="font-size:14px;color:var(--ink-soft);line-height:1.7;">방법: 한국어 뜻만 보여주고 → 영어로 <b>입 밖으로</b> → 막히면 패스(표시) → 단어 공개 → <b>프리미엄 멤버가 실제 쓴 문장</b>으로 한 번 더 말해보기.</div>'
+      + '<div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:var(--ink);color:var(--cream);font-size:13.5px;line-height:1.8;">'
+      + '🎤 <b>진행 대본</b><br>"제가 한국어 뜻을 하나씩 부를게요. 영어가 바로 떠오르면 말해보세요. 안 떠오르면 \'패스\'."<br>→ 맞히면: "네 맞아요!"<br>→ 막히면: 표시 후 단어 공개 → "이건 ___예요. ○○님이 지난주 쓰신 문장으로 입에 붙여볼게요: \'...\'. 따라 해보세요."<br>끝나고: "12개 중 몇 개 바로 나왔어요? 막힌 3개가 오늘 집중할 부분이에요."</div>' },
+
+  { kicker: '2 · 워밍업 문항', title: '한국어 뜻 → 영어 (정답은 호스트만)',
+    html: '<ol style="font-size:14.5px;line-height:1.95;color:var(--ink);padding-left:20px;columns:1;">'
+      + '<li>(사람) 끌어들여 합류시키다</li><li>전체 상황·판세 파악하다</li><li>기대치를 같은 선에 맞추다</li>'
+      + '<li>대략적인 추정치</li><li>뼈대·틀만 임시로 만들다</li><li>총괄 담당을 맡다</li>'
+      + '<li>자유롭게 아이디어 쏟아내다</li><li>화이트보드에 펼쳐 같이 구상</li><li>기본으로 깔고 가는 최소 전제</li>'
+      + '<li>시간을 따로 떼어 확보하다</li><li>준비를 다 끝내 정렬해두다</li><li>일단 멈추고 나중에 다시</li></ol>'
+      + '<div style="margin-top:10px;font-size:11.5px;color:var(--muted);">정답: Pull in · Get the lay of the land · Level-set · Ballpark · Stub out · Run point · Brainstorm · Whiteboard · Table stakes · Carve out · Get your ducks in a row · Put a pin in it</div>' },
+
+  { kicker: '3 · 유의어 미니 강의', title: '가장 헷갈린 3개, 뉘앙스 콕',
+    html: '<div style="display:flex;flex-direction:column;gap:12px;">'
+      + '<div style="padding:12px 14px;border-radius:12px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.18);"><b style="color:var(--orange-dark);">Level-set</b> vs Align expectations<br><span style="font-size:13px;color:var(--ink-soft);">level-set = 회의 첫머리 "기준부터 통일". align expectations = 기대치 자체를 맞춤. 미국 회사 회의 오프닝에 level-set이 압도적으로 자주.</span></div>'
+      + '<div style="padding:12px 14px;border-radius:12px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.18);"><b style="color:var(--orange-dark);">Run point</b> vs Take the lead / Own it<br><span style="font-size:13px;color:var(--ink-soft);">run point = "이 건은 내가 키 잡고 간다"는 단일 책임자 뉘앙스(군대 척후병). take the lead는 더 일반적, own it은 결과까지 책임.</span></div>'
+      + '<div style="padding:12px 14px;border-radius:12px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.18);"><b style="color:var(--orange-dark);">Get the lay of the land</b> vs Get a feel for things<br><span style="font-size:13px;color:var(--ink-soft);">둘 다 "파악". lay of the land는 구조·판세(누가 키맨인지)까지, get a feel은 분위기·감(感) 쪽.</span></div></div>'
+      + '<div style="margin-top:10px;font-size:12px;color:var(--muted);">진행: 워밍업에서 막힌 단어가 이 셋과 겹치면 그걸 우선. 각자 한 문장씩 만들어 말하게.</div>' },
+
+  { kicker: '4 · 어휘 녹인 Paragraph', title: '12개를 한 흐름에 다 녹여 읽기',
+    html: '<p style="font-size:15px;line-height:1.7;color:var(--ink);">각자 본인 상황 버전 passage를 소리 내어 읽어요. 12개 표현이 한 이야기에 자연스럽게 흐르게. 읽으면서 표현 나올 때마다 잠깐 멈추고 뜻 확인.</p>'
+      + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#F3EEFF;font-size:13.5px;color:#5C53A5;line-height:1.7;">다음 슬라이드 2장: <b>주혜님(인사팀·인도팀)</b> / <b>앤디님(크루즈)</b> 맞춤 버전</div>' },
+
+  { kicker: '4 · 정주혜 님 version', title: 'HR lead · 인도팀',
+    html: '<div style="font-size:15px;line-height:1.85;color:var(--ink);">As the new HR lead for our <b>India team</b>, I want to <b>get the lay of the land</b> before changing anything. First, let me <b>pull in</b> the regional managers and <b>level-set</b> on what good onboarding even means. Can someone give me a <b>ballpark</b> on how many hires we have this quarter? I will <b>stub out</b> a rough onboarding deck so we have something to react to, and I will <b>run point</b> on the whole revamp. Let us <b>brainstorm</b> what new hires actually need, and <b>whiteboard</b> the first-week journey together. Clear communication is not a nice-to-have, it is <b>table stakes</b> for a distributed team. Let us <b>carve out</b> two hours on Friday and <b>get our ducks in a row</b> before the leadership review. The extra-perks idea is good, but let us <b>put a pin in it</b> and revisit next month.</div>' },
+
+  { kicker: '4 · ANDY 님 version', title: 'Cruise crew · 관광·호스피탈리티',
+    html: '<div style="font-size:15px;line-height:1.85;color:var(--ink);">Before my first season on the <b>cruise line</b>, I want to <b>get the lay of the land</b> of how guest services really runs. Let me <b>pull in</b> a senior crew member and <b>level-set</b> on what excellent service looks like on board. Can you give me a <b>ballpark</b> of how many guests each crew handles at dinner? I will <b>stub out</b> a quick welcome script so I am not improvising, and I will <b>run point</b> on the shore-excursion desk this week. Let us <b>brainstorm</b> ways to handle complaints calmly, and <b>whiteboard</b> the check-in flow at the gangway. Friendly, clear English is not extra, it is <b>table stakes</b> in hospitality. I will <b>carve out</b> time each morning to drill phrases and <b>get my ducks in a row</b> before guests board. The themed-night idea sounds fun, but let us <b>put a pin in it</b> until I have settled in.</div>' },
+
+  { kicker: '5 · 21:52~22:00', title: '래피드 파이어 + 마무리 (8분)',
+    html: '<ul style="font-size:15px;line-height:1.9;color:var(--ink);padding-left:18px;">'
+      + '<li>12개 + 유의어 빠르게 한 번 더 (한→영). 워밍업 때 막힌 것 위주</li>'
+      + '<li>각자 <b>오늘 가장 막힌 3가지</b> 말하기</li>'
+      + '<li>다음 주 목표 + 이번 미팅 복습 어떻게 할지 의논</li>'
+      + '<li>과제: 본인 상황 paragraph 1개 직접 써오기 (12개 중 8개+ 녹이기)</li></ul>' },
+
+  { kicker: '다음 예고', title: 'PT 세션 · 다음 주',
+    html: '<p style="font-size:15px;line-height:1.8;color:var(--ink);">KST <b>6/20 또는 6/27</b> 중 가능한 시간 받아서 PT 세션 별도 편성. 두 분도 가능하면 그날 추가 밋업.</p>'
+      + '<div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:#EAF3DE;color:#3B6D11;font-size:14px;line-height:1.7;">수고하셨어요! 오늘 막힌 3개만 기억하면 그게 다음 주 출발점이에요 🙌</div>' },
+
+  { kicker: '참고', title: '치트시트 (Day 1~4)', isRef: true,
+    html: '<div style="font-size:13px;line-height:1.7;color:var(--ink);">'
+      + '<b>Day1</b> Pull in · Get the lay of the land · Level-set<br>'
+      + '<b>Day2</b> Ballpark · Stub out · Run point<br>'
+      + '<b>Day3</b> Brainstorm · Whiteboard · Table stakes<br>'
+      + '<b>Day4</b> Carve out · Get your ducks in a row · Put a pin in it</div>'
+      + '<div style="margin-top:10px;font-size:11.5px;color:var(--muted);">유의어는 단어시험·단어장에서 확인 가능</div>' },
+];
+window.__deckIdx = 0;
+window.__deckNav = (delta) => {
+  const n = WEEK1_DECK.length;
+  window.__deckIdx = Math.max(0, Math.min(n - 1, (window.__deckIdx || 0) + delta));
+  render();
+};
+function MeetingDeckPage() {
+  const idx = Math.max(0, Math.min(WEEK1_DECK.length - 1, window.__deckIdx || 0));
+  const s = WEEK1_DECK[idx];
+  const page = el('div', { class: 'page' });
+  const head = el('div', { class: 'row-between', style: { marginBottom: '14px' } });
+  head.innerHTML = '<button class="icon-btn" onclick="go(\'meeting-notes\')" style="background:#fff;border:1px solid var(--line);">' + Icon('arrowLeft', 16) + '</button>'
+    + '<div class="kicker" style="color:var(--orange-dark);">발표 모드 · ' + (idx + 1) + ' / ' + WEEK1_DECK.length + '</div><div style="width:36px;"></div>';
+  page.appendChild(head);
+  const bar = el('div', { style: { height: '5px', borderRadius: '999px', background: '#EFE7D8', overflow: 'hidden', marginBottom: '16px' } });
+  bar.innerHTML = '<div style="height:100%;width:' + Math.round((idx + 1) / WEEK1_DECK.length * 100) + '%;background:var(--orange);border-radius:999px;"></div>';
+  page.appendChild(bar);
+  const card = el('div', { class: 'card', style: { padding: '26px 22px', borderRadius: '24px', minHeight: '300px', background: s.isRef ? 'var(--paper)' : '#fff' } });
+  card.innerHTML = '<div class="kicker" style="color:var(--lilac);">' + escapeHtml(s.kicker) + '</div>'
+    + '<h2 class="h2" style="margin-top:8px;font-size:24px;line-height:1.3;">' + escapeHtml(s.title) + '</h2>'
+    + '<div style="margin-top:16px;">' + s.html + '</div>';
+  page.appendChild(card);
+  const nav = el('div', { style: { display: 'flex', gap: '10px', marginTop: '18px' } });
+  nav.innerHTML = '<button class="btn btn-ghost" style="flex:1;justify-content:center;" onclick="window.__deckNav(-1)"' + (idx === 0 ? ' disabled' : '') + '>' + Icon('arrowLeft', 14) + ' 이전</button>'
+    + '<button class="btn btn-primary" style="flex:1.6;justify-content:center;" onclick="window.__deckNav(1)"' + (idx === WEEK1_DECK.length - 1 ? ' disabled' : '') + '>다음 ' + Icon('arrowRight', 14) + '</button>';
+  page.appendChild(nav);
+  return page;
 }
 
 render();
