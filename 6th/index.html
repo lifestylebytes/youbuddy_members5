@@ -26777,64 +26777,80 @@ function ReviewUnlockPopupModal() {
 /* ============================================================
    Week 1 프리미엄 미팅 · 발표 슬라이드 덱 (운영자가 클릭하며 진행)
    ============================================================ */
+const WEEK1_WARMUP = [
+  { kr: '(사람) 끌어들여 합류시키다', en: 'Pull in' },
+  { kr: '전체 상황·판세 파악하다', en: 'Get the lay of the land' },
+  { kr: '기대치를 같은 선에 맞추다', en: 'Level-set' },
+  { kr: '대략적인 추정치', en: 'Ballpark' },
+  { kr: '뼈대·틀만 임시로 만들다', en: 'Stub out' },
+  { kr: '총괄 담당을 맡다', en: 'Run point' },
+  { kr: '자유롭게 아이디어 쏟아내다', en: 'Brainstorm' },
+  { kr: '화이트보드에 펼쳐 같이 구상', en: 'Whiteboard' },
+  { kr: '기본으로 깔고 가는 최소 전제', en: 'Table stakes' },
+  { kr: '시간을 따로 떼어 확보하다', en: 'Carve out' },
+  { kr: '준비를 다 끝내 정렬해두다', en: 'Get your ducks in a row' },
+  { kr: '일단 멈추고 나중에 다시', en: 'Put a pin in it' },
+];
 const WEEK1_DECK = [
-  { kicker: 'WEEK 1 · ORIENTATION & GOAL SETTING', title: '오늘 우리가 할 것',
+  { section: '오프닝', kicker: 'WEEK 1 · ORIENTATION & GOAL SETTING', title: '오늘 우리가 할 것',
+    script: '"오늘은 60분이에요. 가볍게 캐치업하고 바로 Day 1~4 표현 12개를 입에 붙이는 트레이닝으로 갈게요. 두 분 다 경험자시니 OT는 짧게 가겠습니다."',
     html: '<p style="font-size:16px;line-height:1.7;color:var(--ink-soft);">60분. 가볍게 캐치업하고, <b>Day 1~4 표현 12개 + 유의어</b>를 머리에서 입으로 옮기는 시간이에요.</p>'
       + '<div style="margin-top:16px;padding:14px 16px;border-radius:14px;background:#FFF7EC;border:1px solid rgba(233,76,107,0.2);font-size:14px;color:var(--ink);line-height:1.7;">'
       + '👋 ANDY · 정주혜 (두 분 다 경험자)<br>🎥 Mason/서보경 님은 녹화 제공<br>🎯 목표: "외운 단어를 실제로 뱉어보기"</div>' },
 
-  { kicker: '1 · 21:00~21:08', title: '캐치업 & 골 세팅 (8분)',
-    html: '<ul style="font-size:15px;line-height:1.9;color:var(--ink);padding-left:18px;">'
-      + '<li>근황 한마디씩 (가볍게)</li>'
-      + '<li>이번 기수 개인 목표 한 줄 + <b>구체적 상황</b> 공유 ("이번엔 ~를 입에 붙이고 싶다")</li>'
-      + '<li>오늘은 트레이닝 위주라고 안내하고 바로 넘어가기</li></ul>'
-      + '<div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.25);">'
+  { section: '캐치업·골세팅', kicker: '1 · 21:00~21:08', title: '캐치업 & 골 세팅 (8분)',
+    script: '"먼저 근황 한마디씩이요. 그리고 이번 기수에 \'이건 꼭 입에 붙이고 싶다\' 하는 거 한 줄씩, 구체적인 상황이면 더 좋아요." (체크하며 진행)',
+    checks: ['근황 한마디씩 (가볍게)', '개인 목표 한 줄 + 구체적 상황 공유', '오늘은 트레이닝 위주라고 안내'],
+    html: '<div style="margin-top:6px;padding:14px 16px;border-radius:14px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.25);">'
       + '<div style="font-size:12px;font-weight:800;color:#5C53A5;">✨ 앞으로 특별 강의 로드맵 (미리 기대 심기)</div>'
       + '<div style="margin-top:8px;font-size:13.5px;line-height:1.8;color:var(--ink);">2주차 · 농담(유머) 강의 + 발표 1명 꼼꼼 피드백<br>3주차 · 외국계 쿠션어 강의 + 발표 1명 꼼꼼 피드백<br>4주차 · 전체 어휘 랩업</div></div>' },
 
-  { kicker: '2 · 21:08~21:16', title: '워밍업: 한국어 뜻 → 영어 즉답 (8분)',
-    html: '<div style="font-size:14px;color:var(--ink-soft);line-height:1.7;">방법: 한국어 뜻만 보여주고 → 영어로 <b>입 밖으로</b> → 막히면 패스(표시) → 단어 공개 → <b>프리미엄 멤버가 실제 쓴 문장</b>으로 한 번 더 말해보기.</div>'
-      + '<div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:var(--ink);color:var(--cream);font-size:13.5px;line-height:1.8;">'
-      + '🎤 <b>진행 대본</b><br>"제가 한국어 뜻을 하나씩 부를게요. 영어가 바로 떠오르면 말해보세요. 안 떠오르면 \'패스\'."<br>→ 맞히면: "네 맞아요!"<br>→ 막히면: 표시 후 단어 공개 → "이건 ___예요. ○○님이 지난주 쓰신 문장으로 입에 붙여볼게요: \'...\'. 따라 해보세요."<br>끝나고: "12개 중 몇 개 바로 나왔어요? 막힌 3개가 오늘 집중할 부분이에요."</div>' },
+  { section: '워밍업', kicker: '2 · 21:08~21:16', title: '워밍업: 한국어 뜻 → 영어 즉답',
+    script: '"워밍업부터 할게요. 제가 한국어 뜻을 부르면 영어로 바로 말해보세요. 막히면 그냥 \'패스\' 하시면 돼요. 끝나고 막힌 것만 다시 볼게요."',
+    html: '<div style="font-size:14.5px;color:var(--ink);line-height:1.8;">방법: 한국어 뜻만 → 영어로 <b>입 밖으로</b> → 막히면 패스 → 단어 공개 → <b>프리미엄 멤버가 실제 쓴 문장</b>으로 한 번 더 말해보기.</div>'
+      + '<div style="margin-top:12px;font-size:13px;color:var(--muted);line-height:1.7;">목적: "어디가 약한지" 두 분 스스로 체감 → 오늘 집중할 3개 찾기. 다음 슬라이드가 실제 문항이에요.</div>' },
 
-  { kicker: '2 · 워밍업 문항', title: '한국어 뜻 → 영어 (정답은 호스트만)',
-    html: '<ol style="font-size:14.5px;line-height:1.95;color:var(--ink);padding-left:20px;columns:1;">'
-      + '<li>(사람) 끌어들여 합류시키다</li><li>전체 상황·판세 파악하다</li><li>기대치를 같은 선에 맞추다</li>'
-      + '<li>대략적인 추정치</li><li>뼈대·틀만 임시로 만들다</li><li>총괄 담당을 맡다</li>'
-      + '<li>자유롭게 아이디어 쏟아내다</li><li>화이트보드에 펼쳐 같이 구상</li><li>기본으로 깔고 가는 최소 전제</li>'
-      + '<li>시간을 따로 떼어 확보하다</li><li>준비를 다 끝내 정렬해두다</li><li>일단 멈추고 나중에 다시</li></ol>'
-      + '<div style="margin-top:10px;font-size:11.5px;color:var(--muted);">정답: Pull in · Get the lay of the land · Level-set · Ballpark · Stub out · Run point · Brainstorm · Whiteboard · Table stakes · Carve out · Get your ducks in a row · Put a pin in it</div>' },
+  { section: '워밍업', kicker: '2 · 워밍업 문항', title: '한국어 뜻 → 영어', worksheet: true,
+    script: '"자, 1번부터요. (뜻 읽고 3초 기다림) ... 막히면 화면 오른쪽에 정답이 흐리게 있으니 제가 살짝 보고, 단어 공개한 다음 지난주 문장으로 한 번 더 입에 붙일게요."' },
 
-  { kicker: '3 · 유의어 미니 강의', title: '가장 헷갈린 3개, 뉘앙스 콕',
+  { section: '유의어 강의', kicker: '3 · 유의어 미니 강의', title: '가장 헷갈린 3개, 뉘앙스 콕',
+    script: '"방금 막힌 것 중에 이 셋이 있을 거예요. 뉘앙스만 짧게 짚고, 각자 이 표현으로 한 문장씩 만들어볼게요."',
     html: '<div style="display:flex;flex-direction:column;gap:12px;">'
-      + '<div style="padding:12px 14px;border-radius:12px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.18);"><b style="color:var(--orange-dark);">Level-set</b> vs Align expectations<br><span style="font-size:13px;color:var(--ink-soft);">level-set = 회의 첫머리 "기준부터 통일". align expectations = 기대치 자체를 맞춤. 미국 회사 회의 오프닝에 level-set이 압도적으로 자주.</span></div>'
+      + '<div style="padding:12px 14px;border-radius:12px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.18);"><b style="color:var(--orange-dark);">Level-set</b> vs Align expectations<br><span style="font-size:13px;color:var(--ink-soft);">level-set = 회의 첫머리 "기준부터 통일". align expectations = 기대치 자체를 맞춤. 미국 회사 오프닝엔 level-set이 압도적.</span></div>'
       + '<div style="padding:12px 14px;border-radius:12px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.18);"><b style="color:var(--orange-dark);">Run point</b> vs Take the lead / Own it<br><span style="font-size:13px;color:var(--ink-soft);">run point = "이 건은 내가 키 잡고 간다"는 단일 책임자 뉘앙스(군대 척후병). take the lead는 더 일반적, own it은 결과까지 책임.</span></div>'
-      + '<div style="padding:12px 14px;border-radius:12px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.18);"><b style="color:var(--orange-dark);">Get the lay of the land</b> vs Get a feel for things<br><span style="font-size:13px;color:var(--ink-soft);">둘 다 "파악". lay of the land는 구조·판세(누가 키맨인지)까지, get a feel은 분위기·감(感) 쪽.</span></div></div>'
-      + '<div style="margin-top:10px;font-size:12px;color:var(--muted);">진행: 워밍업에서 막힌 단어가 이 셋과 겹치면 그걸 우선. 각자 한 문장씩 만들어 말하게.</div>' },
+      + '<div style="padding:12px 14px;border-radius:12px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.18);"><b style="color:var(--orange-dark);">Get the lay of the land</b> vs Get a feel for things<br><span style="font-size:13px;color:var(--ink-soft);">둘 다 "파악". lay of the land는 구조·판세(누가 키맨인지)까지, get a feel은 분위기·감(感) 쪽.</span></div></div>' },
 
-  { kicker: '4 · 어휘 녹인 Paragraph', title: '12개를 한 흐름에 다 녹여 읽기',
-    html: '<p style="font-size:15px;line-height:1.7;color:var(--ink);">각자 본인 상황 버전 passage를 소리 내어 읽어요. 12개 표현이 한 이야기에 자연스럽게 흐르게. 읽으면서 표현 나올 때마다 잠깐 멈추고 뜻 확인.</p>'
-      + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#F3EEFF;font-size:13.5px;color:#5C53A5;line-height:1.7;">다음 슬라이드 2장: <b>주혜님(인사팀·인도팀)</b> / <b>앤디님(크루즈)</b> 맞춤 버전</div>' },
+  { section: 'Paragraph', kicker: '4 · 어휘 녹인 Paragraph', title: '12개를 한 흐름에 다 녹여 읽기',
+    script: '"이제 12개를 한 흐름에 다 녹인 글을 각자 상황 버전으로 읽어요. 표현 나올 때마다 잠깐 멈추고 같이 확인할게요. 다음 두 슬라이드가 각자 버전이에요."',
+    html: '<p style="font-size:15px;line-height:1.7;color:var(--ink);">각자 본인 상황 버전 passage를 소리 내어 읽어요. 굵게 표시된 12개 표현에서 한 번씩 멈추고 뜻 확인.</p>'
+      + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#F3EEFF;font-size:13.5px;color:#5C53A5;line-height:1.7;">다음 2장: <b>주혜님(인사팀·인도팀)</b> / <b>앤디님(크루즈)</b> 맞춤 버전</div>' },
 
-  { kicker: '4 · 정주혜 님 version', title: 'HR lead · 인도팀',
+  { section: 'Paragraph', kicker: '4 · 정주혜 님 version', title: 'HR lead · 인도팀',
+    script: '"주혜님, 인사팀·인도팀 상황 버전이에요. 천천히 소리 내서 읽고, 굵은 표현에서 한 번씩 멈춰주세요."',
     html: '<div style="font-size:15px;line-height:1.85;color:var(--ink);">As the new HR lead for our <b>India team</b>, I want to <b>get the lay of the land</b> before changing anything. First, let me <b>pull in</b> the regional managers and <b>level-set</b> on what good onboarding even means. Can someone give me a <b>ballpark</b> on how many hires we have this quarter? I will <b>stub out</b> a rough onboarding deck so we have something to react to, and I will <b>run point</b> on the whole revamp. Let us <b>brainstorm</b> what new hires actually need, and <b>whiteboard</b> the first-week journey together. Clear communication is not a nice-to-have, it is <b>table stakes</b> for a distributed team. Let us <b>carve out</b> two hours on Friday and <b>get our ducks in a row</b> before the leadership review. The extra-perks idea is good, but let us <b>put a pin in it</b> and revisit next month.</div>' },
 
-  { kicker: '4 · ANDY 님 version', title: 'Cruise crew · 관광·호스피탈리티',
+  { section: 'Paragraph', kicker: '4 · ANDY 님 version', title: 'Cruise crew · 관광·호스피탈리티',
+    script: '"앤디님, 크루즈 준비 상황 버전이에요. 같은 방식으로 읽어볼게요."',
     html: '<div style="font-size:15px;line-height:1.85;color:var(--ink);">Before my first season on the <b>cruise line</b>, I want to <b>get the lay of the land</b> of how guest services really runs. Let me <b>pull in</b> a senior crew member and <b>level-set</b> on what excellent service looks like on board. Can you give me a <b>ballpark</b> of how many guests each crew handles at dinner? I will <b>stub out</b> a quick welcome script so I am not improvising, and I will <b>run point</b> on the shore-excursion desk this week. Let us <b>brainstorm</b> ways to handle complaints calmly, and <b>whiteboard</b> the check-in flow at the gangway. Friendly, clear English is not extra, it is <b>table stakes</b> in hospitality. I will <b>carve out</b> time each morning to drill phrases and <b>get my ducks in a row</b> before guests board. The themed-night idea sounds fun, but let us <b>put a pin in it</b> until I have settled in.</div>' },
 
-  { kicker: '5 · 21:52~22:00', title: '래피드 파이어 + 마무리 (8분)',
+  { section: '마무리', kicker: '5 · 21:52~22:00', title: '래피드 파이어 + 마무리',
+    script: '"마지막으로 12개 빠르게 한 번 더요. 각자 오늘 가장 막힌 3개랑, 다음 주에 뭐 해올지 정할게요. 과제는 본인 상황 paragraph 하나 써오기예요."',
     html: '<ul style="font-size:15px;line-height:1.9;color:var(--ink);padding-left:18px;">'
-      + '<li>12개 + 유의어 빠르게 한 번 더 (한→영). 워밍업 때 막힌 것 위주</li>'
+      + '<li>12개 + 유의어 빠르게 한 번 더 (한→영). 막힌 것 위주</li>'
       + '<li>각자 <b>오늘 가장 막힌 3가지</b> 말하기</li>'
-      + '<li>다음 주 목표 + 이번 미팅 복습 어떻게 할지 의논</li>'
-      + '<li>과제: 본인 상황 paragraph 1개 직접 써오기 (12개 중 8개+ 녹이기)</li></ul>' },
+      + '<li>다음 주 목표 + 복습 방법 의논</li>'
+      + '<li>과제: 본인 상황 paragraph 1개 써오기 (12개 중 8개+ 녹이기)</li></ul>' },
 
-  { kicker: '다음 예고', title: 'PT 세션 · 다음 주',
-    html: '<p style="font-size:15px;line-height:1.8;color:var(--ink);">KST <b>6/20 또는 6/27</b> 중 가능한 시간 받아서 PT 세션 별도 편성. 두 분도 가능하면 그날 추가 밋업.</p>'
-      + '<div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:#EAF3DE;color:#3B6D11;font-size:14px;line-height:1.7;">수고하셨어요! 오늘 막힌 3개만 기억하면 그게 다음 주 출발점이에요 🙌</div>' },
+  { section: '다음주 예고', kicker: '다음 주 · WEEK 2', title: '미니 강의 예고 + PT 세션',
+    script: '"다음 주 살짝 보여드리면, \'외국계에서 통하는 유머·아이스브레이커\' 미니 강의예요. 회의 분위기 푸는 한마디들. 그리고 PT 세션 날짜도 오늘 정할게요."',
+    html: '<div style="padding:14px 16px;border-radius:14px;background:var(--ink);color:var(--cream);">'
+      + '<div style="font-size:11px;letter-spacing:0.06em;color:rgba(251,247,240,0.6);">NEXT WEEK · 미니 강의</div>'
+      + '<div style="font-size:17px;font-weight:800;margin-top:4px;">외국계에서 통하는 유머 한 스푼 🎭</div>'
+      + '<div style="font-size:13.5px;line-height:1.8;margin-top:8px;color:rgba(251,247,240,0.9);">· 회의·스몰토크에서 분위기 푸는 가벼운 농담<br>· self-deprecating humor, "I won\'t lie..." 류 한마디<br>· 가벼운 맞장구 (oh that\'s wild / no way)<br>· 발표 1명 꼼꼼 피드백</div></div>'
+      + '<div style="margin-top:12px;padding:13px 15px;border-radius:14px;background:#EAF3DE;color:#3B6D11;font-size:13.5px;line-height:1.7;">📅 PT 세션: KST <b>6/20 또는 6/27</b> 중 가능한 시간 받기. 두 분도 가능하면 추가 밋업.<br>오늘 막힌 3개만 기억하면 그게 다음 주 출발점이에요 🙌</div>' },
 
-  { kicker: '참고', title: '치트시트 (Day 1~4)', isRef: true,
-    html: '<div style="font-size:13px;line-height:1.7;color:var(--ink);">'
+  { section: '참고', kicker: '참고', title: '치트시트 (Day 1~4)', isRef: true,
+    html: '<div style="font-size:13.5px;line-height:1.8;color:var(--ink);">'
       + '<b>Day1</b> Pull in · Get the lay of the land · Level-set<br>'
       + '<b>Day2</b> Ballpark · Stub out · Run point<br>'
       + '<b>Day3</b> Brainstorm · Whiteboard · Table stakes<br>'
@@ -26842,27 +26858,88 @@ const WEEK1_DECK = [
       + '<div style="margin-top:10px;font-size:11.5px;color:var(--muted);">유의어는 단어시험·단어장에서 확인 가능</div>' },
 ];
 window.__deckIdx = 0;
+window.__deckShowScript = true;
+window.__deckRevealAns = false;
+window.__deckChecks = window.__deckChecks || {};
 window.__deckNav = (delta) => {
-  const n = WEEK1_DECK.length;
-  window.__deckIdx = Math.max(0, Math.min(n - 1, (window.__deckIdx || 0) + delta));
+  window.__deckIdx = Math.max(0, Math.min(WEEK1_DECK.length - 1, (window.__deckIdx || 0) + delta));
+  window.scrollTo(0, 0);
   render();
 };
+window.__deckToggleScript = () => { window.__deckShowScript = !window.__deckShowScript; render(); };
+window.__deckToggleAns = () => { window.__deckRevealAns = !window.__deckRevealAns; render(); };
+window.__deckToggleCheck = (k) => { window.__deckChecks[k] = !window.__deckChecks[k]; render(); };
 function MeetingDeckPage() {
   const idx = Math.max(0, Math.min(WEEK1_DECK.length - 1, window.__deckIdx || 0));
   const s = WEEK1_DECK[idx];
+  const sections = [];
+  WEEK1_DECK.forEach((sl) => { if (!sections.includes(sl.section)) sections.push(sl.section); });
+  const curSec = sections.indexOf(s.section);
   const page = el('div', { class: 'page' });
-  const head = el('div', { class: 'row-between', style: { marginBottom: '14px' } });
+
+  const head = el('div', { class: 'row-between', style: { marginBottom: '12px' } });
   head.innerHTML = '<button class="icon-btn" onclick="go(\'meeting-notes\')" style="background:#fff;border:1px solid var(--line);">' + Icon('arrowLeft', 16) + '</button>'
-    + '<div class="kicker" style="color:var(--orange-dark);">발표 모드 · ' + (idx + 1) + ' / ' + WEEK1_DECK.length + '</div><div style="width:36px;"></div>';
+    + '<div class="kicker" style="color:var(--orange-dark);">🎤 발표 모드 · ' + (idx + 1) + ' / ' + WEEK1_DECK.length + '</div>'
+    + '<button onclick="window.__deckToggleScript()" style="font-size:11px;font-weight:700;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:' + (window.__deckShowScript ? 'var(--ink)' : '#fff') + ';color:' + (window.__deckShowScript ? 'var(--cream)' : 'var(--ink-soft)') + ';cursor:pointer;white-space:nowrap;">대본 ' + (window.__deckShowScript ? 'ON' : 'OFF') + '</button>';
   page.appendChild(head);
-  const bar = el('div', { style: { height: '5px', borderRadius: '999px', background: '#EFE7D8', overflow: 'hidden', marginBottom: '16px' } });
-  bar.innerHTML = '<div style="height:100%;width:' + Math.round((idx + 1) / WEEK1_DECK.length * 100) + '%;background:var(--orange);border-radius:999px;"></div>';
-  page.appendChild(bar);
-  const card = el('div', { class: 'card', style: { padding: '26px 22px', borderRadius: '24px', minHeight: '300px', background: s.isRef ? 'var(--paper)' : '#fff' } });
-  card.innerHTML = '<div class="kicker" style="color:var(--lilac);">' + escapeHtml(s.kicker) + '</div>'
-    + '<h2 class="h2" style="margin-top:8px;font-size:24px;line-height:1.3;">' + escapeHtml(s.title) + '</h2>'
-    + '<div style="margin-top:16px;">' + s.html + '</div>';
-  page.appendChild(card);
+
+  const wrap = el('div', { style: { display: 'flex', gap: '14px', alignItems: 'flex-start' } });
+
+  const tl = el('div', { style: { flexShrink: '0', width: '96px', paddingTop: '4px' } });
+  let tlh = '';
+  sections.forEach((sec, i) => {
+    const done = i < curSec, cur = i === curSec;
+    const col = cur ? 'var(--orange)' : done ? 'var(--green)' : '#DAD2C2';
+    tlh += '<div style="display:flex;gap:7px;align-items:flex-start;">'
+      + '<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">'
+      + '<div style="width:12px;height:12px;border-radius:50%;background:' + col + ';"></div>'
+      + (i < sections.length - 1 ? '<div style="width:2px;height:26px;background:' + (done ? 'var(--green)' : '#E7DFCF') + ';"></div>' : '')
+      + '</div>'
+      + '<div style="font-size:11px;font-weight:' + (cur ? '800' : '500') + ';color:' + (cur ? 'var(--ink)' : 'var(--muted)') + ';line-height:1.25;">' + escapeHtml(sec) + '</div></div>';
+  });
+  tl.innerHTML = tlh;
+  wrap.appendChild(tl);
+
+  const col = el('div', { style: { flex: '1', minWidth: '0' } });
+  const card = el('div', { class: 'card', style: { padding: '24px 20px', borderRadius: '22px', minHeight: '280px', background: s.isRef ? 'var(--paper)' : '#fff' } });
+  let body = '<div class="kicker" style="color:var(--lilac);">' + escapeHtml(s.kicker) + '</div>'
+    + '<h2 class="h2" style="margin-top:8px;font-size:23px;line-height:1.3;">' + escapeHtml(s.title) + '</h2>';
+  if (s.html) body += '<div style="margin-top:16px;">' + s.html + '</div>';
+  if (s.checks) {
+    body += '<div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">';
+    s.checks.forEach((c, i) => {
+      const key = idx + ':' + i;
+      const on = !!window.__deckChecks[key];
+      body += '<button onclick="window.__deckToggleCheck(\'' + key + '\')" style="display:flex;align-items:center;gap:10px;text-align:left;padding:11px 13px;border-radius:12px;border:1px solid ' + (on ? 'rgba(107,142,78,0.4)' : 'var(--line)') + ';background:' + (on ? '#EAF3DE' : '#fff') + ';cursor:pointer;width:100%;">'
+        + '<span style="width:20px;height:20px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:' + (on ? 'var(--green)' : '#fff') + ';border:1.5px solid ' + (on ? 'var(--green)' : '#CFC7B5') + ';color:#fff;font-size:12px;">' + (on ? '✓' : '') + '</span>'
+        + '<span style="font-size:14px;color:' + (on ? '#3B6D11' : 'var(--ink)') + ';' + (on ? 'text-decoration:line-through;opacity:0.7;' : '') + '">' + escapeHtml(c) + '</span></button>';
+    });
+    body += '</div>';
+  }
+  if (s.worksheet) {
+    const rev = window.__deckRevealAns;
+    body += '<div style="margin-top:14px;display:flex;justify-content:flex-end;"><button onclick="window.__deckToggleAns()" style="font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;">정답 ' + (rev ? '흐리게' : '진하게') + '</button></div>';
+    body += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:2px;">';
+    WEEK1_WARMUP.forEach((w, i) => {
+      body += '<div style="display:flex;align-items:baseline;gap:10px;padding:7px 4px;border-bottom:1px solid rgba(154,139,115,0.12);">'
+        + '<span style="font-size:11px;color:var(--muted);width:20px;flex-shrink:0;text-align:right;">' + (i + 1) + '.</span>'
+        + '<span style="flex:1;font-size:14.5px;color:var(--ink);">' + escapeHtml(w.kr) + '</span>'
+        + '<span style="font-size:13.5px;font-family:var(--font-mono);color:var(--orange-dark);font-weight:700;opacity:' + (rev ? '1' : '0.22') + ';text-align:right;">' + escapeHtml(w.en) + '</span></div>';
+    });
+    body += '</div>';
+  }
+  card.innerHTML = body;
+  col.appendChild(card);
+
+  if (window.__deckShowScript && s.script) {
+    const sc = el('div', { style: { marginTop: '12px', padding: '14px 16px', borderRadius: '16px', background: 'var(--ink)', color: 'var(--cream)' } });
+    sc.innerHTML = '<div style="font-size:11px;font-weight:800;letter-spacing:0.04em;color:#F0C987;">🎤 내 진행 대본 (나만 보기)</div>'
+      + '<div style="margin-top:7px;font-size:14px;line-height:1.7;color:var(--cream);">' + s.script + '</div>';
+    col.appendChild(sc);
+  }
+  wrap.appendChild(col);
+  page.appendChild(wrap);
+
   const nav = el('div', { style: { display: 'flex', gap: '10px', marginTop: '18px' } });
   nav.innerHTML = '<button class="btn btn-ghost" style="flex:1;justify-content:center;" onclick="window.__deckNav(-1)"' + (idx === 0 ? ' disabled' : '') + '>' + Icon('arrowLeft', 14) + ' 이전</button>'
     + '<button class="btn btn-primary" style="flex:1.6;justify-content:center;" onclick="window.__deckNav(1)"' + (idx === WEEK1_DECK.length - 1 ? ' disabled' : '') + '>다음 ' + Icon('arrowRight', 14) + '</button>';
