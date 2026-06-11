@@ -3176,6 +3176,14 @@ let dashboardStats = {
   comparisonLabel: '어제 이 시간보다 계산 중...',
 };
 
+// 현재 열려있는 모달/팝업이 하나라도 있는지. 자동 팝업이 설정 등 모달 위에 쌓여
+// "닫아도 또 뜨는" 문제 방지용 (자동 팝업 트리거가 이걸 보고 띄울지 결정).
+function anyPopupOpen() {
+  return !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay
+    || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
+    || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup);
+}
+
 function go(page, opts={}) {
   const previousPage = currentPage;
   rememberCurrentScroll();
@@ -8221,9 +8229,9 @@ function HomePage() {
     const cDay = Number(state.currentDay) || 0;
     const preset = SPACED_REPEAT_PRESETS[String(cDay)];
     const seen = state.spaced_repeat_seen || {};
-    if (preset && !seen[`day${cDay}`] && !showSpacedRepeatPopup && challengeStarted() && guidedTourStep === null) {
+    if (preset && !seen[`day${cDay}`] && !showSpacedRepeatPopup && challengeStarted() && guidedTourStep === null && !anyPopupOpen()) {
       setTimeout(() => {
-        if (!showSpacedRepeatPopup && guidedTourStep === null && !(state.spaced_repeat_seen || {})[`day${cDay}`]) {
+        if (!showSpacedRepeatPopup && guidedTourStep === null && !anyPopupOpen() && !(state.spaced_repeat_seen || {})[`day${cDay}`]) {
           showSpacedRepeatPopup = { dayN: cDay, ...preset };
           render();
         }
@@ -8233,9 +8241,9 @@ function HomePage() {
     // Day 15 (Friday 보스 테스트일), 지금까지 누적 가장 많이 틀린 main 단어 5개 동적 팝업.
     // 서버 RPC get_cohort_vocab_stats 에서 weakness_score 기준 top 5 (main only, syn 제외).
     // seenKey = 'day15-top-wrong' (preset 의 'day15' 와 분리, 둘 다 노출 가능).
-    if (cDay === 15 && !seen['day15-top-wrong'] && !showSpacedRepeatPopup && challengeStarted() && guidedTourStep === null) {
+    if (cDay === 15 && !seen['day15-top-wrong'] && !showSpacedRepeatPopup && challengeStarted() && guidedTourStep === null && !anyPopupOpen()) {
       setTimeout(async () => {
-        if (showSpacedRepeatPopup || (state.spaced_repeat_seen || {})['day15-top-wrong']) return;
+        if (showSpacedRepeatPopup || anyPopupOpen() || (state.spaced_repeat_seen || {})['day15-top-wrong']) return;
         try {
           const ctx = await __buildTopWrongPopup();
           if (ctx && Array.isArray(ctx.words) && ctx.words.length > 0 && !showSpacedRepeatPopup) {
@@ -8262,10 +8270,10 @@ function HomePage() {
       const sessionTriggered = !!window.__wrapupTriggeredSession[String(weekN)];
       const reviewDone = !!(state.bingo_done && state.bingo_done[String(weekN)]);
       const locked = isReviewLocked(weekN);
-      if (allDaysVerified && !alreadyShown && !sessionTriggered && !reviewDone && !locked && !showWeekWrapupPopup && challengeStarted() && guidedTourStep === null) {
+      if (allDaysVerified && !alreadyShown && !sessionTriggered && !reviewDone && !locked && !showWeekWrapupPopup && challengeStarted() && guidedTourStep === null && !anyPopupOpen()) {
         window.__wrapupTriggeredSession[String(weekN)] = true; // 세션 가드 즉시 set
         setTimeout(() => {
-          if (showWeekWrapupPopup || guidedTourStep !== null) return;
+          if (showWeekWrapupPopup || guidedTourStep !== null || anyPopupOpen()) return;
           if ((state.friday_redirect_seen || {})[String(weekN)]) return;
           showWeekWrapupPopup = weekN;
           render();
@@ -8286,11 +8294,11 @@ function HomePage() {
       const surveyDone = !!(sv.at && !sv.skipped);                   // 설문 제출 완료(스킵 아님)
       const sessionShown = !!window.__surveyNudgeSession[String(wN)];
       if (doneAll && !surveyDone && !sessionShown
-          && !showSurveyFillModal && !showMiniWeekSurvey && !showWeekWrapupPopup
+          && !anyPopupOpen()
           && guidedTourStep === null && challengeStarted()) {
         window.__surveyNudgeSession[String(wN)] = true; // 세션 가드 즉시 set (무한 루프 방지)
         setTimeout(() => {
-          if (showSurveyFillModal || showMiniWeekSurvey || showWeekWrapupPopup || guidedTourStep !== null) return;
+          if (anyPopupOpen() || guidedTourStep !== null) return;
           // Week 1·4 = 메인 설문(showSurveyFillModal), Week 2·3 = 미니 설문(showMiniWeekSurvey)
           if (wN === 1 || wN === 4) showSurveyFillModal = wN; else showMiniWeekSurvey = wN;
           render();
@@ -8308,9 +8316,9 @@ function HomePage() {
     const cWeek = Math.min(4, Math.max(1, Math.ceil(cDay / 5)));
     const seenKey = `v${cWeek}`;
     const seen = state.weekly_quiz_popup_seen || {};
-    if (!seen[seenKey] && !showWeeklyQuizPopup && challengeStarted() && guidedTourStep === null) {
+    if (!seen[seenKey] && !showWeeklyQuizPopup && challengeStarted() && guidedTourStep === null && !anyPopupOpen()) {
       setTimeout(() => {
-        if (!showWeeklyQuizPopup && guidedTourStep === null && !(state.weekly_quiz_popup_seen || {})[seenKey]) {
+        if (!showWeeklyQuizPopup && guidedTourStep === null && !anyPopupOpen() && !(state.weekly_quiz_popup_seen || {})[seenKey]) {
           showWeeklyQuizPopup = cWeek;
           render();
         }
@@ -8322,7 +8330,7 @@ function HomePage() {
   // recording_popup_seen[meetingId] === true 면 본 거라 스킵.
   // 운영자/스태프는 본인은 미팅 녹화 만든 사람이지만 그래도 알림 한 번 봐야해서 노출.
   try {
-    if (state.tier === 'premium' && !showRecordingPopup && guidedTourStep === null) {
+    if (state.tier === 'premium' && !showRecordingPopup && guidedTourStep === null && !anyPopupOpen()) {
       const seen = state.recording_popup_seen || {};
       const unseenMeeting = (CHALLENGE.premium.weekly_meetings || []).find(
         (m) => m && m.recordingUrl && !seen[`m${m.n}`]
@@ -8330,7 +8338,7 @@ function HomePage() {
       if (unseenMeeting) {
         // setTimeout 으로 한 tick 미뤄서 HomePage 가 먼저 그려진 후 팝업.
         setTimeout(() => {
-          if (!showRecordingPopup && guidedTourStep === null) {
+          if (!showRecordingPopup && guidedTourStep === null && !anyPopupOpen()) {
             showRecordingPopup = unseenMeeting;
             render();
           }
