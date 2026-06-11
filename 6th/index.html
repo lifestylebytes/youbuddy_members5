@@ -23327,11 +23327,11 @@ function WeeklyQuizPopupModal() {
 // 응답 보상 + 본인 학습 도움 + 보스 통과 안 한 사람도 어려운 단어 노출.
 // Week 2~4 데이터 모이면 같은 패턴으로 추가.
 const SURVEY_WEAK_WORDS_BY_WEEK = {
-  // 6기 실제 데이터 (가장 많이 틀린 total_wrong 순, Day1~4 시점). 운영자가 통계 보고 갱신.
+  // 6기 실제 데이터 (첫 시도에 헤맨 사람 수 = 틀림+힌트 순, Day1~4 시점). 운영자가 통계 보고 갱신.
   '1': [
-    { en: 'Table stakes', ko: '기본 중의 기본', ex_en: "Fast shipping isn't a perk anymore, it's table stakes." },
-    { en: 'Level-set', ko: '기대치를 같은 선에 맞추다', ex_en: "Before we dive in, let's level-set on what success looks like." },
+    { en: 'Get your ducks in a row', ko: '준비를 다 끝내 정렬해두다', ex_en: "Let's get our ducks in a row before the client call." },
     { en: 'Get the lay of the land', ko: '전체 상황·판세 파악', ex_en: 'Give me a week to get the lay of the land before I suggest changes.' },
+    { en: 'Put a pin in it', ko: '멈추고 나중에 다시', ex_en: "Good point, but let's put a pin in it and come back after lunch." },
   ],
   // Week 2, 운영자 (유버디) 가 통계 보고 손으로 다듬기 전 placeholder.
   // 일단 idiom 빈도 + 길이로 어려울 가능성 큰 3개 미리 박아둠.
