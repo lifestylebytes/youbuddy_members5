@@ -111,17 +111,17 @@ If you can give me a specific example from your job, even better. I'll write it 
 > Example: *For a distributed team, clear communication isn't a perk, it's table stakes.*
 > Synonym: *the bare minimum*. Nuance: 'table stakes' sounds strategic and senior, it frames something as non-negotiable. Use it when you want to say 'this is simply expected, full stop.'"
 
-### 🛎️ 도현님 · 프론트 데스크 / 호스피탈리티
+### 🛳️ 도현님 · 승무원 / 호스피탈리티
 
 **4. Run point**
-> "'Run point' means being the single person in charge of one thing. At a front desk, roles need to be crystal clear during a busy shift, so this is perfect.
-> Example: *I'll run point on late check-ins this week.*
-> Synonym: *take the lead*. Nuance: 'run point' is sharper, it signals one clear owner, very useful when the lobby is busy and confusion slows everyone down. 'Take the lead' is a bit more general."
+> "'Run point' means being the single person in charge of one thing. On a ship, roles need to be crystal clear, so this is perfect.
+> Example: *I'll run point on the excursion desk this week.*
+> Synonym: *take the lead*. Nuance: 'run point' is sharper, it signals one clear owner, very useful in operations where confusion costs money. 'Take the lead' is a bit more general."
 
 **5. Get your ducks in a row**
-> "This means getting everything prepared and lined up before something happens. A front desk lives or dies on prep before the rush, so this fits your world exactly.
-> Example: *Let's get our ducks in a row before the evening rush.*
-> Synonym: *get everything prepped / lined up*. Nuance: it's friendly and idiomatic, it makes you sound like a native speaker. Use it casually with your team, maybe not in a very formal written report."
+> "This means getting everything prepared and lined up before something happens. Hospitality lives or dies on prep, so this fits your world exactly.
+> Example: *Let's get our ducks in a row before the guests board.*
+> Synonym: *get everything prepped / lined up*. Nuance: it's friendly and idiomatic, it makes you sound like a native speaker. Use it casually with crew, maybe not in a very formal written report."
 
 **6. Carve out**
 > "'Carve out' is deliberately setting aside time or resources, protecting it so it doesn't get eaten by other tasks.
