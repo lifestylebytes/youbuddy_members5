@@ -8370,26 +8370,7 @@ function HomePage() {
     }
   } catch (e) {}
 
-  // 프리미엄 멤버 → 새로 추가된 미팅 녹화본 팝업 1회 자동 노출.
-  // recording_popup_seen[meetingId] === true 면 본 거라 스킵.
-  // 운영자/스태프는 본인은 미팅 녹화 만든 사람이지만 그래도 알림 한 번 봐야해서 노출.
-  try {
-    if (state.tier === 'premium' && !showRecordingPopup && guidedTourStep === null && !anyPopupOpen()) {
-      const seen = state.recording_popup_seen || {};
-      const unseenMeeting = (CHALLENGE.premium.weekly_meetings || []).find(
-        (m) => m && m.recordingUrl && !seen[`m${m.n}`]
-      );
-      if (unseenMeeting) {
-        // setTimeout 으로 한 tick 미뤄서 HomePage 가 먼저 그려진 후 팝업.
-        setTimeout(() => {
-          if (!showRecordingPopup && guidedTourStep === null && !anyPopupOpen()) {
-            showRecordingPopup = unseenMeeting;
-            render();
-          }
-        }, 250);
-      }
-    }
-  } catch (e) {}
+  // (미팅 녹화본 자동 팝업은 끔. 다시보기는 미팅 노트 페이지의 '다시보기' 카드로만 안내.)
 
   const page = el('div', { class: 'page' });
   page.appendChild(TopBar());
