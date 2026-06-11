@@ -24869,21 +24869,52 @@ window.__startVoiceQuiz = async (dayN, btnEl) => {
   }
 };
 
+// 공용 "정답 → 채점+다음" 처리. 자동(타이핑)·수동(제출/Enter) 둘 다 여기로 모임.
+// ui.__advancing 잠금으로 자동+수동이 같이 호출돼도 한 번만 넘어감 (이중 넘김 방지).
+window.__commitCorrectAdvance = (dayN) => {
+  const ui = (window.__verifyUi || {})[dayN];
+  if (!ui || ui.revealAnswer || ui.__advancing) return;
+  const questions = buildVerifyQuestions(dayN);
+  const current = questions[ui.idx];
+  if (!current || !isQuizAnswerCorrect(current, ui)) return; // 그새 정답 아니게 됐으면 취소
+  ui.__advancing = true;
+  try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+  if (typeof window.__flashCorrect === 'function') window.__flashCorrect();
+  setTimeout(() => {
+    const u = (window.__verifyUi || {})[dayN];
+    if (u) u.__advancing = false;      // 잠금 해제 후 다음 문제로
+    window.__advanceVerifyQuiz(dayN, false);
+  }, 500);
+};
+// 타이핑 시: 값 저장 + 정답이면 짧은 디바운스 후 자동 진행 (이전처럼). 진행은 공용 함수가 잠금 처리.
 window.__setVerifyQuizValue = (dayN, value) => {
   window.__verifyUi = window.__verifyUi || {};
   window.__verifyUi[dayN] = window.__verifyUi[dayN] || { idx: 0, value: '', done: false, score: 0 };
   const ui = window.__verifyUi[dayN];
-  ui.value = value;   // 타이핑 값만 저장. 넘어가는 건 '제출' 버튼/Enter 로 (모바일 자동넘김 미발동 버그 제거)
+  ui.value = value;
+  try { clearTimeout(window.__verifyAutoAdvanceTimers[dayN]); } catch (e) {}
+  if (ui.revealAnswer) return;
+  const current = buildVerifyQuestions(dayN)[ui.idx];
+  if (current && isQuizAnswerCorrect(current, ui)) {
+    window.__verifyAutoAdvanceTimers[dayN] = setTimeout(() => window.__commitCorrectAdvance(dayN), 380);
+  }
 };
-// 2-blank 모드 부분 입력, values[0/1] 에만 저장 (진행은 제출 버튼/Enter).
+// 2-blank 부분 입력: values[0/1] 저장 + 둘 다 맞으면 자동 진행.
 window.__setVerifyQuizPartValue = (dayN, partIdx, value) => {
   window.__verifyUi = window.__verifyUi || {};
   window.__verifyUi[dayN] = window.__verifyUi[dayN] || { idx: 0, value: '', values: ['', ''], done: false, score: 0 };
   const ui = window.__verifyUi[dayN];
   ui.values = ui.values || ['', ''];
   ui.values[partIdx] = value;
+  try { clearTimeout(window.__verifyAutoAdvanceTimers[dayN]); } catch (e) {}
+  if (ui.revealAnswer) return;
+  const current = buildVerifyQuestions(dayN)[ui.idx];
+  if (current && isQuizAnswerCorrect(current, ui)) {
+    window.__verifyAutoAdvanceTimers[dayN] = setTimeout(() => window.__commitCorrectAdvance(dayN), 380);
+  }
 };
-// 명시적 제출: 정답이면 채점+다음, 오답이면 페널티 없이 다시 시도 안내. (자동넘김 대체)
+// 수동 제출(버튼/Enter): 자동이 혹시 안 먹어도 항상 넘어갈 수 있는 안전장치.
+// 정답이면 공용 함수로 채점+다음, 오답이면 페널티 없이 다시 시도 안내.
 window.__submitVerifyQuizAnswer = (dayN) => {
   const questions = buildVerifyQuestions(dayN);
   const ui = (window.__verifyUi || {})[dayN];
@@ -24892,9 +24923,7 @@ window.__submitVerifyQuizAnswer = (dayN) => {
   if (!current) return;
   try { clearTimeout(window.__verifyAutoAdvanceTimers[dayN]); } catch (e) {}
   if (isQuizAnswerCorrect(current, ui)) {
-    try { document.activeElement && document.activeElement.blur(); } catch (e) {}
-    if (typeof window.__flashCorrect === 'function') window.__flashCorrect();
-    setTimeout(() => { window.__advanceVerifyQuiz(dayN, false); }, 450);
+    window.__commitCorrectAdvance(dayN);
   } else {
     const split = (typeof computeQuizSplit === 'function') ? computeQuizSplit(current) : { mode: '1blank' };
     const hasInput = split.mode === '2blank'
