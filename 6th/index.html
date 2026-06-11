@@ -26879,8 +26879,7 @@ function MeetingDeckPage() {
 
   const head = el('div', { class: 'row-between', style: { marginBottom: '12px' } });
   head.innerHTML = '<button class="icon-btn" onclick="go(\'meeting-notes\')" style="background:#fff;border:1px solid var(--line);">' + Icon('arrowLeft', 16) + '</button>'
-    + '<div class="kicker" style="color:var(--orange-dark);">🎤 발표 모드 · ' + (idx + 1) + ' / ' + WEEK1_DECK.length + '</div>'
-    + '<button onclick="window.__deckToggleScript()" style="font-size:11px;font-weight:700;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:' + (window.__deckShowScript ? 'var(--ink)' : '#fff') + ';color:' + (window.__deckShowScript ? 'var(--cream)' : 'var(--ink-soft)') + ';cursor:pointer;white-space:nowrap;">대본 ' + (window.__deckShowScript ? 'ON' : 'OFF') + '</button>';
+    + '<div class="kicker" style="color:var(--orange-dark);">발표 모드 · ' + (idx + 1) + ' / ' + WEEK1_DECK.length + '</div><div style="width:36px;"></div>';
   page.appendChild(head);
 
   const wrap = el('div', { style: { display: 'flex', gap: '14px', alignItems: 'flex-start' } });
@@ -26931,12 +26930,6 @@ function MeetingDeckPage() {
   card.innerHTML = body;
   col.appendChild(card);
 
-  if (window.__deckShowScript && s.script) {
-    const sc = el('div', { style: { marginTop: '12px', padding: '14px 16px', borderRadius: '16px', background: 'var(--ink)', color: 'var(--cream)' } });
-    sc.innerHTML = '<div style="font-size:11px;font-weight:800;letter-spacing:0.04em;color:#F0C987;">🎤 내 진행 대본 (나만 보기)</div>'
-      + '<div style="margin-top:7px;font-size:14px;line-height:1.7;color:var(--cream);">' + s.script + '</div>';
-    col.appendChild(sc);
-  }
   wrap.appendChild(col);
   page.appendChild(wrap);
 
