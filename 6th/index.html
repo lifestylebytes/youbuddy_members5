@@ -17068,7 +17068,7 @@ function MeetingNotesPage(meetingId) {
 
   // Week 1: 발표 모드(슬라이드 덱) 진입 버튼. 운영자 전용 (나만 보임).
   if (meta.n === 1 && (state.isOperator || state.isStaff) && typeof WEEK1_DECK !== 'undefined') {
-    const deckBtn = el('button', { class: 'btn btn-primary btn-full btn-lg', style: { marginBottom: '14px' }, onClick: () => { window.__deckIdx = 0; go('meeting-deck'); } });
+    const deckBtn = el('button', { class: 'btn btn-primary btn-full btn-lg', style: { marginBottom: '14px' }, onClick: () => { window.__deckIdx = 0; if (typeof __deckHydrate === 'function') __deckHydrate(); go('meeting-deck'); } });
     deckBtn.innerHTML = `🎤 발표 모드 시작 (운영자 전용) · 슬라이드 ${WEEK1_DECK.length}장 ${Icon('arrowRight', 16)}`;
     page.appendChild(deckBtn);
   }
@@ -17108,6 +17108,36 @@ function MeetingNotesPage(meetingId) {
       </div>
     </div>`;
   page.appendChild(hero);
+
+  // ── Week 1 회의록 = 복습 페이지. 발표 모드(패스 표시) 동기화 + 요약·과제 메모.
+  if (meta.n === 1) {
+    state.meeting_notes = state.meeting_notes || {};
+    state.meeting_notes['m1'] = state.meeting_notes['m1'] || {};
+    const wk = state.meeting_notes['m1'].week1 = state.meeting_notes['m1'].week1 || {};
+    const passes = wk.passes || [];
+    const passedWords = (typeof WEEK1_WARMUP !== 'undefined') ? WEEK1_WARMUP.filter((w, i) => passes.indexOf(i) >= 0) : [];
+
+    const rv = el('div', { class: 'card', style: { padding: '20px', borderRadius: '22px', marginBottom: '14px' } });
+    let h = '<div class="kicker" style="color:var(--orange-dark);">WEEK 1 복습 · 발표 모드와 자동 동기화</div>'
+      + '<h2 class="h2" style="margin-top:6px;font-size:21px;">오늘 회의 복습 📋</h2>'
+      + '<div style="margin-top:14px;font-size:13px;font-weight:800;color:var(--ink);">📚 오늘 다룬 표현 (Day 1~4)</div>'
+      + '<div style="margin-top:6px;font-size:12.5px;line-height:1.9;color:var(--ink-soft);"><b>Day1</b> Pull in · Get the lay of the land · Level-set<br><b>Day2</b> Ballpark · Stub out · Run point<br><b>Day3</b> Brainstorm · Whiteboard · Table stakes<br><b>Day4</b> Carve out · Get your ducks in a row · Put a pin in it</div>'
+      + '<div style="margin-top:16px;padding:13px 15px;border-radius:14px;background:#FFF1E6;border:1px solid rgba(233,76,107,0.22);">'
+      + '<div style="font-size:13px;font-weight:800;color:var(--orange-dark);">🔖 오늘 막힌 표현 <span style="font-size:11px;font-weight:600;color:var(--muted);">(발표 모드에서 표시한 것)</span></div>'
+      + (passedWords.length
+        ? '<div style="margin-top:8px;display:flex;flex-direction:column;gap:5px;">' + passedWords.map((w) => '<div style="font-size:13.5px;color:var(--ink);"><b style="font-family:var(--font-mono);color:var(--orange-dark);">' + escapeHtml(w.en) + '</b> · ' + escapeHtml(w.kr) + '</div>').join('') + '</div>'
+        : '<div style="margin-top:6px;font-size:12.5px;color:var(--muted);">발표 모드 워밍업에서 🔖 표시하면 여기 자동으로 들어와요.</div>')
+      + '</div>';
+    rv.innerHTML = h;
+    page.appendChild(rv);
+
+    const memoCard = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '22px', marginBottom: '14px' } });
+    memoCard.innerHTML = '<div style="font-size:13px;font-weight:800;color:var(--ink);">📝 회의 요약 메모</div>'
+      + '<textarea class="input" style="margin-top:8px;width:100%;min-height:90px;resize:vertical;" placeholder="오늘 회의에서 다룬 것, 분위기, 메모..." oninput="window.__m1Save(\'recap\', this.value)">' + escapeHtml(wk.recap || '') + '</textarea>'
+      + '<div style="margin-top:14px;font-size:13px;font-weight:800;color:var(--ink);">📌 과제</div>'
+      + '<textarea class="input" style="margin-top:8px;width:100%;min-height:70px;resize:vertical;" placeholder="다음 주까지 해올 과제 (예: 본인 상황 영어 문단 1개)" oninput="window.__m1Save(\'homework\', this.value)">' + escapeHtml(wk.homework || '') + '</textarea>';
+    page.appendChild(memoCard);
+  }
 
   // ── Week 4 미팅 준비 · 단어 랜덤기, 전체(60개) / Week 4만 선택. 단어/뜻/예문(영·한) 하나씩.
   if (Number(meta.n) === 4) {
@@ -26892,10 +26922,38 @@ window.__deckNav = (delta) => {
 };
 window.__deckToggleScript = () => { window.__deckShowScript = !window.__deckShowScript; render(); };
 window.__deckToggleAns = () => { window.__deckRevealAns = !window.__deckRevealAns; render(); };
-window.__deckToggleCheck = (k) => { window.__deckChecks[k] = !window.__deckChecks[k]; render(); };
+window.__deckToggleCheck = (k) => { window.__deckChecks[k] = !window.__deckChecks[k]; __deckPersist(); render(); };
 window.__deckPass = window.__deckPass || {};
-window.__deckTogglePass = (i) => { window.__deckPass = window.__deckPass || {}; window.__deckPass[i] = !window.__deckPass[i]; render(); };
+// 발표 모드 진행 내용을 회의록(state.meeting_notes['m1'].week1)에 저장 → 회의록이 곧 복습 페이지.
+function __deckPersist() {
+  try {
+    state.meeting_notes = state.meeting_notes || {};
+    state.meeting_notes['m1'] = state.meeting_notes['m1'] || {};
+    const wk = state.meeting_notes['m1'].week1 = state.meeting_notes['m1'].week1 || {};
+    wk.passes = Object.keys(window.__deckPass || {}).filter((k) => window.__deckPass[k]).map(Number).sort((a, b) => a - b);
+    wk.checks = { ...(window.__deckChecks || {}) };
+    wk.updatedAt = new Date().toISOString();
+    saveState();
+  } catch (e) {}
+}
+function __deckHydrate() {
+  try {
+    const wk = (state.meeting_notes && state.meeting_notes['m1'] && state.meeting_notes['m1'].week1) || {};
+    window.__deckPass = {}; (wk.passes || []).forEach((i) => { window.__deckPass[i] = true; });
+    window.__deckChecks = { ...(wk.checks || {}) };
+  } catch (e) {}
+}
+window.__deckTogglePass = (i) => { window.__deckPass = window.__deckPass || {}; window.__deckPass[i] = !window.__deckPass[i]; __deckPersist(); render(); };
 window.__deckGoSection = (sec) => { const i = WEEK1_DECK.findIndex((sl) => sl.section === sec); if (i >= 0) { window.__deckIdx = i; window.scrollTo(0, 0); render(); } };
+window.__m1Save = (field, val) => {
+  try {
+    state.meeting_notes = state.meeting_notes || {};
+    state.meeting_notes['m1'] = state.meeting_notes['m1'] || {};
+    state.meeting_notes['m1'].week1 = state.meeting_notes['m1'].week1 || {};
+    state.meeting_notes['m1'].week1[field] = val;
+    saveState();
+  } catch (e) {}
+};
 window.__deckSaveGoals = async () => {
   const dr = window.__deckGoalDraft || {};
   const j = (dr.j || '').trim(), d = (dr.d || '').trim();
