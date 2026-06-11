@@ -162,6 +162,7 @@ mini_responses as (
       'name', member_name,
       'english_name', english_name,
       'tier', tier,
+      'difficulty', nullif(survey -> 'mini' ->> 'difficulty', '')::int,
       'hardest', survey -> 'mini' ->> 'hardest',
       'amount', survey -> 'mini' ->> 'amount',
       'update_loved', coalesce(survey -> 'mini' -> 'update_loved', '[]'::jsonb),

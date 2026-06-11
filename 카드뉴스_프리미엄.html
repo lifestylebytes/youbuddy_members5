@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>유비챌 5기 · 프리미엄 수료식 카드뉴스</title>
+<!--
+  ▣ 사용법: 이 파일을 브라우저로 열면 1080x1080 카드가 쭉 나옵니다.
+     - 각 카드 우상단 "📸 이미지 저장" 버튼으로 PNG 저장 (카드뉴스용).
+     - 또는 카드 캡처해서 인스타/단톡에 올리세요.
+  ▣ 수상자/문구 수정: 아래 <script> 의 CARDS 배열만 고치면 됩니다.
+-->
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#ECE6DD; font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif; padding:24px; display:flex; flex-direction:column; align-items:center; gap:24px; }
+  .hint { max-width:540px; font-size:13px; color:#6B5E4D; line-height:1.6; text-align:center; background:#fff; border-radius:14px; padding:14px 18px; }
+  .card {
+    width:540px; height:540px; /* 1080의 1/2 — 레티나 캡처용으로 2배 스케일 권장 */
+    border-radius:28px; overflow:hidden; position:relative;
+    display:flex; flex-direction:column; box-shadow:0 8px 30px rgba(0,0,0,0.12);
+  }
+  .card-inner { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:48px 44px; position:relative; z-index:1; }
+  .emoji { font-size:78px; line-height:1; margin-bottom:14px; }
+  .kicker { font-size:14px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; opacity:0.82; }
+  .title { font-size:40px; font-weight:900; letter-spacing:-0.02em; line-height:1.18; margin-top:10px; }
+  .sub { font-size:17px; font-weight:600; line-height:1.5; margin-top:14px; opacity:0.92; }
+  .winners { margin-top:24px; display:flex; flex-direction:column; gap:9px; align-items:center; }
+  .winner { font-size:30px; font-weight:900; letter-spacing:-0.01em; }
+  .winner small { font-size:16px; font-weight:700; opacity:0.78; margin-left:6px; }
+  .chips { margin-top:20px; display:flex; flex-wrap:wrap; gap:9px; justify-content:center; max-width:440px; }
+  .chip { font-size:18px; font-weight:800; padding:7px 15px; border-radius:12px; }
+  .foot { position:absolute; bottom:26px; left:0; right:0; text-align:center; font-size:13px; font-weight:700; opacity:0.6; z-index:1; }
+  .savebtn { position:absolute; top:14px; right:14px; z-index:5; background:rgba(255,255,255,0.85); border:none; border-radius:10px; padding:7px 11px; font-size:12px; font-weight:800; color:#333; cursor:pointer; }
+  /* 테마 */
+  .t-cover { background:linear-gradient(150deg,#2A1B3D 0%,#4A2E6B 55%,#6B4A8F 100%); color:#fff; }
+  .t-cover .kicker{ color:#F6CE72; }
+  .t-gold  { background:linear-gradient(150deg,#FFF6E8 0%,#FBE6BF 100%); color:#5A4326; }
+  .t-gold .kicker{ color:#B6852A; }
+  .t-gold .chip{ background:#fff; color:#7A5B22; }
+  .t-purple{ background:linear-gradient(150deg,#332247 0%,#553A78 100%); color:#fff; }
+  .t-purple .kicker{ color:#F6CE72; }
+  .t-purple .chip{ background:rgba(255,255,255,0.14); color:#fff; }
+  .t-orange{ background:linear-gradient(150deg,#FFE9D5 0%,#FFC79B 100%); color:#7A3D14; }
+  .t-orange .kicker{ color:#C75E20; }
+  .t-orange .chip{ background:#fff; color:#A24A18; }
+  .t-night { background:linear-gradient(150deg,#1B2240 0%,#2E3A6B 100%); color:#fff; }
+  .t-night .kicker{ color:#9FC1FF; }
+  .t-green { background:linear-gradient(150deg,#E7F6EC 0%,#BFE6CC 100%); color:#1F5A38; }
+  .t-green .kicker{ color:#2C8C57; }
+  .t-green .chip{ background:#fff; color:#1F8F58; }
+</style>
+</head>
+<body>
+<div class="hint">💎 <b>프리미엄 수료식 카드뉴스</b> · 카드는 캡처용 1080×1080(여기선 540로 축소 표시)입니다. 각 카드 우상단 <b>📸 이미지 저장</b>으로 PNG를 받으세요. 문구·이름 수정은 파일 안 <code>CARDS</code> 배열에서.</div>
+<div id="deck"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+const CARDS = [
+  { theme:'t-cover', emoji:'🎓', kicker:'YOUBUDDY 5기 · PREMIUM', title:'프리미엄 수료식', sub:'4주간의 영어 항해,<br>끝까지 함께해주셔서 고마워요 🧡', foot:'유버디 비즈니스 영어 챌린지 5기' },
+
+  { theme:'t-gold', emoji:'🏅', kicker:'Full Run · 20 Days', title:'완주상', sub:'20일 인증 — 단 하루도 놓치지 않은',
+    winners:[ {n:'Mikky' }, {n:'Bella' }, {n:'Hera' }, {n:'Andy' } ] },
+
+  { theme:'t-purple', emoji:'✍️', kicker:'Sentence Artisan', title:'예문 장인상', sub:'한 문장 한 문장 정성을 꾹꾹 눌러담은',
+    winners:[ {n:'Hera', s:'9,699자'}, {n:'Bella', s:'7,772자'}, {n:'Mikky', s:'7,610자'} ] },
+
+  { theme:'t-orange', emoji:'🌅', kicker:'Miracle Morning', title:'미라클 모닝상', sub:'남들 잘 때 새벽을 깨운',
+    winners:[ {n:'Dani', s:'새벽 06:15'}, {n:'Mikky', s:'아침 07:22'} ] },
+
+  { theme:'t-night', emoji:'🌗', kicker:'24/7 Award', title:'불철주야 24시간상', sub:'새벽 00:02에 열고 밤 23:58에 닫은 — 하루를 통째로 영어로',
+    winners:[ {n:'Song', s:'00:02 ~ 23:58'} ] },
+
+  { theme:'t-night', emoji:'🦉', kicker:'Night Owl', title:'불타는 올빼미상', sub:'하루의 끝을 영어로 마무리한',
+    winners:[ {n:'Andy', s:'밤 23:59'}, {n:'Bella', s:'밤 23:54'} ] },
+
+  { theme:'t-purple', emoji:'🤖', kicker:'AI Best Friend', title:'AI 단짝상', sub:'AI 첨삭을 가장 알뜰히 부려먹은',
+    winners:[ {n:'Bella', s:'78회'}, {n:'Mikky', s:'67회'}, {n:'Hera', s:'65회'} ] },
+
+  { theme:'t-gold', emoji:'💯', kicker:'Final Test Top', title:'파이널 고득점상', sub:'마지막 시험에서 빛난',
+    winners:[ {n:'Andy', s:'19/20'}, {n:'Hera', s:'18/20'}, {n:'Bella', s:'16/20'} ] },
+
+  { theme:'t-purple', emoji:'🎯', kicker:'Boss Slayer', title:'보스 만점상', sub:'주간 보스 테스트 만점(10/10)을 찍은',
+    winners:[ {n:'Jenny' }, {n:'Mikky' }, {n:'Hera' } ] },
+
+  { theme:'t-gold', emoji:'🎤', kicker:'Brave Speaker', title:'발표 용기상', sub:'수많은 눈앞에서 발표대에 선 용기',
+    winners:[ {n:'Bella' }, {n:'Hera' }, {n:'Andy' } ] },
+
+  { theme:'t-purple', emoji:'🗓️', kicker:'Perfect Attendance', title:'미팅 개근상', sub:'주간 미팅을 단 한 번도 안 빠진',
+    winners:[ {n:'Andy' }, {n:'Hera' } ] },
+
+  { theme:'t-gold', emoji:'🎭', kicker:'Role-play Challenger', title:'상황극 도전상', sub:'실전 비즈니스 상황극에 직접 뛰어든 프리미엄 전원',
+    chips:['Bella','Hera','Andy','Mikky','Dani','Song','Jenny','Sunkiss','unimom'] },
+
+  { theme:'t-green', emoji:'🎢', kicker:'Steady My-Pace', title:'꾸준 마이페이스상', sub:'본인 속도로 흔들림 없이 함께한',
+    winners:[ {n:'Sunkiss', s:'12일'}, {n:'Jenny', s:'13일'}, {n:'Dani', s:'14일'} ] },
+
+  { theme:'t-green', emoji:'🌱', kicker:'Future Star', title:'무한 잠재력상', sub:'아직 시동만 걸어둔 — 6기에서 제대로 터질 다음 기수 기대주',
+    chips:['unimom'] },
+
+  { theme:'t-night', emoji:'😵', kicker:'Fun Stat', title:'5기가 가장 헷갈린 단어', sub:'본 단어 60개 중 첫 시도 오답자 TOP 3',
+    winners:[ {n:'front-load', s:'15명이 첫판 오답'}, {n:'move in lockstep', s:'11명'}, {n:'get it over the line', s:'10명'} ] },
+
+  { theme:'t-cover', emoji:'💌', kicker:'Thank You', title:'어휘 60개 · 유의어 120개', sub:'4주를 끝까지 걸어온 당신,<br>이제 진짜 비즈니스 영어가 입에 붙었어요.<br><br>6기에서 또 만나요 🧡', foot:'YOUBUDDY · 2026.05.25 수료식' },
+];
+
+function render(){
+  const deck = document.getElementById('deck');
+  CARDS.forEach((c, i) => {
+    const card = document.createElement('div');
+    card.className = 'card ' + c.theme;
+    let inner = `<div class="card-inner">`;
+    inner += `<div class="emoji">${c.emoji}</div>`;
+    if (c.kicker) inner += `<div class="kicker">${c.kicker}</div>`;
+    inner += `<div class="title">${c.title}</div>`;
+    if (c.sub) inner += `<div class="sub">${c.sub}</div>`;
+    if (c.winners) {
+      inner += `<div class="winners">` + c.winners.map(w => `<div class="winner">${w.n}${w.s?`<small>${w.s}</small>`:''}</div>`).join('') + `</div>`;
+    }
+    if (c.chips) {
+      inner += `<div class="chips">` + c.chips.map(n => `<span class="chip">${n}</span>`).join('') + `</div>`;
+    }
+    inner += `</div>`;
+    if (c.foot) inner += `<div class="foot">${c.foot}</div>`;
+    card.innerHTML = inner;
+    const btn = document.createElement('button');
+    btn.className = 'savebtn'; btn.textContent = '📸 이미지 저장';
+    btn.onclick = () => {
+      html2canvas(card, { scale:2, backgroundColor:null }).then(canvas => {
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png');
+        a.download = `프리미엄_카드${String(i+1).padStart(2,'0')}.png`;
+        a.click();
+      });
+    };
+    card.appendChild(btn);
+    deck.appendChild(card);
+  });
+}
+render();
+</script>
+</body>
+</html>

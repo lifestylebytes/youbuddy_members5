@@ -1,0 +1,256 @@
+{
+  "fill_items": [
+    {
+      "pre": "Let me ",
+      "en": "Cut to the chase",
+      "post": " and quickly set the stage for what we're trying to do here.",
+      "hint": "본론으로 바로 들어가다",
+      "ko": "바로 본론으로 들어가서, 우리가 여기서 하려는 게 뭔지 빠르게 판을 깔아볼게요."
+    },
+    {
+      "pre": "In many ways, we're starting from almost a ",
+      "en": "Blank canvas",
+      "post": ", but at the same time, we're not trying to completely reinvent the wheel.",
+      "hint": "백지상태 / 처음부터 다시 그릴 수 있는 상태",
+      "ko": "여러 면에서 우리는 거의 백지상태에서 시작하지만, 동시에 바퀴를 처음부터 다시 발명하려는 건 아니에요."
+    },
+    {
+      "pre": "Ultimately, our goal is to create a clearer ",
+      "en": "Value proposition",
+      "post": " and a system that gives us a real competitive edge in how we manage employee experience.",
+      "hint": "고객에게 제공하는 핵심 가치 제안",
+      "ko": "궁극적으로 우리 목표는 더 명확한 가치 제안과, 직원 경험 관리에서 진짜 경쟁 우위를 주는 시스템을 만드는 거예요."
+    },
+    {
+      "pre": "For today, I'll act as your ",
+      "en": "Go-to person",
+      "post": ", walking you through our first pass of the technical approach.",
+      "hint": "핵심 담당자 / 어떤 문제의 해결사",
+      "ko": "오늘은 제가 여러분의 핵심 담당자 역할을 하면서, 기술적 접근의 첫 시도를 함께 짚어드릴게요."
+    },
+    {
+      "pre": "And that really highlights a major ",
+      "en": "Pain point",
+      "post": ".",
+      "hint": "고객이나 팀이 겪는 핵심적인 불편 사항",
+      "ko": "그리고 그게 큰 불편 지점을 분명히 드러내요."
+    },
+    {
+      "pre": "Right now, our HR team often has to ",
+      "en": "Jump through hoops",
+      "post": " because of all the red tape in the system.",
+      "hint": "복잡하고 까다로운 절차들을 다 통과하다",
+      "ko": "지금은 우리 HR팀이 시스템의 온갖 번거로운 절차 때문에 까다로운 단계들을 일일이 통과해야 해요."
+    },
+    {
+      "pre": "They're doing a lot of manual ",
+      "en": "Heavy lifting",
+      "post": ", and honestly, that effort only scratches the surface of what they could be contributing strategically.",
+      "hint": "가장 힘들고 핵심적인 작업",
+      "ko": "팀이 수작업으로 가장 힘든 핵심 작업을 잔뜩 하고 있는데, 솔직히 그 노력은 전략적으로 기여할 수 있는 것의 겉만 살짝 건드리는 수준이에요."
+    },
+    {
+      "pre": "At times, it feels like an ",
+      "en": "Uphill battle",
+      "post": ", but the silver lining is that this gives us a clear opportunity.",
+      "hint": "힘들고 험난한 싸움 / 엄청난 고생이 예상되는 과정",
+      "ko": "때로는 힘겨운 싸움처럼 느껴지지만, 그나마 다행인 점은 이게 우리에게 분명한 기회를 준다는 거예요."
+    },
+    {
+      "pre": "If we automate properly, we can really ",
+      "en": "Give time back",
+      "post": " to the team.",
+      "hint": "남은 시간을 돌려주다",
+      "ko": "제대로 자동화하면, 팀에 시간을 정말로 돌려줄 수 있어요."
+    },
+    {
+      "pre": "So from a strategy perspective, compliance is the biggest ",
+      "en": "Key driver",
+      "post": " behind this initiative.",
+      "hint": "성과의 핵심 동인 / 주된 요인",
+      "ko": "그래서 전략 관점에서, 컴플라이언스가 이 이니셔티브의 가장 큰 핵심 동인이에요."
+    },
+    {
+      "pre": "And to be completely transparent, there is an ",
+      "en": "Elephant in the room",
+      "post": "—our current system introduces compliance risks, especially in maternal leave.",
+      "hint": "모두가 알지만 꺼내기 꺼려하는 민감한 문제",
+      "ko": "그리고 완전히 솔직히 말하면, 모두 알지만 꺼내기 꺼리는 문제가 있어요 — 지금 시스템은 특히 출산 휴가에서 컴플라이언스 리스크를 안고 있어요."
+    },
+    {
+      "pre": "We really shouldn't ",
+      "en": "Sugarcoat",
+      "post": " that.",
+      "hint": "듣기 좋게 포장해서 말하다",
+      "ko": "그걸 듣기 좋게 포장하면 안 돼요."
+    },
+    {
+      "pre": "Instead of relying on reactive ",
+      "en": "Damage control",
+      "post": ", our goal is to proactively design the logic so we can stay ahead of the pack.",
+      "hint": "피해를 최소화하기 위한 수습/방어 작업",
+      "ko": "사후에 피해를 수습하는 방식에 기대는 대신, 우리 목표는 로직을 선제적으로 설계해서 앞서 나가는 거예요."
+    },
+    {
+      "pre": "That's why we want to ",
+      "en": "Front-load",
+      "post": " compliance requirements early in the system design.",
+      "hint": "업무나 리소스를 초반에 몰아서 하다",
+      "ko": "그래서 시스템 설계 초반에 컴플라이언스 요건을 미리 몰아서 반영하려고 해요."
+    },
+    {
+      "pre": "Right now, inconsistencies across leave types are a clear ",
+      "en": "Stumbling block",
+      "post": ".",
+      "hint": "진행을 막는 걸림돌 / 장애물",
+      "ko": "지금은 휴가 유형별 불일치가 분명한 걸림돌이에요."
+    },
+    {
+      "pre": "What we want to do is really ",
+      "en": "Drill down",
+      "post": " into the process and define a standardized workflow—who reviews, who approves, and who ultimately calls the shots.",
+      "hint": "심층 분석하다 / 디테일하게 깊이 파고들다",
+      "ko": "우리가 하려는 건 프로세스를 깊이 파고들어서, 누가 검토하고 누가 승인하고 누가 최종 결정을 내리는지 표준 워크플로우를 정의하는 거예요."
+    },
+    {
+      "pre": "At the same time, we want teams to ",
+      "en": "Move in lockstep",
+      "post": " and meet halfway between flexibility and governance, making sure we improve the process without stepping on anyone's toes.",
+      "hint": "긴밀하게 발을 맞추다 / 혼연일체가 되다",
+      "ko": "동시에, 팀들이 발을 맞춰 함께 움직이면서 유연성과 거버넌스 사이의 절충점을 찾고, 누구의 영역도 침범하지 않으면서 프로세스를 개선하길 바라요."
+    },
+    {
+      "pre": "Now let's ",
+      "en": "Unpack",
+      "post": " application improvements.",
+      "hint": "복잡한 내용을 하나씩 풀어서 설명/분석하다",
+      "ko": "이제 신청 관련 개선 사항을 하나씩 풀어볼게요."
+    },
+    {
+      "pre": "We want to ",
+      "en": "Ramp up",
+      "post": " accessibility—for example, opening prenatal leave to all eligible employees.",
+      "hint": "생산·활동·노력 등을 집중적으로 끌어올리다",
+      "ko": "접근성을 끌어올리고 싶어요 — 예를 들어 산전 휴가를 모든 대상 직원에게 열어주는 거죠."
+    },
+    {
+      "pre": "For retroactive applications, we're aiming to find a ",
+      "en": "Middle ground",
+      "post": " by introducing a structured vetting process.",
+      "hint": "타협점 / 절충안",
+      "ko": "소급 신청의 경우, 체계적인 심사 절차를 도입해서 절충점을 찾으려고 해요."
+    },
+    {
+      "pre": "And before we finalize anything, we'll do a ",
+      "en": "Gut check",
+      "post": " to make sure the logic is fair, consistent, and makes sense from a viability perspective.",
+      "hint": "직감에 따른 확인 / 퀵 점검",
+      "ko": "그리고 무엇이든 확정하기 전에, 로직이 공정하고 일관되며 실행 가능성 관점에서 말이 되는지 퀵 점검을 한 번 할 거예요."
+    },
+    {
+      "pre": "This is one of the areas I'm most excited about because it could be a real ",
+      "en": "Game changer",
+      "post": ".",
+      "hint": "시장의 판도를 완전히 뒤집는 혁신적인 것",
+      "ko": "이건 제가 가장 기대하는 부분 중 하나예요. 진짜 판을 바꾸는 혁신이 될 수 있거든요."
+    },
+    {
+      "pre": "Right now, employees often have to ",
+      "en": "Bite the bullet",
+      "post": " and take long leave blocks, even when it doesn't match their actual needs.",
+      "hint": "어렵거나 고통스러운 상황을 정면 돌파하다",
+      "ko": "지금은 직원들이 실제 필요와 안 맞아도 어쩔 수 없이 긴 휴가 블록을 통째로 써야 하는 경우가 많아요."
+    },
+    {
+      "pre": "This not only improves employee experience but also reduces admin work, allowing HR to ",
+      "en": "Go the extra mile",
+      "post": " in more strategic areas.",
+      "hint": "기대 이상으로 더 노력하다",
+      "ko": "이건 직원 경험을 개선할 뿐 아니라 행정 업무도 줄여서, HR이 더 전략적인 영역에서 한발 더 노력할 수 있게 해줘요."
+    },
+    {
+      "pre": "Now let's ",
+      "en": "Drill down",
+      "post": " further into maternal leave, which is the most critical part of this update.",
+      "hint": "심층 분석하다 / 디테일하게 깊이 파고들다",
+      "ko": "이제 이번 업데이트에서 가장 중요한 부분인 출산 휴가를 더 깊이 파고들어 볼게요."
+    },
+    {
+      "pre": "We'll need to ",
+      "en": "Get buy-in",
+      "post": " from multiple stakeholders to move forward.",
+      "hint": "적극적인 지지와 동의를 얻어내다",
+      "ko": "앞으로 나아가려면 여러 이해관계자에게서 적극적인 지지를 얻어내야 해요."
+    },
+    {
+      "pre": "And just to ",
+      "en": "Play devil's advocate",
+      "post": " for a moment—yes, these changes may initially sound complex.",
+      "hint": "의도적으로 반대 입장을 취하다",
+      "ko": "그리고 잠깐 일부러 반대 입장을 취해보자면 — 네, 이 변화들이 처음엔 복잡하게 들릴 수 있어요."
+    },
+    {
+      "pre": "But with the right system design, I'm confident we can ",
+      "en": "Get it over the line",
+      "post": " efficiently and in a compliant way.",
+      "hint": "어렵사리 완수시키다 / 마침내 넘기다",
+      "ko": "하지만 제대로 시스템을 설계하면, 효율적이고 컴플라이언스에 맞게 끝까지 밀어붙여 완수할 수 있다고 확신해요."
+    },
+    {
+      "pre": "It's all about doing the ",
+      "en": "Deep work",
+      "post": " and getting fully in the zone.",
+      "hint": "방해받지 않고 고도로 집중하는 몰입 업무",
+      "ko": "결국 방해받지 않고 고도로 몰입하는 딥워크를 하면서 완전히 집중 상태에 들어가는 게 핵심이에요."
+    },
+    {
+      "pre": "At the same time, we'll design the system to operate with the ",
+      "en": "Benefit of the doubt",
+      "post": " toward users, while still ensuring accuracy and integrity.",
+      "hint": "확실치 않을 때 일단 좋게 믿어주다",
+      "ko": "동시에, 정확성과 무결성은 유지하면서도 사용자를 일단 좋게 믿어주는 방향으로 시스템을 설계할 거예요."
+    },
+    {
+      "pre": "For implementation, we plan to ",
+      "en": "Hit the ground running",
+      "post": " with data migration—covering employee records, leave balances, and accruals.",
+      "hint": "시작하자마자 지체 없이 전력을 다해 진행하다",
+      "ko": "구현 단계에서는 데이터 마이그레이션부터 지체 없이 전력으로 시작할 계획이에요 — 직원 기록, 휴가 잔여일수, 적립분까지요."
+    },
+    {
+      "pre": "We'll also have a clear ",
+      "en": "Contingency plan",
+      "post": " in place in case anything unexpected comes up.",
+      "hint": "만일의 사태에 대비한 플랜 B / 비상 계획",
+      "ko": "예상치 못한 일이 생길 경우를 대비해 명확한 비상 계획도 마련해둘 거예요."
+    },
+    {
+      "pre": "During UAT, we'll ",
+      "en": "Timebox",
+      "post": " testing cycles to stay efficient and focused.",
+      "hint": "특정 업무/논의에 제한 시간을 두다",
+      "ko": "UAT 동안에는 효율적이고 집중력을 유지하기 위해 테스트 사이클에 제한 시간을 둘 거예요."
+    },
+    {
+      "pre": "We'll actively collect ",
+      "en": "Constructive criticism",
+      "post": " throughout the process, and if deeper discussions are needed, we can always take it offline.",
+      "hint": "건설적인 비판",
+      "ko": "과정 내내 건설적인 비판을 적극적으로 모을 거고, 더 깊은 논의가 필요하면 언제든 따로 빼서 얘기할 수 있어요."
+    },
+    {
+      "pre": "To wrap up, let's take a moment to ",
+      "en": "Read the room",
+      "post": ".",
+      "hint": "분위기를 파악하다 / 눈치채다",
+      "ko": "마무리하면서, 잠깐 분위기를 한번 살펴볼게요."
+    },
+    {
+      "pre": "If we align well and execute effectively, this is something we can truly ",
+      "en": "Scale up",
+      "post": " across the organization.",
+      "hint": "규모를 폭발적으로 확장하다",
+      "ko": "우리가 잘 정렬하고 효과적으로 실행하면, 이건 조직 전체로 폭발적으로 확장할 수 있는 거예요."
+    }
+  ]
+}

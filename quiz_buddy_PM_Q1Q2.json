@@ -1,0 +1,81 @@
+{
+  "fill_items": [
+    {
+      "pre": "To ",
+      "en": "Set the stage",
+      "post": ": this quarter's key driver was an operational transformation—shifting from manual execution to a scalable, system-driven model.",
+      "hint": "기틀을 마련하다 / 판을 깔다",
+      "ko": "본격적으로 판을 깔자면: 이번 분기의 핵심 동력은 운영 방식의 전환이었어요 — 수작업 실행에서 확장 가능한 시스템 중심 모델로요."
+    },
+    {
+      "pre": "I'll keep this timeboxed and ",
+      "en": "Cut to the chase",
+      "post": ": outcomes, the friction point we addressed, and what we'll front-load in Q2.",
+      "hint": "본론으로 바로 들어가다",
+      "ko": "시간은 정해두고 바로 본론으로 들어갈게요: 성과, 우리가 해결한 마찰 지점, 그리고 Q2에 먼저 집중할 것들이요."
+    },
+    {
+      "pre": "",
+      "en": "Gut check",
+      "post": ": the win wasn't only speed—we unpacked where time was going and shifted resources away from repetitive execution.",
+      "hint": "직감에 따른 확인 / 퀵 점검",
+      "ko": "퀵 점검 한 번 하자면: 성과는 속도만이 아니었어요 — 시간이 어디로 새는지 뜯어보고 반복적인 실행에서 자원을 옮겼죠."
+    },
+    {
+      "pre": "Review workload was competing with execution workload, which reduced validation depth and limited ",
+      "en": "Viability",
+      "post": " at higher volume.",
+      "hint": "실행 가능성 / 수익 가능성",
+      "ko": "검토 업무가 실행 업무와 경쟁하면서 검증 깊이가 줄었고, 물량이 늘수록 실행 가능성이 제한됐어요."
+    },
+    {
+      "pre": "Our ",
+      "en": "First pass",
+      "post": " was to engineer the workflow: automate baseline steps, standardize structures, and reduce repetitive intervention.",
+      "hint": "첫 시도 / 초안 — 일단 빠르게",
+      "ko": "우리의 첫 시도는 워크플로우를 설계하는 거였어요: 기본 단계를 자동화하고, 구조를 표준화하고, 반복 개입을 줄이는 거죠."
+    },
+    {
+      "pre": "For Q2, our ",
+      "en": "Anchor",
+      "post": " is full systemization.",
+      "hint": "기준점을 잡다 / 고정시키다",
+      "ko": "Q2에서 우리의 기준점은 완전한 시스템화예요."
+    },
+    {
+      "pre": "We'll ",
+      "en": "Drill down",
+      "post": " on remaining manual pockets, expand automation coverage, and standardize the workflow further.",
+      "hint": "심층 분석하다 / 디테일하게 깊이 파고들다",
+      "ko": "남아있는 수작업 영역을 깊이 파고들고, 자동화 범위를 넓히고, 워크플로우를 더 표준화할 거예요."
+    },
+    {
+      "pre": "The goal is to ",
+      "en": "Get it over the line",
+      "post": ": a fully scalable operating system, not incremental tweaks.",
+      "hint": "어렵사리 완수시키다 / 마침내 넘기다",
+      "ko": "목표는 끝까지 밀어붙여 완수하는 거예요: 점진적 수정이 아니라 완전히 확장 가능한 운영 시스템이요."
+    },
+    {
+      "pre": "Time zone gaps and communication fragmentation create friction, so we'll ",
+      "en": "Move in lockstep",
+      "post": " with clearer communication structures, a synchronized review cadence, and shared documentation standards.",
+      "hint": "긴밀하게 발을 맞추다 / 혼연일체가 되다",
+      "ko": "시차와 커뮤니케이션 분절이 마찰을 만들기 때문에, 더 명확한 소통 구조·동기화된 검토 주기·공유 문서 표준으로 발을 맞춰 함께 움직일 거예요."
+    },
+    {
+      "pre": "Long term, our team is positioned as an efficiency driver, a quality gatekeeper, and a ",
+      "en": "Go-to person",
+      "post": " for automation-enabled operations.",
+      "hint": "핵심 담당자 / 어떤 문제의 해결사",
+      "ko": "장기적으로 우리 팀은 효율성의 동력이자 품질의 게이트키퍼, 그리고 자동화 기반 운영의 핵심 담당자로 자리잡고 있어요."
+    },
+    {
+      "pre": "We'll keep taking the ",
+      "en": "Heavy lifting",
+      "post": " off the team by systemizing the baseline, so we can focus on higher-value validation and decisions.",
+      "hint": "가장 힘들고 핵심적인 작업",
+      "ko": "기본 작업을 시스템화해서 팀에서 가장 힘든 핵심 작업을 계속 덜어낼 거예요. 그래야 더 가치 있는 검증과 의사결정에 집중할 수 있으니까요."
+    }
+  ]
+}

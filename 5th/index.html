@@ -11935,6 +11935,251 @@ window.__openFinalTestResults = async function () {
   }
 };
 
+// ============================================================
+// 🏆 수료식 시상 화면 (운영자 전용 · 화면공유용)
+// ------------------------------------------------------------
+// get_cohort_awards RPC 의 멤버별 집계로 시상 카테고리를 JS 에서 계산.
+// 회원에게는 절대 노출 X — 운영자 설정 모달에서만 진입.
+// 운영자만 아는 상(발표 용기상·미팅 개근상·상황극·음성녹음)은 아래 하드코딩.
+// ============================================================
+
+// 운영자가 직접 채점하는 상 (카톡/미팅 기반 — 데이터로 자동계산 불가).
+// 수정하려면 names 배열만 고치면 됨.
+const OPERATOR_AWARDS = {
+  premium: [
+    { emoji: '🎤', title: '발표 용기상', sub: '많은 사람 앞에서 직접 발표대에 선 용기', names: ['Bella', 'Hera', 'Andy'] },
+    { emoji: '🗓️', title: '미팅 개근상', sub: '주간 미팅 단 한 번도 안 빠진', names: ['Andy', 'Hera'] },
+    { emoji: '🎭', title: '상황극 도전상', sub: '실전 비즈니스 상황극에 직접 뛰어든', names: '__ALL_TIER__' },
+  ],
+  basic: [
+    { emoji: '🎙️', title: '음성 녹음상', sub: '또박또박 직접 녹음해서 올린', names: '__ALL_TIER__' },
+  ],
+};
+
+window.__awardsTier = 'premium'; // 현재 보고 있는 탭
+
+window.__openAwardsCeremony = async function () {
+  // 운영자/스태프 전용 가드 (멤버 화면에서는 절대 안 열림)
+  if (!(state.isOperator || state.isStaff) || state.operatorViewAsMember) {
+    showToast('운영자 전용 화면이에요.'); return;
+  }
+  if (!hasSupabase()) { showToast('Supabase 연결이 안 돼있어요.'); return; }
+  const exist = document.querySelector('[data-awards-modal]'); if (exist) exist.remove();
+  const backdrop = el('div', { class: 'modal-backdrop', 'data-awards-modal': '1' });
+  const close = () => backdrop.remove();
+  backdrop.onclick = (e) => { if (e.target === backdrop) close(); };
+  const modal = el('div', { class: 'modal', style: { width: '100%', maxWidth: '640px', justifySelf: 'center', maxHeight: '92vh', padding: '0', borderRadius: '22px', overflow: 'hidden', background: '#fff', display: 'flex', flexDirection: 'column' } });
+  modal.innerHTML = `
+    <div style="padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-shrink:0;background:linear-gradient(135deg,#FFF6E8,#FFFDF7);">
+      <div style="flex:1;font-size:17px;font-weight:900;color:var(--ink);letter-spacing:-0.02em;">🏆 유비챌 5기 수료식 시상</div>
+      <button data-aw-close style="background:transparent;border:none;font-size:20px;color:var(--muted);cursor:pointer;">✕</button>
+    </div>
+    <div style="padding:12px 20px 0;flex-shrink:0;display:flex;gap:8px;">
+      <button data-aw-tab="premium" class="btn btn-full" style="flex:1;font-weight:800;border-radius:12px;">💎 프리미엄</button>
+      <button data-aw-tab="basic" class="btn btn-ghost btn-full" style="flex:1;font-weight:800;border-radius:12px;">🌱 베이직</button>
+    </div>
+    <div data-aw-body style="padding:16px 20px 24px;overflow-y:auto;flex:1;"><div style="text-align:center;color:var(--muted);padding:40px 0;">⏳ 수상자 계산 중...</div></div>`;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  modal.querySelector('[data-aw-close]').onclick = close;
+  const body = modal.querySelector('[data-aw-body]');
+
+  // 탭 버튼 스타일 토글
+  const paintTabs = () => {
+    modal.querySelectorAll('[data-aw-tab]').forEach((b) => {
+      const active = b.getAttribute('data-aw-tab') === window.__awardsTier;
+      b.className = active ? 'btn btn-full' : 'btn btn-ghost btn-full';
+    });
+  };
+  modal.querySelectorAll('[data-aw-tab]').forEach((b) => {
+    b.onclick = () => { window.__awardsTier = b.getAttribute('data-aw-tab'); paintTabs(); renderAwards(); };
+  });
+
+  let AWARDS_DATA = null;
+  const renderAwards = () => {
+    if (!AWARDS_DATA) return;
+    paintTabs();
+    body.innerHTML = window.__buildAwardsHtml(AWARDS_DATA, window.__awardsTier);
+  };
+
+  try {
+    // 멤버 집계 + 어휘 통계 동시 fetch. '가장 헷갈린 단어' 는 SQL 간이집계 대신
+    // 검증된 get_cohort_vocab_stats 를 본 단어(syn 제외)로 필터해서 다시 계산.
+    const [data, vocab] = await Promise.all([
+      supabaseRpc('get_cohort_awards', { p_cohort: CHALLENGE.cohort }),
+      supabaseRpc('get_cohort_vocab_stats', { p_cohort: CHALLENGE.cohort }).catch(() => null),
+    ]);
+    if (!data) throw new Error('빈 응답');
+    data.most_confused = window.__awardsConfusedWords(vocab, 3);
+    AWARDS_DATA = data;
+    renderAwards();
+  } catch (e) {
+    body.innerHTML = `<div style="text-align:center;color:#C13D3D;padding:30px 0;line-height:1.7;">불러오기 실패<br><span style="font-size:12px;color:var(--muted);">${escapeHtml(String(e && e.message || e).slice(0, 120))}</span><br><span style="font-size:12px;color:var(--muted);">supabase_migration_awards_export.sql 를 Supabase SQL Editor 에 적용했는지 확인하세요.</span></div>`;
+  }
+};
+
+// '가장 헷갈린 단어' — get_cohort_vocab_stats 결과를 본 단어(syn 제외)로 필터하고
+// 첫 시도 오답 인원 기준으로 정렬. (__buildTopWrongPopup 과 동일한 화이트리스트 방식)
+window.__awardsConfusedWords = function (vocabData, limit) {
+  limit = limit || 3;
+  const words = Array.isArray(vocabData && vocabData.words) ? vocabData.words : [];
+  if (!words.length) return [];
+  // CHALLENGE.weeks 의 main 단어만 화이트리스트 (유의어/예문 제외)
+  const mainMap = {};
+  (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((d) => (d.words || []).forEach((w) => {
+    const key = String(w.en || '').toLowerCase().trim();
+    if (key) mainMap[key] = { en: w.en, def: w.def, day: d.day };
+  })));
+  return words
+    .filter((s) => mainMap[String(s.word || '').toLowerCase().trim()])
+    .filter((s) => ((Number(s.first_correct) || 0) + (Number(s.first_wrong) || 0)) > 0)
+    .sort((a, b) =>
+      ((Number(b.first_wrong) || 0) - (Number(a.first_wrong) || 0)) ||
+      ((Number(b.total_wrong) || 0) - (Number(a.total_wrong) || 0)) ||
+      ((Number(b.weakness_score) || 0) - (Number(a.weakness_score) || 0)))
+    .slice(0, limit)
+    .map((s) => {
+      const meta = mainMap[String(s.word || '').toLowerCase().trim()] || {};
+      const attempted = (Number(s.first_correct) || 0) + (Number(s.first_wrong) || 0);
+      return {
+        word: meta.en || s.word,
+        ko: meta.def || '',
+        first_wrong: Number(s.first_wrong) || 0,
+        first_attempted: attempted,
+        members_attempted: Number(s.members_attempted) || 0,
+        total_wrong: Number(s.total_wrong) || 0,
+      };
+    });
+};
+
+// 시상 카테고리 계산 + HTML 생성 (tier 별).
+window.__buildAwardsHtml = function (data, tier) {
+  const esc = (v) => escapeHtml(String(v == null ? '' : v));
+  const all = Array.isArray(data.members) ? data.members : [];
+  const ms = all.filter((m) => (m.tier || 'basic') === tier);
+  const nameOf = (m) => esc(m.english_name || m.name || '?');
+  const named = new Set(); // '모두 호명' 보장용
+  const mark = (m) => { named.add(m.english_name || m.name); return m; };
+
+  // top N — scoreFn 반환값 큰 순. validFn 통과한 것만. tie 는 안정적 정렬.
+  const topN = (n, scoreFn, validFn) => {
+    const cand = ms.filter((m) => (validFn ? validFn(m) : true) && Number.isFinite(scoreFn(m)));
+    cand.sort((a, b) => scoreFn(b) - scoreFn(a));
+    return cand.slice(0, n);
+  };
+  const minN = (n, scoreFn, validFn) => {
+    const cand = ms.filter((m) => (validFn ? validFn(m) : true) && Number.isFinite(scoreFn(m)));
+    cand.sort((a, b) => scoreFn(a) - scoreFn(b));
+    return cand.slice(0, n);
+  };
+
+  // ── 데이터 기반 시상 카테고리 ──────────────────────────────
+  const cats = [];
+
+  // 1. 빛의 속도 참여상 — 첫 주에 가장 많이, 가장 빨리 시작
+  const speed = ms.filter((m) => (m.week1_days || 0) > 0).sort((a, b) =>
+    (b.week1_days - a.week1_days) || (b.verified_days - a.verified_days) ||
+    String(a.first_verified_date || '9').localeCompare(String(b.first_verified_date || '9'))
+  ).slice(0, 3);
+  cats.push({ emoji: '🏃', title: '빛의 속도 참여상', sub: '시작부터 폭발적으로 달려준', winners: speed, metric: (m) => `1주차 ${m.week1_days}일 인증` });
+
+  // 2. 예문 장인상 — 예문을 가장 정성스럽게(길고 많이) 쓴
+  cats.push({ emoji: '✍️', title: '예문 장인상', sub: '한 문장 한 문장 정성을 꾹꾹 눌러담은', winners: topN(3, (m) => m.sentence_chars || 0, (m) => (m.sentence_count || 0) >= 3), metric: (m) => `예문 ${m.sentence_count}개 · ${Math.round((m.sentence_chars || 0) / Math.max(1, m.sentence_count))}자/문장` });
+
+  // 3. 미라클 모닝상 — 가장 이른 새벽/아침에 인증
+  cats.push({ emoji: '🌅', title: '미라클 모닝상', sub: '아무도 안 깬 새벽을 깨운', winners: minN(3, (m) => m.earliest_minutes, (m) => m.earliest_minutes != null), metric: (m) => `${m.earliest_time} 인증` });
+
+  // 4. 불타는 올빼미상 — 가장 늦은 밤까지
+  cats.push({ emoji: '🦉', title: '불타는 올빼미상', sub: '하루의 끝을 영어로 마무리한', winners: topN(3, (m) => m.latest_minutes, (m) => m.latest_minutes != null), metric: (m) => `${m.latest_time} 인증` });
+
+  // 5. 완주상 — 18일 이상
+  const finishers = ms.filter((m) => (m.verified_days || 0) >= 18).sort((a, b) => b.verified_days - a.verified_days);
+  cats.push({ emoji: '🏅', title: '완주상', sub: '18일 이상 — 끝까지 해낸 완주자', winners: finishers, metric: (m) => `${m.verified_days}일 완주`, big: true });
+
+  // 6. AI 단짝상 — AI 교정 가장 많이 활용
+  cats.push({ emoji: '🤖', title: 'AI 단짝상', sub: 'AI 첨삭을 가장 알뜰히 부려먹은', winners: topN(3, (m) => m.ai_uses || 0, (m) => (m.ai_uses || 0) > 0), metric: (m) => `AI 교정 ${m.ai_uses}회` });
+
+  // 7. 파이널 고득점상 — 파이널 테스트 점수
+  cats.push({ emoji: '💯', title: '파이널 고득점상', sub: '마지막 시험에서 빛난', winners: topN(3, (m) => (m.final_score != null ? m.final_score * 100 - (m.final_attempts || 1) : NaN), (m) => m.final_score != null), metric: (m) => `${m.final_score}/${m.final_total}점` });
+
+  // 8. 설문 천사상 — 설문/후기를 가장 성실하게
+  cats.push({ emoji: '📝', title: '설문 천사상', sub: '솔직한 피드백으로 6기를 만들어준', winners: topN(3, (m) => (m.survey_count || 0) * 1000 + (m.survey_comment_chars || 0), (m) => (m.survey_count || 0) > 0), metric: (m) => `설문 ${m.survey_count}회 · 후기 ${m.survey_comment_chars}자` });
+
+  // 9. 보스 격파상 — 보스 테스트 최고 점수
+  cats.push({ emoji: '🎯', title: '보스 격파상', sub: '주간 보스 테스트를 시원하게 부순', winners: topN(3, (m) => (m.bingo_best_total ? (m.bingo_best_score || 0) / m.bingo_best_total * 100 + (m.bingo_best_score || 0) : NaN), (m) => m.bingo_best_score != null && m.bingo_best_total), metric: (m) => `보스 ${m.bingo_best_score}/${m.bingo_best_total}` });
+
+  // 10. 커뮤니티 인싸상 — 댓글로 동료를 응원
+  cats.push({ emoji: '💬', title: '커뮤니티 인싸상', sub: '동료들 글에 댓글로 응원을 뿌린', winners: topN(3, (m) => m.community_comments || 0, (m) => (m.community_comments || 0) > 0), metric: (m) => `댓글 ${m.community_comments}개` });
+
+  // ── 운영자 수동 시상 (카톡/미팅 기반) ────────────────────
+  const opAwards = (OPERATOR_AWARDS[tier] || []).map((a) => {
+    let names = a.names;
+    if (names === '__ALL_TIER__') names = ms.filter((m) => (m.verified_days || 0) > 0).map((m) => (m.english_name || m.name));
+    return { emoji: a.emoji, title: a.title, sub: a.sub, manualNames: names };
+  });
+
+  // ── 카드 HTML 빌더 ────────────────────────────────────────
+  const winnerChips = (winners, metric) => {
+    if (!winners || !winners.length) return `<div style="font-size:13px;color:var(--muted);font-style:italic;">해당 없음</div>`;
+    return winners.map((m) => { mark(m); return `
+      <div style="display:flex;align-items:baseline;gap:8px;padding:4px 0;">
+        <span style="font-size:17px;font-weight:900;color:var(--ink);letter-spacing:-0.01em;">${nameOf(m)}</span>
+        ${metric ? `<span style="font-size:12px;color:var(--orange-dark);font-weight:700;">${esc(metric(m))}</span>` : ''}
+      </div>`; }).join('');
+  };
+  const nameChips = (names) => {
+    if (!names || !names.length) return `<div style="font-size:13px;color:var(--muted);font-style:italic;">해당 없음</div>`;
+    return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;">` + names.map((n) =>
+      `<span style="font-size:15px;font-weight:800;color:var(--ink);background:#FFF1DC;border-radius:9px;padding:4px 10px;">${esc(n)}</span>`).join('') + `</div>`;
+  };
+  const card = (emoji, title, sub, inner) => `
+    <div style="border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:12px;background:#FFFDF7;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:24px;line-height:1;">${emoji}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:16px;font-weight:900;color:var(--ink);letter-spacing:-0.02em;">${esc(title)}</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:1px;">${esc(sub)}</div>
+        </div>
+      </div>
+      ${inner}
+    </div>`;
+
+  let html = '';
+  // 코호트 약점 단어 — 재미 팩트 헤더
+  const mc = Array.isArray(data.most_confused) ? data.most_confused : [];
+  if (mc.length) {
+    const medal = ['🥇', '🥈', '🥉'];
+    html += `<div style="border-radius:16px;padding:14px 18px;margin-bottom:14px;background:linear-gradient(135deg,#2A2140,#3E2F58);color:#fff;">
+      <div style="font-size:12px;font-weight:800;color:#FCE8B2;letter-spacing:0.04em;">😵 5기 전체가 가장 헷갈린 단어 (본 단어 기준 · 첫 시도)</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:9px;">` +
+      mc.slice(0, 3).map((w, i) => `<div style="display:flex;align-items:baseline;gap:8px;background:rgba(255,255,255,0.10);border-radius:10px;padding:7px 12px;">
+        <span style="font-size:15px;font-weight:900;">${medal[i] || '·'} ${esc(w.word)}</span>
+        ${w.ko ? `<span style="font-size:11.5px;color:#E6D6FF;">${esc(w.ko)}</span>` : ''}
+        <span style="margin-left:auto;font-size:11px;font-weight:700;color:#F1E0BA;white-space:nowrap;">첫 시도 오답 ${esc(w.first_wrong)}/${esc(w.first_attempted)}명</span>
+      </div>`).join('') +
+      `</div></div>`;
+  }
+
+  cats.forEach((c) => { html += card(c.emoji, c.title, c.sub, winnerChips(c.winners, c.metric)); });
+  opAwards.forEach((a) => { html += card(a.emoji, a.title, a.sub, nameChips(a.manualNames)); });
+
+  // 모두 호명 보장 — 아직 안 불린 멤버를 '묵묵한 참여자' / '다음 기수 기대주' 로 따뜻하게 분리.
+  const unnamed = ms.filter((m) => !named.has(m.english_name || m.name));
+  const quietParticipants = unnamed.filter((m) => (m.verified_days || 0) > 0).map((m) => (m.english_name || m.name));
+  const futureStars = unnamed.filter((m) => !(m.verified_days || 0)).map((m) => (m.english_name || m.name));
+  if (quietParticipants.length) {
+    html += card('🌟', '끝까지 함께한 상', '요란하지 않아도 묵묵히 4주를 함께 걸어준', nameChips(quietParticipants));
+  }
+  if (futureStars.length) {
+    // 한 번도 참여 못한 분들 — 절대 깎아내리지 않고, 6기 주인공으로 올려치기.
+    html += card('🌱', '무한 잠재력상', '아직 시동만 걸어둔 — 6기에서 제대로 터질 다음 기수 기대주', nameChips(futureStars));
+  }
+
+  const tierLabel = tier === 'premium' ? '💎 프리미엄' : '🌱 베이직';
+  const totalCount = ms.length;
+  return `<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">${tierLabel} · 멤버 ${totalCount}명 · 데이터 기반 자동 계산 + 운영자 수동 시상</div>` + html;
+};
+
 // 6기 안내 팝업 — 5/22 오후 6시 이후 1회 자동 노출. 내용/버튼은 종합 리포트의 6기 카드 그대로.
 const COHORT6_POPUP_AT = '2026-05-22T18:00:00';
 window.__maybeShowCohort6Popup = function () {
@@ -18776,6 +19021,7 @@ function SettingsModal() {
           <button id="__settingsExportCohort" class="btn btn-ghost btn-full" style="margin-top:10px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;">📦 코호트 데이터 다운로드 (JSON)</button>
           <button id="__settingsExportFinalTest" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(240,125,56,0.28);color:var(--orange-dark);">📊 파이널 테스트 결과 보기</button>
           <button id="__settingsExportSurvey4" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(155,127,174,0.32);color:#6B4F7D;">📊 Week 4 설문 결과 (JSON)</button>
+          <button id="__settingsOpenAwards" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(240,125,56,0.34);color:var(--orange-dark);font-weight:800;">🏆 수료식 시상 화면 (화면공유용)</button>
           <div style="margin-top:14px;padding-top:12px;border-top:1px dashed rgba(240,125,56,0.22);">
             <div style="font-size:11.5px;line-height:1.55;color:var(--muted);margin-bottom:8px;">👀 멤버 화면 그대로 테스트 (운영자 본인만 — 멤버 영향 X)</div>
             <button id="__settingsPreviewSurvey4" class="btn btn-ghost btn-full" style="border-color:rgba(155,127,174,0.32);color:#6B4F7D;">👀 Week 4 설문 미리보기</button>
@@ -19041,6 +19287,14 @@ function SettingsModal() {
         exportSurvey4Btn.innerHTML = original;
         exportSurvey4Btn.disabled = false;
       }
+    };
+
+    // Operator: 🏆 수료식 시상 화면 (화면공유용 — 회원에게는 노출 X)
+    const openAwardsBtn = document.getElementById('__settingsOpenAwards');
+    if (openAwardsBtn) openAwardsBtn.onclick = () => {
+      showSettings = false;
+      render();
+      setTimeout(() => { try { window.__openAwardsCeremony(); } catch (e) {} }, 50);
     };
 
     // Operator: 👀 Week 4 설문 미리보기 (멤버 화면 그대로)

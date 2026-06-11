@@ -24,6 +24,7 @@ echo ""
 echo "==> stage: 5th/index.html + final test export SQL + ai-review edge fn + 이 스크립트"
 git add 5th/index.html \
         supabase_migration_final_test_export.sql \
+        supabase_migration_awards_export.sql \
         supabase/functions/ai-review/index.ts \
         push_to_github.sh
 
