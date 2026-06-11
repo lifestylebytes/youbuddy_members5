@@ -7,9 +7,33 @@ Day 1~4 표현 12개를 전부 쓰고, 유의어도 같이 넣었어요. ( ) 안
 
 ---
 
-## 슬라이드 1 · 오프닝 (오늘 순서)
 
-> "Hi Juhye, hi Dohyun! Great to see you both. Since you two are already veterans, I'll keep the intro short. Today is pretty simple: a quick catch-up, then most of our time is hands-on training with this week's twelve expressions. By the end, the goal is to actually get these out of your mouth, not just recognize them. Sound good? Let's dive in."
+# Week 1 Opening Script (Premium Session)
+
+"Hi Juhye, hi Dohyun! It's great to see you both.
+
+Before we get started, I just want to say something. One thing I actually like about this group is the size. With a smaller group, we get to spend more time on your real situations, your real work, and the expressions that are actually useful for you.
+
+Instead of feeling like a class, I'd love this to feel a little more like coaching. We can go deeper, spend more time on feedback, and make sure you're actually using these expressions rather than just learning them.
+
+So today is pretty simple. We'll do a quick catch-up, warm up our brains with this week's expressions, spend some time digging into the nuances, and then practice using them in realistic situations.
+
+By the end of today's session, my goal isn't for you to simply recognize these expressions. I want you to feel comfortable using them naturally in conversations at work.
+
+One quick housekeeping note before we begin: Seokyung wasn't able to join live today, so I'll be sharing the recording afterward.
+
+Alright, let's get started.
+
+First, let's catch up.
+
+How has your week been? Just a sentence or two.
+
+And before we dive into training, I'd like to hear one thing from each of you.
+
+What's one expression, communication skill, or work situation you'd really like to get better at during this round?
+
+If you can give me a specific example from your job, even better. I'll write it down so we can revisit it throughout the program and track your progress."
+
 
 (서보경님 녹화 제공 안내 한 줄. 바로 다음으로.)
 
@@ -87,17 +111,17 @@ Day 1~4 표현 12개를 전부 쓰고, 유의어도 같이 넣었어요. ( ) 안
 > Example: *For a distributed team, clear communication isn't a perk, it's table stakes.*
 > Synonym: *the bare minimum*. Nuance: 'table stakes' sounds strategic and senior, it frames something as non-negotiable. Use it when you want to say 'this is simply expected, full stop.'"
 
-### 🛳️ 도현님 · 승무원 / 호스피탈리티
+### 🛎️ 도현님 · 프론트 데스크 / 호스피탈리티
 
 **4. Run point**
-> "'Run point' means being the single person in charge of one thing. On a ship, roles need to be crystal clear, so this is perfect.
-> Example: *I'll run point on the excursion desk this week.*
-> Synonym: *take the lead*. Nuance: 'run point' is sharper, it signals one clear owner, very useful in operations where confusion costs money. 'Take the lead' is a bit more general."
+> "'Run point' means being the single person in charge of one thing. At a front desk, roles need to be crystal clear during a busy shift, so this is perfect.
+> Example: *I'll run point on late check-ins this week.*
+> Synonym: *take the lead*. Nuance: 'run point' is sharper, it signals one clear owner, very useful when the lobby is busy and confusion slows everyone down. 'Take the lead' is a bit more general."
 
 **5. Get your ducks in a row**
-> "This means getting everything prepared and lined up before something happens. Hospitality lives or dies on prep, so this fits your world exactly.
-> Example: *Let's get our ducks in a row before the guests board.*
-> Synonym: *get everything prepped / lined up*. Nuance: it's friendly and idiomatic, it makes you sound like a native speaker. Use it casually with crew, maybe not in a very formal written report."
+> "This means getting everything prepared and lined up before something happens. A front desk lives or dies on prep before the rush, so this fits your world exactly.
+> Example: *Let's get our ducks in a row before the evening rush.*
+> Synonym: *get everything prepped / lined up*. Nuance: it's friendly and idiomatic, it makes you sound like a native speaker. Use it casually with your team, maybe not in a very formal written report."
 
 **6. Carve out**
 > "'Carve out' is deliberately setting aside time or resources, protecting it so it doesn't get eaten by other tasks.
