@@ -17047,10 +17047,12 @@ function MeetingNotesPage(meetingId) {
   head.appendChild(saveBtn);
   page.appendChild(head);
 
-  // Week 1: 발표 모드(슬라이드 덱) 진입 버튼. 운영자 전용 (나만 보임).
-  if (meta.n === 1 && (state.isOperator || state.isStaff) && typeof WEEK1_DECK !== 'undefined') {
-    const deckBtn = el('button', { class: 'btn btn-primary btn-full btn-lg', style: { marginBottom: '14px' }, onClick: () => { window.__deckIdx = 0; if (typeof __deckHydrate === 'function') __deckHydrate(); go('meeting-deck'); } });
-    deckBtn.innerHTML = `🎤 발표 모드 시작 (운영자 전용) · 슬라이드 ${WEEK1_DECK.length}장 ${Icon('arrowRight', 16)}`;
+  // Week 1·2: 발표 모드(슬라이드 덱) 진입 버튼. 운영자 전용 (나만 보임).
+  const __deckForMeeting = (meta.n === 1 && typeof WEEK1_DECK !== 'undefined') ? WEEK1_DECK
+    : (meta.n === 2 && typeof WEEK2_DECK !== 'undefined') ? WEEK2_DECK : null;
+  if (__deckForMeeting && (state.isOperator || state.isStaff)) {
+    const deckBtn = el('button', { class: 'btn btn-primary btn-full btn-lg', style: { marginBottom: '14px' }, onClick: () => { window.__currentMeetingId = meetingId; window.__deckIdx = 0; if (typeof __deckHydrate === 'function') __deckHydrate(); go('meeting-deck'); } });
+    deckBtn.innerHTML = `🎤 발표 모드 시작 (운영자 전용) · 슬라이드 ${__deckForMeeting.length}장 ${Icon('arrowRight', 16)}`;
     page.appendChild(deckBtn);
   }
 
@@ -17187,6 +17189,70 @@ function MeetingNotesPage(meetingId) {
     page.appendChild(aiLock);
 
     return page; // Week 1 은 리포트 페이지로 완결 (아래 타임라인/AI 탭 안 씀).
+  }
+
+  // ── Week 2 회의록 = 한 페이지 리포트 (외국계 유머). 발표 모드(m2.week2)와 동기화.
+  if (meta.n === 2 && typeof WEEK2_DECK !== 'undefined') {
+    state.meeting_notes = state.meeting_notes || {};
+    state.meeting_notes['m2'] = state.meeting_notes['m2'] || {};
+    const wk = state.meeting_notes['m2'].week2 = state.meeting_notes['m2'].week2 || {};
+    const checks = wk.checks || {};
+    const flowSecs = [];
+    WEEK2_DECK.forEach((sl) => { if (sl.section && flowSecs.indexOf(sl.section) < 0) flowSecs.push(sl.section); });
+    const checkSlides = [];
+    WEEK2_DECK.forEach((sl, di) => { if (sl.checks && sl.checks.length) checkSlides.push({ di, section: sl.section, checks: sl.checks }); });
+    let totalChecks = 0, doneChecks = 0;
+    checkSlides.forEach((cs) => cs.checks.forEach((_, i) => { totalChecks++; if (checks[cs.di + ':' + i]) doneChecks++; }));
+    const pct = totalChecks ? Math.round((doneChecks / totalChecks) * 100) : 0;
+
+    const rv = el('div', { class: 'card', style: { padding: '20px', borderRadius: '22px', marginBottom: '14px' } });
+    let h = '<div class="kicker" style="color:var(--orange-dark);">WEEK 2 회의 리포트 · 발표 모드와 자동 동기화</div>'
+      + '<h2 class="h2" style="margin-top:6px;font-size:21px;">오늘 회의 리포트 🎭</h2>'
+      + '<div class="t-small" style="margin-top:4px;color:var(--ink-soft);">외국계 유머 한 스푼 · 발표 모드 진행 내용이 그대로 정리돼요.</div>'
+      + '<div style="margin-top:16px;font-size:13px;font-weight:800;color:var(--ink);">🗂 오늘 진행한 흐름</div>'
+      + '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">'
+      + flowSecs.map((sec) => '<span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#EAF3DE;border:1px solid rgba(107,142,78,0.35);font-size:12px;font-weight:700;color:#3B6D11;"><span style="font-size:11px;">✓</span>' + escapeHtml(sec) + '</span>').join('')
+      + '</div>'
+      + '<div style="margin-top:18px;display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+      + '<div style="font-size:13px;font-weight:800;color:var(--ink);">✅ 진행 체크리스트</div>'
+      + '<div style="font-size:11.5px;font-weight:700;color:#3B6D11;background:#EAF3DE;border-radius:999px;padding:3px 10px;">' + doneChecks + ' / ' + totalChecks + ' 완료 · ' + pct + '%</div></div>';
+    if (checkSlides.length) {
+      checkSlides.forEach((cs) => {
+        h += '<div style="margin-top:10px;font-size:11.5px;font-weight:800;color:var(--lilac);letter-spacing:0.04em;">' + escapeHtml(cs.section) + '</div>'
+          + '<div style="margin-top:5px;display:flex;flex-direction:column;gap:5px;">'
+          + cs.checks.map((c, i) => {
+              const on = !!checks[cs.di + ':' + i];
+              return '<div style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:' + (on ? '#3B6D11' : 'var(--muted)') + ';">'
+                + '<span style="flex-shrink:0;width:17px;height:17px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;background:' + (on ? 'var(--green)' : '#fff') + ';border:1.5px solid ' + (on ? 'var(--green)' : '#CFC7B5') + ';color:#fff;margin-top:1px;">' + (on ? '✓' : '') + '</span>'
+                + '<span style="line-height:1.5;' + (on ? 'text-decoration:line-through;opacity:0.75;' : '') + '">' + escapeHtml(c) + '</span></div>';
+            }).join('')
+          + '</div>';
+      });
+    }
+    h += '<div style="margin-top:18px;font-size:13px;font-weight:800;color:var(--ink);">🗣️ 오늘 유머 표현</div>'
+      + '<div style="margin-top:6px;display:flex;flex-direction:column;gap:5px;">'
+      + (typeof WEEK2_HUMOR !== 'undefined' ? WEEK2_HUMOR.map((hh) => '<div style="font-size:12.5px;color:var(--ink);"><b style="font-family:var(--font-mono);color:var(--orange-dark);">' + escapeHtml(hh.en) + '</b> · ' + escapeHtml(hh.kr) + '</div>').join('') : '')
+      + '</div>';
+    rv.innerHTML = h;
+    page.appendChild(rv);
+
+    const memoCard = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '22px', marginBottom: '14px' } });
+    memoCard.innerHTML = '<div style="font-size:13px;font-weight:800;color:var(--ink);">📝 회의 요약 메모</div>'
+      + '<textarea class="input" style="margin-top:8px;width:100%;min-height:90px;resize:vertical;" placeholder="오늘 회의에서 다룬 것, 발표 피드백, 분위기..." oninput="window.__m2Save(\'recap\', this.value)">' + escapeHtml(wk.recap || '') + '</textarea>'
+      + '<div style="margin-top:14px;font-size:13px;font-weight:800;color:var(--ink);">📌 과제</div>'
+      + '<textarea class="input" style="margin-top:8px;width:100%;min-height:70px;resize:vertical;" placeholder="다음 주까지 해올 과제 (예: 이번 주 회의·스몰토크에서 유머 표현 한 번 써보기)" oninput="window.__m2Save(\'homework\', this.value)">' + escapeHtml(wk.homework || '') + '</textarea>'
+      + '<button class="btn btn-primary btn-full" style="margin-top:12px;" onclick="window.__m2SaveBtn()">💾 회의록 저장</button>'
+      + '<div class="t-small" style="margin-top:6px;text-align:center;color:var(--muted);">적는 동안 자동 저장돼요. 버튼은 확인용이에요.</div>';
+    page.appendChild(memoCard);
+
+    const aiLock2 = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '22px', marginBottom: '14px', background: '#F6F3EE', border: '1px dashed rgba(154,139,115,0.4)' } });
+    aiLock2.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">'
+      + '<div style="flex-shrink:0;width:38px;height:38px;border-radius:12px;background:rgba(154,139,115,0.16);display:flex;align-items:center;justify-content:center;font-size:18px;">🔒</div>'
+      + '<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:800;color:var(--ink);">✨ AI 회의 요약 <span style="font-size:11px;font-weight:700;color:var(--muted);">(준비 중)</span></div>'
+      + '<div style="font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.5;">두 분이 <b>이번 주 과제</b>를 제출하면, 회의 내용 + 과제를 묶어 AI가 한 장 리포트로 정리해드려요.</div></div></div>';
+    page.appendChild(aiLock2);
+
+    return page; // Week 2 도 리포트 페이지로 완결.
   }
 
   // ── Week 4 미팅 준비 · 단어 랜덤기, 전체(60개) / Week 4만 선택. 단어/뜻/예문(영·한) 하나씩.
@@ -26793,10 +26859,18 @@ window.__previewBestPopup = async () => {
     const masters = Object.entries(agg)
       .filter(([n, v]) => v.att > 0 && v.att === maxAtt && v.clean === v.att && v.w === 0 && v.s === 0 && v.h === 0)
       .map(([n]) => enMap[n] || n);
+    // 거의 다 맞힌 분들: 첫시도 정답률 80%+ (무결점 만점자는 위에서 이미 호명했으니 제외). 호명 인원 넓히기용.
+    const masterSet = new Set(masters);
+    const nears = Object.entries(agg)
+      .filter(([n, v]) => v.att > 0 && (v.clean / v.att) >= 0.8 && !(v.att === maxAtt && v.clean === v.att && v.w === 0 && v.s === 0 && v.h === 0))
+      .map(([n, v]) => ({ name: enMap[n] || n, ratio: v.clean / v.att }))
+      .filter((x) => !masterSet.has(x.name))
+      .sort((a, b) => b.ratio - a.ratio)
+      .map((x) => x.name);
     const finishers = (mem || [])
       .filter((m) => { const vd = new Set((m.verified_days || []).map(Number)); return [1, 2, 3, 4, 5].every((d) => vd.has(d)); })
       .map((m) => enMap[m.member_name] || m.member_name);
-    showBestPopup = { weekN: 1, masters, maxAtt, finishers };
+    showBestPopup = { weekN: 1, masters, maxAtt, finishers, nears };
     render();
   } catch (e) {
     showToast('계산 실패: ' + ((e && e.message) || e));
@@ -26806,6 +26880,7 @@ function BestPopupModal(data) {
   const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
   overlay.setAttribute('data-best-popup', '1');
   const masters = data.masters || [];
+  const nears = data.nears || [];
   const finishers = data.finishers || [];
   const card = el('div', { style: { width: '100%', maxWidth: '360px', background: 'var(--paper)', borderRadius: '24px', overflow: 'hidden', maxHeight: '86vh', overflowY: 'auto' } });
   let html = '<div style="background:#fff;padding:18px 18px 14px;text-align:center;position:relative;">'
@@ -26818,6 +26893,10 @@ function BestPopupModal(data) {
     ? '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + masters.map((n) => '<span style="background:#FBEAF0;color:#72243E;font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;">' + escapeHtml(n) + '</span>').join('') + '</div><div style="font-size:11.5px;color:var(--muted);margin-top:8px;">단어 ' + (data.maxAtt || 0) + '개 전부 힌트 없이 정답 🎉</div>'
     : '<div style="font-size:13px;color:var(--muted);">아직 무결점 만점자가 없어요. 곧 나와요!</div>';
   html += '</div>';
+  if (nears.length) {
+    html += '<div style="padding:6px 18px 6px;"><div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;"><span style="font-size:18px;">👏</span><span style="font-size:14px;font-weight:800;color:var(--ink);">거의 다 맞힌 분들</span><span style="font-size:11px;color:var(--muted);">첫시도 80%+</span></div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + nears.map((n) => '<span style="background:#FFF1E6;color:#9A4A1E;font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;">' + escapeHtml(n) + '</span>').join('') + '</div></div>';
+  }
   html += '<div style="padding:14px 18px 18px;"><div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;"><span style="font-size:18px;">🏁</span><span style="font-size:14px;font-weight:800;color:var(--ink);">이번주 가장 먼저 5일 완주</span></div>';
   html += finishers.length
     ? '<div style="background:#E1F5EE;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:50%;background:#5DCAA5;color:#04342C;display:flex;align-items:center;justify-content:center;font-size:18px;">🏅</div><div><div style="font-size:14px;font-weight:800;color:#04342C;">' + escapeHtml(finishers[0]) + '</div><div style="font-size:12px;color:#0F6E56;">이번주 5일 인증 가장 먼저 완료</div></div></div>'
@@ -26961,12 +27040,93 @@ const WEEK1_DECK = [
       + '<div style="margin-top:12px;padding:13px 15px;border-radius:14px;background:#EAF3DE;color:#3B6D11;font-size:13.5px;line-height:1.7;">📅 PT 세션: KST <b>6/20 또는 6/27</b> 중 가능한 시간 받기. 두 분도 가능하면 추가 밋업.</div>' },
 
 ];
+
+// ── WEEK 2 발표 모드 덱 (외국계 유머 한 스푼). 다음 주 미팅용, Week 1 과 같은 머신 사용.
+const WEEK2_HUMOR = [
+  { en: '"I won\'t lie, I needed that coffee."', kr: '솔직하게 가볍게: 나 진짜 커피 필요했어' },
+  { en: '"Don\'t ask me, I just got here."', kr: '책임 살짝 피하며 농담: 저한테 묻지 마세요, 저도 방금 왔어요' },
+  { en: '"Oh, that\'s wild."', kr: '리액션: 와, 그거 대박이네요' },
+  { en: '"No way!"', kr: '놀람 리액션: 말도 안 돼요!' },
+  { en: '"Well, that escalated quickly."', kr: '상황이 갑자기 커졌을 때: 어우, 일이 순식간에 커졌네요' },
+  { en: '"I\'m gonna need a bigger coffee for this."', kr: '업무량 많을 때 가볍게: 이건 커피 한 잔으론 안 되겠는데요' },
+];
+const WEEK2_DECK = [
+  { section: '오프닝', kicker: 'WEEK 2 · 60분', title: '오늘 순서 한눈에',
+    html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">이도현 · 정주혜</b> · 오늘 발표: <b style="color:var(--orange-dark);">정주혜 님</b></div>'
+      + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
+      + ['미니 강연 (회의·스몰토크 농담)', '핵심 표현 복습', '표현 롤플레잉', '짝 연습', '발표 1명 꼼꼼 피드백 (정주혜 님)'].map((t, i) =>
+          '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
+      + '</div>'
+      + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(233,76,107,0.2);font-size:13.5px;color:var(--ink);">🎯 목표: "회의·스몰토크 분위기를 푸는 가벼운 한마디"를 입에 붙이기</div>' },
+
+  { section: '미니 강연', kicker: '1 · 외국계 유머', title: '외국계에서 통하는 유머 한 스푼',
+    html: (() => {
+      const line = (en, sub) => '<div style="margin-top:9px;">'
+        + '<div style="font-size:14.5px;font-weight:800;color:#fff;font-family:var(--font-mono);border-bottom:1.5px dashed rgba(255,255,255,0.35);display:inline-block;padding-bottom:1px;">' + en + '</div>'
+        + '<div style="margin-top:3px;font-size:12px;color:#C9D6C0;line-height:1.5;">' + sub + '</div></div>';
+      return '<div style="background:#26331F;border-radius:18px;padding:18px;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
+        + '<div style="font-size:11px;letter-spacing:0.1em;color:#FBE7A1;font-weight:800;">📋 오늘의 칠판 · 유머의 3원칙</div>'
+        + '<div style="margin-top:12px;font-size:12.5px;color:#ECEFE3;line-height:1.9;">✅ <b style="color:#9FE1CB;">나를 살짝 낮추기</b> (self-deprecating): 안전하고 호감 가요<br>✅ <b style="color:#9FE1CB;">상황을 가볍게 관찰</b>: 날씨·커피·월요일 같은 공통 주제<br>🚫 <b style="color:#F3B0A8;">피하기</b>: 정치·종교·외모·특정 사람 놀리기</div>'
+        + '<div style="margin-top:14px;font-size:12.5px;font-weight:800;color:#9FE1CB;">🗣️ 바로 쓰는 한마디</div>'
+        + WEEK2_HUMOR.map((h) => line(h.en, h.kr)).join('')
+        + '</div>'
+        + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">핵심: 웃기려 애쓰기보다 <b>가볍게·짧게·자연스럽게</b>. 리액션 한마디가 분위기를 바꿔요.</div>';
+    })() },
+
+  { section: '핵심 표현 복습', kicker: '2 · 복습', title: 'Week 1 표현 + 오늘 유머 표현',
+    checks: ['Week 1 표현 12개 한국어→영어 빠르게 한 바퀴 (막혔던 것 위주)', '오늘 유머 표현 6개 소리 내어 따라 말하기', '각자 본인 상황에 쓸 1~2개 골라보기'],
+    html: '<div style="margin-top:6px;font-size:13px;font-weight:800;color:var(--ink);">🗣️ 오늘 유머 표현 6개</div>'
+      + '<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">'
+      + WEEK2_HUMOR.map((h) => '<div style="padding:8px 11px;border-radius:11px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.14);"><div style="font-size:13.5px;font-family:var(--font-mono);color:var(--orange-dark);font-weight:700;">' + escapeHtml(h.en) + '</div><div style="font-size:11.5px;color:var(--ink-soft);margin-top:1px;">' + escapeHtml(h.kr) + '</div></div>').join('')
+      + '</div>' },
+
+  { section: '표현 롤플레잉', kicker: '3 · 롤플레잉', title: '상황에 유머 한 스푼 끼우기',
+    html: (() => {
+      const card = (sit, line) => '<div style="margin-top:10px;padding:13px 15px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.16);">'
+        + '<div style="font-size:12px;font-weight:800;color:var(--lilac);">' + sit + '</div>'
+        + '<div style="margin-top:5px;font-size:13.5px;color:var(--ink);line-height:1.6;">👉 <b style="font-family:var(--font-mono);color:var(--orange-dark);">' + line + '</b></div></div>';
+      return '<div style="font-size:13px;color:var(--ink-soft);line-height:1.6;">상황을 주면, 거기에 어울리는 유머 한마디를 넣어 말해보세요.</div>'
+        + card('월요일 아침 스몰토크', '"Happy Monday... I\'m gonna need a bigger coffee for this."')
+        + card('회의 중 예상 밖 상황', '"Well, that escalated quickly."')
+        + card('내가 작은 실수를 했을 때', '"Don\'t ask me, I just got here."')
+        + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">진행: 각자 한 상황씩 골라 <b>본인 말투로</b> 자연스럽게. 막히면 칠판 보고.</div>';
+    })() },
+
+  { section: '짝 연습', kicker: '4 · 짝 연습', title: '둘이서 주고받기',
+    html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">두 분이 짝이 되어 2분간 주고받아요.</div>'
+      + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:9px;">'
+      + '<div style="padding:12px 14px;border-radius:13px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.22);"><b style="color:#5C53A5;">A</b> 가벼운 질문 또는 상황 던지기 (예: "How was your weekend?", "이거 또 바뀌었대요")</div>'
+      + '<div style="padding:12px 14px;border-radius:13px;background:#FFF1E6;border:1px solid rgba(233,76,107,0.2);"><b style="color:var(--orange-dark);">B</b> 오늘 표현으로 가볍게 받아치기 (리액션 + 유머 한마디)</div>'
+      + '</div>'
+      + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;font-size:12.5px;color:var(--ink);line-height:1.6;">🔁 역할 바꿔서 한 번 더. 진행자는 막히면 칠판 표현으로 힌트.</div>' },
+
+  { section: '발표 피드백', kicker: '5 · 발표', title: '정주혜 님 발표 + 피드백',
+    checks: ['정주혜 님 10분 발표', '잘한 점 먼저, 구체적으로 짚기', '표현·전달 피드백 1~2개만 (한 번에 너무 많이 X)', '다음에 시도해볼 것 한 가지 정해주기'],
+    html: '<div style="padding:13px 15px;border-radius:14px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.22);font-size:13px;color:#5C53A5;line-height:1.7;">💡 피드백 원칙: <b>칭찬 먼저 → 구체적으로 → 실행 가능한 것 한 가지</b>. 기죽이지 않기.</div>' },
+
+  { section: '마무리', kicker: '6 · 마무리', title: '마무리 체크', goalCapture: true,
+    checks: ['오늘 유머 표현 중 본인이 실제로 쓸 것 1개 정하기', '과제 안내: 이번 주 회의·스몰토크에서 한 번 실제로 써보기'],
+    html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래를 체크하며 마무리하고, 다음 주 목표를 받아적어요.</div>' },
+
+  { section: '다음주 예고', kicker: '다음 주 · 미니 강의', title: 'Week 3 · 외국계 쿠션어',
+    html: '<div style="background:#22301B;border-radius:18px;padding:18px;color:#ECEFE3;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
+      + '<div style="font-size:11px;letter-spacing:0.06em;color:#FBE7A1;font-weight:800;">WEEK 3 · 💬 외국계 쿠션어 (부드럽게 말하기)</div>'
+      + '<div style="margin-top:8px;font-size:12.5px;color:#ECEFE3;line-height:1.85;">① 미니 강연 (완곡·정중 표현) → ② 핵심 표현 복습 → ③ 표현 롤플레잉 → ④ 짝 연습 → ⑤ 발표 1명 꼼꼼 피드백</div>'
+      + '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.25);font-size:11.5px;color:#C9D6C0;line-height:1.7;">🍬 맛보기: "I might be wrong, but..." · "Just to play devil\'s advocate..." · "Would it be possible to...?"</div></div>'
+      + '<div style="margin-top:12px;padding:13px 15px;border-radius:14px;background:#EAF3DE;color:#3B6D11;font-size:13.5px;line-height:1.7;">📅 PT 세션 일정도 이때 확정해요.</div>' },
+];
+
+// 현재 발표 모드/회의록이 가리키는 미팅 (m1=Week1, m2=Week2). __currentMeetingId 기준.
+function __curMid() { return window.__currentMeetingId === 'm2' ? 'm2' : 'm1'; }
+function __curWk() { return __curMid() === 'm2' ? 'week2' : 'week1'; }
+function __curDeck() { return (__curMid() === 'm2' && typeof WEEK2_DECK !== 'undefined') ? WEEK2_DECK : WEEK1_DECK; }
+
 window.__deckIdx = 0;
 window.__deckShowScript = true;
 window.__deckRevealAns = false;
 window.__deckChecks = window.__deckChecks || {};
 window.__deckNav = (delta) => {
-  window.__deckIdx = Math.max(0, Math.min(WEEK1_DECK.length - 1, (window.__deckIdx || 0) + delta));
+  window.__deckIdx = Math.max(0, Math.min(__curDeck().length - 1, (window.__deckIdx || 0) + delta));
   window.scrollTo(0, 0);
   render();
 };
@@ -26977,9 +27137,10 @@ window.__deckPass = window.__deckPass || {};
 // 발표 모드 진행 내용을 회의록(state.meeting_notes['m1'].week1)에 저장 → 회의록이 곧 복습 페이지.
 function __deckPersist() {
   try {
+    const mid = __curMid(), wkKey = __curWk();
     state.meeting_notes = state.meeting_notes || {};
-    state.meeting_notes['m1'] = state.meeting_notes['m1'] || {};
-    const wk = state.meeting_notes['m1'].week1 = state.meeting_notes['m1'].week1 || {};
+    state.meeting_notes[mid] = state.meeting_notes[mid] || {};
+    const wk = state.meeting_notes[mid][wkKey] = state.meeting_notes[mid][wkKey] || {};
     wk.passes = Object.keys(window.__deckPass || {}).filter((k) => window.__deckPass[k]).map(Number).sort((a, b) => a - b);
     wk.checks = { ...(window.__deckChecks || {}) };
     wk.updatedAt = new Date().toISOString();
@@ -26988,13 +27149,14 @@ function __deckPersist() {
 }
 function __deckHydrate() {
   try {
-    const wk = (state.meeting_notes && state.meeting_notes['m1'] && state.meeting_notes['m1'].week1) || {};
+    const mid = __curMid(), wkKey = __curWk();
+    const wk = (state.meeting_notes && state.meeting_notes[mid] && state.meeting_notes[mid][wkKey]) || {};
     window.__deckPass = {}; (wk.passes || []).forEach((i) => { window.__deckPass[i] = true; });
     window.__deckChecks = { ...(wk.checks || {}) };
   } catch (e) {}
 }
 window.__deckTogglePass = (i) => { window.__deckPass = window.__deckPass || {}; window.__deckPass[i] = !window.__deckPass[i]; __deckPersist(); render(); };
-window.__deckGoSection = (sec) => { const i = WEEK1_DECK.findIndex((sl) => sl.section === sec); if (i >= 0) { window.__deckIdx = i; window.scrollTo(0, 0); render(); } };
+window.__deckGoSection = (sec) => { const i = __curDeck().findIndex((sl) => sl.section === sec); if (i >= 0) { window.__deckIdx = i; window.scrollTo(0, 0); render(); } };
 window.__deckSaveWrap = async () => {
   const dr = window.__deckWrapDraft || {};
   const mk = (g, r) => { const p = []; if ((g || '').trim()) p.push('Week 2 목표: ' + g.trim()); if ((r || '').trim()) p.push('복습: ' + r.trim()); return p.join(' / '); };
@@ -27041,6 +27203,16 @@ window.__m1Save = (field, val) => {
     saveState();
   } catch (e) {}
 };
+window.__m2SaveBtn = () => { try { saveState(); showToast('회의록 저장됐어요 ✅'); } catch (e) {} };
+window.__m2Save = (field, val) => {
+  try {
+    state.meeting_notes = state.meeting_notes || {};
+    state.meeting_notes['m2'] = state.meeting_notes['m2'] || {};
+    state.meeting_notes['m2'].week2 = state.meeting_notes['m2'].week2 || {};
+    state.meeting_notes['m2'].week2[field] = val;
+    saveState();
+  } catch (e) {}
+};
 window.__deckSaveGoals = async () => {
   const dr = window.__deckGoalDraft || {};
   const j = (dr.j || '').trim(), d = (dr.d || '').trim();
@@ -27068,16 +27240,17 @@ function MeetingDeckPage() {
     p.appendChild(el('button', { class: 'btn btn-primary btn-full', onClick: () => go('meeting-notes') }, '← 회의록으로'));
     return p;
   }
-  const idx = Math.max(0, Math.min(WEEK1_DECK.length - 1, window.__deckIdx || 0));
-  const s = WEEK1_DECK[idx];
+  const DECK = __curDeck();
+  const idx = Math.max(0, Math.min(DECK.length - 1, window.__deckIdx || 0));
+  const s = DECK[idx];
   const sections = [];
-  WEEK1_DECK.forEach((sl) => { if (!sections.includes(sl.section)) sections.push(sl.section); });
+  DECK.forEach((sl) => { if (!sections.includes(sl.section)) sections.push(sl.section); });
   const curSec = sections.indexOf(s.section);
   const page = el('div', { class: 'page' });
 
   const head = el('div', { class: 'row-between', style: { marginBottom: '12px' } });
   head.innerHTML = '<button class="icon-btn" onclick="go(\'meeting-notes\')" style="background:#fff;border:1px solid var(--line);">' + Icon('arrowLeft', 16) + '</button>'
-    + '<div class="kicker" style="color:var(--orange-dark);">발표 모드 · ' + (idx + 1) + ' / ' + WEEK1_DECK.length + '</div><div style="width:36px;"></div>';
+    + '<div class="kicker" style="color:var(--orange-dark);">발표 모드 · ' + (idx + 1) + ' / ' + DECK.length + '</div><div style="width:36px;"></div>';
   page.appendChild(head);
 
   const wrap = el('div', { style: { display: 'flex', gap: '14px', alignItems: 'flex-start' } });
@@ -27167,7 +27340,7 @@ function MeetingDeckPage() {
   wrap.appendChild(col);
   page.appendChild(wrap);
 
-  const isLast = idx === WEEK1_DECK.length - 1;
+  const isLast = idx === DECK.length - 1;
   page.appendChild(el('div', { style: { height: '86px' } })); // 하단 고정 네비 가림 방지 여백
   const nav = el('div', { style: { position: 'fixed', left: '0', right: '0', bottom: '0', background: '#FFFDF7', borderTop: '1px solid rgba(154,139,115,0.2)', padding: '12px 20px', zIndex: '50', boxShadow: '0 -4px 16px rgba(0,0,0,0.05)' } });
   const navInner = el('div', { style: { display: 'flex', gap: '10px', maxWidth: '720px', margin: '0 auto' } });
