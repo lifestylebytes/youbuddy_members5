@@ -8331,8 +8331,8 @@ function HomePage() {
         window.__surveyNudgeSession[String(wN)] = true; // 세션 가드 즉시 set (무한 루프 방지)
         setTimeout(() => {
           if (anyPopupOpen() || guidedTourStep !== null) return;
-          // Week 1·4 = 메인 설문(showSurveyFillModal), Week 2·3 = 미니 설문(showMiniWeekSurvey)
-          if (wN === 1 || wN === 4) showSurveyFillModal = wN; else showMiniWeekSurvey = wN;
+          // 미니 설문만 운영. Week 4(최종 피드백)만 메인 설문, 나머지(1·2·3)는 미니 설문.
+          if (wN === 4) showSurveyFillModal = wN; else showMiniWeekSurvey = wN;
           render();
         }, 700);
         break; // 한 번에 하나만 (가장 이른 미완 주차)
@@ -8610,9 +8610,8 @@ function HomePage() {
     if (currentDay <= 5) return;  // Week 1 진행 중엔 노출 X
     // 가장 최근 끝난 주 = Math.ceil((currentDay - 5) / 5)
     const targetWeek = Math.max(1, Math.ceil((currentDay - 5) / 5));
-    // Week 2·3 는 미니 설문만 돌림, 메인 설문 배너 노출 X.
-    // Week 1 (이미 받음) 과 Week 4 (마지막 피드백) 만 메인 배너 노출.
-    if (targetWeek === 2 || targetWeek === 3) return;
+    // 미니 설문만 운영. 메인 설문 배너는 Week 4(최종 피드백)에서만 노출.
+    if (targetWeek !== 4) return;
     const survey = (state.week_survey || {})[String(targetWeek)];
     if (survey && survey.at && !survey.skipped) return; // 이미 답변
     // 데드라인, 그 주 +1 주 까지 (= reviewDeadlineDay 와 같은 룰)
@@ -11541,7 +11540,7 @@ function renderBingoMode(page, weekN, week, isPremium) {
     const existingSurvey = state.week_survey && state.week_survey[surveyKey];
     const miniDone = !!(existingSurvey && existingSurvey.mini && existingSurvey.mini.at);
     const mainDone = !!(existingSurvey && existingSurvey.at && !existingSurvey.skipped);
-    const isMiniWeek = (weekN === 2 || weekN === 3);
+    const isMiniWeek = (weekN !== 4); // 미니 설문만 운영, Week 4(최종 피드백)만 메인 설문
 
     if (isMiniWeek) {
       // mini 주차, 이미 게이트에서 했어요. 작은 배지만.
