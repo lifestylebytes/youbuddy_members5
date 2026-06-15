@@ -1480,11 +1480,7 @@ const CHALLENGE = {
             { label: 'Echo-back 샘플', body: '"You said \'blank canvas\', really starting over?" / "Competitive edge for whom exactly?" / "Which pain point is the worst?"' },
           ],
         },
-        mustUseVocab: [
-          'Blank canvas', 'Reinvent the wheel', 'Scratch the surface',
-          'Value proposition', 'Competitive edge', 'Game changer',
-          'Pain point', 'Bite the bullet', 'Stumbling block',
-        ],
+        mustUseVocab: [], // 6기 Day 11~15 단어로 자동 계산 (getEffectiveMustUseVocab). 발표 모드 덱은 별도 구축.
         presenterPrompt: '본인이 자주 맞닥뜨리는 small talk 상황 하나를 7분 롤플레이. Opener → Day 11~13 단어 3개 이상 → closer 구조로. 3분 Q&A 에서 "어떤 단어가 robot 같았나 / natural 했나" 피드백.',
         qaPrompts: [
           'Which Day 11~13 word landed most naturally in your small talk?',
