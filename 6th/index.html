@@ -9529,10 +9529,23 @@ function buildVerifyQuestions(dayN) {
   // syn 을 메인과 같은 구조로 변환 (premium 만 사용)
   const synAsWord = (mainW, syn) => {
     const ex = (typeof synonymExample === 'function') ? synonymExample(mainW, syn) : null;
+    let exEn = (ex && ex.en) || '';
+    // SYN_EXAMPLES 에 없으면, 부모 표현의 실제 예문에서 메인 표현을 유의어로 치환해
+    // 유의어마다 서로 다른 예문(빈칸 문제)을 만든다.
+    // (예전엔 전부 "____ works in this kind of sentence." 로 똑같이 나오던 버그)
+    if (!exEn && mainW && mainW.ex_en && mainW.en) {
+      try {
+        const alts = (typeof _buildPhraseAlternatives === 'function') ? _buildPhraseAlternatives(mainW.en) : [_escRe(mainW.en)];
+        const re = new RegExp('(' + alts.join('|') + ')', 'i');
+        if (re.test(mainW.ex_en)) exEn = mainW.ex_en.replace(re, syn);
+      } catch (_) {}
+    }
+    // 그래도 못 만들면 부모 예문을 그대로 (최소한 유의어마다 다른 문장이 되도록)
+    if (!exEn) exEn = (mainW && mainW.ex_en) || '';
     return {
       en: syn,
       def: (typeof synonymMeaning === 'function') ? synonymMeaning(syn) : (mainW.def || ''),
-      ex_en: (ex && ex.en) || `${syn} works in this kind of sentence.`,
+      ex_en: exEn,
       ex_kr: '',
       syn: [],
     };
