@@ -2921,7 +2921,7 @@ const GUIDED_TOUR_STEPS = [
   { page: 'day', opts: { day: 1, week: 1 }, previewSubmit: true, target: '[data-tour="day-ai-btn"]', title: '⑤ AI 첨삭', body: '문장을 제출하면 이 AI 첨삭 버튼이 생겨요. 누르면 AI가 어색한 부분을 자연스럽게 고쳐줘요. 베이직은 한 문장당 한 번 받을 수 있고, 프리미엄은 무제한으로 받을 수 있어요.' },
   { page: 'community', target: '[data-tour="tab-community"]', title: '커뮤니티', body: '내가 제출한 문장과 동료들의 문장을 여기서 함께 봐요. 다른 사람은 어떻게 썼는지 구경하며 표현을 늘려요.' },
   { page: 'home',      target: '[data-tour="streak-board"]',  title: '인증 완료', body: '단어 시험까지 풀면 그날 인증 완료! 홈 보드의 내 칸에 바로 표시돼요.' },
-  { page: 'day', opts: { day: 1, week: 1 }, previewVerify: true, target: '[data-tour="day-video"]', title: '오늘의 영상', body: '인증이 끝나면 학습 페이지 맨 위에 "오늘의 영상"이 열려요. 귀가 트이는 짧은 영상으로 가볍게 마무리해요. (지금은 미리보기로 보여드려요)' },
+  { page: 'day', opts: { day: 1, week: 1 }, previewVerify: true, target: '[data-tour="day-video"]', title: '오늘의 영상', body: '인증이 끝나면 학습 페이지 맨 위에 "오늘의 영상"이 열려요. 귀가 트이는 영상으로 가볍게 마무리해요. (지금은 미리보기로 보여드려요)' },
   { page: 'home',      target: null,                          title: '단톡 인증', media: KAKAO_ILLUST, body: '마지막으로 오늘 제출한 문장을 녹음해서 단톡에 올리면 그날 인증이 끝나요. 단톡 인증은 챌린지의 핵심이라 꼭 올려주세요!' },
   { page: 'weeks',     previewQuiz: true, target: '[data-tour="week-quiz"]', title: '주간 미션 / 파이널', body: '한 주(5일)를 다 채우면 이 주간 미션 퀴즈가 열려요. 통과하면 선물이 있어요 🎁. 마지막엔 종합 파이널 퀴즈가 있고, 20일 중 18일 이상 인증하면 단어집 PDF가 열려요. (지금은 미리보기)' },
   { page: 'premium',   target: '[data-tour="tab-premium"]',   title: '프리미엄 주간 미팅', premiumOnly: true, body: '(프리미엄) 매주 목요일 21:00 영어 회의가 있어요. Week 2~4 중 한 주는 직접 PT 발표자로 참여해요 (7분 토크 + 3분 Q&A).' },
@@ -13674,7 +13674,7 @@ function DayPage(dayN) {
       <div style="flex:1;min-width:0;">
         <div class="kicker" style="color:#F0C987;font-size:10px;">인증 완료 · 보너스 열림</div>
         <div style="margin-top:4px;font-size:17px;font-weight:800;letter-spacing:-0.01em;">오늘의 귀 열기 영상 보기</div>
-        <div class="t-small" style="margin-top:4px;font-size:12px;line-height:1.45;color:rgba(255,255,255,0.72);">실제 대화에서 오늘 표현이 어떻게 쓰이는지 2분 영상</div>
+        <div class="t-small" style="margin-top:4px;font-size:12px;line-height:1.45;color:rgba(255,255,255,0.72);">실제 비즈니스 영어가 어떻게 들리는지, 귀 트는 마무리 영상 🎧</div>
       </div>
       <span style="width:40px;height:40px;border-radius:999px;background:rgba(255,255,255,0.14);display:grid;place-items:center;flex-shrink:0;">${Icon('play', 16)}</span>
     `;
