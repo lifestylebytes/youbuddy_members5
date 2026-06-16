@@ -26908,26 +26908,48 @@ const WEEK1_DECK = [
 ];
 
 // ── WEEK 2 발표 모드 덱 (외국계 유머 한 스푼). 다음 주 미팅용, Week 1 과 같은 머신 사용.
-// Week 2 외국계 유머 표현 (운영자가 직접 큐레이션, 상황별).
+// Week 2 외국계 유머 표현 (운영자가 직접 큐레이션, 상황별). scenario/how = 롤플레잉 연습용.
 const WEEK2_HUMOR_GROUPS = [
-  { sit: '😅 실수했을 때 가볍게 넘기기', lines: [
-    { en: "Sorry, I haven't had my coffee yet.", kr: '죄송, 아직 커피를 못 마셔서요 (실수 변명)' },
-    { en: "I definitely need more coffee for this.", kr: '이건 진짜 커피가 더 있어야겠는데요 (이어서 강조)' },
-  ] },
-  { sit: '📅 회의 시작 · 요일 스몰토크', lines: [
-    { en: "How's everyone surviving Monday?", kr: '다들 월요일 버티고 계세요?' },
-    { en: "Hanging in there, barely. / Better than expected.", kr: '(답변) 겨우 버티는 중이죠 / 생각보다 괜찮아요' },
-    { en: "This week is flying by.", kr: '이번 주 진짜 빨리 가네요' },
-  ] },
-  { sit: '⏳ 시간이 훅 지나갔을 때', lines: [
-    { en: "Where did this day go?", kr: '오늘 하루 어디 갔죠?' },
-  ] },
-  { sit: '😮‍💨 퇴사각... (친한 동료에게만!)', lines: [
-    { en: "Time to update my LinkedIn.", kr: '링크드인 업데이트할 때가 됐네요' },
-    { en: "Honestly, I'm writing my resignation letter lol.", kr: '솔직히 나 사직서 쓰는 중이야 ㅋㅋ' },
-  ] },
+  { sit: '😅 실수했을 때 가볍게 넘기기',
+    scenario: '회의 중 작은 실수를 했어요 (화면 공유를 엉뚱한 창으로 띄움 / 숫자를 잘못 말함 / 5분 지각).',
+    how: 'A가 회의 진행 → B가 작은 실수 → B가 커피 농담으로 가볍게 넘김. 그다음 역할을 돌려 C, A도 한 번씩 "실수한 사람" 해보기.',
+    lines: [
+      { en: "Sorry, I haven't had my coffee yet.", kr: '죄송, 아직 커피를 못 마셔서요 (실수 변명)' },
+      { en: "I definitely need more coffee for this.", kr: '이건 진짜 커피가 더 있어야겠는데요 (이어서 강조)' },
+    ] },
+  { sit: '📅 회의 시작 · 요일 스몰토크',
+    scenario: '월요일 아침, 다들 아직 멍한 분위기에서 회의를 시작해요.',
+    how: 'A가 진행자로 "How\'s everyone surviving Monday?" 던지기 → B와 C가 각각 답변. 그다음 진행자 역할을 B, C로 돌려가며 3명 다 해보기.',
+    lines: [
+      { en: "How's everyone surviving Monday?", kr: '다들 월요일 버티고 계세요?' },
+      { en: "Hanging in there, barely. / Better than expected.", kr: '(답변) 겨우 버티는 중이죠 / 생각보다 괜찮아요' },
+      { en: "This week is flying by.", kr: '이번 주 진짜 빨리 가네요' },
+    ] },
+  { sit: '⏳ 시간이 훅 지나갔을 때',
+    scenario: '회의가 길어졌거나 금요일 오후, 시계를 보니 벌써 6시예요.',
+    how: '한 명이 "Where did this day go?" 하면 나머지 둘이 공감 한마디. 돌아가며 "시간 놀란 사람" 역할 바꿔보기.',
+    lines: [
+      { en: "Where did this day go?", kr: '오늘 하루 어디 갔죠?' },
+    ] },
+  { sit: '😮‍💨 퇴사각... (친한 동료에게만!)',
+    scenario: '야근 3일째, 친한 동료랑 커피 한잔하며 가볍게 푸념해요.',
+    how: '두 명은 친한 동료(가볍게 푸념·농담), 한 명은 옆에서 빵 터지는 리액션. 돌아가며. 톤은 농담! 매니저 앞에선 쓰지 않기.',
+    lines: [
+      { en: "Time to update my LinkedIn.", kr: '링크드인 업데이트할 때가 됐네요' },
+      { en: "Honestly, I'm writing my resignation letter lol.", kr: '솔직히 나 사직서 쓰는 중이야 ㅋㅋ' },
+    ] },
 ];
 const WEEK2_HUMOR = WEEK2_HUMOR_GROUPS.flatMap((g) => g.lines);
+// 상황별 롤플레잉 슬라이드 (하나씩 넘기며 3명이 돌아가며 연습).
+const WEEK2_ROLEPLAY_SLIDES = WEEK2_HUMOR_GROUPS.map((g, i) => ({
+  section: '표현 롤플레잉', kicker: '3 · 롤플레잉 ' + (i + 1) + ' / ' + WEEK2_HUMOR_GROUPS.length, title: g.sit,
+  html: '<div style="padding:13px 15px;border-radius:14px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.22);"><div style="font-size:11.5px;font-weight:800;color:#5C53A5;letter-spacing:0.04em;">🎬 상황</div><div style="margin-top:5px;font-size:13.5px;color:var(--ink);line-height:1.6;">' + escapeHtml(g.scenario) + '</div></div>'
+    + '<div style="margin-top:12px;font-size:12px;font-weight:800;color:var(--ink);">🗣️ 쓸 표현</div>'
+    + '<div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">'
+    + g.lines.map((l) => '<div style="padding:8px 11px;border-radius:11px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.14);"><div style="font-size:13.5px;font-family:var(--font-mono);color:var(--orange-dark);font-weight:700;">' + escapeHtml(l.en) + '</div><div style="font-size:11.5px;color:var(--ink-soft);margin-top:1px;">' + escapeHtml(l.kr) + '</div></div>').join('')
+    + '</div>'
+    + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(233,76,107,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;"><b>👥 3명 진행</b><br>' + escapeHtml(g.how) + '</div>',
+}));
 const WEEK2_DECK = [
   { section: '오프닝', kicker: 'WEEK 2 · 60분', title: '오늘 순서 한눈에',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">이도현 · 정주혜</b> · 오늘 발표: <b style="color:var(--orange-dark);">정주혜 님</b></div>'
@@ -26960,17 +26982,7 @@ const WEEK2_DECK = [
       + WEEK2_HUMOR.map((h) => '<div style="padding:8px 11px;border-radius:11px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.14);"><div style="font-size:13.5px;font-family:var(--font-mono);color:var(--orange-dark);font-weight:700;">' + escapeHtml(h.en) + '</div><div style="font-size:11.5px;color:var(--ink-soft);margin-top:1px;">' + escapeHtml(h.kr) + '</div></div>').join('')
       + '</div>' },
 
-  { section: '표현 롤플레잉', kicker: '3 · 롤플레잉', title: '상황에 유머 한 스푼 끼우기',
-    html: (() => {
-      const card = (sit, line) => '<div style="margin-top:10px;padding:13px 15px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.16);">'
-        + '<div style="font-size:12px;font-weight:800;color:var(--lilac);">' + sit + '</div>'
-        + '<div style="margin-top:5px;font-size:13.5px;color:var(--ink);line-height:1.6;">👉 <b style="font-family:var(--font-mono);color:var(--orange-dark);">' + line + '</b></div></div>';
-      return '<div style="font-size:13px;color:var(--ink-soft);line-height:1.6;">상황을 주면, 거기에 어울리는 유머 한마디를 넣어 말해보세요.</div>'
-        + card('월요일 아침 스몰토크', '"Happy Monday... I\'m gonna need a bigger coffee for this."')
-        + card('회의 중 예상 밖 상황', '"Well, that escalated quickly."')
-        + card('내가 작은 실수를 했을 때', '"Don\'t ask me, I just got here."')
-        + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">진행: 각자 한 상황씩 골라 <b>본인 말투로</b> 자연스럽게. 막히면 칠판 보고.</div>';
-    })() },
+  ...WEEK2_ROLEPLAY_SLIDES,
 
   { section: '짝 연습', kicker: '4 · 짝 연습', title: '둘이서 주고받기',
     html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">두 분이 짝이 되어 2분간 주고받아요.</div>'
@@ -26982,6 +26994,7 @@ const WEEK2_DECK = [
 
   { section: '발표 피드백', kicker: '5 · 발표', title: '정주혜 님 발표 + 피드백',
     checks: ['정주혜 님 10분 발표', '잘한 점 먼저, 구체적으로 짚기', '표현·전달 피드백 1~2개만 (한 번에 너무 많이 X)', '다음에 시도해볼 것 한 가지 정해주기'],
+    presenterScript: { name: '정주혜', weekN: 2 },
     html: '<div style="padding:13px 15px;border-radius:14px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.22);font-size:13px;color:#5C53A5;line-height:1.7;">💡 피드백 원칙: <b>칭찬 먼저 → 구체적으로 → 실행 가능한 것 한 가지</b>. 기죽이지 않기.</div>' },
 
   { section: '마무리', kicker: '6 · 마무리', title: '마무리 체크', goalCapture: true,
@@ -27000,6 +27013,7 @@ const WEEK2_DECK = [
 function __curMid() { return window.__currentMeetingId === 'm2' ? 'm2' : 'm1'; }
 function __curWk() { return __curMid() === 'm2' ? 'week2' : 'week1'; }
 function __curDeck() { return (__curMid() === 'm2' && typeof WEEK2_DECK !== 'undefined') ? WEEK2_DECK : WEEK1_DECK; }
+window.__deckLoadScripts = () => { if (typeof loadCohortPresenterScripts === 'function') loadCohortPresenterScripts({ force: true }).then(() => render()); };
 
 window.__deckIdx = 0;
 window.__deckShowScript = true;
@@ -27121,6 +27135,10 @@ function MeetingDeckPage() {
     return p;
   }
   const DECK = __curDeck();
+  // 발표자 스크립트(다른 멤버) 캐시 로드, 덱에서 한 번만. 로드되면 재렌더.
+  if (typeof loadCohortPresenterScripts === 'function' && window.__cohortPresenterScripts == null && !window.__cohortPresenterScriptsLoading) {
+    loadCohortPresenterScripts().then(() => { if (currentPage === 'meeting-deck') render(); });
+  }
   const idx = Math.max(0, Math.min(DECK.length - 1, window.__deckIdx || 0));
   const s = DECK[idx];
   const sections = [];
@@ -27213,6 +27231,21 @@ function MeetingDeckPage() {
       + '<div style="font-size:12px;font-weight:800;color:#5C53A5;margin:10px 0 2px;">이도현 님</div>'
       + fld('wd_goal', '다음 주 목표 한 줄') + fld('wd_rev', '어떻게 복습할지')
       + '<button class="btn btn-primary btn-full" style="margin-top:12px;" onclick="window.__deckSaveWrap()">💾 저장 · 멤버 목표에 Week2 추가</button></div>';
+  }
+  if (s.presenterScript) {
+    const ps = s.presenterScript;
+    const rows = window.__cohortPresenterScripts || [];
+    const entry = rows.find((r) => String(r.member_name || '').trim() === ps.name && Number(r.week_n) === Number(ps.weekN));
+    body += '<div style="margin-top:16px;padding:14px 16px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(125,92,255,0.25);">'
+      + '<div style="font-size:12px;font-weight:800;color:#5C53A5;">📝 ' + escapeHtml(ps.name) + ' 님이 제출한 발표 스크립트</div>';
+    if (entry && (entry.script || '').trim()) {
+      if (entry.presentation_topic) body += '<div style="margin-top:8px;font-size:12.5px;color:var(--ink-soft);"><b>주제:</b> ' + escapeHtml(entry.presentation_topic) + '</div>';
+      if (Array.isArray(entry.vocab_picked) && entry.vocab_picked.length) body += '<div style="margin-top:4px;font-size:11.5px;color:var(--muted);">고른 표현: ' + entry.vocab_picked.map((v) => escapeHtml(v)).join(' · ') + '</div>';
+      body += '<div style="margin-top:10px;font-size:13.5px;line-height:1.7;color:var(--ink);white-space:pre-wrap;border-top:1px dashed rgba(154,139,115,0.25);padding-top:10px;">' + escapeHtml(entry.script) + '</div>';
+    } else {
+      body += '<div style="margin-top:8px;font-size:12.5px;color:var(--muted);line-height:1.6;">' + (window.__cohortPresenterScriptsLoading ? '불러오는 중이에요...' : '아직 제출된 스크립트가 없어요.') + ' <button onclick="window.__deckLoadScripts()" style="border:none;background:none;color:var(--lilac);font-weight:700;cursor:pointer;text-decoration:underline;padding:0;">다시 불러오기</button></div>';
+    }
+    body += '</div>';
   }
   card.innerHTML = body;
   col.appendChild(card);
