@@ -1241,31 +1241,7 @@ const CHALLENGE = {
         // 버디가 미팅 후 직접 채움, recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
         recap: '🎬 [Week 2 미팅 다시보기 →]()\n\n어제 못 오신 분도, 다시 듣고 싶은 분도 위 링크에서 풀버전 보실 수 있어요.',
         pptUrl: '',
-        scenario: {
-          setting: 'Day 6~9 단어 12개 입에 붙이기',
-          premise: '아래 🎬 미팅 대본 카드 따라가면 됨. 슬롯 M1~M8 에 멤버 매핑 → 페어 2번 → 회고 1번 → 한 단어 발표.',
-        },
-        roleplay: {
-          duration: 40,
-          roles: [
-            { name: 'Updater A / B (pair)', goal: '5분씩 본인 업무 상황 업데이트. Day 6~9 단어 (cut to the chase / heavy lifting / constructive criticism 등) 3개 이상 의도적으로 녹이기.' },
-            { name: 'Listener / PM', goal: '자연스러운 질문으로 단어 echo back 유도. "You said \'heavy lifting\', which part exactly?" / "Why \'meet halfway\' on this one?"' },
-            { name: 'Observer', goal: 'Day 6~9 단어 체크리스트 들고 들으면서 누가 몇 개 썼는지 체크. debrief 때 sugarcoat 없이 constructive criticism 으로 공유.' },
-          ],
-          beats: [
-            { time: '0-5', label: 'Vocab warmup', body: 'Coach 가 Day 6~9 단어 12개 (constructive criticism / sugarcoat / take it offline / play devil\'s advocate / middle ground / meet halfway / cut to the chase / timebox / give time back / go-to person / heavy lifting / step on toes) 빠른 리뷰. 각자 최소 3개 픽.' },
-            { time: '5-15', label: 'Pair 1 roleplay', body: 'Updater A 5분 업데이트 → Listener 가 "cut to the chase" / "go-to person" 같은 단어 echo back 시도. A 가 받아서 재응답.' },
-            { time: '15-25', label: 'Pair 2 roleplay', body: 'Updater B 5분 업데이트. 의견 다른 포인트에서 Listener 가 "let me play devil\'s advocate" / "can we meet halfway?" 로 push back.' },
-            { time: '25-35', label: 'Observer debrief', body: 'Observer 가 "누가 어떤 Day 6~9 단어 썼다" 공유. 자연스러웠던 예 / 억지스러웠던 예 분리. sugarcoat 없이 constructive criticism 으로.' },
-            { time: '35-40', label: 'Coach re-drill', body: '자연스럽지 못했던 단어 1~2개만 짧은 재연. 예: "Let\'s try that line again with \'meet you halfway\'." / "이번엔 \'cut to the chase\' 로 다시 풀어봐요."' },
-          ],
-          props: [
-            { label: 'Day 6~9 단어 체크리스트', body: '피드백, Constructive criticism / Sugarcoat / Take it offline · 설득, Play devil\'s advocate / Middle ground / Meet halfway · 시간, Cut to the chase / Timebox / Give time back · 역할, Go-to person / Heavy lifting / Step on someone\'s toes' },
-            { label: 'Status update template', body: '"Right now I\'m the go-to person for X. The heavy lifting this week is [task]. Let me cut to the chase, my ask is [one thing]."' },
-            { label: 'Pushback / 합의 template', body: '"Let me play devil\'s advocate for a sec…" → "Can we find a middle ground here?" → "If you can [trade], we\'ll meet you halfway on [trade]."' },
-            { label: 'Echo-back 샘플', body: '"You said \'go-to person\', go-to for what exactly?" / "When you say \'heavy lifting\', who\'s actually doing it?" / "What\'s the trade-off if we meet halfway?"' },
-          ],
-        },
+        roleplay: { duration: 40 },
         mustUseVocab: [
           'Piggyback on', 'Hash out', 'Sounding board',
           'Temperature check', 'Talk past each other', 'Ping',
@@ -1278,168 +1254,6 @@ const CHALLENGE = {
           'Where could a light, self-deprecating joke have eased the moment?',
           'If you said this to your real team, which word would you swap out?',
         ],
-        script: {
-          intro: '슬롯 M1~M10 에 멤버 매핑하면 라인마다 그 사람 이름으로 바뀌어요. 한국어 라인 보고 영어로 직접 말해보고, 막히면 클릭해서 영어 정답 확인. (각 섹션 note 에 누가 어느 자리인지 표시)',
-          vocabRecap: [
-            { day: 1, theme: '판 깔고 기준점', words: [
-              { en: 'Set the stage', kr: '판 깔다 · 분위기 조성' },
-              { en: 'Anchor', kr: '기준점 잡다 · 흔들리지 않게 고정' },
-              { en: 'Key driver', kr: '핵심 동인 · 성과를 끌어올리는 진짜 이유' },
-            ] },
-            { day: 2, theme: '현실 가능성 점검', words: [
-              { en: 'Gut check', kr: '직감 점검 · 빠른 현실성 체크' },
-              { en: 'Vetting process', kr: '검증 과정 · 깐깐한 심사' },
-              { en: 'Viability', kr: '실행 가능성 · 진짜 돈이 되나' },
-            ] },
-            { day: 3, theme: '속도 우선 · 초반 몰아치기', words: [
-              { en: 'First pass', kr: '초안 한 번 잡기 · 일단 빠르게' },
-              { en: 'Get it over the line', kr: '어렵사리 끝내다 · 마침내 넘기기' },
-              { en: 'Front-load', kr: '초반에 몰아서 하다' },
-            ] },
-            { day: 4, theme: '애매한 거 풀고 파고들기', words: [
-              { en: 'Unpack', kr: '풀어서 분석하다' },
-              { en: 'Flesh out', kr: '디테일 채워 구체화' },
-              { en: 'Drill down', kr: '깊이 파고들다' },
-            ] },
-            { day: 5, theme: '동의 얻고 한방향', words: [
-              { en: 'Get buy-in', kr: '적극적 지지 얻기' },
-              { en: 'Call the shots', kr: '결정권 쥐고 진두지휘' },
-              { en: 'Move in lockstep', kr: '발맞춰 혼연일체' },
-            ] },
-            { day: 6, theme: '피드백 주고받기', words: [
-              { en: 'Constructive criticism', kr: '건설적인 비판' },
-              { en: 'Sugarcoat', kr: '듣기 좋게 포장' },
-              { en: 'Take it offline', kr: '회의 밖에서 따로 얘기' },
-            ] },
-            { day: 7, theme: '부드럽게 반대 · 설득', words: [
-              { en: "Play devil's advocate", kr: '일부러 반대 입장 · 딴지' },
-              { en: 'Middle ground', kr: '타협점 · 절충안' },
-              { en: 'Meet halfway', kr: '서로 양보해서 합의' },
-            ] },
-            { day: 8, theme: '시간 낭비 없이 본론만', words: [
-              { en: 'Cut to the chase', kr: '본론으로 바로' },
-              { en: 'Timebox', kr: '제한 시간 두기' },
-              { en: 'Give time back', kr: '남은 시간 돌려주기' },
-            ] },
-            { day: 9, theme: '선 안 넘고 업무 분장', words: [
-              { en: 'Go-to person', kr: '핵심 담당 · 만능 해결사' },
-              { en: 'Heavy lifting', kr: '가장 빡센 핵심 작업' },
-              { en: "Step on someone's toes", kr: '남의 영역 침범' },
-            ] },
-          ],
-          sections: [
-            {
-              time: '0-5', label: 'Vocab warmup',
-              note: 'M1 = Coach 진행. M7·M8 자유 발화 (질문 + 픽 발표).',
-              lines: [
-                { speaker: 'M1', en: 'Welcome to Week 2, vocab in action. Pick your top three from Day 6 to 9, the ones you actually want to use tonight.', ko: 'Week 2에 오신 걸 환영합니다, 어휘를 실전에. Day 6~9 중에 오늘 진짜 써보고 싶은 거 3개씩 골라보세요.' },
-                { speaker: 'M1', en: "Let me cut to the chase, we'll do two pair roleplays, then debrief. By the end, each of you walks out with one sentence you couldn't have said last week.", ko: '바로 본론으로 갈게요, 페어 롤플레이 두 번, 그리고 회고. 끝나면 각자 지난주엔 못 했을 한 문장씩 가져갑니다.' },
-                { speaker: 'M7', en: "Quick gut check, if 'sugarcoat' doesn't fit my role, can I swap it for another word?", ko: "잠깐 직감 점검, 'sugarcoat'가 제 자리에 안 맞으면 다른 단어로 바꿔도 돼요?" },
-                { speaker: 'M1', en: "Of course. The list is a menu, not a checklist. Just flesh out which three feel most like you.", ko: '당연하죠. 이 리스트는 체크리스트가 아니라 메뉴예요. 본인 같은 3개만 추려서 살을 붙여보세요.' },
-                { speaker: 'M7', en: "I'll go with 'cut to the chase,' 'meet halfway,' and 'go-to person.'", ko: "저는 'cut to the chase,' 'meet halfway,' 'go-to person'으로 갈게요." },
-                { speaker: 'M8', en: "Mine are 'timebox,' 'play devil's advocate,' and 'sugarcoat', bring it on.", ko: "저는 'timebox,' 'play devil\\'s advocate,' 'sugarcoat', 한 번 써볼게요." },
-              ],
-            },
-            {
-              time: '5-15', label: 'Pair 1, Status update',
-              note: 'M2 = Updater A (본인 업무 업데이트). M3 = Listener (echo back / push back). M1 (Coach) 가 끝에 한 마디.',
-              lines: [
-                { speaker: 'M2', en: "Right now I'm the go-to person for the onboarding flow. The heavy lifting this week is rewriting the welcome email, three drafts, two stakeholders.", ko: '지금 저는 온보딩 흐름의 핵심 담당이에요. 이번 주 가장 빡센 일은 환영 이메일 다시 쓰는 거예요, 초안 3개, 이해관계자 2명.' },
-                { speaker: 'M3', en: "You said 'go-to person', go-to for decisions, or for execution?", ko: "'go-to person'이라 하셨는데, 의사결정이요, 실행이요?" },
-                { speaker: 'M2', en: "Both, honestly. Which is part of the problem.", ko: '둘 다요, 솔직히. 그게 문제이기도 하고요.' },
-                { speaker: 'M3', en: "Let me play devil's advocate for a sec. Should you really be doing both?", ko: '잠깐 딴지 좀 걸어볼게요. 진짜 둘 다 하셔야 해요?' },
-                { speaker: 'M2', en: "Probably not. Can we take it offline and figure out who picks up execution?", ko: '아마 아니죠. 이 부분은 따로 얘기해서 누가 실행 맡을지 정할 수 있을까요?' },
-                { speaker: 'M3', en: "Sure, but timebox it to Friday so we don't drag it.", ko: '좋아요, 근데 금요일까지로 시간 박아두죠. 늘어지지 않게.' },
-                { speaker: 'M2', en: "Deal. I'll give you ten minutes back today and book Friday.", ko: '콜이요. 오늘은 10분 일찍 끝내드리고 금요일 잡을게요.' },
-                { speaker: 'M1', en: "Nice, that 'give time back' landed naturally. Let's mark it on the checklist.", ko: "좋네요, 'give time back' 자연스럽게 쓰셨어요. 체크리스트에 표시." },
-              ],
-            },
-            {
-              time: '15-25', label: 'Pair 2, Pushback & 합의',
-              note: 'M4 = Updater B (마감 슬립 보고). M5 = Listener (push back → 합의). 의견 충돌 → 절충 흐름.',
-              lines: [
-                { speaker: 'M4', en: "My update, the launch slipped two weeks. I'm not going to sugarcoat it: the spec changed three times in April.", ko: '제 업데이트요, 런칭이 2주 밀렸어요. 좋게 포장 안 할게요. 4월에 스펙이 세 번 바뀌었거든요.' },
-                { speaker: 'M5', en: "Constructive criticism welcome, what would you have done differently?", ko: '건설적인 피드백 환영이에요, 다르게 했다면 뭘 했을 것 같으세요?' },
-                { speaker: 'M4', en: "Honestly, I'd timebox the spec phase. Two weeks max, then we ship whatever's locked.", ko: '솔직히 스펙 단계를 시간으로 막았을 것 같아요. 최대 2주, 그리고 정해진 것만 출시.' },
-                { speaker: 'M5', en: "Let me push back, two weeks feels tight. Could we find a middle ground?", ko: '반박해볼게요, 2주는 빠듯해 보여요. 중간 지점 있을까요?' },
-                { speaker: 'M4', en: "What if I give you a hard cutoff on day 14, and you meet me halfway on a one-week buffer?", ko: '14일째 마감 딱 박고, 1주 버퍼는 절반씩 양보하는 거 어때요?' },
-                { speaker: 'M5', en: "I can live with that. One catch, we don't want to step on Sara's toes. She's been heads-down on the spec.", ko: "그건 받아들일 수 있어요. 한 가지, Sara 영역 침범하면 안 돼요. 스펙에 집중해 왔거든요." },
-                { speaker: 'M4', en: "Agreed. I'll loop her in tomorrow and circulate the plan.", ko: '동의해요. 내일 Sara 포함시키고 계획 공유할게요.' },
-                { speaker: 'M5', en: "Perfect. We just met halfway in real time.", ko: '완벽해요. 방금 실시간으로 절반씩 양보 봤네요.' },
-              ],
-            },
-            {
-              time: '25-35', label: 'Observer debrief',
-              note: 'M6 = Observer (체크리스트 발표 진행). M7·M8 자유 코멘트.',
-              lines: [
-                { speaker: 'M6', en: "Quick debrief, Pair 1 used four words: 'go-to person,' 'heavy lifting,' 'take it offline,' 'give time back.' All natural.", ko: "빠른 회고, Pair 1은 4개 썼어요: 'go-to person,' 'heavy lifting,' 'take it offline,' 'give time back.' 다 자연스러웠어요." },
-                { speaker: 'M6', en: "Pair 2 hit six: 'sugarcoat,' 'constructive criticism,' 'timebox,' 'middle ground,' 'meet halfway,' 'step on toes.'", ko: "Pair 2는 6개, 'sugarcoat,' 'constructive criticism,' 'timebox,' 'middle ground,' 'meet halfway,' 'step on toes.'" },
-                { speaker: 'M6', en: "Honest call, 'sugarcoat' felt slightly forced. Anyone else catch that?", ko: "솔직히, 'sugarcoat'는 좀 억지스러웠어요. 다른 분들도 느끼셨어요?" },
-                { speaker: 'M7', en: "Same here. 'I won't dance around it' might feel more like you.", ko: "저도요. 'I won't dance around it'가 더 본인 같을 듯요." },
-                { speaker: 'M8', en: "What about 'I'll be straight with you', same energy, less bookish.", ko: "'I'll be straight with you'는 어때요, 같은 톤인데 책같지 않고." },
-                { speaker: 'M6', en: "Good call. Let's flag 'sugarcoat' for re-drill.", ko: "좋은 지적이에요. 'sugarcoat' 다시 한 번 짚고 갑시다." },
-              ],
-            },
-            {
-              time: '35-40', label: 'Coach re-drill + close',
-              note: 'M1 (Coach) 마무리. M4 가 다시 시연 → M2/M3/M5/M6 가 "이번 주 쓸 단어 1개" 발표.',
-              lines: [
-                { speaker: 'M1', en: "M4, try that opener again, but swap 'sugarcoat' for whatever feels like you.", ko: "M4 자리, 그 첫 줄 다시, 'sugarcoat' 자리에 본인답게 바꿔서 해볼까요." },
-                { speaker: 'M4', en: "Update, launch slipped two weeks. I'll be straight with you: the spec changed three times in April.", ko: '업데이트요, 런칭이 2주 밀렸어요. 솔직히 말씀드리면 4월에 스펙이 세 번 바뀌었어요.' },
-                { speaker: 'M1', en: "Much better. Last round, each of you, one word you'll actually use this week. Go around.", ko: '훨씬 좋아요. 마지막, 한 명씩 돌아가며, 이번 주에 진짜 쓸 단어 하나.' },
-                { speaker: 'M2', en: "I'll use 'cut to the chase' in tomorrow's standup.", ko: "내일 스탠드업에서 'cut to the chase' 써볼게요." },
-                { speaker: 'M3', en: "I'll try 'meet halfway' in my vendor call on Friday.", ko: "금요일 벤더 미팅에서 'meet halfway' 시도해볼게요." },
-                { speaker: 'M5', en: "Mine's 'go-to person', I want to claim that role officially.", ko: "저는 'go-to person'이요, 그 역할 공식적으로 가져가고 싶어요." },
-                { speaker: 'M6', en: "And mine is 'play devil's advocate', for my Tuesday review.", ko: "저는 'play devil\\'s advocate' 가져갈게요, 화요일 리뷰에서 써볼게요." },
-                { speaker: 'M1', en: "Great work. I'll give you five minutes back, see you Day 10.", ko: '수고하셨어요. 5분 일찍 끝낼게요, Day 10에서 봐요.' },
-              ],
-            },
-          ],
-          weekVocab: [
-            { en: 'Constructive criticism', day: 6, defaultSlot: 'M5', krSentence: '이건 인신공격 아니라, 그냥 건설적인 비판이에요.' },
-            { en: 'Sugarcoat', day: 6, defaultSlot: 'M4', krSentence: '좋게 포장 안 할게요, 우리 이번 분기 목표 못 채웠어요.' },
-            { en: 'Take it offline', day: 6, defaultSlot: 'M2', krSentence: '그건 좋은 포인트지만, 회의 끝나고 따로 얘기하시죠.' },
-            { en: "Play devil's advocate", day: 7, defaultSlot: 'M3', krSentence: '잠깐 딴지 좀 걸어볼게요, 만약 서버 터지면요?' },
-            { en: 'Middle ground', day: 7, defaultSlot: 'M5', krSentence: '속도랑 퀄리티 사이에서 타협점을 찾아야 해요.' },
-            { en: 'Meet halfway', day: 7, defaultSlot: 'M4', krSentence: '가격을 낮춰주시면 저희도 양보해서 물량을 늘리겠습니다.' },
-            { en: 'Cut to the chase', day: 8, defaultSlot: 'M2', krSentence: '우리 10분밖에 없으니까 본론으로 바로 갑시다.' },
-            { en: 'Timebox', day: 8, defaultSlot: 'M3', krSentence: '이 논의는 딱 15분으로 시간 박아둡시다.' },
-            { en: 'Give time back', day: 8, defaultSlot: 'M2', krSentence: '안건 다 다뤘으니, 남은 10분은 돌려드릴게요.' },
-            { en: 'Go-to person', day: 9, defaultSlot: 'M2', krSentence: '데이터 분석 관련은 사라가 우리 만능 해결사예요.' },
-            { en: 'Heavy lifting', day: 9, defaultSlot: 'M2', krSentence: '디자인 쪽 가장 빡센 작업은 에이전시가 맡을 거예요.' },
-            { en: "Step on someone's toes", day: 9, defaultSlot: 'M5', krSentence: '돕고 싶은데, 담당자 선 넘는 건 싫어요.' },
-          ],
-          miniScenarios: [
-            {
-              title: '🚨 마감 슬립 보고',
-              setting: '주간 마케팅 미팅. 팀장한테 "우리 캠페인 마감 1주 밀렸다" 전달해야 함.',
-              kicker: '좋게 포장하지 말고 솔직하게, 그래도 건설적인 다음 액션까지.',
-              suggested: ['Sugarcoat', 'Constructive criticism', 'Timebox', 'Take it offline'],
-              prompt: '"이번 주 캠페인 런칭이 1주 밀렸어요. ___ 안 할게요, 디자인 리뷰가 두 번 들어가서 그래요. ___ 환영이에요, 다음 번엔 어떻게 막을 수 있을까요?"',
-              answerEn: "Our campaign launch slipped by a week. I'm not going to sugarcoat it, design review went through twice. Constructive criticism welcome, what would you do differently to catch this next time? Anything tactical we should take offline?",
-              answerKo: '캠페인 런칭이 1주 밀렸어요. **sugarcoat** 안 할게요, 디자인 리뷰가 두 번 들어갔거든요. **Constructive criticism** 환영이에요, 다음번엔 어떻게 잡을 수 있을지. 디테일은 **take it offline** 하셔도 좋고요.',
-            },
-            {
-              title: '⚖️ 의견 충돌 → 합의',
-              setting: '신규 프로젝트 킥오프. A안 (속도) vs B안 (퀄리티) 팽팽함.',
-              kicker: '딴지 한 번 걸고, 절충안 만들고, 서로 양보해서 합의 보기.',
-              suggested: ["Play devil's advocate", 'Middle ground', 'Meet halfway'],
-              prompt: '"잠깐 ___ 입장에서, 빠르게 가면 퀄리티는요? ___ 찾을 수 있을까요? 디자인 1주 더 주시면, 저희가 ___ 해서 일정은 그대로 가져갈게요."',
-              answerEn: "Let me play devil's advocate for a sec, if we move fast, what happens to quality? Can we find a middle ground? If you give design one more week, we'll meet you halfway and keep the launch date locked.",
-              answerKo: '잠깐 **play devil\'s advocate**, 빠르게 가면 퀄리티는요? **middle ground** 찾을 수 있을까요? 디자인 1주 더 주시면, 저희가 **meet you halfway** 해서 런칭 날짜는 그대로 가져갈게요.',
-            },
-            {
-              title: '🤝 부서 간 업무 분장',
-              setting: '협업 프로젝트. 누가 뭐 맡는지 정리 안 됐고, 영역 침범 우려.',
-              kicker: '담당 명확히 하고, 핵심 작업 누가 하는지 정하고, 선 넘지 않게.',
-              suggested: ['Go-to person', 'Heavy lifting', "Step on someone's toes", 'Cut to the chase'],
-              prompt: '"___ 갈게요, 이 프로젝트 ___ 누구죠? ___ (디자인 시스템 셋업) 누가 하나요? 도와드리고 싶은데 ___ 하긴 싫어서요."',
-              answerEn: "Let me cut to the chase, who's the go-to person on this project? And who's doing the heavy lifting on the design system setup? I'd love to help, but I don't want to step on anyone's toes.",
-              answerKo: '**Cut to the chase** 할게요, 이 프로젝트 **go-to person** 누구죠? 디자인 시스템 셋업 같은 **heavy lifting** 누가 하나요? 돕고 싶은데 **step on anyone\'s toes** 하긴 싫어서요.',
-            },
-          ],
-          recapQuestion: '오늘 가장 입에 붙이기 힘들었던 단어/표현은 뭐였어요? 왜 어색했는지 한 줄로 적어보세요.',
-        },
       },
       {
         n: 3,
@@ -1454,32 +1268,7 @@ const CHALLENGE = {
         // 버디가 미팅 후 직접 채움, recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
         recap: '🎬 [Week 3 미팅 다시보기 →]()\n\n어제 못 오신 분도, 다시 듣고 싶은 분도 위 링크에서 풀버전 보실 수 있어요.',
         pptUrl: '',
-        scenario: {
-          setting: 'Small talk 3종 (탕비실 talk / 스탠드업 대기 / 컨퍼런스) × Day 11~13 단어 9개',
-          premise: '본격 업무 얘기 "전 3분 / 후 2분" small talk 에 Day 11~13 단어 (Blank canvas / Reinvent the wheel / Scratch the surface / Value proposition / Competitive edge / Game changer / Pain point / Bite the bullet / Stumbling block) 를 자연스럽게 끼워넣는 연습. 한국어였으면 당연히 하는 small talk 가 영어로는 얼어버리는 순간을, 구조 + 단어 두 축으로 깨기.',
-        },
-        roleplay: {
-          duration: 40,
-          roles: [
-            { name: 'Conversationalist A / B (pair)', goal: 'Small talk 상황에서 Day 11~13 단어 3개 이상 자연스럽게 녹이기. Opener → 단어 → closer 구조.' },
-            { name: 'Listener', goal: 'Echo back 으로 단어 자연스러움 검증. "You said \'blank canvas\', really starting over?" / "Competitive edge for whom?"' },
-            { name: 'Observer', goal: 'Day 11~13 단어 체크리스트 + small talk 3-part 구조 (opener/transition/closer) 동시 체크. debrief 때 "자연스러웠던 vs 억지스러웠던" 분리해서 공유.' },
-          ],
-          beats: [
-            { time: '0-5', label: 'Vocab + small talk warmup', body: 'Coach 가 small talk 3-part structure (opener → transition → closer) + Day 11~13 단어 9개 빠른 리뷰. 각자 오늘 꼭 써볼 단어 3개 픽.' },
-            { time: '5-15', label: 'Pair 1, 탕비실 talk × Day 11', body: '탕비실에서 옆 부서 동료 마주침 (커피 내리는 중). 주말 얘기로 시작 → "By the way…" 로 신규 프로젝트 → "blank canvas / reinvent the wheel / scratch the surface" 자연스럽게.' },
-            { time: '15-25', label: 'Pair 2, Zoom 대기 × Day 12', body: '해외 팀 Zoom 대기 5분. "Quick question for you…" 으로 시작 → "value proposition / competitive edge / game changer" 활용 → 다른 멤버 들어오면 closer.' },
-            { time: '25-35', label: 'Observer debrief', body: 'Observer 가 "누가 어떤 Day 11~13 단어 자연스럽게 / 억지스럽게 썼다" 분리. opener·transition·closer 도 같이 평가. constructive criticism 으로.' },
-            { time: '35-40', label: 'Coach re-drill + 다음 주 숙제', body: '자연스럽지 못했던 표현 1~2개 짧은 재연. 각자 "이번 주 실전에서 진짜 쓸 단어 1개" 발표.' },
-          ],
-          props: [
-            { label: 'Day 11~13 단어 체크리스트', body: '제로기획, Blank canvas / Reinvent the wheel / Scratch the surface · 전략, Value proposition / Competitive edge / Game changer · 문제돌파, Pain point / Bite the bullet / Stumbling block' },
-            { label: 'Small talk opener', body: '"How was your weekend?" / "Quick question for you -" / "Glad we ran into each other -" / "What\'s keeping you busy?"' },
-            { label: 'Transition cards', body: '"Speaking of…" / "That reminds me…" / "By the way…" / "Anyway -"' },
-            { label: 'Closer cards', body: '"Let\'s catch up properly." / "Ping me when you\'re back." / "I\'ll grab you a coffee next time." / "Safe travels."' },
-            { label: 'Echo-back 샘플', body: '"You said \'blank canvas\', really starting over?" / "Competitive edge for whom exactly?" / "Which pain point is the worst?"' },
-          ],
-        },
+        roleplay: { duration: 40 },
         mustUseVocab: [], // 6기 Day 11~15 단어로 자동 계산 (getEffectiveMustUseVocab). 발표 모드 덱은 별도 구축.
         presenterPrompt: '본인이 자주 맞닥뜨리는 small talk 상황 하나를 7분 롤플레이. Opener → Day 11~13 단어 3개 이상 → closer 구조로. 3분 Q&A 에서 "어떤 단어가 robot 같았나 / natural 했나" 피드백.',
         qaPrompts: [
@@ -1487,136 +1276,6 @@ const CHALLENGE = {
           'What\'s your go-to transition before slipping in business vocab?',
           'How do you exit small talk without it feeling like a hard cutoff?',
         ],
-        script: {
-          intro: '슬롯 M1~M10 에 멤버 매핑하면 라인마다 그 사람 이름으로 바뀌어요. 한국어 라인 보고 영어로 직접 말해보고, 막히면 클릭해서 영어 정답 확인. (각 섹션 note 에 누가 어느 자리인지 표시)',
-          vocabRecap: [
-            { day: 11, theme: '제로 기획 · 처음부터 vs 재발명', words: [
-              { en: 'Blank canvas', kr: '백지 상태에서 시작' },
-              { en: 'Reinvent the wheel', kr: '쓸데없이 처음부터 다시 만들기' },
-              { en: 'Scratch the surface', kr: '겉만 건드린 수준' },
-            ] },
-            { day: 12, theme: '전략 무기 만들기', words: [
-              { en: 'Value proposition', kr: '핵심 가치 제안' },
-              { en: 'Competitive edge', kr: '경쟁 우위 · 우리만의 강점' },
-              { en: 'Game changer', kr: '판도 뒤집는 혁신' },
-            ] },
-            { day: 13, theme: '문제 정면 돌파', words: [
-              { en: 'Pain point', kr: '핵심 불편 사항' },
-              { en: 'Bite the bullet', kr: '눈 딱 감고 정면 돌파' },
-              { en: 'Stumbling block', kr: '진행 막는 걸림돌' },
-            ] },
-          ],
-          sections: [
-            {
-              time: '0-5', label: 'Warmup, Small talk 구조 + vocab pick',
-              note: 'M1 = Coach 진행. M7·M8 자유 발화 (질문 + 픽 발표).',
-              lines: [
-                { speaker: 'M1', en: "Welcome to Week 3, small talk with Day 11 through 13 vocab. Pick three words you'd actually slip into a coffee chat.", ko: 'Week 3에 오신 걸 환영합니다, Day 11~13 단어를 small talk 에 자연스럽게 끼워넣는 시간이에요. 커피 마시면서 진짜 쓸 만한 단어 3개 골라보세요.' },
-                { speaker: 'M1', en: "Small talk has three beats, opener, transition, closer. Today the trick is sliding Day 11-13 vocab between them without it sounding like a vocabulary test.", ko: 'Small talk 는 세 박자예요, 시작 / 전환 / 마무리. 오늘 핵심은 그 사이사이에 Day 11~13 단어를 끼우는 거예요. 단어 시험처럼 들리지 않게.' },
-                { speaker: 'M7', en: "Quick question, does it count if I use the word during the transition itself?", ko: '잠깐, transition 중에 단어 써도 카운트 돼요?' },
-                { speaker: 'M1', en: "Absolutely. That's the cleanest move, pivoting from weather to work with a Day 12 word.", ko: '당연하죠. 그게 제일 깔끔해요, 날씨에서 일 얘기로 Day 12 단어 하나 끼고 넘어가는 거.' },
-                { speaker: 'M7', en: "Mine's 'blank canvas,' 'competitive edge,' and 'pain point.'", ko: "저는 'blank canvas,' 'competitive edge,' 'pain point' 로 갈게요." },
-                { speaker: 'M8', en: "I'll take 'reinvent the wheel,' 'game changer,' and 'bite the bullet.'", ko: "저는 'reinvent the wheel,' 'game changer,' 'bite the bullet' 가져갈게요." },
-              ],
-            },
-            {
-              time: '5-15', label: 'Pair 1, 탕비실 talk × Day 11',
-              note: 'M2 = Conversationalist A (신규 프로젝트 들어감, 머그 채우는 중). M3 = Listener B (작년 flow 알고 있음). M1 (Coach) 가 끝에 한 마디.',
-              lines: [
-                { speaker: 'M2', en: "Hey, how was your weekend?", ko: '어, 주말 어떻게 보냈어요?' },
-                { speaker: 'M3', en: "Quiet. You?", ko: '조용히요. 그쪽은요?' },
-                { speaker: 'M2', en: "Same. By the way, are you on the new onboarding project?", ko: '저도요. 그건 그렇고, 신규 온보딩 프로젝트 같이 들어가셨어요?' },
-                { speaker: 'M3', en: "Yeah, we're starting from a blank canvas this time.", ko: '네, 이번엔 완전 백지부터 시작이에요.' },
-                { speaker: 'M2', en: "Really? I thought we'd reuse last year's flow. Aren't we kind of reinventing the wheel?", ko: '진짜요? 작년 flow 재활용할 줄 알았는데, 쓸데없이 처음부터 다시 만드는 거 아니에요?' },
-                { speaker: 'M3', en: "Honestly the old one only scratched the surface. New segment, new behavior.", ko: '솔직히 옛날 거는 겉만 건드리고 끝났어요. 새 세그먼트라 행동 패턴도 달라요.' },
-                { speaker: 'M2', en: "Fair enough. Let's grab coffee later and you can walk me through it.", ko: '그러네요. 이따 커피 마시면서 자세히 좀 풀어주세요.' },
-                { speaker: 'M3', en: "Sure, ping me after 3.", ko: '좋아요, 3시 이후로 핑 주세요.' },
-                { speaker: 'M1', en: "Nice, 'by the way' did the heavy lifting. The transition is what made the Day 11 words feel natural, not a quiz.", ko: "좋네요, 'by the way' 한 줄이 핵심이었어요. transition 덕분에 Day 11 단어가 시험 같지 않고 자연스러웠어요." },
-              ],
-            },
-            {
-              time: '15-25', label: 'Pair 2, Before standup × Day 12',
-              note: 'M4 = Person A (해외 팀 매니저). M5 = Person B (시장 분석 담당). Zoom 대기 5분 → Day 12 단어 풀세트 + Day 13 보너스.',
-              lines: [
-                { speaker: 'M4', en: "We've got a few minutes, quick question for you. What do you think our real value proposition is for the SMB segment?", ko: '몇 분 남았으니까, 잠깐 물어볼게요. SMB 세그먼트에서 우리 핵심 가치 제안이 실제로 뭐라고 생각해요?' },
-                { speaker: 'M5', en: "Honestly, speed of setup. That's our competitive edge, competitors take three days, we take ten minutes.", ko: '솔직히 setup 속도요. 그게 우리 경쟁 우위예요, 경쟁사는 3일 걸리는데 우리는 10분이면 끝나거든요.' },
-                { speaker: 'M4', en: "Speaking of speed, the new auto-config feature could be a real game changer if QA holds up.", ko: '속도 얘기 나와서, 새 auto-config 기능, QA 만 버텨주면 진짜 판 뒤집을 수 있어요.' },
-                { speaker: 'M5', en: "Agreed. The pain point we keep hearing is 'I don't have time to configure', and this kills it.", ko: "동의해요. 계속 듣는 pain point 가 '설정할 시간이 없다' 인데, 이게 그걸 해결해줘요." },
-                { speaker: 'M4', en: "If marketing leans on those three, proposition, edge, and the game changer, the launch story writes itself.", ko: '마케팅이 그 세 개만 잡으면, 가치 제안 / 경쟁 우위 / 게임 체인저, 런칭 스토리 그냥 나와요.' },
-                { speaker: 'M5', en: "I'll flag that to the comms lead. Ah, looks like the rest just joined.", ko: '커뮤니케이션 리드한테 전달할게요. 아, 나머지 분들 들어오셨네요.' },
-                { speaker: 'M4', en: "Perfect timing. Let's catch up properly after the standup.", ko: '타이밍 굿이네요. 스탠드업 끝나고 다시 얘기해요.' },
-              ],
-            },
-            {
-              time: '25-35', label: 'Observer debrief',
-              note: 'M6 = Observer (체크리스트 발표 진행). M7·M8 자유 코멘트.',
-              lines: [
-                { speaker: 'M6', en: "Quick debrief, Pair 1 hit all three Day 11 words: 'blank canvas,' 'reinvent the wheel,' 'scratch the surface.' Natural, 'by the way' carried it.", ko: "회고 빠르게, Pair 1은 Day 11 단어 3개 다 썼어요: 'blank canvas,' 'reinvent the wheel,' 'scratch the surface.' 자연스러웠고, 'by the way' 가 결정적이었어요." },
-                { speaker: 'M6', en: "Pair 2 used the full Day 12 set, 'value proposition,' 'competitive edge,' 'game changer', plus 'pain point' from Day 13 as a bonus.", ko: "Pair 2는 Day 12 풀세트, 'value proposition,' 'competitive edge,' 'game changer', 거기에 Day 13 'pain point' 까지 보너스." },
-                { speaker: 'M6', en: "Honest call, 'reinventing the wheel' as a question form sounded slightly forced. Anyone catch it?", ko: "솔직히, 'reinventing the wheel' 을 의문문으로 쓴 게 살짝 어색했어요. 다른 분들도 느끼셨어요?" },
-                { speaker: 'M7', en: "Same, 'aren't we just repeating last quarter?' might feel more conversational.", ko: "저도요, 'aren't we just repeating last quarter?' 가 더 대화 같았을 듯요." },
-                { speaker: 'M8', en: "Or 'didn't we already do this?', same point, less idiom.", ko: "아니면 'didn't we already do this?', 같은 뜻인데 관용어 빼고." },
-                { speaker: 'M6', en: "Good calls. Flagging 'reinvent the wheel' for re-drill.", ko: "좋은 지적이에요. 'reinvent the wheel' 재시도 표시할게요." },
-              ],
-            },
-            {
-              time: '35-40', label: 'Coach re-drill + close',
-              note: 'M1 (Coach) 마무리. M2 가 다시 시연 → M3/M4/M5/M6 가 "이번 주 진짜 쓸 단어 1개" 발표.',
-              lines: [
-                { speaker: 'M1', en: "M2, try that line again, but use the question form M7 suggested.", ko: 'M2 자리, M7이 제안한 의문문 형태로 다시 해볼까요.' },
-                { speaker: 'M2', en: "Wait, didn't we already do this last quarter? Feels like we're just adding paint.", ko: '잠깐, 작년 분기에 한 거 아니에요? 그냥 페인트만 다시 칠하는 느낌인데.' },
-                { speaker: 'M1', en: "Much better, and 'adding paint' is your own metaphor, even better. Last round, one word each, the one you'll actually use this week.", ko: "훨씬 좋아요, 'adding paint' 본인 표현이라 더 좋네요. 마지막, 한 명씩 돌아가며 이번 주에 진짜 쓸 단어 하나." },
-                { speaker: 'M2', en: "Mine's 'blank canvas', kickoff is Tuesday.", ko: "저는 'blank canvas', 화요일에 킥오프거든요." },
-                { speaker: 'M3', en: "'Scratch the surface', for my QBR follow-up.", ko: "저는 'scratch the surface', QBR 팔로업에 쓸게요." },
-                { speaker: 'M4', en: "'Competitive edge', investor meeting on Wednesday.", ko: "저는 'competitive edge', 수요일 투자자 미팅이요." },
-                { speaker: 'M5', en: "Mine's 'bite the bullet.' Time to rewrite that auth flow.", ko: "저는 'bite the bullet', auth flow 갈아엎을 때 됐어요." },
-                { speaker: 'M6', en: "And mine's 'pain point', customer interview Friday.", ko: "저는 'pain point', 금요일 고객 인터뷰에서요." },
-                { speaker: 'M1', en: "Great work. See you Day 17.", ko: '수고하셨어요. Day 17에 봐요.' },
-              ],
-            },
-          ],
-          weekVocab: [
-            { en: 'Blank canvas', day: 11, defaultSlot: 'M3', krSentence: '이번엔 백지부터 다시 그려야 할 것 같아요.' },
-            { en: 'Reinvent the wheel', day: 11, defaultSlot: 'M2', krSentence: '템플릿 있는데 굳이 처음부터 다시 만들 필요 있어요?' },
-            { en: 'Scratch the surface', day: 11, defaultSlot: 'M3', krSentence: '이번 분석은 솔직히 겉만 건드린 수준이에요.' },
-            { en: 'Value proposition', day: 12, defaultSlot: 'M4', krSentence: 'SMB 시장에서 우리 핵심 가치 제안이 뭔지 다시 정리해야 해요.' },
-            { en: 'Competitive edge', day: 12, defaultSlot: 'M5', krSentence: '빠른 배포 속도가 우리 진짜 경쟁 우위예요.' },
-            { en: 'Game changer', day: 12, defaultSlot: 'M4', krSentence: 'AI 자동 설정 기능이 진짜 판 뒤집을 거예요.' },
-            { en: 'Pain point', day: 13, defaultSlot: 'M5', krSentence: '고객이 가장 답답해하는 pain point 부터 잡읍시다.' },
-            { en: 'Bite the bullet', day: 13, defaultSlot: 'M5', krSentence: '눈 딱 감고 인증 모듈부터 다시 짭시다.' },
-            { en: 'Stumbling block', day: 13, defaultSlot: 'M3', krSentence: '예산 승인이 우리 가장 큰 걸림돌이에요.' },
-          ],
-          miniScenarios: [
-            {
-              title: '☕ 탕비실에서 우연히 마주침',
-              setting: '탕비실. 옆 부서 동료가 커피 내리고 있음. 주말 얘기로 시작 → 신규 프로젝트로 자연스럽게 흘러감.',
-              kicker: 'Opener (주말?) → "By the way…" 로 work 로 → Day 11 단어 1~2개 → 짧은 closer (ping me / catch up).',
-              suggested: ['Blank canvas', 'Reinvent the wheel', 'Scratch the surface'],
-              prompt: '"주말 어땠어요?" → "By the way, ___ 프로젝트 들어가셨어요?" → "이번엔 ___ 부터 다시예요." → "근데 그거 ___ 아니에요? 작년에 한 거 같은데." → "옛날 거는 솔직히 ___ 수준이었어요."',
-              answerEn: "How was your weekend?, Quiet, yours?, By the way, are you on the new onboarding project?, Yeah, starting from a blank canvas this time., Aren't we just reinventing the wheel?, Honestly the old version only scratched the surface.",
-              answerKo: '주말 어땠어요?, 조용했어요., By the way, 신규 온보딩 프로젝트 들어가셨어요?, 네, 이번엔 **blank canvas** 부터요., 근데 그거 **reinventing the wheel** 아니에요?, 옛날 거는 솔직히 **scratched the surface** 수준이었어요.',
-            },
-            {
-              title: '🎥 Zoom 스탠드업 대기 5분',
-              setting: '본인 + 1명만 들어와 있고 나머지 5명 아직 안 들어옴. 5분이라는 어색한 pause 를 Day 12 단어로 채움.',
-              kicker: '"Quick question for you -" 로 시작 → Day 12 단어 3개 자연스럽게 → "ah, 다 들어오셨네요" closer.',
-              suggested: ['Value proposition', 'Competitive edge', 'Game changer'],
-              prompt: '"Quick question, 우리 ___ 가 실제로 뭐예요?" → "솔직히 ___ 는 setup 속도예요." → "그게 진짜 ___ 죠." → "Speaking of, 새 기능이 진짜 ___ 될 수도 있어요." → "ah, 다 들어오셨네요."',
-              answerEn: "Quick question, what's our real value proposition for this segment?, Honestly, setup speed. That's our competitive edge., Speaking of, the new feature could be a real game changer if QA holds., Ah, everyone's in. Let's catch up after.",
-              answerKo: 'Quick question, 우리 **value proposition** 이 실제로 뭐예요?, Setup 속도요. 그게 진짜 **competitive edge** 죠., Speaking of, 새 기능이 진짜 **game changer** 될 수도 있어요., 아, 다 들어오셨네요. 끝나고 다시 얘기해요.',
-            },
-            {
-              title: '✈️ 컨퍼런스 라운지 우연한 재회',
-              setting: '업계 컨퍼런스 라운지. 작년에 잠깐 본 거래처 PM. flight 30분 남음. Day 13 단어 활용.',
-              kicker: '"Glad we ran into each other" → 팀 근황 → Day 13 단어 1~2개 → "Let\'s catch up properly" closer.',
-              suggested: ['Pain point', 'Bite the bullet', 'Stumbling block'],
-              prompt: '"여기서 만나서 반가워요!" → "요즘 어디 집중하세요?" → "팀의 가장 큰 ___ 가 인증이에요. ___ 하고 모듈 다시 짜야 해요." → "예산이 진짜 ___ 이긴 하지만요." → "다음에 오시면 ___."',
-              answerEn: "Glad we ran into each other!, What's keeping you busy these days?, The team's biggest pain point is auth. We need to bite the bullet and rebuild the module., Budget's the real stumbling block, though., Let's catch up properly next time you're in town.",
-              answerKo: '여기서 만나서 반가워요!, 요즘 어디 집중하세요?, 팀의 가장 큰 **pain point** 가 인증이에요. **bite the bullet** 하고 모듈 다시 짜야 해요., 예산이 진짜 **stumbling block** 이긴 하지만요., 다음에 오시면 **let\'s catch up properly**.',
-            },
-          ],
-          recapQuestion: '오늘 small talk 에 끼워넣어본 Day 11~13 단어 중 가장 입에 안 붙었던 거 하나만, 왜 그랬는지 한 줄로 적어보세요.',
-        },
       },
       {
         n: 4,
@@ -1632,36 +1291,7 @@ const CHALLENGE = {
         // 버디가 미팅 후 직접 채움, recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
         recap: '🎬 [Week 4 미팅 다시보기 →]()\n\n어제 못 오신 분도, 다시 듣고 싶은 분도 위 링크에서 풀버전 보실 수 있어요.',
         pptUrl: '',
-        scenario: {
-          setting: 'Quarterly review · 본인 업 상황 briefing + 의견 충돌 + alignment',
-          premise: '4주간 쌓은 전체 단어에서 최대한 많이 녹여 쓰기. 서로 체크리스트 들고 들으면서 누가 몇 개 썼는지 표시, 마지막 bingo.',
-          flow: [
-            '① Briefing, 본인 업무 현황 · 이번 분기 one thing',
-            '② Conflict, 의견 충돌 / pushback 구간',
-            '③ Align, 합의 + 다음 스텝',
-          ],
-        },
-        roleplay: {
-          duration: 40,
-          roles: [
-            { name: 'Presenter (3명)', goal: '7분 본인 업무 briefing. 20일 Daily 단어 중 10개 이상 자연스럽게 녹여 넣기.' },
-            { name: 'Skeptic', goal: 'Conflict 구간에서 pushback. "Let me push back on…" / "I\'d reframe that…" 형태.' },
-            { name: 'Aligner', goal: 'Align 구간 담당. "So here\'s where we land…" / "Let\'s meet in the middle…"' },
-            { name: 'Vocab checker (전원)', goal: '체크리스트 들고 경청. 단어 쓸 때마다 체크, bingo 8개 이상이면 완주.' },
-          ],
-          beats: [
-            { time: '0-5', label: '체크리스트 배포', body: 'Coach 가 20일 전체 단어 체크리스트 공유. 각자 "본인이 오늘 꼭 쓸 10개" pre-select.' },
-            { time: '5-15', label: 'Presenter 1 briefing', body: '7분 본인 업무 briefing + 3분 Q&A. Vocab checker 들이 단어 체크.' },
-            { time: '15-25', label: 'Presenter 2 briefing', body: '동일 패턴.' },
-            { time: '25-35', label: 'Presenter 3 briefing', body: '동일 패턴.' },
-            { time: '35-40', label: 'Bingo debrief', body: '누가 몇 개 썼는지 확인. 8+ 달성자 축하. 아직 못 쓴 단어 2-3개 "다음 주부터 실전 숙제" 지정.' },
-          ],
-          props: [
-            { label: '20일 Vocab bingo 카드', body: '4x5 grid. 각 칸에 Daily 단어 1개. 본인이 롤플레이 중 쓴 단어에 체크.' },
-            { label: 'Briefing template', body: '"Right now my team is [context]. Our one thing this quarter is [anchor]. The timeline is [time-bound / in flux / …]. My biggest ask is [specific]."' },
-            { label: 'Conflict / align 프롬프트', body: 'Skeptic: "Let me play devil\'s advocate, what about X?" · Aligner: "So here\'s where we land, agree on Y, park Z."' },
-          ],
-        },
+        roleplay: { duration: 40 },
         mustUseVocabDynamic: '4주간 Daily 에서 학습한 전체 단어 · bingo 8+ 달성 목표',
         mustUseVocab: [], // Week 4 는 전체 4주 단어가 동적, mustUseVocabDynamic 참고
         presenterPrompt: '4주간 학습한 단어 중 10개 이상을 녹여서 7분 final 발표. 실제 본인 업무 상황. 3분 Q&A 에서 "어떤 단어가 가장 어색했나 / 자연스러웠나" 피드백.',
@@ -18173,7 +17803,7 @@ function MeetingNotesPage(meetingId) {
             <div style="font-size:10px;letter-spacing:0.14em;font-weight:700;color:#C9591F;">📝 오늘의 회고</div>
             <div style="font-size:14px;font-weight:700;color:var(--ink);margin-top:6px;line-height:1.5;">${escapeHtml(sc.recapQuestion)}</div>
           </div>
-          <textarea data-recap-answer style="margin-top:10px;width:100%;min-height:80px;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,0.10);background:rgba(255,255,255,0.85);font-size:13px;line-height:1.55;color:var(--ink);resize:vertical;font-family:inherit;box-sizing:border-box;" placeholder="예) 'Sugarcoat', 한국어로 '사탕발림'은 친구한테 쓰는 말 같아서 회의에 끼우니 헛도는 느낌. 'I'll be straight with you' 가 더 본인 같음."></textarea>
+          <textarea data-recap-answer style="margin-top:10px;width:100%;min-height:80px;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,0.10);background:rgba(255,255,255,0.85);font-size:13px;line-height:1.55;color:var(--ink);resize:vertical;font-family:inherit;box-sizing:border-box;" placeholder="예) 'talk past each other', 한국어로 바로 안 떠올라서 회의에서 쓰려니 헛도는 느낌. 'boil down to' 부터 입에 붙여보고 싶어요."></textarea>
           <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <button data-recap-save type="button" style="padding:8px 14px;border-radius:10px;border:1px solid rgba(233,76,107,0.32);background:rgba(255,255,255,0.85);color:var(--orange-dark);font-size:12.5px;font-weight:700;cursor:pointer;flex:0 0 auto;">💾 지금 저장</button>
             <div data-recap-status style="font-size:11.5px;color:var(--ink-soft);font-weight:600;flex:1 1 auto;"></div>
