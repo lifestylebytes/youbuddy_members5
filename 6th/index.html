@@ -1005,6 +1005,32 @@ const REWARD_VIDEOS = {
   20: 'https://www.youtube.com/watch?v=-Bs_DdVFPPU', // Day20: 코난 다트머스 졸업축사 (수료 느낌)
 };
 
+// 모닝 공지용 "오늘의 영상" 메타 (제목·대략 길이). REWARD_VIDEOS 와 day 키 일치.
+// 영상 바꾸면 여기 title/min 도 같이 갱신. min = 대략 길이(분), 채워두면 모닝 공지에
+// "〈제목〉 (약 N분)" + 길이 맞춤 멘트가 자동으로 붙음. 모르면 min: null (제목만 노출).
+const REWARD_VIDEO_META = {
+  1:  { title: 'get the lay of the land (All Ears English 팟캐스트)', min: null },
+  2:  { title: 'Ballpark 표현 영상', min: null },
+  3:  { title: '코난 오브라이언 하버드 졸업연설 (한/영 자막)', min: null },
+  4:  { title: '타블로 인생영화 탑10 (토크쇼)', min: null },
+  5:  { title: '짐 캐리 졸업축사 풀버전', min: null },
+  6:  { title: '테일러 스위프트 NYU 졸업연설', min: null },
+  7:  { title: '타블로 손절할 친구 유형 (토크쇼)', min: null },
+  8:  { title: '덴젤 워싱턴 FAIL BIG', min: null },
+  9:  { title: '파친코 김민하 콜베어쇼 인터뷰', min: null },
+  10: { title: 'J.K. 롤링 하버드 연설 (실패와 인생)', min: null },
+  11: { title: '타블로 플레이리스트 (토크쇼)', min: null },
+  12: { title: '스티브 잡스 스탠퍼드 연설', min: null },
+  13: { title: '빡친 할리우드 스타들 인터뷰', min: null },
+  14: { title: '아놀드 슈왈제네거 명연설', min: null },
+  15: { title: 'BTS 유엔연설 Speak Yourself', min: null },
+  16: { title: '타블로 위키피디아 (토크쇼)', min: null },
+  17: { title: '짐 캐리 목적을 정한 이유', min: null },
+  18: { title: '기예르모 오스카 인터뷰', min: null },
+  19: { title: 'AOC 명연설', min: null },
+  20: { title: '코난 다트머스 졸업축사 (수료 느낌)', min: null },
+};
+
 /* ============================================================
    외부 링크, 6기 신청
    ============================================================ */
