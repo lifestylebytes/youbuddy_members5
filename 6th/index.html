@@ -1542,6 +1542,8 @@ const defaultState = () => ({
   meeting_briefing_open: {},        // { "m1-intro": true } 미팅 노트 페이지의 "브리핑" 펼침 상태, 새로고침/15초 sync 에도 유지.
   nonparticipant_list: [],          // ['강태윤', ...] Week 1 무참여자, 대시보드 맨 아래로 + 향후 기능 제한 대상.
   recording_popup_seen: {},         // { "m1": true } 미팅 다시보기 팝업을 본 상태. 한 번 X 누르면 다시 안 뜸.
+  daily_funfact_seen: {},           // { "d6": true } 홈 '오늘의 한 입' 팝업을 그날 본 상태 (하루 1회).
+  daily_done_popup_seen: {},        // { "d6": true } '오늘 마무리' 완료 팝업을 그날 본 상태 (하루 1회).
   weekly_quiz_popup_seen: {},       // { "v1": true } 주간 퀴즈/보상 안내 팝업 본 상태. 버전별 키로 다음 주차 새 팝업 재발행 가능.
   friday_redirect_seen: {},         // { "1": true }, Day 5/10/15/20 (= 매주 금요일) 자동 시험 페이지 redirect 본 상태. 주차별 1회만 redirect.
   spaced_repeat_seen: {},           // { "day7": true } Spaced Repetition 팝업 본 상태, Day 시작 시 1회 노출용.
@@ -1613,6 +1615,8 @@ const PERSISTED_STATE_KEYS = [
   'bingo_done',
   'bingo_boss_results',
   'week_survey',
+  'daily_funfact_seen',
+  'daily_done_popup_seen',
   'final_test',
   'final_downloads',
   'cohort6_popup_seen',
@@ -2805,6 +2809,8 @@ let showMiniWeekSurvey = null; // weekN, 단어 시험 입구에서 띄우는 3�
 let showWeekWrapupPopup = null; // weekN, 매주 금요일 (Day 5/10/15/20) 자동 노출. "지금 풀러가기 / 주말에 보기"
 let showBestPopup = null; // 이번주 베스트(만점자+최초완주) 팝업 데이터. 현재 운영자 미리보기 전용.
 let showReviewUnlockPopup = false; // Week 2(Day 6) 진입 시 '내 약점 복습' 기능 해제 온보딩 팝업.
+let showFunFactPopup = null; // 홈 진입 시 하루 1회 '오늘의 한 입' (날짜별 고정). true 면 노출.
+let showDonePopup = null;    // 그날 인증 완료 후 1회 '오늘 마무리' (스트릭/동료 상태별 분기).
 // '내 약점 복습' 기능은 Week 2(Day 6)부터 해제. 다음 기수도 동일(코호트 무관, currentDay 기준).
 function reviewFeatureUnlocked() { return (Number(state.currentDay) || 1) >= 6 || state.isOperator || state.isStaff; }
 // 알림 인박스 패널, TopBar 종 누르면 열림.
@@ -2821,7 +2827,8 @@ let dashboardStats = {
 function anyPopupOpen() {
   return !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
-    || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup);
+    || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup
+    || showFunFactPopup || showDonePopup);
 }
 
 function go(page, opts={}) {
@@ -6088,6 +6095,22 @@ function render() {
       const stale = document.querySelector('[data-review-unlock-popup]');
       if (stale) stale.remove();
     }
+    if (showDonePopup) {
+      if (!document.querySelector('[data-done-popup]')) {
+        document.body.appendChild(DonePopupModal());
+      }
+    } else {
+      const stale = document.querySelector('[data-done-popup]');
+      if (stale) stale.remove();
+    }
+    if (showFunFactPopup) {
+      if (!document.querySelector('[data-funfact-popup]')) {
+        document.body.appendChild(FunFactPopupModal());
+      }
+    } else {
+      const stale = document.querySelector('[data-funfact-popup]');
+      if (stale) stale.remove();
+    }
 
     // Mobile modal scroll fix: lock body scroll while any modal is open so the
     // modal's own overflow-y:auto picks up touch scrolling instead of the page
@@ -7962,6 +7985,36 @@ function HomePage() {
           render();
         }, 700);
         break; // 한 번에 하나만 (가장 이른 미완 주차)
+      }
+    }
+  } catch (e) {}
+
+  // 데일리 팝업: 그날 인증 완료하면 '오늘 마무리'(우선), 아직이면 홈 진입 '오늘의 한 입'. 하루 1회씩.
+  // 둘 다 코호트 무관 (날짜·라이브 데이터·고정 문구) 라 다음 기수 복사해도 그대로 동작.
+  try {
+    const dDay = Number(state.currentDay) || 0;
+    window.__dailyPopupArmed = window.__dailyPopupArmed || {};
+    if (dDay >= 1 && challengeStarted() && guidedTourStep === null && !anyPopupOpen()) {
+      const vToday = !!(state.verified && state.verified['d' + dDay]);
+      const doneSeen = !!(state.daily_done_popup_seen || {})['d' + dDay];
+      const factSeen = !!(state.daily_funfact_seen || {})['d' + dDay];
+      const wantDone = vToday && !doneSeen;
+      const wantFact = !vToday && !factSeen;
+      const armKey = (wantDone ? 'done' : 'fact') + dDay;
+      if ((wantDone || wantFact) && !window.__dailyPopupArmed[armKey]) {
+        window.__dailyPopupArmed[armKey] = true;
+        setTimeout(() => {
+          if (guidedTourStep !== null || anyPopupOpen()) return;
+          if (wantDone && !(state.daily_done_popup_seen || {})['d' + dDay]) {
+            state.daily_done_popup_seen = state.daily_done_popup_seen || {};
+            state.daily_done_popup_seen['d' + dDay] = true; try { saveState(); } catch (e) {}
+            showDonePopup = true; render();
+          } else if (wantFact && !(state.daily_funfact_seen || {})['d' + dDay]) {
+            state.daily_funfact_seen = state.daily_funfact_seen || {};
+            state.daily_funfact_seen['d' + dDay] = true; try { saveState(); } catch (e) {}
+            showFunFactPopup = true; render();
+          }
+        }, 650);
       }
     }
   } catch (e) {}
@@ -19967,6 +20020,14 @@ function SettingsModal() {
             <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">힌트 없이 만점자 + 최초 5일 완주자 팝업을 <b>실데이터로</b> 미리 봐요. 멤버에겐 아직 안 보여요.</div>
             <button onclick="showSettings=null;window.__previewBestPopup()" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(233,76,107,0.28);color:var(--orange-dark);">🏆 베스트 팝업 미리보기</button>
           </div>
+          <div style="margin-top:14px;padding-top:12px;border-top:1px dotted rgba(233,76,107,0.18);">
+            <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🎲 데일리 팝업 미리보기</div>
+            <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">홈 '오늘의 한 입'(Day별 고정)과 인증 완료 '오늘 마무리'(상태별 분기)를 지금 Day 기준으로 미리 봐요.</div>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <button onclick="showSettings=null;window.__previewFunFact()" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(233,76,107,0.28);color:var(--orange-dark);">🎲 오늘의 한 입</button>
+              <button onclick="showSettings=null;window.__previewDonePopup()" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(233,76,107,0.28);color:var(--orange-dark);">🎉 오늘 마무리</button>
+            </div>
+          </div>
         </details>
       </div>
     ` : ''}
@@ -26569,6 +26630,128 @@ function ReviewUnlockPopupModal() {
     '<button onclick="window.__goReviewFromUnlock()" class="btn btn-primary btn-full" style="margin-top:18px;">지금 내 약점 보러가기 →</button>' +
     '<button onclick="window.__closeReviewUnlock()" class="btn btn-ghost btn-full" style="margin-top:8px;">나중에</button>' +
     '</div>';
+  overlay.appendChild(card);
+  return overlay;
+}
+
+/* ============================================================
+   데일리 팝업 (코호트 무관) ·
+   1) 홈 진입 '오늘의 한 입' = 날짜별 고정 (동료애 / 영어 한 입 / 어휘 팁)
+   2) 인증 완료 '오늘 마무리' = 멤버 상태별 분기 (완주 / 연속 / 컴백 / 보통)
+   동료 숫자는 라이브(MEMBERS) 라 다음 기수 복사해도 자동, 고정 문구는 코호트 중립.
+   ============================================================ */
+function __dailyPeerCount(kind, day) {
+  try {
+    const ms = (typeof visibleMembers === 'function' ? visibleMembers() : (typeof MEMBERS !== 'undefined' ? MEMBERS : [])) || [];
+    const d = Number(day) || Number(state.currentDay) || 1;
+    const weekN = Math.min(4, Math.max(1, Math.ceil(d / 5)));
+    const weekDays = []; for (let x = (weekN - 1) * 5 + 1; x <= weekN * 5; x++) weekDays.push(x);
+    const vd = (m) => Array.isArray(m.verifiedDays) ? m.verifiedDays.map(Number) : [];
+    if (kind === 'weekActive') return ms.filter((m) => vd(m).some((x) => weekDays.includes(x))).length;
+    if (kind === 'streak5') return ms.filter((m) => (Number(m.streak) || 0) >= 5).length;
+    if (kind === 'today') return ms.filter((m) => vd(m).includes(d)).length;
+    if (kind === 'active') return ms.filter((m) => vd(m).length >= 1).length;
+    return 0;
+  } catch (_) { return 0; }
+}
+const DAILY_FUNFACTS = {
+  1:  { icon: '🚀', peer: 'today',      text: (n) => `첫날이에요! 지금 ${n}명이 같이 출발했어요 🚀`, fallback: `첫날이에요! 다 같이 출발해요 🚀` },
+  2:  { icon: '💼', text: `회의에서 'I think...' 앞에 'Just to make sure we're aligned,' 붙이면 한결 프로 같아요` },
+  3:  { icon: '🎲', text: `'OK'의 어원은 1830년대 미국 신문의 장난 철자였대요. 지금은 전 세계 공용어 👌` },
+  4:  { icon: '💼', text: `거절할 때 'No' 대신 'Let me get back to you' → 시간도 벌고 부드러워요` },
+  5:  { icon: '🙌', peer: 'weekActive', text: (n) => `첫 주 마지막! 이번 주 ${n}명이 끝까지 왔어요 🙌`, fallback: `첫 주 마지막! 다 같이 잘 왔어요 🙌` },
+  6:  { icon: '🔥', peer: 'weekActive', text: (n) => `이번 주도 시작! 지금 ${n}명이 같이 달리고 있어요 🔥`, fallback: `이번 주도 시작! 다 같이 달려요 🔥` },
+  7:  { icon: '💼', text: `'I disagree' 대신 'I see it a bit differently' → 훨씬 부드러워요` },
+  8:  { icon: '🎲', text: `'How are you?'는 질문보다 인사에 가까워요. 길게 답 안 해도 OK 🙂` },
+  9:  { icon: '💼', text: `급할 때 'ASAP'는 압박돼요. 'by EOD(end of day)'처럼 구체적으로` },
+  10: { icon: '🙌', peer: 'weekActive', text: (n) => `2주차 마지막 날! 이번 주 ${n}명이 끝까지 왔어요 🙌`, fallback: `2주차 마지막 날! 다 같이 잘 왔어요 🙌` },
+  11: { icon: '🎲', text: `이메일 끝 'Best,'는 'Best regards'의 줄임이에요` },
+  12: { icon: '💼', text: `'Does that make sense?'는 상대가 아니라 내 설명을 점검하는 표현이에요` },
+  13: { icon: '🔥', peer: 'streak5',   text: (n) => `벌써 절반 넘었어요. 지금 ${n}명이 5일 이상 꾸준히 달리는 중 🔥`, fallback: `벌써 절반 넘었어요. 다 같이 꾸준히 가요 🔥` },
+  14: { icon: '💼', text: `메일에서 'Per my last email'은 가시 돋친 느낌이에요. 'As mentioned earlier'가 안전해요` },
+  15: { icon: '🎉', peer: 'weekActive', text: (n) => `3주차 완주! 이번 주 ${n}명이 끝까지 왔어요 🎉`, fallback: `3주차 완주! 다 같이 잘 왔어요 🎉` },
+  16: { icon: '💼', text: `회의에 끼어들 때 'Sorry to interrupt, but...' 붙이면 무례하지 않아요` },
+  17: { icon: '🎲', text: `'Cc'는 carbon copy(먹지 복사)에서 왔어요. 종이 시절의 흔적이죠 📄` },
+  18: { icon: '💼', text: `칭찬할 때 'Good job'보다 'That was really well thought out' → 진심처럼 들려요` },
+  19: { icon: '🏁', peer: 'active',    text: (n) => `이제 막바지! 지금 ${n}명이 같이 결승선 보고 있어요 🏁`, fallback: `이제 막바지! 다 같이 결승선까지 가요 🏁` },
+  20: { icon: '🎓', peer: 'active',    text: (n) => `마지막 날 🎓 ${n}명이 여기까지 왔어요. 진짜 수고했어요 🧡`, fallback: `마지막 날 🎓 여기까지 온 것만으로 대단해요. 진짜 수고했어요 🧡` },
+};
+function __buildFunFact(day) {
+  const d = Number(day) || Number(state.currentDay) || 1;
+  const def = DAILY_FUNFACTS[d] || { icon: '💡', text: `오늘도 한 칸. 외운 만큼 입에서 바로 나와요 🙂` };
+  let text;
+  if (def.peer) {
+    const n = __dailyPeerCount(def.peer, d);
+    text = (n > 0 && typeof def.text === 'function') ? def.text(n) : (def.fallback || (typeof def.text === 'function' ? def.text(0) : def.text));
+  } else {
+    text = (typeof def.text === 'function') ? def.text(0) : def.text;
+  }
+  return { icon: def.icon || '💡', text };
+}
+window.__closeFunFact = () => { showFunFactPopup = null; render(); };
+window.__previewFunFact = () => { showSettings = null; showFunFactPopup = true; render(); };
+function FunFactPopupModal() {
+  const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
+  overlay.setAttribute('data-funfact-popup', '1');
+  const day = Number(state.currentDay) || 1;
+  const f = __buildFunFact(day);
+  const card = el('div', { style: { width: '100%', maxWidth: '340px', background: 'var(--paper)', borderRadius: '24px', overflow: 'hidden' } });
+  card.innerHTML = `
+    <div style="background:linear-gradient(135deg,#FFF1E6 0%,#F5F1FA 100%);padding:22px 20px 18px;text-align:center;position:relative;">
+      <button onclick="window.__closeFunFact()" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;">✕</button>
+      <div style="font-size:42px;line-height:1;">${f.icon}</div>
+      <div class="kicker" style="margin-top:8px;color:var(--orange-dark);">오늘의 한 입 · Day ${day}</div>
+    </div>
+    <div style="padding:18px 20px 8px;font-size:15.5px;line-height:1.65;color:var(--ink);text-align:center;letter-spacing:-0.01em;">${escapeHtml(f.text)}</div>
+    <div style="padding:6px 18px 18px;"><button onclick="window.__closeFunFact()" style="width:100%;background:var(--orange);color:#fff;border:none;border-radius:14px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">확인 ✓</button></div>`;
+  overlay.appendChild(card);
+  return overlay;
+}
+function __doneTodayWeakWord(day) {
+  try {
+    const d = (typeof getDay === 'function') ? getDay(day) : null;
+    if (!d) return '';
+    const st = state.vocab_stats || {};
+    const cand = (d.words || []).find((w) => { const s = st[(w.en || '').toLowerCase()]; return s && ((Number(s.w) || 0) > 0 || (Number(s.h) || 0) > 0); });
+    return cand ? cand.en : '';
+  } catch (_) { return ''; }
+}
+function __buildDonePopup() {
+  const day = Number(state.currentDay) || 1;
+  const streak = (typeof localStreakCount === 'function') ? localStreakCount() : 0;
+  const weekN = Math.min(4, Math.max(1, Math.ceil(day / 5)));
+  const weekDays = []; for (let x = (weekN - 1) * 5 + 1; x <= weekN * 5; x++) weekDays.push(x);
+  const vd = (n) => !!(state.verified && state.verified['d' + n]);
+  const weekVerified = weekDays.filter(vd).length;
+  const weekComplete = vd(day) && weekVerified === weekDays.length;
+  let hadGap = false; for (let x = Math.max(1, day - 6); x < day; x++) { if (!vd(x)) { hadGap = true; break; } }
+  const peersToday = __dailyPeerCount('today', day);
+  const weak = __doneTodayWeakWord(day);
+  let icon, title, body, confetti = false;
+  if (weekComplete) { icon = '🎊'; title = `${weekN}주차 완주!`; body = `이번 주 ${weekDays.length}일 다 채운 사람만 아는 느낌이죠. 주말 푹 쉬어요 🧡`; confetti = true; }
+  else if (!hadGap && streak >= 5) { icon = '🔥'; title = `${streak}일 연속!`; body = `일주일 내내 안 끊겼어요. 이 흐름, 생각보다 드물어요`; confetti = true; }
+  else if (hadGap) { icon = '🙌'; title = `다시 돌아왔네요`; body = `끊긴 건 신경 쓰지 마요. 다시 오는 게 진짜 실력이에요`; }
+  else { icon = '🎉'; title = `Day ${day} 완료!`; body = (weak ? `오늘 막혔던 '${weak}' 딱 한 번만 더 소리 내볼까요? ` : `오늘도 한 칸 채웠어요. `) + `내일이면 더 쉬워져요`; }
+  const peerLine = peersToday > 1 ? `오늘 함께 끝낸 동료 ${peersToday}명 🤝` : '';
+  return { icon, title, body, peerLine, confetti };
+}
+window.__closeDonePopup = () => { showDonePopup = null; render(); };
+window.__previewDonePopup = () => { showSettings = null; showDonePopup = true; render(); };
+function DonePopupModal() {
+  const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
+  overlay.setAttribute('data-done-popup', '1');
+  const d = __buildDonePopup();
+  if (d.confetti) { try { if (typeof fireConfetti === 'function') fireConfetti(); } catch (_) {} }
+  const card = el('div', { style: { width: '100%', maxWidth: '340px', background: 'var(--paper)', borderRadius: '24px', overflow: 'hidden' } });
+  card.innerHTML = `
+    <div style="background:linear-gradient(135deg,#FFE5D9 0%,#FFF1E6 100%);padding:24px 20px 18px;text-align:center;">
+      <div style="font-size:46px;line-height:1;">${d.icon}</div>
+      <div class="kicker" style="margin-top:8px;color:var(--orange-dark);">오늘 마무리</div>
+      <div style="margin-top:6px;font-size:21px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;">${escapeHtml(d.title)}</div>
+    </div>
+    <div style="padding:18px 20px 6px;font-size:14.5px;line-height:1.65;color:var(--ink-soft);text-align:center;">${escapeHtml(d.body)}</div>
+    ${d.peerLine ? `<div style="margin:6px 20px 0;padding:10px 14px;border-radius:14px;background:#EAF3DE;color:#3B6D11;font-size:13px;font-weight:700;text-align:center;">${escapeHtml(d.peerLine)}</div>` : ''}
+    <div style="padding:16px 18px 18px;"><button onclick="window.__closeDonePopup()" style="width:100%;background:var(--ink);color:var(--cream);border:none;border-radius:14px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">좋아요 ✓</button></div>`;
   overlay.appendChild(card);
   return overlay;
 }
