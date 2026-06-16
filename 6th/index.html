@@ -26719,7 +26719,7 @@ function __buildFunFact(day) {
 }
 window.__closeFunFact = () => { showFunFactPopup = null; window.__funfactPreviewDay = null; render(); };
 window.__previewFunFact = () => { showSettings = null; window.__funfactPreviewDay = Number(state.currentDay) || 1; showFunFactPopup = true; render(); };
-window.__funfactNav = (delta) => { const cur = window.__funfactPreviewDay || Number(state.currentDay) || 1; window.__funfactPreviewDay = Math.max(1, Math.min(20, cur + delta)); render(); };
+window.__funfactNav = (delta) => { const cur = window.__funfactPreviewDay || Number(state.currentDay) || 1; window.__funfactPreviewDay = Math.max(1, Math.min(20, cur + delta)); const ex = document.querySelector('[data-funfact-popup]'); if (ex) ex.remove(); render(); };
 function FunFactPopupModal() {
   const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
   overlay.setAttribute('data-funfact-popup', '1');
@@ -26773,7 +26773,7 @@ function __buildDonePopup() {
 }
 window.__closeDonePopup = () => { showDonePopup = null; window.__donePreviewDay = null; render(); };
 window.__previewDonePopup = () => { showSettings = null; window.__donePreviewDay = Number(state.currentDay) || 1; showDonePopup = true; render(); };
-window.__doneNav = (delta) => { const cur = window.__donePreviewDay || Number(state.currentDay) || 1; window.__donePreviewDay = Math.max(1, Math.min(20, cur + delta)); render(); };
+window.__doneNav = (delta) => { const cur = window.__donePreviewDay || Number(state.currentDay) || 1; window.__donePreviewDay = Math.max(1, Math.min(20, cur + delta)); const ex = document.querySelector('[data-done-popup]'); if (ex) ex.remove(); render(); };
 function DonePopupModal() {
   const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
   overlay.setAttribute('data-done-popup', '1');
