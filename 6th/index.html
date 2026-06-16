@@ -26658,54 +26658,87 @@ function __dailyPeerCount(kind, day) {
 }
 const DAILY_FUNFACTS = {
   1:  { icon: '🚀', peer: 'today',      text: (n) => `첫날이에요! 지금 ${n}명이 같이 출발했어요 🚀`, fallback: `첫날이에요! 다 같이 출발해요 🚀` },
-  2:  { icon: '💼', text: `회의에서 'I think...' 앞에 'Just to make sure we're aligned,' 붙이면 한결 프로 같아요` },
+  2:  { icon: '💡', tip: true },
   3:  { icon: '🎲', text: `'OK'의 어원은 1830년대 미국 신문의 장난 철자였대요. 지금은 전 세계 공용어 👌` },
-  4:  { icon: '💼', text: `거절할 때 'No' 대신 'Let me get back to you' → 시간도 벌고 부드러워요` },
+  4:  { icon: '💡', tip: true },
   5:  { icon: '🙌', peer: 'weekActive', text: (n) => `첫 주 마지막! 이번 주 ${n}명이 끝까지 왔어요 🙌`, fallback: `첫 주 마지막! 다 같이 잘 왔어요 🙌` },
   6:  { icon: '🔥', peer: 'weekActive', text: (n) => `이번 주도 시작! 지금 ${n}명이 같이 달리고 있어요 🔥`, fallback: `이번 주도 시작! 다 같이 달려요 🔥` },
-  7:  { icon: '💼', text: `'I disagree' 대신 'I see it a bit differently' → 훨씬 부드러워요` },
+  7:  { icon: '💡', tip: true },
   8:  { icon: '🎲', text: `'How are you?'는 질문보다 인사에 가까워요. 길게 답 안 해도 OK 🙂` },
-  9:  { icon: '💼', text: `급할 때 'ASAP'는 압박돼요. 'by EOD(end of day)'처럼 구체적으로` },
+  9:  { icon: '💡', tip: true },
   10: { icon: '🙌', peer: 'weekActive', text: (n) => `2주차 마지막 날! 이번 주 ${n}명이 끝까지 왔어요 🙌`, fallback: `2주차 마지막 날! 다 같이 잘 왔어요 🙌` },
   11: { icon: '🎲', text: `이메일 끝 'Best,'는 'Best regards'의 줄임이에요` },
-  12: { icon: '💼', text: `'Does that make sense?'는 상대가 아니라 내 설명을 점검하는 표현이에요` },
+  12: { icon: '💡', tip: true },
   13: { icon: '🔥', peer: 'streak5',   text: (n) => `벌써 절반 넘었어요. 지금 ${n}명이 5일 이상 꾸준히 달리는 중 🔥`, fallback: `벌써 절반 넘었어요. 다 같이 꾸준히 가요 🔥` },
-  14: { icon: '💼', text: `메일에서 'Per my last email'은 가시 돋친 느낌이에요. 'As mentioned earlier'가 안전해요` },
+  14: { icon: '💡', tip: true },
   15: { icon: '🎉', peer: 'weekActive', text: (n) => `3주차 완주! 이번 주 ${n}명이 끝까지 왔어요 🎉`, fallback: `3주차 완주! 다 같이 잘 왔어요 🎉` },
-  16: { icon: '💼', text: `회의에 끼어들 때 'Sorry to interrupt, but...' 붙이면 무례하지 않아요` },
+  16: { icon: '💡', tip: true },
   17: { icon: '🎲', text: `'Cc'는 carbon copy(먹지 복사)에서 왔어요. 종이 시절의 흔적이죠 📄` },
-  18: { icon: '💼', text: `칭찬할 때 'Good job'보다 'That was really well thought out' → 진심처럼 들려요` },
+  18: { icon: '💡', tip: true },
   19: { icon: '🏁', peer: 'active',    text: (n) => `이제 막바지! 지금 ${n}명이 같이 결승선 보고 있어요 🏁`, fallback: `이제 막바지! 다 같이 결승선까지 가요 🏁` },
   20: { icon: '🎓', peer: 'active',    text: (n) => `마지막 날 🎓 ${n}명이 여기까지 왔어요. 진짜 수고했어요 🧡`, fallback: `마지막 날 🎓 여기까지 온 것만으로 대단해요. 진짜 수고했어요 🧡` },
 };
+// 유버디 뉘앙스 팁: 그 날까지 공개된 우리 단어 중 하나를 결정적으로 골라, 유의어 + 뉘앙스 설명.
+// CHALLENGE.weeks 기반이라 다음 기수 복사해도 자동으로 그 기수 단어로 나옴.
+function __nuanceTipForDay(day) {
+  const d = Number(day) || 1;
+  const collect = (maxDay) => {
+    const pool = [];
+    (CHALLENGE.weeks || []).forEach((w) => (w.days || []).forEach((dd) => {
+      if (Number(dd.day) <= maxDay) (dd.words || []).forEach((x) => { if (x && x.en && x.nuance) pool.push(x); });
+    }));
+    return pool;
+  };
+  let pool = collect(d);
+  if (!pool.length) pool = collect(9999);
+  if (!pool.length) return null;
+  const w = pool[d % pool.length];
+  const synList = (Array.isArray(w.syn) && w.syn.length) ? w.syn.join(' / ') : '';
+  return { en: w.en, synList, nuance: w.nuance };
+}
 function __buildFunFact(day) {
   const d = Number(day) || Number(state.currentDay) || 1;
-  const def = DAILY_FUNFACTS[d] || { icon: '💡', text: `오늘도 한 칸. 외운 만큼 입에서 바로 나와요 🙂` };
+  const def = DAILY_FUNFACTS[d] || { icon: '💡', tip: true };
+  if (def.tip) {
+    const t = __nuanceTipForDay(d);
+    if (t) {
+      const html = `<div style="font-weight:800;color:var(--orange-dark);font-size:17px;letter-spacing:-0.01em;">${escapeHtml(t.en)}</div>`
+        + (t.synList ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;font-family:var(--font-mono);">≈ ${escapeHtml(t.synList)}</div>` : '')
+        + `<div style="margin-top:9px;font-size:13.5px;line-height:1.65;color:var(--ink);text-align:left;">${escapeHtml(t.nuance)}</div>`;
+      return { icon: def.icon || '💡', label: '유버디 뉘앙스 팁', html };
+    }
+  }
   let text;
   if (def.peer) {
     const n = __dailyPeerCount(def.peer, d);
     text = (n > 0 && typeof def.text === 'function') ? def.text(n) : (def.fallback || (typeof def.text === 'function' ? def.text(0) : def.text));
   } else {
-    text = (typeof def.text === 'function') ? def.text(0) : def.text;
+    text = (typeof def.text === 'function') ? def.text(0) : (def.text || `오늘도 한 칸. 외운 만큼 입에서 바로 나와요 🙂`);
   }
-  return { icon: def.icon || '💡', text };
+  return { icon: def.icon || '💡', label: '오늘의 한 입', text };
 }
-window.__closeFunFact = () => { showFunFactPopup = null; render(); };
-window.__previewFunFact = () => { showSettings = null; showFunFactPopup = true; render(); };
+window.__closeFunFact = () => { showFunFactPopup = null; window.__funfactPreviewDay = null; render(); };
+window.__previewFunFact = () => { showSettings = null; window.__funfactPreviewDay = Number(state.currentDay) || 1; showFunFactPopup = true; render(); };
+window.__funfactNav = (delta) => { const cur = window.__funfactPreviewDay || Number(state.currentDay) || 1; window.__funfactPreviewDay = Math.max(1, Math.min(20, cur + delta)); render(); };
 function FunFactPopupModal() {
   const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
   overlay.setAttribute('data-funfact-popup', '1');
-  const day = Number(state.currentDay) || 1;
+  const isPreview = window.__funfactPreviewDay != null;
+  const day = isPreview ? window.__funfactPreviewDay : (Number(state.currentDay) || 1);
   const f = __buildFunFact(day);
   const card = el('div', { style: { width: '100%', maxWidth: '340px', background: 'var(--paper)', borderRadius: '24px', overflow: 'hidden' } });
   card.innerHTML = `
     <div style="background:linear-gradient(135deg,#FFF1E6 0%,#F5F1FA 100%);padding:22px 20px 18px;text-align:center;position:relative;">
       <button onclick="window.__closeFunFact()" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;">✕</button>
       <div style="font-size:42px;line-height:1;">${f.icon}</div>
-      <div class="kicker" style="margin-top:8px;color:var(--orange-dark);">오늘의 한 입 · Day ${day}</div>
+      <div class="kicker" style="margin-top:8px;color:var(--orange-dark);">${escapeHtml(f.label || '오늘의 한 입')} · Day ${day}${isPreview ? ' · 미리보기' : ''}</div>
     </div>
-    <div style="padding:18px 20px 8px;font-size:15.5px;line-height:1.65;color:var(--ink);text-align:center;letter-spacing:-0.01em;">${escapeHtml(f.text)}</div>
-    <div style="padding:6px 18px 18px;"><button onclick="window.__closeFunFact()" style="width:100%;background:var(--orange);color:#fff;border:none;border-radius:14px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">확인 ✓</button></div>`;
+    <div style="padding:18px 20px 8px;font-size:15px;line-height:1.65;color:var(--ink);${f.html ? '' : 'text-align:center;'}letter-spacing:-0.01em;">${f.html ? f.html : escapeHtml(f.text)}</div>
+    ${isPreview ? `<div style="padding:8px 18px 0;display:flex;gap:8px;">
+        <button onclick="window.__funfactNav(-1)" ${day <= 1 ? 'disabled' : ''} style="flex:1;padding:10px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:700;cursor:pointer;${day <= 1 ? 'opacity:0.4;' : ''}">◀ 이전 Day</button>
+        <button onclick="window.__funfactNav(1)" ${day >= 20 ? 'disabled' : ''} style="flex:1;padding:10px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:700;cursor:pointer;${day >= 20 ? 'opacity:0.4;' : ''}">다음 Day ▶</button>
+      </div>` : ''}
+    <div style="padding:10px 18px 18px;"><button onclick="window.__closeFunFact()" style="width:100%;background:var(--orange);color:#fff;border:none;border-radius:14px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">${isPreview ? '닫기' : '확인 ✓'}</button></div>`;
   overlay.appendChild(card);
   return overlay;
 }
@@ -26719,8 +26752,9 @@ function __doneTodayWeakWord(day) {
   } catch (_) { return ''; }
 }
 function __buildDonePopup() {
-  const day = Number(state.currentDay) || 1;
-  const streak = (typeof localStreakCount === 'function') ? localStreakCount() : 0;
+  const day = (window.__donePreviewDay != null) ? window.__donePreviewDay : (Number(state.currentDay) || 1);
+  // 미리보기로 Day 를 넘겨도 맞게: 그 Day 에서 끝나는 연속(streak) 을 state.verified 로 직접 계산.
+  let streak = 0; for (let x = day; x >= 1; x--) { if (state.verified && state.verified['d' + x]) streak++; else break; }
   const weekN = Math.min(4, Math.max(1, Math.ceil(day / 5)));
   const weekDays = []; for (let x = (weekN - 1) * 5 + 1; x <= weekN * 5; x++) weekDays.push(x);
   const vd = (n) => !!(state.verified && state.verified['d' + n]);
@@ -26737,23 +26771,31 @@ function __buildDonePopup() {
   const peerLine = peersToday > 1 ? `오늘 함께 끝낸 동료 ${peersToday}명 🤝` : '';
   return { icon, title, body, peerLine, confetti };
 }
-window.__closeDonePopup = () => { showDonePopup = null; render(); };
-window.__previewDonePopup = () => { showSettings = null; showDonePopup = true; render(); };
+window.__closeDonePopup = () => { showDonePopup = null; window.__donePreviewDay = null; render(); };
+window.__previewDonePopup = () => { showSettings = null; window.__donePreviewDay = Number(state.currentDay) || 1; showDonePopup = true; render(); };
+window.__doneNav = (delta) => { const cur = window.__donePreviewDay || Number(state.currentDay) || 1; window.__donePreviewDay = Math.max(1, Math.min(20, cur + delta)); render(); };
 function DonePopupModal() {
   const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
   overlay.setAttribute('data-done-popup', '1');
+  const isPreview = window.__donePreviewDay != null;
+  const previewDay = isPreview ? window.__donePreviewDay : (Number(state.currentDay) || 1);
   const d = __buildDonePopup();
-  if (d.confetti) { try { if (typeof fireConfetti === 'function') fireConfetti(); } catch (_) {} }
+  if (d.confetti && !isPreview) { try { if (typeof fireConfetti === 'function') fireConfetti(); } catch (_) {} }
   const card = el('div', { style: { width: '100%', maxWidth: '340px', background: 'var(--paper)', borderRadius: '24px', overflow: 'hidden' } });
   card.innerHTML = `
-    <div style="background:linear-gradient(135deg,#FFE5D9 0%,#FFF1E6 100%);padding:24px 20px 18px;text-align:center;">
+    <div style="background:linear-gradient(135deg,#FFE5D9 0%,#FFF1E6 100%);padding:24px 20px 18px;text-align:center;position:relative;">
+      ${isPreview ? `<button onclick="window.__closeDonePopup()" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;">✕</button>` : ''}
       <div style="font-size:46px;line-height:1;">${d.icon}</div>
-      <div class="kicker" style="margin-top:8px;color:var(--orange-dark);">오늘 마무리</div>
+      <div class="kicker" style="margin-top:8px;color:var(--orange-dark);">오늘 마무리${isPreview ? ` · Day ${previewDay} · 미리보기` : ''}</div>
       <div style="margin-top:6px;font-size:21px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;">${escapeHtml(d.title)}</div>
     </div>
     <div style="padding:18px 20px 6px;font-size:14.5px;line-height:1.65;color:var(--ink-soft);text-align:center;">${escapeHtml(d.body)}</div>
     ${d.peerLine ? `<div style="margin:6px 20px 0;padding:10px 14px;border-radius:14px;background:#EAF3DE;color:#3B6D11;font-size:13px;font-weight:700;text-align:center;">${escapeHtml(d.peerLine)}</div>` : ''}
-    <div style="padding:16px 18px 18px;"><button onclick="window.__closeDonePopup()" style="width:100%;background:var(--ink);color:var(--cream);border:none;border-radius:14px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">좋아요 ✓</button></div>`;
+    ${isPreview ? `<div style="padding:12px 18px 0;display:flex;gap:8px;">
+        <button onclick="window.__doneNav(-1)" ${previewDay <= 1 ? 'disabled' : ''} style="flex:1;padding:10px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:700;cursor:pointer;${previewDay <= 1 ? 'opacity:0.4;' : ''}">◀ 이전 Day</button>
+        <button onclick="window.__doneNav(1)" ${previewDay >= 20 ? 'disabled' : ''} style="flex:1;padding:10px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:700;cursor:pointer;${previewDay >= 20 ? 'opacity:0.4;' : ''}">다음 Day ▶</button>
+      </div>` : ''}
+    <div style="padding:14px 18px 18px;"><button onclick="window.__closeDonePopup()" style="width:100%;background:var(--ink);color:var(--cream);border:none;border-radius:14px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">${isPreview ? '닫기' : '좋아요 ✓'}</button></div>`;
   overlay.appendChild(card);
   return overlay;
 }
