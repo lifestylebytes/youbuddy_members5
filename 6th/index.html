@@ -26908,14 +26908,26 @@ const WEEK1_DECK = [
 ];
 
 // ── WEEK 2 발표 모드 덱 (외국계 유머 한 스푼). 다음 주 미팅용, Week 1 과 같은 머신 사용.
-const WEEK2_HUMOR = [
-  { en: '"I won\'t lie, I needed that coffee."', kr: '솔직하게 가볍게: 나 진짜 커피 필요했어' },
-  { en: '"Don\'t ask me, I just got here."', kr: '책임 살짝 피하며 농담: 저한테 묻지 마세요, 저도 방금 왔어요' },
-  { en: '"Oh, that\'s wild."', kr: '리액션: 와, 그거 대박이네요' },
-  { en: '"No way!"', kr: '놀람 리액션: 말도 안 돼요!' },
-  { en: '"Well, that escalated quickly."', kr: '상황이 갑자기 커졌을 때: 어우, 일이 순식간에 커졌네요' },
-  { en: '"I\'m gonna need a bigger coffee for this."', kr: '업무량 많을 때 가볍게: 이건 커피 한 잔으론 안 되겠는데요' },
+// Week 2 외국계 유머 표현 (운영자가 직접 큐레이션, 상황별).
+const WEEK2_HUMOR_GROUPS = [
+  { sit: '😅 실수했을 때 가볍게 넘기기', lines: [
+    { en: "Sorry, I haven't had a coffee yet.", kr: '죄송, 아직 커피를 못 마셔서요 (실수 변명)' },
+    { en: "I definitely need a coffee for sure.", kr: '이건 진짜 커피가 있어야겠는데요 (이어서 강조)' },
+  ] },
+  { sit: '📅 회의 시작 · 요일 스몰토크', lines: [
+    { en: "How's everyone surviving Monday?", kr: '다들 월요일 버티고 계세요?' },
+    { en: "Hanging in there, barely. / Better than expected.", kr: '(답변) 겨우 버티는 중이죠 / 생각보다 괜찮아요' },
+    { en: "This week is flying by.", kr: '이번 주 진짜 빨리 가네요' },
+  ] },
+  { sit: '⏳ 시간이 훅 지나갔을 때', lines: [
+    { en: "Where did this day go?", kr: '오늘 하루 어디 갔죠?' },
+  ] },
+  { sit: '😮‍💨 퇴사각... (친한 동료에게만!)', lines: [
+    { en: "Time to update my LinkedIn.", kr: '링크드인 업데이트할 때가 됐네요' },
+    { en: "Honestly, I'm writing my resignation letter lol.", kr: '솔직히 나 사직서 쓰는 중이야 ㅋㅋ' },
+  ] },
 ];
+const WEEK2_HUMOR = WEEK2_HUMOR_GROUPS.flatMap((g) => g.lines);
 const WEEK2_DECK = [
   { section: '오프닝', kicker: 'WEEK 2 · 60분', title: '오늘 순서 한눈에',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">이도현 · 정주혜</b> · 오늘 발표: <b style="color:var(--orange-dark);">정주혜 님</b></div>'
@@ -26927,21 +26939,23 @@ const WEEK2_DECK = [
 
   { section: '미니 강연', kicker: '1 · 외국계 유머', title: '외국계에서 통하는 유머 한 스푼',
     html: (() => {
-      const line = (en, sub) => '<div style="margin-top:9px;">'
-        + '<div style="font-size:14.5px;font-weight:800;color:#fff;font-family:var(--font-mono);border-bottom:1.5px dashed rgba(255,255,255,0.35);display:inline-block;padding-bottom:1px;">' + en + '</div>'
-        + '<div style="margin-top:3px;font-size:12px;color:#C9D6C0;line-height:1.5;">' + sub + '</div></div>';
+      const lineEl = (en, sub) => '<div style="margin-top:7px;">'
+        + '<div style="font-size:14px;font-weight:800;color:#fff;font-family:var(--font-mono);">' + en + '</div>'
+        + '<div style="margin-top:2px;font-size:11.5px;color:#C9D6C0;line-height:1.4;">' + sub + '</div></div>';
+      const group = (sit, lines) => '<div style="margin-top:14px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.18);">'
+        + '<div style="font-size:12.5px;font-weight:800;color:#9FE1CB;">' + sit + '</div>'
+        + lines.map((l) => lineEl(l.en, l.kr)).join('') + '</div>';
       return '<div style="background:#26331F;border-radius:18px;padding:18px;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
         + '<div style="font-size:11px;letter-spacing:0.1em;color:#FBE7A1;font-weight:800;">📋 오늘의 칠판 · 유머의 3원칙</div>'
-        + '<div style="margin-top:12px;font-size:12.5px;color:#ECEFE3;line-height:1.9;">✅ <b style="color:#9FE1CB;">나를 살짝 낮추기</b> (self-deprecating): 안전하고 호감 가요<br>✅ <b style="color:#9FE1CB;">상황을 가볍게 관찰</b>: 날씨·커피·월요일 같은 공통 주제<br>🚫 <b style="color:#F3B0A8;">피하기</b>: 정치·종교·외모·특정 사람 놀리기</div>'
-        + '<div style="margin-top:14px;font-size:12.5px;font-weight:800;color:#9FE1CB;">🗣️ 바로 쓰는 한마디</div>'
-        + WEEK2_HUMOR.map((h) => line(h.en, h.kr)).join('')
+        + '<div style="margin-top:12px;font-size:12.5px;color:#ECEFE3;line-height:1.9;">✅ <b style="color:#9FE1CB;">나를 살짝 낮추기</b> (self-deprecating)<br>✅ <b style="color:#9FE1CB;">상황을 가볍게 관찰</b>: 날씨·커피·월요일<br>🚫 <b style="color:#F3B0A8;">피하기</b>: 정치·종교·외모·특정 사람 놀리기</div>'
+        + WEEK2_HUMOR_GROUPS.map((g) => group(g.sit, g.lines)).join('')
         + '</div>'
-        + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">핵심: 웃기려 애쓰기보다 <b>가볍게·짧게·자연스럽게</b>. 리액션 한마디가 분위기를 바꿔요.</div>';
+        + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">핵심: 웃기려 애쓰기보다 <b>가볍게·짧게·자연스럽게</b>. 상황별 한마디만 입에 붙여도 충분해요.</div>';
     })() },
 
   { section: '핵심 표현 복습', kicker: '2 · 복습', title: 'Week 1 표현 + 오늘 유머 표현',
-    checks: ['Week 1 표현 12개 한국어→영어 빠르게 한 바퀴 (막혔던 것 위주)', '오늘 유머 표현 6개 소리 내어 따라 말하기', '각자 본인 상황에 쓸 1~2개 골라보기'],
-    html: '<div style="margin-top:6px;font-size:13px;font-weight:800;color:var(--ink);">🗣️ 오늘 유머 표현 6개</div>'
+    checks: ['Week 1 표현 12개 한국어→영어 빠르게 한 바퀴 (막혔던 것 위주)', '오늘 유머 표현 상황별로 소리 내어 따라 말하기', '각자 본인 상황에 쓸 1~2개 골라보기'],
+    html: '<div style="margin-top:6px;font-size:13px;font-weight:800;color:var(--ink);">🗣️ 오늘 유머 표현 (상황별)</div>'
       + '<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">'
       + WEEK2_HUMOR.map((h) => '<div style="padding:8px 11px;border-radius:11px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.14);"><div style="font-size:13.5px;font-family:var(--font-mono);color:var(--orange-dark);font-weight:700;">' + escapeHtml(h.en) + '</div><div style="font-size:11.5px;color:var(--ink-soft);margin-top:1px;">' + escapeHtml(h.kr) + '</div></div>').join('')
       + '</div>' },
