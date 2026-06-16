@@ -7994,9 +7994,8 @@ function HomePage() {
   try {
     const dDay = Number(state.currentDay) || 0;
     window.__dailyPopupArmed = window.__dailyPopupArmed || {};
-    // 아직 정식 오픈 X: 자동 노출은 운영자/스태프에게만 (멤버에겐 안 뜸). 멤버 오픈하려면 이 가드 제거.
-    const __dailyPopupAutoAllowed = !!(state.isOperator || state.isStaff);
-    if (__dailyPopupAutoAllowed && dDay >= 1 && challengeStarted() && guidedTourStep === null && !anyPopupOpen()) {
+    // 정식 오픈: 전체 멤버 자동 노출 (홈 들어오면 '오늘의 한 입', 인증 끝내면 '오늘 마무리').
+    if (dDay >= 1 && challengeStarted() && guidedTourStep === null && !anyPopupOpen()) {
       const vToday = !!(state.verified && state.verified['d' + dDay]);
       const doneSeen = !!(state.daily_done_popup_seen || {})['d' + dDay];
       const factSeen = !!(state.daily_funfact_seen || {})['d' + dDay];
