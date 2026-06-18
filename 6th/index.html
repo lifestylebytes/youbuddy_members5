@@ -8802,7 +8802,7 @@ function Checkboard() {
         const vt = state.verified_time && state.verified_time['d'+d];
         if (vt && (meta.st === 'done' || meta.st === 'done-late')) {
           const tip = `${peerDisplay} · Day ${d} · ${vt} ${myTz}${meta.st === 'done-late' ? ' (지각)' : ''}`;
-          titleAttr = ` title="${escAttr(tip)}"`;
+          titleAttr = ` title="${escAttr(tip)}" data-tip="${escAttr(tip)}"`;
         }
         cellsHtml += `<div class="${cls}"${titleAttr}></div>`;
       }
@@ -8839,7 +8839,7 @@ function Checkboard() {
           const stamp = hhmm ? (peerTz ? `${hhmm} ${peerTz}` : hhmm) : '';
           const lateTag = isLate ? ' (지각)' : '';
           const tip = stamp ? `${peerDisplay} · Day ${d} · ${stamp}${lateTag}` : `${peerDisplay} · Day ${d} 완료${lateTag}`;
-          titleAttr = ` title="${escAttr(tip)}"`;
+          titleAttr = ` title="${escAttr(tip)}" data-tip="${escAttr(tip)}"`;
         } else if (d === 1 && peerDay1Grace) cls += ' today';  // Day1 유예 → 회색(missed) 대신 활성
         else if (d < peerCurrentDay) cls += ' missed';
         else if (d === peerCurrentDay) cls += ' today';
@@ -8861,11 +8861,17 @@ function Checkboard() {
   // 이름 클릭 = 멤버 카드, wrap 단 한 곳에 위임 (이벤트 리스너 1개만).
   grid.addEventListener('click', (ev) => {
     const target = ev.target.closest && ev.target.closest('[data-member-ref]');
-    if (!target) return;
-    const ref = target.getAttribute('data-member-ref');
-    if (!ref) return;
-    activeMemberCard = ref;
-    render();
+    if (target) {
+      const ref = target.getAttribute('data-member-ref');
+      if (ref) { activeMemberCard = ref; render(); }
+      return;
+    }
+    // 인증 셀 탭 = 누가 언제 인증했는지 토스트로 (모바일은 호버가 없으니 탭으로 확인).
+    const cell = ev.target.closest && ev.target.closest('.cb-cell[data-tip]');
+    if (cell) {
+      const tip = cell.getAttribute('data-tip');
+      if (tip && typeof showToast === 'function') showToast(tip);
+    }
   });
   wrap.appendChild(grid);
   return wrap;
