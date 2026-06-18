@@ -26972,9 +26972,27 @@ const WEEK2_HUMOR_GROUPS = [
     ] },
 ];
 const WEEK2_HUMOR = WEEK2_HUMOR_GROUPS.flatMap((g) => g.lines);
+// Week 2 단어 복습 워밍업 (Day 6~10 단어 15개, 한국어 뜻 → 영어). Week 1 워밍업과 동일 포맷.
+const WEEK2_WARMUP = [
+  { kr: '남의 의견·작업에 얹어 이어가다', en: 'Piggyback on' },
+  { kr: '끝까지 따져 결론을 정리하다', en: 'Hash out' },
+  { kr: '내 생각 던져보고 반응 받는 상대', en: 'Sounding board' },
+  { kr: '사람들 분위기를 가볍게 떠보다', en: 'Temperature check' },
+  { kr: '서로 핀트가 어긋나 동문서답하다', en: 'Talk past each other' },
+  { kr: '짧게 메시지로 연락하다', en: 'Ping' },
+  { kr: '진짜 문제는 사소한 디테일에 숨어 있다', en: "The devil's in the details" },
+  { kr: '(문제·우려를) 짚어서 알리다', en: 'Flag' },
+  { kr: '본론에서 벗어나 곁가지로 새다', en: 'Go off on a tangent' },
+  { kr: '결국 핵심은 ~로 귀결되다', en: 'Boil down to' },
+  { kr: '협업·논의에 기여할 무언가를 내놓다', en: 'Bring to the table' },
+  { kr: '맡겨진 걸 알아서 끝까지 끌고 가다', en: 'Run with it' },
+  { kr: '곧이곧대로 믿지 말고 걸러 듣다', en: 'Take it with a grain of salt' },
+  { kr: '(중간에) 기준·목표를 슬쩍 바꿔버리다', en: 'Move the goalposts' },
+  { kr: '우선순위를 낮춰 잠시 미뤄두다', en: 'On the back burner' },
+];
 // 상황별 롤플레잉 슬라이드 (하나씩 넘기며 3명이 돌아가며 연습).
 const WEEK2_ROLEPLAY_SLIDES = WEEK2_HUMOR_GROUPS.map((g, i) => ({
-  section: '표현 롤플레잉', kicker: '3 · 롤플레잉 ' + (i + 1) + ' / ' + WEEK2_HUMOR_GROUPS.length, title: g.sit,
+  section: '표현 롤플레잉', kicker: '2 · 롤플레잉 ' + (i + 1) + ' / ' + WEEK2_HUMOR_GROUPS.length, title: g.sit,
   html: '<div style="padding:13px 15px;border-radius:14px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.22);"><div style="font-size:11.5px;font-weight:800;color:#5C53A5;letter-spacing:0.04em;">🎬 상황</div><div style="margin-top:5px;font-size:13.5px;color:var(--ink);line-height:1.6;">' + escapeHtml(g.scenario) + '</div></div>'
     + '<div style="margin-top:12px;font-size:12px;font-weight:800;color:var(--ink);">🗣️ 쓸 표현</div>'
     + '<div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">'
@@ -26986,7 +27004,7 @@ const WEEK2_DECK = [
   { section: '오프닝', kicker: 'WEEK 2 · 60분', title: '오늘 순서 한눈에',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">이도현 · 정주혜</b> · 오늘 발표: <b style="color:var(--orange-dark);">정주혜 님</b></div>'
       + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
-      + ['미니 강연 (회의·스몰토크 농담)', '핵심 표현 복습', '표현 롤플레잉', '짝 연습', '발표 1명 꼼꼼 피드백 (정주혜 님)'].map((t, i) =>
+      + ['미니 강연 (회의·스몰토크 농담)', '표현 롤플레잉', '짝 연습', '핵심 표현 + Week 2 단어 복습', '발표 1명 꼼꼼 피드백 (정주혜 님)'].map((t, i) =>
           '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
       + '</div>'
       + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(233,76,107,0.2);font-size:13.5px;color:var(--ink);">🎯 목표: "회의·스몰토크 분위기를 푸는 가벼운 한마디"를 입에 붙이기</div>' },
@@ -27007,22 +27025,25 @@ const WEEK2_DECK = [
         + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">핵심: 웃기려 애쓰기보다 <b>가볍게·짧게·자연스럽게</b>. 상황별 한마디만 입에 붙여도 충분해요.</div>';
     })() },
 
-  { section: '핵심 표현 복습', kicker: '2 · 복습', title: 'Week 1 표현 + 오늘 유머 표현',
-    checks: ['Week 1 표현 12개 한국어→영어 빠르게 한 바퀴 (막혔던 것 위주)', '오늘 유머 표현 상황별로 소리 내어 따라 말하기', '각자 본인 상황에 쓸 1~2개 골라보기'],
-    html: '<div style="margin-top:6px;font-size:13px;font-weight:800;color:var(--ink);">🗣️ 오늘 유머 표현 (상황별)</div>'
-      + '<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">'
-      + WEEK2_HUMOR.map((h) => '<div style="padding:8px 11px;border-radius:11px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.14);"><div style="font-size:13.5px;font-family:var(--font-mono);color:var(--orange-dark);font-weight:700;">' + escapeHtml(h.en) + '</div><div style="font-size:11.5px;color:var(--ink-soft);margin-top:1px;">' + escapeHtml(h.kr) + '</div></div>').join('')
-      + '</div>' },
-
   ...WEEK2_ROLEPLAY_SLIDES,
 
-  { section: '짝 연습', kicker: '4 · 짝 연습', title: '둘이서 주고받기',
+  { section: '짝 연습', kicker: '3 · 짝 연습', title: '둘이서 주고받기',
     html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">두 분이 짝이 되어 2분간 주고받아요.</div>'
       + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:9px;">'
       + '<div style="padding:12px 14px;border-radius:13px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.22);"><b style="color:#5C53A5;">A</b> 가벼운 질문 또는 상황 던지기 (예: "How was your weekend?", "이거 또 바뀌었대요")</div>'
       + '<div style="padding:12px 14px;border-radius:13px;background:#FFF1E6;border:1px solid rgba(233,76,107,0.2);"><b style="color:var(--orange-dark);">B</b> 오늘 표현으로 가볍게 받아치기 (리액션 + 유머 한마디)</div>'
       + '</div>'
       + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;font-size:12.5px;color:var(--ink);line-height:1.6;">🔁 역할 바꿔서 한 번 더. 진행자는 막히면 칠판 표현으로 힌트.</div>' },
+
+  { section: '복습', kicker: '4 · 복습', title: 'Week 1 표현 + 오늘 유머 표현',
+    checks: ['Week 1 표현 12개 한국어→영어 빠르게 한 바퀴 (막혔던 것 위주)', '오늘 유머 표현 상황별로 소리 내어 따라 말하기', '각자 본인 상황에 쓸 1~2개 골라보기'],
+    html: '<div style="margin-top:6px;font-size:13px;font-weight:800;color:var(--ink);">🗣️ 오늘 유머 표현 (상황별)</div>'
+      + '<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">'
+      + WEEK2_HUMOR.map((h) => '<div style="padding:8px 11px;border-radius:11px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.14);"><div style="font-size:13.5px;font-family:var(--font-mono);color:var(--orange-dark);font-weight:700;">' + escapeHtml(h.en) + '</div><div style="font-size:11.5px;color:var(--ink-soft);margin-top:1px;">' + escapeHtml(h.kr) + '</div></div>').join('')
+      + '</div>' },
+
+  { section: '복습', kicker: '4 · Week 2 단어 (Day 6~10)', title: 'Week 2 단어 복습 (한국어 → 영어)', worksheet: true,
+    html: '<div style="font-size:13px;color:var(--ink-soft);line-height:1.6;">Day 6~10 표현 15개예요. 한국어 뜻 보고 영어로 바로 말해보고, 막히면 🔖 표시.</div>' },
 
   { section: '발표 피드백', kicker: '5 · 발표', title: '정주혜 님 발표 + 피드백',
     checks: ['정주혜 님 10분 발표', '잘한 점 먼저, 구체적으로 짚기', '표현·전달 피드백 1~2개만 (한 번에 너무 많이 X)', '다음에 시도해볼 것 한 가지 정해주기'],
@@ -27045,6 +27066,7 @@ const WEEK2_DECK = [
 function __curMid() { return window.__currentMeetingId === 'm2' ? 'm2' : 'm1'; }
 function __curWk() { return __curMid() === 'm2' ? 'week2' : 'week1'; }
 function __curDeck() { return (__curMid() === 'm2' && typeof WEEK2_DECK !== 'undefined') ? WEEK2_DECK : WEEK1_DECK; }
+function __curWarmup() { return (__curMid() === 'm2' && typeof WEEK2_WARMUP !== 'undefined') ? WEEK2_WARMUP : WEEK1_WARMUP; }
 window.__deckLoadScripts = () => { if (typeof loadCohortPresenterScripts === 'function') loadCohortPresenterScripts({ force: true }).then(() => render()); };
 
 window.__deckIdx = 0;
@@ -27234,7 +27256,7 @@ function MeetingDeckPage() {
       + '<span class="t-small" style="color:var(--ink-soft);">막힌 건 왼쪽 🔖 눌러 표시 → 마무리에서 다시 봐요</span>'
       + '<button onclick="window.__deckToggleAns()" style="font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;">' + (rev ? '🙈 정답 가리기' : '👀 정답 보기') + '</button></div>';
     body += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:2px;">';
-    WEEK1_WARMUP.forEach((w, i) => {
+    __curWarmup().forEach((w, i) => {
       const passed = !!window.__deckPass[i];
       body += '<div style="display:flex;align-items:center;gap:8px;padding:6px 6px;border-radius:9px;border-bottom:1px solid rgba(154,139,115,0.12);background:' + (passed ? 'rgba(233,76,107,0.07)' : 'transparent') + ';">'
         + '<button onclick="window.__deckTogglePass(' + i + ')" title="패스 표시" style="flex-shrink:0;width:24px;height:24px;border-radius:7px;border:1.5px solid ' + (passed ? 'var(--orange)' : '#CFC7B5') + ';background:' + (passed ? 'var(--orange)' : '#fff') + ';cursor:pointer;font-size:11px;line-height:1;display:inline-flex;align-items:center;justify-content:center;">' + (passed ? '🔖' : '') + '</button>'
@@ -27246,7 +27268,7 @@ function MeetingDeckPage() {
   }
   if (s.passReview) {
     window.__deckPass = window.__deckPass || {};
-    const passedWords = WEEK1_WARMUP.filter((w, i) => window.__deckPass[i]);
+    const passedWords = __curWarmup().filter((w, i) => window.__deckPass[i]);
     body += '<div style="margin-top:14px;padding:13px 15px;border-radius:14px;background:#FFF1E6;border:1px solid rgba(233,76,107,0.22);">'
       + '<div style="font-size:13px;font-weight:800;color:var(--orange-dark);">🔖 오늘 막힌 표현 (워밍업에서 표시한 것)</div>'
       + (passedWords.length
