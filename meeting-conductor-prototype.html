@@ -238,7 +238,7 @@
 <body>
 
 <div class="proto-banner">
-  🧪 PROTOTYPE v2 · Week 3 Live Practice — 상황 중심 + 단어 풀 + 북마크 동기화
+  🧪 PROTOTYPE v2 · Week 3 Live Practice, 상황 중심 + 단어 풀 + 북마크 동기화
 </div>
 
 <!-- MEETING INFO BANNER -->
@@ -277,7 +277,7 @@
   <!-- VOCAB POOL -->
   <div class="pool-h">
     <div class="pool-title">📚 Day 1~13 단어 풀</div>
-    <div class="pool-sub">대화에 끼워넣을 수 있는 표현들. 모르는 건 🔖 북마크 — '나' 탭에 자동 동기화</div>
+    <div class="pool-sub">대화에 끼워넣을 수 있는 표현들. 모르는 건 🔖 북마크, '나' 탭에 자동 동기화</div>
   </div>
   <div class="pool-filters" id="poolFilters"></div>
   <div class="vocab-grid" id="vocabGrid"></div>
@@ -414,7 +414,7 @@ const state = {
 };
 
 /* ============================================================
-   Bookmark sync with main app — yb5_state_cache_v2
+   Bookmark sync with main app, yb5_state_cache_v2
    ------------------------------------------------------------
    Main 앱에서 bookmark 토글 시 두 가지 state 가 같이 업데이트됨:
      1) state.bookmarks['d{N}-{idx}'] = true          ← truthy 체크용
@@ -540,7 +540,7 @@ function getNames() {
 }
 
 /* ====================================================================
-   RENDER — Situation Tabs
+   RENDER, Situation Tabs
 ==================================================================== */
 function renderTabs() {
   const nav = document.getElementById('sitNav');
@@ -556,7 +556,7 @@ function renderTabs() {
 }
 
 /* ====================================================================
-   RENDER — Situation Card
+   RENDER, Situation Card
 ==================================================================== */
 function renderCard() {
   const sit = SITUATIONS[state.sit];
@@ -614,7 +614,7 @@ function pickRandom() {
 }
 
 /* ====================================================================
-   RENDER — Vocab Pool
+   RENDER, Vocab Pool
 ==================================================================== */
 function renderFilters() {
   const root = document.getElementById('poolFilters');
@@ -688,13 +688,13 @@ function renderGrid() {
       const k = btn.dataset.bm;
       const m = /^d(\d+)-(\d+)$/.exec(k);
       const v = m ? ALL_VOCAB.find(x => x.day === +m[1] && x.idx === +m[2]) : null;
-      // 토글 결정은 LocalStorage 의 fresh 상태 기준 — in-memory stale 상태 안 씀.
+      // 토글 결정은 LocalStorage 의 fresh 상태 기준, in-memory stale 상태 안 씀.
       // (다른 탭에서 main 앱이 덮어썼을 수 있어서)
       const isOn = isBookmarkedFresh(k);
       const willTurnOn = !isOn;
       if (v) toggleBookmarkSynced(v, willTurnOn);
       else {
-        // vocab obj 못 찾는 비정상 케이스 — bookmarks 만 토글
+        // vocab obj 못 찾는 비정상 케이스, bookmarks 만 토글
         const parsed = _normalizeCache(_loadCache());
         if (willTurnOn) parsed.state.bookmarks[k] = true;
         else delete parsed.state.bookmarks[k];
