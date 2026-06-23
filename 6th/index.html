@@ -1285,8 +1285,8 @@ const CHALLENGE = {
         n: 3,
         date: '2026-06-25',
         signupCloseDate: '2026-06-24',
-        title: 'Week 3, Small talk × Day 11~13',
-        desc: 'Small talk 에 Day 11~13 단어 9개 자연스럽게 녹이기',
+        title: 'Week 3, 상황 롤플레이 × Day 11~15',
+        desc: '문제 해결·우선순위 상황에 Day 11~15 단어 자연스럽게 녹이기',
         status: 'done',
         zoom: 'Google Meet',
         meetUrl: 'https://meet.google.com/swc-ritf-wec',
@@ -1296,11 +1296,11 @@ const CHALLENGE = {
         pptUrl: '',
         roleplay: { duration: 40 },
         mustUseVocab: [], // 6기 Day 11~15 단어로 자동 계산 (getEffectiveMustUseVocab). 발표 모드 덱은 별도 구축.
-        presenterPrompt: '본인이 자주 맞닥뜨리는 small talk 상황 하나를 7분 롤플레이. Opener → Day 11~13 단어 3개 이상 → closer 구조로. 3분 Q&A 에서 "어떤 단어가 robot 같았나 / natural 했나" 피드백.',
+        presenterPrompt: '본인이 자주 맞닥뜨리는 실제 업무 상황(장애 대응 / 우선순위 정리 등) 하나를 7분 롤플레이. Day 11~15 단어 3개 이상 자연스럽게 녹이기. 3분 Q&A 에서 "어떤 단어가 robot 같았나 / natural 했나" 피드백.',
         qaPrompts: [
-          'Which Day 11~13 word landed most naturally in your small talk?',
-          'What\'s your go-to transition before slipping in business vocab?',
-          'How do you exit small talk without it feeling like a hard cutoff?',
+          'Which Day 11~15 word landed most naturally in your roleplay?',
+          'When you hit a wall, how did you steer the conversation?',
+          'Which word felt forced, and what would you swap it for?',
         ],
       },
       {
@@ -17049,7 +17049,7 @@ function MeetingNotesPage(meetingId) {
           <div style="font-size:11px;letter-spacing:0.14em;font-weight:800;color:#FCE8B2;">📺 미팅 진행 화면</div>
           <div style="margin-top:6px;font-size:18px;font-weight:800;letter-spacing:-0.015em;line-height:1.3;">미팅은 이렇게 진행돼요</div>
           <div style="margin-top:5px;font-size:12.5px;color:rgba(255,255,255,0.78);line-height:1.5;">
-            상황 4종 (탕비실 / Zoom 대기 / 컨퍼런스 / 자유) + Day 1~13 단어 39개<br/>
+            상황 4종 (장애 대응 / 우선순위 정리 / 도현님 투어 / 자유) + Day 1~15 단어 45개<br/>
             진행자가 화면 공유하면, 보면서 자유롭게 발화하면 돼요.
           </div>
         </div>

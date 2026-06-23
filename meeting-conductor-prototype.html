@@ -263,7 +263,7 @@
   <div class="hdr-spacer"></div>
   <input class="names-input" id="namesInput"
          placeholder="참가자 이름 (쉼표로 구분, 랜덤 뽑기에 사용돼요)"
-         value="진송, 수진, Brad, Hera, Jess, Lin, Rachel" />
+         value="" />
 </header>
 
 <div class="wrap">
@@ -297,99 +297,107 @@
 ==================================================================== */
 const ALL_VOCAB = [
   // Day 1
-  { day: 1, idx: 0, en: 'Set the stage', kr: '판을 깔다 · 분위기 조성', ex: '오늘 회의는 분기 목표 정렬을 위한 판을 깔아두는 자리입니다.' },
-  { day: 1, idx: 1, en: 'Anchor', kr: '기준점 잡다 · 흔들리지 않게 고정', ex: '이번 분기는 매출보다 retention 을 핵심 기준으로 잡읍시다.' },
-  { day: 1, idx: 2, en: 'Key driver', kr: '핵심 동인 · 성과를 끌어올리는 진짜 이유', ex: '재방문율이 우리 매출의 진짜 핵심 동인이에요.' },
+  { day: 1, idx: 0, en: "Pull in", kr: "(사람·자원을) 끌어들여 합류시키다", ex: "뭐든 서명하기 전에 법무팀을 합류시키죠." },
+  { day: 1, idx: 1, en: "Get the lay of the land", kr: "전체 상황·판세를 파악하다", ex: "바꾸자고 하기 전에 일주일만 판 파악할 시간 주세요." },
+  { day: 1, idx: 2, en: "Level-set", kr: "다 같이 기대치·이해도를 같은 선에 맞추다", ex: "본격적으로 들어가기 전에, 성공 기준부터 맞추고 가죠." },
   // Day 2
-  { day: 2, idx: 0, en: 'Gut check', kr: '직감 점검 · 빠른 현실성 체크', ex: '본격 분석 들어가기 전에 직감으로 한 번 점검해봅시다.' },
-  { day: 2, idx: 1, en: 'Vetting process', kr: '검증 과정 · 깐깐한 심사', ex: '벤더 선정 전에 검증 절차부터 거쳐야 해요.' },
-  { day: 2, idx: 2, en: 'Viability', kr: '실행 가능성 · 진짜 돈이 되나', ex: '이 아이디어는 가능성 있는데 사업성은 좀 더 따져봐야 해요.' },
+  { day: 2, idx: 0, en: "Ballpark", kr: "대략적인 추정치 (를 잡다)", ex: "이거 얼마나 걸릴지 대략적인 감이라도 줄 수 있어요?" },
+  { day: 2, idx: 1, en: "Stub out", kr: "내용은 비워두고 일단 뼈대·틀만 임시로 만들어두다", ex: "일단 빈 슬라이드로 발표자료 뼈대만 잡아둘게요. 내용은 그다음에 채우면 돼요." },
+  { day: 2, idx: 2, en: "Run point", kr: "한 건의 총괄 담당을 맡다", ex: "이번 런칭 총괄은 누가 맡고 있죠?" },
   // Day 3
-  { day: 3, idx: 0, en: 'First pass', kr: '초안 한 번 잡기 · 일단 빠르게', ex: '디테일은 나중에 — 일단 초안으로 한 번 잡아봅시다.' },
-  { day: 3, idx: 1, en: 'Get it over the line', kr: '어렵사리 끝내다 · 마침내 넘기기', ex: '마지막 검토만 끝내고 어렵사리 마감 넘기죠.' },
-  { day: 3, idx: 2, en: 'Front-load', kr: '초반에 몰아서 하다', ex: '리스크 큰 작업은 초반에 몰아서 처리합시다.' },
+  { day: 3, idx: 0, en: "Brainstorm", kr: "자유롭게 아이디어를 쏟아내다", ex: "확정하기 전에 옵션 몇 개 자유롭게 내봅시다." },
+  { day: 3, idx: 1, en: "Whiteboard", kr: "화이트보드에 펼쳐가며 같이 구상하다", ex: "내일 이 플로우 같이 화이트보드에 펼쳐볼까요?" },
+  { day: 3, idx: 2, en: "Table stakes", kr: "기본으로 갖춰야 하는 최소 전제 조건", ex: "빠른 배송은 이제 혜택이 아니라 기본 중의 기본이에요." },
   // Day 4
-  { day: 4, idx: 0, en: 'Unpack', kr: '풀어서 분석하다', ex: '이 데이터, 한 번 풀어서 분석해볼까요?' },
-  { day: 4, idx: 1, en: 'Flesh out', kr: '디테일 채워 구체화', ex: '아이디어 좋아요 — 이번 주 안에 디테일 살을 붙여주세요.' },
-  { day: 4, idx: 2, en: 'Drill down', kr: '깊이 파고들다', ex: '여기서 좀 더 깊이 파고들어볼까요?' },
+  { day: 4, idx: 0, en: "Carve out", kr: "(시간·자원을) 따로 떼어 확보하다", ex: "금요일에 이거 할 30분만 따로 빼둡시다." },
+  { day: 4, idx: 1, en: "Get your ducks in a row", kr: "사전에 준비를 다 끝내 정렬해두다", ex: "클라이언트 콜 전에 준비 싹 끝내두죠." },
+  { day: 4, idx: 2, en: "Put a pin in it", kr: "일단 멈추고 나중에 다시 다루다", ex: "좋은 포인트인데, 일단 표시만 해두고 점심 후에 다시 봐요." },
   // Day 5
-  { day: 5, idx: 0, en: 'Get buy-in', kr: '적극적 지지 얻기', ex: '진행 전에 임원 buy-in 부터 받아야 해요.' },
-  { day: 5, idx: 1, en: 'Call the shots', kr: '결정권 쥐고 진두지휘', ex: '이 프로젝트는 누가 결정권 가지고 진두지휘해요?' },
-  { day: 5, idx: 2, en: 'Move in lockstep', kr: '발맞춰 혼연일체', ex: '디자인이랑 엔지니어링이 발맞춰 혼연일체로 가야 해요.' },
+  { day: 5, idx: 0, en: "See eye to eye", kr: "의견이 완전히 일치하다", ex: "늘 의견이 같진 않지만 서로 존중해요." },
+  { day: 5, idx: 1, en: "Weigh in", kr: "의견·무게를 보태다", ex: "결정 전에 마케팅 의견도 꼭 듣고 싶어요." },
+  { day: 5, idx: 2, en: "Chime in", kr: "대화 중에 자연스럽게 한마디 거들다", ex: "생각 있으시면 편하게 끼어들어 주세요." },
   // Day 6
-  { day: 6, idx: 0, en: 'Constructive criticism', kr: '건설적인 비판', ex: '이건 인신공격 아니라, 건설적인 비판이에요.' },
-  { day: 6, idx: 1, en: 'Sugarcoat', kr: '듣기 좋게 포장', ex: '좋게 포장 안 할게요 — 이번 분기 목표 못 채웠어요.' },
-  { day: 6, idx: 2, en: 'Take it offline', kr: '회의 밖에서 따로 얘기', ex: '좋은 포인트지만, 회의 끝나고 따로 얘기하시죠.' },
+  { day: 6, idx: 0, en: "Piggyback on", kr: "남의 의견·작업에 얹어서 이어가다", ex: "사라 말에 얹어서 말하자면, 데이터에서도 이게 보였어요." },
+  { day: 6, idx: 1, en: "Hash out", kr: "끝까지 따져서 결론을 정리하다", ex: "세부사항은 따로 끝장 토론으로 정리하죠." },
+  { day: 6, idx: 2, en: "Sounding board", kr: "내 생각을 던져보고 반응 받는 의견 상대", ex: "잠깐 제 생각 좀 던져보고 반응 들어볼 수 있을까요?" },
   // Day 7
-  { day: 7, idx: 0, en: "Play devil's advocate", kr: '일부러 반대 입장 · 딴지', ex: '잠깐 딴지 좀 걸어볼게요 — 만약 서버 터지면요?' },
-  { day: 7, idx: 1, en: 'Middle ground', kr: '타협점 · 절충안', ex: '속도랑 퀄리티 사이에서 타협점을 찾아야 해요.' },
-  { day: 7, idx: 2, en: 'Meet halfway', kr: '서로 양보해서 합의', ex: '가격을 낮춰주시면 저희도 양보해서 물량을 늘리겠습니다.' },
+  { day: 7, idx: 0, en: "Temperature check", kr: "사람들 의중·분위기를 가볍게 떠보기", ex: "가볍게 분위기 좀 볼게요. 금요일 배포 다들 괜찮으세요?" },
+  { day: 7, idx: 1, en: "Talk past each other", kr: "서로 핀트가 어긋나 동문서답하다", ex: "우리 지금 서로 다른 얘기 하고 있는 것 같아요." },
+  { day: 7, idx: 2, en: "Ping", kr: "짧게 메시지로 연락하다", ex: "한가해지면 톡 주세요, 제가 전화할게요." },
   // Day 8
-  { day: 8, idx: 0, en: 'Cut to the chase', kr: '본론으로 바로', ex: '우리 10분밖에 없으니까 본론으로 바로 갑시다.' },
-  { day: 8, idx: 1, en: 'Timebox', kr: '제한 시간 두기', ex: '이 논의는 딱 15분으로 시간 박아둡시다.' },
-  { day: 8, idx: 2, en: 'Give time back', kr: '남은 시간 돌려주기', ex: '안건 다 다뤘으니, 남은 10분은 돌려드릴게요.' },
+  { day: 8, idx: 0, en: "The devil's in the details", kr: "진짜 문제는 사소한 디테일에 숨어 있다", ex: "계획은 좋아 보이는데, 관건은 디테일이에요." },
+  { day: 8, idx: 1, en: "Flag", kr: "(문제·우려를) 짚어서 알리다", ex: "진행하기 전에 한 가지 우려를 짚고 싶어요." },
+  { day: 8, idx: 2, en: "Go off on a tangent", kr: "본론에서 벗어나 곁가지로 새다", ex: "미안해요, 얘기가 샜네요. 다시 예산으로 돌아오죠." },
   // Day 9
-  { day: 9, idx: 0, en: 'Go-to person', kr: '핵심 담당 · 만능 해결사', ex: '데이터 분석 관련은 사라가 우리 만능 해결사예요.' },
-  { day: 9, idx: 1, en: 'Heavy lifting', kr: '가장 빡센 핵심 작업', ex: '디자인 쪽 가장 빡센 작업은 에이전시가 맡을 거예요.' },
-  { day: 9, idx: 2, en: "Step on someone's toes", kr: '남의 영역 침범', ex: '돕고 싶은데, 담당자 선 넘는 건 싫어요.' },
+  { day: 9, idx: 0, en: "Boil down to", kr: "결국 핵심은 ~로 귀결되다", ex: "결국 핵심은 유저가 우리를 믿느냐예요." },
+  { day: 9, idx: 1, en: "Bring to the table", kr: "협업·논의에 기여할 무언가를 내놓다", ex: "이 파트너가 실제로 우리한테 보태주는 게 뭐죠?" },
+  { day: 9, idx: 2, en: "Run with it", kr: "맡겨진 걸 알아서 끝까지 끌고 가다", ex: "이제 그 아이디어는 네 거야. 알아서 끌고 가 봐." },
   // Day 10
-  { day: 10, idx: 0, en: 'Elephant in the room', kr: '모두 알지만 꺼내기 꺼리는 문제', ex: '불편하지만 이 문제부터 짚고 갑시다 — 예산이 반토막 났어요.' },
-  { day: 10, idx: 1, en: 'Read the room', kr: '분위기 파악 · 눈치', ex: '리스크 큰 아이디어는 분위기 보고 꺼내야 해요.' },
-  { day: 10, idx: 2, en: 'Benefit of the doubt', kr: '일단 좋게 믿어주기', ex: '그분 평소 시간 약속 잘 지키니까, 일단 좋게 봐줍시다.' },
+  { day: 10, idx: 0, en: "Take it with a grain of salt", kr: "곧이곧대로 믿지 말고 걸러 듣다", ex: "리뷰 하나일 뿐이니 너무 곧이곧대로 받아들이진 마세요." },
+  { day: 10, idx: 1, en: "Move the goalposts", kr: "(중간에) 기준·목표를 슬쩍 바꿔버리다", ex: "범위 합의했잖아요. 지금 와서 기준 바꾸진 마세요." },
+  { day: 10, idx: 2, en: "On the back burner", kr: "우선순위를 낮춰 잠시 미뤄두다", ex: "이건 3분기까지 우선순위 낮춰서 미뤄두죠." },
   // Day 11
-  { day: 11, idx: 0, en: 'Blank canvas', kr: '백지 상태에서 시작', ex: '이번엔 백지부터 다시 그려보죠.' },
-  { day: 11, idx: 1, en: 'Reinvent the wheel', kr: '쓸데없이 처음부터 다시', ex: '템플릿 있는데 굳이 처음부터 다시 만들 필요 있어요?' },
-  { day: 11, idx: 2, en: 'Scratch the surface', kr: '겉만 건드린 수준', ex: '이번 분석은 솔직히 겉만 건드린 수준이에요.' },
+  { day: 11, idx: 0, en: "Root cause", kr: "증상이 아닌 진짜 근본 원인", ex: "증상만 때우지 말고 근본 원인을 찾읍시다." },
+  { day: 11, idx: 1, en: "Get to the bottom of", kr: "(문제의) 진짜 원인을 끝까지 파헤치다", ex: "이게 왜 자꾸 터지는지 끝까지 파헤쳐봅시다." },
+  { day: 11, idx: 2, en: "Band-aid solution", kr: "잠깐 가리는 임시방편", ex: "서버만 더 붙이는 건 그냥 임시방편이에요." },
   // Day 12
-  { day: 12, idx: 0, en: 'Value proposition', kr: '핵심 가치 제안', ex: 'SMB 시장에서 우리 핵심 가치 제안이 뭔지 다시 정리해야 해요.' },
-  { day: 12, idx: 1, en: 'Competitive edge', kr: '경쟁 우위 · 우리만의 강점', ex: '빠른 배포 속도가 우리 진짜 경쟁 우위예요.' },
-  { day: 12, idx: 2, en: 'Game changer', kr: '판도 뒤집는 혁신', ex: 'AI 자동 설정 기능이 진짜 판 뒤집을 거예요.' },
+  { day: 12, idx: 0, en: "Untangle", kr: "복잡하게 얽힌 것을 차근차근 풀다", ex: "누가 뭘 맡는지부터 엉킨 걸 풀어야 해요." },
+  { day: 12, idx: 1, en: "Iron out", kr: "자잘한 문제·이견을 매끄럽게 정리하다", ex: "서명 전에 자잘한 디테일 몇 개만 정리하면 돼요." },
+  { day: 12, idx: 2, en: "Spin your wheels", kr: "애쓰는데 진전 없이 헛바퀴 돌다", ex: "담당자가 없으니 계속 헛바퀴만 돌고 있어요." },
   // Day 13
-  { day: 13, idx: 0, en: 'Pain point', kr: '핵심 불편 사항', ex: '고객이 가장 답답해하는 pain point 부터 잡읍시다.' },
-  { day: 13, idx: 1, en: 'Bite the bullet', kr: '눈 딱 감고 정면 돌파', ex: '눈 딱 감고 인증 모듈부터 다시 짭시다.' },
-  { day: 13, idx: 2, en: 'Stumbling block', kr: '진행 막는 걸림돌', ex: '예산 승인이 우리 가장 큰 걸림돌이에요.' },
+  { day: 13, idx: 0, en: "Cut corners", kr: "비용·시간 아끼려 대충 날림으로 하다", ex: "보안에서는 대충 넘어갈 수 없어요." },
+  { day: 13, idx: 1, en: "Back to the drawing board", kr: "처음부터 다시 설계하다 / 원점 재검토", ex: "프로토타입이 실패해서 원점에서 다시예요." },
+  { day: 13, idx: 2, en: "In the weeds", kr: "디테일에 너무 파묻혀 큰 그림을 놓친 상태", ex: "너무 디테일에 파묻혔어요. 한 발 빼서 보죠." },
+  // Day 14
+  { day: 14, idx: 0, en: "De-risk", kr: "위험 요소를 미리 줄여 안전하게 만들다", ex: "작은 파일럿으로 먼저 런칭 리스크를 줄이죠." },
+  { day: 14, idx: 1, en: "Future-proof", kr: "나중에도 안 흔들리게 미리 대비해 설계하다", ex: "새 기기까지 대비해서 디자인을 미리 튼튼하게 짜야 해요." },
+  { day: 14, idx: 2, en: "Kick the can down the road", kr: "근본 해결 대신 결정을 자꾸 미루다", ex: "자꾸 미루지 말고 지금 결정합시다." },
+  // Day 15
+  { day: 15, idx: 0, en: "Fall through the cracks", kr: "관리 사각지대로 빠져 누락되다", ex: "누락되지 않게 이건 따로 추적해두죠." },
+  { day: 15, idx: 1, en: "Hit a wall", kr: "더 못 나가는 한계·막힌 벽에 부딪히다", ex: "이 버그에서 완전 막혔어요. 좀 봐줄 수 있어요?" },
+  { day: 15, idx: 2, en: "Move the needle", kr: "수치·성과에 실질적인 변화를 만들다", ex: "이 기능이 리텐션에 실제로 변화를 만들까요?" },
 ];
 
 const SITUATIONS = [
   {
-    emoji: '☕',
-    title: '탕비실에서 우연히 마주침',
-    setting: '<b>탕비실</b>에서 옆 부서 동료가 커피 내리고 있어요. 가볍게 주말 얘기로 시작해서, "By the way…" 로 자연스럽게 신규 프로젝트 얘기로 흘러가보세요.',
-    settingEn: 'You bump into a colleague from another team at the <b>break room</b> — they\'re making coffee. Open with weekend chitchat, then naturally pivot to the new project with "By the way…"',
-    hint: '<b>Opener</b> (주말 어땠어요?) → <b>By the way</b> → 신규 프로젝트 얘기 → <b>Closer</b> (이따 커피 한 잔)',
-    duration: '3~5분',
-    role: '2명 (옆 부서 동료끼리)',
-    suggested: ['Blank canvas', 'Reinvent the wheel', 'Scratch the surface'],
+    emoji: "🚨",
+    title: "갑자기 터진 장애 대응 회의",
+    setting: "서비스에 갑자기 장애가 터졌어요. 팀이 급하게 모여, 일단 <b>임시방편</b>으로 막을지 vs <b>근본 원인</b>을 파고들지 정해야 해요. 침착하게 상황 공유하고 방향을 잡아보세요.",
+    settingEn: "Your service just went down. The team huddles fast: do we slap on a quick band-aid, or get to the bottom of the root cause? Calmly share the situation and steer the call.",
+    hint: "<b>상황 공유</b> → 임시방편 vs 근본 원인 → 누가 <b>run point</b> → 다음 액션",
+    duration: "5~7분",
+    role: "2~3명 (같은 팀)",
+    suggested: ["Root cause", "Band-aid solution", "Get to the bottom of"],
   },
   {
-    emoji: '🎥',
-    title: 'Zoom 스탠드업 대기 5분',
-    setting: '해외 팀과 Zoom 연결했는데 본인 + 1명만 들어와 있고 나머지 5명 아직 안 들어옴. 어색한 <b>5분 pause</b> 를 small talk 으로 채워보세요. "Quick question for you…" 로 시작하면 자연스러워요.',
-    settingEn: 'You\'ve joined the Zoom standup with an overseas team, but only you and one other person are in — the other 5 still haven\'t shown up. Fill the awkward <b>5-minute pause</b> with small talk. Opening with "Quick question for you…" lands naturally.',
-    hint: '<b>Quick question</b> → 비즈 화제 하나 → <b>Speaking of</b> → 같은 주제 확장 → <b>Closer</b> (다 들어오셨네요)',
-    duration: '5분',
-    role: '2명 (같은 팀 동료끼리)',
-    suggested: ['Value proposition', 'Competitive edge', 'Game changer'],
+    emoji: "🧭",
+    title: "할 일 산더미 · 우선순위 정리 1:1",
+    setting: "할 일이 너무 많아 다들 <b>헛바퀴</b>만 도는 상황. 매니저와 1:1로, 뭘 지금 하고 뭘 미룰지 정리해요. 디테일에 파묻히지 말고 <b>임팩트 큰 것</b>부터 잡으세요.",
+    settingEn: "Everyone's spinning their wheels with too much on their plate. In a 1:1 with your manager, sort out what to do now and what to push. Don't get lost in the weeds, lead with what moves the needle.",
+    hint: "<b>현황 공유</b> → 헛바퀴 도는 지점 → 미룰 것 / 할 것 → 임팩트 기준 합의",
+    duration: "5~7분",
+    role: "2명 (멤버 ↔ 매니저)",
+    suggested: ["Spin your wheels", "In the weeds", "Move the needle", "Kick the can down the road"],
   },
   {
-    emoji: '✈️',
-    title: '컨퍼런스 라운지 재회',
-    setting: '업계 컨퍼런스 라운지에서 작년에 잠깐 본 거래처 PM 마주침. <b>flight 30분</b> 남았어요. 가볍게 안부 묻고 본인 팀 근황 얘기하면서 관계 쌓아보세요.',
-    settingEn: 'At an industry conference lounge, you run into a partner PM you briefly met last year. Your <b>flight is 30 minutes away</b>. Catch up casually, share what your team is working on, and build the relationship.',
-    hint: '<b>Glad we ran into each other</b> → 팀 근황 → 본인 pain point 한 마디 → <b>Let\'s catch up properly</b>',
-    duration: '5분',
-    role: '2명 (거래처 PM끼리)',
-    suggested: ['Pain point', 'Bite the bullet', 'Stumbling block'],
+    emoji: "🏝️",
+    title: "도현님 · 투어 가이드 팀 회의 (롤플레잉)",
+    setting: "새 투어 코스(<b>시키호르</b>) 도입을 두고, 본사 매니저(운영자)가 가이드인 도현님께 현실적인 우려를 쏟아냅니다. 이동 시간, 컴플레인·응급 대응, 업셀링과 컴플레인 사이 줄타기, 현지 가이드 통제, 식당 문제 등. <b>본인 경험으로 차분히 답하고</b>, 막히는 부분엔 백업 플랜이나 대안을 제시하세요. (매니저 질문은 운영자가 즉석에서 던집니다.)",
+    settingEn: "A head-office manager (the host) raises real concerns about rolling out a new tour course (Siquijor): the long round-trip travel time, complaint and emergency risk, the tightrope between upselling and complaints, controlling local crews, and problem restaurants. Answer calmly from your real experience, and offer a backup plan or alternative where it gets tricky. (The host throws the questions live.)",
+    hint: "우려 듣기 → 본인 경험으로 답 → 막히면 <b>백업 플랜·대안</b> 제시 → 합의점 찾기",
+    duration: "7~10분",
+    role: "도현(가이드) ↔ 운영자(매니저)",
+    suggested: ["De-risk", "Back to the drawing board", "Get to the bottom of", "Band-aid solution", "Move the needle", "Hit a wall"],
   },
   {
-    emoji: '🎯',
-    title: '자유 — Day 1~13 전체 mix',
-    setting: '본인이 자주 만나는 <b>실제 비즈 상황</b> 하나를 골라 2-3분 짧게 풀어보세요. 4주간 배운 단어 중에서 자연스럽게 끼울 수 있는 거 1-3개만 골라 써보면 OK.',
-    settingEn: 'Pick a <b>real business scenario</b> you face often, and act it out for 2-3 minutes. Just naturally slip in 1-3 of the words you\'ve learned over the past few weeks.',
-    hint: '본인 상황 1줄 설정 → 단어 풀에서 쓸 단어 미리 1-3개 픽 → 자유롭게 대화',
-    duration: '2~3분',
-    role: '1~3명',
-    suggested: [], // 자유 — 다 추천
+    emoji: "🎯",
+    title: "자유 · Day 1~15 전체 mix",
+    setting: "본인이 자주 만나는 <b>실제 비즈 상황</b> 하나를 골라 2~3분 짧게 풀어보세요. 그동안 배운 단어 중 자연스럽게 끼울 수 있는 거 1~3개만 골라 써보면 OK.",
+    settingEn: "Pick a real business scenario you face often and act it out for 2-3 minutes. Just naturally slip in 1-3 of the words you've learned so far.",
+    hint: "본인 상황 1줄 설정 → 단어 풀에서 쓸 단어 1~3개 픽 → 자유롭게 대화",
+    duration: "2~3분",
+    role: "1~3명",
+    suggested: [],
   },
 ];
 
@@ -613,7 +621,7 @@ function renderFilters() {
   const bmCount = Object.values(state.bookmarks).filter(Boolean).length;
   const filters = [
     { id: 'all',       label: '전체',          count: ALL_VOCAB.length },
-    { id: 'thisweek',  label: 'Day 11~13',    count: ALL_VOCAB.filter(v => v.day >= 11).length },
+    { id: 'thisweek',  label: 'Day 11~15',    count: ALL_VOCAB.filter(v => v.day >= 11).length },
     { id: 'lastweek',  label: 'Day 1~10',     count: ALL_VOCAB.filter(v => v.day <= 10).length },
     { id: 'bookmarks', label: `🔖 내 북마크`,   count: bmCount },
   ];
