@@ -16773,7 +16773,8 @@ function MeetingNotesPage(meetingId) {
 
   // Week 1·2: 발표 모드(슬라이드 덱) 진입 버튼. 운영자 전용 (나만 보임).
   const __deckForMeeting = (meta.n === 1 && typeof WEEK1_DECK !== 'undefined') ? WEEK1_DECK
-    : (meta.n === 2 && typeof WEEK2_DECK !== 'undefined') ? WEEK2_DECK : null;
+    : (meta.n === 2 && typeof WEEK2_DECK !== 'undefined') ? WEEK2_DECK
+    : (meta.n === 3 && typeof WEEK3_DECK !== 'undefined') ? WEEK3_DECK : null;
   if (__deckForMeeting && (state.isOperator || state.isStaff)) {
     const deckBtn = el('button', { class: 'btn btn-primary btn-full btn-lg', style: { marginBottom: '14px' }, onClick: () => { window.__currentMeetingId = meetingId; window.__deckIdx = 0; if (typeof __deckHydrate === 'function') __deckHydrate(); go('meeting-deck'); } });
     deckBtn.innerHTML = `🎤 발표 모드 시작 (운영자 전용) · 슬라이드 ${__deckForMeeting.length}장 ${Icon('arrowRight', 16)}`;
@@ -27062,11 +27063,157 @@ const WEEK2_DECK = [
       + '<div style="margin-top:12px;padding:13px 15px;border-radius:14px;background:#EAF3DE;color:#3B6D11;font-size:13.5px;line-height:1.7;">📅 PT 세션 일정도 이때 확정해요.</div>' },
 ];
 
-// 현재 발표 모드/회의록이 가리키는 미팅 (m1=Week1, m2=Week2). __currentMeetingId 기준.
-function __curMid() { return window.__currentMeetingId === 'm2' ? 'm2' : 'm1'; }
-function __curWk() { return __curMid() === 'm2' ? 'week2' : 'week1'; }
-function __curDeck() { return (__curMid() === 'm2' && typeof WEEK2_DECK !== 'undefined') ? WEEK2_DECK : WEEK1_DECK; }
-function __curWarmup() { return (__curMid() === 'm2' && typeof WEEK2_WARMUP !== 'undefined') ? WEEK2_WARMUP : WEEK1_WARMUP; }
+// ── WEEK 3 발표 모드 덱 (외국계 쿠션어, 부드럽게 말하기). Week 1·2 와 같은 머신 사용.
+// 핵심: "한 번 읽고 끝"이 아니라 ❌직설 → ✅쿠션 즉석 변환 드릴로 입에 붙이기.
+// 쿠션어 20선 (4 카테고리). 운영자 문서 "외국계 쿠션어 모음집" 기반.
+const CUSHION_PHRASES = [
+  { cat: '요청을 부드럽게', items: [
+    { en: 'I was wondering if…', kr: '혹시 가능할지 조심스레 요청 시작' },
+    { en: 'Would it be possible to…', kr: '상대 선택권을 남기는 요청' },
+    { en: 'Could you help me with…', kr: 'can보다 안전한 도움 요청 기본형' },
+    { en: 'Do you think you could…', kr: '부담을 낮추는 간접 요청' },
+    { en: 'When you have a moment…', kr: 'ASAP 압박 없이 요청할 때' },
+  ] },
+  { cat: '의견·반대·조정', items: [
+    { en: 'From my perspective…', kr: '내 의견임을 명확히 분리' },
+    { en: 'I might be wrong, but…', kr: '반대 의견 들어갈 때 최강 쿠션' },
+    { en: 'It seems like…', kr: '단정하지 않는 관찰 표현' },
+    { en: "I'm not entirely sure, but…", kr: '확신 없어도 말 꺼내게 해줌' },
+    { en: 'One thing to consider is…', kr: '반대 대신 추가 관점으로' },
+  ] },
+  { cat: '일정·문제·리스크', items: [
+    { en: 'There might be a delay in…', kr: '문제를 부드럽게 예고' },
+    { en: 'We may need to revisit this.', kr: '틀렸다 대신 다시 보자' },
+    { en: 'This could potentially affect…', kr: '리스크 가능성만 언급' },
+    { en: 'I just want to flag that…', kr: '지적 아닌 공유로 짚기' },
+    { en: "Just to make sure we're aligned…", kr: '오해 방지용 재확인' },
+  ] },
+  { cat: "톤 낮추는 '요즘식' 완충", items: [
+    { en: 'Just to clarify…', kr: '공격처럼 안 들리게 되묻기' },
+    { en: 'If that makes sense.', kr: '말 끝 완충 장치' },
+    { en: 'Let me know your thoughts.', kr: '명령 대신 선택권' },
+    { en: "I'd appreciate it if…", kr: '감사 + 요청 동시에' },
+    { en: 'No rush at all.', kr: '안 급하다는 신호 (요즘 필수)' },
+  ] },
+];
+// 워밍업/복습용 평탄화 (한국어 힌트 → 영어 쿠션 표현 즉답).
+const WEEK3_WARMUP = CUSHION_PHRASES.flatMap((g) => g.items.map((it) => ({ kr: it.kr, en: it.en })));
+// ❌직설 → ✅쿠션 변환 드릴 (카테고리별). 운영자가 ❌만 던지고, 멤버가 즉석에서 ✅로 바꿔 말함.
+const CUSHION_DRILLS = [
+  { cat: '① 요청을 부드럽게', emoji: '🙏',
+    how: '운영자가 ❌ 직설 문장을 툭 던지면, 두 분이 그 자리에서 쿠션어로 바꿔 말하기. 막히면 ✅ 살짝 열어 확인하고 한 번 더.',
+    items: [
+      { bad: 'Can I change my vacation dates?', good: "I was wondering if it'd be possible to adjust my vacation dates?", chip: 'I was wondering if' },
+      { bad: 'Can you show me how to use this?', good: 'Could you help me with this when you have a moment?', chip: 'Could you help me with' },
+      { bad: 'We need to postpone the meeting.', good: 'Would it be possible to reschedule our meeting to next week?', chip: 'Would it be possible to' },
+    ] },
+  { cat: '② 의견·반대·조정', emoji: '💬',
+    how: '회의에서 반대·다른 의견을 낼 때. ❌처럼 단정하지 말고, 쿠션을 앞에 깔고 같은 내용을 말해보기.',
+    items: [
+      { bad: 'I think B is better.', good: 'From my perspective, Option B might give us more flexibility.', chip: 'From my perspective' },
+      { bad: "That's not going to work.", good: "I might be wrong, but I think the client doesn't support that.", chip: 'I might be wrong, but' },
+      { bad: "Our strategy isn't working.", good: 'It seems like our numbers have dropped. Maybe we test a new angle?', chip: 'It seems like' },
+      { bad: 'This timeline is unrealistic.', good: "One thing to consider is whether we'll have enough time for QA.", chip: 'One thing to consider is' },
+    ] },
+  { cat: '③ 일정·문제·리스크', emoji: '🚩',
+    how: '나쁜 소식·리스크를 전할 때. 패닉 주지 않게 가능성으로 부드럽게, 비난 없이.',
+    items: [
+      { bad: "The vendor is late. We'll miss the deadline.", good: 'There might be a delay in the delivery. Should we adjust the timeline?', chip: 'There might be a delay in' },
+      { bad: 'That approach was wrong.', good: 'We may need to revisit the approach we discussed last week.', chip: 'We may need to revisit this' },
+      { bad: 'You forgot the IP clause.', good: "I just want to flag that I didn't see the IP clause, am I missing it?", chip: 'I just want to flag that' },
+    ] },
+  { cat: "④ 톤 낮추는 완충", emoji: '🧸',
+    how: '메일·슬랙 끝맺음. 명령조를 선택권·감사로 바꾸고, 안 급하다는 신호 더하기.',
+    items: [
+      { bad: "I don't understand what you mean.", good: 'Just to clarify, do you mean animations or graphics?', chip: 'Just to clarify' },
+      { bad: 'Send me the file by EOD.', good: "I'd appreciate it if you could send the file by EOD. Thanks so much!", chip: "I'd appreciate it if" },
+      { bad: 'Can you review this?', good: 'When you get a chance, could you take a look? No rush at all.', chip: 'No rush at all' },
+    ] },
+];
+// 카테고리별 드릴 슬라이드 (하나씩 넘기며 ❌→✅ 즉석 변환). ✅는 토글 전까지 가려둠.
+const CUSHION_DRILL_SLIDES = CUSHION_DRILLS.map((g, i) => ({
+  section: '쿠션 변환 드릴', kicker: '3 · 드릴 ' + (i + 1) + ' / ' + CUSHION_DRILLS.length, title: g.emoji + ' ' + g.cat,
+  cushionDrill: g,
+}));
+const WEEK3_DECK = [
+  { section: '오프닝', kicker: 'WEEK 3 · 60분', title: '오늘 순서 한눈에',
+    html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">이도현 · 정주혜</b> · 오늘 발표: <b style="color:var(--orange-dark);">이도현 님</b> · 🎥 서보경(Mason)님 녹화 제공</div>'
+    + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
+    + ['미니 강연 (쿠션어가 왜 필요한가)', '쿠션어 20선 칠판 한눈에', '❌→✅ 쿠션 변환 드릴 (오늘의 핵심)', '내 상황 짝 연습', '20선 복습 한 바퀴', '발표 1명 꼼꼼 피드백 (이도현 님)'].map((t, i) =>
+        '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
+    + '</div>'
+    + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(233,76,107,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎯 목표: 직설적인 한 문장을 <b>그 자리에서 쿠션어로 바꿔 말하기</b>. 읽기가 아니라 입에 붙이기.</div>' },
+
+  { section: '미니 강연', kicker: '1 · 외국계 쿠션어', title: '영어엔 존댓말이 없어요',
+    html: '<div style="font-size:14.5px;line-height:1.8;color:var(--ink);">한국어는 <b>존댓말</b>로 공손함을 표현하지만, 영어는 문법적 존댓말이 없어요. 대신 <b>표현 선택</b>으로 톤을 조절합니다.</div>'
+    + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:10px;">'
+    + '<div style="padding:12px 14px;border-radius:13px;background:#FBEEEC;border:1px solid rgba(214,69,69,0.22);"><span style="font-size:11.5px;font-weight:800;color:#C0392B;">❌ 너무 직접적</span><div style="margin-top:3px;font-size:14px;font-family:var(--font-mono);color:#922;">"Can you help me with this?"</div></div>'
+    + '<div style="padding:12px 14px;border-radius:13px;background:#EAF3DE;border:1px solid rgba(107,142,78,0.3);"><span style="font-size:11.5px;font-weight:800;color:#3B6D11;">✅ 자연스럽고 정중</span><div style="margin-top:3px;font-size:14px;font-family:var(--font-mono);color:#3B6D11;">"I was wondering if you could help me with this when you have a moment."</div></div>'
+    + '</div>'
+    + '<div style="margin-top:14px;padding:13px 15px;border-radius:14px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.22);font-size:13.5px;color:#5C53A5;line-height:1.7;">💡 핵심: 문법을 잘해서가 아니라 <b>쿠션 구조에 내용만 끼워 넣으면</b> 자동으로 공손해져요. 원어민도 새 문장을 만들기보다 이 패턴을 재사용합니다.</div>' },
+
+  { section: '미니 강연', kicker: '1 · 칠판', title: '쿠션어 20선 · 4개 서랍',
+    html: (() => {
+      const card = (g) => '<div style="margin-top:13px;padding-top:11px;border-top:1px dashed rgba(255,255,255,0.18);">'
+        + '<div style="font-size:12.5px;font-weight:800;color:#9FE1CB;">' + escapeHtml(g.cat) + '</div>'
+        + g.items.map((it) => '<div style="margin-top:6px;"><span style="font-size:13.5px;font-weight:800;color:#fff;font-family:var(--font-mono);">' + escapeHtml(it.en) + '</span><span style="font-size:11px;color:#C9D6C0;margin-left:7px;">' + escapeHtml(it.kr) + '</span></div>').join('') + '</div>';
+      return '<div style="background:#26331F;border-radius:18px;padding:18px;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
+        + '<div style="font-size:11px;letter-spacing:0.1em;color:#FBE7A1;font-weight:800;">📋 오늘의 칠판 · 외워두면 자동 공손</div>'
+        + CUSHION_PHRASES.map(card).join('')
+        + '</div>'
+        + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">하나씩 다 외우려 하지 마세요. 오늘은 <b>본인이 약한 서랍 1~2개</b>만 골라 입에 붙이면 충분해요.</div>';
+    })() },
+
+  { section: '쿠션 변환 드릴', kicker: '3 · 진행 방식', title: '❌→✅ 이렇게 굴려요',
+    html: (() => {
+      const step = (emo, t, sub) => '<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.16);">'
+        + '<span style="flex-shrink:0;width:42px;height:42px;border-radius:12px;background:#FFF1E6;display:inline-flex;align-items:center;justify-content:center;font-size:22px;">' + emo + '</span>'
+        + '<div><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div><div class="t-small" style="margin-top:1px;color:var(--ink-soft);">' + sub + '</div></div></div>';
+      const arrow = '<div style="text-align:center;color:#D8B79E;font-size:15px;line-height:1;margin:1px 0;">↓</div>';
+      return '<div style="display:flex;flex-direction:column;">'
+        + step('💣', '운영자가 직설 폭탄 ❌', '"This won\'t work." 같은 문장을 툭 던져요') + arrow
+        + step('🗣️', '바로 쿠션어로 바꿔 말하기', '머릿속 말고 소리 내서, 두 분이 번갈아') + arrow
+        + step('👀', '✅ 모범답안 열기', '비교해보고 한 번 더 따라 말하기') + arrow
+        + step('🙋', '내 상황으로 한 문장', '본인 실제 업무로 같은 패턴 응용')
+        + '</div>'
+        + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(233,76,107,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎮 게임처럼: 직설 폭탄에 <b>누가 먼저 부드럽게</b> 받아치나. 정답은 토글로 가려뒀어요.</div>';
+    })() },
+
+  ...CUSHION_DRILL_SLIDES,
+
+  { section: '짝 연습', kicker: '4 · 내 상황', title: '내 메일·슬랙을 쿠션어로',
+    html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">각자 <b>다음 주에 진짜 보낼 메일·슬랙 1개</b>를 떠올려, 쿠션어를 넣어 소리 내어 말해봐요.</div>'
+    + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:9px;">'
+    + '<div style="padding:12px 14px;border-radius:13px;background:#FBEEEC;border:1px solid rgba(214,69,69,0.2);"><b style="color:#C0392B;">1단계</b> 평소 내가 쓰던 직설 문장을 그대로 말해보기</div>'
+    + '<div style="padding:12px 14px;border-radius:13px;background:#EAF3DE;border:1px solid rgba(107,142,78,0.28);"><b style="color:#3B6D11;">2단계</b> 칠판 서랍에서 표현 1개 골라 쿠션어로 다시 말하기</div>'
+    + '</div>'
+    + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;font-size:12.5px;color:var(--ink);line-height:1.6;">🔁 운영자: 잘된 것 먼저 칭찬 → 팁 1개만. 막히면 칠판 표현으로 힌트.</div>' },
+
+  { section: '복습', kicker: '5 · 복습', title: '쿠션어 20선 빠른 한 바퀴', worksheet: true,
+    html: '<div style="font-size:13px;color:var(--ink-soft);line-height:1.6;">한국어 힌트 보고 영어 쿠션 표현 바로 말해보고, 막히면 🔖 표시. (오늘 약했던 서랍 위주로)</div>' },
+
+  { section: '발표 피드백', kicker: '6 · 발표', title: '이도현 님 발표 + 피드백',
+    checks: ['이도현 님 10분 발표', '잘한 점 먼저, 구체적으로 짚기', '표현·전달 피드백 1~2개만 (한 번에 너무 많이 X)', '다음에 시도해볼 것 한 가지 정해주기'],
+    presenterScript: { name: '이도현', weekN: 3 },
+    html: '<div style="padding:13px 15px;border-radius:14px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.22);font-size:13px;color:#5C53A5;line-height:1.7;">💡 피드백 원칙: <b>칭찬 먼저 → 구체적으로 → 실행 가능한 것 한 가지</b>. 기죽이지 않기.</div>' },
+
+  { section: '마무리', kicker: '7 · 마무리', title: '마무리 체크', wrapGoals: true,
+    checks: ['오늘 쿠션어 중 본인이 실제로 쓸 것 1개 정하기', '과제 안내: 이번 주 메일·슬랙·회의에서 그 표현 한 번 실제로 써보기'],
+    html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래를 체크하며 마무리하고, 다음 주 목표를 받아적어요.</div>' },
+
+  { section: '다음주 예고', kicker: '다음 주 · 마지막', title: 'Week 4 · 전체 어휘 랩업',
+    html: '<div style="background:#22301B;border-radius:18px;padding:18px;color:#ECEFE3;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
+    + '<div style="font-size:11px;letter-spacing:0.06em;color:#FBE7A1;font-weight:800;">WEEK 4 · 🎁 4주 총정리</div>'
+    + '<div style="margin-top:8px;font-size:12.5px;color:#ECEFE3;line-height:1.85;">① 4주 표현 랩업 → ② 약한 표현 집중 복습 → ③ 실전 종합 롤플레잉 → ④ 두 분 다 발표·피드백</div>'
+    + '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.25);font-size:11.5px;color:#C9D6C0;line-height:1.7;">🍬 4주간 쌓은 표현을 한자리에서 점검하고, 각자 가장 강해진 표현을 확인해요.</div></div>'
+    + '<div style="margin-top:12px;padding:13px 15px;border-radius:14px;background:#EAF3DE;color:#3B6D11;font-size:13.5px;line-height:1.7;">📅 수료 PT·1:1 미팅 일정도 이때 확정해요. 두 분 다 끝까지 가봐요 🧡</div>' },
+];
+
+// 현재 발표 모드/회의록이 가리키는 미팅 (m1=Week1, m2=Week2, m3=Week3). __currentMeetingId 기준.
+function __curMid() { return (window.__currentMeetingId === 'm2' || window.__currentMeetingId === 'm3') ? window.__currentMeetingId : 'm1'; }
+function __curWk() { return __curMid() === 'm3' ? 'week3' : __curMid() === 'm2' ? 'week2' : 'week1'; }
+function __curDeck() { return (__curMid() === 'm3' && typeof WEEK3_DECK !== 'undefined') ? WEEK3_DECK : (__curMid() === 'm2' && typeof WEEK2_DECK !== 'undefined') ? WEEK2_DECK : WEEK1_DECK; }
+function __curWarmup() { return (__curMid() === 'm3' && typeof WEEK3_WARMUP !== 'undefined') ? WEEK3_WARMUP : (__curMid() === 'm2' && typeof WEEK2_WARMUP !== 'undefined') ? WEEK2_WARMUP : WEEK1_WARMUP; }
 window.__deckLoadScripts = () => { if (typeof loadCohortPresenterScripts === 'function') loadCohortPresenterScripts({ force: true }).then(() => render()); };
 
 window.__deckIdx = 0;
@@ -27263,6 +27410,23 @@ function MeetingDeckPage() {
         + '<span style="font-size:11px;color:var(--muted);width:18px;flex-shrink:0;text-align:right;">' + (i + 1) + '.</span>'
         + '<span style="flex:1;font-size:14.5px;color:var(--ink);">' + escapeHtml(w.kr) + '</span>'
         + '<span style="font-size:13.5px;font-family:var(--font-mono);color:var(--orange-dark);font-weight:700;filter:' + (rev ? 'none' : 'blur(5.5px)') + ';transition:filter 0.15s;text-align:right;">' + escapeHtml(w.en) + '</span></div>';
+    });
+    body += '</div>';
+  }
+  if (s.cushionDrill) {
+    const g = s.cushionDrill;
+    const rev = window.__deckRevealAns;
+    body += '<div style="margin-top:6px;padding:11px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(233,76,107,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;"><b>👥 진행</b><br>' + escapeHtml(g.how) + '</div>';
+    body += '<div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">'
+      + '<span class="t-small" style="color:var(--ink-soft);">❌ 직설을 먼저 쿠션어로 바꿔 말한 뒤 ✅ 열기</span>'
+      + '<button onclick="window.__deckToggleAns()" style="font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;">' + (rev ? '🙈 모범답안 가리기' : '👀 모범답안 보기') + '</button></div>';
+    body += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:11px;">';
+    g.items.forEach((it) => {
+      body += '<div style="padding:12px 13px;border-radius:14px;border:1px solid rgba(154,139,115,0.18);background:#FFFDF8;">'
+        + '<div style="display:flex;gap:8px;align-items:flex-start;"><span style="flex-shrink:0;font-size:13px;">❌</span><span style="font-size:14.5px;font-family:var(--font-mono);color:#922;font-weight:700;">' + escapeHtml(it.bad) + '</span></div>'
+        + '<div style="margin-top:8px;display:flex;gap:8px;align-items:flex-start;"><span style="flex-shrink:0;font-size:13px;">✅</span><span style="font-size:14px;font-family:var(--font-mono);color:#3B6D11;font-weight:700;filter:' + (rev ? 'none' : 'blur(6px)') + ';transition:filter 0.15s;">' + escapeHtml(it.good) + '</span></div>'
+        + '<div style="margin-top:7px;"><span style="display:inline-block;font-size:11px;font-weight:800;color:#5C53A5;background:#F3EEFF;border:1px solid rgba(125,92,255,0.22);border-radius:999px;padding:3px 9px;filter:' + (rev ? 'none' : 'blur(5px)') + ';">🔑 ' + escapeHtml(it.chip) + '</span></div>'
+        + '</div>';
     });
     body += '</div>';
   }
