@@ -8761,6 +8761,26 @@ function Checkboard() {
   const myTz = state.timezoneOffsetText || '+0h';
   const escAttr = (s) => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
+  // 쉬는 중 / 복귀 판정. 본인 시차 기준 '오늘' 직전까지 연속으로 4일+ 미인증이면 dormant(쉬는 중).
+  // 그 상태에서 오늘 다시 인증하면 dormant 해제 + comeback(복귀!) 신호. (운영자·본인·완주자 제외)
+  const CB_REST_THRESHOLD = 4;
+  const cbRestState = (m) => {
+    if (m.me || m.isOperator) return { dormant: false, comeback: false };
+    const off = (function () {
+      const t = parseTimezoneShift(memberTimezoneText(m));
+      return (t && t.ok) ? t.offsetMinutes : effectiveTimezoneOffsetMinutes();
+    })();
+    const cur = Math.min(currentDayForOffset(off), 20);
+    if (cur < CB_REST_THRESHOLD + 1) return { dormant: false, comeback: false }; // 4일 연속 불가능 구간
+    const vset = (Array.isArray(m.verifiedDays) && m.verifiedDays.length) ? new Set(m.verifiedDays.map(Number)) : new Set();
+    const grace1 = isDay1GraceMember(m) && day1GraceOpenForOffset(off);
+    const missedAt = (d) => d >= 1 && d < cur && !vset.has(d) && !(d === 1 && grace1);
+    let run = 0;
+    for (let d = cur - 1; d >= 1; d--) { if (missedAt(d)) run += 1; else break; }
+    if (vset.has(cur)) return { dormant: false, comeback: run >= CB_REST_THRESHOLD };
+    return { dormant: run >= CB_REST_THRESHOLD, comeback: false };
+  };
+
   const rowsHtml = cachedRowsHtml || orderedMembers.map((m) => {
     // 이름칸 ── 가입 안 한 멤버는 회색 (__registeredLoaded 후만 판정).
     const isUnreg = !!(window.__registeredLoaded && !m.me && !m.registered);
@@ -8769,6 +8789,9 @@ function Checkboard() {
     // 완주자, 18일 이상 인증한 멤버 이름을 초록색 + 🏅 로 강조.
     const cbDone = m.me ? (typeof completedCount === 'function' ? completedCount() : (Number(m.progress) || 0)) : (Number(m.progress) || 0);
     const cbCompleted = cbDone >= 18;
+    const rest = cbRestState(m);
+    const isDormant = rest.dormant && !cbCompleted && !isUnreg;
+    const isComeback = rest.comeback && !cbCompleted;
     const memberTz = (memberTimezoneText(m) || '').trim();
     const showTz = memberTz && memberTz !== '+0h';
     // 운영자/스태프 view, 영어 닉네임 옆에 작은 한글 이름 inline 노출 (멤버 매핑 빠르게)
@@ -8777,12 +8800,19 @@ function Checkboard() {
       && m.name && m.englishName && m.englishName.trim()
       && m.name.trim() !== m.englishName.trim()
       ? m.name.trim() : '';
+    const nameStyle = isDormant ? 'color:var(--muted);opacity:0.55;' : (cbCompleted ? 'color:#1F8F58;font-weight:800;' : '');
+    const restBadge = isDormant
+      ? `<span title="4일+ 연속 미인증 · 다시 인증하면 바로 풀려요" style="flex-shrink:0;font-size:9.5px;font-weight:700;color:var(--muted);background:rgba(154,139,115,0.16);border-radius:999px;padding:1px 7px;white-space:nowrap;">💤 쉬는 중</span>`
+      : isComeback
+      ? `<span title="돌아왔어요! 🧡" style="flex-shrink:0;font-size:9.5px;font-weight:800;color:#C2410C;background:#FFE7D8;border-radius:999px;padding:1px 7px;white-space:nowrap;">🧡 복귀!</span>`
+      : '';
     const nameHtml = `
       <div class="${nameCls}" style="cursor:pointer;" data-member-ref="${escAttr(memberRef)}">
-        <div class="tiny-av ${resolveAvatarColor(m)}">${safeInitial(m)}</div>
+        <div class="tiny-av ${resolveAvatarColor(m)}"${isDormant ? ' style="opacity:0.4;"' : ''}>${safeInitial(m)}</div>
         <div style="min-width:0;overflow:hidden;flex:1 1 auto;">
           <div style="display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden;">
-            <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto;${cbCompleted ? 'color:#1F8F58;font-weight:800;' : ''}">${escapeHtml(displayName(m))}</span>
+            <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto;${nameStyle}">${escapeHtml(displayName(m))}</span>
+            ${restBadge}
             ${cbCompleted ? `<span title="완주 · 18일+ 인증" style="flex-shrink:0;font-size:11px;line-height:1;">🏅</span>` : ''}
             ${krShadow ? `<span style="font-size:10px;color:var(--muted);font-weight:500;flex-shrink:0;letter-spacing:-0.01em;opacity:0.85;" title="한글 이름 (운영자 view 전용)">· ${escapeHtml(krShadow)}</span>` : ''}
             ${premiumPill(m)}
