@@ -8701,21 +8701,57 @@ function Checkboard() {
   };
   // 참여율, m.progress (인증한 day 수). 동일 cohort 라 총 day 가 같으므로 절대값으로 비교 OK.
   // 정시/지각 무관 "참여했다" 카운트 (verifiedDays 길이 기반).
-  const participationOf = (m) => Number(m.progress || 0);
+  // ── 쉬는 중(dormant) 판정 (정렬 + 렌더 공용). 본인 시차 '오늘' 직전까지 4일+ 연속 미인증이면 dormant.
+  //    그 상태에서 오늘 다시 인증하면 dormant 해제 + comeback(복귀!) 신호. (운영자·본인 제외)
+  const CB_REST_THRESHOLD = 4;
+  const cbRestState = (m) => {
+    if (m.me || m.isOperator) return { dormant: false, comeback: false };
+    const off = (function () {
+      const t = parseTimezoneShift(memberTimezoneText(m));
+      return (t && t.ok) ? t.offsetMinutes : effectiveTimezoneOffsetMinutes();
+    })();
+    const cur = Math.min(currentDayForOffset(off), 20);
+    if (cur < CB_REST_THRESHOLD + 1) return { dormant: false, comeback: false };
+    const vset = (Array.isArray(m.verifiedDays) && m.verifiedDays.length) ? new Set(m.verifiedDays.map(Number)) : new Set();
+    const grace1 = isDay1GraceMember(m) && day1GraceOpenForOffset(off);
+    const missedAt = (d) => d >= 1 && d < cur && !vset.has(d) && !(d === 1 && grace1);
+    let run = 0;
+    for (let d = cur - 1; d >= 1; d--) { if (missedAt(d)) run += 1; else break; }
+    if (vset.has(cur)) return { dormant: false, comeback: run >= CB_REST_THRESHOLD };
+    return { dormant: run >= CB_REST_THRESHOLD, comeback: false };
+  };
+
+  // 정렬용 인증 수 (본인은 로컬 completedCount 기준).
+  const participationOf = (m) => m.me
+    ? (typeof completedCount === 'function' ? completedCount() : Number(m.progress || 0))
+    : Number(m.progress || 0);
+  // 동점 tiebreak: 각 멤버의 '최근 인증일'에 몇 시(분)에 인증했나. 빠를수록 위. 시각 없으면 맨 뒤.
+  const __verifyMinOnDay = (m, day) => {
+    let hhmm = '';
+    if (m.me) hhmm = ((state.verified_time || {})['d' + day]) || '';
+    else { const pm = (window.__peerVerifyTimes || {})[day] || {}; hhmm = pm[m.name] || pm[m.member_key] || ''; }
+    const mt = /^(\d{1,2}):(\d{2})/.exec(hhmm);
+    return mt ? (Number(mt[1]) * 60 + Number(mt[2])) : Infinity;
+  };
+  const __tieTime = (m) => {
+    const days = m.me
+      ? Array.from({ length: 20 }, (_, i) => i + 1).filter((d) => (state.verified || {})['d' + d] || (state.verified_late || {})['d' + d])
+      : (Array.isArray(m.verifiedDays) ? m.verifiedDays.map(Number) : []);
+    if (!days.length) return Infinity;
+    return __verifyMinOnDay(m, Math.max.apply(null, days));
+  };
+
   const orderedMembers = [...allMembers].sort((a, b) => {
-    // 1) me → 항상 맨 위
-    if (a.me !== b.me) return a.me ? -1 : 1;
-    // 2) 운영자 (유버디) → me 다음 (단, me 가 본인 운영자면 위 단계서 처리됨)
-    const aOp = a.isOperator ? 1 : 0;
-    const bOp = b.isOperator ? 1 : 0;
-    if (aOp !== bOp) return bOp - aOp;
-    // 3) tier, premium 먼저
-    const ta = tierRank(a), tb = tierRank(b);
-    if (ta !== tb) return ta - tb;
-    // 4) 같은 tier 안에서 참여율 높은 순 (내림차순)
+    // 1) 쉬는 중(4일+ 연속 미인증)은 프리미엄/베이직 무관 항상 아래로 (베이직 쉬는 중과 한 그룹)
+    const da = cbRestState(a).dormant ? 1 : 0, db = cbRestState(b).dormant ? 1 : 0;
+    if (da !== db) return da - db;
+    // 2) 인증 많이 한 사람 순 (내림차순)
     const pa = participationOf(a), pb = participationOf(b);
     if (pa !== pb) return pb - pa;
-    // 5) 참여율 동률 시, 영어 이름 (없으면 한글) 알파벳/가나다순
+    // 3) 동점이면 그날(최근 인증일) 더 먼저 인증한 사람이 위로
+    const ta = __tieTime(a), tb = __tieTime(b);
+    if (ta !== tb) return ta - tb;
+    // 4) 그래도 같으면 이름순
     return koCollator.compare(sortNameOf(a), sortNameOf(b));
   });
   // ── 성능 최적화, 50명 × 21셀 = 1050 노드를 el() 로 일일이 만들면 매 render 마다 무거움.
@@ -8761,25 +8797,7 @@ function Checkboard() {
   const myTz = state.timezoneOffsetText || '+0h';
   const escAttr = (s) => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
-  // 쉬는 중 / 복귀 판정. 본인 시차 기준 '오늘' 직전까지 연속으로 4일+ 미인증이면 dormant(쉬는 중).
-  // 그 상태에서 오늘 다시 인증하면 dormant 해제 + comeback(복귀!) 신호. (운영자·본인·완주자 제외)
-  const CB_REST_THRESHOLD = 4;
-  const cbRestState = (m) => {
-    if (m.me || m.isOperator) return { dormant: false, comeback: false };
-    const off = (function () {
-      const t = parseTimezoneShift(memberTimezoneText(m));
-      return (t && t.ok) ? t.offsetMinutes : effectiveTimezoneOffsetMinutes();
-    })();
-    const cur = Math.min(currentDayForOffset(off), 20);
-    if (cur < CB_REST_THRESHOLD + 1) return { dormant: false, comeback: false }; // 4일 연속 불가능 구간
-    const vset = (Array.isArray(m.verifiedDays) && m.verifiedDays.length) ? new Set(m.verifiedDays.map(Number)) : new Set();
-    const grace1 = isDay1GraceMember(m) && day1GraceOpenForOffset(off);
-    const missedAt = (d) => d >= 1 && d < cur && !vset.has(d) && !(d === 1 && grace1);
-    let run = 0;
-    for (let d = cur - 1; d >= 1; d--) { if (missedAt(d)) run += 1; else break; }
-    if (vset.has(cur)) return { dormant: false, comeback: run >= CB_REST_THRESHOLD };
-    return { dormant: run >= CB_REST_THRESHOLD, comeback: false };
-  };
+  // (cbRestState / CB_REST_THRESHOLD 정의는 위 정렬 블록으로 이동함)
 
   const rowsHtml = cachedRowsHtml || orderedMembers.map((m) => {
     // 이름칸 ── 가입 안 한 멤버는 회색 (__registeredLoaded 후만 판정).
