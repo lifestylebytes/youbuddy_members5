@@ -4596,12 +4596,29 @@ function reviewDeadlineDay(weekN) {
 }
 // 파이널(Week 4) 도전 마감, currentDay 가 20 에서 멈춰 day-기반 잠금이 안 걸리므로 실제 캘린더 날짜로 마감.
 // 이 날(포함)까지 도전 가능, 다음 날부터 자동으로 닫힘.
-const FINAL_REVIEW_DEADLINE_AT = '2026-05-25T19:00:00'; // 월요일(5/25) 저녁 7시 (수료식 전까지 연장)
-const FINAL_REVIEW_DEADLINE_LABEL = '월요일(5/25) 저녁 7시';
+// 파이널(Week 4) 복습 마감. 코호트 무관 자동 계산: 마지막 Day 날짜 + 3일, 저녁 7시 (수료식 여유).
+// (예전엔 '2026-05-25' 5기 고정값이 박혀 있어서 6기부터는 파이널 복습이 이미 잠겨버리는 버그가 있었음.)
+const FINAL_REVIEW_DEADLINE_AT = (() => {
+  try {
+    const allDays = (CHALLENGE.weeks || []).flatMap((w) => w.days || []);
+    const last = allDays[allDays.length - 1];
+    if (last && last.date) {
+      const d = new Date(last.date + 'T19:00:00');
+      d.setDate(d.getDate() + 3);
+      const p = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T19:00:00`;
+    }
+  } catch (e) {}
+  return '2099-01-01T19:00:00'; // 데이터 없으면 사실상 안 잠김
+})();
+const FINAL_REVIEW_DEADLINE_LABEL = (() => {
+  try { const d = new Date(FINAL_REVIEW_DEADLINE_AT); return `${d.getMonth() + 1}/${d.getDate()} 저녁 7시`; }
+  catch (e) { return '마감 후'; }
+})();
 function isReviewLocked(weekN) {
   // 운영자/스태프 (operatorViewAsMember false) 는 데드라인 무시
   if ((state.isOperator || state.isStaff) && !state.operatorViewAsMember) return false;
-  // Week 4 (파이널) 은 실제 날짜·시각 기준, 5/24 밤 9시 지나면 닫힘.
+  // Week 4 (파이널) 은 실제 날짜·시각 기준 (FINAL_REVIEW_DEADLINE_AT = 마지막 Day + 3일 저녁 7시) 지나면 닫힘.
   if (Number(weekN) === 4) { try { return Date.now() > new Date(FINAL_REVIEW_DEADLINE_AT).getTime(); } catch (e) { return false; } }
   const today = Number(state.currentDay) || 0;
   return today > reviewDeadlineDay(weekN);
@@ -9187,7 +9204,7 @@ function WeeksPage() {
         onClick: (ev) => {
           ev.stopPropagation();
           if (effectivelyLocked) {
-            showToast(`도전 기간 종료, Week ${w.n} 복습은 ${w.n === 4 ? '5/24' : `Day ${deadlineDay}`}까지만 가능했어요`);
+            showToast(`도전 기간 종료, Week ${w.n} 복습은 ${w.n === 4 ? FINAL_REVIEW_DEADLINE_LABEL : `Day ${deadlineDay}`}까지만 가능했어요`);
             return;
           }
           window.__currentReviewWeek = w.n;
@@ -9199,7 +9216,7 @@ function WeeksPage() {
       if (effectivelyLocked) {
         reviewBtn.innerHTML = `
           <span>🔒 ${weekReviewLabelShort(w.n)} · 기간 종료</span>
-          <span style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:-0.005em;">${w.n === 4 ? '5/24' : `Day ${deadlineDay}`}까지였어요</span>
+          <span style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:-0.005em;">${w.n === 4 ? FINAL_REVIEW_DEADLINE_LABEL : `Day ${deadlineDay}`}까지였어요</span>
         `;
       } else {
         reviewBtn.innerHTML = `
@@ -10603,7 +10620,7 @@ function WeekReviewPage(weekN) {
     card.innerHTML = `
       <div style="font-size:48px;line-height:1;margin-bottom:10px;">🔒</div>
       <div class="kicker" style="color:var(--muted);">도전 기간 종료</div>
-      <div style="margin-top:8px;font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">${weekReviewLabelShort(weekN)}는<br>${Number(weekN) === 4 ? '5/24' : `Day ${reviewDeadlineDay(weekN)}`} 까지만 가능했어요</div>
+      <div style="margin-top:8px;font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">${weekReviewLabelShort(weekN)}는<br>${Number(weekN) === 4 ? FINAL_REVIEW_DEADLINE_LABEL : `Day ${reviewDeadlineDay(weekN)}`} 까지만 가능했어요</div>
       <div class="t-small" style="margin-top:10px;color:var(--ink-soft);line-height:1.55;font-size:12.5px;">아쉽지만 이번엔 다음 주차에서 만나요, 새 단어가 또 기다리고 있어요!</div>
     `;
     page.appendChild(card);
