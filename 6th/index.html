@@ -11263,12 +11263,12 @@ function renderBingoMode(page, weekN, week, isPremium) {
             <li>📊 종합 리포트 들어가서 본인 4주 stats 확인</li>
             <li>📥 4주 단어집 PDF 다운로드 → 졸업 후에도 펼쳐보는 본인 사전</li>
             <li>📜 본인 문장 아카이브 (Notion export)</li>
-            <li>🎁 6기 신청 (얼리버드 자리 한정)</li>
+            <li>🎁 다음 기수 신청 (얼리버드 자리 한정)</li>
           </ol>
         </div>
         <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
           <button onclick="go('final-report')" class="btn btn-full" style="background:linear-gradient(135deg,#1F1630 0%,#3A2A52 100%);color:#fff;border:none;font-size:14px;padding:13px;font-weight:800;letter-spacing:-0.01em;">📊 4주 종합 리포트 보러 가기 →</button>
-          <button onclick="window.__yb_apply6th()" class="btn btn-full" style="background:var(--orange);color:#fff;border:none;font-size:13.5px;padding:12px;font-weight:800;letter-spacing:-0.01em;">🎁 6기 신청하러 가기 →</button>
+          <button onclick="window.__yb_apply6th()" class="btn btn-full" style="background:var(--orange);color:#fff;border:none;font-size:13.5px;padding:12px;font-weight:800;letter-spacing:-0.01em;">🎁 다음 기수 신청하러 가기 →</button>
         </div>
       ` : ''}
     `;
@@ -12499,7 +12499,7 @@ function __renderFinalTestResult(page, sess) {
 window.__openFinalDownloads = function () {
   const existing = document.querySelector('[data-final-download-popup]');
   if (existing) existing.remove();
-  const driveUrl = '';
+  const driveUrl = 'https://drive.google.com/file/d/10iz-ZoycpRjM_pEiW4XXzDxOUp23aIwy/view?usp=sharing';
   // 단어집 PDF 게이트 = 18일+ 인증 AND 파이널 테스트 완료 (운영자/스태프 예외).
   const __fdTotal = (typeof CHALLENGE !== 'undefined' && CHALLENGE.total_days) || 20;
   let __fdVc = 0; for (let __d = 1; __d <= __fdTotal; __d++) { if ((state.verified && state.verified['d' + __d]) || (state.verified_late && state.verified_late['d' + __d])) __fdVc++; }
@@ -12905,14 +12905,14 @@ window.__maybeShowCohort6Popup = function () {
     <div style="position:relative;padding:26px 22px 22px;color:#fff;text-align:center;">
       <button data-c6-close style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,0.14);border:none;color:#fff;font-size:14px;cursor:pointer;">✕</button>
       <div style="font-size:30px;line-height:1;">🎁</div>
-      <div class="kicker" style="margin-top:8px;color:#FCE8B2;">5기 출신 우선 등록권</div>
-      <div style="margin-top:8px;font-size:18px;font-weight:800;letter-spacing:-0.02em;line-height:1.35;">6기는 5기 의견을 더해<br>더 업그레이드 됐어요</div>
+      <div class="kicker" style="margin-top:8px;color:#FCE8B2;">수료자 우선 등록 혜택</div>
+      <div style="margin-top:8px;font-size:18px;font-weight:800;letter-spacing:-0.02em;line-height:1.35;">다음 기수, 이번 기수 의견을 더해<br>더 단단하게 준비돼요</div>
       <ul style="margin:14px 0 0;padding:0;list-style:none;font-size:12.5px;line-height:1.75;color:#F1E0BA;text-align:left;">
-        <li style="padding:6px 0;border-bottom:1px solid rgba(252,232,178,0.12);">✨ 한국화된 단어 빼고 더 native 한 단어들로 큐레이션</li>
-        <li style="padding:6px 0;border-bottom:1px solid rgba(252,232,178,0.12);">📋 더 강화된 출석 체크 (4기 연속 불참 시 Block 제도)</li>
-        <li style="padding:6px 0;">📝 매주 내가 작문한 문장으로 어휘 테스트 가능</li>
+        <li style="padding:6px 0;border-bottom:1px solid rgba(252,232,178,0.12);">✨ 실무에서 진짜 쓰는 native 표현으로 큐레이션</li>
+        <li style="padding:6px 0;border-bottom:1px solid rgba(252,232,178,0.12);">📋 더 탄탄해진 출석·완주 관리</li>
+        <li style="padding:6px 0;">📝 매주 내가 작문한 문장으로 어휘 테스트</li>
       </ul>
-      <button data-c6-apply style="margin-top:16px;width:100%;padding:14px;border-radius:14px;background:var(--orange);color:#fff;border:none;font-size:14px;font-weight:800;letter-spacing:-0.01em;cursor:pointer;">🎁 6기 신청하러 가기 →</button>
+      <button data-c6-apply style="margin-top:16px;width:100%;padding:14px;border-radius:14px;background:var(--orange);color:#fff;border:none;font-size:14px;font-weight:800;letter-spacing:-0.01em;cursor:pointer;">🎁 다음 기수 신청하러 가기 →</button>
       <button data-c6-later style="margin-top:8px;width:100%;padding:10px;border-radius:12px;background:transparent;color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.18);font-size:12px;font-weight:700;cursor:pointer;">나중에</button>
     </div>
   `;
@@ -21220,7 +21220,7 @@ function FinalReportPage() {
         return;
       }
       // 4주 단어집 PDF, 구글 드라이브 링크로 이동 (인앱 생성 대신).
-      const driveUrl = '';
+      const driveUrl = 'https://drive.google.com/file/d/10iz-ZoycpRjM_pEiW4XXzDxOUp23aIwy/view?usp=sharing';
       showToast('구글 드라이브에서 4주 단어집 PDF를 열어요 🧡');
       window.open(driveUrl, '_blank', 'noopener');
     },
@@ -21266,14 +21266,14 @@ function FinalReportPage() {
   });
   cohortCard.innerHTML = `
     <div style="font-size:30px;line-height:1;">🎁</div>
-    <div class="kicker" style="margin-top:8px;color:#FCE8B2;">5기 출신 우선 등록권</div>
+    <div class="kicker" style="margin-top:8px;color:#FCE8B2;">수료자 우선 등록 혜택</div>
     <div style="margin-top:8px;font-size:18px;font-weight:800;letter-spacing:-0.02em;line-height:1.35;">
-      6기는 5기 의견을 더해<br>더 업그레이드 됐어요
+      다음 기수, 이번 기수 의견을 더해<br>더 단단하게 준비돼요
     </div>
     <ul style="margin:14px 0 0;padding:0;list-style:none;font-size:12.5px;line-height:1.75;color:#F1E0BA;text-align:left;">
-      <li style="padding:6px 0;border-bottom:1px solid rgba(252,232,178,0.12);">✨ 한국화된 단어 빼고 더 native 한 단어들로 큐레이션</li>
-      <li style="padding:6px 0;border-bottom:1px solid rgba(252,232,178,0.12);">📋 더 강화된 출석 체크 (4기 연속 불참 시 Block 제도)</li>
-      <li style="padding:6px 0;">📝 매주 내가 작문한 문장으로 어휘 테스트 가능</li>
+      <li style="padding:6px 0;border-bottom:1px solid rgba(252,232,178,0.12);">✨ 실무에서 진짜 쓰는 native 표현으로 큐레이션</li>
+      <li style="padding:6px 0;border-bottom:1px solid rgba(252,232,178,0.12);">📋 더 탄탄해진 출석·완주 관리</li>
+      <li style="padding:6px 0;">📝 매주 내가 작문한 문장으로 어휘 테스트</li>
     </ul>
   `;
   const cohortBtn = el('button', {
@@ -21283,7 +21283,7 @@ function FinalReportPage() {
       fontSize: '14px', fontWeight: '800', letterSpacing: '-0.01em', cursor: 'pointer',
     },
     onClick: () => window.__yb_apply6th(),
-  }, '🎁 6기 신청하러 가기 →');
+  }, '🎁 다음 기수 신청하러 가기 →');
   cohortCard.appendChild(cohortBtn);
   page.appendChild(cohortCard);
 
