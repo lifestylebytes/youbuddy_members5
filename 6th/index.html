@@ -1641,6 +1641,7 @@ const PERSISTED_STATE_KEYS = [
   'bingo_done',
   'bingo_boss_results',
   'week_survey',
+  'week_survey_nudged',
   'daily_funfact_seen',
   'daily_done_popup_seen',
   'final_test',
@@ -8000,10 +8001,16 @@ function HomePage() {
       const sv = (state.week_survey || {})[String(wN)] || {};
       const surveyDone = !!(sv.at && !sv.skipped);                   // 설문 제출 완료(스킵 아님)
       const sessionShown = !!window.__surveyNudgeSession[String(wN)];
-      if (doneAll && !surveyDone && !sessionShown
+      // persist 가드: 주차별 자동 노출은 '평생 1회'. 재접속/새로고침마다 다시 뜨던 문제 방지.
+      // (스킵하거나 그냥 닫아도 다시 자동으로 안 뜸. 설문은 필요하면 수동으로 계속 접근 가능.)
+      const persistNudged = !!(state.week_survey_nudged || {})[String(wN)];
+      if (doneAll && !surveyDone && !sessionShown && !persistNudged
           && !anyPopupOpen()
           && guidedTourStep === null && challengeStarted()) {
         window.__surveyNudgeSession[String(wN)] = true; // 세션 가드 즉시 set (무한 루프 방지)
+        state.week_survey_nudged = state.week_survey_nudged || {};
+        state.week_survey_nudged[String(wN)] = true;    // persist 가드 set + 저장
+        try { saveState(); } catch (e) {}
         setTimeout(() => {
           if (anyPopupOpen() || guidedTourStep !== null) return;
           // 미니 설문만 운영. Week 4(최종 피드백)만 메인 설문, 나머지(1·2·3)는 미니 설문.
@@ -8742,16 +8749,21 @@ function Checkboard() {
   };
 
   const orderedMembers = [...allMembers].sort((a, b) => {
-    // 1) 쉬는 중(4일+ 연속 미인증)은 프리미엄/베이직 무관 항상 아래로 (베이직 쉬는 중과 한 그룹)
+    // 1) 쉬는 중(4일+ 연속 미인증)은 프리미엄/베이직 무관 항상 맨 아래로 (베이직 쉬는 중과 한 그룹)
     const da = cbRestState(a).dormant ? 1 : 0, db = cbRestState(b).dormant ? 1 : 0;
     if (da !== db) return da - db;
-    // 2) 인증 많이 한 사람 순 (내림차순)
+    // 2) 활성(쉬는 중 아님) 멤버끼리는 프리미엄이 위로. (쉬는 중끼리는 tier 무시하고 섞음)
+    if (da === 0) {
+      const tra = tierRank(a), trb = tierRank(b);
+      if (tra !== trb) return tra - trb;
+    }
+    // 3) 인증 많이 한 사람 순 (내림차순)
     const pa = participationOf(a), pb = participationOf(b);
     if (pa !== pb) return pb - pa;
-    // 3) 동점이면 그날(최근 인증일) 더 먼저 인증한 사람이 위로
+    // 4) 동점이면 그날(최근 인증일) 더 먼저 인증한 사람이 위로
     const ta = __tieTime(a), tb = __tieTime(b);
     if (ta !== tb) return ta - tb;
-    // 4) 그래도 같으면 이름순
+    // 5) 그래도 같으면 이름순
     return koCollator.compare(sortNameOf(a), sortNameOf(b));
   });
   // ── 성능 최적화, 50명 × 21셀 = 1050 노드를 el() 로 일일이 만들면 매 render 마다 무거움.
