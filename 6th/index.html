@@ -27408,7 +27408,7 @@ const WEEK4_DECK = [
   { section: '오프닝', kicker: 'WEEK 4 · 마지막 · 60분', title: '4주 총정리, 오늘 순서',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">이도현 · 정주혜</b> · 오늘은 마지막 주라 <b style="color:var(--orange-dark);">두 분 다 final 발표</b> · 🎥 서보경(Mason)님 녹화 제공</div>'
     + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
-    + ['4주 단어 60개 칠판 한눈에', '단어 빙고 (쓰면 마크 · 입에 붙이기)', '전체 단어 녹인 종합 롤플레잉', '60개 복습 한 바퀴 (막힌 것 🔖)', 'final 발표 2명 + 피드백', '수료 마무리 · 다음 스텝'].map((t, i) =>
+    + ['4주 단어 60개 칠판 한눈에', '단어 빙고 (쓰면 마크 · 입에 붙이기)', '전체 단어 녹인 종합 롤플레잉', '60개 복습 한 바퀴 (막힌 것 🔖)', '수료 마무리 · 다음 스텝'].map((t, i) =>
         '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(233,76,107,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
     + '</div>'
     + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(233,76,107,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎯 목표: 4주간 쌓은 단어를 <b>실제 대화 속에서 자연스럽게 꺼내 쓰기</b>. 외운 걸 입으로 증명하는 날.</div>' },
@@ -27441,16 +27441,6 @@ const WEEK4_DECK = [
 
   { section: '복습', kicker: '4 · 60개 스윕', title: '한국어 → 영어 빠른 한 바퀴', worksheet: true,
     html: '<div style="font-size:13px;color:var(--ink-soft);line-height:1.6;">60개 다 완벽히 말고, <b>막히는 것만 🔖</b> 표시하며 빠르게. 표시한 건 마무리에서 다시 봐요.</div>' },
-
-  { section: '발표 피드백', kicker: '5 · final 발표 1', title: '정주혜 님 final 발표 + 피드백',
-    checks: ['정주혜 님 7분 final 발표 (4주 단어 10개+ 녹이기)', '잘한 점 먼저, 구체적으로', '표현·전달 피드백 1~2개만', '4주 전 대비 가장 강해진 점 짚어주기'],
-    presenterScript: { name: '정주혜', weekN: 4 },
-    html: '<div style="padding:13px 15px;border-radius:14px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.22);font-size:13px;color:#5C53A5;line-height:1.7;">💡 마지막이니까 <b>성장에 방점</b>: "4주 전엔 몰랐던 표현이 이제 입에서 나온다"를 구체적으로 짚어주기.</div>' },
-
-  { section: '발표 피드백', kicker: '5 · final 발표 2', title: '이도현 님 final 발표 + 피드백',
-    checks: ['이도현 님 7분 final 발표 (4주 단어 10개+ 녹이기)', '잘한 점 먼저, 구체적으로', '표현·전달 피드백 1~2개만', '4주 전 대비 가장 강해진 점 짚어주기'],
-    presenterScript: { name: '이도현', weekN: 4 },
-    html: '<div style="padding:13px 15px;border-radius:14px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.22);font-size:13px;color:#5C53A5;line-height:1.7;">💡 도현 님 호스피탈리티 상황으로 단어가 얼마나 자연스러워졌는지 중심으로.</div>' },
 
   { section: '마무리', kicker: '6 · 수료 마무리', title: '4주 수고했어요 🧡', wrapGoals: true,
     checks: ['각자 "실제 내 단어가 된 표현 3개" 꼽기', '복습에서 🔖 표시한 단어 다시 한 바퀴', '수료 후에도 이어갈 한 가지 정하기 (메일·회의에서 1개씩)'],
