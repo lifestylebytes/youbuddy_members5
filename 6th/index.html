@@ -18854,10 +18854,10 @@ function CertPage() {
   const dl = el('button', {
     class: 'btn btn-lilac btn-full btn-lg',
     style: { marginTop: '22px' },
-    disabled: overall < 80,
+    disabled: done < 18,
     onClick: () => downloadCertificate(state.name, done, total, overall),
   });
-  dl.innerHTML = `${Icon('download', 16)} 인증서 다운로드 ${overall < 80 ? '(80% 완주 시 열림)' : ''}`;
+  dl.innerHTML = `${Icon('download', 16)} 인증서 다운로드 ${done < 18 ? '(18일 인증 시 열림)' : ''}`;
   page.appendChild(dl);
 
   // ---- Cert profile 상태 표시, keyVocab 은 personal_quiz 에서 자동 추출됨 ----
