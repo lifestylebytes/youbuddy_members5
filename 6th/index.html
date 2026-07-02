@@ -18777,14 +18777,25 @@ window.__buildSelfQuiz = function (script) {
   sentences.forEach((sent) => {
     let best = null;
     words.forEach((w) => {
-      let re;
-      try { re = new RegExp('\\b' + esc(w.en) + '\\b', 'i'); } catch (e) { return; }
-      const m = sent.match(re);
-      if (m) {
-        const idx = m.index;
-        if (!best || idx < best.idx || (idx === best.idx && w.en.length > best.en.length)) {
-          best = { idx, len: m[0].length, en: w.en, def: w.def };
-        }
+      let idx = -1, len = 0;
+      // 1) 직접 매칭 (원형 그대로)
+      try {
+        const m = sent.match(new RegExp('\\b' + esc(w.en) + '\\b', 'i'));
+        if (m) { idx = m.index; len = m[0].length; }
+      } catch (e) {}
+      // 2) 시제·활용 변형 매칭 (flagged / pulling in / ran point 등). 일별 퀴즈와 동일한 _buildPhraseAlternatives 사용.
+      //    → 변형형으로 쓴 문장도 빈칸이 돼서, 여러 문장이 제대로 퀴즈로 만들어짐.
+      if (idx < 0 && typeof _buildPhraseAlternatives === 'function') {
+        try {
+          const alts = _buildPhraseAlternatives(w.en);
+          if (alts && alts.length) {
+            const m2 = sent.match(new RegExp('(' + alts.join('|') + ')', 'i'));
+            if (m2) { idx = m2.index; len = m2[0].length; }
+          }
+        } catch (e) {}
+      }
+      if (idx >= 0 && (!best || idx < best.idx || (idx === best.idx && len > best.len))) {
+        best = { idx, len, en: w.en, def: w.def };
       }
     });
     if (!best) return;
