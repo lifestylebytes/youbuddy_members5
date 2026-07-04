@@ -6,3 +6,11 @@ dist/
 coverage/
 supabase/.temp/
 project/
+
+# 기수별 산출물/작업 보관함(_archive) 안의 바이너리 산출물은 배포/공개 금지.
+# (수료식 카드 PNG = 멤버 이름 노출, 단어집 PDF, .skill 등은 로컬 보관만)
+_archive/**/*.png
+_archive/**/*.pdf
+_archive/**/*.skill
+_archive/**/*.pptx
+_archive/**/*_png/
