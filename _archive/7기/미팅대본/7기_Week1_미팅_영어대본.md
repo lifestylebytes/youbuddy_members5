@@ -82,7 +82,7 @@ The point isn't to get them all right. It's to feel exactly where you're shaky, 
 
 ---
 
-# Slide 5 · 미니 강의 · 판을 읽는 표현 6개 (칠판)
+# Slide 5 · 미니 강의 · 본론 전에 쓰는 표현 6개 (칠판)
 
 "Now let's slow down on six expressions you'll use the most. For each: when to reach for it, and the small nuance that makes it sound native.
 
