@@ -2,7 +2,7 @@
   "cohort": "7기",
   "weeks": [
     {
-      "n": 1, "title": "Reading the Field", "subtitle": "판을 읽고 간 보는 사람들",
+      "n": 1, "title": "Reading the Field", "subtitle": "본론 꺼내기 전에 하는 것들",
       "days": [
         { "day": 1, "title": "공식 발표보다 행간이 진짜죠", "words": [
           { "en": "Put out feelers", "pos": "phrase", "def": "본격 제안 전에 슬쩍 간을 보다", "ex_en": "Before we pitch this officially, let's put out some feelers with the sales team.", "ex_kr": "공식 제안 전에 영업팀 쪽에 슬쩍 간부터 봐요.", "syn": ["Test the waters", "Float the idea quietly"], "nuance": "곤충이 더듬이(feeler)를 내밀듯, 정식 안건으로 올리기 전에 반응을 살짝 떠보는 그림이에요. 거절당해도 공식 기록이 안 남는 게 포인트." },
@@ -62,7 +62,7 @@
       ]
     },
     {
-      "n": 3, "title": "In the Trenches", "subtitle": "불난 현장의 언어",
+      "n": 3, "title": "In the Trenches", "subtitle": "일이 터졌을 때 쓰는 영어",
       "days": [
         { "day": 11, "title": "전쟁터엔 전쟁의 말이 필요해요", "words": [
           { "en": "Fire drill", "pos": "noun", "def": "갑자기 다 내려놓고 매달리게 만드는 긴급 소동", "ex_en": "The exec asked for a full deck by 9am. Total fire drill.", "ex_kr": "임원이 아침 9시까지 발표자료 전체를 달래요. 완전 비상 소동이죠.", "syn": ["Sudden scramble", "Drop-everything ask"], "nuance": "소방 훈련처럼 사이렌 울리면 다 뛰는 그림. 컨설팅 업계에선 '진짜 급한 일인지 소동인지'라는 냉소가 살짝 깔려 있어요." },
@@ -92,11 +92,11 @@
       ]
     },
     {
-      "n": 4, "title": "Bet Big", "subtitle": "판을 키우는 전략어",
+      "n": 4, "title": "Bet Big", "subtitle": "크게 생각하는 사람의 영어",
       "days": [
         { "day": 16, "title": "방향이 맞으면 크게 걸어요", "words": [
           { "en": "True north", "pos": "noun", "def": "흔들리지 않는 최우선 기준·방향", "ex_en": "Whenever we argue about features, user trust is our true north.", "ex_kr": "기능 갖고 싸울 때마다, 우리의 진북은 유저 신뢰예요.", "syn": ["Guiding star", "Core compass"], "nuance": "자북(磁北)이 아니라 진짜 북쪽. 단기 지표에 흔들릴 때 '우리 true north가 뭐였지'라고 되묻는 용도로 리더들이 아껴 써요." },
-          { "en": "Moonshot", "pos": "noun", "def": "성공 확률은 낮지만 판을 바꾸는 초대형 도전", "ex_en": "The AI assistant is our moonshot. The other bets pay the bills.", "ex_kr": "AI 어시스턴트가 우리의 문샷이에요. 나머지는 밥값 버는 사업이고요.", "syn": ["Big audacious bet", "10x goal"], "nuance": "케네디의 달 착륙 선언에서 온 말. 구글이 'moonshot factory'를 만들면서 스타트업 세계의 공용어가 됐어요." },
+          { "en": "Moonshot", "pos": "noun", "def": "성공 확률은 낮지만 게임을 바꾸는 초대형 도전", "ex_en": "The AI assistant is our moonshot. The other bets pay the bills.", "ex_kr": "AI 어시스턴트가 우리의 문샷이에요. 나머지는 밥값 버는 사업이고요.", "syn": ["Big audacious bet", "10x goal"], "nuance": "케네디의 달 착륙 선언에서 온 말. 구글이 'moonshot factory'를 만들면서 스타트업 세계의 공용어가 됐어요." },
           { "en": "Front-load", "pos": "verb", "def": "중요한 걸 초반에 몰아넣다", "ex_en": "Let's front-load the risky integrations so surprises show up early.", "ex_kr": "위험한 연동 작업을 초반에 몰아서, 서프라이즈가 일찍 터지게 해요.", "syn": ["Do the heavy part first", "Weight it early"], "nuance": "세탁기 앞문(front-load)이 아니라 '앞에 싣는다'는 뜻. 어려운 걸 뒤로 미루는 본능을 거스르는 실행 전략이에요." }
         ] },
         { "day": 17, "title": "스타트업 미팅에서 살아남는 3단어", "words": [
@@ -114,8 +114,8 @@
           { "en": "Punch above your weight", "pos": "phrase", "def": "체급 이상으로 해내다", "ex_en": "A five-person team competing with the big players. We punch above our weight.", "ex_kr": "5명 팀이 대기업들이랑 붙고 있으니, 체급 이상으로 싸우는 거죠.", "syn": ["Outperform your size", "Overachieve"], "nuance": "권투 체급에서 온 말. 작은 팀·회사의 자부심을 표현하는 가장 세련된 방법이에요." },
           { "en": "Ahead of the curve", "pos": "phrase", "def": "남들보다 한발 앞서", "ex_en": "Adopting AI review tools early kept us ahead of the curve.", "ex_kr": "AI 리뷰 툴을 일찍 도입한 덕에 한발 앞서 있었어요.", "syn": ["Ahead of the pack", "Early to the trend"], "nuance": "성장 곡선보다 앞에 서 있는 그림. behind the curve(한발 늦은)와 짝으로 알아두면 두 배로 써먹어요." }
         ] },
-        { "day": 20, "title": "판을 흔들어본 사람의 마무리", "words": [
-          { "en": "Shake things up", "pos": "phrase", "def": "판을 흔들어 변화를 만들다", "ex_en": "The new CPO was hired to shake things up in the product org.", "ex_kr": "새 CPO는 프로덕트 조직의 판을 흔들라고 모셔온 거예요.", "syn": ["Stir the pot", "Disrupt the status quo"], "nuance": "스노우볼을 흔들듯 가라앉은 조직을 뒤섞는 그림. 변화의 에너지가 담긴, 마무리 주간에 어울리는 단어죠." },
+        { "day": 20, "title": "변화를 만들되, 무리하진 않게", "words": [
+          { "en": "Shake things up", "pos": "phrase", "def": "고인 분위기를 흔들어 변화를 만들다", "ex_en": "The new CPO was hired to shake things up in the product org.", "ex_kr": "새 CPO는 조직에 새바람을 일으키라고 모셔온 거예요.", "syn": ["Stir the pot", "Disrupt the status quo"], "nuance": "스노우볼을 흔들듯 가라앉은 조직을 뒤섞는 그림. 변화의 에너지가 담긴, 마무리 주간에 어울리는 단어죠." },
           { "en": "Out over your skis", "pos": "phrase", "def": "실력·근거보다 앞서 나가 위태로운", "ex_en": "Promising enterprise support with two engineers? We're out over our skis.", "ex_kr": "엔지니어 둘로 엔터프라이즈 지원을 약속한다고요? 스키 앞으로 쏠린 격이에요.", "syn": ["Overextended", "Ahead of your evidence"], "nuance": "스키 타다 몸이 앞으로 쏠리면 넘어지죠. 야망(ahead of the curve)과 무리(out over your skis)의 한 끗 차이를 아는 게 시니어의 언어 감각이에요." },
           { "en": "Silver bullet", "pos": "noun", "def": "만능 해결책 (은 없다)", "ex_en": "AI isn't a silver bullet. It won't fix a broken process.", "ex_kr": "AI는 만능 해결책이 아니에요. 망가진 프로세스를 고쳐주진 않죠.", "syn": ["Magic fix", "Cure-all"], "nuance": "늑대인간을 잡는 은탄환 전설에서 유래. 실제론 'There is no silver bullet' 부정형으로 90% 쓰여요. 4주의 마무리로 딱 좋은 어른의 단어." }
         ] }
