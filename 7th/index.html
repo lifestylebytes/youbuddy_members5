@@ -1473,7 +1473,7 @@ const DEFAULT_TIMEZONE_OFFSET = 540;
 /* ============================================================
    STATE, canonical source is Supabase, local is cache only
    ============================================================ */
-const LS_KEY = 'yb5_state_cache_v2';
+const LS_KEY = 'yb7_state_cache_v1'; // 7기 전용 (6th와 도메인 공유하므로 키 분리 필수)
 const defaultState = () => ({
   tier: 'basic',                  // basic | premium, generic 코드(YB5, 5기 등)로 가입하면 코드가 tier 를 안 정하니, 기본은 보수적으로 basic.
   name: '',
@@ -2575,7 +2575,7 @@ function canUseAiForSentence(dayN, sentenceKey) {
 /* ============================================================
    ROUTER, just a simple page state
    ============================================================ */
-const ROUTE_KEY = 'yb5_route_v1';
+const ROUTE_KEY = 'yb7_route_v1';
 function loadRoute() {
   try {
     const raw = localStorage.getItem(ROUTE_KEY);
@@ -12942,7 +12942,7 @@ window.__bingoDownloadJpg = (weekN) => {
 const LIGHTNING_TIME_S = 30;
 const LIGHTNING_BONUS_S = 2;
 const LIGHTNING_PENALTY_S = 1;
-const LIGHTNING_BEST_KEY = 'yb5_lightning_best_v1';
+const LIGHTNING_BEST_KEY = 'yb7_lightning_best_v1';
 
 function _lightningPool(weekN) {
   // Cloze sprint, 영어 예문에 타깃 빈칸. 메인 어휘만 (ex_en 가진 거).
