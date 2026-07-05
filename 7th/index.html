@@ -361,7 +361,13 @@ input, textarea, select { font-family: inherit; }
 }
 .gt-wrap { position: fixed; inset: 0; z-index: 4000; }
 .gt-spot { position: fixed; display: none; border-radius: 16px; pointer-events: none; z-index: 4001; box-shadow: 0 0 0 9999px rgba(20,12,6,0.62); animation: gtPulse 1.8s ease-in-out infinite; transition: top .32s cubic-bezier(.4,0,.2,1), left .32s cubic-bezier(.4,0,.2,1), width .32s cubic-bezier(.4,0,.2,1), height .32s cubic-bezier(.4,0,.2,1); }
-.gt-card { position: fixed; left: 50%; transform: translateX(-50%); z-index: 4002; max-width: 420px; width: calc(100% - 28px); background: #fff; border-radius: 22px; padding: 20px; box-shadow: 0 20px 54px rgba(0,0,0,0.34); }
+.gt-card { position: fixed; left: 50%; transform: translateX(-50%); z-index: 4002; max-width: 420px; width: calc(100% - 28px); background: #fff; border-radius: 22px; padding: 20px; box-shadow: 0 20px 54px rgba(0,0,0,0.34); animation: gtCardIn .3s cubic-bezier(.22,.9,.3,1); }
+.gt-wrap { animation: gtFadeIn .22s ease; }
+.gt-wrap.gt-swap { animation: none; }
+.gt-wrap.gt-swap .gt-card { animation: gtCardSwap .26s cubic-bezier(.22,.9,.3,1); }
+@keyframes gtFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes gtCardIn { from { opacity: 0; transform: translateX(-50%) translateY(16px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+@keyframes gtCardSwap { from { opacity: 0.2; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 .gt-arrow { position: fixed; z-index: 4002; width: 0; height: 0; border-left: 9px solid transparent; border-right: 9px solid transparent; }
 
 .target-banner {
@@ -2961,8 +2967,21 @@ function guidedTourGo(delta) {
   const ni = guidedTourStep + delta;
   if (ni < 0) return;
   if (ni >= steps.length) { endGuidedTour(true); return; }
+  const prev = steps[guidedTourStep];
   guidedTourStep = ni;
   const s = steps[ni];
+  // 같은 페이지 안에서의 스텝 이동이면 전체 render 없이 오버레이만 갈아끼움 (깜빡임 방지).
+  const samePage = prev && s && prev.page === s.page && !s.opts && !prev.opts && currentPage === s.page;
+  const existing = document.querySelector('.gt-wrap');
+  if (samePage && existing) {
+    window.__tourVerifyPreview = (s.previewVerify && s.opts && s.opts.day) ? s.opts.day : null;
+    window.__tourSubmitPreview = (s.previewSubmit && s.opts && s.opts.day) ? s.opts.day : null;
+    window.__tourQuizPreview = !!s.previewQuiz;
+    const fresh = GuidedTourOverlay();
+    fresh.classList.add('gt-swap');
+    existing.replaceWith(fresh);
+    return;
+  }
   __tourNav(s);
 }
 window.startGuidedTour = startGuidedTour;
@@ -5735,12 +5754,17 @@ function render() {
       if (!document.querySelector('[data-mini-week-survey]')) {
         document.body.appendChild(MiniWeekSurveyModal());
       }
-      if (showPremiumPresurvey) {
-        document.body.appendChild(PremiumPresurveyModal());
-      }
     } else {
       const stale = document.querySelector('[data-mini-week-survey]');
       if (stale) stale.remove();
+    }
+    if (showPremiumPresurvey) {
+      if (!document.querySelector('[data-premium-presurvey]')) {
+        document.body.appendChild(PremiumPresurveyModal());
+      }
+    } else {
+      const staleP = document.querySelector('[data-premium-presurvey]');
+      if (staleP) staleP.remove();
     }
     if (showWeekWrapupPopup) {
       if (!document.querySelector('[data-week-wrapup-popup]')) {
@@ -23434,7 +23458,7 @@ function PremiumPresurveyModal() {
     showPremiumPresurvey = false;
     render();
   };
-  const backdrop = el('div', { class: 'modal-backdrop', onClick: (e) => { if (e.target === backdrop) seen('close'); } });
+  const backdrop = el('div', { class: 'modal-backdrop', 'data-premium-presurvey': '1', onClick: (e) => { if (e.target === backdrop) seen('close'); } });
   const modal = el('div', { class: 'modal', style: { width: 'min(92vw, 380px)', padding: '0', borderRadius: '24px', overflow: 'hidden', background: '#fff', border: '1px solid var(--line)' } });
   modal.innerHTML = `
     <div style="position:relative;padding:26px 22px 18px;background:linear-gradient(135deg,#EAF3EE 0%,#CFE3D6 100%);text-align:center;">
@@ -25945,7 +25969,7 @@ function __showUpdateBanner() {
   __updateBannerShown = true;
   try {
     const bar = document.createElement('div');
-    bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:99999;background:#2E6B4F;color:#fff;padding:12px 20px;border-radius:999px;box-shadow:0 6px 22px rgba(0,0,0,0.20);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;max-width:92vw;text-align:center;';
+    bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:99999;background:#2E6B4F;color:#fff;padding:12px 20px;border-radius:999px;box-shadow:0 6px 22px rgba(0,0,0,0.20);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;max-width:92vw;text-align:center;';
     bar.innerHTML = '✨ 새 버전이 나왔어요 · 탭하면 새로고침';
     bar.onclick = () => { try { location.reload(true); } catch (e) { location.reload(); } };
     document.body.appendChild(bar);
