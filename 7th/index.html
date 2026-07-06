@@ -360,7 +360,7 @@ input, textarea, select { font-family: inherit; }
   50%      { box-shadow: 0 0 0 9999px rgba(20,12,6,0.62), 0 0 0 3px rgba(255,255,255,1),    0 0 26px 9px rgba(46,107,79,0.55); }
 }
 .gt-wrap { position: fixed; inset: 0; z-index: 4000; }
-.gt-spot { position: fixed; display: none; border-radius: 16px; pointer-events: none; z-index: 4001; box-shadow: 0 0 0 9999px rgba(20,12,6,0.62); animation: gtPulse 1.8s ease-in-out infinite; transition: top .32s cubic-bezier(.4,0,.2,1), left .32s cubic-bezier(.4,0,.2,1), width .32s cubic-bezier(.4,0,.2,1), height .32s cubic-bezier(.4,0,.2,1); }
+.gt-spot { position: fixed; display: none; border-radius: 16px; pointer-events: none; z-index: 4001; box-shadow: 0 0 0 9999px rgba(20,12,6,0.34); animation: gtPulse 1.8s ease-in-out infinite; transition: top .32s cubic-bezier(.4,0,.2,1), left .32s cubic-bezier(.4,0,.2,1), width .32s cubic-bezier(.4,0,.2,1), height .32s cubic-bezier(.4,0,.2,1); }
 .gt-card { position: fixed; left: 50%; transform: translateX(-50%); z-index: 4002; max-width: 420px; width: calc(100% - 28px); background: #fff; border-radius: 22px; padding: 20px; box-shadow: 0 20px 54px rgba(0,0,0,0.34); animation: gtCardIn .3s cubic-bezier(.22,.9,.3,1); }
 .gt-wrap { animation: gtFadeIn .22s ease; }
 .gt-wrap.gt-swap { animation: none; }
@@ -2954,6 +2954,8 @@ function startGuidedTour() {
 }
 function endGuidedTour(done) {
   guidedTourStep = null;
+  try { sessionStorage.removeItem('yb7_tour_step'); } catch (e) {}
+  if (window.__updateBannerPending) { window.__updateBannerPending = false; setTimeout(() => { try { __showUpdateBanner(); } catch (e) {} }, 800); }
   window.__tourLastPositionedStep = null;
   window.__tourVerifyPreview = null;
   window.__tourSubmitPreview = null;
@@ -2969,6 +2971,7 @@ function guidedTourGo(delta) {
   if (ni >= steps.length) { endGuidedTour(true); return; }
   const prev = steps[guidedTourStep];
   guidedTourStep = ni;
+  try { sessionStorage.setItem('yb7_tour_step', String(ni)); } catch (e) {}
   const s = steps[ni];
   // 같은 페이지 안에서의 스텝 이동이면 전체 render 없이 오버레이만 갈아끼움 (깜빡임 방지).
   const samePage = prev && s && prev.page === s.page && !s.opts && !prev.opts && currentPage === s.page;
@@ -5687,6 +5690,18 @@ function render() {
     if (showGoalEditor) root.appendChild(GoalModal());
     if (verificationReviewDay) root.appendChild(VerificationReviewModal(verificationReviewDay));
     if (showRateHistory) root.appendChild(RateHistoryModal(showRateHistory));
+    // 투어 중엔 페이지 리렌더에도 살아있는 고정 dim 레이어 (전환 깜빡임 완화)
+    try {
+      let gd = document.getElementById('gtDim');
+      if (guidedTourStep !== null) {
+        if (!gd) {
+          gd = document.createElement('div');
+          gd.id = 'gtDim';
+          gd.style.cssText = 'position:fixed;inset:0;background:rgba(20,12,6,0.30);z-index:3999;pointer-events:none;transition:opacity .2s;';
+          document.body.appendChild(gd);
+        }
+      } else if (gd) { gd.remove(); }
+    } catch (e) {}
     if (guidedTourStep !== null) root.appendChild(GuidedTourOverlay());
     // MeetingConsent 모달은 body 에 싱글턴으로 마운트 → root.innerHTML='' 재렌더 영향 차단
     // → '두번씩 띡띡' 플래시 버그 방지. 이미 DOM 에 있으면 스킵. (닫힐 때는 핸들러가 직접 제거)
@@ -7697,9 +7712,21 @@ function HomePage() {
   // 가이드 투어(앱 사용법 OT): 로그인이든 신규 가입이든, 아직 안 본 사람은 홈 첫 진입 때 자동 시작.
   try {
     if (state.onboarded && !state.guided_tour_done && guidedTourStep === null
-        && !window.__tourAutoStarted && !anyPopupOpen() && currentPage === 'home') {
-      window.__tourAutoStarted = true;
-      setTimeout(() => { if (guidedTourStep === null && !state.guided_tour_done && !anyPopupOpen()) { guidedTourStep = 0; render(); } }, 500);
+        && !window.__tourAutoStarted && !anyPopupOpen()) {
+      let __savedStep = null;
+      try { const v = sessionStorage.getItem('yb7_tour_step'); if (v !== null) __savedStep = Number(v); } catch (e) {}
+      // 홈이 아니면: 새로고침으로 끊긴 투어 재개만 (신규 시작은 홈에서)
+      if (currentPage === 'home' || __savedStep !== null) {
+        window.__tourAutoStarted = true;
+        setTimeout(() => {
+          if (guidedTourStep !== null || state.guided_tour_done || anyPopupOpen()) return;
+          const steps = activeTourSteps();
+          const idx = (__savedStep !== null && __savedStep >= 0 && __savedStep < steps.length) ? __savedStep : 0;
+          guidedTourStep = idx;
+          try { sessionStorage.setItem('yb7_tour_step', String(idx)); } catch (e) {}
+          __tourNav(steps[idx]);
+        }, 500);
+      }
     }
   } catch (e) {}
 
@@ -7868,7 +7895,7 @@ function HomePage() {
 
   if (reviewFeatureUnlocked()) {
     const reviewBtn = el('button', { class: 'btn btn-full', style: { marginTop: '10px', background: 'rgba(251,247,240,0.1)', color: 'var(--cream)', border: '1px solid rgba(251,247,240,0.22)' }, onClick: () => go('my-review') });
-    reviewBtn.innerHTML = `✍️ 내 약점 복습 ${Icon('arrowRight', 14)}` + ((Number(state.currentDay) || 1) < 6 ? ' <span style="font-size:10px;opacity:0.6;">(운영자 미리보기)</span>' : '');
+    reviewBtn.innerHTML = `✍️ 내 약점 복습 ${Icon('arrowRight', 14)}` + ((Number(state.currentDay) || 1) < 6 ? ' <span style="font-size:10px;font-weight:800;background:#1F4D38;color:#fff;padding:1px 7px;border-radius:999px;">운영자 미리보기</span>' : '');
     hero.appendChild(reviewBtn);
   }
 
@@ -7958,7 +7985,7 @@ function HomePage() {
     const isUrgent = daysLeft <= 2;
     // 긴급도에 따른 색상 / 톤 구분
     if (isUrgent) {
-      reviewBanner.style.background = 'linear-gradient(135deg, #FFE5D9 0%, #FFD1B8 100%)';
+      reviewBanner.style.background = 'linear-gradient(135deg, #DFF0E5 0%, #CFE3D6 100%)';
       reviewBanner.style.borderColor = 'rgba(46,107,79,0.5)';
     }
     // Week 4 = 파이널 테스트, 문구 분기 + PDF 보상 안내.
@@ -7971,11 +7998,11 @@ function HomePage() {
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
           <div style="font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${bannerTitle}</div>
-          ${isPreview ? '<span style="font-size:9.5px;font-weight:700;background:rgba(125,92,255,0.18);color:#5C53A5;padding:2px 7px;border-radius:999px;">미리보기</span>' : ''}
+          ${isPreview ? '<span style="font-size:9.5px;font-weight:800;background:#1F4D38;color:#fff;padding:2px 8px;border-radius:999px;">미리보기</span>' : ''}
         </div>
         <div class="t-small" style="margin-top:5px;font-size:12.5px;color:var(--orange-dark);font-weight:700;letter-spacing:-0.01em;display:inline-flex;align-items:center;gap:4px;">${bannerCta}</div>
         ${isFinalWeek ? `<div class="t-small" style="margin-top:6px;font-size:12px;color:var(--ink-soft);font-weight:600;letter-spacing:-0.01em;line-height:1.5;">이거 풀면 4주 단어집 PDF를 받을 수 있어요 🧡</div>` : ''}
-        <div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:${isUrgent ? '#1F4D38' : 'rgba(201,87,33,0.12)'};color:${isUrgent ? '#fff' : '#1F4D38'};font-size:11px;font-weight:800;letter-spacing:-0.005em;">
+        <div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:${isUrgent ? '#1F4D38' : 'rgba(31,77,56,0.10)'};color:${isUrgent ? '#fff' : '#1F4D38'};font-size:11px;font-weight:800;letter-spacing:-0.005em;">
           ⏰ ${isFinalWeek ? FINAL_REVIEW_DEADLINE_LABEL : `다음 주 (Day ${deadlineDay})`}까지만 도전 가능
         </div>
       </div>
@@ -8884,7 +8911,7 @@ function WeeksPage() {
           go('week-review');
         },
       });
-      const previewTag = (!allDone && isOperatorOrStaff) ? ' <span style="font-size:10px;font-weight:700;background:rgba(125,92,255,0.18);color:#5C53A5;padding:2px 8px;border-radius:999px;margin-left:4px;">미리보기</span>' : '';
+      const previewTag = (!allDone && isOperatorOrStaff) ? ' <span style="font-size:10px;font-weight:800;background:#1F4D38;color:#fff;padding:2px 8px;border-radius:999px;margin-left:4px;">미리보기</span>' : '';
       const limitColor = isEmphasized ? 'rgba(255,255,255,0.85)' : '#1F4D38';
       if (effectivelyLocked) {
         reviewBtn.innerHTML = `
@@ -25966,10 +25993,12 @@ document.addEventListener('visibilitychange', () => {
 let __updateBannerShown = false;
 function __showUpdateBanner() {
   if (__updateBannerShown) return;
+  // 가이드 투어 진행 중엔 보류 (투어 가림 + 새로고침 유도로 투어 끊김 방지). 투어 끝나면 표시.
+  if (typeof guidedTourStep !== 'undefined' && guidedTourStep !== null) { window.__updateBannerPending = true; return; }
   __updateBannerShown = true;
   try {
     const bar = document.createElement('div');
-    bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:99999;background:#2E6B4F;color:#fff;padding:12px 20px;border-radius:999px;box-shadow:0 6px 22px rgba(0,0,0,0.20);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;max-width:92vw;text-align:center;';
+    bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:3500;background:#2E6B4F;color:#fff;padding:12px 20px;border-radius:999px;box-shadow:0 6px 22px rgba(0,0,0,0.20);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;max-width:92vw;text-align:center;';
     bar.innerHTML = '✨ 새 버전이 나왔어요 · 탭하면 새로고침';
     bar.onclick = () => { try { location.reload(true); } catch (e) { location.reload(); } };
     document.body.appendChild(bar);
