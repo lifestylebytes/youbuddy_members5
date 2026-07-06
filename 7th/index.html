@@ -26013,11 +26013,32 @@ function __headTag() {
       .catch(() => null);
   } catch (e) { return Promise.resolve(null); }
 }
+// ETag 정규화: CDN 이 같은 배포본에도 W/"..." (약한) / "..." (강한) 형태를 섞어 주므로 껍데기 제거 후 비교
+function __normTag(t) { return t ? String(t).replace(/^W\//i, '').replace(/"/g, '').trim() : null; }
 let __baselineTag = null;
-__headTag().then((v) => { __baselineTag = v; });  // 진입 시 현재 배포본 기준점 잡기
+__headTag().then((v) => { __baselineTag = __normTag(v); });  // 진입 시 현재 배포본 기준점 잡기
+let __updateConfirming = false;
 function __checkForUpdate() {
-  if (__updateBannerShown || !__baselineTag) return;   // 기준점 없으면 조용히 패스 (오탐 방지)
-  __headTag().then((v) => { if (v && v !== __baselineTag) __showUpdateBanner(); });
+  if (__updateBannerShown || !__baselineTag || __updateConfirming) return;   // 기준점 없으면 조용히 패스 (오탐 방지)
+  __headTag().then((v) => {
+    const tag = __normTag(v);
+    if (!tag || tag === __baselineTag) return;
+    // 이 태그로 이미 배너를 띄웠거나 새로고침한 적 있으면 = 배포 직후 CDN 노드별 전파 지연 오탐 → 기준점만 갱신
+    let seen = null; try { seen = localStorage.getItem('yb7_update_seen_tag'); } catch (e) {}
+    if (seen && seen === tag) { __baselineTag = tag; return; }
+    // 20초 뒤 재확인: 같은 새 태그가 한 번 더 보일 때만 진짜 새 배포로 판정 (일시적 CDN 불일치 걸러냄)
+    __updateConfirming = true;
+    setTimeout(() => {
+      __headTag().then((v2) => {
+        __updateConfirming = false;
+        const tag2 = __normTag(v2);
+        if (tag2 && tag2 !== __baselineTag && tag2 === tag) {
+          try { localStorage.setItem('yb7_update_seen_tag', tag); } catch (e) {}
+          __showUpdateBanner();
+        }
+      });
+    }, 20000);
+  });
 }
 setInterval(__checkForUpdate, 5 * 60 * 1000);   // 5분마다 (헤더만이라 부담 거의 없음)
 setTimeout(__checkForUpdate, 30000);            // 진입 30초 후 1회
