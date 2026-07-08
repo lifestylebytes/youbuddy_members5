@@ -1130,7 +1130,7 @@ const CHALLENGE = {
           words: [
             { en: "Fire drill", pos: "noun", def: "갑자기 다 내려놓고 매달리게 만드는 긴급 소동", ex_en: "The exec asked for a full deck by 9am. Total fire drill.", ex_kr: "임원이 아침 9시까지 발표자료 전체를 달래요. 완전 비상 소동이죠.", syn: ["Sudden scramble","Drop-everything ask"], nuance: "소방 훈련처럼 사이렌 울리면 다 뛰는 그림. 컨설팅 업계에선 '진짜 급한 일인지 소동인지'라는 냉소가 살짝 깔려 있어요." },
             { en: "War room", pos: "noun", def: "비상 대응을 위해 모이는 상황실", ex_en: "Payment is down. War room in five minutes, bring the on-call engineer.", ex_kr: "결제가 죽었어요. 5분 뒤 상황실 집합, 온콜 엔지니어 데려오세요.", syn: ["Crisis command center","Incident room"], nuance: "군 지휘소에서 온 말. 장애 대응이나 대형 딜 마감 때 만들어지는 임시 슬랙 채널 이름으로도 흔해요." },
-            { en: "In the trenches", pos: "phrase", def: "최전선 실무 현장에서 (구르는)", ex_en: "She's been in the trenches with the support team all week during the outage.", ex_kr: "장애 기간 내내 서포트팀이랑 최전선에서 같이 굴렀어요.", syn: ["On the front lines","Doing the dirty work"], nuance: "1차 대전 참호(trench)에서 온 말. 책상머리가 아니라 현장에서 구른 사람이라는 존중이 담겨 있어요. 6기의 in the weeds(디테일에 파묻힘)와는 다른 결." },
+            { en: "In the trenches", pos: "phrase", def: "최전선 실무 현장에서 (구르는)", ex_en: "She's been in the trenches with the support team all week during the outage.", ex_kr: "장애 기간 내내 서포트팀이랑 최전선에서 같이 굴렀어요.", syn: ["On the front lines","Doing the dirty work"], nuance: "1차 대전 참호(trench)에서 온 말. 책상머리가 아니라 현장에서 구른 사람이라는 존중이 담겨 있어요. 비슷해 보이는 in the weeds(디테일에 파묻힘)와는 다른 결." },
           ] },
         { day: 12, title: "어디서 막혔는지부터 찾아야죠", goal_en: "Find the single point of failure on the critical path.", goal_kr: "막힌 지점부터 찾기.",
           words: [
@@ -1147,7 +1147,7 @@ const CHALLENGE = {
         { day: 14, title: "잘못됐을 때 사람들이 하는 짓", goal_en: "Don't paper over it or throw anyone under the bus.", goal_kr: "덮지 말고, 탓하지 말기.",
           words: [
             { en: "Throw someone under the bus", pos: "phrase", def: "남에게 책임을 뒤집어씌우다", ex_en: "He threw the design team under the bus in front of the client.", ex_kr: "클라이언트 앞에서 디자인팀에 책임을 뒤집어씌우더라고요.", syn: ["Scapegoat","Sell someone out"], nuance: "달리는 버스 밑으로 밀어넣는 살벌한 그림 그대로예요. 미국 오피스 드라마에 한 회에 한 번은 나오는 필수 표현." },
-            { en: "Paper over", pos: "phrasal verb", def: "문제를 해결하지 않고 대충 덮다", ex_en: "A discount might paper over the churn problem, but it won't fix it.", ex_kr: "할인으로 이탈 문제를 잠깐 덮을 순 있어도 고치진 못해요.", syn: ["Gloss over","Hide the cracks"], nuance: "벽의 금(crack) 위에 벽지를 바르는 그림. paper over the cracks 형태로도 자주 쓰여요. 6기의 band-aid solution과 사촌인데 이쪽은 '숨긴다'에 방점." },
+            { en: "Paper over", pos: "phrasal verb", def: "문제를 해결하지 않고 대충 덮다", ex_en: "A discount might paper over the churn problem, but it won't fix it.", ex_kr: "할인으로 이탈 문제를 잠깐 덮을 순 있어도 고치진 못해요.", syn: ["Gloss over","Hide the cracks"], nuance: "벽의 금(crack) 위에 벽지를 바르는 그림. paper over the cracks 형태로도 자주 쓰여요. band-aid solution(임시방편)과 사촌인데 이쪽은 '숨긴다'에 방점." },
             { en: "Nitpick", pos: "verb", def: "사소한 걸 꼬치꼬치 지적하다", ex_en: "Not to nitpick, but the font sizes are inconsistent on slide 3.", ex_kr: "트집은 아닌데, 3번 슬라이드 폰트 크기가 제각각이에요.", syn: ["Split hairs","Pick apart the details"], nuance: "이(nit)를 잡는 그림에서 온 말. 코드리뷰에서 'nit:'이라고 앞에 붙이면 '사소한 지적이니 무시해도 됨'이라는 개발 문화 시그널이에요." },
           ] },
         { day: 15, title: "끊을 건 끊고, 걸 건 걸어야", goal_en: "Pull the plug or put skin in the game.", goal_kr: "끊을 건 끊고 걸 건 걸기.",
@@ -12280,6 +12280,7 @@ function __renderFinalTestResult(page, sess) {
 window.__openFinalDownloads = function () {
   const existing = document.querySelector('[data-final-download-popup]');
   if (existing) existing.remove();
+  // TODO(7기): 아래는 6기 단어집 링크. 7기 단어집 PDF 를 드라이브에 올린 뒤 교체할 것.
   const driveUrl = 'https://drive.google.com/file/d/10iz-ZoycpRjM_pEiW4XXzDxOUp23aIwy/view?usp=sharing';
   // 단어집 PDF 게이트 = 18일+ 인증 AND 파이널 테스트 완료 (운영자/스태프 예외).
   const __fdTotal = (typeof CHALLENGE !== 'undefined' && CHALLENGE.total_days) || 20;
@@ -12455,7 +12456,7 @@ window.__openAwardsCeremony = async function () {
   const modal = el('div', { class: 'modal', style: { width: '100%', maxWidth: '640px', justifySelf: 'center', maxHeight: '92vh', padding: '0', borderRadius: '22px', overflow: 'hidden', background: '#fff', display: 'flex', flexDirection: 'column' } });
   modal.innerHTML = `
     <div style="padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-shrink:0;background:linear-gradient(135deg,#FFF6E8,#FFFDF7);">
-      <div style="flex:1;font-size:17px;font-weight:900;color:var(--ink);letter-spacing:-0.02em;">🏆 유비챌 5기 수료식 시상</div>
+      <div style="flex:1;font-size:17px;font-weight:900;color:var(--ink);letter-spacing:-0.02em;">🏆 유비챌 ${(typeof CHALLENGE !== 'undefined' && CHALLENGE.cohort) || ''} 수료식 시상</div>
       <button data-aw-close style="background:transparent;border:none;font-size:20px;color:var(--muted);cursor:pointer;">✕</button>
     </div>
     <div style="padding:12px 20px 0;flex-shrink:0;display:flex;gap:8px;">
@@ -12634,7 +12635,7 @@ window.__buildAwardsHtml = function (data, tier) {
   if (mc.length) {
     const medal = ['🥇', '🥈', '🥉'];
     html += `<div style="border-radius:16px;padding:14px 18px;margin-bottom:14px;background:linear-gradient(135deg,#2A2140,#3E2F58);color:#fff;">
-      <div style="font-size:12px;font-weight:800;color:#FCE8B2;letter-spacing:0.04em;">😵 5기 전체가 가장 헷갈린 단어 (본 단어 기준 · 첫 시도)</div>
+      <div style="font-size:12px;font-weight:800;color:#FCE8B2;letter-spacing:0.04em;">😵 ${(typeof CHALLENGE !== 'undefined' && CHALLENGE.cohort) || ''} 전체가 가장 헷갈린 단어 (본 단어 기준 · 첫 시도)</div>
       <div style="display:flex;flex-direction:column;gap:6px;margin-top:9px;">` +
       mc.slice(0, 3).map((w, i) => `<div style="display:flex;align-items:baseline;gap:8px;background:rgba(255,255,255,0.10);border-radius:10px;padding:7px 12px;">
         <span style="font-size:15px;font-weight:900;">${medal[i] || '·'} ${esc(w.word)}</span>
@@ -12656,7 +12657,7 @@ window.__buildAwardsHtml = function (data, tier) {
   }
   if (futureStars.length) {
     // 한 번도 참여 못한 분들, 절대 깎아내리지 않고, 7기 주인공으로 올려치기.
-    html += card('🌱', '무한 잠재력상', '아직 시동만 걸어둔, 7기에서 제대로 터질 다음 기수 기대주', nameChips(futureStars));
+    html += card('🌱', '무한 잠재력상', '아직 시동만 걸어둔, 다음 기수에서 제대로 터질 기대주', nameChips(futureStars));
   }
 
   const tierLabel = tier === 'premium' ? '💎 프리미엄' : '🌱 베이직';
@@ -12815,7 +12816,7 @@ window.__bingoReset = (weekN) => {
    ============================================================ */
 window.__yb_apply6th = function() {
   const sep = COHORT_6_APPLY_URL.includes('?') ? '&' : '?';
-  const url = `${COHORT_6_APPLY_URL}${sep}ref=5th_finalreport`;
+  const url = `${COHORT_6_APPLY_URL}${sep}ref=7th_finalreport`;
   window.open(url, '_blank', 'noopener,noreferrer');
 };
 
@@ -21022,6 +21023,7 @@ function FinalReportPage() {
         return;
       }
       // 4주 단어집 PDF, 구글 드라이브 링크로 이동 (인앱 생성 대신).
+      // TODO(7기): 아래는 6기 단어집 링크. 7기 단어집 PDF 를 드라이브에 올린 뒤 교체할 것.
       const driveUrl = 'https://drive.google.com/file/d/10iz-ZoycpRjM_pEiW4XXzDxOUp23aIwy/view?usp=sharing';
       showToast('구글 드라이브에서 4주 단어집 PDF를 열어요 🧡');
       window.open(driveUrl, '_blank', 'noopener');
