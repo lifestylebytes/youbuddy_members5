@@ -9836,6 +9836,33 @@ function computeQuizSplit(question) {
       }
     }
   } catch (_) {}
+  // 2.5) 관사·수량사 유연 매칭 (정답 노출 방지)
+  //      예문에서 관사/수량사가 끼거나 바뀐 경우 ("put out feelers"→"put out some feelers",
+  //      "with a caveat"→"with one caveat") 그 자리 전체를 빈칸 처리. 관사류만 허용해 오매칭 방지.
+  try {
+    const SMALL_WORDS = '(?:a|an|the|some|any|one|two|more|much|my|your|his|her|their|our|its)';
+    const smallRe = new RegExp('^' + SMALL_WORDS + '$', 'i');
+    const toks = answer.split(/\s+/);
+    if (toks.length >= 2) {
+      const headForms = (typeof inflectionVariants === 'function')
+        ? inflectionVariants(toks[0].toLowerCase())
+        : [toks[0].toLowerCase()];
+      const body = toks.slice(1).map((tk) => {
+        const clean = tk.toLowerCase().replace(/[.,!?]+$/, '');
+        return smallRe.test(clean) ? SMALL_WORDS : escapeRe(tk);
+      });
+      const pattern = '\\b(?:' + headForms.map(escapeRe).join('|') + ')'
+        + body.map((b) => '\\s+(?:' + SMALL_WORDS + '\\s+){0,2}' + b).join('') + '\\b';
+      const m = promptText.match(new RegExp(pattern, 'i'));
+      if (m) {
+        return {
+          mode: '1blank',
+          parts: [promptText.slice(0, m.index), promptText.slice(m.index + m[0].length)],
+          answer,
+        };
+      }
+    }
+  } catch (_) {}
   // 3) Pronoun substitution split (answer 자체가 "get it over the line" 처럼 가운데 대명사 포함)
   const PRONOUNS = new Set(['it', 'them', 'this', 'that', 'these', 'those', 'something', 'someone', 'sb', 'sth', 'sb.', 'sth.', 'one']);
   const tokens = answer.split(/\s+/);
