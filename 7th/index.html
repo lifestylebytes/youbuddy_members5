@@ -986,55 +986,55 @@ body.modal-open { overflow: hidden; touch-action: none; }
 // 이 값을 매번 바꿀 필요는 없음. (배포만 되면 ETag 가 자동으로 바뀜)
 const APP_BUILD = '2026-06-10';
 const REWARD_VIDEOS = {
-  // 7기 "오늘의 영상" URL 은 운영하면서 받는 대로 아래에 채우면 됩니다.
+  // 7기 "오늘의 영상": 그날 배운 표현의 상황과 이어지는 테마 큐레이션 (전부 링크 생존 확인함).
   // 비어있는 day 는 자동으로 "영상 준비 중" 토스트가 떠요 (에러 아님).
   // (YouTube/Vimeo/구글드라이브/팟캐스트 링크 모두 OK)
-  1: null, // 7기 Day 1 영상: 큐레이션 후 채우기
-  2: 'https://youtu.be/VtspPDHCBMQ?si=wjYiRrAoIzOsu8Z1', // Day2
-  3: 'https://www.youtube.com/watch?v=9PPifK4d0TA', // Day3: 코난 오브라이언 하버드 졸업연설 (한/영자막)
-  4: 'https://www.youtube.com/watch?v=5K8bVTnZXQQ', // Day4: 타블로 인생영화 탑10 (토크쇼)
-  5: 'https://www.youtube.com/watch?v=Vmi8ZiLWhVk', // Day5: 짐 캐리 졸업축사 풀버전
-  6: 'https://www.youtube.com/watch?v=LDBmVKYTO7s', // Day6: 테일러 스위프트 NYU 졸업연설
-  7: 'https://www.youtube.com/watch?v=N5D9oBxHJU4', // Day7: 타블로 손절할 친구 유형 (토크쇼)
-  8: 'https://www.youtube.com/watch?v=4jdhrf_bUrw', // Day8: 덴젤 워싱턴 FAIL BIG
-  9: 'https://www.youtube.com/watch?v=jo6qGnMCKAg', // Day9: 파친코 김민하 콜베어쇼 인터뷰
-  10: 'https://www.youtube.com/watch?v=DcnlDtdDsBI', // Day10: J.K. 롤링 하버드 연설 (실패와 인생)
-  11: 'https://www.youtube.com/watch?v=2gNxaIb1rdw', // Day11: 타블로 플레이리스트 (토크쇼)
-  12: 'https://www.youtube.com/watch?v=Eo_WutPJg_A', // Day12: 스티브 잡스 스탠퍼드 연설
-  13: 'https://www.youtube.com/watch?v=eGiwiC2Y_fk', // Day13: 빡친 할리우드 스타들 인터뷰
-  14: 'https://www.youtube.com/watch?v=gmTYJMBPDYA', // Day14: 아놀드 슈왈제네거 명연설
-  15: 'https://www.youtube.com/watch?v=sTIVY7ZVFM8', // Day15: BTS 유엔연설 Speak Yourself
-  16: 'https://www.youtube.com/watch?v=eDLxvdPd98k', // Day16: 타블로 위키피디아 (토크쇼)
-  17: 'https://www.youtube.com/watch?v=b8n_SDTqbG4', // Day17: 짐 캐리 목적을 정한 이유
-  18: 'https://www.youtube.com/watch?v=dfsoXroCt04', // Day18: 기어모 오스카 인터뷰
-  19: 'https://www.youtube.com/watch?v=P-_pk9-Xyq0', // Day19: AOC 명연설
-  20: 'https://www.youtube.com/watch?v=-Bs_DdVFPPU', // Day20: 코난 다트머스 졸업축사 (수료 느낌)
+  1: 'https://www.youtube.com/watch?v=4jwUXV4QaTw', // Day1: 전 FBI 요원의 바디랭귀지 읽는 법 (WIRED) · 행간 읽기
+  2: 'https://www.youtube.com/watch?v=MjhDkNmtjy0', // Day2: 크리스 보스 Never Split the Difference (TEDx) · 반응 떠보기
+  3: 'https://www.youtube.com/watch?v=sxYrzzy3cq8', // Day3: 통계에 속지 않는 법 (TED-Ed) · at face value
+  4: 'https://www.youtube.com/watch?v=Z3HJCQJ2Lmo', // Day4: 협상에서 원하는 걸 얻는 3단계 (TED) · wiggle room
+  5: 'https://www.youtube.com/watch?v=n3kNlFMXslo', // Day5: 로라 밴더캠, 시간의 주도권 (TED) · triaging
+  6: 'https://www.youtube.com/watch?v=JrRRvqgYgT0', // Day6: 집단은 어떻게 좋은 결정을 하나 (TED-Ed) · hive mind
+  7: 'https://www.youtube.com/watch?v=phgjouv0BUA', // Day7: 줄리아 다르, 생산적으로 반대하는 법 (TED) · steelman
+  8: 'https://www.youtube.com/watch?v=F6Qo8IDsVNg', // Day8: 나쁜 회의에서 세상을 구하는 법 (TED) · bikeshedding
+  9: 'https://www.youtube.com/watch?v=V2EMuoM5IX4', // Day9: 비합리적 결정의 심리학 (TED-Ed) · sunk cost
+  10: 'https://www.youtube.com/watch?v=5J6jAC6XxAI', // Day10: 팀 페리스, 목표 대신 두려움을 정의하라 (TED) · pre-mortem
+  11: 'https://www.youtube.com/watch?v=Zo62S0ulqhA', // Day11: 크리스 해드필드, 우주에서 눈이 멀었을 때 (TED) · 위기 대응
+  12: 'https://www.youtube.com/watch?v=Ty-m4pm8oog', // Day12: 수에즈 운하 사태의 전말 (Practical Engineering) · SPOF
+  13: 'https://www.youtube.com/watch?v=lVcg8uHKuwo', // Day13: 베를린의 텅 빈 7조원 공항 (The B1M) · requirements creep
+  14: 'https://www.youtube.com/watch?v=LhoLuui9gX8', // Day14: 에이미 에드먼슨, 심리적 안전감 (TEDx) · blame culture
+  15: 'https://www.youtube.com/watch?v=a_wuykzfFzE', // Day15: 콩코드는 왜 실패했나 (Vox) · pull the plug
+  16: 'https://www.youtube.com/watch?v=2t13Rq4oc7A', // Day16: 아스트로 텔러, 실패를 축하하는 문샷 팩토리 (TED) · moonshot
+  17: 'https://www.youtube.com/watch?v=bNpx7gpSqbY', // Day17: 빌 그로스, 스타트업 성공의 단 하나의 이유 (TED) · 스타트업 전략
+  18: 'https://www.youtube.com/watch?v=ysa5OBhXz-Q', // Day18: 늑대가 강을 바꾸는 법 (옐로스톤) · second-order effects
+  19: 'https://www.youtube.com/watch?v=ziGD7vQOwl8', // Day19: 말콤 글래드웰, 다윗과 골리앗의 진실 (TED) · punch above your weight
+  20: 'https://www.youtube.com/watch?v=pxBQLFLei70', // Day20: 맥레이븐 제독 "Make Your Bed" 전설의 졸업연설 · 피날레
 };
 
 // 모닝 공지용 "오늘의 영상" 메타 (제목·대략 길이). REWARD_VIDEOS 와 day 키 일치.
 // 영상 바꾸면 여기 title/min 도 같이 갱신. min = 대략 길이(분), 채워두면 모닝 공지에
 // "〈제목〉 (약 N분)" + 길이 맞춤 멘트가 자동으로 붙음. 모르면 min: null (제목만 노출).
 const REWARD_VIDEO_META = {
-  1: { title: null, min: null },
-  2:  { title: 'Ballpark 표현 영상', min: null },
-  3:  { title: '코난 오브라이언 하버드 졸업연설 (한/영 자막)', min: null },
-  4:  { title: '타블로 인생영화 탑10 (토크쇼)', min: null },
-  5:  { title: '짐 캐리 졸업축사 풀버전', min: null },
-  6:  { title: '테일러 스위프트 NYU 졸업연설', min: null },
-  7:  { title: '타블로 손절할 친구 유형 (토크쇼)', min: null },
-  8:  { title: '덴젤 워싱턴 FAIL BIG', min: null },
-  9:  { title: '파친코 김민하 콜베어쇼 인터뷰', min: null },
-  10: { title: 'J.K. 롤링 하버드 연설 (실패와 인생)', min: null },
-  11: { title: '타블로 플레이리스트 (토크쇼)', min: null },
-  12: { title: '스티브 잡스 스탠퍼드 연설', min: null },
-  13: { title: '빡친 할리우드 스타들 인터뷰', min: null },
-  14: { title: '아놀드 슈왈제네거 명연설', min: null },
-  15: { title: 'BTS 유엔연설 Speak Yourself', min: null },
-  16: { title: '타블로 위키피디아 (토크쇼)', min: null },
-  17: { title: '짐 캐리 목적을 정한 이유', min: null },
-  18: { title: '기예르모 오스카 인터뷰', min: null },
-  19: { title: 'AOC 명연설', min: null },
-  20: { title: '코난 다트머스 졸업축사 (수료 느낌)', min: null },
+  1:  { title: '전 FBI 요원의 바디랭귀지 읽는 법 (WIRED)', min: 15 },
+  2:  { title: '크리스 보스, FBI 협상가의 기술 (TEDx)', min: 12 },
+  3:  { title: '통계에 속지 않는 법 (TED-Ed 애니메이션)', min: 4 },
+  4:  { title: '협상에서 원하는 걸 얻는 3단계 (TED)', min: 5 },
+  5:  { title: '로라 밴더캠, 시간의 주도권을 갖는 법 (TED)', min: 12 },
+  6:  { title: '집단은 어떻게 좋은 결정을 내리나 (TED-Ed)', min: 4 },
+  7:  { title: '줄리아 다르, 생산적으로 반대하는 법 (TED)', min: 15 },
+  8:  { title: '나쁜 회의에서 세상을 구하는 법 (TED)', min: 7 },
+  9:  { title: '비합리적 결정의 심리학 (TED-Ed)', min: 5 },
+  10: { title: '팀 페리스, 목표 대신 두려움을 정의하라 (TED)', min: 13 },
+  11: { title: '크리스 해드필드, 우주에서 눈이 멀었을 때 (TED)', min: 18 },
+  12: { title: '수에즈 운하 사태의 전말 (Practical Engineering)', min: 12 },
+  13: { title: '베를린의 텅 빈 7조원 공항 (The B1M)', min: 12 },
+  14: { title: '에이미 에드먼슨, 심리적 안전감 (TEDx)', min: 11 },
+  15: { title: '콩코드는 왜 실패했나 (Vox)', min: 7 },
+  16: { title: '아스트로 텔러, 실패를 축하하는 문샷 팩토리 (TED)', min: 16 },
+  17: { title: '빌 그로스, 스타트업 성공의 단 하나의 이유 (TED)', min: 7 },
+  18: { title: '늑대가 강을 바꾸는 법 (옐로스톤 이야기)', min: 5 },
+  19: { title: '말콤 글래드웰, 다윗과 골리앗의 진실 (TED)', min: 16 },
+  20: { title: '맥레이븐 제독 "Make Your Bed" 전설의 졸업연설', min: 19 },
 };
 
 /* ============================================================
