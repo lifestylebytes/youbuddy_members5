@@ -3028,7 +3028,7 @@ const KAKAO_ILLUST = `
 </svg>`;
 const GUIDED_TOUR_STEPS = [
   { page: 'home',      target: '[data-tour="home-hero"]',     title: '👋 환영해요!', bodyHtml: '여기가 홈이에요. 오늘 며칠째인지 진도가 보이고, 이 카드의 큰 버튼으로 오늘 학습을 바로 열 수 있어요.<br><br><span style="font-size:12px;color:#8A93A0;">이 안내는 조금 길어요. 중간에 그만둬도 괜찮아요. 언제든 "나" 탭 &gt; 앱 사용법 다시 보기로 다시 볼 수 있어요.</span>', body: '여기가 홈이에요. 오늘 며칠째인지 진도가 보이고, 이 카드의 큰 버튼으로 오늘 학습을 바로 열 수 있어요. (이 안내는 언제든 "나" 탭 > 앱 사용법 다시 보기로 다시 볼 수 있어요.)' },
-  { page: 'home',      target: '[data-tour="streak-board"]',  title: '데일리 인증 보드', bodyHtml: '여기 내 칸에 매일 인증이 쌓여요. 정시 인증은 1점, 늦으면 0.5점이에요. <b style="color:#2E6B4F;font-weight:800;">단, 4번 연속으로 참여하지 않으면 계정이 비활성화돼요</b> (다시 시작하려면 유버디에게 따로 연락주세요). 끝까지 함께 가려고 강하게 잡는 거니 참고해주세요!', body: '여기 내 칸에 매일 인증이 쌓여요. 정시 인증은 1점, 늦으면 0.5점이에요. 단, 4번 연속으로 참여하지 않으면 계정이 비활성화돼요 (다시 시작하려면 유버디에게 따로 연락주세요). 끝까지 함께 가려고 강하게 잡는 거니 참고해주세요!' },
+  { page: 'home',      target: '[data-tour="streak-board"]',  targetUnion: ['.cb-name.cb-row-me', '.cb-cell.cb-cell-me'], title: '데일리 인증 보드', bodyHtml: '여기 내 칸에 매일 인증이 쌓여요. 정시 인증은 1점, 늦으면 0.5점이에요. <b style="color:#2E6B4F;font-weight:800;">단, 4번 연속으로 참여하지 않으면 계정이 비활성화돼요</b> (다시 시작하려면 유버디에게 따로 연락주세요). 끝까지 함께 가려고 강하게 잡는 거니 참고해주세요!', body: '여기 내 칸에 매일 인증이 쌓여요. 정시 인증은 1점, 늦으면 0.5점이에요. 단, 4번 연속으로 참여하지 않으면 계정이 비활성화돼요 (다시 시작하려면 유버디에게 따로 연락주세요). 끝까지 함께 가려고 강하게 잡는 거니 참고해주세요!' },
   { page: 'weeks',     target: '[data-tour="tab-weeks"]',     title: '내 학습 탭', body: '오늘 학습은 이 탭이 모여있는 곳이에요. Day 1~20 페이지를 언제든 다시 볼 수 있어요.' },
   { page: 'day', opts: { day: 1, week: 1 }, target: '[data-tour="day-today3"]',      title: '① 오늘의 표현 3개', body: '먼저 오늘 배울 표현 3개를 만나요. 여기 today\'s 3 에서 오늘의 표현을 한눈에 볼 수 있어요.' },
   { page: 'day', opts: { day: 1, week: 1 }, target: '[data-tour="day-vocab-first"]',      title: '② 따라 읽기', body: '이렇게 표현이 한 장씩 카드로 나와요 (예: #1 Pull in). 🔊 버튼으로 발음을 듣고 한 번씩 소리 내어 따라 읽어요. 입으로 굴려봐야 실전에서 나와요.' },
@@ -3036,7 +3036,7 @@ const GUIDED_TOUR_STEPS = [
   { page: 'day', opts: { day: 1, week: 1 }, target: '[data-tour="day-compose-block"]', title: '④ 영작', body: '내가 실제로 쓸 수 있는 말을 한국어로 먼저 작성하고, 그 다음 오늘 배운 표현으로 영어로 써보세요.' },
   { page: 'day', opts: { day: 1, week: 1 }, previewSubmit: true, target: '[data-tour="day-ai-btn"]', title: '⑤ AI 첨삭', body: '문장을 제출하면 이 AI 첨삭 버튼이 생겨요. 누르면 AI가 어색한 부분을 자연스럽게 고쳐줘요. 베이직은 한 문장당 한 번 받을 수 있고, 프리미엄은 무제한으로 받을 수 있어요.' },
   { page: 'community', target: '[data-tour="tab-community"]', title: '커뮤니티', body: '내가 제출한 문장과 동료들의 문장을 여기서 함께 봐요. 다른 사람은 어떻게 썼는지 구경하며 표현을 늘려요.' },
-  { page: 'home',      target: '[data-tour="streak-board"]',  title: '인증 완료', body: '단어 시험까지 풀면 그날 인증 완료! 홈 보드의 내 칸에 바로 표시돼요.' },
+  { page: 'home',      target: '[data-tour="streak-board"]',  targetUnion: ['.cb-name.cb-row-me', '.cb-cell.cb-cell-me'], title: '인증 완료', body: '단어 시험까지 풀면 그날 인증 완료! 홈 보드의 내 칸에 바로 표시돼요.' },
   { page: 'day', opts: { day: 1, week: 1 }, previewVerify: true, target: '[data-tour="day-video"]', title: '오늘의 영상', body: '인증이 끝나면 학습 페이지 맨 위에 "오늘의 영상"이 열려요. 귀가 트이는 영상으로 가볍게 마무리해요. (지금은 미리보기로 보여드려요)' },
   { page: 'home',      target: null,                          title: '단톡 인증', media: KAKAO_ILLUST, body: '마지막으로 오늘 제출한 문장을 녹음해서 단톡에 올리면 그날 인증이 끝나요. 단톡 인증은 챌린지의 핵심이라 꼭 올려주세요!' },
   { page: 'weeks',     previewQuiz: true, target: '[data-tour="week-quiz"]', title: '주간 미션 / 파이널', body: '한 주(5일)를 다 채우면 이 주간 미션 퀴즈가 열려요. 통과하면 선물이 있어요 🎁. 마지막엔 종합 파이널 퀴즈가 있고, 20일 중 18일 이상 인증하면 단어집 PDF가 열려요. (지금은 미리보기)' },
@@ -3131,10 +3131,30 @@ function GuidedTourOverlay() {
   wrap.appendChild(card);
 
   // 강조 대상 위치 측정 → 스포트라이트(밝게) + 카드 배치. 대상 없으면 전체 dim + 하단 카드.
+  // targetUnion: 여러 요소(예: 보드에서 '내 행' = 이름칸 + 내 셀 20개)의 합집합 rect 를
+  // 스포트라이트. 멤버가 많아 보드 전체가 화면을 덮는 문제 해결 (내 칸만 밝게).
+  const __unionRect = () => {
+    if (!Array.isArray(step.targetUnion) || !step.targetUnion.length) return null;
+    let L = Infinity, T = Infinity, R = -Infinity, B = -Infinity, found = false;
+    step.targetUnion.forEach((sel) => {
+      document.querySelectorAll(sel).forEach((n) => {
+        const r = n.getBoundingClientRect();
+        if (r.width <= 0 && r.height <= 0) return;
+        found = true;
+        L = Math.min(L, r.left); T = Math.min(T, r.top);
+        R = Math.max(R, r.right); B = Math.max(B, r.bottom);
+      });
+    });
+    if (!found) return null;
+    // 가로 스크롤 보드에서 화면 밖까지 번지지 않게 뷰포트로 클램프
+    L = Math.max(L, 0); R = Math.min(R, window.innerWidth);
+    return { top: T, left: L, width: R - L, height: B - T, bottom: B };
+  };
   const reposition = () => {
-    const t = step.target ? document.querySelector(step.target) : null;
-    if (t) {
-      const r = t.getBoundingClientRect();
+    const ur = __unionRect();
+    const t = (!ur && step.target) ? document.querySelector(step.target) : null;
+    const r = ur || (t ? t.getBoundingClientRect() : null);
+    if (r) {
       if (r.width > 0 && r.height > 0) {
         const pad = 8;
         spot.style.display = 'block';
@@ -3162,7 +3182,8 @@ function GuidedTourOverlay() {
   const stepChanged = window.__tourLastPositionedStep !== i;
   window.__tourLastPositionedStep = i;
   setTimeout(() => {
-    const t = step.target ? document.querySelector(step.target) : null;
+    const t = (Array.isArray(step.targetUnion) && document.querySelector(step.targetUnion[0]))
+      || (step.target ? document.querySelector(step.target) : null);
     // 즉시(auto) 스크롤 후 측정해야 위치가 정확함 (smooth 중 측정하면 엉뚱한 곳에 링이 뜸).
     if (stepChanged && t) { try { t.scrollIntoView({ behavior: 'auto', block: 'center' }); } catch (_) {} }
     reposition();
@@ -8690,7 +8711,7 @@ function Checkboard() {
       const peerDisplay = displayName(m);
       for (let d = 1; d <= 20; d++) {
         const meta = meCellStatus[d];
-        let cls = 'cb-cell' + (meta.cls ? ' ' + meta.cls : '');
+        let cls = 'cb-cell cb-cell-me' + (meta.cls ? ' ' + meta.cls : '');
         let titleAttr = '';
         const vt = state.verified_time && state.verified_time['d'+d];
         if (vt && (meta.st === 'done' || meta.st === 'done-late')) {
