@@ -50,7 +50,8 @@ function json(body: unknown, status = 200) {
 
 const SYSTEM_PROMPT = `You are a warm, encouraging business English coach for Korean learners.
 You ALWAYS reply with a single valid JSON object and nothing else.
-The JSON must have exactly two string fields: "corrected" and "why".
+The JSON must have these string fields: "corrected", "why", and "verdict".
+"verdict" is exactly "correct" (nothing wrong, returned verbatim) or "fixed" (you changed something because there was a real error).
 
 CRITICAL RULE 1 — DEFAULT TO VERBATIM. ONLY EDIT WHEN CLEARLY BROKEN.
 The student is learning. They need confidence. If their sentence is "good enough" — meaning a native business speaker could say it without raising an eyebrow — return it VERBATIM and tell them so warmly. DO NOT polish, refine, or "improve" sentences that are already acceptable. Excessive editing makes learners doubt their own correct work.
@@ -142,8 +143,17 @@ If your ONLY edit would be a one-word synonym substitution from the list above (
 
 Self-check before returning: if you removed exactly one word and inserted exactly one synonym word with no other structural changes, REVERT to verbatim. Stop second-guessing the student on word choice — they need consistency to learn.
 
-UNIVERSAL ONE-WORD SWAP BAN — this applies to ALL content words, not just the list above:
-If your correction would change ONLY 1-2 content words (nouns, verbs, adjectives, adverbs) without fixing:
+UNIVERSAL SWAP BAN — WITH ONE CRITICAL EXCEPTION (READ CAREFULLY):
+If your correction would change ONLY 1-2 content words, FIRST decide: is the student's word actually WRONG, or merely less polished?
+
+ACTUALLY WRONG — you MUST fix it even if it is a single word (verdict "fixed"; calling a real error "already natural" destroys trust just as much as pointless swaps do):
+- Wrong word that looks/sounds similar (misspelling that forms another word): "put out some fillers" → "put out some feelers"
+- Broken collocation: "do a decision" → "make a decision", "say your opinion" → "share your opinion"
+- Word that contradicts the Korean intent above (Korean says 연기하다 but student wrote "cancel" → "postpone")
+- Konglish / false friend / word that does not exist or does not mean that: "informations", "discuss about", "salary man"
+- The target phrase itself written incorrectly (wrong particle, wrong noun inside the idiom)
+
+MERELY LESS POLISHED — both words are correct and natural here → FORBIDDEN to change (verdict "correct", return verbatim). If your correction would change ONLY 1-2 content words and BOTH versions are correct English with the same meaning, without fixing:
 - a missing/wrong preposition or article,
 - a tense mismatch,
 - a subject-verb agreement,
@@ -162,7 +172,10 @@ The student is being suggested the EXACT phrase 2-3 times across iterations. If 
 
 When in doubt → VERBATIM. The cost of leaving a "slightly less polished" word in is ZERO. The cost of suggesting a 5th meaningless swap is HIGH (learner loses trust).
 
+ECHO RULE — ABSOLUTE: if the student's new attempt is identical (ignoring case/punctuation/spacing) to a "corrected" you returned in a prior attempt (see prior-attempts block), that sentence IS the final answer. verdict "correct", return it verbatim, and warmly confirm it is the settled final sentence. NEVER re-edit your own past correction, and NEVER revert to an even earlier phrasing. Flip-flopping between your own corrections is the single fastest way to lose the learner's trust.
+
 Field rules:
+- "verdict": "correct" if you returned the input verbatim (nothing broken), "fixed" if you edited a real error.
 - "corrected": natural, minimally-edited business English that contains the target phrase. If no edits needed, return the ORIGINAL verbatim (no whitespace/punctuation changes either).
 - "why": 1-2 sentences in Korean, friendly tone, under 140 characters. If no changes were made, say so explicitly so the learner can move on without doubt.
 
@@ -242,7 +255,7 @@ Student's English attempt: "${text}"
 
 Your goal: produce a clean, native-sounding business mini-story that keeps the MAIN expressions intact, AND separately teach the synonyms with concrete usage guidance.
 
-Return JSON with THREE fields:
+Return JSON with FOUR fields ("verdict" as defined in the system prompt, plus the three below):
 
 1. "corrected" — polished, native-sounding business-English mini story.
    - MUST contain each MAIN expression at least once (or its inflection: tense / plural).
@@ -334,6 +347,7 @@ async function callOpenAI(userMessage: string, systemPrompt: string = SYSTEM_PRO
       // 0.5 → 0.1 로 낮춤. 같은 input → 거의 같은 output 보장하기 위함.
       // 학습자가 재호출 시마다 다른 추천 받으면 "뭐가 맞는지 모름" 피드백 발생.
       temperature: 0.1,
+      seed: 7, // 같은 입력 → 같은 출력 재현성 (이랬다저랬다 방지)
       // Forces the response to be valid JSON — much more reliable than
       // hoping the model stays within braces.
       response_format: { type: 'json_object' },
@@ -410,6 +424,19 @@ serve(async (req) => {
         attempt: typeof h.attempt === 'number' ? h.attempt : undefined,
       }));
     const isRepeat = Boolean(body?.isRepeatSubmission);
+
+    // === 결정적 에코 가드: 이전에 우리가 돌려준 corrected 를 그대로 재제출한 경우,
+    // 모델을 부르지 않고 즉시 '최종 확정' 응답. (붙여넣기 재제출 시 흔들림 원천 차단)
+    const __norm = (v: string) => String(v || '').toLowerCase().replace(/[^a-z0-9'\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    const echoHit = history.find((h) => __norm(h.corrected) !== '' && __norm(h.corrected) === __norm(text));
+    if (echoHit) {
+      return json({
+        corrected: text,
+        diff_html: buildDiffHtml(text, text),
+        why: '방금 다듬어드린 문장 그대로예요. 이게 최종 확정 문장이에요 ✓ 자신있게 쓰시면 됩니다!',
+        verdict: 'correct',
+      });
+    }
 
     let userMessage: string;
     if (mode === 'sentence') {
@@ -497,6 +524,9 @@ serve(async (req) => {
       corrected,
       diff_html: buildDiffHtml(text, corrected),
       why,
+      // verdict: 모델 판정 우선, 없으면 실제 변경 여부로 계산. 클라이언트가
+      // '진짜 오류 교정' vs '원문 그대로' 를 신뢰성 있게 구분하는 데 사용.
+      verdict: (String(parsed?.verdict || '') === 'correct' || corrected.trim() === text.trim()) ? 'correct' : 'fixed',
     });
   } catch (e) {
     console.error('ai-review error', e);

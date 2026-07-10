@@ -1558,6 +1558,7 @@ const defaultState = () => ({
   community_comments: {},         // { "post-id": [{ text, author, createdAt }] }
   meeting_notes: {},              // { "m1": { talk_points:[], meeting_notes: '' } }
   meeting_consent: null,          // { accepted: true, at: ISO, version: 1, tz: '+0h' }, 프리미엄 미팅 녹화/분석 사전 동의 기록. operator 가 감사용으로 열람.
+  ai_history: {},                 // { 'S|Word': [{sentence, corrected, why, attemptN}] } AI 첨삭 히스토리 (새로고침 후에도 유지, 붙여넣기 재제출 흔들림 방지)
   operatorPreviewUnlock: true,    // 7기: 운영자/스태프는 시작 전에도 Day1 제출/AI/시험 미리 가능 (challengeStarted 가 isOperator||isStaff 일 때만 적용 → 일반 멤버는 영향 X). 끄려면 설정(운영자) 토글.
   operatorDayOverride: null,      // OPERATOR only, 운영자가 원하는 Day 번호로 currentDay 강제 점프 (테스트용). null 이면 캘린더 기준.
   presenterSignups: {},           // { "w1": ["member_key_a", "member_key_b"] }, 주차별 선착순 발표자
@@ -1614,6 +1615,7 @@ const PERSISTED_STATE_KEYS = [
   'accessCode',
   'timezoneLabel',
   'timezoneOffsetText',
+  'ai_history',
   'timezoneOffsetMinutes',
   'email',
   'isOperator',
@@ -2268,7 +2270,8 @@ function __isMinorContentEdit(original, corrected) {
 // 2차 시도 (비슷한 문장): "이미 잡으셨네요! 같은 표현으로 다른 상황 써볼까요?" + 새 예시
 // 3차 시도: 어휘 활용 깊이 코칭 (formality / nuance / 다른 시나리오)
 //
-// 메모리에만 살아있음 (페이지 reload 하면 초기화), 의도적. 매 세션 새 코칭.
+// state.ai_history 에 영속화됨 (새로고침·재로그인 후에도 유지). 저녁에 다시 들어와
+// '아까 고쳐준 문장' 을 붙여넣어도 앱이 기억하고 즉시 확정해주기 위함.
 const __submissionHistory = new Map(); // key: word.en → [{sentence, corrected, why, attemptN, ts}, ...]
 const __MAX_HISTORY = 5;
 
@@ -2281,6 +2284,13 @@ function __historyKey(payload) {
 }
 
 function __getHistory(key) {
+  if (key && !__submissionHistory.has(key)) {
+    // 새 세션이면 persist 된 히스토리에서 복원 (새로고침해도 첨삭 맥락 유지)
+    try {
+      const saved = state.ai_history && state.ai_history[key];
+      if (Array.isArray(saved) && saved.length) __submissionHistory.set(key, saved.map((h) => ({ ...h })));
+    } catch (_) {}
+  }
   return __submissionHistory.get(key) || [];
 }
 
@@ -2290,6 +2300,17 @@ function __recordSubmission(key, entry) {
   arr.push({ ...entry, ts: Date.now() });
   while (arr.length > __MAX_HISTORY) arr.shift();
   __submissionHistory.set(key, arr);
+  // persist: 최근 3개만, 길이 제한 (state 비대 방지)
+  try {
+    if (!state.ai_history || typeof state.ai_history !== 'object') state.ai_history = {};
+    state.ai_history[key] = arr.slice(-3).map((h) => ({
+      sentence: String(h.sentence || '').slice(0, 300),
+      corrected: String(h.corrected || '').slice(0, 300),
+      why: String(h.why || '').slice(0, 200),
+      attemptN: h.attemptN,
+    }));
+    saveState();
+  } catch (_) {}
 }
 
 // 정규화, 의미 비교용. 구두점/공백/대소문자 제거.
@@ -2321,6 +2342,18 @@ function __isEssentiallySameAsPrior(currentSentence, history) {
   return null;
 }
 
+// 새 제출이 '이전에 AI 가 돌려준 corrected' 와 사실상 동일한지 (첨삭 결과 붙여넣기 재제출).
+// 이 경우 AI 를 다시 부르지 않고 즉시 '최종 확정' 으로 답해 흔들림(이랬다저랬다)을 원천 차단.
+function __matchesPriorCorrection(currentSentence, history) {
+  const cur = __normalizeForCompare(currentSentence);
+  if (!cur || !history) return null;
+  for (let i = history.length - 1; i >= 0; i--) {
+    const c = __normalizeForCompare(history[i].corrected || '');
+    if (c && c === cur) return history[i];
+  }
+  return null;
+}
+
 async function requestSentenceCorrection(word, sentence, koreanContext) {
   const payload = {
     mode: 'sentence',
@@ -2334,6 +2367,24 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
   const histKey = __historyKey(payload);
   const history = __getHistory(histKey);
   const attemptN = history.length + 1;
+  // === 0순위: 첨삭 결과를 그대로 재제출 (붙여넣기) → AI 호출 없이 즉시 확정.
+  // 프리미엄 무제한 재첨삭에서 '고쳐준 걸 넣었는데 또 바꿈' 을 원천 차단하는 핵심 가드.
+  const echoMatch = __matchesPriorCorrection(sentence, history);
+  if (echoMatch) {
+    const why = '방금 다듬어드린 문장 그대로예요 ✓ 이게 최종 확정 문장이니 자신있게 쓰시면 됩니다. 한 발 더 가고 싶으면 같은 표현으로 다른 상황을 한 문장 써보세요!';
+    const out = {
+      corrected: sentence,
+      diff_html: escapeHtml(sentence),
+      why,
+      originalInput: sentence,
+      isFallback: false,
+      isEchoConfirm: true,
+      attemptNumber: attemptN,
+    };
+    __recordSubmission(histKey, { sentence, corrected: sentence, why, attemptN });
+    return out;
+  }
+
   // 사실상 동일한 문장 재제출인지 체크 (이미 같은 코칭 줄 거면 다른 각도로 가야 함)
   const priorMatch = __isEssentiallySameAsPrior(sentence, history);
   payload.history = history.slice(-3).map((h) => ({
@@ -2369,7 +2420,10 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
 
     // === 안전망: 동의어 리스트 밖 swap (increase↔raise, make↔create 등) 도 차단.
     // 1차 시도일 때만 적용, 2차+ 부턴 위에서 코칭 모드 처리.
-    if (!priorMatch && __isMinorContentEdit(sentence, result.corrected)) {
+    // 단, 서버가 verdict='fixed' (진짜 오류 교정: fillers→feelers, do→make a decision 등) 라고
+    // 판정한 경우엔 이 휴리스틱이 양보한다. 예전에 이 가드가 진짜 오류까지 '이미 자연스러워요' 로
+    // 삼켜서 첫 첨삭이 죄다 통과되던 문제의 재발 방지.
+    if (!priorMatch && result.verdict !== 'fixed' && __isMinorContentEdit(sentence, result.corrected)) {
       const out = {
         corrected: sentence,
         diff_html: escapeHtml(sentence),
@@ -2488,6 +2542,22 @@ async function requestStoryCorrection(words, text, koreanContext) {
     payload.priorCorrected = priorMatch.corrected;
   }
 
+  // === 0순위: 첨삭해준 스토리를 그대로 재제출 → AI 호출 없이 즉시 확정 (흔들림 차단)
+  const echoMatch = __matchesPriorCorrection(text, history);
+  if (echoMatch) {
+    const why = '다듬어드린 스토리 그대로예요 ✓ 이 버전으로 확정! 더 고칠 곳 없으니 소리 내어 읽으며 입에 붙여보세요.';
+    const out = {
+      corrected: text,
+      diff_html: escapeHtml(text),
+      why,
+      syn_examples: [],
+      isEchoConfirm: true,
+      attemptNumber: attemptN,
+    };
+    __recordSubmission(histKey, { sentence: text, corrected: text, why, attemptN });
+    return out;
+  }
+
   try {
     const result = await callAiReviewEdgeFunction(payload);
 
@@ -2513,7 +2583,7 @@ async function requestStoryCorrection(words, text, koreanContext) {
       return out;
     }
 
-    if (!priorMatch && __isMinorContentEdit(text, result.corrected)) {
+    if (!priorMatch && result.verdict !== 'fixed' && __isMinorContentEdit(text, result.corrected)) {
       const synExamples = Array.isArray(result.syn_examples) ? result.syn_examples : [];
       const out = {
         corrected: text,
