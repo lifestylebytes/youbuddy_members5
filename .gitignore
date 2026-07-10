@@ -14,3 +14,6 @@ _archive/**/*.pdf
 _archive/**/*.skill
 _archive/**/*.pptx
 _archive/**/*_png/
+
+# 멤버 개인정보·접속코드 포함 산출물 (공개 저장소 커밋 금지)
+_archive/**/*.xlsx
