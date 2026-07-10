@@ -50,8 +50,14 @@ function json(body: unknown, status = 200) {
 
 const SYSTEM_PROMPT = `You are a warm, encouraging business English coach for Korean learners.
 You ALWAYS reply with a single valid JSON object and nothing else.
-The JSON must have these string fields: "corrected", "why", and "verdict".
+The JSON must have these fields: "corrected" (string), "why" (string), "verdict" (string), and "feedback" (object).
 "verdict" is exactly "correct" (nothing wrong, returned verbatim) or "fixed" (you changed something because there was a real error).
+"feedback" splits your review into three Korean categories so the learner can scan it at a glance. Each field is a short Korean string (≤70 chars) or "" (empty) when there is nothing in that category:
+- "grammar": what you fixed in 문법 (시제, 관사, 전치사, 주어-동사 일치, 문장 구조, 조각문). Empty if no grammar fix.
+- "vocab": what you fixed in 어휘 (잘못된 단어, 오철자, 콜로케이션, 한국어 단어 번역, 콩글리시). Empty if none.
+- "nuance": 뉘앙스/톤 코멘트. This is OPTIONAL ADVICE ONLY (칭찬, 격식 팁, 쓰임새 설명). It must NEVER propose changing a correct word to a synonym, and it never affects "corrected". Empty if nothing useful.
+Write each category as a compact phrase, e.g. grammar: "informations→information (불가산), let them→I want to (주어 정리)". Do not repeat the same point across categories.
+"why" stays as a one-line overall summary (legacy display).
 
 CRITICAL RULE 1 — DEFAULT TO VERBATIM. ONLY EDIT WHEN CLEARLY BROKEN.
 The student is learning. They need confidence. If their sentence is "good enough" — meaning a native business speaker could say it without raising an eyebrow — return it VERBATIM and tell them so warmly. DO NOT polish, refine, or "improve" sentences that are already acceptable. Excessive editing makes learners doubt their own correct work.
@@ -255,7 +261,7 @@ Student's English attempt: "${text}"
 
 Your goal: produce a clean, native-sounding business mini-story that keeps the MAIN expressions intact, AND separately teach the synonyms with concrete usage guidance.
 
-Return JSON with FOUR fields ("verdict" as defined in the system prompt, plus the three below):
+Return JSON with FIVE fields ("verdict" and "feedback" as defined in the system prompt, plus the three below):
 
 1. "corrected" — polished, native-sounding business-English mini story.
    - MUST contain each MAIN expression at least once (or its inflection: tense / plural).
@@ -527,6 +533,12 @@ serve(async (req) => {
       // verdict: 모델 판정 우선, 없으면 실제 변경 여부로 계산. 클라이언트가
       // '진짜 오류 교정' vs '원문 그대로' 를 신뢰성 있게 구분하는 데 사용.
       verdict: (String(parsed?.verdict || '') === 'correct' || corrected.trim() === text.trim()) ? 'correct' : 'fixed',
+      // 3분류 피드백 (문법/어휘/뉘앙스). 클라이언트가 색 구분 렌더. 없으면 why 한 줄로 fallback.
+      feedback: {
+        grammar: String(parsed?.feedback?.grammar || '').slice(0, 200),
+        vocab: String(parsed?.feedback?.vocab || '').slice(0, 200),
+        nuance: String(parsed?.feedback?.nuance || '').slice(0, 200),
+      },
     });
   } catch (e) {
     console.error('ai-review error', e);
