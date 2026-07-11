@@ -3065,7 +3065,7 @@ const GUIDED_TOUR_STEPS = [
   { page: 'day', opts: { day: 1, week: 1 }, previewVerify: true, target: '[data-tour="day-video"]', title: '오늘의 영상', body: '인증이 끝나면 학습 페이지 맨 위에 "오늘의 영상"이 열려요. 귀가 트이는 영상으로 가볍게 마무리해요. (지금은 미리보기로 보여드려요)' },
   { page: 'home',      target: null,                          title: '단톡 인증', media: KAKAO_ILLUST, body: '마지막으로 오늘 제출한 문장을 녹음해서 단톡에 올리면 그날 인증이 끝나요. 단톡 인증은 챌린지의 핵심이라 꼭 올려주세요!' },
   { page: 'weeks',     previewQuiz: true, target: '[data-tour="week-quiz"]', title: '주간 미션 / 파이널', body: '한 주(5일)를 다 채우면 이 주간 미션 퀴즈가 열려요. 통과하면 선물이 있어요 🎁. 마지막엔 종합 파이널 퀴즈가 있고, 20일 중 18일 이상 인증하면 단어집 PDF가 열려요. (지금은 미리보기)' },
-  { page: 'premium',   target: '[data-tour="tab-premium"]',   title: '프리미엄 주간 미팅', premiumOnly: true, body: '(프리미엄) 매주 목요일 21:00 영어 회의가 있어요. Week 2~4 중 한 주는 직접 PT 발표자로 참여해요 (7분 토크 + 3분 Q&A).' },
+  { page: 'premium',   target: '[data-tour="meeting-w1"]',   title: '프리미엄 주간 미팅', premiumOnly: true, body: '(프리미엄) 매주 목요일 21:00 영어 회의가 있어요. 첫 주는 오리엔테이션과 자기소개! Week 2~4 중 한 주는 직접 PT 발표자로 참여해요 (7분 토크 + 3분 Q&A).' },
   { page: 'profile',   target: '[data-tour="profile-replay"]', title: '여기서 다시 볼 수 있어요', body: '이 안내가 헷갈리면 언제든 "나" 탭의 이 버튼을 눌러 처음부터 다시 볼 수 있어요. 부담 없이 활용해주세요!' },
   { page: 'home',      target: '[data-tour="home-hero"]',     title: '준비 끝!', bodyHtml: '이제 오늘의 학습을 열어볼까요? 매일 20분이면 충분해요 🧡<br><br>💡 미리 하나만 말씀드리면, <b style="color:#2E6B4F;">둘째~셋째 주가 가장 고비</b>예요. 그때 하루 빠져도 정상이니, 포기하지 말고 가볍게 복귀하면 돼요. 월요일마다 응원 들고 올게요!<br><br>📌 <b>방금 본 "나" 탭 &gt; 앱 사용법 다시 보기 버튼으로 언제든 이 안내를 다시 볼 수 있어요.</b>', body: '이제 오늘의 학습을 열어볼까요? 매일 20분이면 충분해요 🧡 미리 하나만: 둘째~셋째 주가 가장 고비예요. 하루 빠져도 포기하지 말고 가볍게 복귀하면 돼요. "나" 탭 > 앱 사용법 다시 보기로 언제든 이 안내를 다시 볼 수 있어요.', last: true },
 ];
@@ -15096,6 +15096,7 @@ function PremiumPage() {
     // 카드 껍데기, 이번 주면 lilac ring, 지나간 주면 연하게.
     const card = el('div', {
       class: 'card',
+      'data-tour': 'meeting-w' + m.n, // 가이드 투어 앵커 (Week 1 카드 스포트라이트)
       style: {
         padding: '16px 16px 14px',
         borderRadius: '20px',
