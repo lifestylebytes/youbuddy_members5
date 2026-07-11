@@ -19337,16 +19337,12 @@ function ProfilePage() {
         if (!url) continue;
         const meta = (typeof REWARD_VIDEO_META !== 'undefined' && REWARD_VIDEO_META[d]) || {};
         const title = meta.title || `Day ${d} 영상`;
-        const open = dayVerified(d);
-        videoRows.push(open
-          ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" style="display:flex;gap:8px;align-items:baseline;padding:6px 0;text-decoration:none;min-width:0;">
+        // 인증한 날의 영상만 노출. 미인증 날은 제목조차 안 보이게 (보상은 인증해야 존재를 알게 됨).
+        if (!dayVerified(d)) continue;
+        videoRows.push(`<a href="${escapeHtml(url)}" target="_blank" rel="noopener" style="display:flex;gap:8px;align-items:baseline;padding:6px 0;text-decoration:none;min-width:0;">
               <span style="flex-shrink:0;font-size:10.5px;font-weight:800;color:var(--orange-dark);">D${d}</span>
               <span style="font-size:12.5px;color:var(--ink);line-height:1.45;min-width:0;">${escapeHtml(title)}${meta.min ? ` <span style="color:var(--muted);font-size:11px;">약 ${meta.min}분</span>` : ''} ↗</span>
-            </a>`
-          : `<div style="display:flex;gap:8px;align-items:baseline;padding:6px 0;min-width:0;opacity:0.5;">
-              <span style="flex-shrink:0;font-size:10.5px;font-weight:800;color:var(--muted);">D${d}</span>
-              <span style="font-size:12.5px;color:var(--muted);line-height:1.45;min-width:0;">🔒 ${escapeHtml(title)} · 그날 인증하면 열려요</span>
-            </div>`);
+            </a>`);
       }
     }
 
@@ -19391,7 +19387,7 @@ function ProfilePage() {
     if (videoRows.length) {
       const vids = el('div', {});
       vids.innerHTML = `<details style="margin-top:10px;">
-        <summary style="cursor:pointer;font-size:13px;font-weight:800;color:var(--ink);padding:8px 0;">🎬 오늘의 영상 모아보기 (${videoRows.length})</summary>
+        <summary style="cursor:pointer;font-size:13px;font-weight:800;color:var(--ink);padding:8px 0;">🎬 내가 열어둔 오늘의 영상 (${videoRows.length})</summary>
         <div style="display:flex;flex-direction:column;">${videoRows.join('')}</div>
       </details>`;
       archBody.appendChild(vids);
