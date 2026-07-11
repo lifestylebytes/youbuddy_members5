@@ -4978,8 +4978,13 @@ function applyRemoteMemberSummaries(rows = []) {
       changed = true;
     }
     // 지각 인증 day 들, 서버 RPC 새 버전이 내려주면 사용. 옛 버전이면 빈 배열.
+    // 안전 가드: 예정일(캘린더)이 아직 안 지난 day 는 지각이 논리적으로 불가능 → 무조건 제외.
+    // (시작 전 테스트 인증이 구 일정 기준으로 late 저장돼 보드에 지각으로 뜨던 문제 방지)
     const rawLateDays = Array.isArray(summary.late_days) ? summary.late_days : [];
-    const nextLateDays = rawLateDays.map((d) => Number(d)).filter((d) => d >= 1 && d <= 20);
+    const nextLateDays = rawLateDays.map((d) => Number(d)).filter((d) => {
+      if (d < 1 || d > 20) return false;
+      try { return ymd(dayDate(d)) < koreaTodayStr(); } catch (e) { return true; }
+    });
     const prevLateKey = JSON.stringify((member.lateDays || []).slice().sort((a, b) => a - b));
     const nextLateKey = JSON.stringify(nextLateDays.slice().sort((a, b) => a - b));
     if (prevLateKey !== nextLateKey) {
