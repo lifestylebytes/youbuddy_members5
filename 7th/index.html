@@ -19288,114 +19288,6 @@ function ProfilePage() {
     page.appendChild(exportCard);
   }
 
-  // === 내 기록실 아카이브: 내가 쓴 문장(AI 최종본)·보너스 스토리·오늘의 영상 모아보기.
-  // 챌린지가 끝나도 링크만 있으면 계속 들어와 가져갈 수 있는 '내 자산' 섹션.
-  {
-    const archFinal = (key) => {
-      const fb = state.ai_feedback && state.ai_feedback[key];
-      const corrected = fb && String(fb.corrected || '').trim();
-      const raw = String((state.sentences && state.sentences[key]) || '').trim();
-      return corrected || raw;
-    };
-    const dayVerified = (d) => !!((state.verified && state.verified['d' + d]) || (state.verified_late && state.verified_late['d' + d])) || ((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
-    let sentenceTotal = 0;
-    const weekBlocks = (CHALLENGE.weeks || []).map((w) => {
-      const dayRows = (w.days || []).map((d) => {
-        const items = (d.words || []).map((word, i) => {
-          const t = archFinal(`d${d.day}-${i}`);
-          if (!t) return '';
-          sentenceTotal++;
-          return `<div style="display:flex;gap:8px;align-items:flex-start;min-width:0;">
-            <span style="flex-shrink:0;font-size:10.5px;font-weight:800;color:var(--orange-dark);background:var(--orange-ghost);border-radius:999px;padding:2px 8px;margin-top:2px;white-space:nowrap;">${escapeHtml(word.en)}</span>
-            <span style="font-size:12.5px;color:var(--ink);line-height:1.5;min-width:0;">${escapeHtml(t)}</span>
-          </div>`;
-        }).filter(Boolean);
-        const hookT = archFinal(`hook-${d.day}`);
-        if (hookT) {
-          items.push(`<div style="display:flex;gap:8px;align-items:flex-start;min-width:0;">
-            <span style="flex-shrink:0;font-size:10.5px;font-weight:800;color:#7A4DB8;background:#F2EBFB;border-radius:999px;padding:2px 8px;margin-top:2px;white-space:nowrap;">보너스</span>
-            <span style="font-size:12.5px;color:var(--ink);line-height:1.5;min-width:0;">${escapeHtml(hookT)}</span>
-          </div>`);
-        }
-        if (!items.length) return '';
-        return `<div style="padding:10px 0;border-bottom:1px dashed var(--line);">
-          <div style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:0.04em;margin-bottom:7px;">DAY ${d.day} · ${escapeHtml(d.title || '')}</div>
-          <div style="display:flex;flex-direction:column;gap:7px;">${items.join('')}</div>
-        </div>`;
-      }).filter(Boolean);
-      if (!dayRows.length) return '';
-      return `<details style="margin-top:8px;">
-        <summary style="cursor:pointer;font-size:13px;font-weight:800;color:var(--ink);padding:8px 0;">Week ${w.n} · ${escapeHtml(w.title || '')}</summary>
-        ${dayRows.join('')}
-      </details>`;
-    }).filter(Boolean);
-
-    const videoRows = [];
-    if (typeof REWARD_VIDEOS !== 'undefined') {
-      for (let d = 1; d <= 20; d++) {
-        const url = REWARD_VIDEOS[d];
-        if (!url) continue;
-        const meta = (typeof REWARD_VIDEO_META !== 'undefined' && REWARD_VIDEO_META[d]) || {};
-        const title = meta.title || `Day ${d} 영상`;
-        // 인증한 날의 영상만 노출. 미인증 날은 제목조차 안 보이게 (보상은 인증해야 존재를 알게 됨).
-        if (!dayVerified(d)) continue;
-        videoRows.push(`<a href="${escapeHtml(url)}" target="_blank" rel="noopener" style="display:flex;gap:8px;align-items:baseline;padding:6px 0;text-decoration:none;min-width:0;">
-              <span style="flex-shrink:0;font-size:10.5px;font-weight:800;color:var(--orange-dark);">D${d}</span>
-              <span style="font-size:12.5px;color:var(--ink);line-height:1.45;min-width:0;">${escapeHtml(title)}${meta.min ? ` <span style="color:var(--muted);font-size:11px;">약 ${meta.min}분</span>` : ''} ↗</span>
-            </a>`);
-      }
-    }
-
-    const archiveCard = el('div', { class: 'card card-flat', style: { marginTop: '24px', padding: '20px' } });
-    const archHead = el('div', {});
-    archHead.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-        <div>
-          <div style="font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">🗄 내 기록실 아카이브</div>
-          <div style="margin-top:3px;font-size:12px;color:var(--ink-soft);line-height:1.5;">내가 만든 문장 ${sentenceTotal}개와 보너스 영상. 챌린지가 끝나도 여기 그대로 남아요.</div>
-        </div>
-      </div>`;
-    archiveCard.appendChild(archHead);
-    const archBody = el('div', {});
-    if (weekBlocks.length) {
-      archBody.innerHTML = weekBlocks.join('');
-      const copyAllBtn = el('button', { class: 'btn btn-ghost', style: { marginTop: '12px', width: '100%', justifyContent: 'center' }, onClick: () => {
-        let out = `유비챌 ${CHALLENGE.cohort} 내 기록실 · ${state.name || ''}\n`;
-        (CHALLENGE.weeks || []).forEach((w) => {
-          let weekTxt = '';
-          (w.days || []).forEach((d) => {
-            let dayTxt = '';
-            (d.words || []).forEach((word, i) => {
-              const t = archFinal(`d${d.day}-${i}`);
-              if (t) dayTxt += `- ${word.en}: ${t}\n`;
-            });
-            const hookT = archFinal(`hook-${d.day}`);
-            if (hookT) dayTxt += `- 보너스 스토리: ${hookT}\n`;
-            if (dayTxt) weekTxt += `[Day ${d.day} · ${d.title || ''}]\n${dayTxt}`;
-          });
-          if (weekTxt) out += `\n== Week ${w.n} · ${w.title || ''} ==\n${weekTxt}`;
-        });
-        try {
-          navigator.clipboard.writeText(out).then(() => showToast('내 문장 전체를 복사했어요 📋 노션·메모장에 붙여넣으세요!'));
-        } catch (e) { showToast('복사가 안 되면 노션 내보내기를 이용해주세요.'); }
-      } });
-      copyAllBtn.textContent = '📋 내 문장 전체 복사';
-      archBody.appendChild(copyAllBtn);
-    } else {
-      archBody.innerHTML = `<div style="margin-top:10px;font-size:12.5px;color:var(--muted);line-height:1.55;">아직 기록이 없어요. Day 1부터 내가 쓴 문장이 여기 차곡차곡 쌓여요 🧡</div>`;
-    }
-    if (videoRows.length) {
-      const vids = el('div', {});
-      vids.innerHTML = `<details style="margin-top:10px;">
-        <summary style="cursor:pointer;font-size:13px;font-weight:800;color:var(--ink);padding:8px 0;">🎬 내가 열어둔 오늘의 영상 (${videoRows.length})</summary>
-        <div style="display:flex;flex-direction:column;">${videoRows.join('')}</div>
-      </details>`;
-      archBody.appendChild(vids);
-    }
-    archiveCard.appendChild(archBody);
-    page.appendChild(archiveCard);
-  }
-
   // 앱 사용법 다시 보기 (가이드 투어 재실행). 텍스트가 아니라 누르고 싶은 '버튼'으로 강조.
   const tourCard = el('div', { style: { marginTop: '24px' } });
   const tourBtn = el('button', {
@@ -22770,12 +22662,14 @@ function ExportPage() {
   // Preview card
   const preview = el('div', { class: 'card card-flat', style: { marginTop: '18px' } });
   const done = completedCount();
-  const sentenceCount = Object.values(state.sentences).filter(Boolean).length;
+  const sentenceCount = Object.keys(state.sentences).filter((k) => !k.startsWith('hook-') && String(state.sentences[k] || '').trim()).length;
+  const bonusCount = Object.keys(state.sentences).filter((k) => k.startsWith('hook-') && String(state.sentences[k] || '').trim()).length;
   preview.innerHTML = `
     <div class="kicker">포함될 내용</div>
     <div class="stack-sm" style="margin-top:10px;">
       <div class="row row-between"><span class="t-body">📅 Day 1 ~ 20 전체 노트</span><span class="mono" style="font-size:12px;color:var(--orange);font-weight:600;">20 days</span></div>
       <div class="row row-between"><span class="t-body">📝 내가 만든 문장</span><span class="mono" style="font-size:12px;color:var(--orange);font-weight:600;">${sentenceCount} sentences</span></div>
+      ${bonusCount ? `<div class="row row-between"><span class="t-body">✨ 보너스 스토리 (3문장 잇기)</span><span class="mono" style="font-size:12px;color:var(--orange);font-weight:600;">${bonusCount} stories</span></div>` : ''}
       <div class="row row-between"><span class="t-body">✅ 인증 완료 기록</span><span class="mono" style="font-size:12px;color:var(--orange);font-weight:600;">${done} / 20</span></div>
       <div class="row row-between"><span class="t-body">🎯 오늘의 목표 & 어휘 + 예문 + 유의어</span><span class="mono" style="font-size:12px;color:var(--orange);font-weight:600;">60 words</span></div>
       ${state.tier === 'premium' ? '<div class="row row-between"><span class="t-body">⭐ 프리미엄: 주간 미팅 · PT · 퀴즈 기록</span><span class="mono" style="font-size:12px;color:var(--orange);font-weight:600;">premium</span></div>' : ''}
@@ -25673,6 +25567,18 @@ function generateMarkdown() {
         lines.push(`  - 영어 문장: ${s}`);
         if (ai && ai !== s) lines.push(`  - AI 교정: ${ai}`);
       });
+      // 보너스 스토리 (3문장 잇기), 쓴 날만 포함
+      {
+        const hookS = String(state.sentences['hook-' + d.day] || '').trim();
+        const hookAi = String(state.ai_feedback?.['hook-' + d.day]?.corrected || '').trim();
+        if (hookS || hookAi) {
+          lines.push('');
+          lines.push(`**✨ 보너스 스토리 (3문장 잇기)**`);
+          lines.push('');
+          lines.push(`- ${hookS || hookAi}`);
+          if (hookAi && hookAi !== hookS) lines.push(`  - AI 교정: ${hookAi}`);
+        }
+      }
       lines.push('');
       lines.push(`**✅ 인증 체크**`);
       lines.push(`- [${state.checkpoints['d'+d.day+'-read'] ? 'x' : ' '}] 오늘의 표현 3번씩 소리 내어 읽기`);
@@ -25751,7 +25657,7 @@ function download(filename, content, mime='text/plain') {
 function exportMarkdown() {
   const md = generateMarkdown();
   const date = new Date().toISOString().split('T')[0];
-  download(`youbuddy-5기-영어대본-${date}.md`, md, 'text/markdown');
+  download(`youbuddy-${CHALLENGE.cohort}-영어대본-${date}.md`, md, 'text/markdown');
   showToast('✅ Notion용 파일이 다운로드됐어요');
 }
 
@@ -25762,7 +25668,7 @@ function exportJSON() {
     challenge: CHALLENGE,
   };
   const date = new Date().toISOString().split('T')[0];
-  download(`youbuddy-5기-backup-${date}.json`, JSON.stringify(data, null, 2), 'application/json');
+  download(`youbuddy-${CHALLENGE.cohort}-backup-${date}.json`, JSON.stringify(data, null, 2), 'application/json');
   showToast('✅ 백업 파일이 다운로드됐어요');
 }
 
