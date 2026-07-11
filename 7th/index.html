@@ -2953,7 +2953,7 @@ let showReviewUnlockPopup = false; // Week 2(Day 6) 진입 시 '내 약점 복�
 let showFunFactPopup = null; // 홈 진입 시 하루 1회 '오늘의 한 입' (날짜별 고정). true 면 노출.
 let showDonePopup = null;    // 그날 인증 완료 후 1회 '오늘 마무리' (스트릭/동료 상태별 분기).
 // '내 약점 복습' 기능은 Week 2(Day 6)부터 해제. 다음 기수도 동일(코호트 무관, currentDay 기준).
-function reviewFeatureUnlocked() { return (Number(state.currentDay) || 1) >= 6 || state.isOperator || state.isStaff; }
+function reviewFeatureUnlocked() { return (Number(state.currentDay) || 1) >= 6 || ((state.isOperator || state.isStaff) && !state.operatorViewAsMember); }
 // 알림 인박스 패널, TopBar 종 누르면 열림.
 let showNotifications = false;
 let toast = null;
@@ -3772,7 +3772,7 @@ function formatVerifyStamp(vd, vt, tzText) {
    공식 출발 날짜(4/27) 되면 자동으로 다 열리므로 그 전 테스트용 플래그. */
 function challengeStarted() {
   // Operator preview unlock, 출시 전 동의 팝업 / 제출 / AI / 단어시험 전체 흐름 검증용.
-  if (state.operatorPreviewUnlock === true && (state.isOperator || state.isStaff)) return true;
+  if (state.operatorPreviewUnlock === true && (state.isOperator || state.isStaff) && !state.operatorViewAsMember) return true;
   // 시작 게이트는 한국시간 기준 (콘텐츠는 한국 시작일에 모두에게 열림).
   const today = koreaTodayStr();
   return today >= CHALLENGE.start_date;
