@@ -1196,7 +1196,7 @@ const CHALLENGE = {
   ],
   // Premium-only add-ons
   premium: {
-    presenter_slots_per_week: 3,  // 주마다 발표자 선착순 3명
+    presenter_slots_per_week: 4,  // 주마다 발표자 선착순 4명
     presenter_talk_minutes: 7,
     presenter_feedback_minutes: 3,
     // 주간 미팅 = 40분 그룹 롤플레이 + 30분 (7분 발표 + 3분 Q&A) × 3명 = 총 70분.
@@ -1224,7 +1224,7 @@ const CHALLENGE = {
             '① 챌린지 소개, 4주 구조 · Daily · 주간 미팅 · 완주 기준',
             '② 유버디 소개, 누가 · 왜 이 챌린지를 만들었는지',
             '③ 각자 1분 자기소개, 이름 · 업/역할 · 이번에 얻고 싶은 것',
-            '④ PT 진행 방식 안내, Week 2~4 발표자 슬롯 · 7분 토크 + 3분 Q&A · 선착순 3명',
+            '④ PT 진행 방식 안내, Week 2~4 발표자 슬롯 · 7분 토크 + 3분 Q&A · 선착순 4명',
             '⑤ 다음 주 롤플레이 방식 안내, 그룹 롤플레이 · 역할 · Daily 단어 녹여 쓰기',
             '⑥ Q&A, 궁금한 거 다 물어보기',
           ],
@@ -1245,7 +1245,7 @@ const CHALLENGE = {
           ],
           props: [
             { label: '1분 자기소개 템플릿', body: '"Hi, I\'m [name]. I work in [industry] as [role]. This challenge, I want to [goal]."' },
-            { label: 'PT 자리 잡는 법',     body: '앱 → 프리미엄 탭 → 이번 주 카드 → "발표자로 지원" 버튼. 선착순 3명. 한 사람이 여러 주 자리 못 잡음.' },
+            { label: 'PT 자리 잡는 법',     body: '앱 → 프리미엄 탭 → 이번 주 카드 → "발표자로 지원" 버튼. 선착순 4명. 한 사람이 여러 주 자리 못 잡음.' },
             { label: '질문 모음 아이디어', body: '"완주 기준은 어떻게 되나요?" · "Daily 어디서 확인해요?" · "발표 자료 포맷 정해져 있어요?"' },
           ],
         },
@@ -4433,16 +4433,16 @@ const memberKey = () => (state.accountKey || state.email || [state.accessCode, s
    PREMIUM · 주간 발표자 (PRESENTER SIGNUP) 헬퍼
    - state.presenterSignups[wN] = [memberKey, ...]  (로컬 캐시)
    - 서버는 challenge_presenter_signups 테이블 + RPC 로 동기화
-   - 3명 선착순. 같은 사람이 같은 주에 중복 signup 불가.
+   - 선착순 (presenter_slots_per_week, 현재 4명). 같은 사람이 같은 주에 중복 signup 불가.
    ============================================================ */
 const PRESENTER_KEY = (n) => 'w' + Number(n);
 // 운영자 수동 force-include / exclude, 코드에 박아둔 발표자 자리 변경.
 // 형식: { weekN: ['MEMBER_DIRECTORY id', ...] }, 디스플레이 전용. 서버에 영구 저장 X.
-// 권다은(p9, English: Dani), Week 2 에서 발표 못 해서 Week 3 마지막 자리로 이동.
-const PRESENTER_FORCE_INCLUDE = { 3: ['p9'] };
-const PRESENTER_FORCE_EXCLUDE = { 2: ['p9'] }; // Week 2 의 p9 정상 signup 을 디스플레이에서 숨김
-// 주차별 cap override, Week 3 만 4명 (권다은 추가로 인해).
-const PRESENTER_CAP_OVERRIDE = { 3: 4 };
+// (6기의 권다은 이동용 값이 7기 p9=신은정으로 잘못 매핑되던 사고 있었음. 기수 넘어오면 반드시 비울 것.)
+const PRESENTER_FORCE_INCLUDE = {};
+const PRESENTER_FORCE_EXCLUDE = {};
+// 주차별 cap override (기본은 presenter_slots_per_week).
+const PRESENTER_CAP_OVERRIDE = {};
 function weekMeta(n) {
   return (CHALLENGE.premium.weekly_meetings || []).find((w) => Number(w.n) === Number(n)) || null;
 }
@@ -15055,7 +15055,7 @@ function PremiumPage() {
   calendarCard.appendChild(legend);
   page.appendChild(calendarCard);
 
-  // Weekly meetings, 발표자 선착순 3명 중심의 통합 카드.
+  // Weekly meetings, 발표자 선착순(현재 4명) 중심의 통합 카드.
   // Basic 사용자에겐 전체 섹션 (타이틀 + 미팅 카드 스택) 을 blur 처리 + 가운데
   // 'PREMIUM ONLY' 오버레이. Personal Quiz / Certification 은 이 블러 바깥에
   // 별도 렌더돼서 정상 노출.
@@ -16636,6 +16636,20 @@ function MeetingNotesPage(meetingId) {
     page.appendChild(back);
     return page;
   }
+  // Week 2~4 는 콘텐츠 확정 전이라 멤버에겐 잠금. 운영자/스태프만 미리보기.
+  // 열 준비 되면 이 가드만 지우면 됨 (또는 주차별로 숫자 낮추기).
+  const __MEETING_OPEN_MAX_WEEK = 1;
+  if (Number(meta.n) > __MEETING_OPEN_MAX_WEEK && !(state.isOperator || state.isStaff)) {
+    const lockCard = el('div', { class: 'card card-flat', style: { marginTop: '40px', textAlign: 'center', padding: '36px 24px' } });
+    lockCard.innerHTML = `
+      <div style="font-size:40px;line-height:1;">🌱</div>
+      <div style="margin-top:12px;font-size:17px;font-weight:800;color:var(--ink);">Week ${meta.n} 미팅은 준비 중이에요</div>
+      <div class="t-body" style="margin-top:8px;color:var(--ink-soft);line-height:1.6;">그 주가 가까워지면 열려요. 발표자 신청도 그때 같이 안내드릴게요!</div>`;
+    page.appendChild(lockCard);
+    const lockBack = el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, onClick: () => go('premium') }, '← 프리미엄으로');
+    page.appendChild(lockBack);
+    return page;
+  }
 
   // Ensure state slots exist, 기존 talk_points / meeting_notes 는 레거시로 유지하되
   // 새 timeline 뷰는 state.meeting_notes[mid].timeline 아래서 row 별로 관리.
@@ -16746,7 +16760,7 @@ function MeetingNotesPage(meetingId) {
     : (meta.n === 2 && typeof WEEK2_DECK !== 'undefined') ? WEEK2_DECK
     : (meta.n === 3 && typeof WEEK3_DECK !== 'undefined') ? WEEK3_DECK
     : (meta.n === 4 && typeof WEEK4_DECK !== 'undefined') ? WEEK4_DECK : null;
-  if (__deckForMeeting && (state.isOperator || state.isStaff)) {
+  if (__deckForMeeting && state.isOperator) {
     const deckBtn = el('button', { class: 'btn btn-primary btn-full btn-lg', style: { marginBottom: '14px' }, onClick: () => { window.__currentMeetingId = meetingId; window.__deckIdx = 0; if (typeof __deckHydrate === 'function') __deckHydrate(); go('meeting-deck'); } });
     deckBtn.innerHTML = `🎤 발표 모드 시작 (운영자 전용) · 슬라이드 ${__deckForMeeting.length}장 ${Icon('arrowRight', 16)}`;
     page.appendChild(deckBtn);
@@ -19240,7 +19254,7 @@ function ProfilePage() {
         <span style="flex-shrink:0;width:22px;height:22px;border-radius:7px;background:var(--lilac);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;">2</span>
         <div>
           <div style="font-size:13px;font-weight:700;color:var(--ink);">미팅 안 7분 발표 + 3분 Q&A</div>
-          <div class="t-small" style="margin-top:3px;color:var(--ink-soft);line-height:1.55;">매주 3명 선착순. 내 상황 시나리오로 발표하고, 그 자리에서 라이브 피드백을 받아요.</div>
+          <div class="t-small" style="margin-top:3px;color:var(--ink-soft);line-height:1.55;">매주 4명 선착순. 내 상황 시나리오로 발표하고, 그 자리에서 라이브 피드백을 받아요.</div>
         </div>
       </li>
       <li style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:rgba(169,139,184,0.10);border:1px solid rgba(169,139,184,0.22);">
