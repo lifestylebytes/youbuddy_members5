@@ -7085,7 +7085,8 @@ function __authPageShell() {
   });
 }
 
-// 시작 랜딩: 로그인 / 신규 등록 둘 중 선택. 로그인을 위에(주) 배치.
+// 시작 랜딩: 신규 등록을 위(주)에 배치. 처음 온 멤버가 로그인으로 새다가
+// 온보딩(시차·목표 입력)을 건너뛰는 문제 방지. 재방문자는 아래 로그인.
 function AuthLandingPage() {
   const page = __authPageShell();
   page.appendChild(__authBrand());
@@ -7097,24 +7098,24 @@ function AuthLandingPage() {
   card.innerHTML = `
     <h2 style="margin:0 0 6px;font-size:20px;font-weight:800;letter-spacing:-0.02em;">시작할까요?</h2>
     <p class="t-body" style="font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:18px;">
-      이미 참여 중이면 <b>로그인</b>, 7기에 처음 들어오면 <b>신규 등록</b>을 눌러주세요.
+      7기에 처음 오셨다면 <b>신규 등록</b>으로 시작해주세요. 목표·시차 설정까지 1분이면 끝나요.
     </p>`;
-  const loginBtn = el('button', {
+  const regBtn = el('button', {
     class: 'btn btn-primary btn-lg',
     style: { width: '100%', padding: '15px 18px', fontWeight: '700', marginBottom: '10px' },
-    onClick: () => { __authMode = 'login'; __loginName = state.name || ''; render(); },
-  }, '로그인');
-  const regBtn = el('button', {
-    class: 'btn btn-ghost btn-lg',
-    style: { width: '100%', padding: '15px 18px', fontWeight: '700' },
     onClick: () => { __authMode = 'register'; __onboardStep = 0; render(); },
   }, '신규 등록 (처음이에요)');
-  card.appendChild(loginBtn);
+  const loginBtn = el('button', {
+    class: 'btn btn-ghost btn-lg',
+    style: { width: '100%', padding: '15px 18px', fontWeight: '700' },
+    onClick: () => { __authMode = 'login'; __loginName = state.name || ''; render(); },
+  }, '이미 가입했어요 · 로그인');
   card.appendChild(regBtn);
+  card.appendChild(loginBtn);
   page.appendChild(card);
 
   const footer = el('p', { style: { marginTop: '18px', textAlign: 'center', fontSize: '11px', color: 'var(--muted)', lineHeight: '1.6' } });
-  footer.innerHTML = '7기 · 2026/6/8 ~ 7/3 · 매일 하루 한 페이지';
+  footer.innerHTML = `${CHALLENGE.cohort} · ${CHALLENGE.start_date.replace(/-/g, '/').slice(5)} ~ ${CHALLENGE.end_date.replace(/-/g, '/').slice(5)} · 매일 하루 한 페이지`;
   page.appendChild(footer);
   return page;
 }
@@ -7213,9 +7214,11 @@ async function __doLogin() {
       (typeof remote.role === 'string' && remote.role.trim().length > 0)
     )
   );
-  // 코드·이름은 맞지만 서버 가입 기록이 없고 디렉토리 멤버도 아님 = 사실상 첫 등록.
-  // (운영자·스태프는 디렉토리에 있어 기록 없어도 통과) → 신규 등록으로 부드럽게 이어줌.
-  if (!remotelyRegistered && !dirByName) {
+  // 코드·이름은 맞지만 서버 가입 기록이 없음 = 사실상 첫 등록 → 신규 등록으로 이어줌.
+  // 운영자·스태프만 기록 없이도 로그인 통과 (QA용). 일반 멤버가 여기로 통과하면
+  // 온보딩(시차·목표)을 건너뛰게 되므로 디렉토리 멤버여도 등록 플로우로 보낸다.
+  const __dirOpStaff = dirByName && (dirByName.isOperator || dirByName.isStaff);
+  if (!remotelyRegistered && !__dirOpStaff) {
     __loginBusy = false;
     __authMode = 'register'; __onboardStep = 0;
     __onboardDraft.name = name; __onboardDraft.code = code;
