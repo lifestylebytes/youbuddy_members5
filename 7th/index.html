@@ -95,7 +95,7 @@ input, textarea, select { font-family: inherit; }
 
 /* topbar */
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 4px 16px; }
-.brand { display: flex; align-items: center; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; overflow: hidden; }
 .logo-mark {
   width: 32px; height: 32px; border-radius: 10px;
   background: var(--ink); color: var(--ivory);
@@ -7036,7 +7036,7 @@ function TopBar(title='') {
   });
   brand.appendChild(el('div', { class: 'logo-mark' }, 'Y'));
   const bn = el('div', { class: 'brand-name' }, 'YouBuddy');
-  const small = el('small', {}, CHALLENGE.cohort + ' · 비즈니스 영어');
+  const small = el('small', {}, CHALLENGE.cohort);
   bn.appendChild(small);
   brand.appendChild(bn);
   topbar.appendChild(brand);
