@@ -10,6 +10,13 @@
 <title>YouBuddy · 비즈니스 영어 챌린지 7기 학습</title>
 <!-- 파비콘: 로즈레드 배경 + 흰색 소문자 y (인라인 SVG, 하위 라우트 전체 적용) -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='8'%20fill='%232E6B4F'/%3E%3Ctext%20x='16'%20y='23'%20font-family='Arial,Helvetica,sans-serif'%20font-size='22'%20font-weight='700'%20fill='%23ffffff'%20text-anchor='middle'%3Ey%3C/text%3E%3C/svg%3E" />
+<!-- PWA 설정 -->
+<link rel="manifest" href="/7th/manifest.json" />
+<meta name="theme-color" content="#2E6B4F" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="YouBuddy" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20192%20192'%3E%3Crect%20width='192'%20height='192'%20rx='40'%20fill='%232E6B4F'/%3E%3Ctext%20x='96'%20y='140'%20font-family='Arial,Helvetica,sans-serif'%20font-size='130'%20font-weight='700'%20fill='%23ffffff'%20text-anchor='middle'%3Ey%3C/text%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -981,6 +988,82 @@ body.modal-open { overflow: hidden; touch-action: none; }
 <script>
   window.YB_SUPABASE_URL = 'https://qaasxvatmribkgtatine.supabase.co';
   window.YB_SUPABASE_ANON_KEY = 'sb_publishable_XNd9sxTnMsuNmdT1JSXtdw_wMj0Ma9R';
+  /* PWA 설정: VAPID 공개키 (push 구독용) */
+  window.YB_VAPID_PUBLIC_KEY = 'BB-4G3_7XMAE67uwWlWEmLLwGWxPuWvotzhXOY3Ef2wxxq5_MmiD6EbvZj9n7kDCOFDlhWpnxZDc3BqTAuS-i6I';
+</script>
+
+<!-- PWA: 서비스 워커 등록 + 푸시 알림 구독 -->
+<script>
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+
+  /* 서비스 워커 등록 */
+  navigator.serviceWorker.register('/7th/sw.js', { scope: '/7th/' })
+    .then((reg) => {
+      window.__swReg = reg;
+      console.log('[SW] 등록 완료', reg.scope);
+    })
+    .catch((err) => console.warn('[SW] 등록 실패', err));
+
+  /* base64url → Uint8Array (VAPID 공개키 변환용) */
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = atob(base64);
+    return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+  }
+
+  /* 푸시 구독 / 멤버 key 확보 후 Supabase 에 저장 */
+  window.__subscribePush = async function (memberKey) {
+    try {
+      const reg = window.__swReg || await navigator.serviceWorker.ready;
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) { await existing.unsubscribe(); }
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(window.YB_VAPID_PUBLIC_KEY),
+      });
+
+      /* Supabase 에 구독 저장 */
+      const res = await fetch(
+        window.YB_SUPABASE_URL + '/rest/v1/push_subscriptions',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': window.YB_SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + window.YB_SUPABASE_ANON_KEY,
+            'Prefer': 'resolution=merge-duplicates',
+          },
+          body: JSON.stringify({
+            member_key: memberKey,
+            cohort: '7기',
+            subscription: sub.toJSON(),
+            updated_at: new Date().toISOString(),
+          }),
+        }
+      );
+      if (!res.ok) throw new Error('저장 실패 ' + res.status);
+      console.log('[Push] 구독 완료');
+      return true;
+    } catch (err) {
+      console.warn('[Push] 구독 실패', err);
+      return false;
+    }
+  };
+
+  /* 구독 해제 */
+  window.__unsubscribePush = async function () {
+    try {
+      const reg = window.__swReg || await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) await sub.unsubscribe();
+    } catch (err) {
+      console.warn('[Push] 해제 실패', err);
+    }
+  };
+})();
 </script>
 
 <script>
@@ -19461,6 +19544,52 @@ function ProfilePage() {
   logoutBtn.innerHTML = `${Icon('arrowRight', 14)} 로그아웃`;
   logoutCard.appendChild(logoutBtn);
   page.appendChild(logoutCard);
+
+  // ── PWA 푸시 알림 설정 카드 (ServiceWorker + Notification API 지원 환경만) ──
+  if ('serviceWorker' in navigator && 'PushManager' in window) {
+    const pushCard = el('div', { class: 'card card-flat', style: { marginTop: '12px', padding: '16px 18px' } });
+    const pushRow = el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' } });
+    pushRow.innerHTML = `
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--ink);">📱 푸시 알림</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">모닝 공지·인증 리마인더 알림 받기</div>
+      </div>`;
+    const pushToggleWrap = el('div');
+    async function renderPushToggle() {
+      pushToggleWrap.innerHTML = '';
+      const reg = await navigator.serviceWorker.ready.catch(() => null);
+      if (!reg) { pushToggleWrap.innerHTML = '<span style="font-size:11px;color:var(--muted)">미지원</span>'; return; }
+      const sub = await reg.pushManager.getSubscription().catch(() => null);
+      const isOn = !!sub;
+      const toggleBtn = el('button', {
+        class: 'btn btn-ghost',
+        style: {
+          padding: '8px 16px', fontSize: '13px', fontWeight: '700',
+          borderColor: isOn ? 'rgba(46,107,79,0.4)' : 'var(--line)',
+          color: isOn ? 'var(--green)' : 'var(--ink-soft)',
+          background: isOn ? 'var(--green-soft)' : 'var(--paper)',
+        },
+        onClick: async () => {
+          toggleBtn.disabled = true;
+          if (isOn) {
+            await window.__unsubscribePush();
+            showToast('🔕 알림 해제됨');
+          } else {
+            const perm = await Notification.requestPermission();
+            if (perm !== 'granted') { showToast('알림 권한이 필요해요'); toggleBtn.disabled = false; return; }
+            const ok = await window.__subscribePush(state.memberKey || state.member_key || '');
+            showToast(ok ? '🔔 알림 켜짐!' : '구독 실패, 잠시 후 다시 시도해주세요');
+          }
+          await renderPushToggle();
+        },
+      }, isOn ? '알림 ON' : '알림 OFF');
+      pushToggleWrap.appendChild(toggleBtn);
+    }
+    renderPushToggle();
+    pushRow.appendChild(pushToggleWrap);
+    pushCard.appendChild(pushRow);
+    page.appendChild(pushCard);
+  }
 
   return page;
 }
