@@ -19324,58 +19324,6 @@ function ProfilePage() {
   }
   page.appendChild(bookmarkCard);
 
-  // 5. Tier section, 프리미엄 유저는 "환영합니다", 베이직 유저는 "다음 기수에 프리미엄으로 보자" 유도.
-  // 주의: 5기 도중에는 업그레이드가 닫혀 있어서 구매 CTA 는 노출하지 않음. 프리미엄 코드 입력만 열어둠.
-  // tierOverride 가 'basic' 이면 프리뷰 모드, '프리미엄으로 복귀' 버튼 노출.
-  const tierCard = el('div', { class: 'card', style: { marginTop: '18px' } });
-  const isBasicPreview = state.tierOverride === 'basic';
-  const tierHtml = state.tier === 'premium' ? `
-    <div class="kicker">PREMIUM UNLOCKED</div>
-    <h3 class="h2" style="margin-top:6px;"><span class="serif">Welcome</span> to premium</h3>
-    <p class="t-body" style="margin-top:6px;">프리미엄 전용 PT · 주간 미팅 · 퀴즈 · Certification이 열려있어요.</p>
-    <button class="btn btn-ghost btn-sm" style="margin-top:12px;" onclick="window.__resetTier()">베이직으로 되돌리기 (프리뷰)</button>
-  ` : isBasicPreview ? `
-    <div class="kicker" style="color:var(--orange-dark);">BASIC PREVIEW · 프리미엄 복귀 가능</div>
-    <h3 class="h2" style="margin-top:6px;"><span class="serif">베이직 프리뷰</span> 중이에요</h3>
-    <p class="t-body" style="margin-top:6px;">지금 보이는 건 베이직 유저가 보는 화면이에요. 내 실제 티어는 프리미엄이라, 아래 버튼으로 언제든 복귀할 수 있어요.</p>
-    <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="window.__restoreTier()">프리미엄으로 복귀</button>
-  ` : `
-    <div class="kicker" style="color:var(--lilac);">PREMIUM ISN'T JUST "MORE" · 다음 기수</div>
-    <h3 class="h2" style="margin-top:6px;"><span class="serif">프리미엄</span>은 이런 게 좋아요</h3>
-    <ul style="margin:14px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;">
-      <li style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:rgba(169,139,184,0.10);border:1px solid rgba(169,139,184,0.22);">
-        <span style="flex-shrink:0;width:22px;height:22px;border-radius:7px;background:var(--lilac);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;">1</span>
-        <div>
-          <div style="font-size:13px;font-weight:700;color:var(--ink);">주 1회 Google Meet 미팅 4회</div>
-          <div class="t-small" style="margin-top:3px;color:var(--ink-soft);line-height:1.55;">매주 목요일 21:00, 그 주 표현을 실제 비즈니스 상황에 적용해보는 라이브 연습.</div>
-        </div>
-      </li>
-      <li style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:rgba(169,139,184,0.10);border:1px solid rgba(169,139,184,0.22);">
-        <span style="flex-shrink:0;width:22px;height:22px;border-radius:7px;background:var(--lilac);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;">2</span>
-        <div>
-          <div style="font-size:13px;font-weight:700;color:var(--ink);">미팅 안 7분 발표 + 3분 Q&A</div>
-          <div class="t-small" style="margin-top:3px;color:var(--ink-soft);line-height:1.55;">매주 4명 선착순. 내 상황 시나리오로 발표하고, 그 자리에서 라이브 피드백을 받아요.</div>
-        </div>
-      </li>
-      <li style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:rgba(169,139,184,0.10);border:1px solid rgba(169,139,184,0.22);">
-        <span style="flex-shrink:0;width:22px;height:22px;border-radius:7px;background:var(--lilac);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;">3</span>
-        <div>
-          <div style="font-size:13px;font-weight:700;color:var(--ink);">Industry 맞춤 PPT 발표 + 최종 Certification</div>
-          <div class="t-small" style="margin-top:3px;color:var(--ink-soft);line-height:1.55;">본인 업계 주제로 영어 발표하고, 피드백 받고, 수료증까지.</div>
-        </div>
-      </li>
-      <li style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:rgba(169,139,184,0.10);border:1px solid rgba(169,139,184,0.22);">
-        <span style="flex-shrink:0;width:22px;height:22px;border-radius:7px;background:var(--lilac);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;">4</span>
-        <div>
-          <div style="font-size:13px;font-weight:700;color:var(--ink);">유의어 뉘앙스 · 개인 퀴즈</div>
-          <div class="t-small" style="margin-top:3px;color:var(--ink-soft);line-height:1.55;">같은 뜻 표현들 중 상황별 톤 차이, 내 약점만 뽑아주는 맞춤 퀴즈.</div>
-        </div>
-      </li>
-    </ul>
-    <a href="https://lifestylebytes.github.io/youbuddy-challenge/" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:16px;padding:14px;border-radius:14px;background:var(--lilac);color:#fff;font-weight:700;font-size:14px;text-decoration:none;">다음 기수 미리신청하기 →</a>`;
-  tierCard.innerHTML = tierHtml;
-  page.appendChild(tierCard);
-
   // Notion 내보내기는 20일(마지막 Day) 인증까지 끝낸 뒤에만 노출, 중간에 내보내면 반쪽짜리 기록이 돼서.
   const totalDays = CHALLENGE.total_days || 20;
   const lastDayDone = !!state.verified['d' + totalDays];
@@ -21769,7 +21717,10 @@ function ScriptsPage() {
           note: (state.sentence_notes?.[key] || '').trim(),
         });
       });
-      if (rows.length) grouped.push({ day: dy.day, weekN: w.n, title: dy.title, rows });
+      const hookKey = `hook-${dy.day}`;
+      const hookSentence = (state.sentences[hookKey] || '').trim();
+      const hookCorrected = (state.ai_feedback?.[hookKey]?.corrected || '').trim();
+      if (rows.length || hookSentence) grouped.push({ day: dy.day, weekN: w.n, title: dy.title, rows, hookSentence, hookCorrected });
     });
   });
 
@@ -21842,6 +21793,26 @@ function ScriptsPage() {
       rows.appendChild(row);
     });
     card.appendChild(rows);
+    // story hook 블록 (bonus · story hook), 작성한 날만 표시
+    if (g.hookSentence || g.hookCorrected) {
+      const hookBlock = el('div', {
+        style: {
+          marginTop: '10px',
+          padding: '10px 12px',
+          background: 'rgba(255,243,227,0.7)',
+          borderRadius: '12px',
+          border: '1px solid var(--orange-soft)',
+        }
+      });
+      const displayHook = g.hookSentence || g.hookCorrected;
+      const showAi = g.hookCorrected && g.hookCorrected !== g.hookSentence;
+      hookBlock.innerHTML = `
+        <div style="font-size:10.5px;font-weight:700;letter-spacing:0.08em;color:var(--orange-dark);margin-bottom:5px;">✨ BONUS · STORY HOOK</div>
+        <p style="margin:0;font-size:14px;line-height:1.5;color:var(--ink);letter-spacing:-0.01em;">${escapeHtml(displayHook)}</p>
+        ${showAi ? `<p style="margin:4px 0 0;font-size:12px;line-height:1.45;color:var(--ink-soft);"><span style="color:var(--green);font-weight:700;">AI 교정 →</span> ${escapeHtml(g.hookCorrected)}</p>` : ''}
+      `;
+      card.appendChild(hookBlock);
+    }
     list.appendChild(card);
   });
   page.appendChild(list);
@@ -21883,7 +21854,10 @@ function __collectScriptsMarkdown(onlyDay) {
           note: (state.sentence_notes?.[key] || '').trim(),
         });
       });
-      if (!rows.length) return;
+      const hookKey = `hook-${dy.day}`;
+      const hookS = (state.sentences[hookKey] || '').trim();
+      const hookAi = (state.ai_feedback?.[hookKey]?.corrected || '').trim();
+      if (!rows.length && !hookS && !hookAi) return;
       const dateStr = formatDateShortKR(dayDate(dy.day));
       lines.push(`## Day ${dy.day} · ${dy.title} (${dateStr})`);
       lines.push('');
@@ -21895,6 +21869,13 @@ function __collectScriptsMarkdown(onlyDay) {
           lines.push(`  - AI 교정: ${r.corrected}`);
         }
       });
+      // bonus story hook
+      if (hookS || hookAi) {
+        lines.push('');
+        lines.push(`- **✨ bonus · story hook**`);
+        lines.push(`  - 내 문장: ${hookS || hookAi}`);
+        if (hookAi && hookAi !== hookS) lines.push(`  - AI 교정: ${hookAi}`);
+      }
       lines.push('');
     });
   });
