@@ -992,7 +992,7 @@ const REWARD_VIDEOS = {
   1: 'https://www.youtube.com/watch?v=4jwUXV4QaTw', // Day1: 전 FBI 요원의 바디랭귀지 읽는 법 (WIRED) · 행간 읽기
   2: 'https://www.youtube.com/watch?v=MjhDkNmtjy0', // Day2: 크리스 보스 Never Split the Difference (TEDx) · 반응 떠보기
   3: 'https://www.youtube.com/watch?v=sxYrzzy3cq8', // Day3: 통계에 속지 않는 법 (TED-Ed) · at face value
-  4: 'https://www.youtube.com/watch?v=Z3HJCQJ2Lmo', // Day4: 협상에서 원하는 걸 얻는 3단계 (TED) · wiggle room
+  4: 'https://www.youtube.com/watch?v=Z3HJCQJ2Lmo', // Day4: 협상에서 원하는 걸 얻는 3단계 (TED) · build in slack
   5: 'https://www.youtube.com/watch?v=n3kNlFMXslo', // Day5: 로라 밴더캠, 시간의 주도권 (TED) · triaging
   6: 'https://www.youtube.com/watch?v=JrRRvqgYgT0', // Day6: 집단은 어떻게 좋은 결정을 하나 (TED-Ed) · hive mind
   7: 'https://www.youtube.com/watch?v=phgjouv0BUA', // Day7: 줄리아 다르, 생산적으로 반대하는 법 (TED) · steelman
@@ -1019,9 +1019,9 @@ const REWARD_VIDEO_META = {
   1: { title: '전 FBI 요원의 바디랭귀지 읽는 법 (WIRED)', min: 15, why: '전직 FBI 요원이 표정과 몸짓에서 속마음을 읽어내는 법을 보여줘요. 오늘의 \'행간 읽기, 의중 파악\'을 눈으로 배우는 영상' },
   2: { title: '크리스 보스, FBI 협상가의 기술 (TEDx)', min: 12, why: 'FBI 인질 협상가가 직접 말하는, 상대 반응을 조심스럽게 떠보며 원하는 걸 끌어내는 기술. 오늘의 \'간 보기\' 표현들이 쓰이는 바로 그 장면' },
   3: { title: '통계에 속지 않는 법 (TED-Ed 애니메이션)', min: 4, why: '같은 숫자도 어떻게 보여주느냐에 따라 정반대 결론이 나와요. \'액면 그대로 믿으면 당한다\'를 4분 애니메이션으로' },
-  4: { title: '협상에서 원하는 걸 얻는 3단계 (TED)', min: 5, why: '협상 전에 목표 범위와 대안을 미리 정해 여지를 남겨두는 법. 오늘의 \'확답 아끼기, wiggle room\'의 실전판' },
+  4: { title: '협상에서 원하는 걸 얻는 3단계 (TED)', min: 5, why: '협상 전에 목표 범위와 대안을 미리 정해 여지를 남겨두는 법. 오늘의 \'여지 남기기(build in slack)\'의 실전판' },
   5: { title: '로라 밴더캠, 시간의 주도권을 갖는 법 (TED)', min: 12, why: '\'시간이 없는 게 아니라 우선순위의 문제\'라는 유명 강연. 오늘의 \'여력 파악, triaging\'과 정확히 같은 이야기' },
-  6: { title: '집단은 어떻게 좋은 결정을 내리나 (TED-Ed)', min: 4, why: '집단이 언제 현명해지고 언제 우르르 휩쓸리는지 실험으로 보여줘요. hive mind 와 straw poll 이 왜 필요한지 알게 되는 영상' },
+  6: { title: '집단은 어떻게 좋은 결정을 내리나 (TED-Ed)', min: 4, why: '집단이 언제 현명해지고 언제 우르르 휩쓸리는지 실험으로 보여줘요. hive mind 와 quick poll 이 왜 필요한지 알게 되는 영상' },
   7: { title: '줄리아 다르, 생산적으로 반대하는 법 (TED)', min: 15, why: '세계 토론 챔피언이 말하는 \'사람 말고 아이디어를 공격하라\'. 오늘 배운 steelman 이 강연에 그대로 나와요' },
   8: { title: '나쁜 회의에서 세상을 구하는 법 (TED)', min: 7, why: '안건도 목적도 없는 회의에 끌려가는 직장인 풍자 코미디. 오늘의 \'회의가 산으로 가는 방식들\'을 웃으며 복습' },
   9: { title: '비합리적 결정의 심리학 (TED-Ed)', min: 5, why: '이미 쓴 돈이 아까워 계속 붓는 심리(매몰비용) 등 결정을 망치는 편향 정리. 오늘의 sunk cost 가 주인공인 영상' },
@@ -1057,140 +1057,140 @@ const CHALLENGE = {
     {
       n: 1, title: "Reading the Field", subtitle: "본론 꺼내기 전에 하는 것들",
       days: [
-        { day: 1, title: "공식 발표보다 행간이 진짜죠", goal_en: "Put out feelers and read between the lines.", goal_kr: "행간을 읽고 간부터 보기.",
+                { day: 1, title: "진행하기 전 이것부터 파악합시다", goal_en: "Read between the lines before you commit.", goal_kr: "시작 전에 분위기부터 파악하기.",
           words: [
-            { en: "Put out feelers", pos: "phrase", def: "본격 제안 전에 슬쩍 간을 보다", ex_en: "Before we pitch this officially, let's put out some feelers with the sales team.", ex_kr: "공식 제안 전에 영업팀 쪽에 슬쩍 간부터 봐요.", syn: ["Test the waters","Float the idea quietly"], nuance: "곤충이 더듬이(feeler)를 내밀듯, 정식 안건으로 올리기 전에 반응을 살짝 떠보는 그림이에요. 거절당해도 공식 기록이 안 남는 게 포인트." },
-            { en: "Read between the lines", pos: "phrase", def: "행간을 읽다, 말하지 않은 진의를 파악하다", ex_en: "The email says 'no rush,' but read between the lines. They want it this week.", ex_kr: "메일엔 '급하지 않다'는데, 행간을 읽어보면 이번 주에 달라는 거예요.", syn: ["Catch the subtext","Sense what's unsaid"], nuance: "글자 그대로가 아니라 줄과 줄 사이(between the lines)에 숨은 뜻. 외국계 완곡어법을 해독할 때 필수 기술이에요." },
-            { en: "Get a clear read on", pos: "phrase", def: "상황·사람의 의중을 정확히 파악하다", ex_en: "I couldn't get a clear read on the client. Were they in or out?", ex_kr: "클라이언트 의중을 정확히 못 읽겠더라고요. 하겠다는 건지 말겠다는 건지.", syn: ["Size up accurately","Gauge where they stand"], nuance: "계기판 눈금(read)을 읽듯 상대의 진짜 상태를 측정하는 느낌. read가 명사로 쓰이는 게 포인트예요." },
+            { en: "Read between the lines", pos: "phrase", def: "행간을 읽다, 말하지 않은 진의를 파악하다", ex_en: "The email says 'no rush,' but read between the lines. They want it this week.", ex_kr: "메일엔 '급하지 않다'는데, 행간을 읽어보면 이번 주에 달라는 거예요.", syn: ["Catch the subtext","Sense what's unsaid"], nuance: "메일이나 회의 발언이 묘하게 조심스러울 때, 문장 그대로가 아니라 숨은 뜻을 읽어야 할 때 써요. 'no rush'가 진짜 여유인지 재촉인지 가려낼 때요." },
+            { en: "Put out feelers", pos: "phrase", def: "본격 제안 전에 슬쩍 떠보다, 분위기를 파악하다", ex_en: "Before we pitch this officially, let's put out some feelers with the sales team.", ex_kr: "공식 제안 전에 영업팀 쪽에 슬쩍 간부터 봐요.", syn: ["Test the waters","Float the idea quietly"], nuance: "feeler는 곤충의 더듬이를 뜻하는데요, 정식 안건으로 올리기 전에 살짝 분위기를 감지해보는 표현이라고 생각해보세요. 조직 개편이나 가격 인상처럼 민감한 주제 꺼내기 전에 많이 써요." },
+            { en: "Get a clear read on", pos: "phrase", def: "상황·사람의 의중을 정확히 파악하다", ex_en: "I couldn't get a clear read on the client. Were they in or out?", ex_kr: "클라이언트 의중을 정확히 못 읽겠더라고요. 하겠다는 건지 말겠다는 건지.", syn: ["Size up accurately","Gauge where they stand"], nuance: "상대 의중이 애매해서 판단이 안 설 때 써요. 미팅 끝나고 '클라이언트 속을 모르겠다' 싶으면 I couldn't get a clear read on them 이 딱이에요." }
           ] },
-        { day: 2, title: "정식 보고 전에 윗선 온도부터", goal_en: "Float a trial balloon before the official pitch.", goal_kr: "정식 보고 전에 반응 떠보기.",
+                { day: 2, title: "살짝 분위기 체크해볼까요?", goal_en: "Float the idea and check the temperature.", goal_kr: "슬쩍 띄워보고 온도 체크하기.",
           words: [
-            { en: "Trial balloon", pos: "noun", def: "반응을 보려고 슬쩍 띄워보는 시안", ex_en: "Let's float a trial balloon in the all-hands and see how people react.", ex_kr: "전체 회의에서 시안을 슬쩍 띄워보고 반응을 봅시다.", syn: ["Test the reaction","Float an idea"], nuance: "기상 관측용 풍선에서 온 말. 진짜 계획을 공개하기 전에 여론 풍향을 재는 정치·기업 단골 수법이에요. 동사는 float와 짝꿍." },
-            { en: "Backchannel", pos: "noun / verb", def: "공식 라인 밖 비공식 채널로 조율하다", ex_en: "The deal was stuck in legal, so we backchanneled with their VP to unstick it.", ex_kr: "법무에서 딜이 막혀서, 그쪽 부사장이랑 비공식 라인으로 풀었어요.", syn: ["Work it informally","Go through side channels"], nuance: "회의실 밖 DM·복도 대화로 미리 정리해두는 것. 외교 용어였는데 지금은 회사 정치의 핵심 동사가 됐어요." },
-            { en: "Soft commit", pos: "noun", def: "확답이 아닌 조건부 약속", ex_en: "I can give you a soft commit for Friday, but I'll confirm after the review.", ex_kr: "금요일로 일단 잠정 약속만 해둘게요. 리뷰 끝나고 확정할게요.", syn: ["Tentative yes","Penciled-in commitment"], nuance: "hard commit(확약)의 반대. '일단 그렇게 알고 있어, 근데 바뀔 수 있어'를 한 단어로 처리하는 미국 회사 어휘예요." },
+            { en: "Float an idea", pos: "phrase", def: "아이디어를 슬쩍 띄워 반응을 보다", ex_en: "Let me float an idea in the all-hands and see how people react.", ex_kr: "전체 회의에서 아이디어를 슬쩍 띄워보고 반응을 볼게요.", syn: ["Trial balloon","Test the reaction"], nuance: "확정안 말고 '이런 것도 생각해봤는데요' 하고 가볍게 던질 때 써요. 반응이 별로면 부담 없이 거둘 수 있는 게 포인트라, 회의에서 새 제안 꺼낼 때 제일 안전한 동사예요." },
+            { en: "Backchannel", pos: "noun / verb", def: "공식 라인 밖 비공식 채널로 조율하다", ex_en: "The deal was stuck in legal, so we backchanneled with their VP to unstick it.", ex_kr: "법무에서 딜이 막혀서, 그쪽 부사장이랑 비공식 라인으로 풀었어요.", syn: ["Work it informally","Go through side channels"], nuance: "공식 회의나 메일 스레드 밖에서 DM이나 복도 대화로 미리 조율하는 거예요. 큰 회의 전에 결정권자와 미리 온도를 맞춰둘 때 많이 써요." },
+            { en: "Soft commit", pos: "noun", def: "확답이 아닌 조건부 약속", ex_en: "I can give you a soft commit for Friday, but I'll confirm after the review.", ex_kr: "금요일로 일단 잠정 약속만 해둘게요. 리뷰 끝나고 확정할게요.", syn: ["Tentative yes","Penciled-in commitment"], nuance: "'일단 그렇게 알고 계세요, 확정은 아니에요'를 한 단어로 처리해요. 일정 조율에서 hard commit(확약)과 구분해두면 나중에 말 바꿨다는 소리를 안 들어요." }
           ] },
-        { day: 3, title: "곧이곧대로 믿으면 당해요", goal_en: "Don't take it at face value, spot the red herring.", goal_kr: "액면 그대로 믿지 않기.",
+                { day: 3, title: "곧이곧대로 믿으면 당해요", goal_en: "Don't take it as presented.", goal_kr: "제시된 그대로 믿지 않기.",
           words: [
-            { en: "At face value", pos: "phrase", def: "액면 그대로 (받아들이다)", ex_en: "Don't take the survey results at face value. The sample was tiny.", ex_kr: "설문 결과를 액면 그대로 믿진 마세요. 표본이 너무 작았어요.", syn: ["As presented","Without digging deeper"], nuance: "지폐의 액면가(face value)에서 온 말. 보이는 숫자 뒤를 의심하라는 데이터 회의 단골 표현이에요." },
-            { en: "Red herring", pos: "noun", def: "논점을 흐리는 미끼, 헛다리", ex_en: "The server error was a red herring. The real bug was in the payment logic.", ex_kr: "서버 에러는 헛다리였어요. 진짜 버그는 결제 로직에 있었죠.", syn: ["False lead","Distraction from the real issue"], nuance: "사냥개 훈련에 쓰던 훈제 청어에서 온 말. 디버깅할 때 '그건 red herring이야'는 원어민 개발자 입에 붙은 말이에요." },
-            { en: "Canary in the coal mine", pos: "phrase", def: "위기를 가장 먼저 알리는 조기 신호", ex_en: "Churn among our oldest customers is the canary in the coal mine.", ex_kr: "오래된 고객들의 이탈이 바로 조기 경보예요.", syn: ["Early warning sign","First symptom"], nuance: "광부들이 유독가스 감지용으로 데려간 카나리아. 테크에선 배포를 일부에게만 먼저 여는 'canary release'로도 살아있는 현역 어휘예요." },
+            { en: "As presented", pos: "phrase", def: "제시된 그대로 (더 파보지 않고)", ex_en: "Don't take the forecast as presented. Ask what's behind the numbers.", ex_kr: "전망치를 제시된 그대로 받아들이지 마세요. 숫자 뒤에 뭐가 있는지 물어봐야죠.", syn: ["At face value","Without digging deeper"], nuance: "보고서나 제안이 '올라온 그대로'라는 뜻이에요. approve as presented(수정 없이 승인)처럼 결재 맥락에서 자주 보이고, don't take it as presented 로 쓰면 '그대로 믿지 말고 따져보자'가 돼요." },
+            { en: "Red herring", pos: "noun", def: "논점을 흐리는 미끼, 헛다리", ex_en: "The server error was a red herring. The real bug was in the payment logic.", ex_kr: "서버 에러는 헛다리였어요. 진짜 버그는 결제 로직에 있었죠.", syn: ["False lead","Distraction from the real issue"], nuance: "다들 엉뚱한 원인을 쫓고 있을 때 '그건 헛다리예요' 하고 논점을 되돌리는 표현이에요. 원인 분석 회의에서 진짜 문제를 가리키기 직전에 등장해요." },
+            { en: "Wake-up call", pos: "noun", def: "정신이 번쩍 들게 하는 경고 신호", ex_en: "Losing two loyal clients in a month was a wake-up call for the whole team.", ex_kr: "한 달에 단골 고객 둘을 잃은 게 팀 전체에 경종이 됐어요.", syn: ["Early warning sign","Eye-opener"], nuance: "'이건 그냥 넘길 일이 아니다' 하고 정신이 번쩍 들게 만든 사건을 말해요. 큰 고객 이탈이나 경쟁사 발표를 계기로 삼자고 할 때 써요." }
           ] },
-        { day: 4, title: "확답은 아끼고, 여지는 남기고", goal_en: "Commit with a caveat and leave wiggle room.", goal_kr: "단서 달고 여지 남기기.",
+                { day: 4, title: "여지를 남기는 표현", goal_en: "Say yes with a caveat and build in slack.", goal_kr: "여지를 남기며 약속하기.",
           words: [
-            { en: "With a caveat", pos: "phrase", def: "단서를 달자면", ex_en: "I'm on board, with one caveat: we revisit the budget in Q3.", ex_kr: "동의해요. 단서 하나만 달게요. 3분기에 예산은 다시 봐요.", syn: ["With one qualifier","With a condition attached"], nuance: "라틴어 '조심하라'에서 온 법률 용어. 'yes, but'을 프로페셔널하게 말하는 방법이에요." },
-            { en: "Holding pattern", pos: "noun", def: "결정 대기 상태로 빙빙 도는 중", ex_en: "The project's in a holding pattern until legal signs off.", ex_kr: "법무 승인 날 때까지 프로젝트는 대기 모드예요.", syn: ["On standby","Waiting mode"], nuance: "착륙 허가를 기다리며 공항 위를 빙빙 도는 비행기 그림. 멈춘 게 아니라 '돌면서 기다리는 중'이라는 뉘앙스가 핵심." },
-            { en: "Leave wiggle room", pos: "phrase", def: "빠져나갈·조정할 여지를 남기다", ex_en: "Quote them three weeks, but leave some wiggle room for QA.", ex_kr: "3주로 말씀드리되, QA용 여지는 좀 남겨두세요.", syn: ["Keep some flexibility","Build in slack"], nuance: "wiggle(꼼지락거리다)할 공간. 일정·협상에서 숨 쉴 틈을 확보해두는 실무 지혜예요." },
+            { en: "With a caveat", pos: "phrase", def: "단서를 달자면", ex_en: "I'm on board, with one caveat: we revisit the budget in Q3.", ex_kr: "동의해요. 단서 하나만 달게요. 3분기에 예산은 다시 봐요.", syn: ["With one qualifier","With a condition attached"], nuance: "동의는 하되 조건 하나를 깔끔하게 다는 방법이에요. 'yes, but'을 프로페셔널하게 말하고 싶을 때, 승인 메일에 한 줄 붙이기 좋아요." },
+            { en: "Shelve it", pos: "phrase", def: "계획을 일단 보류하다 (접는 건 아님)", ex_en: "The timing isn't right for the rebrand. Let's shelve it until Q4.", ex_kr: "리브랜딩은 지금 타이밍이 아니에요. 4분기까지 보류합시다.", syn: ["On the back burner","Holding pattern"], nuance: "당장 접는 게 아니라 '선반에 올려두는' 보류예요. 아이디어는 좋은데 타이밍이 아닐 때 Let's shelve it for now 라고 하면 부드럽게 미룰 수 있어요." },
+            { en: "Build in slack", pos: "phrase", def: "일정·계획에 여유분을 미리 심어두다", ex_en: "Quote them three weeks and build in some slack for QA.", ex_kr: "3주로 말씀드리고, QA용 여유는 미리 심어두세요.", syn: ["Leave wiggle room","Keep some flexibility"], nuance: "견적이나 일정 말할 때 처음부터 여유분을 심어두는 거예요. 빠듯하게 약속했다가 미루는 것보다, 여유 있게 말하고 일찍 끝내는 쪽이 신뢰를 벌어요." }
           ] },
-        { day: 5, title: "여력 파악이 판단의 시작", goal_en: "Know what's in flight before taking on more.", goal_kr: "여력부터 파악하기.",
+                { day: 5, title: "여력 파악이 판단의 시작", goal_en: "Know what's underway before you take on more.", goal_kr: "여력부터 파악하고 판단하기.",
           words: [
-            { en: "In flight", pos: "phrase", def: "이미 진행 중인 (일·프로젝트)", ex_en: "We have three initiatives in flight, so anything new waits until one lands.", ex_kr: "지금 세 개가 진행 중이라, 새 일은 하나 끝난 다음에요.", syn: ["Underway","In motion"], nuance: "이미 이륙해서 날고 있는 비행기. '중간에 못 세운다'는 뉘앙스까지 함께 실려 있어요." },
-            { en: "Have the cycles", pos: "phrase", def: "그 일을 처리할 여력이 있다", ex_en: "I'd love to help, but I just don't have the cycles this sprint.", ex_kr: "돕고는 싶은데 이번 스프린트엔 여력이 없어요.", syn: ["Have the capacity","Have room on my plate"], nuance: "CPU 사이클에서 온 테크 회사 말투. bandwidth와 같은 뜻인데 한 단계 더 인사이더 느낌이에요." },
-            { en: "Triaging", pos: "verb", def: "급한 순서대로 분류·처치하다", ex_en: "We spent the morning triaging bug reports from the launch.", ex_kr: "오전 내내 런칭 버그 리포트를 급한 순서로 분류했어요.", syn: ["Sort by urgency","Prioritize ruthlessly"], nuance: "응급실에서 환자를 중증도로 나누는 트리아지. 다 못 고치니 '뭘 먼저 살릴지' 고르는 냉정함이 담겨 있어요." },
+            { en: "Underway", pos: "adjective", def: "이미 시작되어 진행 중인", ex_en: "We have three initiatives underway, so anything new waits until one wraps up.", ex_kr: "지금 세 개가 진행 중이라, 새 일은 하나 마무리된 다음에요.", syn: ["In flight","In motion"], nuance: "'이미 시작해서 돌아가는 중'이라는 뜻이에요. 진행 상황 질문에 The migration is underway 한 마디면 '착수했고 굴러가는 중'까지 전달돼요." },
+            { en: "Have the cycles", pos: "phrase", def: "그 일을 처리할 여력이 있다", ex_en: "I'd love to help, but I just don't have the cycles this sprint.", ex_kr: "돕고는 싶은데 이번 스프린트엔 여력이 없어요.", syn: ["Have the capacity","Have room on my plate"], nuance: "새 요청을 받을 여력이 있냐고 말할 때 써요. 거절할 때 I don't have the cycles this week 라고 하면 '능력 부족'이 아니라 '용량 초과'로 들려서 부드러워요." },
+            { en: "Triaging", pos: "verb", def: "급한 순서대로 분류·처치하다", ex_en: "We spent the morning triaging bug reports from the launch.", ex_kr: "오전 내내 런칭 버그 리포트를 급한 순서로 분류했어요.", syn: ["Sort by urgency","Prioritize ruthlessly"], nuance: "쏟아지는 일을 급한 순서대로 갈라내는 거예요. 문의와 요청이 몰린 날 We're triaging 이라고 하면 '지금 우선순위 정리 중'이라는 프로다운 신호가 돼요." }
           ] },
       ]
     },
     {
       n: 2, title: "The Art of the Argument", subtitle: "회의를 지배하는 기술",
       days: [
-        { day: 6, title: "모두의 머리를 빌리되, 휘둘리진 않게", goal_en: "Ask the hive mind, then run a straw poll.", goal_kr: "집단지성에 묻고 분위기 확인하기.",
+                { day: 6, title: "주도권 잡으며 아이디어 묻기", goal_en: "Run a quick poll and table the rest.", goal_kr: "주도권 잡고 의견 모으기.",
           words: [
-            { en: "Hive mind", pos: "noun", def: "집단지성 (에 물어보기)", ex_en: "Quick question for the hive mind: anyone dealt with this vendor before?", ex_kr: "집단지성에 물어볼게요. 이 업체랑 일해본 분 있어요?", syn: ["Collective brain","Group wisdom"], nuance: "벌집의 집단의식에서 온 말. 슬랙 채널에 질문 던질 때 'asking the hive mind'로 시작하면 아주 자연스러워요." },
-            { en: "Straw poll", pos: "noun", def: "구속력 없는 약식 표결로 분위기 확인", ex_en: "Let's do a quick straw poll: who's leaning toward option B?", ex_kr: "약식 투표 한번 해요. B안으로 기우는 분 손들어볼까요?", syn: ["Informal vote","Quick show of hands"], nuance: "지푸라기를 던져 바람의 방향을 보던 것에서 유래. '정식 결정 아님'을 전제로 깔아서 부담 없이 손들게 만드는 진행 기술이에요." },
-            { en: "Parking lot", pos: "noun", def: "지금 안 다룰 안건을 담아두는 보류함", ex_en: "Good point, but let's put it in the parking lot and stay on the agenda.", ex_kr: "좋은 포인트인데 일단 보류함에 담아두고 안건으로 돌아가죠.", syn: ["Set-aside list","Holding area for topics"], nuance: "회의 퍼실리테이션의 국룰 용어. 화이트보드 구석에 'Parking lot'을 그려두면 '무시'가 아니라 '보관'이 돼서 발언자 기분이 안 상해요." },
+            { en: "Hive mind", pos: "noun", def: "집단지성 (에 물어보기)", ex_en: "Quick question for the hive mind: anyone dealt with this vendor before?", ex_kr: "집단지성에 물어볼게요. 이 업체랑 일해본 분 있어요?", syn: ["Collective brain","Group wisdom"], nuance: "슬랙에 Question for the hive mind 라고 시작하면 '아는 분 아무나!' 하고 집단지성에 묻는 거예요. 답을 몰라도 없어 보이지 않게 질문하는 요령이죠." },
+            { en: "Quick poll", pos: "noun", def: "간단 투표로 팀 의견을 빠르게 모으기", ex_en: "Quick poll: are we shipping Thursday or Friday? React with an emoji.", ex_kr: "간단 투표요. 목요일 출시예요 금요일 출시예요? 이모지로 반응 주세요.", syn: ["Straw poll","Show of hands"], nuance: "회의 시간을 아끼는 마법의 단어예요. 슬랙·팀즈에 Quick poll 이라고 던지고 이모지로 투표받으면, 긴 논쟁 없이 분위기가 어느 쪽인지 바로 보여요." },
+            { en: "Table it", pos: "phrase", def: "안건을 일단 미뤄두다 (나중에 다시)", ex_en: "Good point. Let's table it for now and come back after the launch.", ex_kr: "좋은 포인트예요. 일단 미뤄두고 출시 끝나고 다시 얘기하죠.", syn: ["Parking lot","Put it aside for now"], nuance: "좋은 얘기지만 지금 안건이 아닐 때 Let's table it 하면 '무시'가 아니라 '보관'이 돼요. 발언자 기분 안 상하게 회의를 제자리로 돌리는 표현이에요." }
           ] },
-        { day: 7, title: "반대할 거면 제대로", goal_en: "Steelman the other side before you push back.", goal_kr: "반대하려면 최강 버전부터 세우기.",
+                { day: 7, title: "반대할 거면 제대로", goal_en: "Steelman first, then poke holes.", goal_kr: "제대로 세우고, 제대로 찔러보기.",
           words: [
-            { en: "Steelman", pos: "verb", def: "상대 주장의 최강 버전을 세우고 반박하다", ex_en: "Before we reject it, let me steelman their proposal to make sure we're fair.", ex_kr: "기각하기 전에, 공정하게 저쪽 제안의 최강 버전부터 세워볼게요.", syn: ["Argue the best version","Strongest counter-case"], nuance: "허수아비(strawman) 공격의 반대말. 상대 논리를 가장 강하게 만들어놓고도 이기면 진짜 이긴 것. 테크 업계 토론 문화의 상징어예요." },
-            { en: "Play devil's advocate", pos: "phrase", def: "일부러 반대 입장에 서보다", ex_en: "Let me play devil's advocate: what if the market shrinks next year?", ex_kr: "일부러 반대편에 서볼게요. 내년에 시장이 쪼그라들면요?", syn: ["Argue the opposing side","Poke holes on purpose"], nuance: "성인(聖人) 심사 때 일부러 흠을 찾던 바티칸의 '악마의 변호인'에서 유래. 반대 의견을 인신공격 없이 꺼내는 안전장치 문구예요." },
-            { en: "Double-click on", pos: "phrasal verb", def: "그 지점을 더 깊이 파고들다", ex_en: "Can we double-click on the retention numbers? Something feels off.", ex_kr: "리텐션 숫자를 좀 더 파볼까요? 뭔가 이상해요.", syn: ["Dig deeper into","Drill into"], nuance: "폴더 더블클릭에서 온 말. 최근 어닝콜에서 사용량이 4배 넘게 뛴 요즘 가장 핫한 기업 버즈워드예요." },
+            { en: "Steelman", pos: "verb", def: "상대 주장의 최강 버전을 세우고 반박하다", ex_en: "Before we reject it, let me steelman their proposal to make sure we're fair.", ex_kr: "기각하기 전에, 공정하게 저쪽 제안의 최강 버전부터 세워볼게요.", syn: ["Argue the best version","Strongest counter-case"], nuance: "상대 주장을 가장 강한 버전으로 만들어놓고 검토하는 거예요. Let me steelman this first 라고 하면 공정하게 봤다는 신호라, 반대 의견도 덜 공격적으로 들려요." },
+            { en: "Poke holes in", pos: "phrase", def: "허점을 일부러 찾아 찔러보다", ex_en: "Before we sign off, let's poke holes in this plan together.", ex_kr: "확정하기 전에, 이 계획의 허점을 같이 찔러봅시다.", syn: ["Play devil's advocate","Challenge the assumptions"], nuance: "일부러 허점을 찾아 찔러보는 거예요. 결정 직전에 Let's poke holes in this 라고 하면 '트집'이 아니라 '검증'이 돼서, 안심하고 비판할 수 있는 분위기가 만들어져요." },
+            { en: "Double-click on", pos: "phrasal verb", def: "그 지점을 더 깊이 파고들다", ex_en: "Can we double-click on the retention numbers? Something feels off.", ex_kr: "리텐션 숫자를 좀 더 파볼까요? 뭔가 이상해요.", syn: ["Dig deeper into","Drill into"], nuance: "'그 부분 더 자세히 봅시다'를 요즘 회사말로 하면 이거예요. 숫자나 주장 하나를 깊이 파고 싶을 때 Can we double-click on that? 한 마디면 돼요." }
           ] },
-        { day: 8, title: "회의가 산으로 가는 3가지 방식", goal_en: "Stop bikeshedding and don't boil the ocean.", goal_kr: "사소한 논쟁에 빠지지 않기.",
+                { day: 8, title: "회의가 산으로 가는 3가지 방식", goal_en: "Stop bikeshedding and don't boil the ocean.", goal_kr: "사소한 논쟁에 빠지지 않기.",
           words: [
-            { en: "Bikeshedding", pos: "noun / verb", def: "사소한 것에 과몰입해 논쟁하다", ex_en: "We spent 40 minutes bikeshedding the button color and 5 on the pricing model.", ex_kr: "버튼 색깔로 40분 싸우고 가격 모델은 5분 얘기했어요.", syn: ["Major on the minor","Argue over trivia"], nuance: "원전 설계는 못 건드리고 자전거 보관소 색깔만 다들 한마디씩 하더라는 파킨슨의 법칙에서 유래. 개발자 문화 필수 어휘예요." },
-            { en: "Boil the ocean", pos: "phrase", def: "다 하려다 아무것도 못 하다", ex_en: "Let's not boil the ocean. Ship the one feature users actually asked for.", ex_kr: "한 번에 다 하려 하지 말고, 유저가 진짜 원한 기능 하나만 내보내죠.", syn: ["Overreach","Try to do everything at once"], nuance: "컨설팅 업계 클래식. 스코프가 무한정 커지는 걸 막을 때 이 한마디면 회의실이 조용해져요." },
-            { en: "Go down the rabbit hole", pos: "phrase", def: "한 주제에 한없이 빠져들다", ex_en: "I went down a rabbit hole comparing analytics tools and lost half a day.", ex_kr: "분석 툴 비교하다가 토끼굴에 빠져서 반나절 날렸어요.", syn: ["Spiral into detail","Get lost in it"], nuance: "이상한 나라의 앨리스의 토끼굴. 나쁜 일만은 아니고 '어쩌다 보니 엄청 깊이 팠다'는 자기고백으로도 자주 써요." },
+            { en: "Bikeshedding", pos: "noun / verb", def: "사소한 것에 과몰입해 논쟁하다", ex_en: "We spent 40 minutes bikeshedding the button color and 5 on the pricing model.", ex_kr: "버튼 색깔로 40분 싸우고 가격 모델은 5분 얘기했어요.", syn: ["Major on the minor","Argue over trivia"], nuance: "정작 큰 결정은 놔두고 버튼 색깔 같은 사소한 걸로 30분 논쟁하는 상황이에요. 회의가 그쪽으로 흐르면 Are we bikeshedding? 한 마디가 브레이크가 돼요." },
+            { en: "Boil the ocean", pos: "phrase", def: "다 하려다 아무것도 못 하다", ex_en: "Let's not boil the ocean. Ship the one feature users actually asked for.", ex_kr: "한 번에 다 하려 하지 말고, 유저가 진짜 원한 기능 하나만 내보내죠.", syn: ["Overreach","Try to do everything at once"], nuance: "'바다를 통째로 끓이려 하지 말자', 한 번에 다 하려다 아무것도 못 하는 걸 경계하는 말이에요. 프로젝트 범위 줄이자고 설득할 때 최고예요." },
+            { en: "Go down the rabbit hole", pos: "phrase", def: "한 주제에 한없이 빠져들다", ex_en: "I went down a rabbit hole comparing analytics tools and lost half a day.", ex_kr: "분석 툴 비교하다가 토끼굴에 빠져서 반나절 날렸어요.", syn: ["Spiral into detail","Get lost in it"], nuance: "한 주제를 파다가 헤어나오지 못하는 상태예요. 리서치하다 세 시간이 사라졌을 때 I went down a rabbit hole 이라고 하면 다들 웃으며 이해해줘요." }
           ] },
-        { day: 9, title: "결정을 망치는 심리의 함정", goal_en: "Ignore sunk cost and escape analysis paralysis.", goal_kr: "결정의 심리 함정 피하기.",
+                { day: 9, title: "결정을 어렵게 만드는 것들", goal_en: "Ignore sunk cost and escape analysis paralysis.", goal_kr: "결정의 심리 함정 피하기.",
           words: [
-            { en: "Sunk cost", pos: "noun", def: "이미 쓴 비용에 발목 잡히기 (매몰비용)", ex_en: "We've spent six months on this, but that's sunk cost. The question is what's best now.", ex_kr: "6개월을 쏟긴 했지만 그건 매몰비용이죠. 중요한 건 지금 뭐가 최선이냐예요.", syn: ["Money already spent","Can't-get-it-back cost"], nuance: "경제학 용어지만 회의실에서 더 자주 들려요. 'sunk cost fallacy에 빠지지 말자'가 프로젝트 중단 회의의 킬러 문장." },
-            { en: "Analysis paralysis", pos: "noun", def: "분석만 하다 결정을 못 내리는 상태", ex_en: "Three months of research and no decision. Classic analysis paralysis.", ex_kr: "리서치만 석 달째고 결정은 없어요. 전형적인 분석 마비죠.", syn: ["Overthinking freeze","Stuck in analysis"], nuance: "라임까지 맞아서 입에 착 붙는 말. '데이터 더 보자'가 세 번째 반복되면 이 단어를 꺼낼 타이밍이에요." },
-            { en: "Rubber-stamp", pos: "verb", def: "검토 없이 형식적으로 승인만 하다", ex_en: "The board just rubber-stamps whatever the CEO proposes.", ex_kr: "이사회는 CEO 제안을 그냥 도장만 찍어줘요.", syn: ["Approve blindly","Wave it through"], nuance: "고무도장 쾅. '승인 절차가 있으나 마나'라는 비판이 깔려 있어서, 우리 리뷰가 rubber-stamp가 되면 안 된다는 식으로 써요." },
+            { en: "Sunk cost", pos: "noun", def: "이미 쓴 비용에 발목 잡히기 (매몰비용)", ex_en: "We've spent six months on this, but that's sunk cost. The question is what's best now.", ex_kr: "6개월을 쏟긴 했지만 그건 매몰비용이죠. 중요한 건 지금 뭐가 최선이냐예요.", syn: ["Money already spent","Can't-get-it-back cost"], nuance: "'이미 쓴 돈과 시간이 아까워서' 계속 붙드는 심리예요. 접어야 할 프로젝트 얘기가 나올 때 That's sunk cost 한 마디가 결단을 도와줘요." },
+            { en: "Analysis paralysis", pos: "noun", def: "분석만 하다 결정을 못 내리는 상태", ex_en: "Three months of research and no decision. Classic analysis paralysis.", ex_kr: "리서치만 석 달째고 결정은 없어요. 전형적인 분석 마비죠.", syn: ["Overthinking freeze","Stuck in analysis"], nuance: "검토만 반복하다 결정을 못 내리는 상태예요. 자료가 이미 충분할 때 We're in analysis paralysis 라고 하면 '이제 정하자'는 신호가 돼요." },
+            { en: "Rubber-stamp", pos: "verb", def: "검토 없이 형식적으로 승인만 하다", ex_en: "The board just rubber-stamps whatever the CEO proposes.", ex_kr: "이사회는 CEO 제안을 그냥 도장만 찍어줘요.", syn: ["Approve blindly","Wave it through"], nuance: "내용 검토 없이 도장만 찍는 형식적 승인이에요. 통과는 되는데 아무도 안 읽는 결재 문화를 꼬집을 때 써요." }
           ] },
-        { day: 10, title: "결정했으면, 무너질 구멍부터 찾기", goal_en: "Pressure-test it and run a pre-mortem.", goal_kr: "무너질 구멍부터 찾기.",
+                { day: 10, title: "출발 전, 문제없는지 더블 체크", goal_en: "Pressure-test it and run a pre-mortem.", goal_kr: "무너질 구멍부터 찾기.",
           words: [
-            { en: "Pressure-test", pos: "verb", def: "가정을 일부러 세게 두드려 검증하다", ex_en: "Let's pressure-test the revenue assumptions before we show the board.", ex_kr: "이사회에 보여주기 전에 매출 가정을 세게 검증해봐요.", syn: ["Stress-test","Poke at the assumptions"], nuance: "배관에 압력을 걸어 누수를 찾는 그림. 컨설팅·전략 회의에서 '검토하다'보다 훨씬 진지하고 능동적인 어감이에요." },
-            { en: "Pre-mortem", pos: "noun", def: "'망했다 치고' 미리 원인을 점검하는 회의", ex_en: "Before launch, let's run a pre-mortem: it's six months later and this failed. Why?", ex_kr: "런칭 전에 프리모템 한번 해요. 6개월 뒤에 망했다 치고, 왜 망했을까요?", syn: ["Failure rehearsal","Imagine-it-failed review"], nuance: "post-mortem(사후 부검)을 뒤집은 말. 심리학자 게리 클라인이 만들어 구글·아마존이 퍼뜨린 실전 기법이에요." },
-            { en: "Get ahead of", pos: "phrasal verb", def: "문제가 커지기 전에 선수 치다", ex_en: "The bug will hit the news. Let's get ahead of it with a statement today.", ex_kr: "버그가 기사 탈 거예요. 오늘 입장문으로 선수 칩시다.", syn: ["Preempt it","Act before it blows up"], nuance: "문제보다 앞서 달리는 그림. PR·위기관리에서 '터지고 수습'과 '먼저 공개'의 차이를 가르는 단어예요." },
+            { en: "Pressure-test", pos: "verb", def: "가정을 일부러 세게 두드려 검증하다", ex_en: "Let's pressure-test the revenue assumptions before we show the board.", ex_kr: "이사회에 보여주기 전에 매출 가정을 세게 검증해봐요.", syn: ["Stress-test","Poke at the assumptions"], nuance: "계획의 가정을 일부러 세게 두드려보는 거예요. 출시 전에 Let's pressure-test the assumptions 라고 하면 꼼꼼한 사람이라는 인상까지 덤으로 와요." },
+            { en: "Pre-mortem", pos: "noun", def: "'망했다 치고' 미리 원인을 점검하는 회의", ex_en: "Before launch, let's run a pre-mortem: it's six months later and this failed. Why?", ex_kr: "런칭 전에 프리모템 한번 해요. 6개월 뒤에 망했다 치고, 왜 망했을까요?", syn: ["Failure rehearsal","Imagine-it-failed review"], nuance: "'이미 망했다고 치고' 원인을 미리 찾아보는 회의예요. 킥오프 때 한 번 해두면 나중에 진짜 사고가 반은 줄어요." },
+            { en: "Get ahead of", pos: "phrasal verb", def: "문제가 커지기 전에 선수 치다", ex_en: "The bug will hit the news. Let's get ahead of it with a statement today.", ex_kr: "버그가 기사 탈 거예요. 오늘 입장문으로 선수 칩시다.", syn: ["Preempt it","Act before it blows up"], nuance: "문제가 커지기 전에 먼저 움직이는 거예요. 나쁜 소식일수록 We need to get ahead of this 하고 선수 치는 쪽이 신뢰를 지켜요." }
           ] },
       ]
     },
     {
       n: 3, title: "In the Trenches", subtitle: "일이 터졌을 때 쓰는 영어",
       days: [
-        { day: 11, title: "급한 불부터 꺼야 할 때", goal_en: "Set up a war room and get in the trenches.", goal_kr: "비상 모드의 언어 익히기.",
+                { day: 11, title: "급한 불부터 꺼야 할 때", goal_en: "Hop on a call and put out the fire.", goal_kr: "급한 불부터 끄기.",
           words: [
-            { en: "Fire drill", pos: "noun", def: "갑자기 다 내려놓고 매달리게 만드는 긴급 소동", ex_en: "The exec asked for a full deck by 9am. Total fire drill.", ex_kr: "임원이 아침 9시까지 발표자료 전체를 달래요. 완전 비상 소동이죠.", syn: ["Sudden scramble","Drop-everything ask"], nuance: "소방 훈련처럼 사이렌 울리면 다 뛰는 그림. 컨설팅 업계에선 '진짜 급한 일인지 소동인지'라는 냉소가 살짝 깔려 있어요." },
-            { en: "War room", pos: "noun", def: "비상 대응을 위해 모이는 상황실", ex_en: "Payment is down. War room in five minutes, bring the on-call engineer.", ex_kr: "결제가 죽었어요. 5분 뒤 상황실 집합, 온콜 엔지니어 데려오세요.", syn: ["Crisis command center","Incident room"], nuance: "군 지휘소에서 온 말. 장애 대응이나 대형 딜 마감 때 만들어지는 임시 슬랙 채널 이름으로도 흔해요." },
-            { en: "In the trenches", pos: "phrase", def: "최전선 실무 현장에서 (구르는)", ex_en: "She's been in the trenches with the support team all week during the outage.", ex_kr: "장애 기간 내내 서포트팀이랑 최전선에서 같이 굴렀어요.", syn: ["On the front lines","Doing the dirty work"], nuance: "1차 대전 참호(trench)에서 온 말. 책상머리가 아니라 현장에서 구른 사람이라는 존중이 담겨 있어요. 비슷해 보이는 in the weeds(디테일에 파묻힘)와는 다른 결." },
+            { en: "Fire drill", pos: "noun", def: "갑자기 다 내려놓고 매달리게 만드는 긴급 소동", ex_en: "The exec asked for a full deck by 9am. Total fire drill.", ex_kr: "임원이 아침 9시까지 발표자료 전체를 달래요. 완전 비상 소동이죠.", syn: ["Sudden scramble","Drop-everything ask"], nuance: "갑자기 다 내려놓고 매달리게 만드는 긴급 소동이에요. 임원발 급한 요청에 다들 뛰는 상황을 살짝 냉소 담아 another fire drill 이라고 해요." },
+            { en: "Hop on a call", pos: "phrase", def: "급히 통화·화상회의로 모이다", ex_en: "The client just flagged an issue. Can we hop on a call real quick?", ex_kr: "클라이언트가 방금 문제를 제기했어요. 잠깐 콜로 붙을 수 있을까요?", syn: ["Jump on a call","War room"], nuance: "긴 채팅 대신 '지금 잠깐 통화로 붙자'예요. 글로 세 번 오갈 일을 Can we hop on a call? 한 번으로 끝낼 때 써요." },
+            { en: "Client-facing", pos: "adjective", def: "고객·클라이언트를 직접 상대하는", ex_en: "Our client-facing teams always hear the complaints first.", ex_kr: "고객 최접점 팀이 항상 불만을 가장 먼저 들어요.", syn: ["Customer-facing","On the front lines"], nuance: "고객을 직접 상대하는 역할이나 부서를 말해요. client-facing 팀은 불만도 칭찬도 가장 먼저 듣는 최전선이라, 위기 때 제일 먼저 챙겨야 하는 곳이죠." }
           ] },
-        { day: 12, title: "어디서 막혔는지부터 찾아야죠", goal_en: "Find the single point of failure on the critical path.", goal_kr: "막힌 지점부터 찾기.",
+                { day: 12, title: "어디서 막혔는지부터 찾아야죠", goal_en: "Find the single point of failure on the critical path.", goal_kr: "막힌 지점부터 찾기.",
           words: [
-            { en: "Stalled out", pos: "phrasal verb", def: "(일이) 완전히 멈춰 서다", ex_en: "The migration stalled out at 60 percent. Nobody owns the last mile.", ex_kr: "마이그레이션이 60%에서 멈췄어요. 마지막 구간은 담당자가 없거든요.", syn: ["Ground to a halt","Dead in the water"], nuance: "엔진이 시동 꺼지듯(stall) 멈춘 상태. 지연(delayed)보다 심각한, '동력 자체가 죽었다'는 신호예요." },
-            { en: "Single point of failure", pos: "noun", def: "하나 무너지면 전체가 무너지는 지점", ex_en: "Only one person knows the deploy process. That's a single point of failure.", ex_kr: "배포 절차를 아는 사람이 한 명뿐이에요. 단일 실패 지점이죠.", syn: ["Weakest single link","All-eggs-one-basket spot"], nuance: "엔지니어링 용어인데 조직 얘기로 확장돼서, '그 사람 휴가 가면 회사 멈춤'을 지적할 때 정확히 이 말을 써요. 줄여서 SPOF." },
-            { en: "Critical path", pos: "noun", def: "전체 일정을 좌우하는 핵심 경로", ex_en: "Design review is on the critical path. If it slips, launch slips.", ex_kr: "디자인 리뷰가 크리티컬 패스에 있어요. 그게 밀리면 런칭이 밀려요.", syn: ["The make-or-break sequence","Longest dependent chain"], nuance: "프로젝트 관리(PM) 정식 용어. '이건 크리티컬 패스가 아니니 나중에'라고 말할 수 있으면 일정 회의에서 급이 달라져요." },
+            { en: "Stalled out", pos: "phrasal verb", def: "(일이) 완전히 멈춰 서다", ex_en: "The migration stalled out at 60 percent. Nobody owns the last mile.", ex_kr: "마이그레이션이 60%에서 멈췄어요. 마지막 구간은 담당자가 없거든요.", syn: ["Ground to a halt","Dead in the water"], nuance: "일이 지연을 넘어 '멈춰 선' 상태예요. delayed 보다 심각한, 시동이 꺼진 느낌을 전할 때 The deal stalled out 이라고 해요." },
+            { en: "Single point of failure", pos: "noun", def: "하나 무너지면 전체가 무너지는 지점", ex_en: "Only one person knows the deploy process. That's a single point of failure.", ex_kr: "배포 절차를 아는 사람이 한 명뿐이에요. 단일 실패 지점이죠.", syn: ["Weakest single link","All-eggs-one-basket spot"], nuance: "여기 하나 무너지면 전체가 서는 지점이에요. 한 사람에게만 몰린 업무나 하나뿐인 승인 라인을 지적할 때 쓰면 설득력이 확 올라가요." },
+            { en: "Critical path", pos: "noun", def: "전체 일정을 좌우하는 핵심 경로", ex_en: "Design review is on the critical path. If it slips, launch slips.", ex_kr: "디자인 리뷰가 크리티컬 패스에 있어요. 그게 밀리면 런칭이 밀려요.", syn: ["The make-or-break sequence","Longest dependent chain"], nuance: "전체 일정을 좌우하는 핵심 경로예요. What's on the critical path? 라고 물으면 '뭐부터 풀어야 일정이 사느냐'를 묻는 거예요." }
           ] },
-        { day: 13, title: "일정을 잡아먹는 진범들", goal_en: "Spot the long pole and stop the creep.", goal_kr: "일정 잡아먹는 진범 찾기.",
+                { day: 13, title: "일정을 밀리게 하는 요인들", goal_en: "Spot the long pole and stop the creep.", goal_kr: "일정 잡아먹는 진범 찾기.",
           words: [
-            { en: "Long pole in the tent", pos: "phrase", def: "일정에서 가장 오래 걸리는 결정적 작업", ex_en: "Security review is the long pole in the tent, so we kick it off first.", ex_kr: "보안 심사가 제일 오래 걸리는 작업이라, 그것부터 시작해요.", syn: ["The slowest piece","Schedule driver"], nuance: "텐트는 가장 긴 기둥만큼 세워야 하죠. 마이크로소프트 사내어로 유명해진 빅테크 PM 어휘예요." },
-            { en: "Requirements creep", pos: "noun", def: "요구사항이 야금야금 불어나다", ex_en: "Two 'small asks' a week. Classic requirements creep, and the deadline hasn't moved.", ex_kr: "매주 '작은 요청'이 두 개씩 늘어요. 요구사항은 야금야금 붙는데 마감은 그대로죠.", syn: ["Ever-growing asks","Quiet scope inflation"], nuance: "creep(슬금슬금 기다)이 핵심. 한 방에 커지는 게 아니라 눈치 못 채게 불어나서 무서운 거예요. scope creep과 형제 표현." },
-            { en: "Slow-walk", pos: "verb", def: "일부러 뭉개며 지연시키다", ex_en: "Procurement has been slow-walking our request for a month.", ex_kr: "구매팀이 한 달째 우리 요청을 일부러 뭉개고 있어요.", syn: ["Drag one's feet","Stall on purpose"], nuance: "정치권에서 회사로 넘어온 말. '바빠서 늦음'이 아니라 '의도적으로 안 해줌'이라는 고발의 뉘앙스가 있어요." },
+            { en: "Long pole in the tent", pos: "phrase", def: "일정에서 가장 오래 걸리는 결정적 작업", ex_en: "Security review is the long pole in the tent, so we kick it off first.", ex_kr: "보안 심사가 제일 오래 걸리는 작업이라, 그것부터 시작해요.", syn: ["The slowest piece","Schedule driver"], nuance: "텐트에서 제일 긴 기둥, 즉 가장 오래 걸려서 전체 일정을 결정짓는 작업이에요. 일정 회의에서 the long pole 을 찾는 게 절반이에요." },
+            { en: "Requirements creep", pos: "noun", def: "요구사항이 야금야금 불어나다", ex_en: "Two 'small asks' a week. Classic requirements creep, and the deadline hasn't moved.", ex_kr: "매주 '작은 요청'이 두 개씩 늘어요. 요구사항은 야금야금 붙는데 마감은 그대로죠.", syn: ["Ever-growing asks","Quiet scope inflation"], nuance: "요구사항이 야금야금 불어나 일정을 잡아먹는 현상이에요. scope creep 이라고도 해요. '하나만 더'가 쌓일 때 이 단어로 경보를 울려요." },
+            { en: "Slow-walk", pos: "verb", def: "일부러 뭉개며 지연시키다", ex_en: "Procurement has been slow-walking our request for a month.", ex_kr: "구매팀이 한 달째 우리 요청을 일부러 뭉개고 있어요.", syn: ["Drag one's feet","Stall on purpose"], nuance: "대놓고 거절은 안 하는데 일부러 뭉개며 지연시키는 거예요. They're slow-walking the approval 처럼, 정치적인 지연을 정확히 짚는 단어예요." }
           ] },
-        { day: 14, title: "잘못됐을 때 사람들이 하는 짓", goal_en: "Don't paper over it or throw anyone under the bus.", goal_kr: "덮지 말고, 탓하지 말기.",
+                { day: 14, title: "우리 회사에서 이러진 맙시다...", goal_en: "Don't paper over it or throw anyone under the bus.", goal_kr: "덮지 말고, 탓하지 말기.",
           words: [
-            { en: "Throw someone under the bus", pos: "phrase", def: "남에게 책임을 뒤집어씌우다", ex_en: "He threw the design team under the bus in front of the client.", ex_kr: "클라이언트 앞에서 디자인팀에 책임을 뒤집어씌우더라고요.", syn: ["Scapegoat","Sell someone out"], nuance: "달리는 버스 밑으로 밀어넣는 살벌한 그림 그대로예요. 미국 오피스 드라마에 한 회에 한 번은 나오는 필수 표현." },
-            { en: "Paper over", pos: "phrasal verb", def: "문제를 해결하지 않고 대충 덮다", ex_en: "A discount might paper over the churn problem, but it won't fix it.", ex_kr: "할인으로 이탈 문제를 잠깐 덮을 순 있어도 고치진 못해요.", syn: ["Gloss over","Hide the cracks"], nuance: "벽의 금(crack) 위에 벽지를 바르는 그림. paper over the cracks 형태로도 자주 쓰여요. band-aid solution(임시방편)과 사촌인데 이쪽은 '숨긴다'에 방점." },
-            { en: "Nitpick", pos: "verb", def: "사소한 걸 꼬치꼬치 지적하다", ex_en: "Not to nitpick, but the font sizes are inconsistent on slide 3.", ex_kr: "트집은 아닌데, 3번 슬라이드 폰트 크기가 제각각이에요.", syn: ["Split hairs","Pick apart the details"], nuance: "이(nit)를 잡는 그림에서 온 말. 코드리뷰에서 'nit:'이라고 앞에 붙이면 '사소한 지적이니 무시해도 됨'이라는 개발 문화 시그널이에요." },
+            { en: "Throw someone under the bus", pos: "phrase", def: "남에게 책임을 뒤집어씌우다", ex_en: "He threw the design team under the bus in front of the client.", ex_kr: "클라이언트 앞에서 디자인팀에 책임을 뒤집어씌우더라고요.", syn: ["Scapegoat","Sell someone out"], nuance: "책임을 남에게 뒤집어씌우는 거예요. 회의에서 누가 이러면 분위기가 얼어붙죠. '우리는 이러지 말자'는 쪽으로만 쓰세요." },
+            { en: "Paper over", pos: "phrasal verb", def: "문제를 해결하지 않고 대충 덮다", ex_en: "A discount might paper over the churn problem, but it won't fix it.", ex_kr: "할인으로 이탈 문제를 잠깐 덮을 순 있어도 고치진 못해요.", syn: ["Gloss over","Hide the cracks"], nuance: "문제를 고치지 않고 대충 덮는 거예요. 할인이나 미봉책으로 급한 불만 끌 때 We're just papering over the real issue 라고 경고할 수 있어요." },
+            { en: "Nitpick", pos: "verb", def: "사소한 걸 꼬치꼬치 지적하다", ex_en: "Not to nitpick, but the font sizes are inconsistent on slide 3.", ex_kr: "트집은 아닌데, 3번 슬라이드 폰트 크기가 제각각이에요.", syn: ["Split hairs","Pick apart the details"], nuance: "본질과 상관없는 사소한 걸 꼬치꼬치 지적하는 거예요. 피드백 줄 때 not to nitpick, but 으로 시작하면 '작은 지적인 거 알아요'라는 쿠션이 돼요." }
           ] },
-        { day: 15, title: "끊을 건 끊고, 걸 건 걸어야", goal_en: "Pull the plug or put skin in the game.", goal_kr: "끊을 건 끊고 걸 건 걸기.",
+                { day: 15, title: "책임지고 수습할 때 쓰는 표현", goal_en: "Pull the plug or put skin in the game.", goal_kr: "끊을 건 끊고 걸 건 걸기.",
           words: [
-            { en: "Pull the plug", pos: "phrase", def: "(하던 프로젝트를) 접다", ex_en: "After two failed pilots, leadership pulled the plug on the project.", ex_kr: "파일럿이 두 번 실패하자 경영진이 프로젝트를 접었어요.", syn: ["Shut it down","Kill the project"], nuance: "생명유지장치 플러그를 뽑는 무거운 그림. 그래서 가볍게 멈추는 pause와 달리 '끝'의 무게가 실려요." },
-            { en: "Skin in the game", pos: "phrase", def: "본인도 리스크를 짊어진 상태", ex_en: "I trust his call. He has skin in the game, half his bonus rides on this.", ex_kr: "그 판단은 믿어요. 본인 보너스 절반이 걸려 있으니 남 일이 아니거든요.", syn: ["Personal stake","Shared risk"], nuance: "워런 버핏이 유행시키고 나심 탈레브가 책 제목으로 굳힌 말. '너도 리스크를 져야 네 말에 무게가 실린다'는 철학까지 담겨 있어요." },
-            { en: "Scramble", pos: "verb", def: "허둥지둥 총동원해 수습하다", ex_en: "The demo broke an hour before the pitch, and we scrambled to rebuild it.", ex_kr: "피칭 한 시간 전에 데모가 깨져서 총동원으로 다시 만들었어요.", syn: ["Rush to recover","All-hands rush"], nuance: "전투기 긴급 출격(scramble)에서 온 말. 계란 스크램블처럼 뒤엉킨 채로 어떻게든 해내는 긴박함이에요." },
+            { en: "Pull the plug", pos: "phrase", def: "(하던 프로젝트를) 접다", ex_en: "After two failed pilots, leadership pulled the plug on the project.", ex_kr: "파일럿이 두 번 실패하자 경영진이 프로젝트를 접었어요.", syn: ["Shut it down","Kill the project"], nuance: "전원 뽑듯 프로젝트를 접는 결정이에요. 미련이 남는 프로젝트일수록 이 한 마디가 어렵죠. 결단의 동사예요." },
+            { en: "Skin in the game", pos: "phrase", def: "본인도 리스크를 짊어진 상태", ex_en: "I trust his call. He has skin in the game, half his bonus rides on this.", ex_kr: "그 판단은 믿어요. 본인 보너스 절반이 걸려 있으니 남 일이 아니거든요.", syn: ["Personal stake","Shared risk"], nuance: "나도 리스크를 짊어지고 있다는 뜻이에요. I have skin in the game 이라고 하면 '남 얘기가 아니라 내 문제로 뛴다'는 신뢰의 표현이 돼요." },
+            { en: "Scramble", pos: "verb", def: "허둥지둥 총동원해 수습하다", ex_en: "The demo broke an hour before the pitch, and we scrambled to rebuild it.", ex_kr: "피칭 한 시간 전에 데모가 깨져서 총동원으로 다시 만들었어요.", syn: ["Rush to recover","All-hands rush"], nuance: "예정에 없던 일로 허둥지둥 총동원되는 상황이에요. We scrambled to fix it before the demo 처럼, 급박했지만 해냈다는 뉘앙스까지 담겨요." }
           ] },
       ]
     },
     {
-      n: 4, title: "Bet Big", subtitle: "크게 생각하는 사람의 영어",
+      n: 4, title: "Own Your Career", subtitle: "내 커리어를 챙기는 영어",
       days: [
-        { day: 16, title: "방향이 맞으면 크게 걸어요", goal_en: "Keep your true north and front-load the moonshot.", goal_kr: "방향이 맞으면 크게 걸기.",
+                { day: 16, title: "방향은 맞는데 확신이 없을 때", goal_en: "Keep your true north and front-load the moonshot.", goal_kr: "방향이 맞으면 크게 걸기.",
           words: [
-            { en: "True north", pos: "noun", def: "흔들리지 않는 최우선 기준·방향", ex_en: "Whenever we argue about features, user trust is our true north.", ex_kr: "기능 갖고 싸울 때마다, 우리 기준은 결국 유저 신뢰예요.", syn: ["Guiding star","Core compass"], nuance: "자북(磁北)이 아니라 진짜 북쪽. 단기 지표에 흔들릴 때 '우리 true north가 뭐였지'라고 되묻는 용도로 리더들이 아껴 써요." },
-            { en: "Moonshot", pos: "noun", def: "성공 확률은 낮지만 게임을 바꾸는 초대형 도전", ex_en: "The AI assistant is our moonshot. The other bets pay the bills.", ex_kr: "AI 어시스턴트가 우리의 문샷이에요. 나머지는 밥값 버는 사업이고요.", syn: ["Big audacious bet","10x goal"], nuance: "케네디의 달 착륙 선언에서 온 말. 구글이 'moonshot factory'를 만들면서 스타트업 세계의 공용어가 됐어요." },
-            { en: "Front-load", pos: "verb", def: "중요한 걸 초반에 몰아넣다", ex_en: "Let's front-load the risky integrations so surprises show up early.", ex_kr: "위험한 연동 작업을 초반에 몰아서, 서프라이즈가 일찍 터지게 해요.", syn: ["Do the heavy part first","Weight it early"], nuance: "세탁기 앞문(front-load)이 아니라 '앞에 싣는다'는 뜻. 어려운 걸 뒤로 미루는 본능을 거스르는 실행 전략이에요." },
+            { en: "True north", pos: "noun", def: "흔들리지 않는 최우선 기준·방향", ex_en: "Whenever we argue about features, user trust is our true north.", ex_kr: "기능 갖고 싸울 때마다, 우리 기준은 결국 유저 신뢰예요.", syn: ["Guiding star","Core compass"], nuance: "상황이 흔들려도 변하지 않는 최우선 기준이에요. 논쟁이 길어질 때 What's our true north here? 라고 물으면 대화가 본질로 돌아와요." },
+            { en: "Moonshot", pos: "noun", def: "성공 확률은 낮지만 게임을 바꾸는 초대형 도전", ex_en: "The AI assistant is our moonshot. The other bets pay the bills.", ex_kr: "AI 어시스턴트가 우리의 문샷이에요. 나머지는 밥값 버는 사업이고요.", syn: ["Big audacious bet","10x goal"], nuance: "성공 확률은 낮지만 되면 판도가 바뀌는 초대형 도전이에요. 안전한 목표들 사이에 moonshot 하나쯤 섞자고 할 때 써요." },
+            { en: "Front-load", pos: "verb", def: "중요한 걸 초반에 몰아넣다", ex_en: "Let's front-load the risky integrations so surprises show up early.", ex_kr: "위험한 연동 작업을 초반에 몰아서, 서프라이즈가 일찍 터지게 해요.", syn: ["Do the heavy part first","Weight it early"], nuance: "중요하고 어려운 걸 초반에 몰아서 처리하는 거예요. Let's front-load the risky work 라고 하면 일정 관리 잘하는 사람으로 보여요." }
           ] },
-        { day: 17, title: "스타트업 미팅에서 살아남는 3단어", goal_en: "Build the flywheel, dig the moat, watch the runway.", goal_kr: "스타트업 전략어 3종 갖추기.",
+                { day: 17, title: "연봉협상 필수 어휘", goal_en: "Negotiate with total comp and market rate.", goal_kr: "데이터로 연봉협상하기.",
           words: [
-            { en: "Flywheel", pos: "noun", def: "돌수록 빨라지는 선순환 구조", ex_en: "More sellers bring more buyers, which brings more sellers. That's the flywheel.", ex_kr: "판매자가 늘면 구매자가 늘고, 그게 다시 판매자를 불러요. 그게 플라이휠이죠.", syn: ["Self-reinforcing loop","Compounding engine"], nuance: "무거운 회전판은 처음엔 안 돌지만 한번 돌면 멈추질 않죠. 아마존 냅킨 스케치로 유명해진 전략 어휘의 왕이에요." },
-            { en: "Moat", pos: "noun", def: "경쟁자가 못 넘는 해자, 방어력", ex_en: "Anyone can copy the feature. Our data is the real moat.", ex_kr: "기능이야 누구나 베끼죠. 진짜 해자는 우리 데이터예요.", syn: ["Defensible edge","Durable advantage"], nuance: "성 둘레의 해자. 버핏이 투자 기준으로 쓰면서 VC 미팅 필수 질문('What's your moat?')이 됐어요." },
-            { en: "Runway", pos: "noun", def: "(자금·시간이) 버틸 수 있는 활주로", ex_en: "At this burn rate, we have 14 months of runway.", ex_kr: "지금 소진 속도면 런웨이가 14개월 남았어요.", syn: ["Months of cash left","Time to live"], nuance: "활주로가 끝나기 전에 이륙해야 하는 비행기 그림. burn rate(자금 소진 속도)와 세트로 다니는 스타트업 생존 어휘예요." },
+            { en: "Total comp", pos: "noun", def: "기본급+보너스+주식을 합친 총 보상", ex_en: "Don't compare base salary only. Look at total comp.", ex_kr: "기본급만 비교하지 마세요. 총 보상으로 봐야죠.", syn: ["Compensation package","Base plus bonus"], nuance: "기본급만이 아니라 보너스, 주식, 복지까지 합친 총 보상이에요. 연봉 비교는 base 가 아니라 total comp 로 하는 게 협상의 기본이에요." },
+            { en: "Market rate", pos: "noun", def: "이 직무·연차가 시장에서 받는 수준", ex_en: "I did some research, and my current pay is below market rate.", ex_kr: "조사해봤는데 제 현재 연봉이 시장 수준보다 낮더라고요.", syn: ["Going rate","Industry benchmark"], nuance: "이 직무와 연차가 시장에서 받는 수준이에요. '더 주세요'보다 below market rate 라는 데이터 프레임이 훨씬 힘이 세요." },
+            { en: "Counteroffer", pos: "noun", def: "제시안에 맞서 내는 역제안", ex_en: "They came back with a counteroffer within a day.", ex_kr: "하루 만에 역제안이 왔어요.", syn: ["Counter-proposal","Revised offer"], nuance: "제시받은 조건에 맞서 내는 역제안이에요. 이직 오퍼를 받으면 현 회사가 counteroffer 를 내밀기도 하죠. 받을지 말지는 언제나 뜨거운 주제예요." }
           ] },
-        { day: 18, title: "적게 들이고 크게 얻는 구조", goal_en: "Find the force multiplier and mind the second-order effects.", goal_kr: "한 수로 세 수 만들기.",
+                { day: 18, title: "협조를 부탁할 때 필수 어휘", goal_en: "Loop people in and align early.", goal_kr: "일찍 공유하고 미리 맞추기.",
           words: [
-            { en: "Force multiplier", pos: "noun", def: "투입 대비 효과를 몇 배로 키우는 요소", ex_en: "Good documentation is a force multiplier. Every hire onboards twice as fast.", ex_kr: "좋은 문서 하나가 효과를 몇 배로 키워줘요. 새 입사자 온보딩이 두 배 빨라지거든요.", syn: ["Leverage point","Amplifier"], nuance: "군사 용어(같은 병력으로 몇 배 전투력)에서 온 말. 툴·자동화·문서화를 어필할 때 이만한 단어가 없어요." },
-            { en: "Move in lockstep", pos: "phrase", def: "한 몸처럼 발맞춰 움직이다", ex_en: "Marketing and product need to move in lockstep for this launch.", ex_kr: "이번 런칭은 마케팅이랑 프로덕트가 한 몸처럼 움직여야 해요.", syn: ["In perfect sync","Tightly coordinated"], nuance: "군대 행진의 발맞춤(lockstep). 긍정적으로도 쓰지만 '너무 lockstep이면 다양성이 죽는다'는 반대 용법도 있어요." },
-            { en: "Second-order effects", pos: "noun", def: "눈앞 결과 너머의 2차 파급효과", ex_en: "Free shipping boosts orders, but think about the second-order effects on margins.", ex_kr: "무료배송이 주문은 늘리지만, 마진에 미칠 2차 효과까지 생각해야죠.", syn: ["Knock-on effects","Ripple consequences"], nuance: "돌 하나가 만드는 두 번째 물결. '2차 효과까지 생각했나'는 시니어와 주니어를 가르는 질문으로 통해요." },
+            { en: "Loop in", pos: "phrasal verb", def: "사람을 논의·메일에 끼워주다, 공유해주다", ex_en: "Could you loop me in on the vendor discussion?", ex_kr: "업체 논의에 저도 끼워주실 수 있어요?", syn: ["Keep someone in the loop","Bring someone up to speed"], nuance: "이메일 참조든 회의든, 사람을 논의에 끼워주는 거예요. Loop me in 은 '나도 공유해줘'라는 가장 흔한 부탁이에요." },
+            { en: "Align on", pos: "phrasal verb", def: "방향과 내용을 서로 맞추다", ex_en: "Let's align on the timeline before we tell the client.", ex_kr: "클라이언트에게 말하기 전에 일정부터 맞춥시다.", syn: ["Get on the same page","Sync on"], nuance: "서로 이해와 방향을 맞춘다는 뜻이에요. 클라이언트에게 말하기 전에 Let's align internally first 는 회사생활 필수 문장이에요." },
+            { en: "Take it offline", pos: "phrase", def: "회의 밖에서 따로 얘기하다", ex_en: "Good question. Let's take it offline after this meeting.", ex_kr: "좋은 질문인데, 이 회의 끝나고 따로 얘기해요.", syn: ["Discuss separately","Follow up one-on-one"], nuance: "회의 흐름을 끊는 주제를 '따로 얘기하자'고 미루는 거예요. 소수만 관련된 논의가 길어질 때 진행자가 꺼내는 단골 표현이에요." }
           ] },
-        { day: 19, title: "남기지 말고, 앞서 나가되, 넘어지진 말고", goal_en: "Don't leave money on the table, punch above your weight.", goal_kr: "남기지 말고 체급 이상으로.",
+                { day: 19, title: "퍼포먼스 리뷰에서 어필하는 어휘", goal_en: "Show your track record, not adjectives.", goal_kr: "형용사 말고 실적으로 어필하기.",
           words: [
-            { en: "Leave money on the table", pos: "phrase", def: "얻을 수 있는 걸 챙기지 못하고 놓치다", ex_en: "We're leaving money on the table by not upselling existing customers.", ex_kr: "기존 고객 업셀을 안 하는 건, 챙길 수 있는 돈을 그냥 두고 오는 거예요.", syn: ["Miss easy value","Under-negotiate"], nuance: "포커 판돈을 안 챙기고 일어나는 그림. 협상·가격 회의에서 아주 자주 나오는 아까움의 언어예요." },
-            { en: "Punch above your weight", pos: "phrase", def: "체급 이상으로 해내다", ex_en: "A five-person team competing with the big players. We punch above our weight.", ex_kr: "5명 팀이 대기업들이랑 붙고 있으니, 체급 이상으로 싸우는 거죠.", syn: ["Outperform your size","Overachieve"], nuance: "권투 체급에서 온 말. 작은 팀·회사의 자부심을 표현하는 가장 세련된 방법이에요." },
-            { en: "Ahead of the curve", pos: "phrase", def: "남들보다 한발 앞서", ex_en: "Adopting AI review tools early kept us ahead of the curve.", ex_kr: "AI 리뷰 툴을 일찍 도입한 덕에 한발 앞서 있었어요.", syn: ["Ahead of the pack","Early to the trend"], nuance: "성장 곡선보다 앞에 서 있는 그림. behind the curve(한발 늦은)와 짝으로 알아두면 두 배로 써먹어요." },
+            { en: "Take ownership", pos: "phrase", def: "내 일처럼 끝까지 책임지고 맡다", ex_en: "I took ownership of the migration from start to finish.", ex_kr: "마이그레이션을 처음부터 끝까지 제가 책임지고 맡았어요.", syn: ["Own it end to end","Step up"], nuance: "시켜서가 아니라 내 일처럼 끝까지 책임졌다는 뜻이에요. 리뷰 시즌 자기평가에서 가장 힘 있는 동사 중 하나예요." },
+            { en: "Spearhead", pos: "verb", def: "앞장서서 이끌다, 주도하다", ex_en: "I spearheaded the new onboarding process this quarter.", ex_kr: "이번 분기에 새 온보딩 프로세스를 제가 주도했어요.", syn: ["Lead the charge","Drive the initiative"], nuance: "창끝처럼 맨 앞에서 이끌었다는 뜻이에요. I spearheaded X 라고 쓰면 participated 와는 급이 다른 어필이 돼요." },
+            { en: "Track record", pos: "noun", def: "쌓아온 실적, 증명된 이력", ex_en: "I have a track record of closing deals under tight deadlines.", ex_kr: "빠듯한 마감에서도 딜을 성사시켜온 실적이 있어요.", syn: ["Proven results","History of delivering"], nuance: "말이 아니라 쌓아온 실적으로 증명한다는 뜻이에요. 연봉협상이든 리뷰든 my track record 를 앞세우면 대화가 숫자 기반이 돼요." }
           ] },
-        { day: 20, title: "변화를 만들되, 무리하진 않게", goal_en: "Shake things up without getting out over your skis.", goal_kr: "변화를 만들되 무리하지 않기.",
+                { day: 20, title: "언젠가 쓸, 퇴사 필수 어휘", goal_en: "Leave well: notice, handover, farewell.", goal_kr: "떠날 때도 프로답게.",
           words: [
-            { en: "Shake things up", pos: "phrase", def: "고인 분위기를 흔들어 변화를 만들다", ex_en: "The new CPO was hired to shake things up in the product org.", ex_kr: "새 CPO는 조직에 새바람을 일으키라고 모셔온 거예요.", syn: ["Stir the pot","Disrupt the status quo"], nuance: "스노우볼을 흔들듯 가라앉은 조직을 뒤섞는 그림. 변화의 에너지가 담긴, 마무리 주간에 어울리는 단어죠." },
-            { en: "Out over your skis", pos: "phrase", def: "실력·근거보다 앞서 나가 위태로운", ex_en: "Promising enterprise support with two engineers? We're out over our skis.", ex_kr: "엔지니어 둘로 엔터프라이즈 지원을 약속한다고요? 스키 앞으로 쏠린 격이에요.", syn: ["Overextended","Ahead of your evidence"], nuance: "스키 타다 몸이 앞으로 쏠리면 넘어지죠. 야망(ahead of the curve)과 무리(out over your skis)의 한 끗 차이를 아는 게 시니어의 언어 감각이에요." },
-            { en: "Silver bullet", pos: "noun", def: "만능 해결책 (은 없다)", ex_en: "AI isn't a silver bullet. It won't fix a broken process.", ex_kr: "AI는 만능 해결책이 아니에요. 망가진 프로세스를 고쳐주진 않죠.", syn: ["Magic fix","Cure-all"], nuance: "늑대인간을 잡는 은탄환 전설에서 유래. 실제론 'There is no silver bullet' 부정형으로 90% 쓰여요. 4주의 마무리로 딱 좋은 어른의 단어." },
+            { en: "Give notice", pos: "phrase", def: "퇴사 의사를 공식 통보하다", ex_en: "I gave notice this morning. My last day is the 30th.", ex_kr: "오늘 아침에 퇴사 통보했어요. 마지막 날은 30일이에요.", syn: ["Two weeks' notice","Put in my resignation"], nuance: "퇴사 의사를 공식적으로 알리는 거예요. 미국은 보통 2주 전 통보라 two weeks' notice 가 관용구처럼 굳었어요." },
+            { en: "Severance package", pos: "noun", def: "퇴직 시 받는 위로금과 조건 일체", ex_en: "HR walked me through the severance package details.", ex_kr: "HR이 퇴직 패키지 조건을 하나하나 설명해줬어요.", syn: ["Severance pay","Exit package"], nuance: "퇴직할 때 받는 위로금과 조건 일체예요. 조직개편 뉴스에 늘 따라 나오는 단어라, 알아두면 기사 읽기가 달라져요." },
+            { en: "Handover", pos: "noun", def: "업무 인수인계", ex_en: "I'm preparing a handover doc for whoever takes over my accounts.", ex_kr: "제 거래처를 맡을 분을 위해 인수인계 문서를 만들고 있어요.", syn: ["Transition plan","Knowledge transfer"], nuance: "내 업무를 다음 사람에게 넘기는 인수인계예요. 깔끔한 handover 문서 하나가 회사에서의 마지막 인상을 결정해요." }
           ] },
       ]
     },
@@ -1276,11 +1276,11 @@ const CHALLENGE = {
         pptUrl: '',
         roleplay: { duration: 40 },
         mustUseVocab: [
-          'Straw poll', 'Parking lot', 'Steelman',
-          "Play devil's advocate", 'Double-click on', 'Bikeshedding',
+          'Quick poll', 'Table it', 'Steelman',
+          'Poke holes in', 'Double-click on', 'Bikeshedding',
           'Boil the ocean', 'Go down the rabbit hole', 'Sunk cost', 'Pressure-test',
         ],
-        presenterPrompt: '본인 업무 상황 한 가지를 10분 발표로. 논쟁·설득 장면을 하나 넣고 Day 6~10 단어 (steelman / straw poll / double-click on 등) 3개 이상 자연스럽게 녹이기. Q&A 에서 단어 echo back 대비.',
+        presenterPrompt: '본인 업무 상황 한 가지를 10분 발표로. 논쟁·설득 장면을 하나 넣고 Day 6~10 단어 (steelman / quick poll / double-click on 등) 3개 이상 자연스럽게 녹이기. Q&A 에서 단어 echo back 대비.',
         qaPrompts: [
           'Which Day 6~10 word felt most natural in your story?',
           'Where could you have steelmanned the other side before pushing back?',
@@ -1336,10 +1336,10 @@ const CHALLENGE = {
     ],
     quiz: [
       { q: "\"Let's not ___ the ocean; ship one thing first.\"", options: ['boil', 'pressure-test', 'slow-walk', 'rubber-stamp'], a: 0, hint: '다 하려다 아무것도 못 하다' },
-      { q: "Which phrase means 'an early warning sign'?", options: ['Red herring', 'Canary in the coal mine', 'Trial balloon', 'Parking lot'], a: 1, hint: '위기를 가장 먼저 알리는 신호' },
-      { q: "\"Only Kim knows the deploy process. That's a ___.\"", options: ['single point of failure', 'force multiplier', 'holding pattern', 'straw poll'], a: 0, hint: '하나 무너지면 전체가 무너지는 지점' },
+      { q: "Which phrase means 'a jolt that makes everyone pay attention'?", options: ['Red herring', 'Wake-up call', 'Quick poll', 'Table it'], a: 1, hint: '정신이 번쩍 들게 하는 경고' },
+      { q: "\"Only Kim knows the deploy process. That's a ___.\"", options: ['single point of failure', 'track record', 'quick poll', 'handover'], a: 0, hint: '하나 무너지면 전체가 무너지는 지점' },
       { q: "Which means 'to shift blame onto someone'?", options: ['Paper over', 'Throw someone under the bus', 'Nitpick', 'Backchannel'], a: 1, hint: '남에게 책임 뒤집어씌우기' },
-      { q: "\"At this burn rate, we have 10 months of ___.\"", options: ['runway', 'moat', 'flywheel', 'critical path'], a: 0, hint: '버틸 수 있는 자금·시간' },
+      { q: "\"I researched the ___ before asking for a raise.\"", options: ['market rate', 'severance package', 'handover', 'critical path'], a: 0, hint: '버틸 수 있는 자금·시간' },
     ]
   }
 };
@@ -4060,6 +4060,47 @@ const SYNONYM_GLOSSARY = {
   "ahead of your evidence": "근거보다 앞서 나간",
   "magic fix": "마법 같은 해결책",
   "cure-all": "만병통치약",
+  // === 7기 v3 개편으로 추가된 유의어 뜻 ===
+  'at face value': '액면 그대로',
+  'base plus bonus': '기본급에 보너스를 더한 구성',
+  'bring someone up to speed': '지금까지의 상황을 따라잡게 공유해주다',
+  'challenge the assumptions': '전제를 의심하고 따져보다',
+  'compensation package': '급여·보너스·복지를 묶은 보상 패키지',
+  'counter-proposal': '맞제안',
+  'customer-facing': '고객을 직접 상대하는',
+  'discuss separately': '따로 떼어 논의하다',
+  'drive the initiative': '그 계획을 주도해 끌고 가다',
+  'exit package': '퇴직 조건 일체',
+  'eye-opener': '눈이 번쩍 뜨이게 하는 일',
+  'follow up one-on-one': '일대일로 따로 이어가다',
+  'get on the same page': '같은 이해에 도달하다',
+  'going rate': '현재 시세',
+  'history of delivering': '성과를 내온 이력',
+  'holding pattern': '결정 대기로 빙빙 도는 상태',
+  'in flight': '이미 진행 중인',
+  'industry benchmark': '업계 기준치',
+  'jump on a call': '급히 통화에 붙다',
+  'keep someone in the loop': '계속 공유 라인에 넣어두다',
+  'knowledge transfer': '지식·업무 이전',
+  'lead the charge': '선두에서 이끌다',
+  'leave wiggle room': '조정할 여지를 남기다',
+  'own it end to end': '처음부터 끝까지 책임지다',
+  'parking lot': '안건 보류함 (회의 용어)',
+  'play devil\'s advocate': '일부러 반대 입장에 서보다',
+  'proven results': '증명된 성과',
+  'put in my resignation': '사직서를 내다',
+  'put it aside for now': '일단 옆에 치워두다',
+  'revised offer': '수정 제안',
+  'severance pay': '퇴직 위로금',
+  'show of hands': '거수로 의견 확인',
+  'step up': '나서서 맡다',
+  'straw poll': '구속력 없는 약식 표결',
+  'sync on': '그 건에 대해 맞춰보다',
+  'transition plan': '인계 계획',
+  'trial balloon': '반응을 보려고 띄우는 시안',
+  'two weeks\' notice': '2주 전 퇴사 통보',
+  'war room': '비상 대응 상황실',
+  'on the back burner': '우선순위에서 잠시 뒤로 밀어둔',
 };
 
 // pair-specific nuance: "메인 표현 vs 해당 syn" 비교해서 실제 현업에서 어떻게 다른지 한줄.
@@ -4186,6 +4227,55 @@ const SYNONYM_NUANCE = {
   "Out over your skis::Ahead of your evidence": "\"Ahead of your evidence\"가 근거보다 앞섰다는 논리 비판이라면, \"Skis\"는 자세가 무너졌다는 몸의 비유라 덜 공격적으로 들려요.",
   "Silver bullet::Magic fix": "\"Magic fix\"가 마법 같은 해결이라는 일반어라면, \"Silver bullet\"은 늑대인간 전설에서 온 관용구라 \"그런 건 없다\"는 부정문과 세트로 굳었어요.",
   "Silver bullet::Cure-all": "\"Cure-all\"이 만병통치약이라는 의학 비유라면, \"Silver bullet\"은 단 한 발로 끝내는 해결책이라는 그림이라 기술 토론에서 더 자주 들려요.",
+  // === 7기 v3 개편으로 추가된 유의어 뉘앙스 ===
+  'Float an idea::Trial balloon': 'trial balloon 은 기상 관측 풍선에서 온 말로, float an idea 보다 살짝 정치적인 맛이 있어요. 언론이나 전체 공지로 여론을 떠볼 때 어울려요.',
+  'Float an idea::Test the reaction': 'test the reaction 은 말 그대로 반응을 시험한다는 직설적 표현이에요. float 이 더 부드럽고 회의체에 자연스러워요.',
+  'As presented::At face value': 'at face value 는 지폐 액면가에서 온 말로, 숫자나 주장을 \'보이는 대로\' 믿는다는 뉘앙스예요. don\'t take it at face value 로 회의에서 자주 써요.',
+  'As presented::Without digging deeper': 'without digging deeper 는 \'더 파보지 않고\'라는 설명형 표현이에요. 캐주얼하게 풀어 말할 때 좋아요.',
+  'Wake-up call::Early warning sign': 'early warning sign 은 아직 일이 터지기 전의 \'조기 신호\'예요. wake-up call 은 이미 한 대 맞고 정신이 든 쪽이죠.',
+  'Wake-up call::Eye-opener': 'eye-opener 는 충격보다는 \'몰랐던 걸 깨닫게 한 일\'에 가까워요. 긍정적 발견에도 써요.',
+  'On the back burner::Holding pattern': 'holding pattern 은 착륙 대기 중인 비행기처럼 \'결정을 기다리며 도는\' 상태예요. back burner 는 내가 우선순위를 내린 것, holding pattern 은 남의 결정을 기다리는 것.',
+  'On the back burner::On standby': 'on standby 는 언제든 투입 가능한 대기예요. back burner 보다 준비된 느낌이 강해요.',
+  'Build in slack::Leave wiggle room': 'leave wiggle room 은 협상·약속에서 빠져나갈 여지를 남긴다는 쪽이에요. build in slack 은 일정·리소스에 여유분을 심는 실무 어휘고요.',
+  'Build in slack::Keep some flexibility': 'keep some flexibility 는 가장 무난하고 격식 있는 버전이에요. 클라이언트 앞에서는 이쪽이 안전해요.',
+  'Underway::In flight': 'in flight 은 비행 중인 비행기처럼 \'중간에 세우기 어렵다\'는 뉘앙스가 얹혀요. 테크 회사에서 특히 많이 써요.',
+  'Underway::In motion': 'in motion 은 \'움직이기 시작했다\'에 가까워요. things are in motion 하면 물밑에서 진행 중이라는 느낌.',
+  'Quick poll::Straw poll': 'straw poll 은 회의에서 하는 구속력 없는 약식 표결이에요. quick poll 이 채팅용이라면 straw poll 은 회의실용.',
+  'Quick poll::Show of hands': 'show of hands 는 말 그대로 거수예요. 대면 회의에서 quick show of hands? 로 자주 써요.',
+  'Table it::Parking lot': 'parking lot 은 화이트보드 구석에 보류 안건을 모아두는 회의 진행 기법이에요. put it in the parking lot 으로 써요.',
+  'Table it::Put it aside for now': 'put it aside for now 는 격식 없는 풀어쓰기예요. 어디서나 통하는 안전한 버전.',
+  'Poke holes in::Play devil\'s advocate': 'devil\'s advocate 는 \'일부러 반대편에 서볼게요\' 하고 역할을 선언하는 표현이에요. poke holes 가 허점 찾기라면 이건 입장 바꾸기.',
+  'Poke holes in::Challenge the assumptions': 'challenge the assumptions 는 전제 자체를 따져보자는 격식형이에요. 전략 회의에서 잘 어울려요.',
+  'Hop on a call::Jump on a call': 'jump on a call 도 완전히 같은 뜻이에요. hop 이 살짝 더 가볍고 캐주얼한 느낌.',
+  'Hop on a call::War room': 'war room 은 큰 사고 때 관련자가 모두 모이는 비상 상황실이에요. 콜 한 번으로 안 끝나는 규모일 때 쓰죠.',
+  'Client-facing::Customer-facing': 'customer-facing 은 B2C, client-facing 은 B2B 에서 상대적으로 더 많이 써요. 뜻은 같아요.',
+  'Client-facing::On the front lines': 'on the front lines 는 최전선이라는 비유예요. 부서 설명보다는 \'현장에서 뛰는\' 상황 묘사에 어울려요.',
+  'Total comp::Compensation package': 'compensation package 는 오퍼 레터에 찍히는 공식 용어예요. total comp 는 그걸 부르는 실무 줄임말이고요.',
+  'Total comp::Base plus bonus': 'base plus bonus 는 구성 요소를 풀어 말하는 방식이에요. 주식이 없는 회사에선 이렇게 말해요.',
+  'Market rate::Going rate': 'going rate 는 \'요즘 시세\'라는 일상적 표현이에요. 프리랜서 단가 얘기에도 써요.',
+  'Market rate::Industry benchmark': 'industry benchmark 는 데이터 냄새가 나는 격식형이에요. 리포트나 HR 문서에 어울려요.',
+  'Counteroffer::Counter-proposal': 'counter-proposal 은 연봉만이 아니라 어떤 제안이든 맞제안할 때 쓰는 넓은 말이에요.',
+  'Counteroffer::Revised offer': 'revised offer 는 상대가 조건을 고쳐서 다시 낸 제안이에요. counteroffer 보다 중립적인 표현.',
+  'Loop in::Keep someone in the loop': 'keep in the loop 은 한 번 끼워주는 게 아니라 \'계속\' 공유 라인에 두는 거예요. keep me in the loop 은 회사 필수 문장.',
+  'Loop in::Bring someone up to speed': 'bring up to speed 는 늦게 합류한 사람에게 지금까지 상황을 따라잡게 해주는 거예요. 회의 첫 5분의 단골.',
+  'Align on::Get on the same page': 'get on the same page 는 같은 뜻의 관용구예요. are we on the same page? 로 확인 질문에 많이 써요.',
+  'Align on::Sync on': 'sync on 은 짧게 맞춰보자는 캐주얼 버전이에요. let\'s sync on this tomorrow 처럼 써요.',
+  'Take it offline::Discuss separately': 'discuss separately 는 격식 있는 풀어쓰기예요. 회의록에는 이쪽이 자연스러워요.',
+  'Take it offline::Follow up one-on-one': 'follow up one-on-one 은 \'둘이서 따로 이어가자\'로 대상이 더 좁혀진 표현이에요.',
+  'Take ownership::Own it end to end': 'own it end to end 는 처음부터 끝까지 다 책임졌다는 강조형이에요. 이력서·리뷰에서 힘이 세요.',
+  'Take ownership::Step up': 'step up 은 아무도 안 나설 때 나섰다는 뉘앙스예요. stepped up when the lead left 처럼 써요.',
+  'Spearhead::Lead the charge': 'lead the charge 는 돌격을 이끈다는 비유로, spearhead 와 거의 같은 강도예요.',
+  'Spearhead::Drive the initiative': 'drive the initiative 는 격식형이에요. 자기평가 문서에 잘 어울려요.',
+  'Track record::Proven results': 'proven results 는 \'증명된 결과\'라는 직설형이에요. 숫자와 같이 쓰면 좋아요.',
+  'Track record::History of delivering': 'history of delivering 은 \'꾸준히 해냈다\'는 시간 축이 강조돼요.',
+  'Give notice::Two weeks\' notice': 'two weeks\' notice 는 미국 관행인 \'2주 전 통보\' 그 자체를 가리키는 굳은 표현이에요.',
+  'Give notice::Put in my resignation': 'put in my resignation 은 사직서를 제출했다는 공식적 버전이에요.',
+  'Severance package::Severance pay': 'severance pay 는 패키지 중 \'돈\' 부분만 가리켜요.',
+  'Severance package::Exit package': 'exit package 는 임원 퇴진 뉴스에서 자주 보이는 완곡한 표현이에요.',
+  'Handover::Transition plan': 'transition plan 은 인수인계를 계획 문서 관점에서 부르는 말이에요.',
+  'Handover::Knowledge transfer': 'knowledge transfer 는 문서나 시스템 지식을 넘기는 것까지 포함하는 넓은 표현이에요. 줄여서 KT 라고도 해요.',
+  'Shelve it::On the back burner': 'back burner 는 가스레인지 뒷화구에서 온 말로, 급한 것부터 앞에 놓는다는 그림이에요. shelve 보다 구어체예요.',
+  'Shelve it::Holding pattern': 'holding pattern 은 착륙 허가를 기다리며 도는 비행기예요. shelve 가 내 결정이라면, holding pattern 은 남의 결정을 기다리는 상태.',
 };
 
 
@@ -23081,24 +23171,24 @@ function WeeklyQuizPopupModal() {
 const SURVEY_WEAK_WORDS_BY_WEEK = {
   // 7기 런칭 전 placeholder (긴 idiom 위주 후보). 운영자가 실제 통계 보고 갱신.
   '1': [
-    { en: 'Canary in the coal mine', ko: '위기를 가장 먼저 알리는 조기 신호', ex_en: 'Churn among our oldest customers is the canary in the coal mine.' },
-    { en: 'Put out feelers', ko: '본격 제안 전에 슬쩍 간을 보다', ex_en: "Let's put out some feelers with the sales team." },
-    { en: 'Holding pattern', ko: '결정 대기 상태로 빙빙 도는 중', ex_en: "The project's in a holding pattern until legal signs off." },
+    { en: "Wake-up call", ko: "정신이 번쩍 들게 하는 경고 신호", ex_en: "Losing two loyal clients in a month was a wake-up call for the whole team." },
+    { en: "Put out feelers", ko: "본격 제안 전에 슬쩍 떠보다, 분위기를 파악하다", ex_en: "Before we pitch this officially, let's put out some feelers with the sales team." },
+    { en: "Shelve it", ko: "계획을 일단 보류하다 (접는 건 아님)", ex_en: "The timing isn't right for the rebrand. Let's shelve it until Q4." },
   ],
   '2': [
-    { en: 'Bikeshedding', ko: '사소한 것에 과몰입해 논쟁하다', ex_en: 'We spent 40 minutes bikeshedding the button color.' },
-    { en: 'Steelman', ko: '상대 주장의 최강 버전을 세우고 반박하다', ex_en: 'Let me steelman their proposal before we reject it.' },
-    { en: 'Pre-mortem', ko: '망했다 치고 미리 원인을 점검하는 회의', ex_en: "Before launch, let's run a pre-mortem." },
+    { en: "Bikeshedding", ko: "사소한 것에 과몰입해 논쟁하다", ex_en: "We spent 40 minutes bikeshedding the button color and 5 on the pricing model." },
+    { en: "Steelman", ko: "상대 주장의 최강 버전을 세우고 반박하다", ex_en: "Before we reject it, let me steelman their proposal to make sure we're fair." },
+    { en: "Analysis paralysis", ko: "분석만 하다 결정을 못 내리는 상태", ex_en: "Three months of research and no decision. Classic analysis paralysis." },
   ],
   '3': [
-    { en: 'Long pole in the tent', ko: '일정에서 가장 오래 걸리는 결정적 작업', ex_en: 'Security review is the long pole in the tent.' },
-    { en: 'Single point of failure', ko: '하나 무너지면 전체가 무너지는 지점', ex_en: "Only one person knows the deploy process. That's a single point of failure." },
-    { en: 'Slow-walk', ko: '일부러 뭉개며 지연시키다', ex_en: 'Procurement has been slow-walking our request.' },
+    { en: "Long pole in the tent", ko: "일정에서 가장 오래 걸리는 결정적 작업", ex_en: "Security review is the long pole in the tent, so we kick it off first." },
+    { en: "Slow-walk", ko: "일부러 뭉개며 지연시키다", ex_en: "Procurement has been slow-walking our request for a month." },
+    { en: "Single point of failure", ko: "하나 무너지면 전체가 무너지는 지점", ex_en: "Only one person knows the deploy process. That's a single point of failure." },
   ],
   '4': [
-    { en: 'Out over your skis', ko: '실력·근거보다 앞서 나가 위태로운', ex_en: "Promising enterprise support with two engineers? We're out over our skis." },
-    { en: 'Second-order effects', ko: '눈앞 결과 너머의 2차 파급효과', ex_en: 'Think about the second-order effects on margins.' },
-    { en: 'Leave money on the table', ko: '얻을 수 있는 걸 챙기지 못하고 놓치다', ex_en: "We're leaving money on the table by not upselling." },
+    { en: "Total comp", ko: "기본급+보너스+주식을 합친 총 보상", ex_en: "Don't compare base salary only. Look at total comp." },
+    { en: "Spearhead", ko: "앞장서서 이끌다, 주도하다", ex_en: "I spearheaded the new onboarding process this quarter." },
+    { en: "Severance package", ko: "퇴직 시 받는 위로금과 조건 일체", ex_en: "HR walked me through the severance package details." },
   ],
 };
 
@@ -23156,9 +23246,9 @@ const SPACED_REPEAT_PRESETS = {
     title: 'Week 1 에서 가져온 3개 표현',
     subtitle: '지난 주 헷갈리기 쉬웠던 표현이에요',
     words: [
-      { en: 'Put out feelers', ko: '본격 제안 전에 슬쩍 간을 보다', ex_en: "Let's put out some feelers with the sales team.", stat: 'Week 1 복습 추천 표현' },
-      { en: 'Trial balloon', ko: '반응을 보려고 슬쩍 띄워보는 시안', ex_en: "Let's float a trial balloon in the all-hands.", stat: 'Week 1 복습 추천 표현' },
-      { en: 'Holding pattern', ko: '결정 대기 상태로 빙빙 도는 중', ex_en: "The project's in a holding pattern until legal signs off.", stat: 'Week 1 복습 추천 표현' },
+      { en: 'Put out feelers', ko: '본격 제안 전에 슬쩍 떠보다, 분위기를 파악하다', ex_en: "Before we pitch this officially, let's put out some feelers with the sales team.", stat: 'Week 복습 추천 표현' },
+      { en: 'Float an idea', ko: '아이디어를 슬쩍 띄워 반응을 보다', ex_en: "Let me float an idea in the all-hands and see how people react.", stat: 'Week 복습 추천 표현' },
+      { en: 'Shelve it', ko: '계획을 일단 보류하다 (접는 건 아님)', ex_en: "The timing isn't right for the rebrand. Let's shelve it until Q4.", stat: 'Week 복습 추천 표현' },
     ],
   },
   // Day 12 (Week 3 초입), Week 2 약점 어휘 후보 (운영자가 통계 보고 갱신).
@@ -23166,9 +23256,9 @@ const SPACED_REPEAT_PRESETS = {
     title: 'Week 2 에서 가져온 3개 표현',
     subtitle: '논쟁의 기술, 한 번 더 입에 붙여요',
     words: [
-      { en: 'Steelman', ko: '상대 주장의 최강 버전을 세우고 반박하다', ex_en: 'Let me steelman their proposal before we reject it.', stat: 'Week 2 복습 추천 표현' },
-      { en: 'Bikeshedding', ko: '사소한 것에 과몰입해 논쟁하다', ex_en: 'We spent 40 minutes bikeshedding the button color.', stat: 'Week 2 복습 추천 표현' },
-      { en: 'Pre-mortem', ko: '망했다 치고 미리 원인을 점검하는 회의', ex_en: "Before launch, let's run a pre-mortem.", stat: 'Week 2 복습 추천 표현' },
+      { en: 'Steelman', ko: '상대 주장의 최강 버전을 세우고 반박하다', ex_en: "Before we reject it, let me steelman their proposal to make sure we're fair.", stat: 'Week 복습 추천 표현' },
+      { en: 'Poke holes in', ko: '허점을 일부러 찾아 찔러보다', ex_en: "Before we sign off, let's poke holes in this plan together.", stat: 'Week 복습 추천 표현' },
+      { en: 'Sunk cost', ko: '이미 쓴 비용에 발목 잡히기 (매몰비용)', ex_en: "We've spent six months on this, but that's sunk cost. The question is what's best now.", stat: 'Week 복습 추천 표현' },
     ],
   },
 };
@@ -26891,19 +26981,19 @@ function __premiumRoster() {
     .filter((m) => m.tier === 'premium' && !m.isStaff && !m.hidden);
 }
 const WEEK1_WARMUP = [
-  { kr: "본격 제안 전에 슬쩍 간을 보다", en: "Put out feelers" },
   { kr: "행간을 읽다, 말하지 않은 진의를 파악하다", en: "Read between the lines" },
+  { kr: "본격 제안 전에 슬쩍 떠보다, 분위기를 파악하다", en: "Put out feelers" },
   { kr: "상황·사람의 의중을 정확히 파악하다", en: "Get a clear read on" },
-  { kr: "반응을 보려고 슬쩍 띄워보는 시안", en: "Trial balloon" },
+  { kr: "아이디어를 슬쩍 띄워 반응을 보다", en: "Float an idea" },
   { kr: "공식 라인 밖 비공식 채널로 조율하다", en: "Backchannel" },
   { kr: "확답이 아닌 조건부 약속", en: "Soft commit" },
-  { kr: "액면 그대로 (받아들이다)", en: "At face value" },
+  { kr: "제시된 그대로 (더 파보지 않고)", en: "As presented" },
   { kr: "논점을 흐리는 미끼, 헛다리", en: "Red herring" },
-  { kr: "위기를 가장 먼저 알리는 조기 신호", en: "Canary in the coal mine" },
+  { kr: "정신이 번쩍 들게 하는 경고 신호", en: "Wake-up call" },
   { kr: "단서를 달자면", en: "With a caveat" },
-  { kr: "결정 대기 상태로 빙빙 도는 중", en: "Holding pattern" },
-  { kr: "빠져나갈·조정할 여지를 남기다", en: "Leave wiggle room" },
-  { kr: "이미 진행 중인 (일·프로젝트)", en: "In flight" },
+  { kr: "계획을 일단 보류하다 (접는 건 아님)", en: "Shelve it" },
+  { kr: "일정·계획에 여유분을 미리 심어두다", en: "Build in slack" },
+  { kr: "이미 시작되어 진행 중인", en: "Underway" },
   { kr: "그 일을 처리할 여력이 있다", en: "Have the cycles" },
   { kr: "급한 순서대로 분류·처치하다", en: "Triaging" },
 ];
@@ -26919,7 +27009,7 @@ const WEEK1_DECK = [
     checks: ['자기소개 + 근황 한마디씩', '이번 기수에 꼭 갖고 싶은 표현·스킬 한 줄씩', '오늘 흐름 안내: 워밍업 → 미니 강의 → 마무리'],
     html: '<div style="margin-top:6px;padding:14px 16px;border-radius:14px;background:#EAF3EE;border:1px solid rgba(46,107,79,0.25);">'
       + '<div style="font-size:12px;font-weight:800;color:#1F4D38;">✨ 4주 특별 강의 로드맵 (미리 기대 심기)</div>'
-      + '<div style="margin-top:8px;font-size:13.5px;line-height:1.8;color:var(--ink);">2주차 · 논쟁의 기술 (steelman, 회의를 지배하는 말들)<br>3주차 · 위기 커뮤니케이션 (war room 에서 살아남기)<br>4주차 · 전체 어휘 랩업 + 단어 빙고</div></div>' },
+      + '<div style="margin-top:8px;font-size:13.5px;line-height:1.8;color:var(--ink);">2주차 · 논쟁의 기술 (steelman, 회의를 지배하는 말들)<br>3주차 · 위기 커뮤니케이션 (급한 불 끄는 영어)<br>4주차 · 전체 어휘 랩업 + 단어 빙고</div></div>' },
   { section: '워밍업', kicker: '2 · 워밍업', title: '워밍업: 이렇게 진행해요',
     html: (() => {
       const step = (emo, t, sub) => '<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);">'
@@ -26946,10 +27036,10 @@ const WEEK1_DECK = [
       return '<div style="background:#26331F;border-radius:18px;padding:18px;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
         + '<div style="font-size:11px;letter-spacing:0.1em;color:#FBE7A1;font-weight:800;">📋 오늘의 칠판 · 본론 전에 쓰는 표현</div>'
         + line("Put out feelers", "\"Before we pitch this officially, let's put out some feelers with the sales team.\"", "≈ Test the waters / Float the idea quietly")
-        + line("Trial balloon", "\"Let's float a trial balloon in the all-hands and see how people react.\"", "≈ Test the reaction / Float an idea")
+        + line("Float an idea", "\"Let me float an idea in the all-hands and see how people react.\"", "≈ Trial balloon / Test the reaction")
         + line("Backchannel", "\"The deal was stuck in legal, so we backchanneled with their VP to unstick it.\"", "≈ Work it informally / Go through side channels")
         + line("Red herring", "\"The server error was a red herring. The real bug was in the payment logic.\"", "≈ False lead / Distraction from the real issue")
-        + line("Holding pattern", "\"The project's in a holding pattern until legal signs off.\"", "≈ On standby / Waiting mode")
+        + line("Shelve it", "\"The timing isn't right. Let's shelve it until Q4.\"", "≈ On the back burner / Holding pattern")
         + line("Triaging", "\"We spent the morning triaging bug reports from the launch.\"", "≈ Sort by urgency / Prioritize ruthlessly")
         + '</div>'
         + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">진행: 각자 3개를 골라 <b>본인 상황 한 문장</b>으로 만들어 말해보기. 막히면 칠판 보고.</div>';
@@ -26966,24 +27056,24 @@ const WEEK1_DECK = [
     html: '<div style="padding:14px 16px;border-radius:14px;background:#26331F;color:#ECEFE3;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
       + '<div style="font-size:11px;letter-spacing:0.06em;color:#FBE7A1;font-weight:800;">WEEK 2 · 🛡️ The Art of the Argument</div>'
       + '<div style="margin-top:8px;font-size:12.5px;color:#ECEFE3;line-height:1.85;">① 미니 강연 (반대의 기술) → ② 상황 롤플레잉 → ③ 짝 연습 → ④ Week 2 단어 복습</div>'
-      + '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.25);font-size:11.5px;color:#C9D6C0;line-height:1.7;">🍬 맛보기: "Let me steelman their case." · "Quick straw poll?" · "Can we double-click on that?"</div></div>' },
+      + '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.25);font-size:11.5px;color:#C9D6C0;line-height:1.7;">🍬 맛보기: "Let me steelman their case." · "Quick poll?" · "Can we double-click on that?"</div></div>' },
 ];
 
 // Week 2 상황 롤플레잉 (논쟁의 기술)
 const WEEK2_HUMOR_GROUPS = [
   { sit: '🗳️ 안건이 갈릴 때, 분위기부터 재기',
     scenario: '회의에서 두 안이 팽팽해요. 정식 결정 전에 분위기를 확인하고, 곁가지 안건은 보류함에 담아요.',
-    how: 'A가 진행자로 straw poll 제안 → B·C 표결 + 의견. 곁가지 나오면 parking lot 처리. 역할 돌아가며.',
+    how: 'A가 진행자로 quick poll 제안 → B·C 표결 + 의견. 곁가지 나오면 table it 처리. 역할 돌아가며.',
     lines: [
-      { en: "Quick straw poll: who's leaning toward option B?", kr: '약식 투표 한번요. B안으로 기우는 분?' },
-      { en: "Good point. Let's put it in the parking lot for now.", kr: '좋은 포인트인데 일단 보류함에 담아둘게요.' },
+      { en: "Quick poll: who's leaning toward option B?", kr: '간단 투표요. B안으로 기우는 분?' },
+      { en: "Good point. Let's table it for now.", kr: '좋은 포인트인데 일단 미뤄둘게요.' },
     ] },
   { sit: '🛡️ 반대할 거면 제대로 (steelman)',
     scenario: '상대 제안에 반대해야 해요. 무작정 반박 말고, 최강 버전을 세워주고 나서 구멍을 짚어요.',
-    how: 'A가 제안 → B가 steelman 하고 나서 반론 → C는 devil\'s advocate 로 한 번 더 흔들기.',
+    how: 'A가 제안 → B가 steelman 하고 나서 반론 → C는 poke holes 로 한 번 더 흔들기.',
     lines: [
       { en: 'Let me steelman your proposal first, then share my concern.', kr: '먼저 제안의 최강 버전을 세워보고, 그다음 우려를 말할게요.' },
-      { en: "I'll play devil's advocate: what if the vendor pulls out?", kr: '일부러 반대편에 서볼게요. 업체가 발 빼면요?' },
+      { en: "Let me poke holes in this: what if the vendor pulls out?", kr: '허점 하나 찔러볼게요. 업체가 발 빼면요?' },
     ] },
   { sit: '🔍 얕게 넘어가지 말고 더블클릭',
     scenario: '보고 숫자가 어딘가 이상해요. 그 지점을 파고들되, 토끼굴에 빠지진 않게 시간을 정해요.',
@@ -27003,10 +27093,10 @@ const WEEK2_HUMOR_GROUPS = [
 const WEEK2_HUMOR = WEEK2_HUMOR_GROUPS.flatMap((g) => g.lines);
 const WEEK2_WARMUP = [
   { kr: "집단지성 (에 물어보기)", en: "Hive mind" },
-  { kr: "구속력 없는 약식 표결로 분위기 확인", en: "Straw poll" },
-  { kr: "지금 안 다룰 안건을 담아두는 보류함", en: "Parking lot" },
+  { kr: "간단 투표로 팀 의견을 빠르게 모으기", en: "Quick poll" },
+  { kr: "안건을 일단 미뤄두다 (나중에 다시)", en: "Table it" },
   { kr: "상대 주장의 최강 버전을 세우고 반박하다", en: "Steelman" },
-  { kr: "일부러 반대 입장에 서보다", en: "Play devil's advocate" },
+  { kr: "허점을 일부러 찾아 찔러보다", en: "Poke holes in" },
   { kr: "그 지점을 더 깊이 파고들다", en: "Double-click on" },
   { kr: "사소한 것에 과몰입해 논쟁하다", en: "Bikeshedding" },
   { kr: "다 하려다 아무것도 못 하다", en: "Boil the ocean" },
@@ -27045,7 +27135,7 @@ const WEEK2_DECK = [
         + lines.map((l) => lineEl(l.en, l.kr)).join('') + '</div>';
       return '<div style="background:#26331F;border-radius:18px;padding:18px;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
         + '<div style="font-size:11px;letter-spacing:0.1em;color:#FBE7A1;font-weight:800;">📋 오늘의 칠판 · 논쟁의 3원칙</div>'
-        + '<div style="margin-top:12px;font-size:12.5px;color:#ECEFE3;line-height:1.9;">✅ <b style="color:#9FE1CB;">사람 말고 논리를 상대</b> (steelman 먼저)<br>✅ <b style="color:#9FE1CB;">분위기부터 재고</b> (straw poll · parking lot)<br>🚫 <b style="color:#F3B0A8;">함정 피하기</b>: bikeshedding · rabbit hole · boil the ocean</div>'
+        + '<div style="margin-top:12px;font-size:12.5px;color:#ECEFE3;line-height:1.9;">✅ <b style="color:#9FE1CB;">사람 말고 논리를 상대</b> (steelman 먼저)<br>✅ <b style="color:#9FE1CB;">분위기부터 재고</b> (quick poll · table it)<br>🚫 <b style="color:#F3B0A8;">함정 피하기</b>: bikeshedding · rabbit hole · boil the ocean</div>'
         + WEEK2_HUMOR_GROUPS.map((g) => group(g.sit, g.lines)).join('')
         + '</div>'
         + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">핵심: 세게 반대해도 <b>상대 논리를 먼저 세워주면</b> 감정이 안 상해요.</div>';
@@ -27067,22 +27157,22 @@ const WEEK2_DECK = [
     html: '<div style="background:#22301B;border-radius:18px;padding:18px;color:#ECEFE3;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
       + '<div style="font-size:11px;letter-spacing:0.06em;color:#FBE7A1;font-weight:800;">WEEK 3 · 🚨 In the Trenches</div>'
       + '<div style="margin-top:8px;font-size:12.5px;color:#ECEFE3;line-height:1.85;">① 미니 강연 (위기 커뮤니케이션) → ② ❌→✅ 변환 드릴 → ③ 짝 연습 → ④ Week 3 단어 복습</div>'
-      + '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.25);font-size:11.5px;color:#C9D6C0;line-height:1.7;">🍬 맛보기: "Let\'s spin up a war room." · "That\'s the long pole in the tent." · "I recommend we pull the plug."</div></div>' },
+      + '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.25);font-size:11.5px;color:#C9D6C0;line-height:1.7;">🍬 맛보기: "Can we hop on a call?" · "That\'s the long pole in the tent." · "I recommend we pull the plug."</div></div>' },
 ];
 
 // Week 3 위기 커뮤니케이션 20선 + ❌→✅ 드릴
 const CUSHION_PHRASES = [
   { cat: '긴급 상황 열기', items: [
     { en: 'Fire drill', kr: '갑자기 다 내려놓고 매달리게 만드는 긴급 소동' },
-    { en: 'War room', kr: '비상 대응을 위해 모이는 상황실' },
-    { en: 'In the trenches', kr: '최전선 실무 현장에서 (구르는)' },
+    { en: 'All hands on deck', kr: '전원 투입, 총동원 상황' },
+    { en: 'Client-facing', kr: '고객을 직접 상대하는 최전선의' },
     { en: 'Scramble', kr: '허둥지둥 총동원해 수습하다' },
     { en: 'Get ahead of', kr: '문제가 커지기 전에 선수 치다' },
   ] },
   { cat: '원인 찾기·보고', items: [
     { en: 'Stalled out', kr: '(일이) 완전히 멈춰 서다' },
     { en: 'Single point of failure', kr: '하나 무너지면 전체가 무너지는 지점' },
-    { en: 'Canary in the coal mine', kr: '위기를 가장 먼저 알리는 조기 신호' },
+    { en: 'Wake-up call', kr: '정신이 번쩍 들게 하는 경고 신호' },
     { en: 'Paper over', kr: '문제를 해결하지 않고 대충 덮다' },
     { en: 'Get a clear read on', kr: '상황을 정확히 파악하다' },
   ] },
@@ -27091,7 +27181,7 @@ const CUSHION_PHRASES = [
     { en: 'Long pole in the tent', kr: '일정에서 가장 오래 걸리는 결정적 작업' },
     { en: 'Requirements creep', kr: '요구사항이 야금야금 불어나다' },
     { en: 'Slow-walk', kr: '일부러 뭉개며 지연시키다' },
-    { en: 'Holding pattern', kr: '결정 대기 상태로 빙빙 도는 중' },
+    { en: 'On the back burner', kr: '우선순위에서 잠시 밀어둔 상태' },
   ] },
   { cat: '결단의 언어', items: [
     { en: 'Pull the plug', kr: '(하던 프로젝트를) 접다' },
@@ -27106,14 +27196,14 @@ const CUSHION_DRILLS = [
   { cat: '① 긴급 상황 열기', emoji: '🚨',
     how: '운영자가 ❌ 패닉 문장을 던지면, 그 자리에서 침착한 프로 버전으로 바꿔 말하기. 막히면 ✅ 열어 확인 후 한 번 더.',
     items: [
-      { bad: 'Everything is broken!! What do we do??', good: "Let's spin up a war room and triage what's actually failing.", chip: 'War room' },
+      { bad: 'Everything is broken!! What do we do??', good: "Let's hop on a call and triage what's actually failing.", chip: 'Hop on a call' },
       { bad: 'Drop everything, NOW!!', good: 'This is a fire drill. I need two people on it until noon.', chip: 'Fire drill' },
-      { bad: 'Whose fault is this?!', good: "Blame later. Let's get in the trenches and stabilize first.", chip: 'In the trenches' },
+      { bad: 'Whose fault is this?!', good: "Blame later. Let's stabilize things for our client-facing teams first.", chip: 'Client-facing' },
     ] },
   { cat: '② 원인 찾기·보고', emoji: '🔍',
     how: '나쁜 소식을 숨기거나 뭉개지 말고, 정확한 언어로 보고하기.',
     items: [
-      { bad: "It's probably nothing.", good: "Latency is our canary in the coal mine. Let's not ignore it.", chip: 'Canary in the coal mine' },
+      { bad: "It's probably nothing.", good: "This latency spike is a wake-up call. Let's not ignore it.", chip: 'Wake-up call' },
       { bad: 'We fixed it! (대충 덮음)', good: "We patched it, but let's not paper over the root issue.", chip: 'Paper over' },
       { bad: 'The plan just... failed.', good: 'The rollout stalled out at 60 percent. Here is where, and why.', chip: 'Stalled out' },
     ] },
@@ -27148,7 +27238,7 @@ const WEEK3_DECK = [
     html: '<div style="font-size:14.5px;line-height:1.8;color:var(--ink);">위기 때는 어휘가 아니라 <b>톤이 먼저 무너져요.</b> 패닉의 말 대신 구조의 말을 쓰면, 같은 상황도 통제되고 있는 것처럼 들려요.</div>'
     + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:10px;">'
     + '<div style="padding:12px 14px;border-radius:13px;background:#FBEEEC;border:1px solid rgba(214,69,69,0.22);"><span style="font-size:11.5px;font-weight:800;color:#C0392B;">❌ 패닉</span><div style="margin-top:3px;font-size:14px;font-family:var(--font-mono);color:#922;">"Everything is broken!! Whose fault is this??"</div></div>'
-    + '<div style="padding:12px 14px;border-radius:13px;background:#EAF3DE;border:1px solid rgba(107,142,78,0.3);"><span style="font-size:11.5px;font-weight:800;color:#3B6D11;">✅ 프로</span><div style="margin-top:3px;font-size:14px;font-family:var(--font-mono);color:#3B6D11;">"Let\'s spin up a war room and triage what\'s actually failing."</div></div>'
+    + '<div style="padding:12px 14px;border-radius:13px;background:#EAF3DE;border:1px solid rgba(107,142,78,0.3);"><span style="font-size:11.5px;font-weight:800;color:#3B6D11;">✅ 프로</span><div style="margin-top:3px;font-size:14px;font-family:var(--font-mono);color:#3B6D11;">"Let\'s hop on a call and triage what\'s actually failing."</div></div>'
     + '</div>'
     + '<div style="margin-top:14px;padding:13px 15px;border-radius:14px;background:#EAF3EE;border:1px solid rgba(46,107,79,0.22);font-size:13.5px;color:#1F4D38;line-height:1.7;">💡 핵심: 위기 표현은 <b>구조째 외워두면 자동으로 침착해지는 패턴</b>이에요. 상황이 터졌을 때 새 문장을 만들 여유는 없거든요.</div>' },
   { section: '미니 강연', kicker: '1 · 칠판', title: '위기 표현 20선 · 4개 서랍',
@@ -27191,7 +27281,7 @@ const WEEK3_DECK = [
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래를 체크하며 마무리하고, 다음 주 목표를 받아적어요.</div>' },
   { section: '다음주 예고', kicker: '다음 주 · 마지막', title: 'Week 4 · 전체 어휘 랩업',
     html: '<div style="background:#22301B;border-radius:18px;padding:18px;color:#ECEFE3;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
-    + '<div style="font-size:11px;letter-spacing:0.06em;color:#FBE7A1;font-weight:800;">WEEK 4 · 🎁 Bet Big + 4주 총정리</div>'
+    + '<div style="font-size:11px;letter-spacing:0.06em;color:#FBE7A1;font-weight:800;">WEEK 4 · 🎁 Own Your Career + 4주 총정리</div>'
     + '<div style="margin-top:8px;font-size:12.5px;color:#ECEFE3;line-height:1.85;">① 4주 표현 랩업 → ② 단어 빙고 → ③ 종합 롤플레잉 → ④ 수료 마무리</div>'
     + '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.25);font-size:11.5px;color:#C9D6C0;line-height:1.7;">🍬 맛보기: "What\'s our moat?" · "That\'s a force multiplier." · "How much runway do we have?"</div></div>' },
 ];
@@ -27200,43 +27290,43 @@ const WEEK4_WARMUP = [
   { kr: "흔들리지 않는 최우선 기준·방향", en: "True north" },
   { kr: "성공 확률은 낮지만 게임을 바꾸는 초대형 도전", en: "Moonshot" },
   { kr: "중요한 걸 초반에 몰아넣다", en: "Front-load" },
-  { kr: "돌수록 빨라지는 선순환 구조", en: "Flywheel" },
-  { kr: "경쟁자가 못 넘는 해자, 방어력", en: "Moat" },
-  { kr: "(자금·시간이) 버틸 수 있는 활주로", en: "Runway" },
-  { kr: "투입 대비 효과를 몇 배로 키우는 요소", en: "Force multiplier" },
-  { kr: "한 몸처럼 발맞춰 움직이다", en: "Move in lockstep" },
-  { kr: "눈앞 결과 너머의 2차 파급효과", en: "Second-order effects" },
-  { kr: "얻을 수 있는 걸 챙기지 못하고 놓치다", en: "Leave money on the table" },
-  { kr: "체급 이상으로 해내다", en: "Punch above your weight" },
-  { kr: "남들보다 한발 앞서", en: "Ahead of the curve" },
-  { kr: "고인 분위기를 흔들어 변화를 만들다", en: "Shake things up" },
-  { kr: "실력·근거보다 앞서 나가 위태로운", en: "Out over your skis" },
-  { kr: "만능 해결책 (은 없다)", en: "Silver bullet" },
+  { kr: "기본급+보너스+주식을 합친 총 보상", en: "Total comp" },
+  { kr: "이 직무·연차가 시장에서 받는 수준", en: "Market rate" },
+  { kr: "제시안에 맞서 내는 역제안", en: "Counteroffer" },
+  { kr: "사람을 논의·메일에 끼워주다, 공유해주다", en: "Loop in" },
+  { kr: "방향과 내용을 서로 맞추다", en: "Align on" },
+  { kr: "회의 밖에서 따로 얘기하다", en: "Take it offline" },
+  { kr: "내 일처럼 끝까지 책임지고 맡다", en: "Take ownership" },
+  { kr: "앞장서서 이끌다, 주도하다", en: "Spearhead" },
+  { kr: "쌓아온 실적, 증명된 이력", en: "Track record" },
+  { kr: "퇴사 의사를 공식 통보하다", en: "Give notice" },
+  { kr: "퇴직 시 받는 위로금과 조건 일체", en: "Severance package" },
+  { kr: "업무 인수인계", en: "Handover" },
 ];
 const WEEK4_RECAP = [
   { label: "Week 1 · Reading the Field (Day 1~5)", items: [
-    { en: "Put out feelers", def: "본격 제안 전에 슬쩍 간을 보다" },
     { en: "Read between the lines", def: "행간을 읽다, 말하지 않은 진의를 파악하다" },
+    { en: "Put out feelers", def: "본격 제안 전에 슬쩍 떠보다, 분위기를 파악하다" },
     { en: "Get a clear read on", def: "상황·사람의 의중을 정확히 파악하다" },
-    { en: "Trial balloon", def: "반응을 보려고 슬쩍 띄워보는 시안" },
+    { en: "Float an idea", def: "아이디어를 슬쩍 띄워 반응을 보다" },
     { en: "Backchannel", def: "공식 라인 밖 비공식 채널로 조율하다" },
     { en: "Soft commit", def: "확답이 아닌 조건부 약속" },
-    { en: "At face value", def: "액면 그대로 (받아들이다)" },
+    { en: "As presented", def: "제시된 그대로 (더 파보지 않고)" },
     { en: "Red herring", def: "논점을 흐리는 미끼, 헛다리" },
-    { en: "Canary in the coal mine", def: "위기를 가장 먼저 알리는 조기 신호" },
+    { en: "Wake-up call", def: "정신이 번쩍 들게 하는 경고 신호" },
     { en: "With a caveat", def: "단서를 달자면" },
-    { en: "Holding pattern", def: "결정 대기 상태로 빙빙 도는 중" },
-    { en: "Leave wiggle room", def: "빠져나갈·조정할 여지를 남기다" },
-    { en: "In flight", def: "이미 진행 중인 (일·프로젝트)" },
+    { en: "On the back burner", def: "우선순위에서 잠시 밀어둔 (중단은 아님)" },
+    { en: "Build in slack", def: "일정·계획에 여유분을 미리 심어두다" },
+    { en: "Underway", def: "이미 시작되어 진행 중인" },
     { en: "Have the cycles", def: "그 일을 처리할 여력이 있다" },
     { en: "Triaging", def: "급한 순서대로 분류·처치하다" },
   ] },
   { label: "Week 2 · The Art of the Argument (Day 6~10)", items: [
     { en: "Hive mind", def: "집단지성 (에 물어보기)" },
-    { en: "Straw poll", def: "구속력 없는 약식 표결로 분위기 확인" },
-    { en: "Parking lot", def: "지금 안 다룰 안건을 담아두는 보류함" },
+    { en: "Quick poll", def: "간단 투표로 팀 의견을 빠르게 모으기" },
+    { en: "Table it", def: "안건을 일단 미뤄두다 (나중에 다시)" },
     { en: "Steelman", def: "상대 주장의 최강 버전을 세우고 반박하다" },
-    { en: "Play devil's advocate", def: "일부러 반대 입장에 서보다" },
+    { en: "Poke holes in", def: "허점을 일부러 찾아 찔러보다" },
     { en: "Double-click on", def: "그 지점을 더 깊이 파고들다" },
     { en: "Bikeshedding", def: "사소한 것에 과몰입해 논쟁하다" },
     { en: "Boil the ocean", def: "다 하려다 아무것도 못 하다" },
@@ -27250,8 +27340,8 @@ const WEEK4_RECAP = [
   ] },
   { label: "Week 3 · In the Trenches (Day 11~15)", items: [
     { en: "Fire drill", def: "갑자기 다 내려놓고 매달리게 만드는 긴급 소동" },
-    { en: "War room", def: "비상 대응을 위해 모이는 상황실" },
-    { en: "In the trenches", def: "최전선 실무 현장에서 (구르는)" },
+    { en: "Hop on a call", def: "급히 통화·화상회의로 모이다" },
+    { en: "Client-facing", def: "고객·클라이언트를 직접 상대하는" },
     { en: "Stalled out", def: "(일이) 완전히 멈춰 서다" },
     { en: "Single point of failure", def: "하나 무너지면 전체가 무너지는 지점" },
     { en: "Critical path", def: "전체 일정을 좌우하는 핵심 경로" },
@@ -27265,50 +27355,50 @@ const WEEK4_RECAP = [
     { en: "Skin in the game", def: "본인도 리스크를 짊어진 상태" },
     { en: "Scramble", def: "허둥지둥 총동원해 수습하다" },
   ] },
-  { label: "Week 4 · Bet Big (Day 16~20)", items: [
+  { label: "Week 4 · Own Your Career (Day 16~20)", items: [
     { en: "True north", def: "흔들리지 않는 최우선 기준·방향" },
     { en: "Moonshot", def: "성공 확률은 낮지만 게임을 바꾸는 초대형 도전" },
     { en: "Front-load", def: "중요한 걸 초반에 몰아넣다" },
-    { en: "Flywheel", def: "돌수록 빨라지는 선순환 구조" },
-    { en: "Moat", def: "경쟁자가 못 넘는 해자, 방어력" },
-    { en: "Runway", def: "(자금·시간이) 버틸 수 있는 활주로" },
-    { en: "Force multiplier", def: "투입 대비 효과를 몇 배로 키우는 요소" },
-    { en: "Move in lockstep", def: "한 몸처럼 발맞춰 움직이다" },
-    { en: "Second-order effects", def: "눈앞 결과 너머의 2차 파급효과" },
-    { en: "Leave money on the table", def: "얻을 수 있는 걸 챙기지 못하고 놓치다" },
-    { en: "Punch above your weight", def: "체급 이상으로 해내다" },
-    { en: "Ahead of the curve", def: "남들보다 한발 앞서" },
-    { en: "Shake things up", def: "고인 분위기를 흔들어 변화를 만들다" },
-    { en: "Out over your skis", def: "실력·근거보다 앞서 나가 위태로운" },
-    { en: "Silver bullet", def: "만능 해결책 (은 없다)" },
+    { en: "Total comp", def: "기본급+보너스+주식을 합친 총 보상" },
+    { en: "Market rate", def: "이 직무·연차가 시장에서 받는 수준" },
+    { en: "Counteroffer", def: "제시안에 맞서 내는 역제안" },
+    { en: "Loop in", def: "사람을 논의·메일에 끼워주다, 공유해주다" },
+    { en: "Align on", def: "방향과 내용을 서로 맞추다" },
+    { en: "Take it offline", def: "회의 밖에서 따로 얘기하다" },
+    { en: "Take ownership", def: "내 일처럼 끝까지 책임지고 맡다" },
+    { en: "Spearhead", def: "앞장서서 이끌다, 주도하다" },
+    { en: "Track record", def: "쌓아온 실적, 증명된 이력" },
+    { en: "Give notice", def: "퇴사 의사를 공식 통보하다" },
+    { en: "Severance package", def: "퇴직 시 받는 위로금과 조건 일체" },
+    { en: "Handover", def: "업무 인수인계" },
   ] },
 ];
 const BINGO_WORDS = [
-  { en: "Put out feelers", def: "본격 제안 전에 슬쩍 간을 보다" },
-  { en: "Trial balloon", def: "반응을 보려고 슬쩍 띄워보는 시안" },
+  { en: "Put out feelers", def: "본격 제안 전에 슬쩍 떠보다, 분위기를 파악하다" },
+  { en: "Float an idea", def: "아이디어를 슬쩍 띄워 반응을 보다" },
   { en: "Backchannel", def: "공식 라인 밖 비공식 채널로 조율하다" },
   { en: "Red herring", def: "논점을 흐리는 미끼, 헛다리" },
-  { en: "Holding pattern", def: "결정 대기 상태로 빙빙 도는 중" },
+  { en: "Wake-up call", def: "정신이 번쩍 들게 하는 경고 신호" },
   { en: "Triaging", def: "급한 순서대로 분류·처치하다" },
-  { en: "Straw poll", def: "구속력 없는 약식 표결로 분위기 확인" },
-  { en: "Parking lot", def: "지금 안 다룰 안건을 담아두는 보류함" },
+  { en: "Quick poll", def: "간단 투표로 팀 의견을 빠르게 모으기" },
+  { en: "Table it", def: "안건을 일단 미뤄두다 (나중에 다시)" },
   { en: "Steelman", def: "상대 주장의 최강 버전을 세우고 반박하다" },
-  { en: "Double-click on", def: "그 지점을 더 깊이 파고들다" },
+  { en: "Poke holes in", def: "허점을 일부러 찾아 찔러보다" },
   { en: "Bikeshedding", def: "사소한 것에 과몰입해 논쟁하다" },
   { en: "Sunk cost", def: "이미 쓴 비용에 발목 잡히기 (매몰비용)" },
-  { en: "Pressure-test", def: "가정을 일부러 세게 두드려 검증하다" },
   { en: "Pre-mortem", def: "'망했다 치고' 미리 원인을 점검하는 회의" },
-  { en: "Get ahead of", def: "문제가 커지기 전에 선수 치다" },
-  { en: "War room", def: "비상 대응을 위해 모이는 상황실" },
   { en: "Fire drill", def: "갑자기 다 내려놓고 매달리게 만드는 긴급 소동" },
+  { en: "Hop on a call", def: "급히 통화·화상회의로 모이다" },
+  { en: "Client-facing", def: "고객·클라이언트를 직접 상대하는" },
   { en: "Critical path", def: "전체 일정을 좌우하는 핵심 경로" },
+  { en: "Slow-walk", def: "일부러 뭉개며 지연시키다" },
   { en: "Pull the plug", def: "(하던 프로젝트를) 접다" },
-  { en: "Skin in the game", def: "본인도 리스크를 짊어진 상태" },
   { en: "Moonshot", def: "성공 확률은 낮지만 게임을 바꾸는 초대형 도전" },
-  { en: "Flywheel", def: "돌수록 빨라지는 선순환 구조" },
-  { en: "Moat", def: "경쟁자가 못 넘는 해자, 방어력" },
-  { en: "Runway", def: "(자금·시간이) 버틸 수 있는 활주로" },
-  { en: "Silver bullet", def: "만능 해결책 (은 없다)" },
+  { en: "Total comp", def: "기본급+보너스+주식을 합친 총 보상" },
+  { en: "Loop in", def: "사람을 논의·메일에 끼워주다, 공유해주다" },
+  { en: "Take ownership", def: "내 일처럼 끝까지 책임지고 맡다" },
+  { en: "Track record", def: "쌓아온 실적, 증명된 이력" },
+  { en: "Handover", def: "업무 인수인계" },
 ];
 const WEEK4_DECK = [
   { section: '오프닝', kicker: 'WEEK 4 · 마지막 · 60분', title: '4주 총정리, 오늘 순서',
@@ -27337,7 +27427,7 @@ const WEEK4_DECK = [
   { section: '종합 롤플레잉', kicker: '3 · 종합 롤플레잉', title: '한 프로젝트에 4주 단어 녹이기',
     html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">가상의 <b>신규 프로젝트</b>를 다 같이 굴려요. 간 보기 → 논쟁 → 위기 → 전략 결정 흐름을 타면 4주 표현이 자연스럽게 다 나와요.</div>'
     + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">'
-    + [['🟢 간 보기', 'put out feelers · trial balloon · soft commit · read between the lines'], ['🟡 논쟁', 'steelman · straw poll · double-click on · sunk cost'], ['🔴 위기', 'war room · fire drill · get ahead of · critical path'], ['🟣 전략', 'moonshot · flywheel · moat · runway']].map((r) =>
+    + [['🟢 분위기 파악', 'read between the lines · put out feelers · float an idea · soft commit'], ['🟡 논쟁', 'steelman · quick poll · double-click on · sunk cost'], ['🔴 위기', 'fire drill · hop on a call · get ahead of · critical path'], ['🟣 커리어', 'total comp · take ownership · track record · handover']].map((r) =>
         '<div style="padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);"><div style="font-size:13px;font-weight:800;color:var(--ink);">' + r[0] + '</div><div style="margin-top:2px;font-size:11.5px;font-family:var(--font-mono);color:var(--orange-dark);">' + r[1] + '</div></div>').join('')
     + '</div>'
     + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;font-size:12.5px;color:var(--ink);line-height:1.6;">🔁 운영자: 흐름 막히면 칠판 표현으로 힌트. 표현 쓸 때마다 빙고판 같이 마크.</div>' },
