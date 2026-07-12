@@ -17035,13 +17035,15 @@ function MeetingNotesPage(meetingId) {
       + '<div class="t-small" style="margin-top:6px;text-align:center;color:var(--muted);">적는 동안 자동 저장돼요. 버튼은 확인용이에요.</div>';
     page.appendChild(memoCard);
 
-    // AI 요약 = 다음 주 과제 제출 후 해제 (지금은 잠금). 탭 대신 잠긴 카드.
-    const aiLock = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '22px', marginBottom: '14px', background: '#F6F3EE', border: '1px dashed rgba(154,139,115,0.4)' } });
-    aiLock.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">'
-      + '<div style="flex-shrink:0;width:38px;height:38px;border-radius:12px;background:rgba(154,139,115,0.16);display:flex;align-items:center;justify-content:center;font-size:18px;">🔒</div>'
-      + '<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:800;color:var(--ink);">✨ AI 회의 요약 <span style="font-size:11px;font-weight:700;color:var(--muted);">(준비 중)</span></div>'
-      + '<div style="font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.5;">두 분이 <b>이번 주 과제(본인 상황 영어 문단)</b>를 제출하면, 회의 내용 + 과제를 묶어 AI가 한 장 리포트로 정리해드려요.</div></div></div>';
-    page.appendChild(aiLock);
+    // AI 요약 카드 숨김 (7기 미운영). 복구: false -> true
+    if (false) { // eslint-disable-line no-constant-condition
+      const aiLock = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '22px', marginBottom: '14px', background: '#F6F3EE', border: '1px dashed rgba(154,139,115,0.4)' } });
+      aiLock.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">'
+        + '<div style="flex-shrink:0;width:38px;height:38px;border-radius:12px;background:rgba(154,139,115,0.16);display:flex;align-items:center;justify-content:center;font-size:18px;">🔒</div>'
+        + '<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:800;color:var(--ink);">✨ AI 회의 요약 <span style="font-size:11px;font-weight:700;color:var(--muted);">(준비 중)</span></div>'
+        + '<div style="font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.5;">두 분이 <b>이번 주 과제(본인 상황 영어 문단)</b>를 제출하면, 회의 내용 + 과제를 묶어 AI가 한 장 리포트로 정리해드려요.</div></div></div>';
+      page.appendChild(aiLock);
+    }
 
     return page; // Week 1 은 리포트 페이지로 완결 (아래 타임라인/AI 탭 안 씀).
   }
@@ -17100,12 +17102,15 @@ function MeetingNotesPage(meetingId) {
       + '<div class="t-small" style="margin-top:6px;text-align:center;color:var(--muted);">적는 동안 자동 저장돼요. 버튼은 확인용이에요.</div>';
     page.appendChild(memoCard);
 
-    const aiLock2 = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '22px', marginBottom: '14px', background: '#F6F3EE', border: '1px dashed rgba(154,139,115,0.4)' } });
-    aiLock2.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">'
-      + '<div style="flex-shrink:0;width:38px;height:38px;border-radius:12px;background:rgba(154,139,115,0.16);display:flex;align-items:center;justify-content:center;font-size:18px;">🔒</div>'
-      + '<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:800;color:var(--ink);">✨ AI 회의 요약 <span style="font-size:11px;font-weight:700;color:var(--muted);">(준비 중)</span></div>'
-      + '<div style="font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.5;">두 분이 <b>이번 주 과제</b>를 제출하면, 회의 내용 + 과제를 묶어 AI가 한 장 리포트로 정리해드려요.</div></div></div>';
-    page.appendChild(aiLock2);
+    // AI 요약 카드 숨김 (7기 미운영). 복구: false -> true
+    if (false) { // eslint-disable-line no-constant-condition
+      const aiLock2 = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '22px', marginBottom: '14px', background: '#F6F3EE', border: '1px dashed rgba(154,139,115,0.4)' } });
+      aiLock2.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">'
+        + '<div style="flex-shrink:0;width:38px;height:38px;border-radius:12px;background:rgba(154,139,115,0.16);display:flex;align-items:center;justify-content:center;font-size:18px;">🔒</div>'
+        + '<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:800;color:var(--ink);">✨ AI 회의 요약 <span style="font-size:11px;font-weight:700;color:var(--muted);">(준비 중)</span></div>'
+        + '<div style="font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.5;">두 분이 <b>이번 주 과제</b>를 제출하면, 회의 내용 + 과제를 묶어 AI가 한 장 리포트로 정리해드려요.</div></div></div>';
+      page.appendChild(aiLock2);
+    }
 
     return page; // Week 2 도 리포트 페이지로 완결.
   }
