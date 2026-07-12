@@ -23,7 +23,7 @@
 ## 작업 규칙 (필수)
 
 1. 수정 후 검증 3종: vm 파스 체크 + em dash 검사 `grep -c $'\u2014' 파일` 0건 + (단어 수정 시) qa-scripts 시뮬레이션
-2. 커밋은 Claude 가, push 는 운영자(Buddy)가 직접 (이 환경엔 GitHub 인증 없음)
+2. 커밋+푸시 모두 Claude 가 수행 (2026-07-12 부터, 저장소 한정 PAT 사용). 푸시 후 배포 반영 1~2분. 이상 시 github.com/settings/personal-access-tokens 에서 토큰 즉시 폐기 가능
 3. 멤버 이름 든 PNG/PDF/xlsx 커밋 금지 (.gitignore 처리돼 있음)
 4. 카톡 문구는 CLAUDE.md 의 유버디 말투 노트 따르기
 5. git 은 한 번에 한 세션에서만 (lock 충돌)
