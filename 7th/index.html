@@ -358,6 +358,10 @@ input, textarea, select { font-family: inherit; }
 .day-note .vocab-example .translate { font-size: calc(var(--day-font-size, 17px) - 2px) !important; }
 .day-note .day-fs-text              { font-size: var(--day-font-size, 17px) !important; }
 .day-note .day-fs-sm                { font-size: calc(var(--day-font-size, 17px) - 2px) !important; }
+/* eng-word (큰 초록 표현), target-banner 목표 문장도 --day-font-size 에 반응 */
+.day-note .eng-word                 { font-size: calc(var(--day-font-size, 17px) + 11px) !important; }
+.day-note .day-fs-lg                { font-size: calc(var(--day-font-size, 17px) + 3px) !important; }
+.day-note .day-fs-body              { font-size: calc(var(--day-font-size, 17px) - 3px) !important; }
 
 /* 7기: 가이드 투어 스포트라이트 (강조 대상만 원래 밝기 + 펄스 링, 나머지는 dim) */
 @keyframes gtPulse {
@@ -13763,8 +13767,8 @@ function DayPage(dayN) {
       <span style="display:inline-grid;place-items:center;width:28px;height:28px;border-radius:10px;background:var(--orange-ghost);color:var(--orange-dark);">${Icon('target', 14)}</span>
       <span class="kicker">오늘의 목표</span>
     </div>
-    <p style="margin:14px 0 8px;font-size:20px;line-height:1.35;font-weight:700;color:var(--ink);letter-spacing:-0.02em;word-break:keep-all;">${escapeHtml(d.goal_en)}</p>
-    <p class="t-body" style="font-size:14px;line-height:1.55;">${escapeHtml(d.goal_kr)}</p>`;
+    <p class="day-fs-lg" style="margin:14px 0 8px;font-size:20px;line-height:1.35;font-weight:700;color:var(--ink);letter-spacing:-0.02em;word-break:keep-all;">${escapeHtml(d.goal_en)}</p>
+    <p class="t-body day-fs-body" style="font-size:14px;line-height:1.55;">${escapeHtml(d.goal_kr)}</p>`;
   page.appendChild(banner);
 
   // Yellow tip card, low-pressure encouragement
