@@ -353,6 +353,11 @@ input, textarea, select { font-family: inherit; }
 .day-note .target-banner { background: #FFFFFF; border: 1px solid var(--line-soft); }
 .day-note .target-banner::before { display: none; }
 .day-note .ai-feedback { background: #FFFBF4; border: 1px solid var(--line-soft); }
+/* Day 페이지 글자 크기 조절 (--day-font-size 를 JS 에서 설정, 기본 17px) */
+.day-note .vocab-example            { font-size: var(--day-font-size, 17px) !important; }
+.day-note .vocab-example .translate { font-size: calc(var(--day-font-size, 17px) - 2px) !important; }
+.day-note .day-fs-text              { font-size: var(--day-font-size, 17px) !important; }
+.day-note .day-fs-sm                { font-size: calc(var(--day-font-size, 17px) - 2px) !important; }
 
 /* 7기: 가이드 투어 스포트라이트 (강조 대상만 원래 밝기 + 펄스 링, 나머지는 dim) */
 @keyframes gtPulse {
@@ -12537,8 +12542,7 @@ function __renderFinalTestResult(page, sess) {
 window.__openFinalDownloads = function () {
   const existing = document.querySelector('[data-final-download-popup]');
   if (existing) existing.remove();
-  // TODO(7기): 아래는 6기 단어집 링크. 7기 단어집 PDF 를 드라이브에 올린 뒤 교체할 것.
-  const driveUrl = 'https://drive.google.com/file/d/10iz-ZoycpRjM_pEiW4XXzDxOUp23aIwy/view?usp=sharing';
+  const driveUrl = 'https://drive.google.com/file/d/1yegEN4zZqZcetmr7omby58hl0Z3hmStF/view?usp=drivesdk';
   // 단어집 PDF 게이트 = 18일+ 인증 AND 파이널 테스트 완료 (운영자/스태프 예외).
   const __fdTotal = (typeof CHALLENGE !== 'undefined' && CHALLENGE.total_days) || 20;
   let __fdVc = 0; for (let __d = 1; __d <= __fdTotal; __d++) { if ((state.verified && state.verified['d' + __d]) || (state.verified_late && state.verified_late['d' + __d])) __fdVc++; }
@@ -13566,6 +13570,17 @@ window.__skipLightning = (weekN) => {
 /* ============================================================
    DAY PAGE, the actual learning note
    ============================================================ */
+// Day 페이지 글자 크기 조절 (5단계: 13/15/17/19/21px, 기본 index 2 = 17px)
+const DAY_FS_STEPS = [13, 15, 17, 19, 21];
+const DAY_FS_KEY = 'youbuddy_day_font_size';
+function getDayFsIdx() {
+  const n = parseInt(localStorage.getItem(DAY_FS_KEY), 10);
+  return (!isNaN(n) && n >= 0 && n < DAY_FS_STEPS.length) ? n : 2;
+}
+function setDayFsIdx(idx) {
+  localStorage.setItem(DAY_FS_KEY, String(Math.max(0, Math.min(DAY_FS_STEPS.length - 1, idx))));
+}
+
 function DayPage(dayN) {
   const d = getDay(dayN);
   if (!d) return WeeksPage();
@@ -13617,6 +13632,7 @@ function DayPage(dayN) {
   } catch (e) {}
 
   const page = el('div', { class: 'page day-note' });
+  page.style.setProperty('--day-font-size', DAY_FS_STEPS[getDayFsIdx()] + 'px');
   const copyKey = `d${dayN}-copy`;
   const copyDone = !!state.checkpoints[copyKey];
   state.submitted = state.submitted || {};
@@ -13644,9 +13660,39 @@ function DayPage(dayN) {
   back.innerHTML = Icon('arrowLeft', 16);
   head.appendChild(back);
   head.appendChild(el('div', {})); // spacer
+  // 오른쪽 클러스터: 글자 크기 A- / A+ + 프로필 버튼
+  const _fsIdx = getDayFsIdx();
+  const rightCluster = el('div', { style: { display: 'flex', alignItems: 'center', gap: '4px' } });
+  const fsShrink = el('button', {
+    class: 'icon-btn',
+    style: {
+      width: '34px', height: '34px', borderRadius: '10px',
+      fontSize: '11px', fontWeight: '700', fontFamily: 'var(--font-mono)',
+      color: _fsIdx <= 0 ? 'var(--muted)' : 'var(--ink)',
+      cursor: _fsIdx <= 0 ? 'default' : 'pointer',
+    },
+    title: '글자 작게 (A-)',
+    onClick: () => { const cur = getDayFsIdx(); if (cur > 0) { setDayFsIdx(cur - 1); render(); } },
+  });
+  fsShrink.textContent = 'A-';
+  const fsGrow = el('button', {
+    class: 'icon-btn',
+    style: {
+      width: '34px', height: '34px', borderRadius: '10px',
+      fontSize: '11px', fontWeight: '700', fontFamily: 'var(--font-mono)',
+      color: _fsIdx >= DAY_FS_STEPS.length - 1 ? 'var(--muted)' : 'var(--ink)',
+      cursor: _fsIdx >= DAY_FS_STEPS.length - 1 ? 'default' : 'pointer',
+    },
+    title: '글자 크게 (A+)',
+    onClick: () => { const cur = getDayFsIdx(); if (cur < DAY_FS_STEPS.length - 1) { setDayFsIdx(cur + 1); render(); } },
+  });
+  fsGrow.textContent = 'A+';
   const settingsBtn = el('button', { class: 'icon-btn', onClick: () => go('profile') });
   settingsBtn.innerHTML = Icon('user', 16);
-  head.appendChild(settingsBtn);
+  rightCluster.appendChild(fsShrink);
+  rightCluster.appendChild(fsGrow);
+  rightCluster.appendChild(settingsBtn);
+  head.appendChild(rightCluster);
   page.appendChild(head);
 
   // WEEK + date chip row
@@ -13927,7 +13973,7 @@ function DayPage(dayN) {
     const defRow = el('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '4px' } });
     defRow.innerHTML = `
       <span class="badge" style="padding:6px 12px;font-size:10px;font-weight:700;background:var(--paper);color:var(--ink-soft);letter-spacing:0.04em;font-family:var(--font-mono);">${escapeHtml(w.pos)}</span>
-      <span style="font-size:14px;color:var(--ink-soft);">${escapeHtml(w.def)}</span>
+      <span class="day-fs-text" style="color:var(--ink-soft);">${escapeHtml(w.def)}</span>
       <button class="icon-btn" style="margin-left:auto;width:36px;height:36px;border-radius:12px;background:var(--orange-ghost);border-color:var(--orange-soft);color:var(--orange-dark);" onclick="window.__speakWord(${dayN}, ${i})" title="발음 듣기">${Icon('volume', 16)}</button>`;
     card.appendChild(defRow);
 
@@ -13957,7 +14003,7 @@ function DayPage(dayN) {
     });
     nuanceBox.innerHTML = `
       <div class="kicker">대표 표현 뉘앙스</div>
-      <div style="margin-top:8px;font-size:13px;line-height:1.6;color:var(--ink);">
+      <div class="day-fs-sm" style="margin-top:8px;line-height:1.6;color:var(--ink);">
         ${escapeHtml(nuanceText)}
       </div>
     `;
@@ -13977,7 +14023,7 @@ function DayPage(dayN) {
       const youglishUrl = `https://youglish.com/pronounce/${encodeURIComponent(w.en)}/english`;
       commentBox.innerHTML = `
         <div class="kicker" style="color:var(--orange-dark);">🧡 유버디 코멘트</div>
-        <div style="margin-top:8px;font-size:13px;line-height:1.65;color:var(--ink);white-space:pre-line;">
+        <div class="day-fs-sm" style="margin-top:8px;line-height:1.65;color:var(--ink);white-space:pre-line;">
           ${escapeHtml(w.comment)}
         </div>
         <a href="${youglishUrl}" target="_blank" rel="noopener noreferrer"
@@ -21243,8 +21289,7 @@ function FinalReportPage() {
         return;
       }
       // 4주 단어집 PDF, 구글 드라이브 링크로 이동 (인앱 생성 대신).
-      // TODO(7기): 아래는 6기 단어집 링크. 7기 단어집 PDF 를 드라이브에 올린 뒤 교체할 것.
-      const driveUrl = 'https://drive.google.com/file/d/10iz-ZoycpRjM_pEiW4XXzDxOUp23aIwy/view?usp=sharing';
+      const driveUrl = 'https://drive.google.com/file/d/1yegEN4zZqZcetmr7omby58hl0Z3hmStF/view?usp=drivesdk';
       showToast('구글 드라이브에서 4주 단어집 PDF를 열어요 🧡');
       window.open(driveUrl, '_blank', 'noopener');
     },
