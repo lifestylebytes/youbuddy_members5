@@ -30,9 +30,10 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
-// gpt-4o-mini: cheapest, good enough for 1-2 sentence corrections (~$0.15 / 1M in).
-// Swap to 'gpt-4o' or 'gpt-4.1' if you want higher quality at ~10x cost.
-const OPENAI_MODEL = 'gpt-4o-mini';
+// gpt-4.1-mini: 4o-mini 가 시제 보존 같은 미묘한 규칙을 무시해서 승격 (2026-07-14).
+// 비용 약 2.5배지만 기수당 $8 수준. 계정에 없으면 아래 FALLBACK_MODEL 로 자동 재시도.
+const OPENAI_MODEL = 'gpt-4.1-mini';
+const FALLBACK_MODEL = 'gpt-4o-mini';
 const MAX_TOKENS = 700;
 
 const CORS_HEADERS = {
@@ -248,7 +249,12 @@ Your goal: make this sentence sound like something a native English business spe
 
 Return JSON:
 - "corrected": a polished, native-sounding business English sentence. **MUST contain "${word.en}"** (or a minimal grammatical inflection — e.g. "${word.en}d" / "${word.en}ing" / pluralized — never a synonym swap). MUST convey the FULL meaning of the Korean sentence above (if provided). If the student's attempt only covers part of the Korean, complete the rest yourself from the Korean, like a human tutor handing over the finished sentence. In "why" (or feedback), briefly note what you added from the Korean (e.g. "한국어 의도를 살려 뒷부분을 보탰어요"). MUST be entirely in English (no Korean/Japanese characters left in). Improve fluency: fix awkward word order, non-native phrasing, weird prepositions, clunky structure. Tone: business meeting / professional Slack / email-ready — clear, confident, concise. Avoid casual slang AND avoid stiff/archaic phrasing. **Edit aggressively for naturalness, but preserve the student's core intent + the target phrase.** If the sentence already reads as if a fluent native speaker wrote it (no awkward edges AND no Korean characters AND grammar is solid), return it VERBATIM.
-- "why": 1-2 Korean sentences (≤140 chars). **If unchanged, say so warmly ("이미 자연스러워요! 그대로 가셔도 됩니다.")** — otherwise briefly explain what type of fix you made (e.g. "한국어 표현 번역 / 어순 / 전치사 교정 / 주어-동사 일치 등").`;
+- "why": 1-2 Korean sentences (≤140 chars). **If unchanged, say so warmly ("이미 자연스러워요! 그대로 가셔도 됩니다.")** — otherwise briefly explain what type of fix you made (e.g. "한국어 표현 번역 / 어순 / 전치사 교정 / 주어-동사 일치 등").
+
+FINAL CHECK before returning, in order:
+1. TENSE: does your corrected sentence keep the tense of the Korean source? Korean past/경험 (~았/었는데, ~더라고요) must stay past or present-perfect in English. If the student already used the correct tense, DO NOT change it.
+2. Is every difference between the student's sentence and yours justified by a real error? If not, revert that difference.
+3. Does "feedback" name each change you made, in the right category?`;
 }
 
 function buildStoryUserMessage(
@@ -380,6 +386,26 @@ async function callOpenAI(userMessage: string, systemPrompt: string = SYSTEM_PRO
   });
   if (!res.ok) {
     const err = await res.text();
+    // 모델 미지원 계정이면 폴백 모델로 1회 재시도
+    if (res.status === 404 || err.includes('model_not_found') || err.includes('does not exist')) {
+      const res2 = await fetch(OPENAI_URL, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model: FALLBACK_MODEL, max_tokens: MAX_TOKENS, temperature: 0.1, seed: 7,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage },
+          ],
+        }),
+      });
+      if (res2.ok) {
+        const d2 = await res2.json();
+        const t2 = d2?.choices?.[0]?.message?.content;
+        if (t2) return t2;
+      }
+    }
     throw new Error(`openai ${res.status}: ${err.slice(0, 200)}`);
   }
   const data = await res.json();
