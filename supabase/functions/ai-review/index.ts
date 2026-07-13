@@ -207,6 +207,7 @@ interface PriorAttempt {
   sentence: string;
   corrected: string;
   why?: string;
+  korean?: string;
   attempt?: number;
 }
 
@@ -468,6 +469,7 @@ serve(async (req) => {
         sentence: String(h.sentence).slice(0, 500),
         corrected: String(h.corrected).slice(0, 500),
         why: h.why ? String(h.why).slice(0, 300) : undefined,
+        korean: h.korean ? String(h.korean).slice(0, 500) : undefined,
         attempt: typeof h.attempt === 'number' ? h.attempt : undefined,
       }));
     const isRepeat = Boolean(body?.isRepeatSubmission);
@@ -475,11 +477,20 @@ serve(async (req) => {
     // === 결정적 에코 가드: 이전에 우리가 돌려준 corrected 를 그대로 재제출한 경우,
     // 모델을 부르지 않고 즉시 '최종 확정' 응답. (붙여넣기 재제출 시 흔들림 원천 차단)
     const __norm = (v: string) => String(v || '').toLowerCase().replace(/[^a-z0-9'\s]/g, ' ').replace(/\s+/g, ' ').trim();
-    const echoHit = history.find((h) => __norm(h.corrected) !== '' && __norm(h.corrected) === __norm(text));
+    const __normKo = (v: string) => String(v || '').replace(/\s+/g, ' ').replace(/[.,!?~]/g, '').trim();
+    // 한국어 의도가 바뀌었으면 같은 영어라도 새 과제 → 가드 미발동 (이전 기록에 한국어 없으면 검증 불가로 미발동)
+    const __koOk = (h: PriorAttempt) => {
+      const cur = __normKo(korean); const prev = __normKo(h.korean || '');
+      if (!cur && !prev) return true;
+      if (!prev) return false;
+      return cur === prev;
+    };
+    const echoHit = history.find((h) => __norm(h.corrected) !== '' && __norm(h.corrected) === __norm(text) && __koOk(h));
     if (echoHit) {
+      const clean = echoHit.corrected || text;
       return json({
-        corrected: text,
-        diff_html: buildDiffHtml(text, text),
+        corrected: clean,
+        diff_html: buildDiffHtml(text, clean),
         why: '방금 다듬어드린 문장 그대로예요. 이게 최종 확정 문장이에요 ✓ 자신있게 쓰시면 됩니다!',
         verdict: 'correct',
       });
@@ -488,7 +499,8 @@ serve(async (req) => {
     // (같은 입력에 매번 다른 제안이 나오면 학습자가 뭐가 맞는지 헷갈리는 핑퐁의 마지막 구멍)
     const replayHit = history.find((h) =>
       __norm(h.sentence) !== '' && __norm(h.sentence) === __norm(text)
-      && __norm(h.corrected) !== '' && __norm(h.corrected) !== __norm(h.sentence));
+      && __norm(h.corrected) !== '' && __norm(h.corrected) !== __norm(h.sentence)
+      && __koOk(h));
     if (replayHit) {
       return json({
         corrected: replayHit.corrected,

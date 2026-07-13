@@ -2405,6 +2405,7 @@ function __recordSubmission(key, entry) {
       sentence: String(h.sentence || '').slice(0, 300),
       corrected: String(h.corrected || '').slice(0, 300),
       why: String(h.why || '').slice(0, 200),
+      korean: String(h.korean || '').slice(0, 300),
       attemptN: h.attemptN,
     }));
     saveState();
@@ -2466,27 +2467,40 @@ function buildAiFeedbackHtml(fb, fallbackWhy) {
 
 // 같은 '원문'을 다시 제출한 경우: 이전에 준 교정을 글자 그대로 재현한다 (API 호출 X).
 // 프리미엄 무한 재리뷰에서 같은 입력에 다른 제안이 나와 혼란스럽던 핑퐁의 마지막 구멍.
-function __matchesPriorOriginal(currentSentence, history) {
+function __matchesPriorOriginal(currentSentence, history, korean) {
   const cur = __normalizeForCompare(currentSentence);
   if (!cur || !history) return null;
   for (let i = history.length - 1; i >= 0; i--) {
     const h = history[i];
     const orig = __normalizeForCompare(h.sentence || '');
     const corr = __normalizeForCompare(h.corrected || '');
-    // 원문과 같고, 그때 교정이 실제로 있었던 경우만 (clean 이었으면 위쪽 코칭 로직이 처리)
-    if (orig && orig === cur && corr && corr !== orig) return h;
+    // 원문과 같고, 그때 교정이 실제로 있었고, 한국어 의도까지 같을 때만
+    if (orig && orig === cur && corr && corr !== orig && __koreanMatches(h, korean)) return h;
   }
   return null;
 }
 
 // 새 제출이 '이전에 AI 가 돌려준 corrected' 와 사실상 동일한지 (첨삭 결과 붙여넣기 재제출).
 // 이 경우 AI 를 다시 부르지 않고 즉시 '최종 확정' 으로 답해 흔들림(이랬다저랬다)을 원천 차단.
-function __matchesPriorCorrection(currentSentence, history) {
+// koreanContext 까지 일치해야 발동. 멤버가 한국어 의도를 바꿨는데 영어만 같으면
+// (예: 예문 복붙) 새 과제로 취급해 AI 에게 보낸다. 구버전 히스토리(korean 없음)는 매칭 제외.
+function __normalizeKoForCompare(v) {
+  // __normalizeForCompare 는 영문 전용(한글이 다 지워짐)이라 한국어 비교엔 쓰면 안 됨.
+  return String(v || '').replace(/[.,!?~\u2026'"\u201C\u201D\u2018\u2019]/g, '').replace(/\s+/g, ' ').trim();
+}
+function __koreanMatches(h, korean) {
+  const cur = __normalizeKoForCompare(korean || '');
+  const prev = __normalizeKoForCompare((h && h.korean) || '');
+  if (!cur && !prev) return true;      // 둘 다 한국어 없이 쓴 흐름이면 OK
+  if (!prev) return false;             // 이전 기록에 한국어가 없으면 검증 불가 → 미발동
+  return cur === prev;
+}
+function __matchesPriorCorrection(currentSentence, history, korean) {
   const cur = __normalizeForCompare(currentSentence);
   if (!cur || !history) return null;
   for (let i = history.length - 1; i >= 0; i--) {
     const c = __normalizeForCompare(history[i].corrected || '');
-    if (c && c === cur) return history[i];
+    if (c && c === cur && __koreanMatches(history[i], korean)) return history[i];
   }
   return null;
 }
@@ -2506,24 +2520,26 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
   const attemptN = history.length + 1;
   // === 0순위: 첨삭 결과를 그대로 재제출 (붙여넣기) → AI 호출 없이 즉시 확정.
   // 프리미엄 무제한 재첨삭에서 '고쳐준 걸 넣었는데 또 바꿈' 을 원천 차단하는 핵심 가드.
-  const echoMatch = __matchesPriorCorrection(sentence, history);
+  const __ko = (koreanContext || '').trim();
+  const echoMatch = __matchesPriorCorrection(sentence, history, __ko);
   if (echoMatch) {
+    const clean = echoMatch.corrected || sentence; // 구두점 오타(.? 등) 는 저장된 깨끗한 교정본으로 정리
     const why = '방금 다듬어드린 문장 그대로예요 ✓ 이게 최종 확정 문장이니 자신있게 쓰시면 됩니다. 한 발 더 가고 싶으면 같은 표현으로 다른 상황을 한 문장 써보세요!';
     const out = {
-      corrected: sentence,
-      diff_html: escapeHtml(sentence),
+      corrected: clean,
+      diff_html: (clean === sentence) ? escapeHtml(clean) : buildWordDiffHtml(sentence, clean),
       why,
       originalInput: sentence,
       isFallback: false,
       isEchoConfirm: true,
       attemptNumber: attemptN,
     };
-    __recordSubmission(histKey, { sentence, corrected: sentence, why, attemptN });
+    __recordSubmission(histKey, { sentence, corrected: clean, why, attemptN, korean: __ko });
     return out;
   }
 
   // === 0.5순위: 같은 원문 재제출 → 이전 교정을 글자 그대로 재현 (흔들림 물리적 차단)
-  const replayMatch = __matchesPriorOriginal(sentence, history);
+  const replayMatch = __matchesPriorOriginal(sentence, history, __ko);
   if (replayMatch) {
     const why = '아까와 같은 문장이라 제안도 같아요. 이 문장으로 바꿔보시고, 그대로 붙여넣어 제출하면 확정돼요!' + (replayMatch.why ? ' (' + replayMatch.why + ')' : '');
     const out = {
@@ -2535,7 +2551,7 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
       isReplay: true,
       attemptNumber: attemptN,
     };
-    __recordSubmission(histKey, { sentence, corrected: replayMatch.corrected, why: replayMatch.why || why, attemptN });
+    __recordSubmission(histKey, { sentence, corrected: replayMatch.corrected, why: replayMatch.why || why, attemptN, korean: __ko });
     return out;
   }
 
@@ -2545,6 +2561,7 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
     sentence: h.sentence,
     corrected: h.corrected,
     why: h.why,
+    korean: h.korean || '',
     attempt: h.attemptN,
   }));
   payload.attemptNumber = attemptN;
@@ -2568,7 +2585,7 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
         isCoachingMode: true,
         attemptNumber: attemptN,
       };
-      __recordSubmission(histKey, { sentence, corrected: sentence, why: coachingTip, attemptN });
+      __recordSubmission(histKey, { sentence, corrected: sentence, why: coachingTip, attemptN, korean: __ko });
       return out;
     }
 
@@ -2587,7 +2604,7 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
         isAlreadyNatural: true,
         attemptNumber: attemptN,
       };
-      __recordSubmission(histKey, { sentence, corrected: sentence, why: out.why, attemptN });
+      __recordSubmission(histKey, { sentence, corrected: sentence, why: out.why, attemptN, korean: __ko });
       return out;
     }
 
@@ -2603,6 +2620,7 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
       corrected: result.corrected,
       why: result.why,
       attemptN,
+      korean: __ko,
     });
     return out;
   } catch (e) {
@@ -2697,7 +2715,8 @@ async function requestStoryCorrection(words, text, koreanContext) {
   }
 
   // === 0순위: 첨삭해준 스토리를 그대로 재제출 → AI 호출 없이 즉시 확정 (흔들림 차단)
-  const echoMatch = __matchesPriorCorrection(text, history);
+  const __koS = (koreanContext || '').trim();
+  const echoMatch = __matchesPriorCorrection(text, history, __koS);
   if (echoMatch) {
     const why = '다듬어드린 스토리 그대로예요 ✓ 이 버전으로 확정! 더 고칠 곳 없으니 소리 내어 읽으며 입에 붙여보세요.';
     const out = {
@@ -2708,7 +2727,7 @@ async function requestStoryCorrection(words, text, koreanContext) {
       isEchoConfirm: true,
       attemptNumber: attemptN,
     };
-    __recordSubmission(histKey, { sentence: text, corrected: text, why, attemptN });
+    __recordSubmission(histKey, { sentence: text, corrected: text, why, attemptN, korean: __koS });
     return out;
   }
 
