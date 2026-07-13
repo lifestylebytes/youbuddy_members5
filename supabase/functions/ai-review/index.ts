@@ -80,11 +80,18 @@ EDIT ONLY when ONE of these is genuinely true:
    ✗ "Let's 보류 it for now" → ✓ "Let's hold off on it for now"
    This is NEVER optional. If the input has non-ASCII characters mid-sentence, you MUST translate them. Return verbatim is FORBIDDEN here.
 
+(7) KOREAN MEANING GAP — the student wrote a rich Korean sentence but their English attempt only covers a fragment of it. You MUST complete the English so it expresses the FULL Korean meaning. Think like a human tutor: "이 한국어라면 이렇게 말해요" and hand them the finished sentence.
+   Korean: "웬만해선 비공식적으로 풀고싶지 않았는데, 어쩔 수 없이 그게 필요한 경우가 있더라고요."
+   ✗ Student: "We could have backchanneled" → ✗ lazy fix: "We could backchannel if necessary."
+   ✓ "I usually don't like to backchannel, but sometimes there's just no way around it."
+   The Korean sentence is the source of truth. A fluent, complete sentence that matches it is the ONLY acceptable output. Meaning gap = real error (verdict "fixed"), never style.
+
 ⚠️ MANDATORY EDIT TRIGGERS (override the "default to verbatim" instinct):
 - Any non-English (Korean/Japanese/Chinese/etc.) characters appearing in the middle of the English sentence → translate them.
 - Subject-verb disagreement (singular subject + plural verb or vice versa) → fix.
 - Wrong tense given the time context → fix.
 - Missing required preposition / article → add.
+- English attempt missing major parts of the Korean meaning → complete the sentence from the Korean.
 These are NOT stylistic preferences. They are real grammar issues. Always fix them.
 
 DO NOT EDIT when:
@@ -232,7 +239,7 @@ ${mixedLangHint}
 Your goal: make this sentence sound like something a native English business speaker would naturally say in a real meeting / email / Slack — while keeping "${word.en}" inside. Also fix any clear grammar issues (subject-verb agreement, mixed-language characters, tense, articles, prepositions).
 
 Return JSON:
-- "corrected": a polished, native-sounding business English sentence. **MUST contain "${word.en}"** (or a minimal grammatical inflection — e.g. "${word.en}d" / "${word.en}ing" / pluralized — never a synonym swap). MUST convey the same meaning as the Korean sentence above (if provided). MUST be entirely in English (no Korean/Japanese characters left in). Improve fluency: fix awkward word order, non-native phrasing, weird prepositions, clunky structure. Tone: business meeting / professional Slack / email-ready — clear, confident, concise. Avoid casual slang AND avoid stiff/archaic phrasing. **Edit aggressively for naturalness, but preserve the student's core intent + the target phrase.** If the sentence already reads as if a fluent native speaker wrote it (no awkward edges AND no Korean characters AND grammar is solid), return it VERBATIM.
+- "corrected": a polished, native-sounding business English sentence. **MUST contain "${word.en}"** (or a minimal grammatical inflection — e.g. "${word.en}d" / "${word.en}ing" / pluralized — never a synonym swap). MUST convey the FULL meaning of the Korean sentence above (if provided). If the student's attempt only covers part of the Korean, complete the rest yourself from the Korean, like a human tutor handing over the finished sentence. In "why" (or feedback), briefly note what you added from the Korean (e.g. "한국어 의도를 살려 뒷부분을 보탰어요"). MUST be entirely in English (no Korean/Japanese characters left in). Improve fluency: fix awkward word order, non-native phrasing, weird prepositions, clunky structure. Tone: business meeting / professional Slack / email-ready — clear, confident, concise. Avoid casual slang AND avoid stiff/archaic phrasing. **Edit aggressively for naturalness, but preserve the student's core intent + the target phrase.** If the sentence already reads as if a fluent native speaker wrote it (no awkward edges AND no Korean characters AND grammar is solid), return it VERBATIM.
 - "why": 1-2 Korean sentences (≤140 chars). **If unchanged, say so warmly ("이미 자연스러워요! 그대로 가셔도 됩니다.")** — otherwise briefly explain what type of fix you made (e.g. "한국어 표현 번역 / 어순 / 전치사 교정 / 주어-동사 일치 등").`;
 }
 
@@ -441,6 +448,19 @@ serve(async (req) => {
         diff_html: buildDiffHtml(text, text),
         why: '방금 다듬어드린 문장 그대로예요. 이게 최종 확정 문장이에요 ✓ 자신있게 쓰시면 됩니다!',
         verdict: 'correct',
+      });
+    }
+    // === 리플레이 가드: 같은 '원문'을 다시 보낸 경우, 이전에 준 교정을 글자 그대로 재현.
+    // (같은 입력에 매번 다른 제안이 나오면 학습자가 뭐가 맞는지 헷갈리는 핑퐁의 마지막 구멍)
+    const replayHit = history.find((h) =>
+      __norm(h.sentence) !== '' && __norm(h.sentence) === __norm(text)
+      && __norm(h.corrected) !== '' && __norm(h.corrected) !== __norm(h.sentence));
+    if (replayHit) {
+      return json({
+        corrected: replayHit.corrected,
+        diff_html: buildDiffHtml(text, replayHit.corrected),
+        why: '아까와 같은 문장이라 제안도 같아요. 이 문장으로 바꿔보시고, 그대로 붙여넣어 제출하면 확정돼요!',
+        verdict: 'fixed',
       });
     }
 
