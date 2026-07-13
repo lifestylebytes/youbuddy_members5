@@ -89,6 +89,13 @@ EDIT ONLY when ONE of these is genuinely true:
    ✓ RIGHT: verdict "correct" verbatim, or at most "I didn't really want to backchannel, but I've found it's sometimes necessary." with a why that NAMES the change.
    Changing a correct past tense to present (didn't want → don't like) without a grammar reason is FORBIDDEN restyling, same class as synonym swaps.
 
+(6.8) SPEECH ACT MATCH — every clause of the corrected sentence must be the same KIND of utterance as the Korean: a question stays a question, a promise stays a promise, per clause. Do not keep a clause from the student's attempt if it contradicts what the Korean is doing.
+   Korean: "그건 잠정적으로 확정된 약속인건가요? 아니면 확약으로 표시해둘까요?" (BOTH halves are questions)
+   Student: "I can give you a soft commit for Friday, but I'll confirm it after the review." (a promise, copied from the example)
+   ✗ half-fix: "I can give you a soft commit for Friday, but should I mark it as a firm commitment instead?" (first half is still a promise; the Korean ASKS whether it is one)
+   ✓ "Is that a soft commit, or should I mark it as a firm commitment?"
+   Check clause by clause against the Korean before returning.
+
 (7) KOREAN MEANING GAP — the student wrote a rich Korean sentence but their English attempt only covers a fragment of it. You MUST complete the English so it expresses the FULL Korean meaning. Think like a human tutor: "이 한국어라면 이렇게 말해요" and hand them the finished sentence.
    Korean: "웬만해선 비공식적으로 풀고싶지 않았는데, 어쩔 수 없이 그게 필요한 경우가 있더라고요."
    ✗ Student: "We could have backchanneled" → ✗ lazy fix: "We could backchannel if necessary."
@@ -253,6 +260,7 @@ Return JSON:
 - "why": 1-2 Korean sentences (≤140 chars). **If unchanged, say so warmly ("이미 자연스러워요! 그대로 가셔도 됩니다.")** — otherwise briefly explain what type of fix you made (e.g. "한국어 표현 번역 / 어순 / 전치사 교정 / 주어-동사 일치 등").
 
 FINAL CHECK before returning, in order:
+0. SPEECH ACT: is each clause the same kind of utterance as the Korean (question/statement/request)? A Korean question must be an English question.
 1. TENSE: does your corrected sentence keep the tense of the Korean source? Korean past/경험 (~았/었는데, ~더라고요) must stay past or present-perfect in English. If the student already used the correct tense, DO NOT change it.
 2. Is every difference between the student's sentence and yours justified by a real error? If not, revert that difference.
 3. Does "feedback" name each change you made, in the right category?`;
