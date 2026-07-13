@@ -25400,6 +25400,31 @@ window.__submitCommentComposer = async (postId) => {
         p_member_name: state.name || '나',
         p_comment_text: text,
       });
+      // 댓글 단 글의 작성자에게 푸시 알림 (본인 글 제외)
+      try {
+        const allPosts = Object.values(communityFeedCache || {}).flatMap((e) => e?.rows || []);
+        const targetPost = allPosts.find((p) => String(p.id) === String(postId));
+        const targetMemberKey = targetPost?.member_key;
+        if (targetMemberKey && targetMemberKey !== memberKey()) {
+          const commenterName = state.englishName || state.name || '유버디';
+          const snippet = text.length > 30 ? text.slice(0, 30) + '...' : text;
+          fetch(`${SUPABASE_URL}/functions/v1/push-notify`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              target_member_key: targetMemberKey,
+              cohort: CHALLENGE.cohort,
+              title: `${commenterName}님이 댓글을 달았어요 💬`,
+              body: snippet,
+              url: '/7th/#community',
+              tag: `comment-${postId}`,
+            }),
+          }).catch(() => {});
+        }
+      } catch (_) {}
       const dayToRefresh = state.communityDay || state.currentDay;
       await loadCommunityPosts(dayToRefresh, { force: true });
       activeCommentDraft = null;
