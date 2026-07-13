@@ -10,13 +10,6 @@
 <title>YouBuddy · 비즈니스 영어 챌린지 7기 학습</title>
 <!-- 파비콘: 로즈레드 배경 + 흰색 소문자 y (인라인 SVG, 하위 라우트 전체 적용) -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='8'%20fill='%232E6B4F'/%3E%3Ctext%20x='16'%20y='23'%20font-family='Arial,Helvetica,sans-serif'%20font-size='22'%20font-weight='700'%20fill='%23ffffff'%20text-anchor='middle'%3Ey%3C/text%3E%3C/svg%3E" />
-<!-- PWA 설정 -->
-<link rel="manifest" href="/7th/manifest.json" />
-<meta name="theme-color" content="#2E6B4F" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="YouBuddy" />
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20192%20192'%3E%3Crect%20width='192'%20height='192'%20rx='40'%20fill='%232E6B4F'/%3E%3Ctext%20x='96'%20y='140'%20font-family='Arial,Helvetica,sans-serif'%20font-size='130'%20font-weight='700'%20fill='%23ffffff'%20text-anchor='middle'%3Ey%3C/text%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -988,82 +981,6 @@ body.modal-open { overflow: hidden; touch-action: none; }
 <script>
   window.YB_SUPABASE_URL = 'https://qaasxvatmribkgtatine.supabase.co';
   window.YB_SUPABASE_ANON_KEY = 'sb_publishable_XNd9sxTnMsuNmdT1JSXtdw_wMj0Ma9R';
-  /* PWA 설정: VAPID 공개키 (push 구독용) */
-  window.YB_VAPID_PUBLIC_KEY = 'BB-4G3_7XMAE67uwWlWEmLLwGWxPuWvotzhXOY3Ef2wxxq5_MmiD6EbvZj9n7kDCOFDlhWpnxZDc3BqTAuS-i6I';
-</script>
-
-<!-- PWA: 서비스 워커 등록 + 푸시 알림 구독 -->
-<script>
-(function () {
-  if (!('serviceWorker' in navigator)) return;
-
-  /* 서비스 워커 등록 */
-  navigator.serviceWorker.register('/7th/sw.js', { scope: '/7th/' })
-    .then((reg) => {
-      window.__swReg = reg;
-      console.log('[SW] 등록 완료', reg.scope);
-    })
-    .catch((err) => console.warn('[SW] 등록 실패', err));
-
-  /* base64url → Uint8Array (VAPID 공개키 변환용) */
-  function urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const raw = atob(base64);
-    return Uint8Array.from(raw, (c) => c.charCodeAt(0));
-  }
-
-  /* 푸시 구독 / 멤버 key 확보 후 Supabase 에 저장 */
-  window.__subscribePush = async function (memberKey) {
-    try {
-      const reg = window.__swReg || await navigator.serviceWorker.ready;
-      const existing = await reg.pushManager.getSubscription();
-      if (existing) { await existing.unsubscribe(); }
-
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(window.YB_VAPID_PUBLIC_KEY),
-      });
-
-      /* Supabase 에 구독 저장 */
-      const res = await fetch(
-        window.YB_SUPABASE_URL + '/rest/v1/push_subscriptions',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': window.YB_SUPABASE_ANON_KEY,
-            'Authorization': 'Bearer ' + window.YB_SUPABASE_ANON_KEY,
-            'Prefer': 'resolution=merge-duplicates',
-          },
-          body: JSON.stringify({
-            member_key: memberKey,
-            cohort: '7기',
-            subscription: sub.toJSON(),
-            updated_at: new Date().toISOString(),
-          }),
-        }
-      );
-      if (!res.ok) throw new Error('저장 실패 ' + res.status);
-      console.log('[Push] 구독 완료');
-      return true;
-    } catch (err) {
-      console.warn('[Push] 구독 실패', err);
-      return false;
-    }
-  };
-
-  /* 구독 해제 */
-  window.__unsubscribePush = async function () {
-    try {
-      const reg = window.__swReg || await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
-      if (sub) await sub.unsubscribe();
-    } catch (err) {
-      console.warn('[Push] 해제 실패', err);
-    }
-  };
-})();
 </script>
 
 <script>
@@ -1078,10 +995,10 @@ body.modal-open { overflow: hidden; touch-action: none; }
 // 이 값을 매번 바꿀 필요는 없음. (배포만 되면 ETag 가 자동으로 바뀜)
 const APP_BUILD = '2026-06-10';
 const REWARD_VIDEOS = {
-  // 7기 "오늘의 영상": 영어 뇌를 깨우는 흥미로운 인풋 큐레이션. 표현과 직접 연결 안 돼도 OK, 퀄리티·흥미 우선.
+  // 7기 "오늘의 영상": 그날 배운 표현의 상황과 이어지는 테마 큐레이션 (전부 링크 생존 확인함).
   // 비어있는 day 는 자동으로 "영상 준비 중" 토스트가 떠요 (에러 아님).
   // (YouTube/Vimeo/구글드라이브/팟캐스트 링크 모두 OK)
-  1: 'https://www.youtube.com/watch?v=orQKfIXMiA8', // Day1: Arthur Brooks, 지루함이 창의력의 시작이다 (HBR) · 영어 뇌 워밍업
+  1: 'https://www.youtube.com/watch?v=4jwUXV4QaTw', // Day1: 전 FBI 요원의 바디랭귀지 읽는 법 (WIRED) · 행간 읽기
   2: 'https://www.youtube.com/watch?v=MjhDkNmtjy0', // Day2: 크리스 보스 Never Split the Difference (TEDx) · 반응 떠보기
   3: 'https://www.youtube.com/watch?v=sxYrzzy3cq8', // Day3: 통계에 속지 않는 법 (TED-Ed) · at face value
   4: 'https://www.youtube.com/watch?v=Z3HJCQJ2Lmo', // Day4: 협상에서 원하는 걸 얻는 3단계 (TED) · build in slack
@@ -1107,27 +1024,27 @@ const REWARD_VIDEOS = {
 // 영상 바꾸면 여기 title/min 도 같이 갱신. min = 대략 길이(분), 채워두면 모닝 공지에
 // "〈제목〉 (약 N분)" + 길이 맞춤 멘트가 자동으로 붙음. 모르면 min: null (제목만 노출).
 const REWARD_VIDEO_META = {
-  // why: 이 영상이 왜 재미있고 들을 만한지 한 줄. 모닝 공지에 그대로 실림. "오늘 표현 연결" 대신 흥미·퀄리티 중심으로.
-  1: { title: 'Arthur Brooks, 지루함이 창의력의 시작이다 (HBR)', min: 10, why: '지루함이 뇌를 어떻게 바꾸는지, 하버드 교수가 쉽고 재밌게 설명해줘요. 영어 귀 트이는 워밍업으로 딱이에요' },
-  2: { title: '크리스 보스, FBI 협상가의 기술 (TEDx)', min: 12, why: '실제 FBI 인질 협상가가 어떻게 사람 마음을 움직이는지 들으면 귀가 열려요. 협상과 설득 영어의 살아있는 교과서' },
-  3: { title: '통계에 속지 않는 법 (TED-Ed 애니메이션)', min: 4, why: '4분짜리 애니메이션인데 다 보고 나면 세상을 보는 눈이 달라져요. 짧고 임팩트 있어요' },
-  4: { title: '협상에서 원하는 걸 얻는 3단계 (TED)', min: 5, why: '5분이면 직장에서 바로 쓸 수 있는 협상 프레임이 머릿속에 정리돼요. 실용적인 강연' },
-  5: { title: '로라 밴더캠, 시간의 주도권을 갖는 법 (TED)', min: 12, why: '\'시간이 없다\'고 말하는 방식을 바꿔주는 강연. 다 보고 나면 오늘 일정이 다르게 보여요' },
-  6: { title: '집단은 어떻게 좋은 결정을 내리나 (TED-Ed)', min: 4, why: '왜 집단이 틀리는지, 4분 애니메이션으로 쾌감 있게 설명해줘요. 회의할 때 생각나는 영상이 될 거예요' },
-  7: { title: '줄리아 다르, 생산적으로 반대하는 법 (TED)', min: 15, why: '세계 토론 챔피언이 말하는 싸우지 않고 이기는 법. 영어로 의견 충돌을 다루는 방식의 교과서' },
-  8: { title: '나쁜 회의에서 세상을 구하는 법 (TED)', min: 7, why: '직장인이라면 100% 공감하는 회의 풍자 코미디. 영어로 듣는 직장 유머 최고 수준이에요' },
-  9: { title: '비합리적 결정의 심리학 (TED-Ed)', min: 5, why: '왜 우리가 이상한 결정을 하는지 뇌 과학으로 5분에 설명해요. 들으면 자기 자신이 이해돼요' },
-  10: { title: '팀 페리스, 목표 대신 두려움을 정의하라 (TED)', min: 13, why: '\'겁쟁이처럼 행동하라\'는 역발상 프레임워크. 팀 페리스 팬 아니어도 생각이 바뀌는 강연이에요' },
-  11: { title: '크리스 해드필드, 우주에서 눈이 멀었을 때 (TED)', min: 18, why: '우주에서 눈이 먼 우주비행사 실화예요. 결말이 더 놀라워요. 긴장감 넘치는 영어 청취 훈련' },
-  12: { title: '수에즈 운하 사태의 전말 (Practical Engineering)', min: 12, why: '배 한 척이 세계 물류를 마비시킨 전말. 엔지니어링 채널 중 설명이 가장 깔끔해요' },
-  13: { title: '베를린의 텅 빈 7조원 공항 (The B1M)', min: 12, why: '7조원이 사라진 공항 이야기. 실제 프로젝트가 어떻게 망가지는지 건축 다큐 보듯 흥미로워요' },
-  14: { title: '에이미 에드먼슨, 심리적 안전감 (TEDx)', min: 11, why: '왜 어떤 팀은 실수를 숨기고 어떤 팀은 바로 말하는가. 팀 문화 이야기 중 가장 많이 인용되는 강연이에요' },
-  15: { title: '콩코드는 왜 실패했나 (Vox)', min: 7, why: 'Vox 특유의 깔끔한 편집으로 7분만에 이해되는 비즈니스 결정 이야기. 가장 빠른 비행기를 왜 접었을까요' },
-  16: { title: '아스트로 텔러, 실패를 축하하는 문샷 팩토리 (TED)', min: 16, why: '구글 X 수장이 직접 말하는 \'실패를 축하하는 법\'. 듣고 나면 일하는 방식에 대한 생각이 달라져요' },
-  17: { title: '빌 그로스, 스타트업 성공의 단 하나의 이유 (TED)', min: 7, why: '스타트업 200개 데이터를 분석해 뽑은 성공 요인 1위는? 결과가 의외라서 끝까지 보게 되는 강연이에요' },
-  18: { title: '늑대가 강을 바꾸는 법 (옐로스톤 이야기)', min: 5, why: '5분짜리인데 다 보고 나면 세상이 연결되어 보여요. 유튜브에서 가장 아름다운 영상 중 하나예요' },
-  19: { title: '말콤 글래드웰, 다윗과 골리앗의 진실 (TED)', min: 16, why: '다윗과 골리앗을 완전히 다른 시각으로 재해석해요. 말콤 글래드웰 특유의 \'반전 한 방\'을 영어로 즐겨보세요' },
-  20: { title: '맥레이븐 제독 "Make Your Bed" 전설의 졸업연설', min: 19, why: '역대 졸업 연설 중 가장 많이 공유된 명연설이에요. 20일을 완주한 오늘, 가장 어울리는 마무리' },
+  // why: 그날 표현과 영상의 연결 한 줄. 모닝 공지에 그대로 실림 (팩트 기반, 과장 금지).
+  1: { title: '전 FBI 요원의 바디랭귀지 읽는 법 (WIRED)', min: 15, why: '전직 FBI 요원이 표정과 몸짓에서 속마음을 읽어내는 법을 보여줘요. 오늘의 \'행간 읽기, 의중 파악\'을 눈으로 배우는 영상' },
+  2: { title: '크리스 보스, FBI 협상가의 기술 (TEDx)', min: 12, why: 'FBI 인질 협상가가 직접 말하는, 상대 반응을 조심스럽게 떠보며 원하는 걸 끌어내는 기술. 오늘의 \'간 보기\' 표현들이 쓰이는 바로 그 장면' },
+  3: { title: '통계에 속지 않는 법 (TED-Ed 애니메이션)', min: 4, why: '같은 숫자도 어떻게 보여주느냐에 따라 정반대 결론이 나와요. \'액면 그대로 믿으면 당한다\'를 4분 애니메이션으로' },
+  4: { title: '협상에서 원하는 걸 얻는 3단계 (TED)', min: 5, why: '협상 전에 목표 범위와 대안을 미리 정해 여지를 남겨두는 법. 오늘의 \'여지 남기기(build in slack)\'의 실전판' },
+  5: { title: '로라 밴더캠, 시간의 주도권을 갖는 법 (TED)', min: 12, why: '\'시간이 없는 게 아니라 우선순위의 문제\'라는 유명 강연. 오늘의 \'여력 파악, triaging\'과 정확히 같은 이야기' },
+  6: { title: '집단은 어떻게 좋은 결정을 내리나 (TED-Ed)', min: 4, why: '집단이 언제 현명해지고 언제 우르르 휩쓸리는지 실험으로 보여줘요. hive mind 와 quick poll 이 왜 필요한지 알게 되는 영상' },
+  7: { title: '줄리아 다르, 생산적으로 반대하는 법 (TED)', min: 15, why: '세계 토론 챔피언이 말하는 \'사람 말고 아이디어를 공격하라\'. 오늘 배운 steelman 이 강연에 그대로 나와요' },
+  8: { title: '나쁜 회의에서 세상을 구하는 법 (TED)', min: 7, why: '안건도 목적도 없는 회의에 끌려가는 직장인 풍자 코미디. 오늘의 \'회의가 산으로 가는 방식들\'을 웃으며 복습' },
+  9: { title: '비합리적 결정의 심리학 (TED-Ed)', min: 5, why: '이미 쓴 돈이 아까워 계속 붓는 심리(매몰비용) 등 결정을 망치는 편향 정리. 오늘의 sunk cost 가 주인공인 영상' },
+  10: { title: '팀 페리스, 목표 대신 두려움을 정의하라 (TED)', min: 13, why: '팀 페리스의 fear-setting: 목표 대신 \'망하면 어떻게 되지?\'를 먼저 적어보는 연습. 사실상 pre-mortem 을 개인 버전으로 하는 법' },
+  11: { title: '크리스 해드필드, 우주에서 눈이 멀었을 때 (TED)', min: 18, why: '우주 유영 중 눈이 먼 우주비행사가 패닉 대신 훈련대로 움직여 살아난 이야기. 위기 때 침착함이 어디서 오는지' },
+  12: { title: '수에즈 운하 사태의 전말 (Practical Engineering)', min: 12, why: '배 한 척이 전 세계 물류를 막았던 수에즈 사태의 전말. \'하나 무너지면 전체가 무너지는 지점\'의 교과서 사례' },
+  13: { title: '베를린의 텅 빈 7조원 공항 (The B1M)', min: 12, why: '요구사항이 계속 불어나 10년 넘게 밀린 베를린 공항. 오늘의 requirements creep 이 실제로 만든 7조원짜리 결과물' },
+  14: { title: '에이미 에드먼슨, 심리적 안전감 (TEDx)', min: 11, why: '실수를 숨기게 만드는 팀과 말하게 만드는 팀의 차이(심리적 안전감). \'남 탓과 덮기\'의 해독제 같은 강연' },
+  15: { title: '콩코드는 왜 실패했나 (Vox)', min: 7, why: '가장 빠른 여객기 콩코드를 결국 접을 수밖에 없었던 이유. \'끊을 건 끊는\' 결정이 왜 어려운지 보여주는 사례' },
+  16: { title: '아스트로 텔러, 실패를 축하하는 문샷 팩토리 (TED)', min: 16, why: '구글 X 문샷 팩토리 수장이 직접 말하는, 안 될 프로젝트를 빨리 접고 크게 거는 문화. 오늘의 moonshot 그 자체' },
+  17: { title: '빌 그로스, 스타트업 성공의 단 하나의 이유 (TED)', min: 7, why: '스타트업 200개 데이터로 뽑은 성공 요인 1위는? runway, 펀딩 같은 오늘의 스타트업 어휘가 오가는 문맥을 통째로' },
+  18: { title: '늑대가 강을 바꾸는 법 (옐로스톤 이야기)', min: 5, why: '늑대 몇 마리가 옐로스톤의 강줄기까지 바꾼 연쇄효과. second-order effects 를 이보다 아름답게 보여주는 영상은 없어요' },
+  19: { title: '말콤 글래드웰, 다윗과 골리앗의 진실 (TED)', min: 16, why: '다윗은 어떻게 골리앗을 이겼나, 약자가 체급 이상을 해내는 조건. 오늘의 punch above your weight 서사' },
+  20: { title: '맥레이븐 제독 "Make Your Bed" 전설의 졸업연설', min: 19, why: '\'세상을 바꾸고 싶다면 침대부터 정리하라\' 전설의 졸업 연설. 20일을 완주한 오늘, 가장 어울리는 마무리' },
 };
 
 /* ============================================================
@@ -3155,7 +3072,7 @@ const GUIDED_TOUR_STEPS = [
   { page: 'day', opts: { day: 1, week: 1 }, previewSubmit: true, target: '[data-tour="day-ai-btn"]', title: '⑤ AI 첨삭', body: '문장을 제출하면 이 AI 첨삭 버튼이 생겨요. 누르면 AI가 어색한 부분을 자연스럽게 고쳐줘요. 베이직은 한 문장당 한 번 받을 수 있고, 프리미엄은 무제한으로 받을 수 있어요.' },
   { page: 'community', target: '[data-tour="tab-community"]', title: '커뮤니티', body: '내가 제출한 문장과 동료들의 문장을 여기서 함께 봐요. 다른 사람은 어떻게 썼는지 구경하며 표현을 늘려요.' },
   { page: 'home',      target: '[data-tour="streak-board"]',  targetUnion: ['.cb-name.cb-row-me', '.cb-cell.cb-cell-me'], title: '인증 완료', body: '단어 시험까지 풀면 그날 인증 완료! 홈 보드의 내 칸에 바로 표시돼요.' },
-  { page: 'day', opts: { day: 1, week: 1 }, previewVerify: true, target: '[data-tour="day-video"]', title: '오늘의 영상', body: '인증이 끝나면 학습 페이지 맨 위에 "오늘의 영상"이 열려요. 영어 뇌 깨우는 팟캐스트 인풋이에요. 가볍게 틀어두고 들어봐요. (지금은 미리보기로 보여드려요)' },
+  { page: 'day', opts: { day: 1, week: 1 }, previewVerify: true, target: '[data-tour="day-video"]', title: '오늘의 영상', body: '인증이 끝나면 학습 페이지 맨 위에 "오늘의 영상"이 열려요. 귀가 트이는 영상으로 가볍게 마무리해요. (지금은 미리보기로 보여드려요)' },
   { page: 'home',      target: null,                          title: '단톡 인증', media: KAKAO_ILLUST, body: '마지막으로 오늘 제출한 문장을 녹음해서 단톡에 올리면 그날 인증이 끝나요. 단톡 인증은 챌린지의 핵심이라 꼭 올려주세요!' },
   { page: 'weeks',     previewQuiz: true, target: '[data-tour="week-quiz"]', title: '주간 미션 / 파이널', body: '한 주(5일)를 다 채우면 이 주간 미션 퀴즈가 열려요. 통과하면 선물이 있어요 🎁. 마지막엔 종합 파이널 퀴즈가 있고, 20일 중 18일 이상 인증하면 단어집 PDF가 열려요. (지금은 미리보기)' },
   { page: 'premium',   target: '[data-tour="meeting-w1"]',   title: '프리미엄 주간 미팅', premiumOnly: true, body: '(프리미엄) 매주 목요일 21:00 영어 회의가 있어요. 첫 주는 오리엔테이션과 자기소개! Week 2~4 중 한 주는 직접 PT 발표자로 참여해요 (7분 토크 + 3분 Q&A).' },
@@ -13907,8 +13824,8 @@ function DayPage(dayN) {
       </div>
       <div style="flex:1;min-width:0;">
         <div class="kicker" style="color:#F0C987;font-size:10px;">인증 완료 · 보너스 열림</div>
-        <div style="margin-top:4px;font-size:17px;font-weight:800;letter-spacing:-0.01em;">오늘의 영어 인풋 보기</div>
-        <div class="t-small" style="margin-top:4px;font-size:12px;line-height:1.45;color:rgba(255,255,255,0.72);">영어 뇌 깨우는 인풋. 가볍게 틀어두고 들어봐요 🎧</div>
+        <div style="margin-top:4px;font-size:17px;font-weight:800;letter-spacing:-0.01em;">오늘의 귀 열기 영상 보기</div>
+        <div class="t-small" style="margin-top:4px;font-size:12px;line-height:1.45;color:rgba(255,255,255,0.72);">실제 비즈니스 영어가 어떻게 들리는지, 귀 트는 마무리 영상 🎧</div>
       </div>
       <span style="width:40px;height:40px;border-radius:999px;background:rgba(255,255,255,0.14);display:grid;place-items:center;flex-shrink:0;">${Icon('play', 16)}</span>
     `;
@@ -19544,52 +19461,6 @@ function ProfilePage() {
   logoutBtn.innerHTML = `${Icon('arrowRight', 14)} 로그아웃`;
   logoutCard.appendChild(logoutBtn);
   page.appendChild(logoutCard);
-
-  // ── PWA 푸시 알림 설정 카드 (ServiceWorker + Notification API 지원 환경만) ──
-  if ('serviceWorker' in navigator && 'PushManager' in window) {
-    const pushCard = el('div', { class: 'card card-flat', style: { marginTop: '12px', padding: '16px 18px' } });
-    const pushRow = el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' } });
-    pushRow.innerHTML = `
-      <div>
-        <div style="font-size:14px;font-weight:700;color:var(--ink);">📱 푸시 알림</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px;">모닝 공지·인증 리마인더 알림 받기</div>
-      </div>`;
-    const pushToggleWrap = el('div');
-    async function renderPushToggle() {
-      pushToggleWrap.innerHTML = '';
-      const reg = await navigator.serviceWorker.ready.catch(() => null);
-      if (!reg) { pushToggleWrap.innerHTML = '<span style="font-size:11px;color:var(--muted)">미지원</span>'; return; }
-      const sub = await reg.pushManager.getSubscription().catch(() => null);
-      const isOn = !!sub;
-      const toggleBtn = el('button', {
-        class: 'btn btn-ghost',
-        style: {
-          padding: '8px 16px', fontSize: '13px', fontWeight: '700',
-          borderColor: isOn ? 'rgba(46,107,79,0.4)' : 'var(--line)',
-          color: isOn ? 'var(--green)' : 'var(--ink-soft)',
-          background: isOn ? 'var(--green-soft)' : 'var(--paper)',
-        },
-        onClick: async () => {
-          toggleBtn.disabled = true;
-          if (isOn) {
-            await window.__unsubscribePush();
-            showToast('🔕 알림 해제됨');
-          } else {
-            const perm = await Notification.requestPermission();
-            if (perm !== 'granted') { showToast('알림 권한이 필요해요'); toggleBtn.disabled = false; return; }
-            const ok = await window.__subscribePush(state.memberKey || state.member_key || '');
-            showToast(ok ? '🔔 알림 켜짐!' : '구독 실패, 잠시 후 다시 시도해주세요');
-          }
-          await renderPushToggle();
-        },
-      }, isOn ? '알림 ON' : '알림 OFF');
-      pushToggleWrap.appendChild(toggleBtn);
-    }
-    renderPushToggle();
-    pushRow.appendChild(pushToggleWrap);
-    pushCard.appendChild(pushRow);
-    page.appendChild(pushCard);
-  }
 
   return page;
 }
@@ -25400,31 +25271,6 @@ window.__submitCommentComposer = async (postId) => {
         p_member_name: state.name || '나',
         p_comment_text: text,
       });
-      // 댓글 단 글의 작성자에게 푸시 알림 (본인 글 제외)
-      try {
-        const allPosts = Object.values(communityFeedCache || {}).flatMap((e) => e?.rows || []);
-        const targetPost = allPosts.find((p) => String(p.id) === String(postId));
-        const targetMemberKey = targetPost?.member_key;
-        if (targetMemberKey && targetMemberKey !== memberKey()) {
-          const commenterName = state.englishName || state.name || '유버디';
-          const snippet = text.length > 30 ? text.slice(0, 30) + '...' : text;
-          fetch(`${SUPABASE_URL}/functions/v1/push-notify`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({
-              target_member_key: targetMemberKey,
-              cohort: CHALLENGE.cohort,
-              title: `${commenterName}님이 댓글을 달았어요 💬`,
-              body: snippet,
-              url: '/7th/#community',
-              tag: `comment-${postId}`,
-            }),
-          }).catch(() => {});
-        }
-      } catch (_) {}
       const dayToRefresh = state.communityDay || state.currentDay;
       await loadCommunityPosts(dayToRefresh, { force: true });
       activeCommentDraft = null;
