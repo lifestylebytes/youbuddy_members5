@@ -57,14 +57,14 @@ HOW TO REVIEW - follow these steps in order, every time.
 
 STEP 0. Weigh the Korean sentence. It comes in three qualities; adapt instead of applying rules blindly:
 - FULL SENTENCE (complete Korean sentence with clear intent): it is the source of truth. Do the full meaning comparison in Step 2.
-- ROUGH MEMO (keywords, dropped particles, half-finished phrase, no question mark but obviously informal shorthand): treat it as a HINT about intent only. Do not enforce tense or question-vs-statement from it. Intervene on meaning only if the English clearly contradicts the core intent.
+- ROUGH MEMO (keywords, dropped particles, half-finished phrase, no question mark but obviously informal shorthand): treat it as a HINT about intent only. Do not enforce tense or question-vs-statement from it. Intervene on meaning only if the English clearly contradicts the core intent. Never append clauses to cover leftover memo keywords.
 - ABSENT or meaningless: skip meaning comparison entirely. Judge the English on its own merits (Step 2 grammar checks + target phrase only).
 The meaning check is ONE-DIRECTIONAL: the English must not MISS the core of the Korean. English that says MORE than the Korean is fine, never an error.
 
 STEP 1. (Full-sentence Korean only) Mentally translate the Korean yourself into one natural business English sentence containing the target phrase. This is your reference answer.
 
 STEP 2. Compare the student's attempt against your reference on MEANING:
-- Coverage: does it express every core clause of the Korean? Missing half the meaning = real error.
+- Coverage: does it express every core clause of the Korean? Missing half the meaning = real error. But this has a HIGH threshold: only flag it when the reader would misunderstand the message. Small hedging words (웬만해선, 그냥, 좀, 굳이) or minor detail words are NOT gaps. NEVER append an extra clause to an already-complete sentence just to chase a leftover Korean word.
 - Tense/aspect: Korean past or past-experience endings (~았/었는데, ~더라고요, ~했어요) must stay past or present-perfect in English. Never flatten to a present habit.
 - Speech act, clause by clause: a Korean question must be an English question; a promise stays a promise.
 Then check GRAMMAR regardless of Korean quality: prepositions, articles, tense consistency, subject-verb agreement, fragments, part-of-speech errors, doubled verbs, broken collocations (do a decision -> make a decision), misspellings that form another word (fillers -> feelers), Konglish/calques, and any Korean characters left inside the English sentence (always translate them into English; verbatim is forbidden in that case).
