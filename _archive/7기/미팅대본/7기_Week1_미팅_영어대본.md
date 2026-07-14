@@ -1,10 +1,12 @@
-# 유비챌 7기 · Week 1 미팅 영어 대본 (슬라이드별) · v4 문장 코칭 반영
+# 유비챌 7기 · Week 1 미팅 영어 대본 (슬라이드별) · v5 진단지 반영 + 발화량 확대
 
 진행자(Gaby)용. 7기 첫 프리미엄 미팅 (7/16 목 21:00). 발표 모드 덱(m1) 흐름 그대로.
 Week 1 테마 = **Reading the Field (진행 전 분위기 파악)**. ( ) 안은 한국어 진행 메모.
-v4 변경: 미니 강의 뒤에 **문장 코칭 (Bring Your Sentence)** 슬라이드 추가. 멤버가 사전
-제출한 "내 업무 문장 1개"를 라이브로 딱 하나씩만 업그레이드. 가비 역할 = 강사가 아니라
-라이브 에디터. 레벨이 제각각이어도 각자 자기 문장에서 자기 몫을 가져가는 구조.
+v5 변경 (사전 진단지 8명 반영):
+- **미니 강의 삭제.** 그 시간을 전부 멤버 발화(워밍업 + 문장 코칭)로. 표현 꿀팁은 "다음 주부터 간단히" 예고만.
+- **오프닝 안전선언 추가.** 부담감 8~10 멤버 3명. 즉석 지목 금지, 순서 미리 안내.
+- **캐치업에서 진단지 호명.** 각자의 장면·데드라인을 가비가 이미 알고 있음을 보여주기 (멤버별 내용은 코칭 시트 참고, 공개 저장소 커밋 금지).
+- 미팅 노트 4항목 안내 (기수 목표 / 주 목표 / 안 들린 단어 / 새 표현).
 
 **오늘의 15개 표현 (Day 1~5)**: Read between the lines · Put out feelers · Get a clear read on · Float an idea · Backchannel · Soft commit · As presented · Red herring · Wake-up call · With a caveat · Shelve it · Build in slack · Underway · Have the cycles · Triaging
 
@@ -16,9 +18,13 @@ v4 변경: 미니 강의 뒤에 **문장 코칭 (Bring Your Sentence)** 슬라�
 
 Quick word about this group: because we're small, this won't feel like a class. It's closer to coaching. We'll spend most of our time on your real work situations, and my goal is simple: the expressions you learn each day should actually come out of your mouth in a real meeting.
 
+One ground rule before anything else: **this is the room where you're supposed to get it wrong.** Nobody here needs perfect English, that's not the assignment. Say it messy, say it half-Korean if you have to, we'll build it together. And I'll never cold-call you out of nowhere, you'll always know when your turn is coming.
+
 Here's a heads up about this cohort's concept. We're not doing textbook business English. The theme is **'the English outside the meeting room'**: reading the situation, testing reactions, handling a crisis, and in the final week, English for your own career, negotiating comp, performance reviews, even leaving well. Week 1 is about reading the field, the language people use before anything becomes official.
 
-Today's plan: quick intros and goal-setting, a warm-up on this week's fifteen expressions, a mini lecture on six of them, and then my favorite part: each of you brought one sentence from your own work this week, and we're going to make each one just a little bit better, live. Then a short wrap-up. Let's start."
+Today's plan: quick intros and goal-setting, a warm-up on this week's fifteen expressions, and then the main event: each of you brought one sentence from your own work this week, and we're going to make each one just a little bit better, live. Today is a speaking day, I'll keep my lecturing to zero. Quick usage tips, I'll bring those in small doses starting next week. Let's start."
+
+(안전선언 + "오늘은 발화의 날" 선언. 강의 없음을 미리 말해두면 코칭 시간이 길어도 어색하지 않음.)
 
 (첫 미팅이라 따뜻하게. "수업 아니고 코칭" + 7기 콘셉트 한 줄 심기.)
 
@@ -33,6 +39,12 @@ Today's plan: quick intros and goal-setting, a warm-up on this week's fifteen ex
 And one more thing, this matters: tell me **one expression, skill, or situation you really want to own by the end of these four weeks.** A specific scene from your job is even better, like 'pushing back on my manager politely' or 'reporting a delay without panicking.' I'll write these down, and we'll come back to them every week to track progress."
 
 (각자 목표 받아적기 슬라이드에 입력 → 저장. 이게 시즌 내내 개인화 재료가 됨.)
+
+(★ 진단지 호명: 한 명씩 소개 끝날 때마다 진단지에서 본 장면·데드라인을 한 줄씩 짚어주기.
+"벌써 읽고 왔어요" 신호가 만족도의 절반. 멤버별 문장은 **코칭 시트** (비공개 파일) 참고.
+예: "You mentioned a big presentation coming up, we're going to build exactly that script here.")
+
+(★ 미팅 노트 안내:) "One small thing: on the meeting page in the app there's a simple note, four boxes: your goal for this cohort, your goal for next week, words you couldn't catch today, and expressions you're taking home. Fill it in as we go or right after, I read every one of them."
 (로드맵 박스 짚기) "And a quick preview: Week 2 is the art of the argument, how to disagree like a pro. Week 3 is crisis communication, staying calm in English when things are on fire. Week 4 is my favorite, English for your own career: comp, reviews, and graceful exits. Good stuff ahead."
 
 ---
@@ -84,46 +96,21 @@ The point isn't to get them all right. It's to feel exactly where you're shaky, 
 
 ---
 
-# Slide 5 · 미니 강의 · 본론 전에 쓰는 표현 6개 (칠판)
-
-"Now let's slow down on six expressions you'll use the most. For each: when to reach for it, and the small nuance that makes it sound native.
-
-**1. Put out feelers**
-> The key idea: nothing is official yet. You're extending antennae. Use it before a proposal, a job change, a price change. *'Before we commit, let me put out some feelers.'* The beauty: if the answer is no, nothing is on the record.
-
-**2. Float an idea**
-> The safest verb for suggesting something new. You're not committing to it, you're floating it and watching the reaction. *'Let me float an idea, what if we bundled these two products?'* If the room goes cold, you just let it drift away. No damage done.
-
-**3. Backchannel**
-> The unofficial line. When the official process is stuck, you talk to a person, not a process. Careful: it's powerful but political. *'We backchanneled with their VP to unstick the deal.'*
-
-**4. Red herring**
-> Your defense word. When a discussion chases the wrong lead: *'I think the server issue is a red herring. The real problem is onboarding.'* Instantly refocuses the room without blaming anyone.
-
-**5. Shelve it**
-> The graceful way to park a good idea at the wrong time. Not cancelled, just on the shelf. *'I love this, but let's shelve it until we close the quarter.'* Much kinder than 'no'.
-
-**6. Triaging**
-> The word that makes you sound like you own your workload. Not 'I'm busy' but *'I'm triaging, this one's first, that one waits.'* It signals judgment, not just effort.
-
-Now your turn: each of you, pick three of the six and make one sentence about your own real work. Look at the board if you get stuck."
-
----
-
-# Slide 6 · 문장 코칭 (Bring Your Sentence) ★ 미팅의 심장
+# Slide 5 · 문장 코칭 (Bring Your Sentence) ★ 미팅의 심장
 
 (발표 모드 슬라이드에 사전 제출 문장이 멤버별 카드로 자동 표시됨. 안 보이면 ↻ 새로고침.
 직접 제출 / 자동 선정 구분 뱃지 있음. 룰: 문장당 업그레이드 딱 1개 · 칭찬 먼저 · 고친 문장은 본인이 소리내어 두 번.)
 
 "Okay, now the part I've been looking forward to. Each of you brought one sentence from your real work this week. Here's how this goes: this is not about making your sentence perfect. I'll point out one thing I love about it, and give it exactly **one upgrade**. Just one. Then you say the upgraded version out loud, twice. That's the whole game."
 
-(멤버 한 명당 약 2분. 진행 루프:)
+(멤버 한 명당 약 3분, 미니 강의 뺀 시간을 전부 여기에. 시간이 남으면 두 바퀴째:
+"오늘 표현 중 하나로 즉석 문장 하나 더" 라운드. 진행 루프:)
 
 1. "**{Name}**, this one's yours. Read it for us?" (본인이 소리내어 읽기)
 2. (칭찬 먼저, 반드시 구체적으로) "What I love here is ___, that's exactly how a native speaker would set this up."
 3. (업그레이드 딱 1개) "One upgrade: instead of ___, try ___. Here's why: ___."
 4. "Now say the whole upgraded sentence." (한 번) "One more time, with confidence." (두 번째)
-5. "That sentence is yours now. Use it this week for real."
+5. (확신 부여, 반드시:) "That sentence is **correct**. It's yours now, use it this week exactly like that."
 
 (자동 선정 뱃지 멤버에겐 가볍게:) "The app picked this one from your week, and honestly, good pick. Next week you get to choose your own."
 
@@ -131,7 +118,7 @@ Now your turn: each of you, pick three of the six and make one sentence about yo
 
 ---
 
-# Slide 7 · 마무리 체크리스트
+# Slide 6 · 마무리 체크리스트
 
 "Let's wrap. Quick lightning round: I say the Korean, you fire back the English, focusing on the ones you passed earlier.
 
@@ -141,13 +128,15 @@ Now each of you, three things: your hardest expression today, your goal for next
 
 Homework: write one short paragraph about your own work situation using **at least three of this week's expressions**, and slip one of them into a real conversation or Slack message this week. Catch yourself using it, that's the win.
 
-One more: next Wednesday night, pick the sentence you want to bring to our next session. It's the '미팅에 가져갈 내 문장' box on the meeting page in the app. If you forget, the app will pick one for you, but the ones you choose yourself are always more fun to coach."
+One more: next Wednesday night, pick the sentence you want to bring to our next session. It's the '미팅에 가져갈 내 문장' box on the meeting page in the app. If you forget, the app will pick one for you, but the ones you choose yourself are always more fun to coach.
+
+And don't forget the four-box note on the meeting page, especially the 'words I couldn't catch' box. Whatever you put there, I'll bring back next week as a quick tip. That's your lecture, two minutes, made of your own gaps."
 
 (받아적기 → 저장. 멤버 목표에 자동 추가.)
 
 ---
 
-# Slide 8 · 다음 주 예고
+# Slide 7 · 다음 주 예고
 
 "Next week is **the art of the argument.** How to disagree without making enemies, steelmanning, quick polls, and the traps that make meetings go sideways, like bikeshedding. If you've ever sat in a meeting arguing thirty minutes about a button color, next week is for you.
 
