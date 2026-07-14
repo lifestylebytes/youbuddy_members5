@@ -16893,6 +16893,82 @@ function PitchPrepPage() {
   return page;
 }
 
+/* ── 미팅 사전 제출 (Bring Your Sentence) ────────────────────
+   멤버가 미팅 전에 "내 업무 문장 1개" 를 골라 제출. timeline.pre_submit 에
+   { ko, en, at, source: 'manual'|'auto' } 로 저장되어 기존 upsert_meeting_note /
+   get_cohort_meeting_notes RPC 를 그대로 타므로 서버 SQL 변경이 필요 없음.
+   미제출 시 미팅 D-1~당일에 이번 주 AI 첨삭 문장에서 자동 선정 (source:'auto'). */
+function __preSubmitGet(meetingId) {
+  const notes = state.meeting_notes && state.meeting_notes[meetingId];
+  const ps = notes && notes.timeline && notes.timeline.pre_submit;
+  return (ps && (ps.en || '').trim()) ? ps : null;
+}
+function __preSubmitSet(meetingId, ko, en, source) {
+  if (!state.meeting_notes[meetingId]) state.meeting_notes[meetingId] = { talk_points: '', meeting_notes: '' };
+  const notes = state.meeting_notes[meetingId];
+  if (!notes.timeline) notes.timeline = {};
+  notes.timeline.pre_submit = { ko: (ko || '').trim(), en: (en || '').trim(), at: new Date().toISOString(), source: source || 'manual' };
+  saveState();
+  try { if (typeof cloudSaveMeetingNote === 'function') cloudSaveMeetingNote(meetingId); } catch (_e) {}
+}
+// 이번 주(weekN) 학습에서 후보 문장 뽑기. AI 첨삭 완료본 우선, 최근 Day 우선.
+function __preSubmitCandidates(weekN) {
+  const week = (CHALLENGE.weeks || []).find((w) => Number(w.n) === Number(weekN));
+  if (!week) return [];
+  const out = [];
+  (week.days || []).forEach((d) => {
+    (d.words || []).forEach((w, i) => {
+      const key = 'd' + d.day + '-' + i;
+      const fb = state.ai_feedback && state.ai_feedback[key];
+      const raw = ((fb && fb.corrected) || (state.sentences && state.sentences[key]) || '').trim();
+      if (!raw) return;
+      if (raw === (w.ex_en || '').trim()) return; // 예문 그대로(시드)는 후보 제외
+      out.push({ key, en: raw, word: w.en, day: d.day, reviewed: !!fb });
+    });
+  });
+  out.sort((a, b) => ((b.reviewed ? 1 : 0) - (a.reviewed ? 1 : 0)) || (b.day - a.day));
+  return out;
+}
+// 미제출 자동 선정: 세션당 1회, 프리미엄만, 미팅 D-1~D0 에만. 수동 제출은 절대 덮어쓰지 않음.
+function __maybeAutoCollectPreSubmit() {
+  if (window.__preSubmitAutoDone) return;
+  window.__preSubmitAutoDone = true;
+  try {
+    if (state.tier !== 'premium') return;
+    (CHALLENGE.premium.weekly_meetings || []).forEach((meta) => {
+      const dLeft = daysUntilMeeting(meta.date);
+      if (dLeft === null || dLeft > 1 || dLeft < 0) return;
+      const mid = 'm' + meta.n;
+      if (__preSubmitGet(mid)) return;
+      const cand = __preSubmitCandidates(meta.n)[0];
+      if (!cand) return;
+      __preSubmitSet(mid, '', cand.en, 'auto');
+    });
+  } catch (_e) {}
+}
+// 부팅 후 서버 하이드레이션이 끝날 시간을 넉넉히 주고 1회 실행.
+setTimeout(() => { try { __maybeAutoCollectPreSubmit(); } catch (_e) {} }, 12000);
+// 제출 UI 핸들러 (전역, onclick 문자열에서 호출)
+window.__psPickCand = (mid, idx) => {
+  const c = (window.__psCand && window.__psCand[mid] || [])[idx];
+  if (!c) return;
+  const koEl = document.getElementById('__psKo_' + mid);
+  const enEl = document.getElementById('__psEn_' + mid);
+  if (enEl) enEl.value = c.en;
+  if (koEl && !koEl.value) koEl.focus();
+};
+window.__psSave = (mid) => {
+  const koEl = document.getElementById('__psKo_' + mid);
+  const enEl = document.getElementById('__psEn_' + mid);
+  const en = enEl ? enEl.value.trim() : '';
+  if (!en) { showToast('영어 문장을 먼저 적어주세요!'); return; }
+  __preSubmitSet(mid, koEl ? koEl.value : '', en, 'manual');
+  (window.__psEdit = window.__psEdit || {})[mid] = false;
+  showToast('제출 완료! 미팅에서 이 문장을 같이 다듬어요 :)');
+  render();
+};
+window.__psEditOn = (mid) => { (window.__psEdit = window.__psEdit || {})[mid] = true; render(); };
+
 function MeetingNotesPage(meetingId) {
   if (state.tier !== 'premium') return premiumGatePage({ titleRest: '미팅 노트' });
   const page = el('div', { class: 'page' });
@@ -17089,6 +17165,61 @@ function MeetingNotesPage(meetingId) {
       </div>
     </div>`;
   page.appendChild(hero);
+
+  // ── 미팅 전 준비: 내 문장 1개 가져가기 (사전 제출) ──
+  (() => {
+    const mid = meetingId;
+    const ps = __preSubmitGet(mid);
+    const psEdit = (window.__psEdit = window.__psEdit || {})[mid];
+    const beforeMeeting = dLeft === null || dLeft >= 0;
+    const cands = __preSubmitCandidates(meta.n).slice(0, 4);
+    (window.__psCand = window.__psCand || {})[mid] = cands;
+    const card = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '20px', marginTop: '14px', border: '1.5px solid rgba(46,107,79,0.28)', background: 'linear-gradient(145deg,#FFFDF8 55%,#EAF3EE)' } });
+    let h = '<div class="kicker" style="color:#1F4D38;">BRING YOUR SENTENCE · 미팅 전 준비</div>'
+      + '<div style="margin-top:6px;font-size:17px;font-weight:800;color:var(--ink);">🎒 미팅에 가져갈 내 문장 1개</div>'
+      + '<div class="t-body" style="margin-top:6px;color:var(--ink-soft);line-height:1.6;">이번 주 표현으로 만든 <b>내 업무 문장</b>을 하나 골라두세요. 미팅에서 이 문장을 라이브로 <b>딱 하나만</b> 업그레이드해요. '
+      + (beforeMeeting ? '마감: <b>미팅 전날(수) 밤</b> · 안 골라두면 이번 주 첨삭 문장에서 자동으로 골라가요~' : '이번 미팅은 끝났어요.') + '</div>';
+    if (ps && !psEdit) {
+      h += '<div style="margin-top:12px;padding:13px 15px;border-radius:14px;background:#fff;border:1px solid rgba(46,107,79,0.22);">'
+        + (ps.ko ? '<div style="font-size:12.5px;color:var(--ink-soft);">' + escapeHtml(ps.ko) + '</div>' : '')
+        + '<div style="margin-top:4px;font-size:15px;font-family:var(--font-mono);font-weight:700;color:#1F4D38;line-height:1.5;">' + escapeHtml(ps.en) + '</div>'
+        + '<div style="margin-top:9px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+        + (ps.source === 'auto'
+            ? '<span style="font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;background:#FFF3E2;color:#9A6A1B;">🤖 이번 주 문장에서 자동 선정</span>'
+            : '<span style="font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;background:#EAF3EE;color:#1F4D38;">✅ 직접 제출</span>')
+        + (beforeMeeting ? '<button onclick="window.__psEditOn(\'' + mid + '\')" style="font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;">✏️ 바꾸기</button>' : '')
+        + '</div></div>';
+    } else if (beforeMeeting) {
+      h += '<div style="margin-top:12px;">'
+        + '<input id="__psKo_' + mid + '" class="input" placeholder="어떤 상황인가요? (한국어, 선택)" value="' + escapeHtml((ps && ps.ko) || '') + '" />'
+        + '<textarea id="__psEn_' + mid + '" class="input" rows="2" style="margin-top:8px;resize:vertical;font-family:var(--font-mono);" placeholder="영어 문장 1개 (이번 주 표현 포함)">' + escapeHtml((ps && ps.en) || '') + '</textarea>';
+      if (cands.length) {
+        h += '<div class="t-small" style="margin-top:10px;color:var(--ink-soft);">💡 이번 주 내 문장에서 고르기 (탭하면 채워져요)</div>'
+          + '<div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">'
+          + cands.map((c, i) =>
+              '<button onclick="window.__psPickCand(\'' + mid + '\',' + i + ')" style="text-align:left;padding:9px 12px;border-radius:11px;border:1px solid rgba(46,107,79,0.18);background:#fff;cursor:pointer;">'
+              + '<span style="font-size:10px;font-weight:800;color:#5C53A5;">D' + c.day + ' · ' + escapeHtml(c.word) + (c.reviewed ? ' · AI 첨삭 완료' : '') + '</span>'
+              + '<div style="margin-top:3px;font-size:12.5px;font-family:var(--font-mono);color:var(--ink);line-height:1.45;">' + escapeHtml(c.en) + '</div></button>').join('')
+          + '</div>';
+      }
+      h += '<button class="btn btn-primary btn-full" style="margin-top:12px;" onclick="window.__psSave(\'' + mid + '\')">🎒 이 문장 가져가기</button></div>';
+    }
+    card.innerHTML = h;
+    // 제출 현황 (공개 RPC 캐시 재사용) - 이름 뱃지만, 부드러운 압력.
+    if (hasSupabase()) {
+      try { window.__loadMeetingMemberNotes(mid); } catch (_e) {}
+      const cached = meetingMemberNotesCache[mid];
+      const rows = (cached && cached.rows) || [];
+      const names = rows
+        .filter((r) => { const tl = r.timeline || {}; return tl.pre_submit && (tl.pre_submit.en || '').trim(); })
+        .map((r) => (state.isOperator || state.isStaff) ? r.member_name : ((r.english_name || '').trim() || '익명 버디'));
+      if (names.length) {
+        card.appendChild(el('div', { class: 't-small', style: { marginTop: '12px', color: '#1F4D38', lineHeight: '1.6' } },
+          '🙌 문장 가져온 버디 (' + names.length + '): ' + names.join(' · ')));
+      }
+    }
+    page.appendChild(card);
+  })();
 
   // ── Week 1 회의록 = 한 페이지 리포트. 발표 모드(섹션 진행·체크·막힌 표현·받아적은 목표)와 자동 동기화.
   if (meta.n === 1) {
@@ -18635,7 +18766,7 @@ function MeetingNotesPage(meetingId) {
           const hasContent = Object.keys(ROW_LABELS).some((k) => {
             const row = tl[k];
             return row && (String(row.notes || '').trim() || (Array.isArray(row.expressions) && row.expressions.length));
-          });
+          }) || !!(tl.pre_submit && (tl.pre_submit.en || '').trim());
           if (!hasContent) return;
           const memberCard = el('div', {
             style: { padding: '14px 16px', borderRadius: '14px', background: '#fff', border: '1px solid rgba(231,221,200,0.6)' }
@@ -18659,6 +18790,14 @@ function MeetingNotesPage(meetingId) {
             ${r.role ? `<span style="font-size:11px;color:var(--ink-soft);">· ${escapeHtml(r.role)}</span>` : ''}
           `;
           memberCard.appendChild(headerEl);
+          // 사전 제출 문장 (Bring Your Sentence) - 미팅 자료라 최상단.
+          if (tl.pre_submit && (tl.pre_submit.en || '').trim()) {
+            const psSec = el('div', { style: { padding: '10px 12px', borderRadius: '11px', background: '#EAF3EE', border: '1px solid rgba(46,107,79,0.2)' } });
+            psSec.innerHTML = '<div class="kicker" style="font-size:10px;color:#1F4D38;">🎒 가져온 문장 (사전 제출' + (tl.pre_submit.source === 'auto' ? ' · 자동 선정' : '') + ')</div>'
+              + (tl.pre_submit.ko ? '<div style="margin-top:5px;font-size:12px;color:var(--ink-soft);">' + escapeHtml(tl.pre_submit.ko) + '</div>' : '')
+              + '<div style="margin-top:4px;font-size:13.5px;font-family:var(--font-mono);font-weight:700;color:#1F4D38;line-height:1.5;">' + escapeHtml(tl.pre_submit.en) + '</div>';
+            memberCard.appendChild(psSec);
+          }
           // timeline rows
           allRowKeys.forEach((rowKey) => {
             const row = tl[rowKey];
@@ -27245,7 +27384,7 @@ const WEEK1_DECK = [
   { section: '오프닝', kicker: 'WEEK 1 · 60분', title: '오늘 순서 한눈에',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">7기 프리미엄 버디</b> · 첫 미팅이라 서로 소개부터 가볍게.</div>'
       + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
-      + ['캐치업 · 자기소개 + 이번 기수 목표', '워밍업 · Day 1~5 표현 15개 (한국어 → 영어)', '미니 강의 · 분위기 읽는 표현 6개 깊이 파기', '마무리 · 막힌 표현 정리 + 다음 주 예고'].map((t, i) =>
+      + ['캐치업 · 자기소개 + 이번 기수 목표', '워밍업 · Day 1~5 표현 15개 (한국어 → 영어)', '미니 강의 · 분위기 읽는 표현 6개 깊이 파기', '문장 코칭 · 각자 가져온 문장 1개 라이브 업그레이드', '마무리 · 막힌 표현 정리 + 다음 주 예고'].map((t, i) =>
           '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
       + '</div>'
       + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;color:var(--ink);">🎯 목표: "외운 표현을 실제로 입 밖으로 뱉어보기"</div>' },
@@ -27288,7 +27427,10 @@ const WEEK1_DECK = [
         + '</div>'
         + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">진행: 각자 3개를 골라 <b>본인 상황 한 문장</b>으로 만들어 말해보기. 막히면 칠판 보고.</div>';
     })() },
-  { section: '마무리', kicker: '4 · 마무리', title: '마무리 체크리스트', passReview: true, wrapGoals: true,
+  { section: '문장 코칭', kicker: '4 · 문장 코칭', title: '내가 가져온 문장 · 라이브 업그레이드', preSubmit: true,
+    checks: ['한 명당 문장 1개, 딱 하나만 업그레이드 (칭찬 먼저)', '업그레이드된 문장, 본인이 소리내어 두 번 말하기'],
+    script: '"이제 각자 가져온 문장 볼게요. 완벽하게 만드는 게 아니라 딱 하나씩만 좋게 만들 거예요. 먼저 본인이 읽어주세요~"' },
+  { section: '마무리', kicker: '5 · 마무리', title: '마무리 체크리스트', passReview: true, wrapGoals: true,
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래를 하나씩 체크하며 마무리하세요.</div>',
     checks: [
       '워밍업으로 돌아가 15개 한국어→영어 한 바퀴 · 막혔던 것만 다시',
@@ -27890,6 +28032,33 @@ function MeetingDeckPage() {
         + '<span style="font-size:13.5px;font-family:var(--font-mono);color:var(--orange-dark);font-weight:700;filter:' + (rev ? 'none' : 'blur(5.5px)') + ';transition:filter 0.15s;text-align:right;">' + escapeHtml(w.en) + '</span></div>';
     });
     body += '</div>';
+  }
+  if (s.preSubmit) {
+    const midPS = window.__currentMeetingId || 'm1';
+    if (hasSupabase() && typeof window.__loadMeetingMemberNotes === 'function') { try { window.__loadMeetingMemberNotes(midPS); } catch (_e) {} }
+    const cachedPS = meetingMemberNotesCache[midPS];
+    const subs = (((cachedPS && cachedPS.rows) || [])
+      .map((r) => ({ r, ps: (r.timeline || {}).pre_submit }))
+      .filter((x) => x.ps && (x.ps.en || '').trim()));
+    body += '<div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">'
+      + '<span class="t-small" style="color:var(--ink-soft);">🎯 룰: 문장당 업그레이드 딱 1개 · 칭찬 먼저 · 고친 문장은 본인이 소리내어 두 번</span>'
+      + '<button onclick="window.__loadMeetingMemberNotes(\'' + midPS + '\', true)" style="font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;">↻ 새로고침</button></div>';
+    if (!subs.length) {
+      body += '<div style="margin-top:10px;padding:18px;border-radius:14px;background:#FFFDF8;border:1px dashed rgba(46,107,79,0.3);text-align:center;color:var(--muted);font-size:13px;">아직 가져온 문장이 없어요. 새로고침을 눌러보세요.</div>';
+    } else {
+      body += '<div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">'
+        + subs.map((x) => {
+            const label = x.r.english_name ? (x.r.member_name + ' (' + x.r.english_name + ')') : x.r.member_name;
+            return '<div style="padding:13px 15px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.18);">'
+              + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+              + '<span style="font-size:13px;font-weight:800;color:var(--ink);">' + escapeHtml(label) + '</span>'
+              + (x.ps.source === 'auto' ? '<span style="font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:8px;background:#FFF3E2;color:#9A6A1B;">자동 선정</span>' : '')
+              + '</div>'
+              + (x.ps.ko ? '<div style="margin-top:5px;font-size:12px;color:var(--ink-soft);">' + escapeHtml(x.ps.ko) + '</div>' : '')
+              + '<div style="margin-top:5px;font-size:16.5px;font-family:var(--font-mono);font-weight:700;color:#1F4D38;line-height:1.5;">' + escapeHtml(x.ps.en) + '</div></div>';
+          }).join('')
+        + '</div>';
+    }
   }
   if (s.cushionDrill) {
     const g = s.cushionDrill;
