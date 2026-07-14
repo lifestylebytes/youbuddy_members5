@@ -17221,104 +17221,37 @@ function MeetingNotesPage(meetingId) {
     page.appendChild(card);
   })();
 
-  // ── Week 1 회의록 = 한 페이지 리포트. 발표 모드(섹션 진행·체크·막힌 표현·받아적은 목표)와 자동 동기화.
+  // ── Week 1 미팅 노트 = 심플 4항목. timeline.week_note 로 서버 동기화 → 운영자 모아보기에 멤버별 표시.
   if (meta.n === 1) {
-    state.meeting_notes = state.meeting_notes || {};
-    state.meeting_notes['m1'] = state.meeting_notes['m1'] || {};
-    const wk = state.meeting_notes['m1'].week1 = state.meeting_notes['m1'].week1 || {};
-    const passes = wk.passes || [];
-    const checks = wk.checks || {};
-    const wrap = wk.wrap || {};
-    const passedWords = (typeof WEEK1_WARMUP !== 'undefined') ? WEEK1_WARMUP.filter((w, i) => passes.indexOf(i) >= 0) : [];
-
-    // 발표 모드 슬라이드(WEEK1_DECK)에서 섹션 흐름 + 체크 항목을 그대로 끌어와 "다 진행한 것처럼" 리포트로.
-    const DECK = (typeof WEEK1_DECK !== 'undefined') ? WEEK1_DECK : [];
-    const flowSecs = [];
-    DECK.forEach((sl) => { if (sl.section && flowSecs.indexOf(sl.section) < 0) flowSecs.push(sl.section); });
-    const checkSlides = [];
-    DECK.forEach((sl, di) => { if (sl.checks && sl.checks.length) checkSlides.push({ di, section: sl.section, checks: sl.checks }); });
-    // 전체 진행률 (체크 항목 기준).
-    let totalChecks = 0, doneChecks = 0;
-    checkSlides.forEach((cs) => cs.checks.forEach((_, i) => { totalChecks++; if (checks[cs.di + ':' + i]) doneChecks++; }));
-    const pct = totalChecks ? Math.round((doneChecks / totalChecks) * 100) : 0;
-
-    const rv = el('div', { class: 'card', style: { padding: '20px', borderRadius: '22px', marginBottom: '14px' } });
-    let h = '<div class="kicker" style="color:var(--orange-dark);">WEEK 1 회의 리포트 · 발표 모드와 자동 동기화</div>'
-      + '<h2 class="h2" style="margin-top:6px;font-size:21px;">오늘 회의 리포트 📋</h2>'
-      + '<div class="t-small" style="margin-top:4px;color:var(--ink-soft);">발표 모드에서 진행·체크한 내용이 그대로 정리돼요.</div>';
-
-    // 1) 오늘 진행한 흐름 (섹션 타임라인, 다 진행한 것처럼 ✓)
-    h += '<div style="margin-top:16px;font-size:13px;font-weight:800;color:var(--ink);">🗂 오늘 진행한 흐름</div>'
-      + '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">'
-      + flowSecs.map((sec) => '<span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#EAF3DE;border:1px solid rgba(107,142,78,0.35);font-size:12px;font-weight:700;color:#3B6D11;"><span style="font-size:11px;">✓</span>' + escapeHtml(sec) + '</span>').join('')
-      + '</div>';
-
-    // 2) 진행 체크리스트 (캐치업 · 마무리 체크 항목 동기화)
-    h += '<div style="margin-top:18px;display:flex;align-items:center;justify-content:space-between;gap:8px;">'
-      + '<div style="font-size:13px;font-weight:800;color:var(--ink);">✅ 진행 체크리스트</div>'
-      + '<div style="font-size:11.5px;font-weight:700;color:#3B6D11;background:#EAF3DE;border-radius:999px;padding:3px 10px;">' + doneChecks + ' / ' + totalChecks + ' 완료 · ' + pct + '%</div></div>';
-    if (checkSlides.length) {
-      checkSlides.forEach((cs) => {
-        h += '<div style="margin-top:10px;font-size:11.5px;font-weight:800;color:var(--lilac);letter-spacing:0.04em;">' + escapeHtml(cs.section) + '</div>'
-          + '<div style="margin-top:5px;display:flex;flex-direction:column;gap:5px;">'
-          + cs.checks.map((c, i) => {
-              const on = !!checks[cs.di + ':' + i];
-              return '<div style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:' + (on ? '#3B6D11' : 'var(--muted)') + ';">'
-                + '<span style="flex-shrink:0;width:17px;height:17px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;background:' + (on ? 'var(--green)' : '#fff') + ';border:1.5px solid ' + (on ? 'var(--green)' : '#CFC7B5') + ';color:#fff;margin-top:1px;">' + (on ? '✓' : '') + '</span>'
-                + '<span style="line-height:1.5;' + (on ? 'text-decoration:line-through;opacity:0.75;' : '') + '">' + escapeHtml(c) + '</span></div>';
-            }).join('')
-          + '</div>';
-      });
-    } else {
-      h += '<div style="margin-top:6px;font-size:12px;color:var(--muted);">발표 모드를 진행하면 체크 항목이 여기 동기화돼요.</div>';
-    }
-
-    // 3) 오늘 다룬 표현
-    h += '<div style="margin-top:18px;font-size:13px;font-weight:800;color:var(--ink);">📚 오늘 다룬 표현 (Day 1~4)</div>'
-      + '<div style="margin-top:6px;font-size:12.5px;line-height:1.9;color:var(--ink-soft);">' + ((CHALLENGE.weeks && CHALLENGE.weeks[0] && CHALLENGE.weeks[0].days) || []).map((d) => '<b>Day' + d.day + '</b> ' + (d.words || []).map((w) => escapeHtml(w.en)).join(' · ')).join('<br>') + '</div>';
-
-    // 4) 오늘 막힌 표현 (워밍업 패스 동기화)
-    h += '<div style="margin-top:16px;padding:13px 15px;border-radius:14px;background:#FFF1E6;border:1px solid rgba(46,107,79,0.22);">'
-      + '<div style="font-size:13px;font-weight:800;color:var(--orange-dark);">🔖 오늘 막힌 표현 <span style="font-size:11px;font-weight:600;color:var(--muted);">(발표 모드에서 표시한 것)</span></div>'
-      + (passedWords.length
-        ? '<div style="margin-top:8px;display:flex;flex-direction:column;gap:5px;">' + passedWords.map((w) => '<div style="font-size:13.5px;color:var(--ink);"><b style="font-family:var(--font-mono);color:var(--orange-dark);">' + escapeHtml(w.en) + '</b> · ' + escapeHtml(w.kr) + '</div>').join('') + '</div>'
-        : '<div style="margin-top:6px;font-size:12.5px;color:var(--muted);">발표 모드 워밍업에서 🔖 표시하면 여기 자동으로 들어와요.</div>')
-      + '</div>';
-
-    // 5) 받아적은 다음 주 목표 (발표 모드 마무리에서 저장한 것). wrap = { 멤버이름: 텍스트 } 맵 (7기 동적 로스터).
-    const wrapEntries = Object.entries(wrap).filter(([, v]) => String(v || '').trim());
-    h += '<div style="margin-top:16px;padding:13px 15px;border-radius:14px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.22);">'
-      + '<div style="font-size:13px;font-weight:800;color:#5C53A5;">📝 받아적은 다음 주 목표</div>'
-      + (wrapEntries.length
-        ? '<div style="margin-top:8px;display:flex;flex-direction:column;gap:8px;">'
-          + wrapEntries.map(([nm, tx]) => '<div style="font-size:12.5px;color:var(--ink);line-height:1.6;"><b style="color:#5C53A5;">' + escapeHtml(nm) + '</b><br>' + escapeHtml(String(tx)) + '</div>').join('')
-          + '</div>'
-        : '<div style="margin-top:6px;font-size:12.5px;color:var(--muted);">발표 모드 마무리에서 목표를 저장하면 여기 들어오고, 각자 앱 목표에도 추가돼요.</div>')
-      + '</div>';
-
-    rv.innerHTML = h;
-    page.appendChild(rv);
-
-    const memoCard = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '22px', marginBottom: '14px' } });
-    memoCard.innerHTML = '<div style="font-size:13px;font-weight:800;color:var(--ink);">📝 회의 요약 메모</div>'
-      + '<textarea class="input" style="margin-top:8px;width:100%;min-height:90px;resize:vertical;" placeholder="오늘 회의에서 다룬 것, 분위기, 메모..." oninput="window.__m1Save(\'recap\', this.value)">' + escapeHtml(wk.recap || '') + '</textarea>'
-      + '<div style="margin-top:14px;font-size:13px;font-weight:800;color:var(--ink);">📌 과제</div>'
-      + '<textarea class="input" style="margin-top:8px;width:100%;min-height:70px;resize:vertical;" placeholder="다음 주까지 해올 과제 (예: 본인 상황 영어 문단 1개)" oninput="window.__m1Save(\'homework\', this.value)">' + escapeHtml(wk.homework || '') + '</textarea>'
-      + '<button class="btn btn-primary btn-full" style="margin-top:12px;" onclick="window.__m1SaveBtn()">💾 회의록 저장</button>'
-      + '<div class="t-small" style="margin-top:6px;text-align:center;color:var(--muted);">적는 동안 자동 저장돼요. 버튼은 확인용이에요.</div>';
-    page.appendChild(memoCard);
-
-    // AI 요약 카드 숨김 (7기 미운영). 복구: false -> true
-    if (false) { // eslint-disable-line no-constant-condition
-      const aiLock = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '22px', marginBottom: '14px', background: '#F6F3EE', border: '1px dashed rgba(154,139,115,0.4)' } });
-      aiLock.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">'
-        + '<div style="flex-shrink:0;width:38px;height:38px;border-radius:12px;background:rgba(154,139,115,0.16);display:flex;align-items:center;justify-content:center;font-size:18px;">🔒</div>'
-        + '<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:800;color:var(--ink);">✨ AI 회의 요약 <span style="font-size:11px;font-weight:700;color:var(--muted);">(준비 중)</span></div>'
-        + '<div style="font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.5;">두 분이 <b>이번 주 과제(본인 상황 영어 문단)</b>를 제출하면, 회의 내용 + 과제를 묶어 AI가 한 장 리포트로 정리해드려요.</div></div></div>';
-      page.appendChild(aiLock);
-    }
-
-    return page; // Week 1 은 리포트 페이지로 완결 (아래 타임라인/AI 탭 안 씀).
+    if (!notes.timeline.week_note) notes.timeline.week_note = { cohort_goal: '', week_goal: '', missed_words: '', new_expressions: '' };
+    const wn = notes.timeline.week_note;
+    const noteCard = el('div', { class: 'card', style: { padding: '20px', borderRadius: '22px', marginTop: '14px', marginBottom: '14px' } });
+    noteCard.innerHTML = '<div class="kicker" style="color:var(--orange-dark);">WEEK 1 미팅 노트</div>'
+      + '<h2 class="h2" style="margin-top:6px;font-size:21px;">오늘 미팅에서 챙겨갈 것 ✍️</h2>'
+      + '<div class="t-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.6;">미팅 들으면서 네 칸만 채워요. 저장하면 가비도 같이 보면서 다음 주를 준비해요.</div>';
+    const wnFields = [
+      ['cohort_goal', '🎯 이번 기수 목표', '4주 뒤 내가 갖고 싶은 것 한 줄'],
+      ['week_goal', '📌 이번 주 목표', '다음 미팅(Week 2)에서 공유할 목표 한 줄'],
+      ['missed_words', '👂 안 들렸던 단어', '미팅 중 못 알아들은 단어/표현. 다음에 같이 잡아요'],
+      ['new_expressions', '✨ 새로 얻은 표현', '오늘 가져가는 표현, 업그레이드된 내 문장'],
+    ];
+    wnFields.forEach(([k, label, ph]) => {
+      const box = el('div', { style: { marginTop: '12px' } });
+      box.appendChild(el('div', { style: { fontSize: '13px', fontWeight: '800', color: 'var(--ink)', marginBottom: '6px' } }, label));
+      const ta = el('textarea', { class: 'input', rows: '2', placeholder: ph, style: { resize: 'vertical' } });
+      ta.value = wn[k] || '';
+      ta.addEventListener('input', () => { wn[k] = ta.value; saveState(); });
+      box.appendChild(ta);
+      noteCard.appendChild(box);
+    });
+    const wnSave = el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '14px' }, onClick: () => {
+      saveState();
+      try { if (typeof cloudSaveMeetingNote === 'function') cloudSaveMeetingNote(meetingId); } catch (_e) {}
+      showToast('저장됐어요! 가비도 볼 수 있어요 :)');
+    } }, '💾 노트 저장');
+    noteCard.appendChild(wnSave);
+    page.appendChild(noteCard);
+    return page; // Week 1 은 심플 노트로 완결.
   }
 
   // ── Week 2 회의록 = 한 페이지 리포트 (외국계 유머). 발표 모드(m2.week2)와 동기화.
@@ -18766,7 +18699,8 @@ function MeetingNotesPage(meetingId) {
           const hasContent = Object.keys(ROW_LABELS).some((k) => {
             const row = tl[k];
             return row && (String(row.notes || '').trim() || (Array.isArray(row.expressions) && row.expressions.length));
-          }) || !!(tl.pre_submit && (tl.pre_submit.en || '').trim());
+          }) || !!(tl.pre_submit && (tl.pre_submit.en || '').trim())
+            || !!(tl.week_note && Object.values(tl.week_note).some((v) => String(v || '').trim()));
           if (!hasContent) return;
           const memberCard = el('div', {
             style: { padding: '14px 16px', borderRadius: '14px', background: '#fff', border: '1px solid rgba(231,221,200,0.6)' }
@@ -18797,6 +18731,25 @@ function MeetingNotesPage(meetingId) {
               + (tl.pre_submit.ko ? '<div style="margin-top:5px;font-size:12px;color:var(--ink-soft);">' + escapeHtml(tl.pre_submit.ko) + '</div>' : '')
               + '<div style="margin-top:4px;font-size:13.5px;font-family:var(--font-mono);font-weight:700;color:#1F4D38;line-height:1.5;">' + escapeHtml(tl.pre_submit.en) + '</div>';
             memberCard.appendChild(psSec);
+          }
+          // 미팅 노트 4항목 (이번 기수 목표 / 이번 주 목표 / 안 들렸던 단어 / 새로 얻은 표현)
+          if (tl.week_note && Object.values(tl.week_note).some((v) => String(v || '').trim())) {
+            const WN_LABELS = [
+              ['cohort_goal', '🎯 이번 기수 목표'],
+              ['week_goal', '📌 이번 주 목표'],
+              ['missed_words', '👂 안 들렸던 단어'],
+              ['new_expressions', '✨ 새로 얻은 표현'],
+            ];
+            const wnSec = el('div', { style: { marginTop: '10px', padding: '10px 12px', borderRadius: '11px', background: '#FFF9EE', border: '1px solid rgba(154,139,115,0.25)' } });
+            let wnH = '<div class="kicker" style="font-size:10px;color:var(--orange-dark);">✍️ 미팅 노트</div>';
+            WN_LABELS.forEach(([k, label]) => {
+              const v = String((tl.week_note || {})[k] || '').trim();
+              if (!v) return;
+              wnH += '<div style="margin-top:6px;"><span style="font-size:11px;font-weight:800;color:var(--ink);">' + label + '</span>'
+                + '<div style="margin-top:2px;font-size:12.5px;color:var(--ink);line-height:1.55;white-space:pre-wrap;">' + escapeHtml(v) + '</div></div>';
+            });
+            wnSec.innerHTML = wnH;
+            memberCard.appendChild(wnSec);
           }
           // timeline rows
           allRowKeys.forEach((rowKey) => {
@@ -27384,12 +27337,12 @@ const WEEK1_DECK = [
   { section: '오프닝', kicker: 'WEEK 1 · 60분', title: '오늘 순서 한눈에',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">7기 프리미엄 버디</b> · 첫 미팅이라 서로 소개부터 가볍게.</div>'
       + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
-      + ['캐치업 · 자기소개 + 이번 기수 목표', '워밍업 · Day 1~5 표현 15개 (한국어 → 영어)', '미니 강의 · 분위기 읽는 표현 6개 깊이 파기', '문장 코칭 · 각자 가져온 문장 1개 라이브 업그레이드', '마무리 · 막힌 표현 정리 + 다음 주 예고'].map((t, i) =>
+      + ['캐치업 · 자기소개 + 이번 기수 목표', '워밍업 · Day 1~5 표현 15개 (한국어 → 영어)', '문장 코칭 · 각자 가져온 문장 라이브 업그레이드 (오늘의 메인!)', '마무리 · 막힌 표현 정리 + 다음 주 예고'].map((t, i) =>
           '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
       + '</div>'
       + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;color:var(--ink);">🎯 목표: "외운 표현을 실제로 입 밖으로 뱉어보기"</div>' },
   { section: '캐치업·골세팅', kicker: '1 · 캐치업', title: '캐치업 & 골 세팅', goalCapture: true,
-    checks: ['자기소개 + 근황 한마디씩', '이번 기수에 꼭 갖고 싶은 표현·스킬 한 줄씩', '오늘 흐름 안내: 워밍업 → 미니 강의 → 마무리'],
+    checks: ['자기소개 + 근황 한마디씩', '이번 기수에 꼭 갖고 싶은 표현·스킬 한 줄씩', '오늘 흐름 안내: 워밍업 → 문장 코칭 → 마무리'],
     html: '<div style="margin-top:6px;padding:14px 16px;border-radius:14px;background:#EAF3EE;border:1px solid rgba(46,107,79,0.25);">'
       + '<div style="font-size:12px;font-weight:800;color:#1F4D38;">✨ 4주 특별 강의 로드맵 (미리 기대 심기)</div>'
       + '<div style="margin-top:8px;font-size:13.5px;line-height:1.8;color:var(--ink);">2주차 · 논쟁의 기술 (steelman, 회의를 지배하는 말들)<br>3주차 · 위기 커뮤니케이션 (급한 불 끄는 영어)<br>4주차 · 전체 어휘 랩업 + 단어 빙고</div></div>' },
@@ -27410,27 +27363,10 @@ const WEEK1_DECK = [
     })() },
   { section: '워밍업', kicker: '2 · 워밍업 문항', title: '한국어 뜻 → 영어', worksheet: true,
     script: '"자, 1번부터요. (뜻 읽고 3초) ... 막히면 패스 표시하고, 공개 후 본인 상황 문장으로 한 번 더 입에 붙일게요."' },
-  { section: '미니 강의', kicker: '3 · 미니 강의', title: '본론 전에 쓰는 표현 6개',
-    html: (() => {
-      const line = (en, sent, syn) => '<div style="margin-top:9px;">'
-        + '<div style="font-size:15px;font-weight:800;color:#fff;font-family:var(--font-mono);border-bottom:1.5px dashed rgba(255,255,255,0.35);display:inline-block;padding-bottom:1px;">' + en + '</div>'
-        + '<div style="margin-top:4px;font-size:13px;color:#ECEFE3;line-height:1.5;">' + sent + '</div>'
-        + '<div style="margin-top:2px;font-size:11.5px;color:#A9C3A0;font-style:italic;">' + syn + '</div></div>';
-      return '<div style="background:#26331F;border-radius:18px;padding:18px;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
-        + '<div style="font-size:11px;letter-spacing:0.1em;color:#FBE7A1;font-weight:800;">📋 오늘의 칠판 · 본론 전에 쓰는 표현</div>'
-        + line("Put out feelers", "\"Before we pitch this officially, let's put out some feelers with the sales team.\"", "≈ Test the waters / Float the idea quietly")
-        + line("Float an idea", "\"Let me float an idea in the all-hands and see how people react.\"", "≈ Trial balloon / Test the reaction")
-        + line("Backchannel", "\"The deal was stuck in legal, so we backchanneled with their VP to unstick it.\"", "≈ Work it informally / Go through side channels")
-        + line("Red herring", "\"The server error was a red herring. The real bug was in the payment logic.\"", "≈ False lead / Distraction from the real issue")
-        + line("Shelve it", "\"The timing isn't right. Let's shelve it until Q4.\"", "≈ On the back burner / Holding pattern")
-        + line("Triaging", "\"We spent the morning triaging bug reports from the launch.\"", "≈ Sort by urgency / Prioritize ruthlessly")
-        + '</div>'
-        + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">진행: 각자 3개를 골라 <b>본인 상황 한 문장</b>으로 만들어 말해보기. 막히면 칠판 보고.</div>';
-    })() },
-  { section: '문장 코칭', kicker: '4 · 문장 코칭', title: '내가 가져온 문장 · 라이브 업그레이드', preSubmit: true,
+  { section: '문장 코칭', kicker: '3 · 문장 코칭', title: '내가 가져온 문장 · 라이브 업그레이드', preSubmit: true,
     checks: ['한 명당 문장 1개, 딱 하나만 업그레이드 (칭찬 먼저)', '업그레이드된 문장, 본인이 소리내어 두 번 말하기'],
     script: '"이제 각자 가져온 문장 볼게요. 완벽하게 만드는 게 아니라 딱 하나씩만 좋게 만들 거예요. 먼저 본인이 읽어주세요~"' },
-  { section: '마무리', kicker: '5 · 마무리', title: '마무리 체크리스트', passReview: true, wrapGoals: true,
+  { section: '마무리', kicker: '4 · 마무리', title: '마무리 체크리스트', passReview: true, wrapGoals: true,
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래를 하나씩 체크하며 마무리하세요.</div>',
     checks: [
       '워밍업으로 돌아가 15개 한국어→영어 한 바퀴 · 막혔던 것만 다시',
