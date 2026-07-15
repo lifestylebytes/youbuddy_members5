@@ -1,6 +1,6 @@
 # 유비챌 7기 · Week 1 미팅 영어 대본 (슬라이드별) · v7 최종 (40분)
 
-순서: 캐치업(자기소개+기수 목표) 10분 → 문장 라운드 10분 → 단어 리뷰 12개 12~15분 → PT 하는 법 소개 + 마무리 5분.
+순서: 캐치업(자기소개+기수 목표) 10분 → 문장 라운드 10분 → 회의 시뮬 12문항 12~15분 → PT 소개 + 마무리(각자 다음 주 목표 말하기) 5분.
 준비물 공지: 자기소개·기수 목표 영어로 (적어와도 OK) + Day 1~4 단어 복습 + 써볼 문장 1개.
 
 진행자(Gaby)용. 7기 첫 프리미엄 미팅 (7/16 목 21:00). 발표 모드 덱(m1) 흐름 그대로.
@@ -22,7 +22,7 @@ One ground rule before anything else: **this is the room where you're supposed t
 
 Here's a heads up about this cohort's concept. We're not doing textbook business English. The theme is **'the English outside the meeting room'**: reading the situation, testing reactions, handling a crisis, and in the final week, English for your own career, negotiating comp, performance reviews, even leaving well. Week 1 is about reading the field, the language people use before anything becomes official.
 
-Today's plan: intros and goals first, then the main event: each of you brought one sentence from your own work, and you'll tell us the story behind it and say it out loud. After that, a quick review of this week's twelve expressions with some instant sentence-making, and a short intro on how our PT presentations work. I'm not here to lecture, I'm here to pass the mic. Let's start."
+Today's plan: intros and goals first, then the main event: each of you brought one sentence from your own work, and you'll tell us the story behind it and say it out loud. After that, a meeting simulation with this week's twelve expressions, I set the scene and you answer, and a short intro on how our PT presentations work. I'm not here to lecture, I'm here to pass the mic. Let's start."
 
 (안전선언 + "오늘은 발화의 날" 선언. 강의 없음을 미리 말해두면 코칭 시간이 길어도 어색하지 않음.)
 
