@@ -28298,7 +28298,7 @@ function MeetingDeckPage() {
     const dr = window.__deckWrapDraft || {};
     const fld = (id, ph) => '<input id="' + id + '" class="input" style="margin-top:6px;" placeholder="' + ph + '" value="' + escapeHtml(dr[id] || '') + '" oninput="(window.__deckWrapDraft=window.__deckWrapDraft||{})[\'' + id + '\']=this.value" />';
     body += '<div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(154,139,115,0.3);">'
-      + '<div style="font-size:13px;font-weight:800;color:var(--ink);">📝 다음 주 목표 받아적기 → 멤버 목표에 추가</div>'
+      + '<div style="font-size:13px;font-weight:800;color:var(--ink);">📝 다음 주 사용 장면 받아적기 → 멤버 목표에 추가</div>'
       + '<div class="t-small" style="margin:4px 0 10px;color:var(--ink-soft);line-height:1.5;">저장하면 각자 앱 목표에 이어붙어요 (기존 안 지움).</div>';
     if (!roster.length) {
       body += '<div style="padding:11px 13px;border-radius:12px;background:rgba(154,139,115,0.1);border:1px dashed rgba(154,139,115,0.35);font-size:12.5px;color:var(--muted);">프리미엄 멤버 확정 후 자동으로 입력칸이 생겨요 (MEMBER_DIRECTORY).</div>';

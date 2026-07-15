@@ -1,12 +1,15 @@
-# 유비챌 7기 · Week 1 미팅 영어 대본 (슬라이드별) · v7 최종 (40분)
+# 유비챌 7기 · Week 1 미팅 영어 대본 (슬라이드별) · v8 최종 (40분, 흐름 연결 개선)
 
-순서: 캐치업(자기소개+기수 목표) 10분 → 문장 라운드 10분 → 회의 시뮬 12문항 12~15분 → PT 소개 + 마무리(각자 다음 주 목표 말하기) 5분.
+순서: 캐치업(자기소개+4주 목표) 10분 → 문장 라운드 10분 → 회의 시뮬 12문항 12~15분 → 마무리(성장 증거 짚기 + 다음 주 사용 장면 1개 + PT 소개) 5분.
 준비물 공지: 자기소개·기수 목표 영어로 (적어와도 OK) + Day 1~4 단어 복습 + 써볼 문장 1개.
 
 진행자(Gaby)용. 7기 첫 프리미엄 미팅 (7/16 목 21:00). 발표 모드 덱(m1) 흐름 그대로.
 Week 1 테마 = **Reading the Field (진행 전 분위기 파악)**. ( ) 안은 한국어 진행 메모.
 원칙: 버디는 가르치지 않는다, 마이크를 돌린다 (환경 제공자). 미니 강의 없음, 안전선언 필수,
 진단지 호명 (멤버별 내용은 코칭 시트_비공개 참고), 미팅 후엔 앱이 복습 시트로 전환됨.
+전체 서사 (한 줄로 이어지게): ① Who you are (자기소개+영어 장면) → ② What you want to build (4주 목표)
+→ ③ What you brought (내 문장) → ④ What we practice together (공통 표현을 회의 반사신경으로)
+→ ⑤ What you'll try next (새 목표 X, 다음 주 사용 장면 1개). "너의 업무에서 출발해서 다시 너의 업무로 돌아간다".
 
 **오늘의 12개 표현 (Day 1~4)** (Day 5 는 금요일 학습분이라 미팅에선 제외): Read between the lines · Put out feelers · Get a clear read on · Float an idea · Backchannel · Soft commit · As presented · Red herring · Wake-up call · With a caveat · Shelve it · Build in slack
 
@@ -32,7 +35,7 @@ Today's plan: intros and goals first, then the main event: each of you brought o
 
 ---
 
-# Slide 2 · 캐치업 & 골 세팅 (받아적기)
+# Slide 2 · 캐치업 & 4주 개인 목표 잡기 (받아적기)
 
 "First, let's get to know each other. In one minute each: your name, what you do, and where English shows up in your work, meetings, Slack, email, clients?
 
@@ -46,7 +49,7 @@ And one more thing, this matters: tell me **one expression, skill, or situation 
 "벌써 읽고 왔어요" 신호가 만족도의 절반. 멤버별 문장은 **코칭 시트** (비공개 파일) 참고.
 예: "You mentioned a big presentation coming up, we're going to build exactly that script here.")
 
-(★ 복습 시트 안내:) "One small thing: after tonight, the meeting page in the app turns into a review sheet, three boxes: your goal for next week, words you couldn't catch today, and expressions you're taking home. Fill it in tonight while it's fresh, I read every one of them."
+(★ 복습 시트 안내:) "One small thing: after tonight, the meeting page in the app turns into a review sheet, three boxes: the work moment where you'll use one of these next week, words you couldn't catch today, and expressions you're taking home. Fill it in tonight while it's fresh, I read every one of them."
 (로드맵 박스 짚기) "And a quick preview: Week 2 is the art of the argument, how to disagree like a pro. Week 3 is crisis communication, staying calm in English when things are on fire. Week 4 is my favorite, English for your own career: comp, reviews, and graceful exits. Good stuff ahead."
 
 ---
@@ -73,7 +76,9 @@ And one more thing, this matters: tell me **one expression, skill, or situation 
 
 # Slide 4 · 회의 시뮬 진행 방식
 
-"Okay, vocabulary time, but we're not doing flashcards. We're going to answer in a meeting. Here's how it works: I set the scene, someone in the meeting says something to you, and YOU give the reply. The key expression in your reply is blanked out, but you get the first letters as a hint. Say the whole sentence out loud, like you're actually in that meeting. Stuck? Just say 'pass', we mark it and come back at the end.
+(★ 전환 멘트: 개인 장면 → 공통 훈련으로 확장. "상황은 달라도 회의 감각은 같다" 연결을 꼭 말하기.)
+
+"Now that we've heard your real work situations, let's train the shared language of Week 1. This is not a vocab quiz. Think of it as twelve tiny meeting moments where these expressions would naturally come out. Your situations are all different, but the reflexes you need in a meeting are the same. Here's how it works: I set the scene, someone in the meeting says something to you, and YOU give the reply. The key expression in your reply is blanked out, but you get the first letters as a hint. Say the whole sentence out loud, like you're actually in that meeting. Stuck? Just say 'pass', we mark it and come back at the end.
 
 You're not creating sentences today, you're just answering. That's exactly how these expressions show up in real life. If a word you thought you knew doesn't come out, no shame, consider it a friendly **wake-up call**. And the situations are on screen, but **read between the lines**, they're all scenes from your actual jobs."
 
@@ -114,11 +119,17 @@ You're not creating sentences today, you're just answering. That's exactly how t
 
 # Slide 6 · 마무리 체크리스트
 
-"Let's wrap. Quick lightning round through the twelve: I say the Korean, you fire back the English, focusing on the ones you passed earlier. And before we close, two minutes on how PT presentations work from Week 2: one volunteer a week, seven minutes on your own work topic, three minutes of questions. I'll post the sign-up in the app. If volunteering publicly feels like too much, you can always **backchannel** me on KakaoTalk. And don't let 'I'm not ready' fool you, that's a **red herring**, nobody's ever ready for their first one.
+"Let's wrap. Quick lightning round through the twelve: I say the Korean, you fire back the English, focusing on the ones you passed earlier.
 
-(빠르게 한 바퀴 · 🔖 표시된 것 위주)
+(빠르게 한 바퀴 · 🔖 표시된 것 위주. ★ 끝나면 반드시 증거 짚어주기:)
 
-Now each of you, three things: your hardest expression today, your goal for next week (the one you wrote on the meeting page, say it out loud!), and how you'll review this week. I'll write them down.
+"Hold on, notice what just happened. An hour ago some of these didn't come out. Just now, they did. That's one meeting's worth of progress. You'll get nineteen more days of this."
+
+(★ 이게 오늘의 자신감 포인트. "늘었다"를 말이 아니라 방금 일어난 사실로 보여주는 것.)
+
+Before we close, let's make this practical. **Not a new goal**, you already set your goal tonight. Just one next-use moment. Tell us three things: one expression that felt hard today, **one real work moment where you could use it next week**, a meeting, an email, a Slack message, and how you'll review. I'll write them down.
+
+And two minutes on how PT presentations work from Week 2: one volunteer a week, seven minutes on your own work topic, three minutes of questions. I'll post the sign-up in the app. If volunteering publicly feels like too much, you can always **backchannel** me on KakaoTalk. And don't let 'I'm not ready' fool you, that's a **red herring**, nobody's ever ready for their first one.
 
 Homework: write one short paragraph about your own work situation using **at least three of this week's expressions**, and slip one of them into a real conversation or Slack message this week. Catch yourself using it, that's the win.
 
