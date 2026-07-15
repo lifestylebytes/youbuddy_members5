@@ -69,44 +69,44 @@ And one more thing, this matters: tell me **one expression, skill, or situation 
 
 ---
 
-# Slide 4 · 단어 리뷰 진행 방식
+# Slide 4 · 회의 시뮬 진행 방식
 
-"Okay, word review, Day 1 to 4, twelve expressions. I show you the Korean meaning only, the English is hidden. Whoever it lands on says the English **out loud**. Stuck? Just say 'pass', we mark it and move on, no pressure. Then I reveal it, and at the end I'll pick a random expression and you make an instant sentence with it, any situation from your work.
+"Okay, vocabulary time, but we're not doing flashcards. We're going to answer in a meeting. Here's how it works: I set the scene, someone in the meeting says something to you, and YOU give the reply. The key expression in your reply is blanked out, but you get the first letters as a hint. Say the whole sentence out loud, like you're actually in that meeting. Stuck? Just say 'pass', we mark it and come back at the end.
 
-The point isn't to get them all right. It's to feel exactly where you're shaky, so you know what to review tonight."
+You're not creating sentences today, you're just answering. That's exactly how these expressions show up in real life."
 
 ---
 
-# Slide 5 · 단어 리뷰 (한국어 → 영어, 12문항 + 랜덤 문장 만들기)
+# Slide 5 · 회의 시뮬 (12문항) · 상황 → 상대 대사 → 내 대답 (첫 글자 힌트)
 
-각 문항: 한국어 뜻 읽고 3초 → 멤버가 영어로 → 막히면 패스(🔖) → 공개 → "Now say it in your own sentence."
+각 문항: 상황(한국어) 읽기 → 상대방 대사 읽어주기 → 멤버가 대답 문장 전체를 소리내어 완성 → 공개 후 한 번 더.
 
-1. (행간을 읽다, 말하지 않은 진의를 파악하다) → **Read between the lines**
-   > "*The email says 'no rush,' but read between the lines, they want it this week. Also: catch the subtext.*"
-2. (본격 제안 전에 슬쩍 떠보다, 분위기를 파악하다) → **Put out feelers**
-   > "*Before we pitch this officially, let's put out some feelers with the sales team. Close cousins: test the waters.*"
-3. (상황·사람의 의중을 정확히 파악하다) → **Get a clear read on**
-   > "*I couldn't get a clear read on the client, were they in or out? Notice 'read' as a noun.*"
-4. (아이디어를 슬쩍 띄워 반응을 보다) → **Float an idea**
-   > "*Let me float an idea in the all-hands and see how people react. Softer cousin of the trial balloon.*"
-5. (공식 라인 밖 비공식 채널로 조율하다) → **Backchannel**
-   > "*The deal was stuck in legal, so we backchanneled with their VP. Diplomatic word turned office essential.*"
-6. (확답이 아닌 조건부 약속) → **Soft commit**
-   > "*I can give you a soft commit for Friday, I'll confirm after the review. Opposite of a hard commit.*"
-7. (제시된 그대로 (더 파보지 않고)) → **As presented**
-   > "*Don't take the forecast as presented. Ask what's behind the numbers. Common in approvals too: approved as presented.*"
-8. (논점을 흐리는 미끼, 헛다리) → **Red herring**
-   > "*The server error was a red herring, the real bug was in payments. Debugging conversations live on this word.*"
-9. (정신이 번쩍 들게 하는 경고 신호) → **Wake-up call**
-   > "*Losing two loyal clients in a month was a wake-up call. The jolt that makes everyone pay attention.*"
-10. (단서를 달자면) → **With a caveat**
-   > "*I'm on board, with one caveat: we revisit the budget in Q3. The professional way to say 'yes, but'.*"
-11. (계획을 일단 보류하다 (접는 건 아님)) → **Shelve it**
-   > "*The timing isn't right. Let's shelve it until Q4. Not killing it, just putting it on the shelf.*"
-12. (일정·계획에 여유분을 미리 심어두다) → **Build in slack**
-   > "*Quote them three weeks and build in some slack for QA. Promise loose, deliver early.*"
+1. (클라이언트 메일엔 "천천히"인데 이번 주에만 진행 상황 두 번 문의) 🗣️ "The email literally says 'no rush,' so we're fine, right?"
+   → 💬 "Well, if you **read between the lines**, they want it this week."
+2. (정식 제안 전에 영업팀 반응을 미리 보고 싶음) 🗣️ "Should we just send the official proposal now?"
+   → 💬 "Not yet. Let's **put out some feelers** with the sales team first."
+3. (미팅 내내 클라이언트가 애매한 리액션만) 🗣️ "So... are they in or out?"
+   → 💬 "Honestly, I couldn't **get a clear read on** them today."
+4. (두 제품 묶어 팔기 아이디어, 확신은 없음) 🗣️ "Do you want to make this an official proposal?"
+   → 💬 "Not officially. Let me just **float an idea** at the all-hands and see the reaction."
+5. (딜이 법무 검토에 몇 주째, 공식 루트 느림) 🗣️ "Legal says it'll take three more weeks."
+   → 💬 "Then let's **backchannel** with their VP and unstick it."
+6. (금요일까지 될 듯하지만 리뷰 결과에 달림) 🗣️ "Can you promise Friday?"
+   → 💬 "I can give you a **soft commit** for Friday, I'll confirm after the review."
+7. (낙관적 전망치가 그대로 승인될 분위기) 🗣️ "The forecast looks great. Approve it?"
+   → 💬 "Don't take it **as presented**. Let's ask what's behind the numbers."
+8. (다들 서버 오류만 파는데 진짜 버그는 결제 쪽) 🗣️ "So the server error is the cause, right?"
+   → 💬 "I think that's a **red herring**. The real problem is in payments."
+9. (한 달 새 단골 두 명 이탈) 🗣️ "Losing two loyal clients in one month... wow."
+   → 💬 "Yeah, that was a real **wake-up call** for the whole team."
+10. (계획 찬성, 단 예산은 3분기 재검토) 🗣️ "So you're on board with the plan?"
+   → 💬 "Yes, **with one caveat**: we revisit the budget in Q3."
+11. (좋은 아이디어지만 지금은 때가 아님) 🗣️ "Should we kill this project then?"
+   → 💬 "No, let's just **shelve it** until Q4. It's not dead."
+12. (견적 일정 빡빡, QA 변수) 🗣️ "Two weeks should be enough to quote them, right?"
+   → 💬 "Quote three weeks and **build in some slack** for QA."
 
-> "Out of twelve, how many came out instantly? The passes are exactly what we lock in now."
+> "Twelve meetings, twelve answers. The ones you passed on, those are tonight's review list."
 
 ---
 
@@ -116,7 +116,7 @@ The point isn't to get them all right. It's to feel exactly where you're shaky, 
 
 (빠르게 한 바퀴 · 🔖 표시된 것 위주)
 
-Now each of you, three things: your hardest expression today, your goal for next week, and how you'll review this week. I'll write them down.
+Now each of you, three things: your hardest expression today, your goal for next week (the one you wrote on the meeting page, say it out loud!), and how you'll review this week. I'll write them down.
 
 Homework: write one short paragraph about your own work situation using **at least three of this week's expressions**, and slip one of them into a real conversation or Slack message this week. Catch yourself using it, that's the win.
 
