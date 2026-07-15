@@ -27473,6 +27473,15 @@ function DonePopupModal() {
 // ── 7기 프리미엄 발표 모드 덱 (Week 1~4) · 콘셉트: 회의실 밖의 영어.
 // 멤버 미확정: goalCapture/wrapGoals 는 MEMBER_DIRECTORY 프리미엄 로스터를 동적으로 읽음 (확정 후 자동 활성).
 // 발표자(presenterScript) 슬라이드는 발표 신청 확정 후 추가.
+// 덱 표시용 이름: 멤버가 영어 이름을 채워뒀으면 영어 이름만, 없으면 한글 이름.
+function __rosterDisplayName(m) {
+  try {
+    const row = (memberSummaryCache && memberSummaryCache.rows || []).find((r) => r.member_name === m.name);
+    const eng = row && String(row.english_name || '').trim();
+    if (eng) return eng;
+  } catch (_e) {}
+  return m.name;
+}
 function __premiumRoster() {
   return (typeof MEMBER_DIRECTORY !== 'undefined' ? MEMBER_DIRECTORY : [])
     .filter((m) => m.tier === 'premium' && !m.isStaff && !m.hidden);
@@ -28120,7 +28129,7 @@ function MeetingDeckPage() {
       body += '<div style="padding:11px 13px;border-radius:12px;background:rgba(154,139,115,0.1);border:1px dashed rgba(154,139,115,0.35);font-size:12.5px;color:var(--muted);">프리미엄 멤버 확정 후 자동으로 입력칸이 생겨요 (MEMBER_DIRECTORY).</div>';
     } else {
       roster.forEach((m, i) => {
-        body += '<input id="__deckGoal_' + m.id + '" class="input"' + (i ? ' style="margin-top:8px;"' : '') + ' placeholder="' + escapeHtml(m.name) + ' 님 목표·상황" value="' + escapeHtml(dr[m.id] || '') + '" oninput="(window.__deckGoalDraft=window.__deckGoalDraft||{})[\'' + m.id + '\']=this.value" />';
+        body += '<input id="__deckGoal_' + m.id + '" class="input"' + (i ? ' style="margin-top:8px;"' : '') + ' placeholder="' + escapeHtml(__rosterDisplayName(m)) + ' 님 목표·상황" value="' + escapeHtml(dr[m.id] || '') + '" oninput="(window.__deckGoalDraft=window.__deckGoalDraft||{})[\'' + m.id + '\']=this.value" />';
       });
       body += '<button class="btn btn-primary btn-full" style="margin-top:10px;" onclick="window.__deckSaveGoals()">💾 저장 · 멤버 목표에 추가</button>';
     }
@@ -28181,7 +28190,7 @@ function MeetingDeckPage() {
     } else {
       body += '<div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">'
         + subs.map((x) => {
-            const label = x.r.english_name ? (x.r.member_name + ' (' + x.r.english_name + ')') : x.r.member_name;
+            const label = String(x.r.english_name || '').trim() || x.r.member_name;
             return '<div style="padding:13px 15px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.18);">'
               + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
               + '<span style="font-size:13px;font-weight:800;color:var(--ink);">' + escapeHtml(label) + '</span>'
@@ -28257,7 +28266,7 @@ function MeetingDeckPage() {
       body += '<div style="padding:11px 13px;border-radius:12px;background:rgba(154,139,115,0.1);border:1px dashed rgba(154,139,115,0.35);font-size:12.5px;color:var(--muted);">프리미엄 멤버 확정 후 자동으로 입력칸이 생겨요 (MEMBER_DIRECTORY).</div>';
     } else {
       roster.forEach((m) => {
-        body += '<div style="font-size:12px;font-weight:800;color:#1F4D38;margin:10px 0 2px;">' + escapeHtml(m.name) + ' 님</div>'
+        body += '<div style="font-size:12px;font-weight:800;color:#1F4D38;margin:10px 0 2px;">' + escapeHtml(__rosterDisplayName(m)) + ' 님</div>'
           + fld('w_' + m.id + '_goal', '다음 주 목표 한 줄') + fld('w_' + m.id + '_rev', '어떻게 복습할지');
       });
       body += '<button class="btn btn-primary btn-full" style="margin-top:12px;" onclick="window.__deckSaveWrap()">💾 저장 · 멤버 목표에 추가</button>';
