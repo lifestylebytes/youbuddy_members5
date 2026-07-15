@@ -27524,20 +27524,21 @@ function __premiumRoster() {
   return (typeof MEMBER_DIRECTORY !== 'undefined' ? MEMBER_DIRECTORY : [])
     .filter((m) => m.tier === 'premium' && !m.isStaff && !m.hidden);
 }
-const WEEK1_WARMUP = [
-  { kr: "행간을 읽다, 말하지 않은 진의를 파악하다", en: "Read between the lines" },
-  { kr: "본격 제안 전에 슬쩍 떠보다, 분위기를 파악하다", en: "Put out feelers" },
-  { kr: "상황·사람의 의중을 정확히 파악하다", en: "Get a clear read on" },
-  { kr: "아이디어를 슬쩍 띄워 반응을 보다", en: "Float an idea" },
-  { kr: "공식 라인 밖 비공식 채널로 조율하다", en: "Backchannel" },
-  { kr: "확답이 아닌 조건부 약속", en: "Soft commit" },
-  { kr: "제시된 그대로 (더 파보지 않고)", en: "As presented" },
-  { kr: "논점을 흐리는 미끼, 헛다리", en: "Red herring" },
-  { kr: "정신이 번쩍 들게 하는 경고 신호", en: "Wake-up call" },
-  { kr: "단서를 달자면", en: "With a caveat" },
-  { kr: "계획을 일단 보류하다 (접는 건 아님)", en: "Shelve it" },
-  { kr: "일정·계획에 여유분을 미리 심어두다", en: "Build in slack" },
-];
+// COHORT-SLOT(auto): Week 1 워밍업/라이트닝 목록은 그 기수 Day 1~4 단어에서 자동 생성.
+// 새 기수에서 단어가 바뀌어도 이 코드는 손대지 않음. (아래 WEEK1_SIM 만 재작성 필요)
+const WEEK1_WARMUP = (() => {
+  try {
+    const out = [];
+    for (let d = 1; d <= 4; d++) {
+      const day = (typeof getDay === 'function') ? getDay(d) : null;
+      ((day && day.words) || []).forEach((w) => out.push({ kr: w.def, en: w.en }));
+    }
+    if (out.length) return out;
+  } catch (_e) {}
+  return [];
+})();
+// COHORT-SLOT(manual): 회의 시뮬 12문항. 새 기수 단어 확정 후 재작성 필요.
+// 재생성 절차: _archive/스킬/미팅킷/README.md 의 "시뮬 생성 프롬프트" 를 Claude 에게 그대로 요청.
 // 회의 시뮬 (Slide 5): 상황 + 상대방 대사 + 내가 채울 답 (표현은 첫 글자 힌트).
 // WEEK1_WARMUP 과 같은 순서라 패스(🔖) 인덱스·마무리 라이트닝이 그대로 호환됨.
 const WEEK1_SIM = [
@@ -27565,6 +27566,7 @@ const WEEK1_DECK = [
   { section: '캐치업·골세팅', kicker: '1 · 캐치업', title: '캐치업 & 4주 개인 목표 잡기', goalCapture: true,
     checks: ['자기소개 + 근황 한마디씩', '이번 기수에 꼭 갖고 싶은 표현·스킬 한 줄씩', '오늘 흐름 안내: 문장 라운드 → 단어 리뷰 → 마무리'],
     html: '<div style="margin-top:6px;padding:14px 16px;border-radius:14px;background:#EAF3EE;border:1px solid rgba(46,107,79,0.25);">'
+      // COHORT-SLOT(manual): 4주 로드맵 문구, 기수 테마 바뀌면 아래 3줄 수정.
       + '<div style="font-size:12px;font-weight:800;color:#1F4D38;">✨ 4주 특별 강의 로드맵 (미리 기대 심기)</div>'
       + '<div style="margin-top:8px;font-size:13.5px;line-height:1.8;color:var(--ink);">2주차 · 논쟁의 기술 (steelman, 회의를 지배하는 말들)<br>3주차 · 위기 커뮤니케이션 (급한 불 끄는 영어)<br>4주차 · 전체 어휘 랩업 + 단어 빙고</div></div>' },
   { section: '문장 라운드', kicker: '2 · 문장 라운드', title: '내가 가져온 문장 · 소리내어 말하기', preSubmit: true,
