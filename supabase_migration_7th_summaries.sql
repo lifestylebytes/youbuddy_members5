@@ -12,6 +12,8 @@
 --
 -- 사고 기록 (2026-07-13 Day 1): 이 함수에 7기 시작일이 없어서 else 기본값(6기 6/8)으로
 -- 계산 → 정시 인증 전원이 지각 표시. 새 기수 시작 전 반드시 여기에 기수 추가할 것.
+-- 구제 기록 (2026-07-15 Day 3): 리마인드 알림 지연으로 인증률 하락 → 한국(+0h) 멤버 한정,
+-- 7/16(목) 오전 9시 KST 까지의 Day 3 인증을 정시 처리 (아래 late_days 예외 절. 8기 복사 시 제거!).
 --
 -- 실행: Supabase Dashboard → SQL Editor → 전체 복붙 → Run (1회)
 -- ============================================================
@@ -110,6 +112,20 @@ progress_rows as (
     coalesce(
       array_agg(day_n order by day_n) filter (
         where verified and verified_date is not null and verified_date >= deadline_date
+          -- Day 3 구제 (2026-07-15 리마인드 지연 사고): 한국(+0h) 멤버는
+          -- 7/16(목) 오전 9시 KST 이전의 인증 이벤트가 있으면 정시로 처리.
+          and not (
+            p_cohort = '7기'
+            and day_n = 3
+            and coalesce(timezone_text, '+0h') = '+0h'
+            and exists (
+              select 1 from public.challenge_verification_events e
+              where e.cohort = p_cohort
+                and e.member_key = day_rows.member_key
+                and e.verified_day = 3
+                and e.verified_at <= timestamptz '2026-07-16 09:00:00+09'
+            )
+          )
       ),
       array[]::int[]
     ) as late_days
