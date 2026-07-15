@@ -17342,51 +17342,74 @@ function MeetingNotesPage(meetingId) {
     if (!notes.timeline.week_note) notes.timeline.week_note = { cohort_goal: '', week_goal: '', missed_words: '', new_expressions: '' };
     const wn = notes.timeline.week_note;
     const isPreMeeting = dLeft === null || dLeft >= 0;
-    const noteCard = el('div', { class: 'card', style: { padding: '20px', borderRadius: '22px', marginTop: '14px', marginBottom: '14px' } });
-    noteCard.innerHTML = isPreMeeting
-      ? '<div class="kicker" style="color:var(--orange-dark);">WEEK 1 · 미팅 전 준비</div>'
-        + '<h2 class="h2" style="margin-top:6px;font-size:21px;">미팅 전 준비 ✍️</h2>'
-        + '<div class="t-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.6;">목표 두 줄 + 위의 문장 하나면 준비 끝! 목표는 미팅에서 영어로 말해봐요 (적어와도 좋아요~).</div>'
-      : '<div class="kicker" style="color:var(--orange-dark);">WEEK 1 · 복습 시트</div>'
-        + '<h2 class="h2" style="margin-top:6px;font-size:21px;">미팅 복습 시트 ✍️</h2>'
-        + '<div class="t-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.6;">미팅에서 챙긴 것들을 정리해요. 저장하면 버디도 같이 보면서 다음 주를 준비해요.</div>';
+
+    // 공용: 필드 카드 빌더
+    const buildNoteCard = (kicker, h2, desc, fields, saveLabel, topHtml) => {
+      const card = el('div', { class: 'card', style: { padding: '20px', borderRadius: '22px', marginTop: '14px', marginBottom: '14px' } });
+      card.innerHTML = '<div class="kicker" style="color:var(--orange-dark);">' + kicker + '</div>'
+        + '<h2 class="h2" style="margin-top:6px;font-size:21px;">' + h2 + '</h2>'
+        + '<div class="t-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.6;">' + desc + '</div>'
+        + (topHtml || '');
+      fields.forEach(([k, label, ph]) => {
+        const box = el('div', { style: { marginTop: '12px' } });
+        box.appendChild(el('div', { style: { fontSize: '13px', fontWeight: '800', color: 'var(--ink)', marginBottom: '6px' } }, label));
+        const ta = el('textarea', { class: 'input', rows: '2', placeholder: ph, style: { resize: 'vertical' } });
+        ta.value = wn[k] || '';
+        ta.addEventListener('input', () => { wn[k] = ta.value; saveState(); });
+        box.appendChild(ta);
+        card.appendChild(box);
+      });
+      const btn = el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '14px' }, onClick: () => {
+        saveState();
+        try { if (typeof cloudSaveMeetingNote === 'function') cloudSaveMeetingNote(meetingId); } catch (_e) {}
+        showToast('저장됐어요! 버디도 볼 수 있어요 :)');
+      } }, saveLabel);
+      card.appendChild(btn);
+      return card;
+    };
+
+    // 1) 미팅 전 준비 (미팅 전에만)
+    if (isPreMeeting) {
+      page.appendChild(buildNoteCard(
+        'WEEK 1 · 미팅 전 준비', '미팅 전 준비 ✍️',
+        '목표 두 줄 + 위의 문장 하나면 준비 끝! 목표는 미팅에서 영어로 말해봐요 (적어와도 좋아요~).',
+        [
+          ['cohort_goal', '🎯 이번 기수 목표', '4주 뒤 내가 갖고 싶은 것 한 줄'],
+          ['week_goal', '📌 다음 주 목표', '다음 미팅(Week 2)까지 해볼 것 한 줄 (미팅에서 공유해요)'],
+        ],
+        '💾 목표 저장'));
+    }
+
+    // 2) 복습 시트 (항상 표시, 미팅 전엔 미리보기 톤)
+    let psTop = '';
     if (!isPreMeeting) {
       const psDone = __preSubmitGet(meetingId);
       if (psDone) {
-        noteCard.innerHTML += '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#EAF3EE;border:1px solid rgba(46,107,79,0.2);">'
+        psTop = '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#EAF3EE;border:1px solid rgba(46,107,79,0.2);">'
           + '<div class="kicker" style="font-size:10px;color:#1F4D38;">🎒 미팅에서 써본 내 문장</div>'
           + '<div style="margin-top:4px;font-size:13.5px;font-family:var(--font-mono);font-weight:700;color:#1F4D38;line-height:1.5;">' + escapeHtml(psDone.en) + '</div></div>';
       }
     }
-    const wnFields = isPreMeeting
-      ? [
-          ['cohort_goal', '🎯 이번 기수 목표', '4주 뒤 내가 갖고 싶은 것 한 줄'],
-          ['week_goal', '📌 다음 주 목표', '다음 미팅(Week 2)까지 해볼 것 한 줄 (미팅에서 공유해요)'],
-        ]
-      : [
-          ['week_goal', '📌 다음 주 목표', '다음 미팅(Week 2)까지 해볼 것 한 줄'],
-          ['missed_words', '👂 안 들렸던 단어', '미팅 중 못 알아들은 단어/표현. 다음 주 꿀팁으로 돌아와요'],
-          ['new_expressions', '✨ 새로 얻은 표현', '미팅에서 가져온 표현, 동료의 "나라면 이렇게" 버전'],
-        ];
-    wnFields.forEach(([k, label, ph]) => {
-      const box = el('div', { style: { marginTop: '12px' } });
-      box.appendChild(el('div', { style: { fontSize: '13px', fontWeight: '800', color: 'var(--ink)', marginBottom: '6px' } }, label));
-      const ta = el('textarea', { class: 'input', rows: '2', placeholder: ph, style: { resize: 'vertical' } });
-      ta.value = wn[k] || '';
-      ta.addEventListener('input', () => { wn[k] = ta.value; saveState(); });
-      box.appendChild(ta);
-      noteCard.appendChild(box);
-    });
-    const wnSave = el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '14px' }, onClick: () => {
-      saveState();
-      try { if (typeof cloudSaveMeetingNote === 'function') cloudSaveMeetingNote(meetingId); } catch (_e) {}
-      showToast('저장됐어요! 버디도 볼 수 있어요 :)');
-    } }, isPreMeeting ? '💾 목표 저장' : '💾 복습 시트 저장');
-    noteCard.appendChild(wnSave);
-    page.appendChild(noteCard);
+    page.appendChild(buildNoteCard(
+      'WEEK 1 · 복습 시트', '미팅 복습 시트 ✍️',
+      isPreMeeting
+        ? '미팅 끝나면 그날 밤에 여기에 정리해요. 미리 구경해도 좋아요 :)'
+        : '미팅에서 챙긴 것들을 정리해요. 저장하면 버디도 같이 보면서 다음 주를 준비해요.',
+      (isPreMeeting
+        ? [
+            ['missed_words', '👂 안 들렸던 단어', '미팅 중 못 알아들은 단어/표현. 다음 주 꿀팁으로 돌아와요'],
+            ['new_expressions', '✨ 새로 얻은 표현', '미팅에서 가져온 표현, 동료의 "나라면 이렇게" 버전'],
+          ]
+        : [
+            ['week_goal', '📌 다음 주 목표', '다음 미팅(Week 2)까지 해볼 것 한 줄'],
+            ['missed_words', '👂 안 들렸던 단어', '미팅 중 못 알아들은 단어/표현. 다음 주 꿀팁으로 돌아와요'],
+            ['new_expressions', '✨ 새로 얻은 표현', '미팅에서 가져온 표현, 동료의 "나라면 이렇게" 버전'],
+          ]),
+      '💾 복습 시트 저장', psTop));
+
     // 멤버 노트 모아보기 (운영자: 본명+전체 / 멤버: 닉네임 공개 모드)
     appendMeetingSharedNotes(page, meetingId);
-    return page; // Week 1 은 심플 노트 + 모아보기로 완결.
+    return page; // Week 1 은 준비 + 복습 시트 + 모아보기로 완결.
   }
 
   // ── Week 2 회의록 = 한 페이지 리포트 (외국계 유머). 발표 모드(m2.week2)와 동기화.
