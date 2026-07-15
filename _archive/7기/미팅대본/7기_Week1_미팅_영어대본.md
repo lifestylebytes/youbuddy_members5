@@ -1,4 +1,7 @@
-# 유비챌 7기 · Week 1 미팅 영어 대본 (슬라이드별) · v6 진행자 프레임 (버디=환경 제공자)
+# 유비챌 7기 · Week 1 미팅 영어 대본 (슬라이드별) · v7 최종 (40분)
+
+순서: 캐치업(자기소개+기수 목표) 10분 → 문장 라운드 10분 → 단어 리뷰 12개 12~15분 → PT 하는 법 소개 + 마무리 5분.
+준비물 공지: 자기소개·기수 목표 영어로 (적어와도 OK) + Day 1~4 단어 복습 + 써볼 문장 1개.
 
 진행자(Gaby)용. 7기 첫 프리미엄 미팅 (7/16 목 21:00). 발표 모드 덱(m1) 흐름 그대로.
 Week 1 테마 = **Reading the Field (진행 전 분위기 파악)**. ( ) 안은 한국어 진행 메모.
@@ -22,7 +25,7 @@ One ground rule before anything else: **this is the room where you're supposed t
 
 Here's a heads up about this cohort's concept. We're not doing textbook business English. The theme is **'the English outside the meeting room'**: reading the situation, testing reactions, handling a crisis, and in the final week, English for your own career, negotiating comp, performance reviews, even leaving well. Week 1 is about reading the field, the language people use before anything becomes official.
 
-Today's plan: quick intros and goal-setting, a warm-up on this week's fifteen expressions, and then the main event: each of you brought one sentence from your own work this week, and today you get to actually say it out loud, that's the whole point. I'm not here to lecture, I'm here to pass the mic. Quick usage tips, I'll bring those in small doses starting next week. Let's start."
+Today's plan: intros and goals first, then the main event: each of you brought one sentence from your own work, and you'll tell us the story behind it and say it out loud. After that, a quick review of this week's twelve expressions with some instant sentence-making, and a short intro on how our PT presentations work. I'm not here to lecture, I'm here to pass the mic. Let's start."
 
 (안전선언 + "오늘은 발화의 날" 선언. 강의 없음을 미리 말해두면 코칭 시간이 길어도 어색하지 않음.)
 
@@ -44,20 +47,40 @@ And one more thing, this matters: tell me **one expression, skill, or situation 
 "벌써 읽고 왔어요" 신호가 만족도의 절반. 멤버별 문장은 **코칭 시트** (비공개 파일) 참고.
 예: "You mentioned a big presentation coming up, we're going to build exactly that script here.")
 
-(★ 미팅 노트 안내:) "One small thing: on the meeting page in the app there's a simple note, four boxes: your goal for this cohort, your goal for next week, words you couldn't catch today, and expressions you're taking home. Fill it in as we go or right after, I read every one of them."
+(★ 복습 시트 안내:) "One small thing: after tonight, the meeting page in the app turns into a review sheet, three boxes: your goal for next week, words you couldn't catch today, and expressions you're taking home. Fill it in tonight while it's fresh, I read every one of them."
 (로드맵 박스 짚기) "And a quick preview: Week 2 is the art of the argument, how to disagree like a pro. Week 3 is crisis communication, staying calm in English when things are on fire. Week 4 is my favorite, English for your own career: comp, reviews, and graceful exits. Good stuff ahead."
 
 ---
 
-# Slide 3 · 워밍업 진행 방식
+# Slide 3 · 문장 라운드 (Bring Your Sentence) ★ 미팅의 심장
 
-"Okay, warm-up. Here's how it works: I show you the Korean meaning only, the English is hidden. You say the English **out loud**, not in your head. If you're stuck, just say 'pass', we mark it and move on, no pressure. Then I reveal the expression and you say it one more time in your own sentence.
+(발표 모드 슬라이드에 제출 문장이 멤버별 카드로 자동 표시. 안 보이면 ↻ 새로고침.
+버디 역할 = 마이크 돌리기 + 구체적 칭찬. 교정 금지. 끝난 사람이 다음 사람을 지목하는 토스 방식.)
 
-The point isn't to get them all right. It's to feel exactly where you're shaky, so we know which three to lock in today."
+"Now the main event. Each of you brought one sentence from your real work this week. Here's the flow: first, set the scene for us, what's the situation, who are you talking to, why did you write it this way? Then read your sentence out loud. That's it. The scene-setting part is secretly the real workout, that's you speaking your work life in English."
+
+(진행 루프, 1인 약 2~3분:)
+
+1. (첫 주자만 버디가 지명, 미리 예고해둔 사람으로) "**{Name}**, kick us off. What's the situation?"
+2. (상황 설명 = 업무 용어가 입 밖으로 나오는 시간. 끊지 말고 듣기)
+3. "And the sentence, out loud?" (본인이 소리내어 읽기)
+4. (구체적 칭찬 한 줄) "I like how you used ___ there."
+5. (원하면 동료 버전) "Anyone would say it differently in your world?"
+6. "Great. Toss it to whoever's next!" (본인이 다음 사람 지목, 자연스러운 릴레이)
+
+(자동 선정 뱃지 멤버에겐 가볍게:) "The app picked this one from your week, and honestly, good pick. Next week you get to choose your own."
 
 ---
 
-# Slide 4 · 워밍업 (한국어 → 영어, 15문항)
+# Slide 4 · 단어 리뷰 진행 방식
+
+"Okay, word review, Day 1 to 4, twelve expressions. I show you the Korean meaning only, the English is hidden. Whoever it lands on says the English **out loud**. Stuck? Just say 'pass', we mark it and move on, no pressure. Then I reveal it, and at the end I'll pick a random expression and you make an instant sentence with it, any situation from your work.
+
+The point isn't to get them all right. It's to feel exactly where you're shaky, so you know what to review tonight."
+
+---
+
+# Slide 5 · 단어 리뷰 (한국어 → 영어, 12문항 + 랜덤 문장 만들기)
 
 각 문항: 한국어 뜻 읽고 3초 → 멤버가 영어로 → 막히면 패스(🔖) → 공개 → "Now say it in your own sentence."
 
@@ -85,34 +108,12 @@ The point isn't to get them all right. It's to feel exactly where you're shaky, 
    > "*The timing isn't right. Let's shelve it until Q4. Not killing it, just putting it on the shelf.*"
 12. (일정·계획에 여유분을 미리 심어두다) → **Build in slack**
    > "*Quote them three weeks and build in some slack for QA. Promise loose, deliver early.*"
-13. (이미 시작되어 진행 중인) → **Underway**
-   > "*We have three initiatives underway, anything new waits. Started and moving.*"
-14. (그 일을 처리할 여력이 있다) → **Have the cycles**
-   > "*I'd love to help, but I don't have the cycles this sprint. From CPU cycles, very tech-company.*"
-15. (급한 순서대로 분류·처치하다) → **Triaging**
-   > "*We spent the morning triaging bug reports. Straight from the emergency room.*"
 
-> "Out of fifteen, how many came out instantly? The passes are exactly what we lock in now."
+> "Out of twelve, how many came out instantly? The passes are exactly what we lock in now."
 
 ---
 
-# Slide 5 · 문장 라운드 (Bring Your Sentence) ★ 미팅의 심장
 
-(발표 모드 슬라이드에 사전 제출 문장이 멤버별 카드로 자동 표시됨. 안 보이면 ↻ 새로고침.
-직접 제출 / 자동 선정 구분 뱃지 있음. 버디 역할 = 마이크 돌리기 + 구체적 칭찬. 교정 약속 금지,
-피드백은 동료들의 "나라면 이렇게" 버전으로.)
-
-"Okay, the main event. Each of you brought one sentence from your real work this week, and it's already been through the app's AI review, so it's solid. Today's job is much simpler and much harder: **say it out loud, in front of people.** That's the muscle we're building here. Nobody's grading you."
-
-(멤버 한 명당 약 3분, 미니 강의 뺀 시간을 전부 여기에. 진행 루프:)
-
-1. "**{Name}**, this one's yours. Read it for us?" (본인이 소리내어 읽기)
-2. (구체적 칭찬 한 줄) "I like how you used ___ there, that's exactly where that expression belongs."
-3. "Was there any part you weren't sure about?" (본인이 확신 없던 곳 한 마디)
-4. (동료에게 넘기기) "Anyone want to share how YOU would say this in your world? Different version, totally welcome."
-5. "One more time, whole sentence, out loud." (본인이 한 번 더 읽고 마무리)
-
-(자동 선정 뱃지 멤버에겐 가볍게:) "The app picked this one from your week, and honestly, good pick. Next week you get to choose your own."
 
 (진행 팁: 초급 멤버 문장은 구조 1개, 고수 멤버 문장은 뉘앙스 1개로 업그레이드 종류를 다르게. 시간 남으면 마지막에:) "Anyone want a second opinion from the group? Different version, anyone?" (고수 멤버 지목해서 peer 버전 하나 받기.)
 
@@ -120,7 +121,7 @@ The point isn't to get them all right. It's to feel exactly where you're shaky, 
 
 # Slide 6 · 마무리 체크리스트
 
-"Let's wrap. Quick lightning round: I say the Korean, you fire back the English, focusing on the ones you passed earlier.
+"Let's wrap. Quick lightning round through the twelve: I say the Korean, you fire back the English, focusing on the ones you passed earlier. And before we close, two minutes on how PT presentations work from Week 2: one volunteer a week, seven minutes on your own work topic, three minutes of questions. I'll post the sign-up in the app.
 
 (빠르게 한 바퀴 · 🔖 표시된 것 위주)
 
