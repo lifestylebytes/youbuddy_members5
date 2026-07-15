@@ -16964,7 +16964,7 @@ window.__psSave = (mid) => {
   if (!en) { showToast('영어 문장을 먼저 적어주세요!'); return; }
   __preSubmitSet(mid, koEl ? koEl.value : '', en, 'manual');
   (window.__psEdit = window.__psEdit || {})[mid] = false;
-  showToast('제출 완료! 미팅에서 이 문장을 같이 다듬어요 :)');
+  showToast('제출 완료! 미팅에서 이 문장으로 연습해요 :)');
   render();
 };
 window.__psEditOn = (mid) => { (window.__psEdit = window.__psEdit || {})[mid] = true; render(); };
@@ -17177,7 +17177,7 @@ function MeetingNotesPage(meetingId) {
     const card = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '20px', marginTop: '14px', border: '1.5px solid rgba(46,107,79,0.28)', background: 'linear-gradient(145deg,#FFFDF8 55%,#EAF3EE)' } });
     let h = '<div class="kicker" style="color:#1F4D38;">BRING YOUR SENTENCE · 미팅 전 준비</div>'
       + '<div style="margin-top:6px;font-size:17px;font-weight:800;color:var(--ink);">🎒 미팅에 가져갈 내 문장 1개</div>'
-      + '<div class="t-body" style="margin-top:6px;color:var(--ink-soft);line-height:1.6;">이번 주 표현으로 만든 <b>내 업무 문장</b>을 하나 골라두세요. 미팅에서 이 문장을 라이브로 <b>딱 하나만</b> 업그레이드해요. '
+      + '<div class="t-body" style="margin-top:6px;color:var(--ink-soft);line-height:1.6;">이번 주 표현으로 만든 <b>내 업무 문장</b>을 하나 골라두세요. 미팅에서 소리 내어 직접 말해보는 문장이에요 (완벽할 필요 전혀 없어요!). '
       + (beforeMeeting ? '마감: <b>미팅 전날(수) 밤</b> · 안 골라두면 이번 주 첨삭 문장에서 자동으로 골라가요~' : '이번 미팅은 끝났어요.') + '</div>';
     if (ps && !psEdit) {
       h += '<div style="margin-top:12px;padding:13px 15px;border-radius:14px;background:#fff;border:1px solid rgba(46,107,79,0.22);">'
@@ -27340,12 +27340,12 @@ const WEEK1_DECK = [
   { section: '오프닝', kicker: 'WEEK 1 · 60분', title: '오늘 순서 한눈에',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">7기 프리미엄 버디</b> · 첫 미팅이라 서로 소개부터 가볍게.</div>'
       + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
-      + ['캐치업 · 자기소개 + 이번 기수 목표', '워밍업 · Day 1~5 표현 15개 (한국어 → 영어)', '문장 코칭 · 각자 가져온 문장 라이브 업그레이드 (오늘의 메인!)', '마무리 · 막힌 표현 정리 + 다음 주 예고'].map((t, i) =>
+      + ['캐치업 · 자기소개 + 이번 기수 목표', '워밍업 · Day 1~5 표현 15개 (한국어 → 영어)', '문장 라운드 · 각자 가져온 문장 소리내어 말하기 (오늘의 메인!)', '마무리 · 막힌 표현 정리 + 다음 주 예고'].map((t, i) =>
           '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
       + '</div>'
       + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;color:var(--ink);">🎯 목표: "외운 표현을 실제로 입 밖으로 뱉어보기"</div>' },
   { section: '캐치업·골세팅', kicker: '1 · 캐치업', title: '캐치업 & 골 세팅', goalCapture: true,
-    checks: ['자기소개 + 근황 한마디씩', '이번 기수에 꼭 갖고 싶은 표현·스킬 한 줄씩', '오늘 흐름 안내: 워밍업 → 문장 코칭 → 마무리'],
+    checks: ['자기소개 + 근황 한마디씩', '이번 기수에 꼭 갖고 싶은 표현·스킬 한 줄씩', '오늘 흐름 안내: 워밍업 → 문장 라운드 → 마무리'],
     html: '<div style="margin-top:6px;padding:14px 16px;border-radius:14px;background:#EAF3EE;border:1px solid rgba(46,107,79,0.25);">'
       + '<div style="font-size:12px;font-weight:800;color:#1F4D38;">✨ 4주 특별 강의 로드맵 (미리 기대 심기)</div>'
       + '<div style="margin-top:8px;font-size:13.5px;line-height:1.8;color:var(--ink);">2주차 · 논쟁의 기술 (steelman, 회의를 지배하는 말들)<br>3주차 · 위기 커뮤니케이션 (급한 불 끄는 영어)<br>4주차 · 전체 어휘 랩업 + 단어 빙고</div></div>' },
@@ -27366,9 +27366,9 @@ const WEEK1_DECK = [
     })() },
   { section: '워밍업', kicker: '2 · 워밍업 문항', title: '한국어 뜻 → 영어', worksheet: true,
     script: '"자, 1번부터요. (뜻 읽고 3초) ... 막히면 패스 표시하고, 공개 후 본인 상황 문장으로 한 번 더 입에 붙일게요."' },
-  { section: '문장 코칭', kicker: '3 · 문장 코칭', title: '내가 가져온 문장 · 라이브 업그레이드', preSubmit: true,
-    checks: ['한 명당 문장 1개, 딱 하나만 업그레이드 (칭찬 먼저)', '업그레이드된 문장, 본인이 소리내어 두 번 말하기'],
-    script: '"이제 각자 가져온 문장 볼게요. 완벽하게 만드는 게 아니라 딱 하나씩만 좋게 만들 거예요. 먼저 본인이 읽어주세요~"' },
+  { section: '문장 라운드', kicker: '3 · 문장 라운드', title: '내가 가져온 문장 · 소리내어 말하기', preSubmit: true,
+    checks: ['한 명씩 자기 문장 소리내어 읽기 (버디는 마이크만 돌리기)', '"여기가 확신 없었어요" 한 마디씩 · 원하면 다른 버디가 "나라면 이렇게" 버전'],
+    script: '"이제 각자 가져온 문장 읽어볼게요. 잘 읽는 자리 아니고 입 밖에 내보는 자리예요~ 편하게 읽어주세요."' },
   { section: '마무리', kicker: '4 · 마무리', title: '마무리 체크리스트', passReview: true, wrapGoals: true,
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래를 하나씩 체크하며 마무리하세요.</div>',
     checks: [
@@ -27980,7 +27980,7 @@ function MeetingDeckPage() {
       .map((r) => ({ r, ps: (r.timeline || {}).pre_submit }))
       .filter((x) => x.ps && (x.ps.en || '').trim()));
     body += '<div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">'
-      + '<span class="t-small" style="color:var(--ink-soft);">🎯 룰: 문장당 업그레이드 딱 1개 · 칭찬 먼저 · 고친 문장은 본인이 소리내어 두 번</span>'
+      + '<span class="t-small" style="color:var(--ink-soft);">🎯 룰: 본인이 소리내어 읽기 · 확신 없던 곳 한 마디 · 칭찬은 무제한</span>'
       + '<button onclick="window.__loadMeetingMemberNotes(\'' + midPS + '\', true)" style="font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;">↻ 새로고침</button></div>';
     if (!subs.length) {
       body += '<div style="margin-top:10px;padding:18px;border-radius:14px;background:#FFFDF8;border:1px dashed rgba(46,107,79,0.3);text-align:center;color:var(--muted);font-size:13px;">아직 가져온 문장이 없어요. 새로고침을 눌러보세요.</div>';
