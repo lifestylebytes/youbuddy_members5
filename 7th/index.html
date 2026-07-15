@@ -18787,17 +18787,32 @@ function MeetingNotesPage(meetingId) {
   appendMeetingSharedNotes(page, meetingId);
   function appendMeetingSharedNotes(page, meetingId) {
     const isOpStaff = !!((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
+    // 접기/펼치기 (기본 접힘, 세션 동안 기억)
+    window.__sharedNotesOpen = window.__sharedNotesOpen || {};
+    const isNotesOpen = !!window.__sharedNotesOpen[meetingId];
     const opSection = el('div', {
       class: 'card',
       style: { marginTop: '24px', padding: '20px', background: 'rgba(125,92,255,0.06)', border: '1px solid rgba(125,92,255,0.2)' }
     });
-    opSection.appendChild(el('div', {
+    const headRow = el('div', {
+      style: { cursor: 'pointer', userSelect: 'none' },
+      onClick: () => { window.__sharedNotesOpen[meetingId] = !isNotesOpen; render(); },
+    });
+    headRow.appendChild(el('div', {
       class: 'kicker',
       style: { color: 'var(--lilac)', marginBottom: '4px' }
     }, isOpStaff ? '👁 OPERATOR · 멤버 노트 모아보기' : '🤝 같이 보는 노트'));
-    opSection.appendChild(el('div', {
-      style: { fontSize: '15px', fontWeight: '700', color: 'var(--ink)', marginBottom: '4px' }
+    const titleRow = el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' } });
+    titleRow.appendChild(el('div', {
+      style: { fontSize: '15px', fontWeight: '700', color: 'var(--ink)' }
     }, isOpStaff ? '멤버들이 적은 노트 모아보기' : '다른 멤버들의 메모 함께 보기'));
+    titleRow.appendChild(el('span', { style: { fontSize: '12px', fontWeight: '700', color: 'var(--lilac)', flexShrink: '0' } }, isNotesOpen ? '접기 ▲' : '펼치기 ▼'));
+    headRow.appendChild(titleRow);
+    opSection.appendChild(headRow);
+    if (!isNotesOpen) {
+      page.appendChild(opSection);
+      return;
+    }
     opSection.appendChild(el('div', {
       class: 't-small',
       style: { color: 'var(--ink-soft)', marginBottom: '12px', lineHeight: '1.55' }
