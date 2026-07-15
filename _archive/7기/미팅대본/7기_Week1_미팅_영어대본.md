@@ -5,13 +5,10 @@
 
 진행자(Gaby)용. 7기 첫 프리미엄 미팅 (7/16 목 21:00). 발표 모드 덱(m1) 흐름 그대로.
 Week 1 테마 = **Reading the Field (진행 전 분위기 파악)**. ( ) 안은 한국어 진행 메모.
-v6 = 버디는 가르치지 않는다, 마이크를 돌린다. v5 변경 (사전 진단지 8명 반영):
-- **미니 강의 삭제.** 그 시간을 전부 멤버 발화(워밍업 + 문장 라운드)로. 표현 꿀팁은 "다음 주부터 간단히" 예고만.
-- **오프닝 안전선언 추가.** 부담감 8~10 멤버 3명. 즉석 지목 금지, 순서 미리 안내.
-- **캐치업에서 진단지 호명.** 각자의 장면·데드라인을 가비가 이미 알고 있음을 보여주기 (멤버별 내용은 코칭 시트 참고, 공개 저장소 커밋 금지).
-- 미팅 노트 4항목 안내 (기수 목표 / 주 목표 / 안 들린 단어 / 새 표현).
+원칙: 버디는 가르치지 않는다, 마이크를 돌린다 (환경 제공자). 미니 강의 없음, 안전선언 필수,
+진단지 호명 (멤버별 내용은 코칭 시트_비공개 참고), 미팅 후엔 앱이 복습 시트로 전환됨.
 
-**오늘의 15개 표현 (Day 1~5)**: Read between the lines · Put out feelers · Get a clear read on · Float an idea · Backchannel · Soft commit · As presented · Red herring · Wake-up call · With a caveat · Shelve it · Build in slack · Underway · Have the cycles · Triaging
+**오늘의 12개 표현 (Day 1~4)** (Day 5 는 금요일 학습분이라 미팅에선 제외): Read between the lines · Put out feelers · Get a clear read on · Float an idea · Backchannel · Soft commit · As presented · Red herring · Wake-up call · With a caveat · Shelve it · Build in slack
 
 ---
 
@@ -110,12 +107,6 @@ The point isn't to get them all right. It's to feel exactly where you're shaky, 
    > "*Quote them three weeks and build in some slack for QA. Promise loose, deliver early.*"
 
 > "Out of twelve, how many came out instantly? The passes are exactly what we lock in now."
-
----
-
-
-
-(진행 팁: 초급 멤버 문장은 구조 1개, 고수 멤버 문장은 뉘앙스 1개로 업그레이드 종류를 다르게. 시간 남으면 마지막에:) "Anyone want a second opinion from the group? Different version, anyone?" (고수 멤버 지목해서 peer 버전 하나 받기.)
 
 ---
 
