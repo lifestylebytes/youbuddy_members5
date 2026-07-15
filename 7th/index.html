@@ -369,6 +369,10 @@ input, textarea, select { font-family: inherit; }
 .day-note .eng-word                 { font-size: calc(var(--day-font-size, 17px) + 11px) !important; }
 .day-note .day-fs-lg                { font-size: calc(var(--day-font-size, 17px) + 3px) !important; }
 .day-note .day-fs-body              { font-size: calc(var(--day-font-size, 17px) - 3px) !important; }
+/* 아래 작성 영역(한국어/영어 입력칸)과 내 기록실(AI 리뷰)도 글자 크기 조절 반영 */
+.day-note textarea, .day-note input.input { font-size: var(--day-font-size, 17px) !important; }
+.day-note .ai-corrected { font-size: calc(var(--day-font-size, 17px) + 1px) !important; }
+.day-note .ai-feedback .t-small { font-size: calc(var(--day-font-size, 17px) - 4px) !important; }
 
 /* 7기: 가이드 투어 스포트라이트 (강조 대상만 원래 밝기 + 펄스 링, 나머지는 dim) */
 @keyframes gtPulse {
@@ -3204,7 +3208,7 @@ const KAKAO_ILLUST = `
 </svg>`;
 const GUIDED_TOUR_STEPS = [
   { page: 'home',      target: '[data-tour="home-hero"]',     title: '👋 환영해요!', bodyHtml: '여기가 홈이에요. 오늘 며칠째인지 진도가 보이고, 이 카드의 큰 버튼으로 오늘 학습을 바로 열 수 있어요.<br><br><span style="font-size:12px;color:#8A93A0;">이 안내는 조금 길어요. 중간에 그만둬도 괜찮아요. 언제든 "나" 탭 &gt; 앱 사용법 다시 보기로 다시 볼 수 있어요.</span>', body: '여기가 홈이에요. 오늘 며칠째인지 진도가 보이고, 이 카드의 큰 버튼으로 오늘 학습을 바로 열 수 있어요. (이 안내는 언제든 "나" 탭 > 앱 사용법 다시 보기로 다시 볼 수 있어요.)' },
-  { page: 'home',      target: '[data-tour="streak-board"]',  targetUnion: ['.cb-name.cb-row-me', '.cb-cell.cb-cell-me'], title: '데일리 인증 보드', bodyHtml: '여기 내 칸에 매일 인증이 쌓여요. 정시 인증은 1점, 늦으면 0.5점이에요. <b style="color:#2E6B4F;font-weight:800;">단, 4번 연속으로 참여하지 않으면 계정이 비활성화돼요</b> (다시 시작하려면 유버디에게 따로 연락주세요). 끝까지 함께 가려고 강하게 잡는 거니 참고해주세요!', body: '여기 내 칸에 매일 인증이 쌓여요. 정시 인증은 1점, 늦으면 0.5점이에요. 단, 4번 연속으로 참여하지 않으면 계정이 비활성화돼요 (다시 시작하려면 유버디에게 따로 연락주세요). 끝까지 함께 가려고 강하게 잡는 거니 참고해주세요!' },
+  { page: 'home',      target: '[data-tour="streak-board"]',  targetUnion: ['.cb-name.cb-row-me', '.cb-cell.cb-cell-me'], title: '데일리 인증 보드', bodyHtml: '여기 내 칸에 매일 인증이 쌓여요. 정시 인증은 1점, 늦으면 0.5점이에요.<br><br>자정을 지나면 인증이 안 되냐구요? 아니요! <b style="color:#2E6B4F;font-weight:800;">자정이 지나도 언제든 오셔서 학습하실 수 있어요 (지각 인증)</b>. 18일 이상 인증하면 단어집 PDF를 받아가실 수 있어요.<br><br><b style="color:#2E6B4F;font-weight:800;">단, 4번 연속으로 참여하지 않으면 계정이 비활성화돼요</b> (다시 시작하려면 유버디에게 따로 연락주세요). 끝까지 함께 가려고 강하게 잡는 거니 참고해주세요!', body: '여기 내 칸에 매일 인증이 쌓여요. 정시 인증은 1점, 늦으면 0.5점이에요. 자정이 지나도 언제든 학습할 수 있어요 (지각 인증). 18일 이상 인증하면 단어집 PDF를 받아가실 수 있어요. 단, 4번 연속으로 참여하지 않으면 계정이 비활성화돼요 (다시 시작하려면 유버디에게 따로 연락주세요).' },
   { page: 'weeks',     target: '[data-tour="tab-weeks"]',     title: '내 학습 탭', body: '오늘 학습은 이 탭이 모여있는 곳이에요. Day 1~20 페이지를 언제든 다시 볼 수 있어요.' },
   { page: 'day', opts: { day: 1, week: 1 }, target: '[data-tour="day-today3"]',      title: '① 오늘의 표현 3개', body: '먼저 오늘 배울 표현 3개를 만나요. 여기 today\'s 3 에서 오늘의 표현을 한눈에 볼 수 있어요.' },
   { page: 'day', opts: { day: 1, week: 1 }, target: '[data-tour="day-vocab-first"]',      title: '② 따라 읽기', body: '이렇게 표현이 한 장씩 카드로 나와요 (예: #1 Pull in). 🔊 버튼으로 발음을 듣고 한 번씩 소리 내어 따라 읽어요. 입으로 굴려봐야 실전에서 나와요.' },
@@ -4683,7 +4687,7 @@ const PRESENTER_KEY = (n) => 'w' + Number(n);
 const PRESENTER_FORCE_INCLUDE = {};
 const PRESENTER_FORCE_EXCLUDE = {};
 // 주차별 cap override (기본은 presenter_slots_per_week).
-const PRESENTER_CAP_OVERRIDE = {};
+const PRESENTER_CAP_OVERRIDE = { 4: 2 }; // Week 4 는 랩업이 길어 발표 2자리만 (나머지 2자리 회색 잠금). 8기 시작 전 비우기.
 function weekMeta(n) {
   return (CHALLENGE.premium.weekly_meetings || []).find((w) => Number(w.n) === Number(n)) || null;
 }
@@ -5073,6 +5077,7 @@ function requestPresenterSignups(opts = {}) {
 }
 
 async function signupPresenter(weekN) {
+  if (typeof __PT_HIDDEN !== 'undefined' && __PT_HIDDEN && !(state.isOperator || state.isStaff)) return { ok: false, error: 'HIDDEN' };
   const key = PRESENTER_KEY(weekN);
   const meta = weekMeta(weekN);
   if (!meta) return { ok: false, error: 'WEEK_NOT_FOUND' };
@@ -6041,7 +6046,7 @@ function render() {
                 ? `🎤 내 발표 준비 (Week ${thisWk.n})`
                 : rem === 0
                 ? `Week ${thisWk.n} 자리 마감 · 메모 쓰기`
-                : `Week ${thisWk.n} 발표 자리 잡기 (${rem}자리 남음)`,
+                : __PT_HIDDEN ? `Week ${thisWk.n} 미팅 준비` : `Week ${thisWk.n} 발표 자리 잡기 (${rem}자리 남음)`,
               onClick: () => {
                 if (iAmP && isPastWk) {
                   // 발표자였지만 미팅 끝남 → 사후 메모 모드 (meeting-notes 페이지)
@@ -8570,6 +8575,9 @@ function HomePage() {
         ctaLabel = '발표 준비하러 →';
       } else if (rem === 0) {
         statusLine = `자리 마감 · ${thisWk.scenario?.setting || thisWk.title}`;
+        ctaLabel = '미팅 노트 준비하기 →';
+      } else if (__PT_HIDDEN) {
+        statusLine = `${thisWk.scenario?.setting || thisWk.title}`;
         ctaLabel = '미팅 노트 준비하기 →';
       } else {
         statusLine = `${rem}자리 남음 · ${thisWk.scenario?.setting || thisWk.title}`;
@@ -14672,7 +14680,7 @@ function DayPage(dayN) {
             <span style="flex:1;min-width:0;">"${escapeHtml(fb.corrected)}"</span>
             <button type="button" class="btn-copy-ai" data-copy-text="${escapeHtml(fb.corrected)}" style="flex-shrink:0;padding:6px 10px;border-radius:999px;background:#fff;color:var(--orange-dark);border:1px solid var(--orange-soft);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">📋 복사</button>
           </div>
-          <div style="font-size:13px;margin:8px 0;line-height:1.55;">${fb.diff_html}</div>
+          <div class="day-fs-sm" style="margin:8px 0;line-height:1.55;">${fb.diff_html}</div>
           ${buildAiFeedbackHtml(fb, reconciledWhy)}
           <div class="t-small" style="margin-top:8px;color:var(--muted);font-size:11.5px;line-height:1.5;">이걸 복사해서 다시 붙여넣고 제출하면 수정돼 올라가요.</div>`;
       } else if (isFallback) {
@@ -15417,7 +15425,8 @@ function PremiumPage() {
     const iAmPresenter = isMePresenterInWeek(m.n);
     const daysTo = daysUntilMeeting(m.date);
     const isPast = daysTo !== null && daysTo < 0;
-    const cap = Number(CHALLENGE.premium.presenter_slots_per_week || 3);
+    const capBase = Number(CHALLENGE.premium.presenter_slots_per_week || 3);
+    const cap = PRESENTER_CAP_OVERRIDE[Number(m.n)] || capBase; // 축소 운영 주 반영
 
     // 카드 껍데기, 이번 주면 lilac ring, 지나간 주면 연하게.
     const card = el('div', {
@@ -15552,6 +15561,19 @@ function PremiumPage() {
             }
           }));
         }
+      }
+      // 축소 운영 주(Week 4 등): 기본 슬롯 대비 잠긴 자리는 회색 자물쇠로 표시.
+      for (let i = cap; i < capBase; i++) {
+        slotWrap.appendChild(el('div', {
+          title: '이 주는 발표 슬롯이 축소 운영돼요',
+          style: {
+            width: '30px', height: '30px', borderRadius: '50%',
+            background: 'rgba(130,124,110,0.16)',
+            border: '1px solid rgba(130,124,110,0.28)',
+            color: 'var(--muted)', fontSize: '11px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }
+        }, '🔒'));
       }
       slotsRow.appendChild(slotWrap);
 
@@ -15719,6 +15741,19 @@ function PremiumPage() {
         },
       }, `🔒 Week ${myWeekLocked} 발표 예정`);
       ctaRow.appendChild(lockedBtn);
+    } else if (__PT_HIDDEN) {
+      // PT 숨김 기간: 신청 버튼 대신 예고 필만.
+      const notesBtn = el('button', {
+        class: 'btn',
+        style: { flex: '1', minWidth: '160px', background: '#fff', color: 'var(--ink)', border: '1px solid rgba(231,221,200,0.9)' },
+        onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
+      }, hasNotes ? `📝 미팅 노트 이어쓰기 (${tpCount}개)` : '📝 미팅 노트 준비하기');
+      ctaRow.appendChild(notesBtn);
+      const soonPill = el('button', {
+        class: 'btn', disabled: true,
+        style: { background: 'rgba(169,139,184,0.08)', color: 'var(--lilac)', border: '1px dashed rgba(169,139,184,0.35)', cursor: 'default', fontSize: '12px', fontWeight: '700' },
+      }, '🎤 발표 신청 · Week 1 미팅 후 오픈');
+      ctaRow.appendChild(soonPill);
     } else {
       // 자리 남음 + 아직 signup 안함 + 미래 → 메인 CTA 는 발표 자리 잡기.
       const signupBtn = el('button', {
@@ -16475,7 +16510,19 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
    `window.__currentPresenterWeek` 힌트를 살려서 발표 블록으로
    스크롤 점프 시킴.
    ============================================================ */
+// TODO(7기): Week 1 미팅에서 PT 진행 방식 소개 후 false 로 되돌려 발표 준비/신청 오픈.
+const __PT_HIDDEN = true;
 function PresenterPrepPage(weekN) {
+  if (__PT_HIDDEN && !(state.isOperator || state.isStaff)) {
+    const page = el('div', { class: 'page' });
+    const lock = el('div', { class: 'card card-flat', style: { marginTop: '40px', textAlign: 'center', padding: '36px 24px' } });
+    lock.innerHTML = '<div style="font-size:40px;line-height:1;">🎤</div>'
+      + '<div style="margin-top:12px;font-size:17px;font-weight:800;color:var(--ink);">발표 준비 공간은 곧 열려요</div>'
+      + '<div class="t-body" style="margin-top:8px;color:var(--ink-soft);line-height:1.6;">Week 1 미팅에서 PT 진행 방식을 소개한 뒤에 열립니다!</div>';
+    page.appendChild(lock);
+    page.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, onClick: () => go('premium') }, '← 프리미엄으로'));
+    return page;
+  }
   const n = Number(weekN || window.__currentPresenterWeek || myPresenterWeek() || 1);
   // 힌트 저장, PitchPrepPage 가 어느 주차의 발표 블록을 인라인할지 결정.
   window.__currentPresenterWeek = n;
@@ -16968,25 +17015,38 @@ function __preSubmitCandidates(weekN) {
   out.sort((a, b) => ((b.reviewed ? 1 : 0) - (a.reviewed ? 1 : 0)) || (b.day - a.day));
   return out;
 }
-// 미제출 자동 선정: 세션당 1회, 프리미엄만, 미팅 D-1~D0 에만. 수동 제출은 절대 덮어쓰지 않음.
-function __maybeAutoCollectPreSubmit() {
+// 자동 선정 v2 (2026-07-15): 미팅 '당일 아침(06시 이후)' 에만 발동. 전날 자동 선정 금지.
+// 이전 로직이 일찍 만들어둔 auto 항목은 발견 즉시 회수. 수동 제출은 절대 덮지 않음.
+function __autoPreSubmitDaily() {
   if (window.__preSubmitAutoDone) return;
   window.__preSubmitAutoDone = true;
   try {
     if (state.tier !== 'premium') return;
     (CHALLENGE.premium.weekly_meetings || []).forEach((meta) => {
       const dLeft = daysUntilMeeting(meta.date);
-      if (dLeft === null || dLeft > 1 || dLeft < 0) return;
+      if (dLeft === null || dLeft < 0 || dLeft > 1) return;
       const mid = 'm' + meta.n;
-      if (__preSubmitGet(mid)) return;
+      const notes = state.meeting_notes && state.meeting_notes[mid];
+      const ps = notes && notes.timeline && notes.timeline.pre_submit;
+      if (dLeft > 0) {
+        // 미팅 전날: 자동 선정 없음. 일찍 만들어진 auto 는 회수.
+        if (ps && ps.source === 'auto') {
+          notes.timeline.pre_submit = null;
+          saveState();
+          try { if (typeof cloudSaveMeetingNote === 'function') cloudSaveMeetingNote(mid); } catch (_e) {}
+        }
+        return;
+      }
+      // 당일: 아침 6시 이후, 아무것도 없을 때만.
+      if (new Date().getHours() < 6) return;
+      if (ps && (ps.en || '').trim()) return;
       const cand = __preSubmitCandidates(meta.n)[0];
       if (!cand) return;
       __preSubmitSet(mid, '', cand.en, 'auto');
     });
   } catch (_e) {}
 }
-// 부팅 후 서버 하이드레이션이 끝날 시간을 넉넉히 주고 1회 실행.
-setTimeout(() => { try { __maybeAutoCollectPreSubmit(); } catch (_e) {} }, 12000);
+setTimeout(() => { try { __autoPreSubmitDaily(); } catch (_e) {} }, 12000);
 // 제출 UI 핸들러 (전역, onclick 문자열에서 호출)
 window.__psPickCand = (mid, idx) => {
   const c = (window.__psCand && window.__psCand[mid] || [])[idx];
@@ -17219,7 +17279,7 @@ function MeetingNotesPage(meetingId) {
     let h = '<div class="kicker" style="color:#1F4D38;">BRING YOUR SENTENCE · 미팅 전 준비</div>'
       + '<div style="margin-top:6px;font-size:17px;font-weight:800;color:var(--ink);">🎒 이번 미팅에서 써볼 문장 1개</div>'
       + '<div class="t-body" style="margin-top:6px;color:var(--ink-soft);line-height:1.6;">이번 주 표현으로 만든 <b>내 업무 문장</b>을 하나 골라두세요. 미팅에서 소리 내어 직접 말해보는 문장이에요 (완벽할 필요 전혀 없어요!). '
-      + (beforeMeeting ? '마감: <b>미팅 전날(수) 밤</b> · 안 골라두면 이번 주 첨삭 문장에서 자동으로 골라가요~' : '이번 미팅은 끝났어요.') + '</div>';
+      + (beforeMeeting ? '미팅 전까지 하나만 골라두면 돼요~ (안 골라두면 미팅 당일 아침에 이번 주 첨삭 문장에서 자동으로 골라가요!)' : '이번 미팅은 끝났어요.') + '</div>';
     if (ps && !psEdit) {
       h += '<div style="margin-top:12px;padding:13px 15px;border-radius:14px;background:#fff;border:1px solid rgba(46,107,79,0.22);">'
         + (ps.ko ? '<div style="font-size:12.5px;color:var(--ink-soft);">' + escapeHtml(ps.ko) + '</div>' : '')
