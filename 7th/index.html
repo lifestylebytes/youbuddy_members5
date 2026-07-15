@@ -17271,7 +17271,7 @@ function MeetingNotesPage(meetingId) {
     noteCard.innerHTML = isPreMeeting
       ? '<div class="kicker" style="color:var(--orange-dark);">WEEK 1 · 미팅 전 준비</div>'
         + '<h2 class="h2" style="margin-top:6px;font-size:21px;">미팅 전 준비 ✍️</h2>'
-        + '<div class="t-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.6;">이번 기수 목표 한 줄 + 아래 문장 하나면 준비 끝! 목표는 미팅에서 영어로 말해봐요 (적어와도 좋아요~).</div>'
+        + '<div class="t-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.6;">목표 두 줄 + 위의 문장 하나면 준비 끝! 목표는 미팅에서 영어로 말해봐요 (적어와도 좋아요~).</div>'
       : '<div class="kicker" style="color:var(--orange-dark);">WEEK 1 · 복습 시트</div>'
         + '<h2 class="h2" style="margin-top:6px;font-size:21px;">미팅 복습 시트 ✍️</h2>'
         + '<div class="t-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.6;">미팅에서 챙긴 것들을 정리해요. 저장하면 버디도 같이 보면서 다음 주를 준비해요.</div>';
@@ -17286,9 +17286,10 @@ function MeetingNotesPage(meetingId) {
     const wnFields = isPreMeeting
       ? [
           ['cohort_goal', '🎯 이번 기수 목표', '4주 뒤 내가 갖고 싶은 것 한 줄'],
+          ['week_goal', '📌 다음 주 목표', '다음 미팅(Week 2)까지 해볼 것 한 줄 (미팅에서 공유해요)'],
         ]
       : [
-          ['week_goal', '📌 이번 주 목표', '다음 미팅(Week 2)에서 공유할 목표 한 줄'],
+          ['week_goal', '📌 다음 주 목표', '다음 미팅(Week 2)까지 해볼 것 한 줄'],
           ['missed_words', '👂 안 들렸던 단어', '미팅 중 못 알아들은 단어/표현. 다음 주 꿀팁으로 돌아와요'],
           ['new_expressions', '✨ 새로 얻은 표현', '미팅에서 가져온 표현, 동료의 "나라면 이렇게" 버전'],
         ];
