@@ -1681,6 +1681,7 @@ const defaultState = () => ({
   nonparticipant_list: [],          // ['강태윤', ...] Week 1 무참여자, 대시보드 맨 아래로 + 향후 기능 제한 대상.
   recording_popup_seen: {},         // { "m1": true } 미팅 다시보기 팝업을 본 상태. 한 번 X 누르면 다시 안 뜸.
   daily_funfact_seen: {},           // { "d6": true } 홈 '오늘의 한 입' 팝업을 그날 본 상태 (하루 1회).
+  meeting_prep_popup_seen: {},      // { "m1": "2026-07-15" } 미팅 사전 예습 팝업을 그날 본 상태 (하루 1회, 저장하면 영구 스킵).
   daily_done_popup_seen: {},        // { "d6": true } '오늘 마무리' 완료 팝업을 그날 본 상태 (하루 1회).
   weekly_quiz_popup_seen: {},       // { "v1": true } 주간 퀴즈/보상 안내 팝업 본 상태. 버전별 키로 다음 주차 새 팝업 재발행 가능.
   friday_redirect_seen: {},         // { "1": true }, Day 5/10/15/20 (= 매주 금요일) 자동 시험 페이지 redirect 본 상태. 주차별 1회만 redirect.
@@ -1756,6 +1757,7 @@ const PERSISTED_STATE_KEYS = [
   'week_survey',
   'week_survey_nudged',
   'daily_funfact_seen',
+  'meeting_prep_popup_seen',
   'daily_done_popup_seen',
   'final_test',
   'final_downloads',
@@ -3099,6 +3101,7 @@ let showWeekWrapupPopup = null; // weekN, 매주 금요일 (Day 5/10/15/20) 자�
 let showBestPopup = null; // 이번주 베스트(만점자+최초완주) 팝업 데이터. 현재 운영자 미리보기 전용.
 let showReviewUnlockPopup = false; // Week 2(Day 6) 진입 시 '내 약점 복습' 기능 해제 온보딩 팝업.
 let showFunFactPopup = null; // 홈 진입 시 하루 1회 '오늘의 한 입' (날짜별 고정). true 면 노출.
+let showMeetingPrepPopup = null; // meetingId. 프리미엄 미팅 D-1~당일, 사전 준비(목표+문장) 안 한 멤버에게 하루 1회.
 let showDonePopup = null;    // 그날 인증 완료 후 1회 '오늘 마무리' (스트릭/동료 상태별 분기).
 // '내 약점 복습' 기능은 Week 2(Day 6)부터 해제. 다음 기수도 동일(코호트 무관, currentDay 기준).
 function reviewFeatureUnlocked() { return (Number(state.currentDay) || 1) >= 6 || ((state.isOperator || state.isStaff) && !state.operatorViewAsMember); }
@@ -3117,7 +3120,7 @@ function anyPopupOpen() {
   return !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
     || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup
-    || showFunFactPopup || showDonePopup || showPremiumPresurvey);
+    || showFunFactPopup || showDonePopup || showPremiumPresurvey || showMeetingPrepPopup);
 }
 
 function go(page, opts={}) {
@@ -6223,6 +6226,15 @@ function render() {
       if (stale) stale.remove();
     }
 
+    if (showMeetingPrepPopup) {
+      if (!document.querySelector('[data-meeting-prep-popup]')) {
+        document.body.appendChild(MeetingPrepPopupModal(showMeetingPrepPopup));
+      }
+    } else {
+      const stale2 = document.querySelector('[data-meeting-prep-popup]');
+      if (stale2) stale2.remove();
+    }
+
     // Mobile modal scroll fix: lock body scroll while any modal is open so the
     // modal's own overflow-y:auto picks up touch scrolling instead of the page
     // behind it bubbling. 취소/저장 버튼이 모바일에서 안 닿던 문제.
@@ -8144,6 +8156,33 @@ function HomePage() {
         showPremiumPresurvey = true;
         render();
       }, 650);
+    }
+  } catch (e) {}
+
+  // 미팅 사전 예습 팝업: 프리미엄만, 미팅 D-1~당일, 준비(목표 or 문장 직접제출) 안 한 멤버에게 하루 1회.
+  try {
+    const __prepMemberish = !(state.isOperator || state.isStaff) || state.operatorViewAsMember;
+    if (state.tier === 'premium' && state.onboarded && __prepMemberish && guidedTourStep === null && !anyPopupOpen()) {
+      const meetings = (CHALLENGE.premium && CHALLENGE.premium.weekly_meetings) || [];
+      const target = meetings.find((m) => { const dl = daysUntilMeeting(m.date); return dl !== null && dl >= 0 && dl <= 1; });
+      if (target) {
+        const mid = 'm' + target.n;
+        const wn = ((state.meeting_notes[mid] || {}).timeline || {}).week_note || {};
+        const ps = __preSubmitGet(mid);
+        const prepared = !!String(wn.cohort_goal || '').trim() || !!(ps && ps.source === 'manual');
+        const t = new Date();
+        const todayStr = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+        const seenToday = (state.meeting_prep_popup_seen || {})[mid] === todayStr;
+        if (!prepared && !seenToday && currentPage !== 'meeting-notes' && !window.__prepPopupArmed) {
+          window.__prepPopupArmed = true;
+          setTimeout(() => {
+            if (guidedTourStep !== null || anyPopupOpen() || currentPage === 'meeting-notes') return;
+            state.meeting_prep_popup_seen = state.meeting_prep_popup_seen || {};
+            state.meeting_prep_popup_seen[mid] = todayStr; try { saveState(); } catch (e) {}
+            showMeetingPrepPopup = mid; render();
+          }, 900);
+        }
+      }
     }
   } catch (e) {}
 
@@ -27247,6 +27286,31 @@ function __buildFunFact(day) {
 window.__closeFunFact = () => { showFunFactPopup = null; window.__funfactPreviewDay = null; render(); };
 window.__previewFunFact = () => { showSettings = null; window.__funfactPreviewDay = Number(state.currentDay) || 1; showFunFactPopup = true; render(); };
 window.__funfactNav = (delta) => { const cur = window.__funfactPreviewDay || Number(state.currentDay) || 1; window.__funfactPreviewDay = Math.max(1, Math.min(20, cur + delta)); const ex = document.querySelector('[data-funfact-popup]'); if (ex) ex.remove(); render(); };
+window.__closeMeetingPrep = () => { showMeetingPrepPopup = null; render(); };
+window.__goMeetingPrep = (mid) => {
+  showMeetingPrepPopup = null;
+  window.__currentMeetingId = mid;
+  go('meeting-notes');
+};
+function MeetingPrepPopupModal(mid) {
+  const n = parseInt(String(mid).replace('m', ''), 10);
+  const meta = (CHALLENGE.premium.weekly_meetings || []).find((x) => Number(x.n) === n) || {};
+  const dl = meta.date ? daysUntilMeeting(meta.date) : null;
+  const when = dl === 0 ? '오늘 밤 9시' : '내일 밤 9시';
+  const wrap = el('div', { 'data-meeting-prep-popup': '1', style: { position: 'fixed', inset: '0', zIndex: '9700', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' } });
+  const bd = el('div', { style: { position: 'absolute', inset: '0', background: 'rgba(30,26,18,0.55)', backdropFilter: 'blur(3px)' }, onClick: () => window.__closeMeetingPrep() });
+  wrap.appendChild(bd);
+  const card = el('div', { style: { position: 'relative', width: '100%', maxWidth: '400px', background: '#FFFDF8', borderRadius: '22px', padding: '24px 22px', boxShadow: '0 18px 50px rgba(0,0,0,0.25)' } });
+  card.innerHTML = '<button onclick="window.__closeMeetingPrep()" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:13px;color:var(--muted);">✕</button>'
+    + '<div style="font-size:34px;line-height:1;">📝</div>'
+    + '<div class="kicker" style="margin-top:10px;color:#1F4D38;">WEEK ' + n + ' 미팅 · ' + when + '</div>'
+    + '<div style="margin-top:6px;font-size:18px;font-weight:800;color:var(--ink);line-height:1.35;">미팅 사전 예습을 시작해주세요 :)</div>'
+    + '<div class="t-body" style="margin-top:8px;color:var(--ink-soft);line-height:1.65;">2분이면 끝나요~<br>① 이번 기수 목표 한 줄<br>② 미팅에서 써볼 문장 1개 (이번 주 첨삭 문장에서 탭 한 번!)</div>'
+    + '<button class="btn btn-primary btn-full" style="margin-top:16px;" onclick="window.__goMeetingPrep(\'' + mid + '\')">지금 채우러 가기 →</button>'
+    + '<button class="btn btn-full" style="margin-top:8px;background:transparent;border:1px solid var(--line);color:var(--ink-soft);" onclick="window.__closeMeetingPrep()">나중에 할게요</button>';
+  wrap.appendChild(card);
+  return wrap;
+}
 function FunFactPopupModal() {
   const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
   overlay.setAttribute('data-funfact-popup', '1');
