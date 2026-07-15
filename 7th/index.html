@@ -17251,7 +17251,9 @@ function MeetingNotesPage(meetingId) {
     } }, '💾 노트 저장');
     noteCard.appendChild(wnSave);
     page.appendChild(noteCard);
-    return page; // Week 1 은 심플 노트로 완결.
+    // 멤버 노트 모아보기 (운영자: 본명+전체 / 멤버: 닉네임 공개 모드)
+    appendMeetingSharedNotes(page, meetingId);
+    return page; // Week 1 은 심플 노트 + 모아보기로 완결.
   }
 
   // ── Week 2 회의록 = 한 페이지 리포트 (외국계 유머). 발표 모드(m2.week2)와 동기화.
@@ -18626,7 +18628,8 @@ function MeetingNotesPage(meetingId) {
   // 데이터는 challenge_member_state.app_state.meeting_notes[meetingId].timeline 에서
   // get_cohort_meeting_notes RPC 로 추출됨. RPC 권한 anon/authenticated 둘 다 열려있어 OK.
   // ──────────────────────────────────────────────────────────────────────
-  {
+  appendMeetingSharedNotes(page, meetingId);
+  function appendMeetingSharedNotes(page, meetingId) {
     const isOpStaff = !!((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
     const opSection = el('div', {
       class: 'card',
