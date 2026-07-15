@@ -14353,7 +14353,7 @@ function DayPage(dayN) {
   const s2Head = el('div', { class: 'step-head' });
   s2Head.innerHTML = '<div class="step-num" style="width:58px;height:58px;border-radius:18px;font-size:22px;">2</div><div><div class="kicker">CARD 2 · KOREAN → ENGLISH</div><div class="h2" style="margin-top:6px;font-size:28px;">한국어 보고 영어로 만들기 <span style="color:var(--muted);font-weight:500;">· 5분</span></div></div>';
   s2.appendChild(s2Head);
-  s2.appendChild(el('p', { class: 't-body', style: { marginTop: '16px', fontSize: '18px', lineHeight: '1.55' } }, '먼저 내 상황을 한국어로 짧게 적고, 그다음 오늘 표현을 넣어 영어 한 문장으로 바꿔보세요. 커뮤니티에는 최종 영어 문장만 올라가요.'));
+  s2.appendChild(el('p', { class: 't-body day-fs-lg', style: { marginTop: '16px', fontSize: '18px', lineHeight: '1.55' } }, '먼저 내 상황을 한국어로 짧게 적고, 그다음 오늘 표현을 넣어 영어 한 문장으로 바꿔보세요. 커뮤니티에는 최종 영어 문장만 올라가요.'));
   const sentenceNotice = el('div', {
     style: {
       marginTop: '14px',
@@ -14365,10 +14365,10 @@ function DayPage(dayN) {
   });
   sentenceNotice.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-      <div style="font-size:14px;line-height:1.5;color:var(--ink);font-weight:700;">인증하려면 문장 3개를 모두 <b>제출</b>해야 해요.</div>
+      <div class="day-fs-sm" style="line-height:1.5;color:var(--ink);font-weight:700;">인증하려면 문장 3개를 모두 <b>제출</b>해야 해요.</div>
       <span class="badge ${allSentenceDone ? 'badge-green' : 'badge-orange'}">제출 ${submittedCount}/3</span>
     </div>
-    <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">흐름은 <b>한국어 한 문장 → 영어 한 문장</b>이에요. AI 리뷰는 선택이고, 커뮤니티에는 영어 문장만 공유돼요.</div>
+    <div class="t-small day-fs-body" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">흐름은 <b>한국어 한 문장 → 영어 한 문장</b>이에요. AI 리뷰는 선택이고, 커뮤니티에는 영어 문장만 공유돼요.</div>
     ${(state.tier === 'basic' && !basicUnlimitedPromoActive()) ? `<div class="t-small" style="margin-top:6px;color:var(--orange-dark);line-height:1.5;"><b>베이직</b>은 문장마다 AI 리뷰를 <b>1번씩만</b> 사용할 수 있어요. 현재: ${basicAiUsed}/3</div>` : ''}
   `;
   s2.appendChild(sentenceNotice);
@@ -14402,20 +14402,20 @@ function DayPage(dayN) {
     });
     promptBox.innerHTML = `
       <div class="kicker" style="font-size:10px;color:var(--orange-dark);">이런 상황, 내 업무로 바꿔 쓴다면?</div>
-      <div style="margin-top:8px;font-size:18px;line-height:1.45;font-weight:700;color:var(--ink);word-break:keep-all;">${escapeHtml(koreanRecallHint(w))}</div>
+      <div class="day-fs-lg" style="margin-top:8px;line-height:1.45;font-weight:700;color:var(--ink);word-break:keep-all;">${escapeHtml(koreanRecallHint(w))}</div>
       ${w.ex_en ? `
         <details style="margin-top:10px;">
           <summary style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;list-style:none;font-size:11px;font-weight:700;color:var(--orange-dark);padding:6px 10px;border-radius:999px;background:rgba(46,107,79,0.08);border:1px dashed rgba(46,107,79,0.4);user-select:none;">
             <span style="font-family:var(--font-mono);letter-spacing:0.04em;">영어 예시 컨닝</span>
             <span style="font-size:10px;opacity:0.7;">(살짝만 보고 닫기!)</span>
           </summary>
-          <div style="margin-top:8px;padding:10px 14px;border-radius:14px;background:#FFF7EB;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;line-height:1.5;color:var(--ink);word-break:keep-all;">${escapeHtml(w.ex_en)}</div>
+          <div class="day-fs-sm" style="margin-top:8px;padding:10px 14px;border-radius:14px;background:#FFF7EB;border:1px solid rgba(46,107,79,0.2);line-height:1.5;color:var(--ink);word-break:keep-all;">${escapeHtml(w.ex_en)}</div>
         </details>
       ` : ''}
-      <div style="margin-top:10px;font-size:12.5px;line-height:1.55;color:var(--muted);word-break:keep-all;">※ 위 예시를 그대로 번역하지 마세요. <b style="color:var(--orange-dark);">내 업무 장면</b>을 떠올려서 <b style="color:var(--orange-dark);">${escapeHtml(w.en)}</b>(${escapeHtml(w.def)})를 자연스럽게 넣은 <b>내 문장</b>을 만들어보세요.</div>
+      <div class="day-fs-body" style="margin-top:10px;line-height:1.55;color:var(--muted);word-break:keep-all;">※ 위 예시를 그대로 번역하지 마세요. <b style="color:var(--orange-dark);">내 업무 장면</b>을 떠올려서 <b style="color:var(--orange-dark);">${escapeHtml(w.en)}</b>(${escapeHtml(w.def)})를 자연스럽게 넣은 <b>내 문장</b>을 만들어보세요.</div>
       <div style="margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span class="badge" style="padding:6px 12px;font-size:10px;background:var(--paper);color:var(--ink-soft);font-family:var(--font-mono);">오늘 쓸 표현</span>
-        <span style="font-size:13px;color:var(--ink-soft);"><b style="color:var(--orange-dark);">${escapeHtml(w.en)}</b> · ${escapeHtml(w.def)}</span>
+        <span class="day-fs-sm" style="color:var(--ink-soft);"><b style="color:var(--orange-dark);">${escapeHtml(w.en)}</b> · ${escapeHtml(w.def)}</span>
       </div>
     `;
     // Card 2 의 유의어 한 끗 차이, 프리미엄 전용. flat 디자인 + 라일락 left accent
@@ -14443,9 +14443,9 @@ function DayPage(dayN) {
             const onClick = `window.__speakText(${JSON.stringify(String(s || ''))})`.replace(/"/g, '&quot;');
             return `
             <div>
-              <div style="display:flex;align-items:center;flex-wrap:wrap;font-size:14px;font-weight:800;color:#7B5E8C;font-family:var(--font-mono);letter-spacing:-0.01em;">${escapeHtml(s)}<button onclick="${onClick}" type="button" title="듣기" style="background:transparent;border:none;color:var(--lilac);cursor:pointer;padding:2px 6px;border-radius:6px;display:inline-flex;align-items:center;vertical-align:middle;line-height:1;margin-left:4px;">${Icon('volume', 13)}</button></div>
-              <div style="margin-top:3px;font-size:12.5px;color:var(--ink-soft);font-weight:600;line-height:1.5;">${escapeHtml(synonymMeaning(s))}</div>
-              <div style="margin-top:4px;font-size:12px;line-height:1.55;color:var(--ink);">${escapeHtml(synonymNuance(w, s))}</div>
+              <div class="day-fs-text" style="display:flex;align-items:center;flex-wrap:wrap;font-weight:800;color:#7B5E8C;font-family:var(--font-mono);letter-spacing:-0.01em;">${escapeHtml(s)}<button onclick="${onClick}" type="button" title="듣기" style="background:transparent;border:none;color:var(--lilac);cursor:pointer;padding:2px 6px;border-radius:6px;display:inline-flex;align-items:center;vertical-align:middle;line-height:1;margin-left:4px;">${Icon('volume', 13)}</button></div>
+              <div class="day-fs-body" style="margin-top:3px;color:var(--ink-soft);font-weight:600;line-height:1.5;">${escapeHtml(synonymMeaning(s))}</div>
+              <div class="day-fs-body" style="margin-top:4px;line-height:1.55;color:var(--ink);">${escapeHtml(synonymNuance(w, s))}</div>
             </div>
           `;}).join('')}
         </div>
@@ -15042,11 +15042,11 @@ function DayPage(dayN) {
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
           <div>
             <div class="kicker" style="color:var(--green);">COMPARE AFTER TRYING</div>
-            <div style="margin-top:4px;font-size:15px;font-weight:700;color:var(--ink);">좋아요. 이제 아래에서 동료 문장과 비교해볼 수 있어요.</div>
+            <div class="day-fs-text" style="margin-top:4px;font-weight:700;color:var(--ink);">좋아요. 이제 아래에서 동료 문장과 비교해볼 수 있어요.</div>
           </div>
           <span class="badge badge-green" style="font-size:10px;">LIVE ${peers.length}</span>
         </div>
-        <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">먼저 쓴 뒤에 비교하면, 표현이 더 오래 남고 내 문장도 더 선명해져요.</div>
+        <div class="t-small day-fs-body" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">먼저 쓴 뒤에 비교하면, 표현이 더 오래 남고 내 문장도 더 선명해져요.</div>
       `;
       peerWrap.appendChild(compareBanner);
 
@@ -15057,8 +15057,8 @@ function DayPage(dayN) {
       peerHead.innerHTML = `
         <div>
           <div class="kicker">SUBMIT THEN COMPARE · LIVE</div>
-          <div class="h2" style="margin-top:4px;font-size:18px;">다른 사람들은 이렇게 썼어요</div>
-          <div class="t-small" style="margin-top:4px;font-size:12px;color:var(--ink-soft);line-height:1.5;">먼저 써본 다음 비교하면, 표현의 차이와 톤이 더 잘 보입니다.</div>
+          <div class="h2 day-fs-lg" style="margin-top:4px;">다른 사람들은 이렇게 썼어요</div>
+          <div class="t-small day-fs-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.5;">먼저 써본 다음 비교하면, 표현의 차이와 톤이 더 잘 보입니다.</div>
         </div>
         <span class="badge badge-orange" style="font-size:10px;">TOP ${peerTop.length}</span>`;
       peerWrap.appendChild(peerHead);
@@ -15082,8 +15082,8 @@ function DayPage(dayN) {
             </div>
             <span class="syn-chip" style="font-size:10px;padding:4px 10px;">${escapeHtml(word)}</span>
           </div>
-          <div style="font-size:13px;line-height:1.55;color:var(--ink);">${highlighted}</div>
-          <div class="t-small" style="margin-top:6px;color:var(--ink-soft);font-size:11.5px;line-height:1.5;">${escapeHtml(p.translation || '')}</div>
+          <div class="day-fs-sm" style="line-height:1.55;color:var(--ink);">${highlighted}</div>
+          <div class="t-small day-fs-body" style="margin-top:6px;color:var(--ink-soft);line-height:1.5;">${escapeHtml(p.translation || '')}</div>
           <div style="display:flex;gap:14px;margin-top:10px;align-items:center;">
             <span class="t-small" style="font-size:11px;color:var(--muted);">♥ ${p.likes || 0}</span>
             <span class="t-small" style="font-size:11px;color:var(--muted);cursor:pointer;" onclick="window.go('community')">↗ 커뮤니티에서 더 보기</span>
@@ -15111,7 +15111,7 @@ function DayPage(dayN) {
       });
       locked.innerHTML = `
         <div class="kicker">UNLOCK AFTER FIRST TRY</div>
-        <div style="margin-top:6px;font-size:18px;font-weight:700;color:var(--ink);">내 문장 1개를 먼저 써보면 동료 문장이 열려요.</div>
+        <div class="day-fs-lg" style="margin-top:6px;font-weight:700;color:var(--ink);">내 문장 1개를 먼저 써보면 동료 문장이 열려요.</div>
         <div class="t-small" style="margin-top:8px;color:var(--ink-soft);line-height:1.55;">초반엔 참고보다 회상이 더 중요합니다. 먼저 내 문장을 꺼내 본 뒤 비교하는 흐름이 학습 효과가 더 좋아요.</div>
       `;
       peerWrap.appendChild(locked);
