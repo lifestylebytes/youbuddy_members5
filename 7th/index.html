@@ -17281,10 +17281,10 @@ function MeetingNotesPage(meetingId) {
   page.appendChild(hero);
 
   // ── 미팅 전 준비: 내 문장 1개 가져가기 (사전 제출) ──
-  (() => {
+  const __preSubmitCard = (() => {
     const mid = meetingId;
     // 미팅이 지나면 이 카드는 숨김 (복습 시트가 대신 나옴)
-    if (!(dLeft === null || dLeft >= 0)) return;
+    if (!(dLeft === null || dLeft >= 0)) return null;
     const ps = __preSubmitGet(mid);
     const psEdit = (window.__psEdit = window.__psEdit || {})[mid];
     const beforeMeeting = dLeft === null || dLeft >= 0;
@@ -17334,8 +17334,10 @@ function MeetingNotesPage(meetingId) {
           '🙌 문장 가져온 버디 (' + names.length + '): ' + names.join(' · ')));
       }
     }
-    page.appendChild(card);
+    return card;
   })();
+  // Week 1 은 아래 '미팅 전 준비' 카드 안에 들어가고, 그 외 주는 독립 카드로.
+  if (__preSubmitCard && Number(meta.n) !== 1) page.appendChild(__preSubmitCard);
 
   // ── Week 1 미팅 노트 = 심플 4항목. timeline.week_note 로 서버 동기화 → 운영자 모아보기에 멤버별 표시.
   if (meta.n === 1) {
@@ -17344,9 +17346,13 @@ function MeetingNotesPage(meetingId) {
     const isPreMeeting = dLeft === null || dLeft >= 0;
 
     // 공용: 필드 카드 빌더
-    const buildNoteCard = (kicker, h2, desc, fields, saveLabel, topHtml) => {
-      const card = el('div', { class: 'card', style: { padding: '20px', borderRadius: '22px', marginTop: '14px', marginBottom: '14px' } });
-      card.innerHTML = '<div class="kicker" style="color:var(--orange-dark);">' + kicker + '</div>'
+    const buildNoteCard = (kicker, h2, desc, fields, saveLabel, topHtml, active) => {
+      const activeStyle = active
+        ? { border: '2px solid rgba(46,107,79,0.55)', boxShadow: '0 0 0 4px rgba(46,107,79,0.10)' }
+        : {};
+      const card = el('div', { class: 'card', style: Object.assign({ padding: '20px', borderRadius: '22px', marginTop: '14px', marginBottom: '14px' }, activeStyle) });
+      card.innerHTML = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><div class="kicker" style="color:var(--orange-dark);">' + kicker + '</div>'
+        + (active ? '<span style="font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;background:#2E6B4F;color:#fff;">👉 지금 할 일</span>' : '') + '</div>'
         + '<h2 class="h2" style="margin-top:6px;font-size:21px;">' + h2 + '</h2>'
         + '<div class="t-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.6;">' + desc + '</div>'
         + (topHtml || '');
@@ -17370,14 +17376,24 @@ function MeetingNotesPage(meetingId) {
 
     // 1) 미팅 전 준비 (미팅 전에만)
     if (isPreMeeting) {
-      page.appendChild(buildNoteCard(
+      const prep = buildNoteCard(
         'WEEK 1 · 미팅 전 준비', '미팅 전 준비 ✍️',
-        '목표 두 줄 + 위의 문장 하나면 준비 끝! 목표는 미팅에서 영어로 말해봐요 (적어와도 좋아요~).',
+        '목표 두 줄 + 아래 문장 하나면 준비 끝! 목표는 미팅에서 영어로 말해봐요 (적어와도 좋아요~).',
         [
           ['cohort_goal', '🎯 이번 기수 목표', '4주 뒤 내가 갖고 싶은 것 한 줄'],
           ['week_goal', '📌 다음 주 목표', '다음 미팅(Week 2)까지 해볼 것 한 줄 (미팅에서 공유해요)'],
         ],
-        '💾 목표 저장'));
+        '💾 목표 저장', '', true);
+      if (__preSubmitCard) {
+        __preSubmitCard.className = '';
+        Object.assign(__preSubmitCard.style, {
+          marginTop: '16px', marginBottom: '0',
+          border: '1px dashed rgba(46,107,79,0.35)', borderRadius: '16px',
+          boxShadow: 'none', background: '#FFFDF8', padding: '16px',
+        });
+        prep.appendChild(__preSubmitCard);
+      }
+      page.appendChild(prep);
     }
 
     // 2) 복습 시트 (항상 표시, 미팅 전엔 미리보기 톤)
@@ -17405,7 +17421,7 @@ function MeetingNotesPage(meetingId) {
             ['missed_words', '👂 안 들렸던 단어', '미팅 중 못 알아들은 단어/표현. 다음 주 꿀팁으로 돌아와요'],
             ['new_expressions', '✨ 새로 얻은 표현', '미팅에서 가져온 표현, 동료의 "나라면 이렇게" 버전'],
           ]),
-      '💾 복습 시트 저장', psTop));
+      '💾 복습 시트 저장', psTop, !isPreMeeting));
 
     // 멤버 노트 모아보기 (운영자: 본명+전체 / 멤버: 닉네임 공개 모드)
     appendMeetingSharedNotes(page, meetingId);
@@ -26832,44 +26848,28 @@ function __showUpdateBanner() {
     document.body.appendChild(bar);
   } catch (e) {}
 }
-// 가벼운 버전 체크: 전체 파일(1.3MB) 다운로드 X. HEAD 요청으로 헤더(ETag/Last-Modified)만 확인.
-// 배포가 새로 되면 ETag 가 바뀌므로, 진입 시 기준값과 비교만 함. (트래픽 거의 0, 렉 없음)
-function __headTag() {
-  try {
-    return fetch(location.pathname, { method: 'HEAD', cache: 'no-store' })
-      .then((r) => (r && r.ok) ? (r.headers.get('etag') || r.headers.get('last-modified') || null) : null)
-      .catch(() => null);
-  } catch (e) { return Promise.resolve(null); }
-}
-// ETag 정규화: CDN 이 같은 배포본에도 W/"..." (약한) / "..." (강한) 형태를 섞어 주므로 껍데기 제거 후 비교
-function __normTag(t) { return t ? String(t).replace(/^W\//i, '').replace(/"/g, '').trim() : null; }
-let __baselineTag = null;
-__headTag().then((v) => { __baselineTag = __normTag(v); });  // 진입 시 현재 배포본 기준점 잡기
-let __updateConfirming = false;
+// === 수동 업데이트 안내 (2026-07-15 자동 ETag 감지 폐지) ===
+// 배너는 운영자가 원할 때만: 7th/version.json 의 "prompt" 값을 새 문자열로 바꿔 배포하면
+// 그 값을 처음 보는 기기에서 배너가 1회 뜬다 (5분 주기 폴링 + 탭 복귀 시 확인).
+// 값이 "" 이면 아무 기기에도 안 뜸. 예: {"prompt":"2026-07-16-w1"}
 function __checkForUpdate() {
-  if (__updateBannerShown || !__baselineTag || __updateConfirming) return;   // 기준점 없으면 조용히 패스 (오탐 방지)
-  __headTag().then((v) => {
-    const tag = __normTag(v);
-    if (!tag || tag === __baselineTag) return;
-    // 이 태그로 이미 배너를 띄웠거나 새로고침한 적 있으면 = 배포 직후 CDN 노드별 전파 지연 오탐 → 기준점만 갱신
-    let seen = null; try { seen = localStorage.getItem('yb7_update_seen_tag'); } catch (e) {}
-    if (seen && seen === tag) { __baselineTag = tag; return; }
-    // 20초 뒤 재확인: 같은 새 태그가 한 번 더 보일 때만 진짜 새 배포로 판정 (일시적 CDN 불일치 걸러냄)
-    __updateConfirming = true;
-    setTimeout(() => {
-      __headTag().then((v2) => {
-        __updateConfirming = false;
-        const tag2 = __normTag(v2);
-        if (tag2 && tag2 !== __baselineTag && tag2 === tag) {
-          try { localStorage.setItem('yb7_update_seen_tag', tag); } catch (e) {}
-          __showUpdateBanner();
-        }
-      });
-    }, 20000);
-  });
+  if (__updateBannerShown) return;
+  try {
+    fetch('version.json', { cache: 'no-store' })
+      .then((r) => (r && r.ok) ? r.json() : null)
+      .then((j) => {
+        const tag = j && String(j.prompt || '').trim();
+        if (!tag) return;
+        let seen = null; try { seen = localStorage.getItem('yb7_update_prompt_seen'); } catch (e) {}
+        if (seen === tag) return;
+        try { localStorage.setItem('yb7_update_prompt_seen', tag); } catch (e) {}
+        __showUpdateBanner();
+      })
+      .catch(() => {});
+  } catch (e) {}
 }
-setInterval(__checkForUpdate, 5 * 60 * 1000);   // 5분마다 (헤더만이라 부담 거의 없음)
-setTimeout(__checkForUpdate, 30000);            // 진입 30초 후 1회
+setInterval(__checkForUpdate, 5 * 60 * 1000);
+setTimeout(__checkForUpdate, 15000);
 
 // Operator helper, Gaby 가 devtools 에서 직접 수료증 프로필 주입할 때:
 //   __injectCertProfile({ topic: '...', strengths: ['...','...'], growth: [...], keyVocab: [...] })
