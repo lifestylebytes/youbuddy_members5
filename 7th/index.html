@@ -8628,7 +8628,8 @@ function HomePage() {
       page.appendChild(pCard);
     }
 
-    // 항상 열려있는 PT 준비 페이지 바로가기 (미팅 카드 바로 아래, 작고 tertiary)
+    // PT 준비 페이지 바로가기 (숨김 기간엔 미노출)
+    if (!__PT_HIDDEN || ((state.isOperator || state.isStaff) && !state.operatorViewAsMember)) {
     const pitchLink = el('button', {
       style: {
         marginTop: '8px',
@@ -8649,6 +8650,7 @@ function HomePage() {
       onClick: () => go('pitch-prep')
     }, '💎 내 PT 스튜디오 (어휘·스크립트) 열기 →');
     page.appendChild(pitchLink);
+    }
   }
 
   // Premium teaser 제거됨, 5기 도중에는 프리미엄 업그레이드가 불가능해서
@@ -15285,6 +15287,8 @@ function PremiumPage() {
   if (isPremium) {
     const vocabCount = Array.isArray(state.pitch_vocab) ? state.pitch_vocab.length : 0;
     const scriptCount = Object.values(state.presenter_prep || {}).filter(p => p && (p.script || '').trim().length > 0).length;
+    const __ptVisible = !__PT_HIDDEN || ((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
+    if (__ptVisible) {
     const pitchCta = el('button', {
       style: {
         marginTop: '14px',
@@ -15311,6 +15315,7 @@ function PremiumPage() {
       </div>
       <div style="flex-shrink:0;color:var(--muted);font-size:18px;">→</div>`;
     page.appendChild(pitchCta);
+    }
   }
 
   // '미팅 노트·퀴즈·Certification 은 프리미엄 전용…' basicNotice 카드 삭제됨.
@@ -16545,6 +16550,16 @@ function PresenterPrepPage(weekN) {
    - 발표 준비하기 페이지(presenter-prep)도 여기로 합쳐짐.
    ============================================================ */
 function PitchPrepPage() {
+  if (__PT_HIDDEN && !(state.isOperator || state.isStaff)) {
+    const page = el('div', { class: 'page' });
+    const lock = el('div', { class: 'card card-flat', style: { marginTop: '40px', textAlign: 'center', padding: '36px 24px' } });
+    lock.innerHTML = '<div style="font-size:40px;line-height:1;">📝</div>'
+      + '<div style="margin-top:12px;font-size:17px;font-weight:800;color:var(--ink);">PT 스튜디오는 곧 열려요</div>'
+      + '<div class="t-body" style="margin-top:8px;color:var(--ink-soft);line-height:1.6;">Week 1 미팅에서 PT 진행 방식을 소개한 뒤에 열립니다!</div>';
+    page.appendChild(lock);
+    page.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, onClick: () => go('premium') }, '← 프리미엄으로'));
+    return page;
+  }
   if (state.tier !== 'premium') return premiumGatePage({ titleRest: 'PT 준비' });
   const page = el('div', { class: 'page' });
 
