@@ -17228,7 +17228,7 @@ function MeetingNotesPage(meetingId) {
     const noteCard = el('div', { class: 'card', style: { padding: '20px', borderRadius: '22px', marginTop: '14px', marginBottom: '14px' } });
     noteCard.innerHTML = '<div class="kicker" style="color:var(--orange-dark);">WEEK 1 미팅 노트</div>'
       + '<h2 class="h2" style="margin-top:6px;font-size:21px;">오늘 미팅에서 챙겨갈 것 ✍️</h2>'
-      + '<div class="t-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.6;">미팅 들으면서 네 칸만 채워요. 저장하면 가비도 같이 보면서 다음 주를 준비해요.</div>';
+      + '<div class="t-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.6;">미팅 들으면서 네 칸만 채워요. 저장하면 버디도 같이 보면서 다음 주를 준비해요.</div>';
     const wnFields = [
       ['cohort_goal', '🎯 이번 기수 목표', '4주 뒤 내가 갖고 싶은 것 한 줄'],
       ['week_goal', '📌 이번 주 목표', '다음 미팅(Week 2)에서 공유할 목표 한 줄'],
@@ -17247,7 +17247,7 @@ function MeetingNotesPage(meetingId) {
     const wnSave = el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '14px' }, onClick: () => {
       saveState();
       try { if (typeof cloudSaveMeetingNote === 'function') cloudSaveMeetingNote(meetingId); } catch (_e) {}
-      showToast('저장됐어요! 가비도 볼 수 있어요 :)');
+      showToast('저장됐어요! 버디도 볼 수 있어요 :)');
     } }, '💾 노트 저장');
     noteCard.appendChild(wnSave);
     page.appendChild(noteCard);
