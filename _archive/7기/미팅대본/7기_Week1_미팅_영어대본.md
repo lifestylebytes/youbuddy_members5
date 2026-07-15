@@ -22,6 +22,8 @@ One ground rule before anything else: **this is the room where you're supposed t
 
 Here's a heads up about this cohort's concept. We're not doing textbook business English. The theme is **'the English outside the meeting room'**: reading the situation, testing reactions, handling a crisis, and in the final week, English for your own career, negotiating comp, performance reviews, even leaving well. Week 1 is about reading the field, the language people use before anything becomes official.
 
+Honestly, tonight is me **putting out feelers**: I want to **get a clear read on** where each of you is starting, so the next three weeks fit you, not a textbook.
+
 Today's plan: intros and goals first, then the main event: each of you brought one sentence from your own work, and you'll tell us the story behind it and say it out loud. After that, a meeting simulation with this week's twelve expressions, I set the scene and you answer, and a short intro on how our PT presentations work. I'm not here to lecture, I'm here to pass the mic. Let's start."
 
 (안전선언 + "오늘은 발화의 날" 선언. 강의 없음을 미리 말해두면 코칭 시간이 길어도 어색하지 않음.)
@@ -36,7 +38,7 @@ Today's plan: intros and goals first, then the main event: each of you brought o
 
 (다 듣고 나서)
 
-And one more thing, this matters: tell me **one expression, skill, or situation you really want to own by the end of these four weeks.** A specific scene from your job is even better, like 'pushing back on my manager politely' or 'reporting a delay without panicking.' I'll write these down, and we'll come back to them every week to track progress."
+And one more thing, this matters: tell me **one expression, skill, or situation you really want to own by the end of these four weeks.** A specific scene from your job is even better, like 'pushing back on my manager politely' or 'reporting a delay without panicking.' I'll write these down, **with one caveat**: keep it to one line, we'll sharpen it later. And if you're not sure yet, that's fine, give me a **soft commit** tonight and you can change it next week."
 
 (각자 목표 받아적기 슬라이드에 입력 → 저장. 이게 시즌 내내 개인화 재료가 됨.)
 
@@ -54,7 +56,7 @@ And one more thing, this matters: tell me **one expression, skill, or situation 
 (발표 모드 슬라이드에 제출 문장이 멤버별 카드로 자동 표시. 안 보이면 ↻ 새로고침.
 버디 역할 = 마이크 돌리기 + 구체적 칭찬. 교정 금지. 끝난 사람이 다음 사람을 지목하는 토스 방식.)
 
-"Now the main event. Each of you brought one sentence from your real work this week. Here's the flow: first, set the scene for us, what's the situation, who are you talking to, why did you write it this way? Then read your sentence out loud. That's it. The scene-setting part is secretly the real workout, that's you speaking your work life in English."
+"Now the main event. Each of you brought one sentence from your real work this week. Here's the flow: first, set the scene for us, what's the situation, who are you talking to, why did you write it this way? Then read your sentence out loud. That's it. The scene-setting part is secretly the real workout, that's you speaking your work life in English. Don't rush, I **built in some slack** for this part. And if a side topic comes up, we'll **shelve it** until the end, your sentence comes first."
 
 (진행 루프, 1인 약 2~3분:)
 
@@ -73,7 +75,7 @@ And one more thing, this matters: tell me **one expression, skill, or situation 
 
 "Okay, vocabulary time, but we're not doing flashcards. We're going to answer in a meeting. Here's how it works: I set the scene, someone in the meeting says something to you, and YOU give the reply. The key expression in your reply is blanked out, but you get the first letters as a hint. Say the whole sentence out loud, like you're actually in that meeting. Stuck? Just say 'pass', we mark it and come back at the end.
 
-You're not creating sentences today, you're just answering. That's exactly how these expressions show up in real life."
+You're not creating sentences today, you're just answering. That's exactly how these expressions show up in real life. If a word you thought you knew doesn't come out, no shame, consider it a friendly **wake-up call**. And the situations are on screen, but **read between the lines**, they're all scenes from your actual jobs."
 
 ---
 
@@ -112,7 +114,7 @@ You're not creating sentences today, you're just answering. That's exactly how t
 
 # Slide 6 · 마무리 체크리스트
 
-"Let's wrap. Quick lightning round through the twelve: I say the Korean, you fire back the English, focusing on the ones you passed earlier. And before we close, two minutes on how PT presentations work from Week 2: one volunteer a week, seven minutes on your own work topic, three minutes of questions. I'll post the sign-up in the app.
+"Let's wrap. Quick lightning round through the twelve: I say the Korean, you fire back the English, focusing on the ones you passed earlier. And before we close, two minutes on how PT presentations work from Week 2: one volunteer a week, seven minutes on your own work topic, three minutes of questions. I'll post the sign-up in the app. If volunteering publicly feels like too much, you can always **backchannel** me on KakaoTalk. And don't let 'I'm not ready' fool you, that's a **red herring**, nobody's ever ready for their first one.
 
 (빠르게 한 바퀴 · 🔖 표시된 것 위주)
 
@@ -131,6 +133,8 @@ And don't forget the four-box note on the meeting page, especially the 'words I 
 # Slide 7 · 다음 주 예고
 
 "Next week is **the art of the argument.** How to disagree without making enemies, steelmanning, quick polls, and the traps that make meetings go sideways, like bikeshedding. If you've ever sat in a meeting arguing thirty minutes about a button color, next week is for you.
+
+So that's Week 2, **as presented**. And let me **float an idea** before we go: try slipping just one of today's twelve into a real meeting or Slack message this week. Watch what happens.
 
 Great first session, everyone. See you in the app tomorrow!"
 
