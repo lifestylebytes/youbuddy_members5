@@ -17381,7 +17381,7 @@ function MeetingNotesPage(meetingId) {
         '목표 두 줄 + 아래 문장 하나면 준비 끝! 목표는 미팅에서 영어로 말해봐요 (적어와도 좋아요~).',
         [
           ['cohort_goal', '🎯 이번 기수 목표', '4주 뒤 내가 갖고 싶은 것 한 줄'],
-          ['week_goal', '📌 다음 주 목표', '다음 미팅(Week 2)까지 해볼 것 한 줄 (미팅에서 공유해요)'],
+          ['week_goal', '📌 다음 주에 써먹을 장면', '이번 주 표현을 실제로 써볼 회의/메일/슬랙 장면 하나 (미팅에서 공유해요)'],
         ],
         '💾 목표 저장', '', true);
       if (__preSubmitCard) {
@@ -17417,7 +17417,7 @@ function MeetingNotesPage(meetingId) {
             ['new_expressions', '✨ 새로 얻은 표현', '미팅에서 가져온 표현, 동료의 "나라면 이렇게" 버전'],
           ]
         : [
-            ['week_goal', '📌 다음 주 목표', '다음 미팅(Week 2)까지 해볼 것 한 줄'],
+            ['week_goal', '📌 다음 주에 써먹을 장면', '이번 주 표현을 실제로 써볼 회의/메일/슬랙 장면 하나'],
             ['missed_words', '👂 안 들렸던 단어', '미팅 중 못 알아들은 단어/표현. 다음 주 꿀팁으로 돌아와요'],
             ['new_expressions', '✨ 새로 얻은 표현', '미팅에서 가져온 표현, 동료의 "나라면 이렇게" 버전'],
           ]),
@@ -27419,7 +27419,7 @@ function MeetingPrepPopupModal(mid) {
     + '<div style="font-size:34px;line-height:1;">📝</div>'
     + '<div class="kicker" style="margin-top:10px;color:#1F4D38;">WEEK ' + n + ' 미팅 · ' + when + '</div>'
     + '<div style="margin-top:6px;font-size:18px;font-weight:800;color:var(--ink);line-height:1.35;">미팅 사전 예습을 시작해주세요 :)</div>'
-    + '<div class="t-body" style="margin-top:8px;color:var(--ink-soft);line-height:1.65;">2분이면 끝나요~<br>① 이번 기수 목표 한 줄<br>② 미팅에서 써볼 문장 1개 (이번 주 첨삭 문장에서 탭 한 번!)</div>'
+    + '<div class="t-body" style="margin-top:8px;color:var(--ink-soft);line-height:1.65;">2분이면 끝나요~<br>① 이번 기수 목표 한 줄<br>② 다음 주에 써먹을 장면 하나<br>③ 미팅에서 써볼 문장 1개 (이번 주 첨삭 문장에서 탭 한 번!)</div>'
     + '<button class="btn btn-primary btn-full" style="margin-top:16px;" onclick="window.__goMeetingPrep(\'' + mid + '\')">지금 채우러 가기 →</button>'
     + '<button class="btn btn-full" style="margin-top:8px;background:transparent;border:1px solid var(--line);color:var(--ink-soft);" onclick="window.__closeMeetingPrep()">나중에 할게요</button>';
   wrap.appendChild(card);
@@ -27562,7 +27562,7 @@ const WEEK1_DECK = [
           '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
       + '</div>'
       + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;color:var(--ink);">🎯 목표: "외운 표현을 실제로 입 밖으로 뱉어보기"</div>' },
-  { section: '캐치업·골세팅', kicker: '1 · 캐치업', title: '캐치업 & 골 세팅', goalCapture: true,
+  { section: '캐치업·골세팅', kicker: '1 · 캐치업', title: '캐치업 & 4주 개인 목표 잡기', goalCapture: true,
     checks: ['자기소개 + 근황 한마디씩', '이번 기수에 꼭 갖고 싶은 표현·스킬 한 줄씩', '오늘 흐름 안내: 문장 라운드 → 단어 리뷰 → 마무리'],
     html: '<div style="margin-top:6px;padding:14px 16px;border-radius:14px;background:#EAF3EE;border:1px solid rgba(46,107,79,0.25);">'
       + '<div style="font-size:12px;font-weight:800;color:#1F4D38;">✨ 4주 특별 강의 로드맵 (미리 기대 심기)</div>'
@@ -27582,7 +27582,7 @@ const WEEK1_DECK = [
         + step('💬', '내가 대답하기', '첫 글자 힌트를 보고 문장 전체를 소리내어!') + arrow
         + step('💡', '표현 공개', '같이 확인하고 한 번 더 따라 말하기')
         + '</div>'
-        + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎯 문장을 새로 만드는 게 아니라, 회의에서 <b>대답</b>하는 거예요. 막히면 "pass"~ 표시해두고 넘어가요.</div>';
+        + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎯 방금 나눈 각자의 장면에서 이어가요. <b>상황은 달라도 회의 반사신경은 같다!</b> 문장을 새로 만드는 게 아니라 회의에서 <b>대답</b>하는 거예요. 막히면 "pass"~ 표시해두고 넘어가요.</div>';
     })() },
   { section: '단어 리뷰', kicker: '3 · 회의 시뮬 12문항', title: '회의에서 답을 해보아요!', meetingSim: true,
     script: '"상황 듣고, 상대방 말 듣고, 본인이 대답해주세요. 표현은 첫 글자만 보여드릴게요~ 문장 전체로 크게!"' },
@@ -27591,8 +27591,8 @@ const WEEK1_DECK = [
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래를 하나씩 체크하며 마무리하세요.</div>',
     checks: [
       '단어 리뷰로 돌아가 12개 한국어→영어 한 바퀴 · 막혔던 것만 다시',
-      '각자 "오늘 가장 막힌 표현 3개" 꼽아서 말하기',
-      '각자 다음 주까지의 목표 한 줄 말하기 (미팅 전 준비에 적어둔 것!) + 복습 방법 한마디',
+      '라이트닝 끝나면 짚어주기: "아까 안 나오던 게 지금 나왔죠? 그게 오늘 는 거예요"',
+      '각자: 오늘 어려웠던 표현 1개 + 다음 주에 그걸 써먹을 장면 1개 (새 목표 아님!) + 복습 방법 한마디',
       '과제: 본인 상황 짧은 영어 문단 1개 (Day 1~5 표현 3개 이상)',
     ] },
   { section: '다음주 예고', kicker: '다음 주', title: 'Week 2 · 논쟁의 기술',
@@ -28305,7 +28305,7 @@ function MeetingDeckPage() {
     } else {
       roster.forEach((m) => {
         body += '<div style="font-size:12px;font-weight:800;color:#1F4D38;margin:10px 0 2px;">' + escapeHtml(__rosterDisplayName(m)) + ' 님</div>'
-          + fld('w_' + m.id + '_goal', '다음 주 목표 한 줄') + fld('w_' + m.id + '_rev', '어떻게 복습할지');
+          + fld('w_' + m.id + '_goal', '다음 주에 써먹을 장면 한 줄') + fld('w_' + m.id + '_rev', '어떻게 복습할지');
       });
       body += '<button class="btn btn-primary btn-full" style="margin-top:12px;" onclick="window.__deckSaveWrap()">💾 저장 · 멤버 목표에 추가</button>';
     }
