@@ -1,4 +1,4 @@
-# 유비챌 7기 · Week 1 미팅 영어 대본 (슬라이드별) · v5 진단지 반영 + 발화량 확대
+# 유비챌 7기 · Week 1 미팅 영어 대본 (슬라이드별) · v6 진행자 프레임 (버디=환경 제공자)
 
 진행자(Gaby)용. 7기 첫 프리미엄 미팅 (7/16 목 21:00). 발표 모드 덱(m1) 흐름 그대로.
 Week 1 테마 = **Reading the Field (진행 전 분위기 파악)**. ( ) 안은 한국어 진행 메모.
@@ -22,7 +22,7 @@ One ground rule before anything else: **this is the room where you're supposed t
 
 Here's a heads up about this cohort's concept. We're not doing textbook business English. The theme is **'the English outside the meeting room'**: reading the situation, testing reactions, handling a crisis, and in the final week, English for your own career, negotiating comp, performance reviews, even leaving well. Week 1 is about reading the field, the language people use before anything becomes official.
 
-Today's plan: quick intros and goal-setting, a warm-up on this week's fifteen expressions, and then the main event: each of you brought one sentence from your own work this week, and we're going to make each one just a little bit better, live. Today is a speaking day, I'll keep my lecturing to zero. Quick usage tips, I'll bring those in small doses starting next week. Let's start."
+Today's plan: quick intros and goal-setting, a warm-up on this week's fifteen expressions, and then the main event: each of you brought one sentence from your own work this week, and today you get to actually say it out loud, that's the whole point. I'm not here to lecture, I'm here to pass the mic. Quick usage tips, I'll bring those in small doses starting next week. Let's start."
 
 (안전선언 + "오늘은 발화의 날" 선언. 강의 없음을 미리 말해두면 코칭 시간이 길어도 어색하지 않음.)
 
@@ -96,21 +96,21 @@ The point isn't to get them all right. It's to feel exactly where you're shaky, 
 
 ---
 
-# Slide 5 · 문장 코칭 (Bring Your Sentence) ★ 미팅의 심장
+# Slide 5 · 문장 라운드 (Bring Your Sentence) ★ 미팅의 심장
 
 (발표 모드 슬라이드에 사전 제출 문장이 멤버별 카드로 자동 표시됨. 안 보이면 ↻ 새로고침.
-직접 제출 / 자동 선정 구분 뱃지 있음. 룰: 문장당 업그레이드 딱 1개 · 칭찬 먼저 · 고친 문장은 본인이 소리내어 두 번.)
+직접 제출 / 자동 선정 구분 뱃지 있음. 버디 역할 = 마이크 돌리기 + 구체적 칭찬. 교정 약속 금지,
+피드백은 동료들의 "나라면 이렇게" 버전으로.)
 
-"Okay, now the part I've been looking forward to. Each of you brought one sentence from your real work this week. Here's how this goes: this is not about making your sentence perfect. I'll point out one thing I love about it, and give it exactly **one upgrade**. Just one. Then you say the upgraded version out loud, twice. That's the whole game."
+"Okay, the main event. Each of you brought one sentence from your real work this week, and it's already been through the app's AI review, so it's solid. Today's job is much simpler and much harder: **say it out loud, in front of people.** That's the muscle we're building here. Nobody's grading you."
 
-(멤버 한 명당 약 3분, 미니 강의 뺀 시간을 전부 여기에. 시간이 남으면 두 바퀴째:
-"오늘 표현 중 하나로 즉석 문장 하나 더" 라운드. 진행 루프:)
+(멤버 한 명당 약 3분, 미니 강의 뺀 시간을 전부 여기에. 진행 루프:)
 
 1. "**{Name}**, this one's yours. Read it for us?" (본인이 소리내어 읽기)
-2. (칭찬 먼저, 반드시 구체적으로) "What I love here is ___, that's exactly how a native speaker would set this up."
-3. (업그레이드 딱 1개) "One upgrade: instead of ___, try ___. Here's why: ___."
-4. "Now say the whole upgraded sentence." (한 번) "One more time, with confidence." (두 번째)
-5. (확신 부여, 반드시:) "That sentence is **correct**. It's yours now, use it this week exactly like that."
+2. (구체적 칭찬 한 줄) "I like how you used ___ there, that's exactly where that expression belongs."
+3. "Was there any part you weren't sure about?" (본인이 확신 없던 곳 한 마디)
+4. (동료에게 넘기기) "Anyone want to share how YOU would say this in your world? Different version, totally welcome."
+5. "One more time, whole sentence, out loud." (본인이 한 번 더 읽고 마무리)
 
 (자동 선정 뱃지 멤버에겐 가볍게:) "The app picked this one from your week, and honestly, good pick. Next week you get to choose your own."
 
