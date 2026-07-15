@@ -27491,6 +27491,22 @@ const WEEK1_WARMUP = [
   { kr: "계획을 일단 보류하다 (접는 건 아님)", en: "Shelve it" },
   { kr: "일정·계획에 여유분을 미리 심어두다", en: "Build in slack" },
 ];
+// 회의 시뮬 (Slide 5): 상황 + 상대방 대사 + 내가 채울 답 (표현은 첫 글자 힌트).
+// WEEK1_WARMUP 과 같은 순서라 패스(🔖) 인덱스·마무리 라이트닝이 그대로 호환됨.
+const WEEK1_SIM = [
+  { ko: '클라이언트 메일엔 "천천히 하셔도 돼요"인데, 이번 주에만 진행 상황을 두 번 물어봄', cue: "The email literally says 'no rush,' so we're fine, right?", pre: 'Well, if you ', ans: 'read between the lines', post: ', they want it this week.' },
+  { ko: '정식 제안 전에 영업팀 반응을 미리 보고 싶다', cue: 'Should we just send the official proposal now?', pre: "Not yet. Let's ", ans: 'put out some feelers', post: ' with the sales team first.' },
+  { ko: '미팅 내내 클라이언트가 애매한 리액션만 함', cue: 'So... are they in or out?', pre: "Honestly, I couldn't ", ans: 'get a clear read on', post: ' them today.' },
+  { ko: '두 제품을 묶어 파는 아이디어, 아직 확신은 없음', cue: 'Do you want to make this an official proposal?', pre: 'Not officially. Let me just ', ans: 'float an idea', post: ' at the all-hands and see the reaction.' },
+  { ko: '딜이 법무 검토에 몇 주째 묶여 있음, 공식 루트는 너무 느림', cue: "Legal says it'll take three more weeks.", pre: "Then let's ", ans: 'backchannel', post: ' with their VP and unstick it.' },
+  { ko: '금요일까지 될 것 같긴 한데, 리뷰 결과에 달려 있음', cue: 'Can you promise Friday?', pre: 'I can give you a ', ans: 'soft commit', post: " for Friday, I'll confirm after the review." },
+  { ko: '낙관적인 전망치가 그대로 승인될 분위기', cue: 'The forecast looks great. Approve it?', pre: "Don't take it ", ans: 'as presented', post: ". Let's ask what's behind the numbers." },
+  { ko: '다들 서버 오류만 파는데, 진짜 버그는 결제 쪽', cue: 'So the server error is the cause, right?', pre: "I think that's a ", ans: 'red herring', post: '. The real problem is in payments.' },
+  { ko: '한 달 새 단골 고객 두 명이 떠남', cue: 'Losing two loyal clients in one month... wow.', pre: 'Yeah, that was a real ', ans: 'wake-up call', post: ' for the whole team.' },
+  { ko: '계획엔 찬성, 단 예산은 3분기에 다시 봐야 함', cue: "So you're on board with the plan?", pre: 'Yes, ', ans: 'with one caveat', post: ': we revisit the budget in Q3.' },
+  { ko: '좋은 아이디어지만 분기 마감이라 지금은 때가 아님', cue: 'Should we kill this project then?', pre: "No, let's just ", ans: 'shelve it', post: " until Q4. It's not dead." },
+  { ko: '견적 일정이 너무 빡빡함, QA 변수도 있음', cue: 'Two weeks should be enough to quote them, right?', pre: 'Quote three weeks and ', ans: 'build in some slack', post: ' for QA.' },
+];
 const WEEK1_DECK = [
   { section: '오프닝', kicker: 'WEEK 1 · 60분', title: '오늘 순서 한눈에',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">7기 프리미엄 버디</b> · 첫 미팅이라 서로 소개부터 가볍게.</div>'
@@ -27507,30 +27523,29 @@ const WEEK1_DECK = [
   { section: '문장 라운드', kicker: '2 · 문장 라운드', title: '내가 가져온 문장 · 소리내어 말하기', preSubmit: true,
     checks: ['어떤 상황에서 왜 이렇게 썼는지 설명 → 문장 소리내어 읽기 (업무 용어를 입 밖에!)', '끝나면 옆사람에게 자연스럽게 토스 · 버디는 마이크만'],
     script: '"각자 가져온 문장 얘기해볼게요. 어떤 상황에서 왜 이렇게 썼는지 설명하고, 문장을 소리내어 읽어주세요. 끝나면 다음 분에게 토스~"' },
-  { section: '단어 리뷰', kicker: '3 · 단어 리뷰', title: '단어 리뷰: 이렇게 진행해요',
+  { section: '단어 리뷰', kicker: '3 · 회의 시뮬', title: '회의에서 답을 해보아요!',
     html: (() => {
       const step = (emo, t, sub) => '<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);">'
         + '<span style="flex-shrink:0;width:42px;height:42px;border-radius:12px;background:#EAF3EE;display:inline-flex;align-items:center;justify-content:center;font-size:22px;">' + emo + '</span>'
         + '<div><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div><div class="t-small" style="margin-top:1px;color:var(--ink-soft);">' + sub + '</div></div></div>';
       const arrow = '<div style="text-align:center;color:#9DBCA9;font-size:15px;line-height:1;margin:1px 0;">↓</div>';
       return '<div style="display:flex;flex-direction:column;">'
-        + step('🇰🇷', '한국어 뜻만 보여주기', '영어 표현은 가린 채로') + arrow
-        + step('🗣️', '영어로 입 밖에 내기', '머릿속 말고 소리 내서!') + arrow
-        + step('🤔', '막히면 "패스"', '표시만 해두고 넘어가요') + arrow
-        + step('💡', '표현 공개', '정답 보여주고 같이 확인') + arrow
-        + step('✍️', '내 문장으로 한 번 더', '본인 업무 상황 문장으로 말하기')
+        + step('🏢', '상황 듣기', '리얼한 회의 장면 한 줄 (한국어)') + arrow
+        + step('🗣️', '상대방의 한 마디', '회의에서 누가 나에게 말을 건네요') + arrow
+        + step('💬', '내가 대답하기', '첫 글자 힌트를 보고 문장 전체를 소리내어!') + arrow
+        + step('💡', '표현 공개', '같이 확인하고 한 번 더 따라 말하기')
         + '</div>'
-        + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎯 목적: "어디가 약한지" 스스로 체감 → 오늘 집중할 <b>3개</b> 찾기</div>';
+        + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎯 문장을 새로 만드는 게 아니라, 회의에서 <b>대답</b>하는 거예요. 막히면 "pass"~ 표시해두고 넘어가요.</div>';
     })() },
-  { section: '단어 리뷰', kicker: '3 · 단어 리뷰 문항', title: '한국어 뜻 → 영어 · 랜덤 문장 만들기', worksheet: true,
-    script: '"자, 1번부터요. (뜻 읽고 3초) ... 막히면 패스 표시하고, 공개 후 본인 상황 문장으로 한 번 더 입에 붙일게요."' },
+  { section: '단어 리뷰', kicker: '3 · 회의 시뮬 12문항', title: '회의에서 답을 해보아요!', meetingSim: true,
+    script: '"상황 듣고, 상대방 말 듣고, 본인이 대답해주세요. 표현은 첫 글자만 보여드릴게요~ 문장 전체로 크게!"' },
 
   { section: '마무리', kicker: '4 · 마무리', title: '마무리 체크리스트', passReview: true, wrapGoals: true,
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래를 하나씩 체크하며 마무리하세요.</div>',
     checks: [
       '단어 리뷰로 돌아가 12개 한국어→영어 한 바퀴 · 막혔던 것만 다시',
       '각자 "오늘 가장 막힌 표현 3개" 꼽아서 말하기',
-      '다음 주 개인 목표 한 줄 + 복습 방법 한마디씩',
+      '각자 다음 주까지의 목표 한 줄 말하기 (미팅 전 준비에 적어둔 것!) + 복습 방법 한마디',
       '과제: 본인 상황 짧은 영어 문단 1개 (Day 1~5 표현 3개 이상)',
     ] },
   { section: '다음주 예고', kicker: '다음 주', title: 'Week 2 · 논쟁의 기술',
@@ -28109,6 +28124,29 @@ function MeetingDeckPage() {
       });
       body += '<button class="btn btn-primary btn-full" style="margin-top:10px;" onclick="window.__deckSaveGoals()">💾 저장 · 멤버 목표에 추가</button>';
     }
+    body += '</div>';
+  }
+  if (s.meetingSim) {
+    const rev = window.__deckRevealAns;
+    window.__deckPass = window.__deckPass || {};
+    const hintOf = (ans) => ans.split(' ').map((w) => w[0] + '&#95;'.repeat(Math.max(w.length - 1, 1))).join(' ');
+    body += '<div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">'
+      + '<span class="t-small" style="color:var(--ink-soft);">막히면 왼쪽 🔖 눌러 표시 → 마무리에서 다시 봐요</span>'
+      + '<button onclick="window.__deckToggleAns()" style="font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;">' + (rev ? '🙈 정답 가리기' : '👀 정답 보기') + '</button></div>';
+    body += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:10px;">';
+    (typeof WEEK1_SIM !== 'undefined' ? WEEK1_SIM : []).forEach((it, i) => {
+      const passed = !!window.__deckPass[i];
+      body += '<div style="padding:12px 13px;border-radius:14px;border:1px solid ' + (passed ? 'rgba(46,107,79,0.4)' : 'rgba(154,139,115,0.18)') + ';background:' + (passed ? 'rgba(46,107,79,0.06)' : '#FFFDF8') + ';">'
+        + '<div style="display:flex;align-items:center;gap:8px;">'
+        + '<button onclick="window.__deckTogglePass(' + i + ')" title="패스 표시" style="flex-shrink:0;width:24px;height:24px;border-radius:7px;border:1.5px solid ' + (passed ? 'var(--orange)' : '#CFC7B5') + ';background:' + (passed ? 'var(--orange)' : '#fff') + ';cursor:pointer;font-size:11px;line-height:1;display:inline-flex;align-items:center;justify-content:center;">' + (passed ? '🔖' : '') + '</button>'
+        + '<span style="font-size:11px;color:var(--muted);">' + (i + 1) + '.</span>'
+        + '<span style="font-size:12.5px;color:var(--orange-dark);font-weight:700;">🏢 ' + escapeHtml(it.ko) + '</span></div>'
+        + '<div style="margin-top:8px;font-size:14px;color:var(--ink);line-height:1.5;">🗣️ "' + escapeHtml(it.cue) + '"</div>'
+        + '<div style="margin-top:6px;font-size:14.5px;line-height:1.6;color:var(--ink);">💬 <b>You:</b> "' + escapeHtml(it.pre)
+        + '<span style="font-family:var(--font-mono);font-weight:800;color:' + (rev ? '#3B6D11' : 'var(--orange-dark)') + ';letter-spacing:0.02em;">' + (rev ? escapeHtml(it.ans) : hintOf(it.ans)) + '</span>'
+        + escapeHtml(it.post) + '"</div>'
+        + '</div>';
+    });
     body += '</div>';
   }
   if (s.worksheet) {
