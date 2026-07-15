@@ -2,8 +2,8 @@
 
 진행자(Gaby)용. 7기 첫 프리미엄 미팅 (7/16 목 21:00). 발표 모드 덱(m1) 흐름 그대로.
 Week 1 테마 = **Reading the Field (진행 전 분위기 파악)**. ( ) 안은 한국어 진행 메모.
-v5 변경 (사전 진단지 8명 반영):
-- **미니 강의 삭제.** 그 시간을 전부 멤버 발화(워밍업 + 문장 코칭)로. 표현 꿀팁은 "다음 주부터 간단히" 예고만.
+v6 = 버디는 가르치지 않는다, 마이크를 돌린다. v5 변경 (사전 진단지 8명 반영):
+- **미니 강의 삭제.** 그 시간을 전부 멤버 발화(워밍업 + 문장 라운드)로. 표현 꿀팁은 "다음 주부터 간단히" 예고만.
 - **오프닝 안전선언 추가.** 부담감 8~10 멤버 3명. 즉석 지목 금지, 순서 미리 안내.
 - **캐치업에서 진단지 호명.** 각자의 장면·데드라인을 가비가 이미 알고 있음을 보여주기 (멤버별 내용은 코칭 시트 참고, 공개 저장소 커밋 금지).
 - 미팅 노트 4항목 안내 (기수 목표 / 주 목표 / 안 들린 단어 / 새 표현).
@@ -16,7 +16,7 @@ v5 변경 (사전 진단지 8명 반영):
 
 "Hi everyone, welcome to our very first premium session! I'm really glad you're here.
 
-Quick word about this group: because we're small, this won't feel like a class. It's closer to coaching. We'll spend most of our time on your real work situations, and my goal is simple: the expressions you learn each day should actually come out of your mouth in a real meeting.
+Quick word about this group: because we're small, this won't feel like a class. Think of it as a practice room. We'll spend most of our time on your real work situations, and the goal is simple: the expressions you learn each day should actually come out of your mouth, here first, then in a real meeting.
 
 One ground rule before anything else: **this is the room where you're supposed to get it wrong.** Nobody here needs perfect English, that's not the assignment. Say it messy, say it half-Korean if you have to, we'll build it together. And I'll never cold-call you out of nowhere, you'll always know when your turn is coming.
 
@@ -26,7 +26,7 @@ Today's plan: quick intros and goal-setting, a warm-up on this week's fifteen ex
 
 (안전선언 + "오늘은 발화의 날" 선언. 강의 없음을 미리 말해두면 코칭 시간이 길어도 어색하지 않음.)
 
-(첫 미팅이라 따뜻하게. "수업 아니고 코칭" + 7기 콘셉트 한 줄 심기.)
+(첫 미팅이라 따뜻하게. "수업 아니고 연습실" + 7기 콘셉트 한 줄 심기.)
 
 ---
 
