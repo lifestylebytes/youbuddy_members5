@@ -17169,6 +17169,8 @@ function MeetingNotesPage(meetingId) {
   // ── 미팅 전 준비: 내 문장 1개 가져가기 (사전 제출) ──
   (() => {
     const mid = meetingId;
+    // 미팅이 지나면 이 카드는 숨김 (복습 시트가 대신 나옴)
+    if (!(dLeft === null || dLeft >= 0)) return;
     const ps = __preSubmitGet(mid);
     const psEdit = (window.__psEdit = window.__psEdit || {})[mid];
     const beforeMeeting = dLeft === null || dLeft >= 0;
@@ -17176,7 +17178,7 @@ function MeetingNotesPage(meetingId) {
     (window.__psCand = window.__psCand || {})[mid] = cands;
     const card = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '20px', marginTop: '14px', border: '1.5px solid rgba(46,107,79,0.28)', background: 'linear-gradient(145deg,#FFFDF8 55%,#EAF3EE)' } });
     let h = '<div class="kicker" style="color:#1F4D38;">BRING YOUR SENTENCE · 미팅 전 준비</div>'
-      + '<div style="margin-top:6px;font-size:17px;font-weight:800;color:var(--ink);">🎒 미팅에 가져갈 내 문장 1개</div>'
+      + '<div style="margin-top:6px;font-size:17px;font-weight:800;color:var(--ink);">🎒 이번 미팅에서 써볼 문장 1개</div>'
       + '<div class="t-body" style="margin-top:6px;color:var(--ink-soft);line-height:1.6;">이번 주 표현으로 만든 <b>내 업무 문장</b>을 하나 골라두세요. 미팅에서 소리 내어 직접 말해보는 문장이에요 (완벽할 필요 전혀 없어요!). '
       + (beforeMeeting ? '마감: <b>미팅 전날(수) 밤</b> · 안 골라두면 이번 주 첨삭 문장에서 자동으로 골라가요~' : '이번 미팅은 끝났어요.') + '</div>';
     if (ps && !psEdit) {
@@ -17225,16 +17227,32 @@ function MeetingNotesPage(meetingId) {
   if (meta.n === 1) {
     if (!notes.timeline.week_note) notes.timeline.week_note = { cohort_goal: '', week_goal: '', missed_words: '', new_expressions: '' };
     const wn = notes.timeline.week_note;
+    const isPreMeeting = dLeft === null || dLeft >= 0;
     const noteCard = el('div', { class: 'card', style: { padding: '20px', borderRadius: '22px', marginTop: '14px', marginBottom: '14px' } });
-    noteCard.innerHTML = '<div class="kicker" style="color:var(--orange-dark);">WEEK 1 미팅 노트</div>'
-      + '<h2 class="h2" style="margin-top:6px;font-size:21px;">오늘 미팅에서 챙겨갈 것 ✍️</h2>'
-      + '<div class="t-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.6;">미팅 들으면서 네 칸만 채워요. 저장하면 버디도 같이 보면서 다음 주를 준비해요.</div>';
-    const wnFields = [
-      ['cohort_goal', '🎯 이번 기수 목표', '4주 뒤 내가 갖고 싶은 것 한 줄'],
-      ['week_goal', '📌 이번 주 목표', '다음 미팅(Week 2)에서 공유할 목표 한 줄'],
-      ['missed_words', '👂 안 들렸던 단어', '미팅 중 못 알아들은 단어/표현. 다음에 같이 잡아요'],
-      ['new_expressions', '✨ 새로 얻은 표현', '오늘 가져가는 표현, 업그레이드된 내 문장'],
-    ];
+    noteCard.innerHTML = isPreMeeting
+      ? '<div class="kicker" style="color:var(--orange-dark);">WEEK 1 · 미팅 전 준비</div>'
+        + '<h2 class="h2" style="margin-top:6px;font-size:21px;">미팅 전 준비 ✍️</h2>'
+        + '<div class="t-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.6;">이번 기수 목표 한 줄 + 아래 문장 하나면 준비 끝! 목표는 미팅에서 영어로 말해봐요 (적어와도 좋아요~).</div>'
+      : '<div class="kicker" style="color:var(--orange-dark);">WEEK 1 · 복습 시트</div>'
+        + '<h2 class="h2" style="margin-top:6px;font-size:21px;">미팅 복습 시트 ✍️</h2>'
+        + '<div class="t-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.6;">미팅에서 챙긴 것들을 정리해요. 저장하면 버디도 같이 보면서 다음 주를 준비해요.</div>';
+    if (!isPreMeeting) {
+      const psDone = __preSubmitGet(meetingId);
+      if (psDone) {
+        noteCard.innerHTML += '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#EAF3EE;border:1px solid rgba(46,107,79,0.2);">'
+          + '<div class="kicker" style="font-size:10px;color:#1F4D38;">🎒 미팅에서 써본 내 문장</div>'
+          + '<div style="margin-top:4px;font-size:13.5px;font-family:var(--font-mono);font-weight:700;color:#1F4D38;line-height:1.5;">' + escapeHtml(psDone.en) + '</div></div>';
+      }
+    }
+    const wnFields = isPreMeeting
+      ? [
+          ['cohort_goal', '🎯 이번 기수 목표', '4주 뒤 내가 갖고 싶은 것 한 줄'],
+        ]
+      : [
+          ['week_goal', '📌 이번 주 목표', '다음 미팅(Week 2)에서 공유할 목표 한 줄'],
+          ['missed_words', '👂 안 들렸던 단어', '미팅 중 못 알아들은 단어/표현. 다음 주 꿀팁으로 돌아와요'],
+          ['new_expressions', '✨ 새로 얻은 표현', '미팅에서 가져온 표현, 동료의 "나라면 이렇게" 버전'],
+        ];
     wnFields.forEach(([k, label, ph]) => {
       const box = el('div', { style: { marginTop: '12px' } });
       box.appendChild(el('div', { style: { fontSize: '13px', fontWeight: '800', color: 'var(--ink)', marginBottom: '6px' } }, label));
@@ -17248,7 +17266,7 @@ function MeetingNotesPage(meetingId) {
       saveState();
       try { if (typeof cloudSaveMeetingNote === 'function') cloudSaveMeetingNote(meetingId); } catch (_e) {}
       showToast('저장됐어요! 버디도 볼 수 있어요 :)');
-    } }, '💾 노트 저장');
+    } }, isPreMeeting ? '💾 목표 저장' : '💾 복습 시트 저장');
     noteCard.appendChild(wnSave);
     page.appendChild(noteCard);
     // 멤버 노트 모아보기 (운영자: 본명+전체 / 멤버: 닉네임 공개 모드)
@@ -27332,24 +27350,24 @@ const WEEK1_WARMUP = [
   { kr: "단서를 달자면", en: "With a caveat" },
   { kr: "계획을 일단 보류하다 (접는 건 아님)", en: "Shelve it" },
   { kr: "일정·계획에 여유분을 미리 심어두다", en: "Build in slack" },
-  { kr: "이미 시작되어 진행 중인", en: "Underway" },
-  { kr: "그 일을 처리할 여력이 있다", en: "Have the cycles" },
-  { kr: "급한 순서대로 분류·처치하다", en: "Triaging" },
 ];
 const WEEK1_DECK = [
   { section: '오프닝', kicker: 'WEEK 1 · 60분', title: '오늘 순서 한눈에',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">7기 프리미엄 버디</b> · 첫 미팅이라 서로 소개부터 가볍게.</div>'
       + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
-      + ['캐치업 · 자기소개 + 이번 기수 목표', '워밍업 · Day 1~5 표현 15개 (한국어 → 영어)', '문장 라운드 · 각자 가져온 문장 소리내어 말하기 (오늘의 메인!)', '마무리 · 막힌 표현 정리 + 다음 주 예고'].map((t, i) =>
+      + ['캐치업 · 자기소개 + 이번 기수 목표 한 줄 (영어로!)', '문장 라운드 · 가져온 문장, 어떤 상황인지 설명하며 소리내기 (오늘의 메인!)', '단어 리뷰 · Day 1~4 표현 12개 + 랜덤 문장 만들기', '마무리 · 막힌 표현 정리 + 다음 주 예고'].map((t, i) =>
           '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
       + '</div>'
       + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;color:var(--ink);">🎯 목표: "외운 표현을 실제로 입 밖으로 뱉어보기"</div>' },
   { section: '캐치업·골세팅', kicker: '1 · 캐치업', title: '캐치업 & 골 세팅', goalCapture: true,
-    checks: ['자기소개 + 근황 한마디씩', '이번 기수에 꼭 갖고 싶은 표현·스킬 한 줄씩', '오늘 흐름 안내: 워밍업 → 문장 라운드 → 마무리'],
+    checks: ['자기소개 + 근황 한마디씩', '이번 기수에 꼭 갖고 싶은 표현·스킬 한 줄씩', '오늘 흐름 안내: 문장 라운드 → 단어 리뷰 → 마무리'],
     html: '<div style="margin-top:6px;padding:14px 16px;border-radius:14px;background:#EAF3EE;border:1px solid rgba(46,107,79,0.25);">'
       + '<div style="font-size:12px;font-weight:800;color:#1F4D38;">✨ 4주 특별 강의 로드맵 (미리 기대 심기)</div>'
       + '<div style="margin-top:8px;font-size:13.5px;line-height:1.8;color:var(--ink);">2주차 · 논쟁의 기술 (steelman, 회의를 지배하는 말들)<br>3주차 · 위기 커뮤니케이션 (급한 불 끄는 영어)<br>4주차 · 전체 어휘 랩업 + 단어 빙고</div></div>' },
-  { section: '워밍업', kicker: '2 · 워밍업', title: '워밍업: 이렇게 진행해요',
+  { section: '문장 라운드', kicker: '2 · 문장 라운드', title: '내가 가져온 문장 · 소리내어 말하기', preSubmit: true,
+    checks: ['어떤 상황에서 왜 이렇게 썼는지 설명 → 문장 소리내어 읽기 (업무 용어를 입 밖에!)', '끝나면 옆사람에게 자연스럽게 토스 · 버디는 마이크만'],
+    script: '"각자 가져온 문장 얘기해볼게요. 어떤 상황에서 왜 이렇게 썼는지 설명하고, 문장을 소리내어 읽어주세요. 끝나면 다음 분에게 토스~"' },
+  { section: '단어 리뷰', kicker: '3 · 단어 리뷰', title: '단어 리뷰: 이렇게 진행해요',
     html: (() => {
       const step = (emo, t, sub) => '<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);">'
         + '<span style="flex-shrink:0;width:42px;height:42px;border-radius:12px;background:#EAF3EE;display:inline-flex;align-items:center;justify-content:center;font-size:22px;">' + emo + '</span>'
@@ -27364,15 +27382,13 @@ const WEEK1_DECK = [
         + '</div>'
         + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎯 목적: "어디가 약한지" 스스로 체감 → 오늘 집중할 <b>3개</b> 찾기</div>';
     })() },
-  { section: '워밍업', kicker: '2 · 워밍업 문항', title: '한국어 뜻 → 영어', worksheet: true,
+  { section: '단어 리뷰', kicker: '3 · 단어 리뷰 문항', title: '한국어 뜻 → 영어 · 랜덤 문장 만들기', worksheet: true,
     script: '"자, 1번부터요. (뜻 읽고 3초) ... 막히면 패스 표시하고, 공개 후 본인 상황 문장으로 한 번 더 입에 붙일게요."' },
-  { section: '문장 라운드', kicker: '3 · 문장 라운드', title: '내가 가져온 문장 · 소리내어 말하기', preSubmit: true,
-    checks: ['한 명씩 자기 문장 소리내어 읽기 (버디는 마이크만 돌리기)', '"여기가 확신 없었어요" 한 마디씩 · 원하면 다른 버디가 "나라면 이렇게" 버전'],
-    script: '"이제 각자 가져온 문장 읽어볼게요. 잘 읽는 자리 아니고 입 밖에 내보는 자리예요~ 편하게 읽어주세요."' },
+
   { section: '마무리', kicker: '4 · 마무리', title: '마무리 체크리스트', passReview: true, wrapGoals: true,
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래를 하나씩 체크하며 마무리하세요.</div>',
     checks: [
-      '워밍업으로 돌아가 15개 한국어→영어 한 바퀴 · 막혔던 것만 다시',
+      '단어 리뷰로 돌아가 12개 한국어→영어 한 바퀴 · 막혔던 것만 다시',
       '각자 "오늘 가장 막힌 표현 3개" 꼽아서 말하기',
       '다음 주 개인 목표 한 줄 + 복습 방법 한마디씩',
       '과제: 본인 상황 짧은 영어 문단 1개 (Day 1~5 표현 3개 이상)',
