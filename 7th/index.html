@@ -8766,6 +8766,186 @@ function HomePage() {
     page.appendChild(listCard);
   }
 
+  // ── 재등록 넛지 (Day 17~20, 연속으로 3가지 카드) ──────────────────────────────
+  // 조건: Day 17 이상이고 멤버 본인 (운영자/스태프 뷰어 모드 제외)
+  try {
+    const _cDay = Number(state.currentDay) || 0;
+    const _isMember = !(state.isOperator || state.isStaff) || state.operatorViewAsMember;
+    if (_cDay >= 17 && _isMember) {
+
+      // ── 카드 1: 어휘 분포 맵 ──────────────────────────────────────────────
+      // 7기 단어들을 점으로 시각화. 완료한 날 = 주황, 미완료 = 회색. 8기 미리보기 = 연한 점.
+      (() => {
+        const vocabCard = el('div', { style: {
+          marginTop: '20px', background: 'var(--paper)', borderRadius: '20px',
+          padding: '20px 18px', border: '1px solid var(--line)',
+        }});
+
+        // 7기 전체 단어 수집 (day별 3개씩, 총 60개)
+        const allWords7 = [];
+        (CHALLENGE.weeks || []).forEach((w) => {
+          (w.days || []).forEach((d) => {
+            (d.words || []).forEach((wd, wi) => {
+              allWords7.push({ day: d.day, wordIdx: wi, en: wd.en });
+            });
+          });
+        });
+
+        const learnedCount = allWords7.filter((w) => !!state.verified?.['d' + w.day]).length;
+        const totalWords7 = allWords7.length;
+
+        // 8기 미리보기 단어 (예고편, 8기 실제 단어 확정 전 placeholder)
+        const preview8 = [
+          'Make a case', 'Push back', 'Set the tone', 'Loop in', 'Spell it out',
+          'Take the lead', 'On the same page', 'Circle back', 'Drive home', 'Nail it down',
+          'Raise the bar', 'Cut to the chase', 'Bridge the gap', 'Level up', 'Own it',
+        ];
+
+        vocabCard.innerHTML = `
+          <div class="kicker" style="margin-bottom:12px;">내가 이번에 익힌 단어들</div>
+          <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px;">
+            <span class="serif" style="font-size:36px;color:var(--orange);line-height:1;">${learnedCount}</span>
+            <span style="font-size:13px;color:var(--muted);">/ ${totalWords7}개 학습</span>
+          </div>`;
+
+        // 7기 단어 점 그리드
+        const dotsWrap7 = el('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '10px' } });
+        allWords7.forEach((w) => {
+          const isLearned = !!state.verified?.['d' + w.day];
+          const dot = el('div', {
+            title: w.en,
+            style: {
+              width: '9px', height: '9px', borderRadius: '50%',
+              background: isLearned ? 'var(--orange)' : 'var(--line)',
+              transition: 'background 0.3s',
+            }
+          });
+          dotsWrap7.appendChild(dot);
+        });
+        vocabCard.appendChild(dotsWrap7);
+
+        // 8기 미리보기 구분선 + 점
+        const dividerWrap = el('div', { style: { margin: '16px 0 10px', display: 'flex', alignItems: 'center', gap: '8px' } });
+        dividerWrap.innerHTML = `
+          <div style="flex:1;height:1px;background:var(--line);"></div>
+          <span style="font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;">8기에서 배울 단어들</span>
+          <div style="flex:1;height:1px;background:var(--line);"></div>`;
+        vocabCard.appendChild(dividerWrap);
+
+        const dotsWrap8 = el('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '5px' } });
+        preview8.forEach((w) => {
+          const dot = el('div', {
+            title: w,
+            style: {
+              width: '9px', height: '9px', borderRadius: '50%',
+              background: 'rgba(46,107,79,0.2)',
+              border: '1.5px dashed rgba(46,107,79,0.4)',
+            }
+          });
+          dotsWrap8.appendChild(dot);
+        });
+        // 나머지 미스테리 점 (총 60개 채우기)
+        for (let i = preview8.length; i < 45; i++) {
+          const dot = el('div', { style: { width: '9px', height: '9px', borderRadius: '50%', background: 'rgba(0,0,0,0.07)' } });
+          dotsWrap8.appendChild(dot);
+        }
+        vocabCard.appendChild(dotsWrap8);
+
+        const ctaWrap8 = el('div', { style: { marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' } });
+        ctaWrap8.innerHTML = `
+          <span style="font-size:12px;color:var(--muted);">8기에서 이 단어들 다 채워봐요</span>`;
+        const btn8 = el('button', {
+          class: 'btn',
+          style: { padding: '8px 14px', fontSize: '12px', fontWeight: '700', background: 'var(--green)', color: '#fff', border: 'none' },
+          onClick: () => {
+            // TODO: 8기 신청 링크로 교체
+            window.open('https://open.kakao.com/o/gCvJcHGg', '_blank');
+          }
+        }, '8기 신청 →');
+        ctaWrap8.appendChild(btn8);
+        vocabCard.appendChild(ctaWrap8);
+
+        page.appendChild(vocabCard);
+      })();
+
+      // ── 카드 2: 나의 20일 성장 리포트 ──────────────────────────────────────
+      (() => {
+        const aiCount = Object.keys(state.ai_feedback || {}).length;
+        const sentCount = Object.keys(state.submitted || {}).length;
+        const streakMax = (() => {
+          let mx = 0, cur = 0;
+          for (let d = 1; d <= totalDays; d++) {
+            if (state.verified?.['d' + d]) { cur++; mx = Math.max(mx, cur); } else { cur = 0; }
+          }
+          return mx;
+        })();
+
+        const reportCard = el('div', { style: {
+          marginTop: '14px', background: 'linear-gradient(135deg,#f0f9f4 0%,#e8f5ee 100%)',
+          borderRadius: '20px', padding: '20px 18px', border: '1px solid rgba(46,107,79,0.15)',
+        }});
+        reportCard.innerHTML = `
+          <div class="kicker" style="color:var(--green);margin-bottom:12px;">나의 20일 성장 리포트</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center;">
+            <div style="background:#fff;border-radius:12px;padding:10px 6px;">
+              <div class="serif" style="font-size:26px;color:var(--orange);line-height:1;">${done}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:3px;">인증 완료</div>
+            </div>
+            <div style="background:#fff;border-radius:12px;padding:10px 6px;">
+              <div class="serif" style="font-size:26px;color:var(--green);line-height:1;">${aiCount}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:3px;">AI 첨삭</div>
+            </div>
+            <div style="background:#fff;border-radius:12px;padding:10px 6px;">
+              <div class="serif" style="font-size:26px;color:var(--ink);line-height:1;">${streakMax}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:3px;">최대 연속</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:var(--green);font-weight:700;text-align:center;">
+            ${done >= 18 ? '완주 확정! 다음 기수도 함께해요 🎉' : done >= 14 ? `${18 - done}일 더 하면 완주예요. 거의 다 왔어요!` : `꾸준히 쌓아온 ${done}일, 대단해요!`}
+          </div>`;
+        page.appendChild(reportCard);
+      })();
+
+      // ── 카드 3: 얼리버드 배너 (Day 20 완료자만) ───────────────────────────
+      if (done >= 18) {
+        (() => {
+          // 완주 기준일 = CHALLENGE.end_date + 72시간
+          const deadline = new Date(CHALLENGE.end_date + 'T23:59:59+09:00');
+          deadline.setHours(deadline.getHours() + 72);
+          const msLeft = deadline - Date.now();
+          const hoursLeft = Math.max(0, Math.floor(msLeft / 3600000));
+          const minutesLeft = Math.max(0, Math.floor((msLeft % 3600000) / 60000));
+
+          const ebCard = el('div', { style: {
+            marginTop: '14px', background: 'linear-gradient(135deg,#fff8e7 0%,#fff3d4 100%)',
+            borderRadius: '20px', padding: '18px', border: '1px solid rgba(251,146,60,0.3)',
+          }});
+          const timeStr = msLeft > 0 ? `${hoursLeft}시간 ${minutesLeft}분 남음` : '마감';
+          ebCard.innerHTML = `
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+              <span style="font-size:20px;">🎁</span>
+              <div>
+                <div style="font-size:13px;font-weight:800;color:var(--ink);">7기 수료 특가</div>
+                <div style="font-size:11px;color:var(--muted);">완주 멤버 전용 · ${timeStr}</div>
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--ink-soft);margin-bottom:12px;">8기는 더 어렵고 더 재밌을 거예요. 이번에 쌓은 감각, 이어서 키워봐요.</div>`;
+
+          const ebBtn = el('button', {
+            class: 'btn btn-full',
+            style: { background: 'var(--orange)', color: '#fff', border: 'none', fontWeight: '800', fontSize: '13px', padding: '12px' },
+            onClick: () => {
+              // TODO: 8기 신청 링크로 교체
+              window.open('https://open.kakao.com/o/gCvJcHGg', '_blank');
+            }
+          }, `8기 신청하기 →`);
+          ebCard.appendChild(ebBtn);
+          page.appendChild(ebCard);
+        })();
+      }
+    }
+  } catch (_e) {}
+
   // footer
   page.appendChild(el('div', { style: { textAlign: 'center', padding: '24px 12px 40px', color: 'var(--muted)' } },
     (() => { const d = el('div');
