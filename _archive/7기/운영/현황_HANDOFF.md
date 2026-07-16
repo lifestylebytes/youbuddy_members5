@@ -44,7 +44,7 @@
 - [ ] Week 2~4 미팅 노트 잠금 해제: 7th/index.html 의 __MEETING_OPEN_MAX_WEEK 숫자 올리기
 - [ ] 스태프(Lehn·Rice) 시작 전 테스트 인증 데이터 서버 리셋 여부 결정
 - [ ] AI 첨삭 edge function 재배포 확인 (verdict + 3분류 feedback 반영본)
-- [ ] Week 1 미팅에서 PT 방식 소개 후: 7th/index.html 의 `__PT_HIDDEN` 을 false 로 (발표 준비/신청 오픈)
+- [x] PT 발표 신청/준비 오픈 완료 (2026-07-16, __PT_HIDDEN=false)
 - [ ] 8기 시작 전: `PRESENTER_CAP_OVERRIDE` 비우기 (현재 Week 4 = 2자리 축소)
 - [ ] 프리미엄 미니 설문 발송 (Week 2 말, 7/23~24). 3문항:
       ① 현재 만족도, 어떤 부분이 가장 만족스러운지
