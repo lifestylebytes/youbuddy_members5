@@ -16515,8 +16515,8 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
    `window.__currentPresenterWeek` 힌트를 살려서 발표 블록으로
    스크롤 점프 시킴.
    ============================================================ */
-// TODO(7기): Week 1 미팅에서 PT 진행 방식 소개 후 false 로 되돌려 발표 준비/신청 오픈.
-const __PT_HIDDEN = true;
+// Week 1 미팅(7/16)에서 PT 소개 완료 → 오픈. (숨기려면 true 로)
+const __PT_HIDDEN = false;
 function PresenterPrepPage(weekN) {
   if (__PT_HIDDEN && !(state.isOperator || state.isStaff)) {
     const page = el('div', { class: 'page' });
@@ -17454,7 +17454,7 @@ function MeetingNotesPage(meetingId) {
       const ptCard = el('div', { class: 'card', style: { padding: '20px', borderRadius: '22px', marginBottom: '14px' } });
       ptCard.innerHTML = '<div class="kicker" style="color:#5C53A5;">MY PT · WEEK 2~4 중 1회</div>'
         + '<h2 class="h2" style="margin-top:6px;font-size:21px;">내 PT, 이렇게 준비해요 🎤</h2>'
-        + '<div class="t-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.6;">잘하는 자리가 아니라, 내 업무를 영어로 길게 말해보는 자리예요. 발표 신청은 Week 1 미팅 후에 열려요!</div>'
+        + '<div class="t-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.6;">잘하는 자리가 아니라, 내 업무를 영어로 길게 말해보는 자리예요. 발표 신청이 열렸어요! 프리미엄 탭에서 원하는 주 자리를 잡아주세요 (선착순).</div>'
         + '<div style="margin-top:12px;"></div>';
       const body = el('div');
       body.innerHTML = __ptGuideHtml();
