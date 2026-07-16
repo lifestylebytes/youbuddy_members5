@@ -1767,6 +1767,7 @@ const PERSISTED_STATE_KEYS = [
   'final_downloads',
   'cohort6_popup_seen',
   'premium_presurvey_seen',
+  'vocab_map_seen',
   'cohort_complete_popup_seen',
   'guided_tour_done',
   'meeting_briefing_open',
@@ -3106,6 +3107,7 @@ let showBestPopup = null; // 이번주 베스트(만점자+최초완주) 팝업 
 let showReviewUnlockPopup = false; // Week 2(Day 6) 진입 시 '내 약점 복습' 기능 해제 온보딩 팝업.
 let showFunFactPopup = null; // 홈 진입 시 하루 1회 '오늘의 한 입' (날짜별 고정). true 면 노출.
 let showMeetingPrepPopup = null; // meetingId. 프리미엄 미팅 D-1~당일, 사전 준비(목표+문장) 안 한 멤버에게 하루 1회.
+let showVocabMapPopup = false;  // Day 17+ 멤버에게 1회 자동 노출, 어휘 영역 지도 팝업.
 let showDonePopup = null;    // 그날 인증 완료 후 1회 '오늘 마무리' (스트릭/동료 상태별 분기).
 // '내 약점 복습' 기능은 Week 2(Day 6)부터 해제. 다음 기수도 동일(코호트 무관, currentDay 기준).
 function reviewFeatureUnlocked() { return (Number(state.currentDay) || 1) >= 6 || ((state.isOperator || state.isStaff) && !state.operatorViewAsMember); }
@@ -3124,7 +3126,7 @@ function anyPopupOpen() {
   return !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
     || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup
-    || showFunFactPopup || showDonePopup || showPremiumPresurvey || showMeetingPrepPopup);
+    || showFunFactPopup || showDonePopup || showPremiumPresurvey || showMeetingPrepPopup || showVocabMapPopup);
 }
 
 function go(page, opts={}) {
@@ -6239,6 +6241,14 @@ function render() {
       const stale2 = document.querySelector('[data-meeting-prep-popup]');
       if (stale2) stale2.remove();
     }
+    if (showVocabMapPopup) {
+      if (!document.querySelector('[data-vocab-map-popup]')) {
+        document.body.appendChild(VocabMapPopupModal());
+      }
+    } else {
+      const staleVM = document.querySelector('[data-vocab-map-popup]');
+      if (staleVM) staleVM.remove();
+    }
 
     // Mobile modal scroll fix: lock body scroll while any modal is open so the
     // modal's own overflow-y:auto picks up touch scrolling instead of the page
@@ -8151,6 +8161,21 @@ function HomePage() {
     }
   } catch (e) {}
 
+  // 어휘 영역 지도 팝업: Day 17~20, 평생 1회 (닫으면 vocab_map_seen=true).
+  try {
+    const _vmDay = Number(state.currentDay) || 0;
+    const _vmMember = !(state.isOperator || state.isStaff) || state.operatorViewAsMember;
+    if (_vmDay >= 17 && _vmMember && !state.vocab_map_seen
+        && !window.__vocabMapArmed && guidedTourStep === null && !anyPopupOpen()) {
+      window.__vocabMapArmed = true;
+      setTimeout(() => {
+        if (guidedTourStep !== null || anyPopupOpen() || state.vocab_map_seen) return;
+        showVocabMapPopup = true;
+        render();
+      }, 1200);
+    }
+  } catch (e) {}
+
   // 프리미엄 사전설문(Tally) 팝업: 프리미엄만, 평생 1회 노출 (닫기·이미했어요·작성 모두 본 것으로 처리).
   try {
     if (state.tier === 'premium' && state.onboarded && !state.premium_presurvey_seen
@@ -8766,107 +8791,12 @@ function HomePage() {
     page.appendChild(listCard);
   }
 
-  // ── 재등록 넛지 (Day 17~20, 연속으로 3가지 카드) ──────────────────────────────
-  // 조건: Day 17 이상이고 멤버 본인 (운영자/스태프 뷰어 모드 제외)
+  // ── 재등록 넛지 (Day 17~20, 카드 2종) ─────────────────────────────────────────
+  // 어휘 영역 지도는 VocabMapPopupModal 로 팝업 처리, 여기선 성장 리포트 + 얼리버드만.
   try {
     const _cDay = Number(state.currentDay) || 0;
     const _isMember = !(state.isOperator || state.isStaff) || state.operatorViewAsMember;
     if (_cDay >= 17 && _isMember) {
-
-      // ── 카드 1: 어휘 분포 맵 ──────────────────────────────────────────────
-      // 7기 단어들을 점으로 시각화. 완료한 날 = 주황, 미완료 = 회색. 8기 미리보기 = 연한 점.
-      (() => {
-        const vocabCard = el('div', { style: {
-          marginTop: '20px', background: 'var(--paper)', borderRadius: '20px',
-          padding: '20px 18px', border: '1px solid var(--line)',
-        }});
-
-        // 7기 전체 단어 수집 (day별 3개씩, 총 60개)
-        const allWords7 = [];
-        (CHALLENGE.weeks || []).forEach((w) => {
-          (w.days || []).forEach((d) => {
-            (d.words || []).forEach((wd, wi) => {
-              allWords7.push({ day: d.day, wordIdx: wi, en: wd.en });
-            });
-          });
-        });
-
-        const learnedCount = allWords7.filter((w) => !!state.verified?.['d' + w.day]).length;
-        const totalWords7 = allWords7.length;
-
-        // 8기 미리보기 단어 (예고편, 8기 실제 단어 확정 전 placeholder)
-        const preview8 = [
-          'Make a case', 'Push back', 'Set the tone', 'Loop in', 'Spell it out',
-          'Take the lead', 'On the same page', 'Circle back', 'Drive home', 'Nail it down',
-          'Raise the bar', 'Cut to the chase', 'Bridge the gap', 'Level up', 'Own it',
-        ];
-
-        vocabCard.innerHTML = `
-          <div class="kicker" style="margin-bottom:12px;">내가 이번에 익힌 단어들</div>
-          <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px;">
-            <span class="serif" style="font-size:36px;color:var(--orange);line-height:1;">${learnedCount}</span>
-            <span style="font-size:13px;color:var(--muted);">/ ${totalWords7}개 학습</span>
-          </div>`;
-
-        // 7기 단어 점 그리드
-        const dotsWrap7 = el('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '10px' } });
-        allWords7.forEach((w) => {
-          const isLearned = !!state.verified?.['d' + w.day];
-          const dot = el('div', {
-            title: w.en,
-            style: {
-              width: '9px', height: '9px', borderRadius: '50%',
-              background: isLearned ? 'var(--orange)' : 'var(--line)',
-              transition: 'background 0.3s',
-            }
-          });
-          dotsWrap7.appendChild(dot);
-        });
-        vocabCard.appendChild(dotsWrap7);
-
-        // 8기 미리보기 구분선 + 점
-        const dividerWrap = el('div', { style: { margin: '16px 0 10px', display: 'flex', alignItems: 'center', gap: '8px' } });
-        dividerWrap.innerHTML = `
-          <div style="flex:1;height:1px;background:var(--line);"></div>
-          <span style="font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;">8기에서 배울 단어들</span>
-          <div style="flex:1;height:1px;background:var(--line);"></div>`;
-        vocabCard.appendChild(dividerWrap);
-
-        const dotsWrap8 = el('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '5px' } });
-        preview8.forEach((w) => {
-          const dot = el('div', {
-            title: w,
-            style: {
-              width: '9px', height: '9px', borderRadius: '50%',
-              background: 'rgba(46,107,79,0.2)',
-              border: '1.5px dashed rgba(46,107,79,0.4)',
-            }
-          });
-          dotsWrap8.appendChild(dot);
-        });
-        // 나머지 미스테리 점 (총 60개 채우기)
-        for (let i = preview8.length; i < 45; i++) {
-          const dot = el('div', { style: { width: '9px', height: '9px', borderRadius: '50%', background: 'rgba(0,0,0,0.07)' } });
-          dotsWrap8.appendChild(dot);
-        }
-        vocabCard.appendChild(dotsWrap8);
-
-        const ctaWrap8 = el('div', { style: { marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' } });
-        ctaWrap8.innerHTML = `
-          <span style="font-size:12px;color:var(--muted);">8기에서 이 단어들 다 채워봐요</span>`;
-        const btn8 = el('button', {
-          class: 'btn',
-          style: { padding: '8px 14px', fontSize: '12px', fontWeight: '700', background: 'var(--green)', color: '#fff', border: 'none' },
-          onClick: () => {
-            // TODO: 8기 신청 링크로 교체
-            window.open('https://lifestylebytes.github.io/youbuddy-challenge/', '_blank');
-          }
-        }, '8기 신청 →');
-        ctaWrap8.appendChild(btn8);
-        vocabCard.appendChild(ctaWrap8);
-
-        page.appendChild(vocabCard);
-      })();
 
       // ── 카드 2: 나의 20일 성장 리포트 ──────────────────────────────────────
       (() => {
@@ -28576,6 +28506,282 @@ function MeetingDeckPage() {
   nav.appendChild(navInner);
   page.appendChild(nav);
   return page;
+}
+
+// ============================================================
+// 어휘 영역 지도 팝업 (VocabMapPopupModal)
+// Day 17+ 멤버에게 1회 자동 노출. 4주 = 4개 영역, 땅따먹기 시각화.
+// 학습한 날 = 채워진 점, 미학습 = 흐린 점, 8기 미리보기 = 점선 영역.
+// ============================================================
+function VocabMapPopupModal() {
+  // 1. 전체 단어 수집 (주별)
+  const weeks = CHALLENGE.weeks || [];
+  const weekData = weeks.map((w) => ({
+    n: w.n,
+    title: w.title,
+    subtitle: w.subtitle,
+    words: (w.days || []).flatMap((d) => (d.words || []).map((wd, wi) => ({
+      en: wd.en,
+      day: d.day,
+      idx: wi,
+      learned: !!(state.verified && state.verified['d' + d.day]),
+    }))),
+  }));
+
+  // 2. 주별 색상 팔레트
+  const palette = [
+    { fill: 'rgba(46,107,79,0.13)',  stroke: '#2E6B4F', dot: '#2E6B4F',  light: 'rgba(46,107,79,0.28)'  }, // W1 green
+    { fill: 'rgba(234,88,12,0.11)',  stroke: '#EA580C', dot: '#EA580C',  light: 'rgba(234,88,12,0.25)'  }, // W2 orange
+    { fill: 'rgba(79,70,229,0.11)',  stroke: '#4F46E5', dot: '#4F46E5',  light: 'rgba(79,70,229,0.25)'  }, // W3 indigo
+    { fill: 'rgba(147,51,234,0.11)', stroke: '#9333EA', dot: '#9333EA',  light: 'rgba(147,51,234,0.25)' }, // W4 purple
+  ];
+
+  // 3. 각 주 15개 단어 점 좌표 (320x320 SVG, 4 quadrant)
+  //    약간 불규칙하게 배치해서 땅따먹기 느낌 살리기.
+  const qPos = [
+    // Q1 top-left (Week 1)
+    [[18,28],[58,22],[98,32],[130,18],
+     [14,56],[52,62],[92,52],[128,60],
+     [22,88],[65,94],[104,84],[135,90],
+     [18,116],[60,122],[100,112]],
+    // Q2 top-right (Week 2)
+    [[182,22],[218,18],[258,28],[302,20],
+     [176,56],[214,62],[252,52],[298,58],
+     [184,88],[222,82],[260,92],[300,86],
+     [180,116],[218,122],[260,112]],
+    // Q3 bottom-left (Week 3)
+    [[16,182],[55,188],[96,178],[132,186],
+     [20,214],[60,220],[98,210],[136,218],
+     [14,244],[54,250],[94,240],[130,248],
+     [22,278],[62,284],[102,274]],
+    // Q4 bottom-right (Week 4)
+    [[180,180],[218,186],[258,178],[302,184],
+     [178,214],[216,220],[256,210],[298,218],
+     [182,244],[222,250],[262,240],[302,248],
+     [180,278],[220,284],[260,274]],
+  ];
+
+  // 4. 8기 미리보기 단어 점 (지도 중앙 + 주변에 흩뿌림)
+  const preview8Pos = [
+    [148,145],[162,148],[138,160],[168,162],[152,175],
+    [142,132],[172,135],[135,168],[178,170],[155,185],
+    [145,120],[165,122],[130,178],[180,180],[158,192],
+  ];
+
+  // 5. 학습 통계
+  const totalLearned = weekData.flatMap((w) => w.words).filter((wd) => wd.learned).length;
+  const totalWords = weekData.flatMap((w) => w.words).length;
+
+  // 6. 오버레이 생성
+  const overlay = el('div', {
+    'data-vocab-map-popup': '1',
+    style: {
+      position: 'fixed', inset: '0', zIndex: '9100',
+      background: 'rgba(0,0,0,0.6)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '16px',
+    },
+  });
+
+  const card = el('div', { style: {
+    width: '100%', maxWidth: '360px',
+    background: 'var(--paper)', borderRadius: '24px',
+    overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+  }});
+
+  // 헤더
+  const header = el('div', { style: {
+    background: 'linear-gradient(135deg,#1F4D38 0%,#2E6B4F 100%)',
+    padding: '20px 20px 14px', color: '#fff',
+  }});
+  header.innerHTML = `
+    <div style="font-size:11px;font-weight:700;opacity:0.6;letter-spacing:0.08em;margin-bottom:4px;">MY VOCABULARY TERRITORY</div>
+    <div class="serif" style="font-size:22px;font-weight:700;line-height:1.2;">7기에서 익힌<br>나의 어휘 영역</div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
+      <div style="flex:1;height:6px;background:rgba(255,255,255,0.2);border-radius:3px;overflow:hidden;">
+        <div style="width:${Math.round((totalLearned/totalWords)*100)}%;height:100%;background:var(--orange);border-radius:3px;transition:width 1s;"></div>
+      </div>
+      <span style="font-size:12px;font-weight:700;white-space:nowrap;">${totalLearned}/${totalWords}개</span>
+    </div>`;
+  card.appendChild(header);
+
+  // SVG 지도
+  const mapWrap = el('div', { style: { padding: '0', background: '#F8F5F0', position: 'relative' } });
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', '0 0 320 320');
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('style', 'display:block;');
+
+  // 배경
+  const bg = document.createElementNS(svgNS, 'rect');
+  bg.setAttribute('width', '320'); bg.setAttribute('height', '320');
+  bg.setAttribute('fill', '#F0EDE8');
+  svg.appendChild(bg);
+
+  // 4개 영역 (비정형 다각형으로 불규칙 느낌)
+  const regions = [
+    'M 0,0 L 162,0 L 156,162 L 0,168 Z',     // Q1 top-left
+    'M 162,0 L 320,0 L 320,168 L 156,162 Z',  // Q2 top-right
+    'M 0,168 L 156,162 L 162,320 L 0,320 Z',  // Q3 bottom-left
+    'M 156,162 L 320,168 L 320,320 L 162,320 Z', // Q4 bottom-right
+  ];
+
+  regions.forEach((d, i) => {
+    const p = palette[i];
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('fill', p.fill);
+    svg.appendChild(path);
+    // 영역 테두리
+    const stroke = document.createElementNS(svgNS, 'path');
+    stroke.setAttribute('d', d);
+    stroke.setAttribute('fill', 'none');
+    stroke.setAttribute('stroke', p.stroke);
+    stroke.setAttribute('stroke-width', '1');
+    stroke.setAttribute('stroke-opacity', '0.3');
+    svg.appendChild(stroke);
+  });
+
+  // 중앙 교차선 (경계선)
+  const hLine = document.createElementNS(svgNS, 'path');
+  hLine.setAttribute('d', 'M 0,168 Q 80,162 160,162 Q 240,162 320,168');
+  hLine.setAttribute('fill', 'none');
+  hLine.setAttribute('stroke', 'rgba(0,0,0,0.12)');
+  hLine.setAttribute('stroke-width', '1.5');
+  svg.appendChild(hLine);
+
+  const vLine = document.createElementNS(svgNS, 'path');
+  vLine.setAttribute('d', 'M 162,0 Q 156,80 156,162 Q 156,240 162,320');
+  vLine.setAttribute('fill', 'none');
+  vLine.setAttribute('stroke', 'rgba(0,0,0,0.12)');
+  vLine.setAttribute('stroke-width', '1.5');
+  svg.appendChild(vLine);
+
+  // 주차 레이블
+  const qLabels = [
+    { x: 78, y: 14, text: 'W1 · 필드 읽기' },
+    { x: 238, y: 14, text: 'W2 · 회의 기술' },
+    { x: 78, y: 174, text: 'W3 · 위기 대응' },
+    { x: 238, y: 174, text: 'W4 · 커리어' },
+  ];
+  qLabels.forEach((lb, i) => {
+    const t = document.createElementNS(svgNS, 'text');
+    t.setAttribute('x', lb.x); t.setAttribute('y', lb.y);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('font-size', '9');
+    t.setAttribute('font-weight', '700');
+    t.setAttribute('fill', palette[i].stroke);
+    t.setAttribute('opacity', '0.7');
+    t.setAttribute('font-family', 'var(--font-mono, monospace)');
+    t.textContent = lb.text;
+    svg.appendChild(t);
+  });
+
+  // 각 주 단어 점
+  weekData.forEach((w, wi) => {
+    const p = palette[wi];
+    const positions = qPos[wi] || [];
+    w.words.forEach((wd, idx) => {
+      const pos = positions[idx];
+      if (!pos) return;
+      const [cx, cy] = pos;
+      const circle = document.createElementNS(svgNS, 'circle');
+      circle.setAttribute('cx', cx); circle.setAttribute('cy', cy);
+      circle.setAttribute('r', wd.learned ? '5' : '4');
+      if (wd.learned) {
+        circle.setAttribute('fill', p.dot);
+        circle.setAttribute('opacity', '0.9');
+      } else {
+        circle.setAttribute('fill', p.dot);
+        circle.setAttribute('opacity', '0.2');
+      }
+      svg.appendChild(circle);
+      // 학습한 단어는 작은 글자 레이블 (축약)
+      if (wd.learned) {
+        const label = document.createElementNS(svgNS, 'text');
+        const short = wd.en.split(' ')[0].slice(0, 6);
+        label.setAttribute('x', cx + 7); label.setAttribute('y', cy + 3);
+        label.setAttribute('font-size', '6');
+        label.setAttribute('fill', p.dot);
+        label.setAttribute('opacity', '0.7');
+        label.setAttribute('font-family', 'var(--font-mono, monospace)');
+        label.textContent = short;
+        svg.appendChild(label);
+      }
+    });
+  });
+
+  // 8기 미리보기 (지도 중앙 + 모서리에 흐릿하게)
+  preview8Pos.forEach(([cx, cy]) => {
+    const c = document.createElementNS(svgNS, 'circle');
+    c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', '4');
+    c.setAttribute('fill', 'none');
+    c.setAttribute('stroke', 'rgba(100,100,100,0.3)');
+    c.setAttribute('stroke-width', '1');
+    c.setAttribute('stroke-dasharray', '2,2');
+    svg.appendChild(c);
+  });
+
+  // 8기 레이블 (중앙)
+  const lbl8 = document.createElementNS(svgNS, 'text');
+  lbl8.setAttribute('x', '160'); lbl8.setAttribute('y', '156');
+  lbl8.setAttribute('text-anchor', 'middle');
+  lbl8.setAttribute('font-size', '7.5');
+  lbl8.setAttribute('fill', 'rgba(0,0,0,0.35)');
+  lbl8.setAttribute('font-family', 'var(--font-mono, monospace)');
+  lbl8.textContent = '8기 미리보기';
+  svg.appendChild(lbl8);
+
+  mapWrap.appendChild(svg);
+  card.appendChild(mapWrap);
+
+  // 범례
+  const legend = el('div', { style: { padding: '10px 16px', background: '#F0EDE8', display: 'flex', alignItems: 'center', gap: '16px', justifyContent: 'center' } });
+  legend.innerHTML = `
+    <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink-soft);">
+      <span style="width:8px;height:8px;border-radius:50%;background:#2E6B4F;display:inline-block;"></span>학습 완료
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink-soft);">
+      <span style="width:8px;height:8px;border-radius:50%;background:rgba(100,100,100,0.2);display:inline-block;border:1px solid #aaa;"></span>아직 미학습
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink-soft);">
+      <span style="width:8px;height:8px;border-radius:50%;border:1px dashed #999;display:inline-block;"></span>8기 미리보기
+    </div>`;
+  card.appendChild(legend);
+
+  // 하단 버튼
+  const footer = el('div', { style: { padding: '14px 16px 18px', display: 'flex', gap: '8px' } });
+
+  const closeBtn = el('button', {
+    class: 'btn',
+    style: { flex: '1', color: 'var(--ink-soft)', background: 'var(--paper)', border: '1px solid var(--line)' },
+    onClick: () => {
+      state.vocab_map_seen = true;
+      try { saveState(); } catch (e) {}
+      showVocabMapPopup = false;
+      render();
+    },
+  }, '닫기');
+
+  const ctaBtn = el('button', {
+    class: 'btn',
+    style: { flex: '2', background: 'var(--green)', color: '#fff', border: 'none', fontWeight: '800' },
+    onClick: () => {
+      state.vocab_map_seen = true;
+      try { saveState(); } catch (e) {}
+      showVocabMapPopup = false;
+      render();
+      window.open('https://lifestylebytes.github.io/youbuddy-challenge/', '_blank');
+    },
+  }, '8기 영역도 채워보기 →');
+
+  footer.appendChild(closeBtn);
+  footer.appendChild(ctaBtn);
+  card.appendChild(footer);
+  overlay.appendChild(card);
+  return overlay;
 }
 
 render();
