@@ -1362,7 +1362,7 @@ const CHALLENGE = {
         date: '2026-07-23',
         signupCloseDate: '2026-07-22',
         title: 'Week 2, The art of the argument',
-        desc: '논쟁의 기술 미니 강연 + 상황 롤플레잉 + Week 1~2 단어 복습',
+        desc: '상황 롤플레잉 (논쟁의 기술) + PT 발표 + Week 1~2 단어 복습',
         status: 'upcoming',
         zoom: 'Google Meet',
         meetUrl: 'https://meet.google.com/jzo-xowx-auk', // 매주 목 21:00 공용 Meet 링크
@@ -27727,7 +27727,7 @@ const WEEK2_WARMUP = [
   { kr: "문제가 커지기 전에 선수 치다", en: "Get ahead of" },
 ];
 const WEEK2_ROLEPLAY_SLIDES = WEEK2_HUMOR_GROUPS.map((g, i) => ({
-  section: '표현 롤플레잉', kicker: '2 · 롤플레잉 ' + (i + 1) + ' / ' + WEEK2_HUMOR_GROUPS.length, title: g.sit,
+  section: '표현 롤플레잉', kicker: '1 · 롤플레잉 ' + (i + 1) + ' / ' + WEEK2_HUMOR_GROUPS.length, title: g.sit,
   html: '<div style="padding:13px 15px;border-radius:14px;background:#EAF3EE;border:1px solid rgba(46,107,79,0.22);"><div style="font-size:11.5px;font-weight:800;color:#1F4D38;letter-spacing:0.04em;">🎬 상황</div><div style="margin-top:5px;font-size:13.5px;color:var(--ink);line-height:1.6;">' + escapeHtml(g.scenario) + '</div></div>'
     + '<div style="margin-top:12px;font-size:12px;font-weight:800;color:var(--ink);">🗣️ 쓸 표현</div>'
     + '<div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">'
@@ -27739,42 +27739,27 @@ const WEEK2_DECK = [
   { section: '오프닝', kicker: 'WEEK 2 · 60분', title: '오늘 순서 한눈에',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">7기 프리미엄 버디</b></div>'
       + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
-      + ['미니 강연 (논쟁의 기술)', '표현 롤플레잉 4종', '짝 연습', 'Week 2 단어 복습 (Day 6~10)'].map((t, i) =>
+      + ['상황 롤플레잉 (논쟁의 기술)', 'PT 발표 + 질의응답', '짝 연습', 'Week 2 단어 복습 (Day 6~10)'].map((t, i) =>
           '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
       + '</div>'
       + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;color:var(--ink);">🎯 목표: 반대·검증·정리, "회의를 지배하는 말"을 입에 붙이기</div>' },
-  { section: '미니 강연', kicker: '1 · 논쟁의 기술', title: '반대할 거면 제대로',
-    html: (() => {
-      const lineEl = (en, sub) => '<div style="margin-top:7px;">'
-        + '<div style="font-size:14px;font-weight:800;color:#fff;font-family:var(--font-mono);">' + en + '</div>'
-        + '<div style="margin-top:2px;font-size:11.5px;color:#C9D6C0;line-height:1.4;">' + sub + '</div></div>';
-      const group = (sit, lines) => '<div style="margin-top:14px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.18);">'
-        + '<div style="font-size:12.5px;font-weight:800;color:#9FE1CB;">' + sit + '</div>'
-        + lines.map((l) => lineEl(l.en, l.kr)).join('') + '</div>';
-      return '<div style="background:#26331F;border-radius:18px;padding:18px;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
-        + '<div style="font-size:11px;letter-spacing:0.1em;color:#FBE7A1;font-weight:800;">📋 오늘의 칠판 · 논쟁의 3원칙</div>'
-        + '<div style="margin-top:12px;font-size:12.5px;color:#ECEFE3;line-height:1.9;">✅ <b style="color:#9FE1CB;">사람 말고 논리를 상대</b> (steelman 먼저)<br>✅ <b style="color:#9FE1CB;">분위기부터 재고</b> (quick poll · table it)<br>🚫 <b style="color:#F3B0A8;">함정 피하기</b>: bikeshedding · rabbit hole · boil the ocean</div>'
-        + WEEK2_HUMOR_GROUPS.map((g) => group(g.sit, g.lines)).join('')
-        + '</div>'
-        + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">핵심: 세게 반대해도 <b>상대 논리를 먼저 세워주면</b> 감정이 안 상해요.</div>';
-    })() },
   ...WEEK2_ROLEPLAY_SLIDES,
-  { section: '짝 연습', kicker: '3 · 짝 연습', title: '둘이서 주고받기',
+  { section: '짝 연습', kicker: '2 · 짝 연습', title: '둘이서 주고받기',
     html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">짝이 되어 2분간 주고받아요.</div>'
       + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:9px;">'
       + '<div style="padding:12px 14px;border-radius:13px;background:#EAF3EE;border:1px solid rgba(46,107,79,0.22);"><b style="color:#1F4D38;">A</b> 실제 업무에서 반대하고 싶었던 제안 하나를 던지기</div>'
       + '<div style="padding:12px 14px;border-radius:13px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);"><b style="color:var(--orange-dark);">B</b> steelman 으로 받고, 오늘 표현으로 반론·검증하기</div>'
       + '</div>'
       + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;font-size:12.5px;color:var(--ink);line-height:1.6;">🔁 역할 바꿔 한 번 더. 막히면 칠판 표현으로 힌트.</div>' },
-  { section: '복습', kicker: '4 · Week 2 단어', title: 'Week 2 단어 복습 (한국어 → 영어)', worksheet: true,
+  { section: '복습', kicker: '3 · Week 2 단어', title: 'Week 2 단어 복습 (한국어 → 영어)', worksheet: true,
     html: '<div style="font-size:13px;color:var(--ink-soft);line-height:1.6;">Day 6~10 표현 15개. 한국어 뜻 보고 영어로 바로, 막히면 🔖 표시.</div>' },
-  { section: '마무리', kicker: '5 · 마무리', title: '마무리 체크', goalCapture: true,
+  { section: '마무리', kicker: '4 · 마무리', title: '마무리 체크', goalCapture: true,
     checks: ['오늘 표현 중 본인이 실제로 쓸 것 1개 정하기', '과제: 이번 주 회의에서 한 번 실제로 써보기'],
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래를 체크하며 마무리하고, 다음 주 목표를 받아적어요.</div>' },
   { section: '다음주 예고', kicker: '다음 주', title: 'Week 3 · 위기 커뮤니케이션',
     html: '<div style="background:#22301B;border-radius:18px;padding:18px;color:#ECEFE3;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
       + '<div style="font-size:11px;letter-spacing:0.06em;color:#FBE7A1;font-weight:800;">WEEK 3 · 🚨 In the Trenches</div>'
-      + '<div style="margin-top:8px;font-size:12.5px;color:#ECEFE3;line-height:1.85;">① 미니 강연 (위기 커뮤니케이션) → ② ❌→✅ 변환 드릴 → ③ 짝 연습 → ④ Week 3 단어 복습</div>'
+      + '<div style="margin-top:8px;font-size:12.5px;color:#ECEFE3;line-height:1.85;">① 위기 표현 20선 훑기 → ② ❌→✅ 변환 드릴 → ③ 내 상황 짝 연습 (롤플레잉) → ④ Week 3 단어 복습</div>'
       + '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.25);font-size:11.5px;color:#C9D6C0;line-height:1.7;">🍬 맛보기: "Can we hop on a call?" · "That\'s the long pole in the tent." · "I recommend we pull the plug."</div></div>' },
 ];
 
@@ -27841,25 +27826,18 @@ const CUSHION_DRILLS = [
     ] },
 ];
 const CUSHION_DRILL_SLIDES = CUSHION_DRILLS.map((g, i) => ({
-  section: '위기 변환 드릴', kicker: '3 · 드릴 ' + (i + 1) + ' / ' + CUSHION_DRILLS.length, title: g.emoji + ' ' + g.cat,
+  section: '위기 변환 드릴', kicker: '2 · 드릴 ' + (i + 1) + ' / ' + CUSHION_DRILLS.length, title: g.emoji + ' ' + g.cat,
   cushionDrill: g, bank: (CUSHION_PHRASES[i] && CUSHION_PHRASES[i].items) || [],
 }));
 const WEEK3_DECK = [
   { section: '오프닝', kicker: 'WEEK 3 · 60분', title: '오늘 순서 한눈에',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">7기 프리미엄 버디</b></div>'
     + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
-    + ['미니 강연 (위기 커뮤니케이션)', '위기 표현 20선 칠판', '❌→✅ 변환 드릴 (오늘의 핵심)', '내 상황 짝 연습', 'Week 3 단어 복습'].map((t, i) =>
+    + ['위기 표현 20선 훑기', '❌→✅ 변환 드릴 (오늘의 핵심)', '내 상황 짝 연습 (롤플레잉)', 'Week 3 단어 복습'].map((t, i) =>
         '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
     + '</div>'
     + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎯 목표: 패닉 상황에서 <b>침착한 프로의 문장</b>이 반사적으로 나오게.</div>' },
-  { section: '미니 강연', kicker: '1 · 위기 커뮤니케이션', title: '불났을 때 진짜 실력이 나와요',
-    html: '<div style="font-size:14.5px;line-height:1.8;color:var(--ink);">위기 때는 어휘가 아니라 <b>톤이 먼저 무너져요.</b> 패닉의 말 대신 구조의 말을 쓰면, 같은 상황도 통제되고 있는 것처럼 들려요.</div>'
-    + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:10px;">'
-    + '<div style="padding:12px 14px;border-radius:13px;background:#FBEEEC;border:1px solid rgba(214,69,69,0.22);"><span style="font-size:11.5px;font-weight:800;color:#C0392B;">❌ 패닉</span><div style="margin-top:3px;font-size:14px;font-family:var(--font-mono);color:#922;">"Everything is broken!! Whose fault is this??"</div></div>'
-    + '<div style="padding:12px 14px;border-radius:13px;background:#EAF3DE;border:1px solid rgba(107,142,78,0.3);"><span style="font-size:11.5px;font-weight:800;color:#3B6D11;">✅ 프로</span><div style="margin-top:3px;font-size:14px;font-family:var(--font-mono);color:#3B6D11;">"Let\'s hop on a call and triage what\'s actually failing."</div></div>'
-    + '</div>'
-    + '<div style="margin-top:14px;padding:13px 15px;border-radius:14px;background:#EAF3EE;border:1px solid rgba(46,107,79,0.22);font-size:13.5px;color:#1F4D38;line-height:1.7;">💡 핵심: 위기 표현은 <b>구조째 외워두면 자동으로 침착해지는 패턴</b>이에요. 상황이 터졌을 때 새 문장을 만들 여유는 없거든요.</div>' },
-  { section: '미니 강연', kicker: '1 · 칠판', title: '위기 표현 20선 · 4개 서랍',
+  { section: '표현 보기', kicker: '1 · 위기 표현 20선', title: '위기 표현 20선 · 4개 서랍',
     html: (() => {
       const card = (g) => '<div style="margin-top:13px;padding-top:11px;border-top:1px dashed rgba(255,255,255,0.18);">'
         + '<div style="font-size:12.5px;font-weight:800;color:#9FE1CB;">' + escapeHtml(g.cat) + '</div>'
@@ -27870,7 +27848,7 @@ const WEEK3_DECK = [
         + '</div>'
         + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">다 외우지 말고 <b>본인이 약한 서랍 1~2개</b>만 골라 입에 붙이면 충분해요.</div>';
     })() },
-  { section: '위기 변환 드릴', kicker: '3 · 진행 방식', title: '❌→✅ 이렇게 굴려요',
+  { section: '위기 변환 드릴', kicker: '2 · 진행 방식', title: '❌→✅ 이렇게 굴려요',
     html: (() => {
       const step = (emo, t, sub) => '<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);">'
         + '<span style="flex-shrink:0;width:42px;height:42px;border-radius:12px;background:#EAF3EE;display:inline-flex;align-items:center;justify-content:center;font-size:22px;">' + emo + '</span>'
@@ -27885,16 +27863,16 @@ const WEEK3_DECK = [
         + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎮 게임처럼: 패닉 폭탄에 <b>누가 먼저 침착하게</b> 받아치나. 정답은 토글로 가려뒀어요.</div>';
     })() },
   ...CUSHION_DRILL_SLIDES,
-  { section: '짝 연습', kicker: '4 · 내 상황', title: '내 회사의 위기 장면으로',
+  { section: '짝 연습', kicker: '3 · 내 상황', title: '내 회사의 위기 장면으로',
     html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">각자 <b>실제 겪은 (또는 겪을 법한) 위기 장면</b> 하나를 골라, 오늘 표현으로 소리 내어 말해봐요.</div>'
     + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:9px;">'
     + '<div style="padding:12px 14px;border-radius:13px;background:#FBEEEC;border:1px solid rgba(214,69,69,0.2);"><b style="color:#C0392B;">1단계</b> 그때 실제로 나왔던 (패닉) 문장 그대로 말해보기</div>'
     + '<div style="padding:12px 14px;border-radius:13px;background:#EAF3DE;border:1px solid rgba(107,142,78,0.28);"><b style="color:#3B6D11;">2단계</b> 칠판 서랍에서 표현 골라 프로 버전으로 다시 말하기</div>'
     + '</div>'
     + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;font-size:12.5px;color:var(--ink);line-height:1.6;">🔁 운영자: 잘된 것 먼저 칭찬 → 팁 1개만.</div>' },
-  { section: '복습', kicker: '5 · 복습', title: '위기 표현 20선 빠른 한 바퀴', worksheet: true,
+  { section: '복습', kicker: '4 · 복습', title: '위기 표현 20선 빠른 한 바퀴', worksheet: true,
     html: '<div style="font-size:13px;color:var(--ink-soft);line-height:1.6;">한국어 힌트 보고 영어 표현 바로. 막히면 🔖 표시.</div>' },
-  { section: '마무리', kicker: '6 · 마무리', title: '마무리 체크', wrapGoals: true,
+  { section: '마무리', kicker: '5 · 마무리', title: '마무리 체크', wrapGoals: true,
     checks: ['오늘 표현 중 실제로 쓸 것 1개 정하기', '과제: 이번 주 슬랙·회의에서 그 표현 한 번 쓰기'],
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래를 체크하며 마무리하고, 다음 주 목표를 받아적어요.</div>' },
   { section: '다음주 예고', kicker: '다음 주 · 마지막', title: 'Week 4 · 전체 어휘 랩업',
