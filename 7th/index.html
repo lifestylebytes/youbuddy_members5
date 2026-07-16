@@ -15660,7 +15660,7 @@ function PremiumPage() {
         ctaRow.appendChild(prepBtn2);
       } else {
         // 미팅 전 → 발표 준비 (primary) + 미팅 노트 (secondary) + 자리 내려놓기 (tertiary).
-        if (__PT_STUDIO_DISABLED && !(state.isOperator || state.isStaff)) {
+        if (__PT_STUDIO_DISABLED && !((state.isOperator || state.isStaff) && !state.operatorViewAsMember)) {
           ctaRow.appendChild(el('button', {
             class: 'btn', disabled: true,
             style: { flex: '1', minWidth: '160px', background: 'rgba(169,139,184,0.08)', color: 'var(--lilac)', border: '1px dashed rgba(169,139,184,0.35)', cursor: 'default', fontWeight: '700', fontSize: '12.5px' },
@@ -16522,7 +16522,7 @@ const __PT_HIDDEN = false;
 // 자리만 잡는 단계: 발표 준비 페이지/PT 스튜디오는 잠금. 콘텐츠 준비되면 false 로.
 const __PT_STUDIO_DISABLED = true;
 function PresenterPrepPage(weekN) {
-  if ((__PT_HIDDEN || __PT_STUDIO_DISABLED) && !(state.isOperator || state.isStaff)) {
+  if ((__PT_HIDDEN || __PT_STUDIO_DISABLED) && !((state.isOperator || state.isStaff) && !state.operatorViewAsMember)) {
     const page = el('div', { class: 'page' });
     const lock = el('div', { class: 'card card-flat', style: { marginTop: '40px', textAlign: 'center', padding: '36px 24px' } });
     lock.innerHTML = '<div style="font-size:40px;line-height:1;">🎤</div>'
@@ -16554,7 +16554,7 @@ function PresenterPrepPage(weekN) {
    - 발표 준비하기 페이지(presenter-prep)도 여기로 합쳐짐.
    ============================================================ */
 function PitchPrepPage() {
-  if ((__PT_HIDDEN || __PT_STUDIO_DISABLED) && !(state.isOperator || state.isStaff)) {
+  if ((__PT_HIDDEN || __PT_STUDIO_DISABLED) && !((state.isOperator || state.isStaff) && !state.operatorViewAsMember)) {
     const page = el('div', { class: 'page' });
     const lock = el('div', { class: 'card card-flat', style: { marginTop: '40px', textAlign: 'center', padding: '36px 24px' } });
     lock.innerHTML = '<div style="font-size:40px;line-height:1;">📝</div>'
