@@ -15649,22 +15649,21 @@ function PremiumPage() {
           onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
         }, hasNotes ? `📝 발표 회고 이어쓰기 (${tpCount}개)` : '📝 미팅 노트 보기');
         ctaRow.appendChild(memoBtn);
-        const prepBtn2 = el('button', {
-          class: 'btn',
-          style: { background: '#fff', color: 'var(--ink-soft)', border: '1px solid rgba(231,221,200,0.9)', fontSize: '12.5px' },
-          onClick: () => {
-            window.__currentPresenterWeek = m.n;
-            go('presenter-prep');
-          }
-        }, '🎤 발표 자료 다시 보기');
-        ctaRow.appendChild(prepBtn2);
+        if (!(__PT_STUDIO_DISABLED && !((state.isOperator || state.isStaff) && !state.operatorViewAsMember))) {
+          const prepBtn2 = el('button', {
+            class: 'btn',
+            style: { background: '#fff', color: 'var(--ink-soft)', border: '1px solid rgba(231,221,200,0.9)', fontSize: '12.5px' },
+            onClick: () => {
+              window.__currentPresenterWeek = m.n;
+              go('presenter-prep');
+            }
+          }, '🎤 발표 자료 다시 보기');
+          ctaRow.appendChild(prepBtn2);
+        }
       } else {
         // 미팅 전 → 발표 준비 (primary) + 미팅 노트 (secondary) + 자리 내려놓기 (tertiary).
         if (__PT_STUDIO_DISABLED && !((state.isOperator || state.isStaff) && !state.operatorViewAsMember)) {
-          ctaRow.appendChild(el('button', {
-            class: 'btn', disabled: true,
-            style: { flex: '1', minWidth: '160px', background: 'rgba(169,139,184,0.08)', color: 'var(--lilac)', border: '1px dashed rgba(169,139,184,0.35)', cursor: 'default', fontWeight: '700', fontSize: '12.5px' },
-          }, '🎤 자리 확보됨 · 준비 공간 곧 열려요'));
+          // 준비 페이지 폐기: 발표자에겐 미팅 노트 + 자리 내려놓기만 노출.
         } else {
           const prepBtn = el('button', {
             class: 'btn btn-primary',
@@ -16519,7 +16518,8 @@ function appendPresenterPrepBlock(page, meta, n, opts = {}) {
    ============================================================ */
 // Week 1 미팅(7/16)에서 PT 소개 완료 → 신청 오픈. (숨기려면 true 로)
 const __PT_HIDDEN = false;
-// 자리만 잡는 단계: 발표 준비 페이지/PT 스튜디오는 잠금. 콘텐츠 준비되면 false 로.
+// PT 스튜디오/발표 준비 페이지 폐기 (7기, 준비법은 미팅 페이지 'PT 준비법' 카드로 대체).
+// 예약(자리 잡기)과는 무관. 페이지를 되살리려면 false.
 const __PT_STUDIO_DISABLED = true;
 function PresenterPrepPage(weekN) {
   if ((__PT_HIDDEN || __PT_STUDIO_DISABLED) && !((state.isOperator || state.isStaff) && !state.operatorViewAsMember)) {
@@ -16527,7 +16527,7 @@ function PresenterPrepPage(weekN) {
     const lock = el('div', { class: 'card card-flat', style: { marginTop: '40px', textAlign: 'center', padding: '36px 24px' } });
     lock.innerHTML = '<div style="font-size:40px;line-height:1;">🎤</div>'
       + '<div style="margin-top:12px;font-size:17px;font-weight:800;color:var(--ink);">발표 준비 공간은 곧 열려요</div>'
-      + '<div class="t-body" style="margin-top:8px;color:var(--ink-soft);line-height:1.6;">지금은 자리만 잡아두시면 돼요! 준비 공간은 콘텐츠 정리되는 대로 열립니다~</div>';
+      + '<div class="t-body" style="margin-top:8px;color:var(--ink-soft);line-height:1.6;">이 페이지는 사용하지 않아요. 발표 준비법은 미팅 페이지의 <내 PT, 이렇게 준비해요> 카드를 참고해주세요!</div>';
     page.appendChild(lock);
     page.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, onClick: () => go('premium') }, '← 프리미엄으로'));
     return page;
@@ -16559,7 +16559,7 @@ function PitchPrepPage() {
     const lock = el('div', { class: 'card card-flat', style: { marginTop: '40px', textAlign: 'center', padding: '36px 24px' } });
     lock.innerHTML = '<div style="font-size:40px;line-height:1;">📝</div>'
       + '<div style="margin-top:12px;font-size:17px;font-weight:800;color:var(--ink);">PT 스튜디오는 곧 열려요</div>'
-      + '<div class="t-body" style="margin-top:8px;color:var(--ink-soft);line-height:1.6;">지금은 자리만 잡아두시면 돼요! 준비 공간은 콘텐츠 정리되는 대로 열립니다~</div>';
+      + '<div class="t-body" style="margin-top:8px;color:var(--ink-soft);line-height:1.6;">이 페이지는 사용하지 않아요. 발표 준비법은 미팅 페이지의 <내 PT, 이렇게 준비해요> 카드를 참고해주세요!</div>';
     page.appendChild(lock);
     page.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, onClick: () => go('premium') }, '← 프리미엄으로'));
     return page;
