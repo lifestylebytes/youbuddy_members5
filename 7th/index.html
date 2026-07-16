@@ -8629,7 +8629,7 @@ function HomePage() {
     }
 
     // PT 준비 페이지 바로가기 (숨김 기간엔 미노출)
-    if (!(__PT_HIDDEN || __PT_STUDIO_DISABLED) || ((state.isOperator || state.isStaff) && !state.operatorViewAsMember)) {
+    if (!(__PT_HIDDEN || __PT_STUDIO_DISABLED) || (state.isOperator && !state.operatorViewAsMember)) {
     const pitchLink = el('button', {
       style: {
         marginTop: '8px',
@@ -15287,7 +15287,7 @@ function PremiumPage() {
   if (isPremium) {
     const vocabCount = Array.isArray(state.pitch_vocab) ? state.pitch_vocab.length : 0;
     const scriptCount = Object.values(state.presenter_prep || {}).filter(p => p && (p.script || '').trim().length > 0).length;
-    const __ptVisible = !(__PT_HIDDEN || __PT_STUDIO_DISABLED) || ((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
+    const __ptVisible = !(__PT_HIDDEN || __PT_STUDIO_DISABLED) || (state.isOperator && !state.operatorViewAsMember);
     if (__ptVisible) {
     const pitchCta = el('button', {
       style: {
@@ -15649,7 +15649,7 @@ function PremiumPage() {
           onClick: () => { window.__currentMeetingId = meetingId; go('meeting-notes'); }
         }, hasNotes ? `📝 발표 회고 이어쓰기 (${tpCount}개)` : '📝 미팅 노트 보기');
         ctaRow.appendChild(memoBtn);
-        if (!(__PT_STUDIO_DISABLED && !((state.isOperator || state.isStaff) && !state.operatorViewAsMember))) {
+        if (!(__PT_STUDIO_DISABLED && !(state.isOperator && !state.operatorViewAsMember))) {
           const prepBtn2 = el('button', {
             class: 'btn',
             style: { background: '#fff', color: 'var(--ink-soft)', border: '1px solid rgba(231,221,200,0.9)', fontSize: '12.5px' },
@@ -15662,7 +15662,7 @@ function PremiumPage() {
         }
       } else {
         // 미팅 전 → 발표 준비 (primary) + 미팅 노트 (secondary) + 자리 내려놓기 (tertiary).
-        if (__PT_STUDIO_DISABLED && !((state.isOperator || state.isStaff) && !state.operatorViewAsMember)) {
+        if (__PT_STUDIO_DISABLED && !(state.isOperator && !state.operatorViewAsMember)) {
           // 준비 페이지 폐기: 발표자에겐 미팅 노트 + 자리 내려놓기만 노출.
         } else {
           const prepBtn = el('button', {
@@ -16522,7 +16522,7 @@ const __PT_HIDDEN = false;
 // 예약(자리 잡기)과는 무관. 페이지를 되살리려면 false.
 const __PT_STUDIO_DISABLED = true;
 function PresenterPrepPage(weekN) {
-  if ((__PT_HIDDEN || __PT_STUDIO_DISABLED) && !((state.isOperator || state.isStaff) && !state.operatorViewAsMember)) {
+  if ((__PT_HIDDEN || __PT_STUDIO_DISABLED) && !(state.isOperator && !state.operatorViewAsMember)) {
     const page = el('div', { class: 'page' });
     const lock = el('div', { class: 'card card-flat', style: { marginTop: '40px', textAlign: 'center', padding: '36px 24px' } });
     lock.innerHTML = '<div style="font-size:40px;line-height:1;">🎤</div>'
@@ -16554,7 +16554,7 @@ function PresenterPrepPage(weekN) {
    - 발표 준비하기 페이지(presenter-prep)도 여기로 합쳐짐.
    ============================================================ */
 function PitchPrepPage() {
-  if ((__PT_HIDDEN || __PT_STUDIO_DISABLED) && !((state.isOperator || state.isStaff) && !state.operatorViewAsMember)) {
+  if ((__PT_HIDDEN || __PT_STUDIO_DISABLED) && !(state.isOperator && !state.operatorViewAsMember)) {
     const page = el('div', { class: 'page' });
     const lock = el('div', { class: 'card card-flat', style: { marginTop: '40px', textAlign: 'center', padding: '36px 24px' } });
     lock.innerHTML = '<div style="font-size:40px;line-height:1;">📝</div>'
