@@ -16999,6 +16999,19 @@ function PitchPrepPage() {
    { ko, en, at, source: 'manual'|'auto' } 로 저장되어 기존 upsert_meeting_note /
    get_cohort_meeting_notes RPC 를 그대로 타므로 서버 SQL 변경이 필요 없음.
    미제출 시 미팅 D-1~당일에 이번 주 AI 첨삭 문장에서 자동 선정 (source:'auto'). */
+// 디렉토리(진실) 기준 프리미엄 여부. state.tier 가 오염돼도 이걸로 검증.
+// 반환: true/false, 디렉토리에서 못 찾으면 null (판단 불가 → state.tier 폴백).
+function __dirIsPremium() {
+  try {
+    const nm = (state.name || '').trim();
+    const enm = (state.englishName || '').trim();
+    const codeHit = (state.accessCode && typeof lookupCode === 'function') ? lookupCode(state.accessCode) : null;
+    const hit = MEMBER_DIRECTORY.find((d) =>
+      d.name === nm || (enm && d.name === enm) || (state.memberId && d.id === state.memberId) || (codeHit && codeHit.id && d.id === codeHit.id));
+    if (!hit) return null;
+    return hit.tier === 'premium';
+  } catch (_e) { return null; }
+}
 function __preSubmitGet(meetingId) {
   const notes = state.meeting_notes && state.meeting_notes[meetingId];
   const ps = notes && notes.timeline && notes.timeline.pre_submit;
@@ -17036,6 +17049,19 @@ function __autoPreSubmitDaily() {
   if (window.__preSubmitAutoDone) return;
   window.__preSubmitAutoDone = true;
   try {
+    const dirPrem = __dirIsPremium();
+    // 베이직 멤버 기기(state.tier 오염 포함): 자동 선정 금지 + 잘못 만들어진 auto 데이터 청소.
+    if (dirPrem === false) {
+      Object.keys(state.meeting_notes || {}).forEach((mid) => {
+        const tl = state.meeting_notes[mid] && state.meeting_notes[mid].timeline;
+        if (tl && tl.pre_submit && tl.pre_submit.source === 'auto') {
+          tl.pre_submit = null;
+          saveState();
+          try { if (typeof cloudSaveMeetingNote === 'function') cloudSaveMeetingNote(mid); } catch (_e) {}
+        }
+      });
+      return;
+    }
     if (state.tier !== 'premium') return;
     (CHALLENGE.premium.weekly_meetings || []).forEach((meta) => {
       const dLeft = daysUntilMeeting(meta.date);
@@ -17084,7 +17110,7 @@ window.__psSave = (mid) => {
 window.__psEditOn = (mid) => { (window.__psEdit = window.__psEdit || {})[mid] = true; render(); };
 
 function MeetingNotesPage(meetingId) {
-  if (state.tier !== 'premium') return premiumGatePage({ titleRest: '미팅 노트' });
+  if (state.tier !== 'premium' || __dirIsPremium() === false) return premiumGatePage({ titleRest: '미팅 노트' });
   const page = el('div', { class: 'page' });
 
   // Meeting recording/analysis consent, 본인이 아직 동의 안 했으면 모달 자동 오픈.
@@ -17327,7 +17353,7 @@ function MeetingNotesPage(meetingId) {
       const cached = meetingMemberNotesCache[mid];
       const rows = (cached && cached.rows) || [];
       const names = rows
-        .filter((r) => { const tl = r.timeline || {}; return tl.pre_submit && (tl.pre_submit.en || '').trim(); })
+        .filter((r) => { const tl = r.timeline || {}; return r.tier === 'premium' && tl.pre_submit && (tl.pre_submit.en || '').trim(); })
         .map((r) => (state.isOperator || state.isStaff) ? r.member_name : ((r.english_name || '').trim() || '익명 버디'));
       if (names.length) {
         card.appendChild(el('div', { class: 't-small', style: { marginTop: '12px', color: '#1F4D38', lineHeight: '1.6' } },
@@ -18882,6 +18908,7 @@ function MeetingNotesPage(meetingId) {
         const myKey = state.memberKey || state.member_key || '';
         const myName = (state.name || '').trim();
         rows.forEach((r) => {
+          if (r.tier !== 'premium') return; // 미팅 노트는 프리미엄 전용. 베이직 오염 데이터 숨김 (Yeajoon 사건)
           const isMe = (myKey && r.member_key === myKey) || (myName && r.member_name === myName);
           if (isMe && !isOpStaff) return; // 일반 멤버 본인 카드 스킵
           const tl = r.timeline || {};
@@ -28221,7 +28248,7 @@ function MeetingDeckPage() {
     const cachedPS = meetingMemberNotesCache[midPS];
     const subs = (((cachedPS && cachedPS.rows) || [])
       .map((r) => ({ r, ps: (r.timeline || {}).pre_submit }))
-      .filter((x) => x.ps && (x.ps.en || '').trim()));
+      .filter((x) => x.r.tier === 'premium' && x.ps && (x.ps.en || '').trim()));
     body += '<div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">'
       + '<span class="t-small" style="color:var(--ink-soft);">🎯 룰: 본인이 소리내어 읽기 · 확신 없던 곳 한 마디 · 칭찬은 무제한</span>'
       + '<button onclick="window.__loadMeetingMemberNotes(\'' + midPS + '\', true)" style="font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;">↻ 새로고침</button></div>';
