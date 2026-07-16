@@ -117,7 +117,7 @@ You're not creating sentences today, you're just answering. That's exactly how t
 
 ---
 
-# Slide 6 · 마무리 체크리스트
+# Slide 6 · PT 준비법 & 마무리
 
 "Let's wrap. Quick lightning round through the twelve: I say the Korean, you fire back the English, focusing on the ones you passed earlier.
 
@@ -129,7 +129,9 @@ You're not creating sentences today, you're just answering. That's exactly how t
 
 Before we close, let's make this practical. **Not a new goal**, you already set your goal tonight. Just one next-use moment. Tell us three things: one expression that felt hard today, **one real work moment where you could use it next week**, a meeting, an email, a Slack message, and how you'll review. I'll write them down.
 
-And two minutes on how PT presentations work from Week 2: one volunteer a week, seven minutes on your own work topic, three minutes of questions. I'll post the sign-up in the app. If volunteering publicly feels like too much, you can always **backchannel** me on KakaoTalk. And don't let 'I'm not ready' fool you, that's a **red herring**, nobody's ever ready for their first one.
+Now, two minutes on your PT. From Week 2, one of you presents each week: **seven minutes on your own work, three minutes of Q&A.** Here's the whole prep, five steps: (슬라이드 가리키며) grab a slot on a week that works for you, pick the one work situation you talk about the most, quarterly results, your role, a project. Write a detailed outline, minus anything confidential, there's a copy-paste example on screen. Make simple slides, use AI, NotebookLM or Gamma, nobody's grading design. And upload your deck to the KakaoTalk room **by the day before**, that one's a must. My own demo presentation video will be in the KakaoTalk room too.
+
+If volunteering publicly feels like too much, you can always **backchannel** me on KakaoTalk. And don't let 'I'm not ready' fool you, that's a **red herring**, nobody's ever ready for their first one.
 
 Homework: write one short paragraph about your own work situation using **at least three of this week's expressions**, and slip one of them into a real conversation or Slack message this week. Catch yourself using it, that's the win.
 

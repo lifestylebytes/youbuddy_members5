@@ -27582,6 +27582,18 @@ const WEEK1_SIM = [
   { ko: '좋은 아이디어지만 분기 마감이라 지금은 때가 아님', cue: 'Should we kill this project then?', pre: "No, let's just ", ans: 'shelve it', post: " until Q4. It's not dead." },
   { ko: '견적 일정이 너무 빡빡함, QA 변수도 있음', cue: 'Two weeks should be enough to quote them, right?', pre: 'Quote three weeks and ', ans: 'build in some slack', post: ' for QA.' },
 ];
+// TODO(7기): 유버디 예시 발표 영상 링크 받으면 채우기 (비어있으면 "카톡방에 공유" 문구로 표시)
+const PT_DEMO_VIDEO_URL = '';
+const PT_OUTLINE_EXAMPLE = `주제: 1분기 자동화 성과 공유
+
+1) 배경: 우리 팀은 주간 리포트 취합에 매주 6시간을 쓰고 있었음
+2) 한 일: 취합 과정을 스크립트로 자동화 (2월 도입, 구축에 3주)
+3) 결과(숫자로): 주 6시간 → 40분, 입력 오류 월 12건 → 2건
+4) 막혔던 것과 해결: 부서마다 다른 데이터 포맷 → 공용 템플릿으로 통일
+5) 다음 단계: 2분기엔 정산 리포트까지 확장 + 필요한 지원 1가지
+
+(이 개요를 내 업무 내용으로 바꾸고, 영어 문장은 발표 준비 페이지에서 챌린지 표현과 함께!)`;
+window.__ptOutlineCopy = (btn) => { try { copyToClipboard(PT_OUTLINE_EXAMPLE, btn); } catch (_e) {} };
 const WEEK1_DECK = [
   { section: '오프닝', kicker: 'WEEK 1 · 60분', title: '오늘 순서 한눈에',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">7기 프리미엄 버디</b> · 첫 미팅이라 서로 소개부터 가볍게.</div>'
@@ -27616,14 +27628,29 @@ const WEEK1_DECK = [
   { section: '단어 리뷰', kicker: '3 · 회의 시뮬 12문항', title: '회의에서 답을 해보아요!', meetingSim: true,
     script: '"상황 듣고, 상대방 말 듣고, 본인이 대답해주세요. 표현은 첫 글자만 보여드릴게요~ 문장 전체로 크게!"' },
 
-  { section: '마무리', kicker: '4 · 마무리', title: '마무리 체크리스트', passReview: true, wrapGoals: true,
-    html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래를 하나씩 체크하며 마무리하세요.</div>',
-    checks: [
-      '단어 리뷰로 돌아가 12개 한국어→영어 한 바퀴 · 막혔던 것만 다시',
-      '라이트닝 끝나면 짚어주기: "아까 안 나오던 게 지금 나왔죠? 그게 오늘 는 거예요"',
-      '각자: 오늘 어려웠던 표현 1개 + 다음 주에 그걸 써먹을 장면 1개 (새 목표 아님!) + 복습 방법 한마디',
-      '과제: 본인 상황 짧은 영어 문단 1개 (Day 1~5 표현 3개 이상)',
-    ] },
+  { section: 'PT 준비법', kicker: '4 · PT 준비법', title: '내 PT, 이렇게 준비해요',
+    script: '"Week 2~4 중 한 주, 본인 업무로 7분 발표를 해요. 잘하는 자리가 아니라 내 업무를 영어로 길게 말해보는 자리예요~ 준비는 이 다섯 단계면 끝!"',
+    html: (() => {
+      const step = (n, t, sub) => '<div style="display:flex;gap:11px;align-items:flex-start;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);">'
+        + '<span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + n + '</span>'
+        + '<div style="min-width:0;"><div style="font-size:14px;font-weight:800;color:var(--ink);">' + t + '</div>'
+        + (sub ? '<div class="t-small" style="margin-top:2px;color:var(--ink-soft);line-height:1.5;">' + sub + '</div>' : '') + '</div></div>';
+      return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+        + '<span style="font-size:12px;font-weight:800;padding:5px 12px;border-radius:999px;background:#EAF3EE;color:#1F4D38;">⏱ 발표 7분 + 질의응답 3분</span>'
+        + '<span style="font-size:12px;font-weight:800;padding:5px 12px;border-radius:999px;background:#F3EEFF;color:#5C53A5;">Week 2~4 중 1회</span></div>'
+        + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">'
+        + step(1, '발표 가능한 날, 자리를 잡는다', '앱에서 발표 신청이 곧 열려요 (주당 선착순)')
+        + step(2, '가장 말을 많이 할 것 같은 업무 상황 1개 선택', '예: 분기 성과 발표, 직무 소개, 프로젝트 공유')
+        + step(3, '개요를 최대한 자세하게 작성 (대외비 제외)', '아래 예시를 복사해서 내 업무로 바꾸면 편해요')
+        + step(4, 'PPT 제작', 'AI 로 간단하게 추천! NotebookLM, Gamma 등. 화려할 필요 전혀 없어요')
+        + step(5, '발표 전날까지 카톡방에 자료 업로드 (필수!)', '유버디의 예시 발표 영상도 참고해요' + (PT_DEMO_VIDEO_URL ? ' · <a href="' + PT_DEMO_VIDEO_URL + '" target="_blank" rel="noopener" style="color:#5C53A5;font-weight:700;">▶ 영상 보기</a>' : ' (영상 링크는 카톡방에 공유)'))
+        + '</div>'
+        + '<div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">'
+        + '<span style="font-size:12px;font-weight:800;color:var(--orange-dark);">📄 개요 예시 · 1분기 자동화 성과 공유</span>'
+        + '<button onclick="window.__ptOutlineCopy(this)" style="font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;">📋 복사</button></div>'
+        + '<div style="margin-top:8px;font-size:12.5px;line-height:1.7;color:var(--ink);white-space:pre-wrap;">' + escapeHtml(PT_OUTLINE_EXAMPLE) + '</div></div>';
+    })() },
   { section: '다음주 예고', kicker: '다음 주', title: 'Week 2 · 논쟁의 기술',
     html: '<div style="padding:14px 16px;border-radius:14px;background:#26331F;color:#ECEFE3;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
       + '<div style="font-size:11px;letter-spacing:0.06em;color:#FBE7A1;font-weight:800;">WEEK 2 · 🛡️ The Art of the Argument</div>'
