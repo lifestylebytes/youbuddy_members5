@@ -145,7 +145,7 @@ And don't forget the four-box note on the meeting page, especially the 'words I 
 
 # Slide 7 · 다음 주 예고
 
-"Next week is **the art of the argument.** How to disagree without making enemies, steelmanning, quick polls, and the traps that make meetings go sideways, like bikeshedding. If you've ever sat in a meeting arguing thirty minutes about a button color, next week is for you.
+"Next week is **the art of the argument**, and it's a big one: forty minutes of roleplay, then our first four PT presentations, seven minutes each plus Q&A. If you've ever wanted to disagree in English without making enemies, next week is for you.
 
 So that's Week 2, **as presented**. And let me **float an idea** before we go: try slipping just one of today's twelve into a real meeting or Slack message this week. Watch what happens.
 
