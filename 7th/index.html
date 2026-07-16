@@ -761,7 +761,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
   padding: 12px 18px; border-radius: 999px;
   font-size: 13px; font-weight: 500; z-index: 80;
   box-shadow: var(--shadow-l);
-  max-width: 360px; text-align: center;
+  white-space: nowrap; text-align: center;
 }
 
 /* ---------- Meeting Notes page ---------- */
@@ -15188,7 +15188,7 @@ function DayPage(dayN) {
             <div style="width:32px;height:32px;border-radius:10px;background:var(--paper);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--ink);">${escapeHtml(peerInitial)}</div>
             <div style="flex:1;min-width:0;">
               <div style="font-size:13px;font-weight:700;color:var(--ink);">${escapeHtml(peerDisplay)}</div>
-              <div class="t-small mono" style="font-size:10px;color:var(--muted);">${escapeHtml(p.time || '')}</div>
+              <div class="t-small mono" style="font-size:10px;color:var(--muted);">${escapeHtml(p.time || '')}${peerMember && peerMember.role ? ' · ' + escapeHtml(peerMember.role) : ''}</div>
             </div>
             <span class="syn-chip" style="font-size:10px;padding:4px 10px;">${escapeHtml(word)}</span>
           </div>
