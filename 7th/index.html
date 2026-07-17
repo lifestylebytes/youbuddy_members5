@@ -8992,7 +8992,16 @@ function Checkboard() {
   const grid = el('div', { class: 'checkboard' });
   grid.appendChild(el('div', { class: 'cb-header cb-header-name', style: { textAlign: 'left' } }, 'MEMBER'));
   for (let d = 1; d <= 20; d++) {
-    grid.appendChild(el('div', { class: 'cb-header' + (d === state.currentDay ? ' today-col' : '') }, d));
+    const _cbWEnd = d % 5 === 0;
+    const _cbWNum = _cbWEnd ? (d / 5) : 0;
+    const _cbWDone = _cbWNum && (state.bingo_done || {})[String(_cbWNum)];
+    const _cbHEl = el('div', { class: 'cb-header' + (d === state.currentDay ? ' today-col' : '') });
+    if (_cbWDone) {
+      _cbHEl.innerHTML = d + '<span style="display:block;font-size:7px;line-height:1.2;color:#1F8F58;font-weight:900;letter-spacing:-0.01em;">W' + _cbWNum + '✓</span>';
+    } else {
+      _cbHEl.textContent = d;
+    }
+    grid.appendChild(_cbHEl);
   }
   // Kick off per-day peer-time fetches in background so a re-render picks them up.
   // Bounded to days [1 .. currentDay], we only care about already-completed days.
@@ -9108,6 +9117,7 @@ function Checkboard() {
       return `${m.member_key || m.name}|${m.progress || 0}|${v}|${l}|${m.registered ? 1 : 0}`;
     }).join('||'),
     JSON.stringify(window.__peerVerifyTimes || {}),
+    JSON.stringify(state.bingo_done || {}),
   ];
   const fingerprint = fpParts.join('::');
   const cachedRowsHtml = window.__cbCachedFingerprint === fingerprint
@@ -9186,7 +9196,11 @@ function Checkboard() {
           const tip = `${peerDisplay} · Day ${d} · ${vt} ${myTz}${meta.st === 'done-late' ? ' (지각)' : ''}`;
           titleAttr = ` title="${escAttr(tip)}" data-tip="${escAttr(tip)}"`;
         }
-        cellsHtml += `<div class="${cls}"${titleAttr}></div>`;
+        const _meWEnd = d % 5 === 0;
+        const _meWNum = _meWEnd ? (d / 5) : 0;
+        const _meWDone = _meWNum && (state.bingo_done || {})[String(_meWNum)];
+        const _meWStyle = _meWDone ? ' style="border-right:3px solid #1F8F58;"' : '';
+        cellsHtml += `<div class="${cls}"${titleAttr}${_meWStyle}></div>`;
       }
     } else {
       const verifiedSet = Array.isArray(m.verifiedDays) && m.verifiedDays.length
