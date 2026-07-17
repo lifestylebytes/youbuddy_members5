@@ -10020,6 +10020,16 @@ function _buildPhraseAlternatives(target) {
       out.push('\\b' + _escRe(h) + '\\s+(?:\\S+\\s+){1,5}?' + tailEsc + '\\b');
     });
   }
+  // 3-token phrasal verb 오브젝트 삽입 패턴:
+  // "put out feelers" → "put out some feelers", "put out a few feelers"
+  // 두 번째 토큰이 particle 이고 세 번째 토큰이 object 일 때, 사이에 0~3 단어 허용.
+  if (tokens.length === 3 && _PHRASAL_PARTICLES.has(tokens[1].toLowerCase())) {
+    const particleEsc = _escRe(tokens[1]);
+    const objEsc = _escRe(tokens[2]);
+    headInfl.forEach((h) => {
+      out.push('\\b' + _escRe(h) + '\\s+' + particleEsc + '\\s+(?:\\S+\\s+){0,3}?' + objEsc + '\\b');
+    });
+  }
   // 대명사 치환, target 안에 가운데 대명사가 있으면 1~5단어 명사구로 바뀌어도 매칭.
   // 예: "get it over the line" → "got this design over the line", "got the project over the line"
   for (let i = 1; i < tokens.length - 1; i += 1) {

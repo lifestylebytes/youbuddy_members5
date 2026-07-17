@@ -1,5 +1,5 @@
-/* YouBuddy 비즈니스 영어 챌린지 7기 · Service Worker v1.0 */
-const CACHE_NAME = 'youbuddy-7th-v1';
+/* YouBuddy 비즈니스 영어 챌린지 7기 · Service Worker v1.1 */
+const CACHE_NAME = 'youbuddy-7th-v2';
 
 /* ── 설치: 핵심 앱 셸만 캐시 ── */
 self.addEventListener('install', (e) => {
