@@ -64,15 +64,13 @@ filtered as (
     and coalesce(member_name, '') != ''
     and member_name not in ('모모', '유버디', '이규태', '이지흔')
 ),
--- 응답 분류 — Week 1~3 는 미니 설문만 수집 (NPS/AI/UX 없음).
--- 미니 설문(survey->mini->at)만 있어도 submitted 로 처리.
+-- 응답 분류 — Week 2·3 부터는 NPS 안 받음. 'at' 만으로 submitted 판정.
 classified as (
   select *,
     case
       when survey is null or survey = 'null'::jsonb then 'no_response'
       when (survey ->> 'skipped') = 'true' then 'skipped'
-      when (survey ->> 'at') is not null
-        or (survey -> 'mini' ->> 'at') is not null then 'submitted'
+      when (survey ->> 'at') is not null then 'submitted'
       else 'no_response'
     end as response_status
   from filtered

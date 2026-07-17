@@ -6220,9 +6220,10 @@ function render() {
       if (stale) stale.remove();
     }
     if (showBingoIntroPopup) {
-      if (!document.querySelector('[data-bingo-intro-popup]')) {
-        document.body.appendChild(BingoIntroPopupModal());
-      }
+      // 스텝이 바뀔 때마다 다시 그려야 하므로 항상 제거 후 재생성
+      const stale = document.querySelector('[data-bingo-intro-popup]');
+      if (stale) stale.remove();
+      document.body.appendChild(BingoIntroPopupModal());
     } else {
       const stale = document.querySelector('[data-bingo-intro-popup]');
       if (stale) stale.remove();
@@ -8372,6 +8373,32 @@ function HomePage() {
     dots.appendChild(el('span', { class: cls }));
   }
   hero.appendChild(dots);
+
+  // 주차별 완료 뱃지 (W1~W4), bingo_done[weekN] 세팅 시 ✓ 표시
+  const weekBadgeRow = el('div', { style: { display: 'flex', gap: '4px', marginTop: '8px' } });
+  for (let wn = 1; wn <= 4; wn++) {
+    const done_w = !!(state.bingo_done && state.bingo_done[String(wn)]);
+    const badge = el('div', {
+      style: {
+        flex: '1',
+        height: '18px',
+        borderRadius: '4px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '9.5px',
+        fontWeight: '700',
+        letterSpacing: '0.03em',
+        background: done_w ? 'rgba(251,175,80,0.25)' : 'rgba(251,247,240,0.08)',
+        color: done_w ? 'var(--orange)' : 'rgba(251,247,240,0.28)',
+        cursor: done_w ? 'pointer' : 'default',
+        transition: 'background 0.2s',
+      },
+      onClick: done_w ? () => { window.__currentReviewWeek = wn; go('week-review'); } : undefined,
+    }, done_w ? `W${wn} ✓` : `W${wn}`);
+    weekBadgeRow.appendChild(badge);
+  }
+  hero.appendChild(weekBadgeRow);
 
   const ctaBtn = el('button', { class: 'btn btn-primary btn-full btn-lg', style: { marginTop: '18px' }, onClick: () => go('day', { day: state.currentDay }) });
   ctaBtn.innerHTML = `오늘의 학습 열기 · Day ${state.currentDay} ${Icon('arrowRight', 16)}`;
