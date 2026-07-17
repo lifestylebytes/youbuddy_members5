@@ -1585,6 +1585,26 @@ function visibleMembers() {
   return MEMBERS.filter((m) => !m.hidden);
 }
 /* 통계 (완주율·인증률·"5기 39명") 용, staff/ghost 제외, 실제 참가자 39 명만 */
+// ── 쉬는 중(dormant) 전역 판정: 본인 시차 '오늘' 직전까지 4일+ 연속 미인증. ──
+// 보드 정렬/숨김과 인증률 분모 제외가 전부 이 한 함수를 참조한다 (기준 분산 금지).
+// 오늘 다시 인증하면 즉시 해제(comeback). 본인(me)·운영자는 항상 활성 취급.
+const CB_REST_THRESHOLD = 4;
+function __memberRestInfo(m) {
+  try {
+    if (!m || m.me || m.isOperator) return { dormant: false, comeback: false };
+    const t = parseTimezoneShift(memberTimezoneText(m));
+    const off = (t && t.ok) ? t.offsetMinutes : effectiveTimezoneOffsetMinutes();
+    const cur = Math.min(currentDayForOffset(off), 20);
+    if (cur < CB_REST_THRESHOLD + 1) return { dormant: false, comeback: false };
+    const vset = (Array.isArray(m.verifiedDays) && m.verifiedDays.length) ? new Set(m.verifiedDays.map(Number)) : new Set();
+    const grace1 = isDay1GraceMember(m) && day1GraceOpenForOffset(off);
+    const missedAt = (d) => d >= 1 && d < cur && !vset.has(d) && !(d === 1 && grace1);
+    let run = 0;
+    for (let d = cur - 1; d >= 1; d--) { if (missedAt(d)) run += 1; else break; }
+    if (vset.has(cur)) return { dormant: false, comeback: run >= CB_REST_THRESHOLD };
+    return { dormant: run >= CB_REST_THRESHOLD, comeback: false };
+  } catch (_e) { return { dormant: false, comeback: false }; }
+}
 function paidMembers() {
   return MEMBERS.filter((m) => !m.hidden && !m.isStaff && !m.ghost);
 }
@@ -8324,9 +8344,13 @@ function HomePage() {
   };
   // 인증률은 실제 참가자 (paidMembers, staff/ghost 제외) 39명 기준으로 계산해
   // 운영팀/ghost 가 숫자를 흐리지 않도록. 보드 자체는 visibleMembers 로 그대로 노출.
-  const statsPool = paidMembers();
+  const statsPoolAll = paidMembers();
+  // 쉬는 중(4일+ 연속 미인증) 멤버는 인증률 분모에서 제외 (보드 숨김과 같은 기준).
+  const statsPool = statsPoolAll.filter((m) => !__memberRestInfo(m).dormant);
+  const __dormantCount = statsPoolAll.length - statsPool.length;
   const fallbackTodayRate = Math.round((statsPool.filter(isVerifiedToday).length / Math.max(1, statsPool.length)) * 100);
-  const todayRate = dashboardStats.todayRate ?? fallbackTodayRate;
+  // 서버 집계(current_rate_pct)는 쉬는 중 포함이라, 쉬는 중이 1명이라도 있으면 클라 계산을 우선.
+  const todayRate = __dormantCount > 0 ? fallbackTodayRate : (dashboardStats.todayRate ?? fallbackTodayRate);
 
   // Hero progress
   const hero = el('div', { 'data-tour': 'home-hero', class: 'card card-ink', style: { padding: '20px', borderRadius: '26px', position: 'relative', overflow: 'hidden' } });
@@ -9041,23 +9065,7 @@ function Checkboard() {
   // 정시/지각 무관 "참여했다" 카운트 (verifiedDays 길이 기반).
   // ── 쉬는 중(dormant) 판정 (정렬 + 렌더 공용). 본인 시차 '오늘' 직전까지 4일+ 연속 미인증이면 dormant.
   //    그 상태에서 오늘 다시 인증하면 dormant 해제 + comeback(복귀!) 신호. (운영자·본인 제외)
-  const CB_REST_THRESHOLD = 4;
-  const cbRestState = (m) => {
-    if (m.me || m.isOperator) return { dormant: false, comeback: false };
-    const off = (function () {
-      const t = parseTimezoneShift(memberTimezoneText(m));
-      return (t && t.ok) ? t.offsetMinutes : effectiveTimezoneOffsetMinutes();
-    })();
-    const cur = Math.min(currentDayForOffset(off), 20);
-    if (cur < CB_REST_THRESHOLD + 1) return { dormant: false, comeback: false };
-    const vset = (Array.isArray(m.verifiedDays) && m.verifiedDays.length) ? new Set(m.verifiedDays.map(Number)) : new Set();
-    const grace1 = isDay1GraceMember(m) && day1GraceOpenForOffset(off);
-    const missedAt = (d) => d >= 1 && d < cur && !vset.has(d) && !(d === 1 && grace1);
-    let run = 0;
-    for (let d = cur - 1; d >= 1; d--) { if (missedAt(d)) run += 1; else break; }
-    if (vset.has(cur)) return { dormant: false, comeback: run >= CB_REST_THRESHOLD };
-    return { dormant: run >= CB_REST_THRESHOLD, comeback: false };
-  };
+  const cbRestState = (m) => __memberRestInfo(m); // 전역 판정 함수 위임 (인증률 집계와 동일 기준)
 
   // 정렬용 인증 수 (본인은 로컬 completedCount 기준).
   const participationOf = (m) => m.me
@@ -9079,7 +9087,9 @@ function Checkboard() {
     return __verifyMinOnDay(m, Math.max.apply(null, days));
   };
 
-  const orderedMembers = [...allMembers].sort((a, b) => {
+  // 쉬는 중 멤버는 보드에서 아예 숨김 (2026-07-17 운영 결정). 오늘 인증하면 즉시 복귀해 다시 보임.
+  const allMembersActive = allMembers.filter((m) => !cbRestState(m).dormant);
+  const orderedMembers = [...allMembersActive].sort((a, b) => {
     // 1) 쉬는 중(4일+ 연속 미인증)은 프리미엄/베이직 무관 항상 맨 아래로 (베이직 쉬는 중과 한 그룹)
     const da = cbRestState(a).dormant ? 1 : 0, db = cbRestState(b).dormant ? 1 : 0;
     if (da !== db) return da - db;
