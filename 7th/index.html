@@ -6078,8 +6078,9 @@ function render() {
                   window.__currentMeetingId = `m${thisWk.n}`;
                   go('meeting-notes');
                 } else if (iAmP) {
-                  window.__currentPresenterWeek = thisWk.n;
-                  go('presenter-prep');
+                  // 준비 공간 폐기: 발표자도 회의록(미팅 노트)으로.
+                  window.__currentMeetingId = `m${thisWk.n}`;
+                  go('meeting-notes');
                 } else {
                   go('premium');
                 }
@@ -8708,8 +8709,9 @@ function HomePage() {
           window.__currentMeetingId = `m${thisWk.n}`;
           go('meeting-notes');
         } else if (iAmP) {
-          window.__currentPresenterWeek = thisWk.n;
-          go('presenter-prep');
+          // 준비 공간 폐기: '발표 준비하러 →' = 그 주 회의록으로.
+          window.__currentMeetingId = `m${thisWk.n}`;
+          go('meeting-notes');
         } else {
           go('premium');
         }
@@ -15849,8 +15851,8 @@ function PremiumPage() {
             class: 'btn',
             style: { background: '#fff', color: 'var(--ink-soft)', border: '1px solid rgba(231,221,200,0.9)', fontSize: '12.5px' },
             onClick: () => {
-              window.__currentPresenterWeek = m.n;
-              go('presenter-prep');
+              window.__currentMeetingId = 'm' + m.n;
+              go('meeting-notes');
             }
           }, '🎤 발표 자료 다시 보기');
           ctaRow.appendChild(prepBtn2);
@@ -15864,8 +15866,8 @@ function PremiumPage() {
             class: 'btn btn-primary',
             style: { flex: '1', minWidth: '160px' },
             onClick: () => {
-              window.__currentPresenterWeek = m.n;
-              go('presenter-prep');
+              window.__currentMeetingId = 'm' + m.n;
+              go('meeting-notes');
             }
           }, '🎤 발표 준비하기');
           ctaRow.appendChild(prepBtn);
@@ -17694,72 +17696,7 @@ function MeetingNotesPage(meetingId) {
     return page; // Week 1 은 준비 + 복습 시트 + PT 준비법 + 모아보기로 완결.
   }
 
-  // ── Week 2 회의록 = 한 페이지 리포트 (외국계 유머). 발표 모드(m2.week2)와 동기화.
-  if (meta.n === 2 && typeof WEEK2_DECK !== 'undefined') {
-    state.meeting_notes = state.meeting_notes || {};
-    state.meeting_notes['m2'] = state.meeting_notes['m2'] || {};
-    const wk = state.meeting_notes['m2'].week2 = state.meeting_notes['m2'].week2 || {};
-    const checks = wk.checks || {};
-    const flowSecs = [];
-    WEEK2_DECK.forEach((sl) => { if (sl.section && flowSecs.indexOf(sl.section) < 0) flowSecs.push(sl.section); });
-    const checkSlides = [];
-    WEEK2_DECK.forEach((sl, di) => { if (sl.checks && sl.checks.length) checkSlides.push({ di, section: sl.section, checks: sl.checks }); });
-    let totalChecks = 0, doneChecks = 0;
-    checkSlides.forEach((cs) => cs.checks.forEach((_, i) => { totalChecks++; if (checks[cs.di + ':' + i]) doneChecks++; }));
-    const pct = totalChecks ? Math.round((doneChecks / totalChecks) * 100) : 0;
-
-    const rv = el('div', { class: 'card', style: { padding: '20px', borderRadius: '22px', marginBottom: '14px' } });
-    let h = '<div class="kicker" style="color:var(--orange-dark);">WEEK 2 회의 리포트 · 발표 모드와 자동 동기화</div>'
-      + '<h2 class="h2" style="margin-top:6px;font-size:21px;">오늘 회의 리포트 🎭</h2>'
-      + '<div class="t-small" style="margin-top:4px;color:var(--ink-soft);">외국계 유머 한 스푼 · 발표 모드 진행 내용이 그대로 정리돼요.</div>'
-      + '<div style="margin-top:16px;font-size:13px;font-weight:800;color:var(--ink);">🗂 오늘 진행한 흐름</div>'
-      + '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">'
-      + flowSecs.map((sec) => '<span style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:#EAF3DE;border:1px solid rgba(107,142,78,0.35);font-size:12px;font-weight:700;color:#3B6D11;"><span style="font-size:11px;">✓</span>' + escapeHtml(sec) + '</span>').join('')
-      + '</div>'
-      + '<div style="margin-top:18px;display:flex;align-items:center;justify-content:space-between;gap:8px;">'
-      + '<div style="font-size:13px;font-weight:800;color:var(--ink);">✅ 진행 체크리스트</div>'
-      + '<div style="font-size:11.5px;font-weight:700;color:#3B6D11;background:#EAF3DE;border-radius:999px;padding:3px 10px;">' + doneChecks + ' / ' + totalChecks + ' 완료 · ' + pct + '%</div></div>';
-    if (checkSlides.length) {
-      checkSlides.forEach((cs) => {
-        h += '<div style="margin-top:10px;font-size:11.5px;font-weight:800;color:var(--lilac);letter-spacing:0.04em;">' + escapeHtml(cs.section) + '</div>'
-          + '<div style="margin-top:5px;display:flex;flex-direction:column;gap:5px;">'
-          + cs.checks.map((c, i) => {
-              const on = !!checks[cs.di + ':' + i];
-              return '<div style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:' + (on ? '#3B6D11' : 'var(--muted)') + ';">'
-                + '<span style="flex-shrink:0;width:17px;height:17px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;background:' + (on ? 'var(--green)' : '#fff') + ';border:1.5px solid ' + (on ? 'var(--green)' : '#CFC7B5') + ';color:#fff;margin-top:1px;">' + (on ? '✓' : '') + '</span>'
-                + '<span style="line-height:1.5;' + (on ? 'text-decoration:line-through;opacity:0.75;' : '') + '">' + escapeHtml(c) + '</span></div>';
-            }).join('')
-          + '</div>';
-      });
-    }
-    h += '<div style="margin-top:18px;font-size:13px;font-weight:800;color:var(--ink);">🗣️ 오늘 유머 표현</div>'
-      + '<div style="margin-top:6px;display:flex;flex-direction:column;gap:5px;">'
-      + (typeof WEEK2_HUMOR !== 'undefined' ? WEEK2_HUMOR.map((hh) => '<div style="font-size:12.5px;color:var(--ink);"><b style="font-family:var(--font-mono);color:var(--orange-dark);">' + escapeHtml(hh.en) + '</b> · ' + escapeHtml(hh.kr) + '</div>').join('') : '')
-      + '</div>';
-    rv.innerHTML = h;
-    page.appendChild(rv);
-
-    const memoCard = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '22px', marginBottom: '14px' } });
-    memoCard.innerHTML = '<div style="font-size:13px;font-weight:800;color:var(--ink);">📝 회의 요약 메모</div>'
-      + '<textarea class="input" style="margin-top:8px;width:100%;min-height:90px;resize:vertical;" placeholder="오늘 회의에서 다룬 것, 발표 피드백, 분위기..." oninput="window.__m2Save(\'recap\', this.value)">' + escapeHtml(wk.recap || '') + '</textarea>'
-      + '<div style="margin-top:14px;font-size:13px;font-weight:800;color:var(--ink);">📌 과제</div>'
-      + '<textarea class="input" style="margin-top:8px;width:100%;min-height:70px;resize:vertical;" placeholder="다음 주까지 해올 과제 (예: 이번 주 회의·스몰토크에서 유머 표현 한 번 써보기)" oninput="window.__m2Save(\'homework\', this.value)">' + escapeHtml(wk.homework || '') + '</textarea>'
-      + '<button class="btn btn-primary btn-full" style="margin-top:12px;" onclick="window.__m2SaveBtn()">💾 회의록 저장</button>'
-      + '<div class="t-small" style="margin-top:6px;text-align:center;color:var(--muted);">적는 동안 자동 저장돼요. 버튼은 확인용이에요.</div>';
-    page.appendChild(memoCard);
-
-    // AI 요약 카드 숨김 (7기 미운영). 복구: false -> true
-    if (false) { // eslint-disable-line no-constant-condition
-      const aiLock2 = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '22px', marginBottom: '14px', background: '#F6F3EE', border: '1px dashed rgba(154,139,115,0.4)' } });
-      aiLock2.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">'
-        + '<div style="flex-shrink:0;width:38px;height:38px;border-radius:12px;background:rgba(154,139,115,0.16);display:flex;align-items:center;justify-content:center;font-size:18px;">🔒</div>'
-        + '<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:800;color:var(--ink);">✨ AI 회의 요약 <span style="font-size:11px;font-weight:700;color:var(--muted);">(준비 중)</span></div>'
-        + '<div style="font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.5;">두 분이 <b>이번 주 과제</b>를 제출하면, 회의 내용 + 과제를 묶어 AI가 한 장 리포트로 정리해드려요.</div></div></div>';
-      page.appendChild(aiLock2);
-    }
-
-    return page; // Week 2 도 리포트 페이지로 완결.
-  }
+  // (Week 2 회의 리포트 블록 제거: 2026-07-17. Week 2 는 아래 공용 노트/모아보기 흐름 사용.)
 
   // ── Week 4 미팅 준비 · 단어 랜덤기, 전체(60개) / Week 4만 선택. 단어/뜻/예문(영·한) 하나씩.
   if (Number(meta.n) === 4) {
