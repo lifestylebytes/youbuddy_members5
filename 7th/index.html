@@ -9024,8 +9024,12 @@ function Checkboard() {
     const _cbWNum = _cbWEnd ? (d / 5) : 0;
     const _cbWDone = _cbWNum && (state.bingo_done || {})[String(_cbWNum)];
     const _cbHEl = el('div', { class: 'cb-header' + (d === state.currentDay ? ' today-col' : '') });
-    if (_cbWDone) {
-      _cbHEl.innerHTML = d + '<span style="display:block;font-size:7px;line-height:1.2;color:#1F8F58;font-weight:900;letter-spacing:-0.01em;">W' + _cbWNum + '✓</span>';
+    if (_cbWEnd) {
+      // 주 경계(Day 5/10/15/20)엔 항상 W 라벨 노출 (주간 테스트 호기심 유발).
+      // 본인이 완주했으면 초록 ✓, 아직이면 흐리게.
+      _cbHEl.innerHTML = _cbWDone
+        ? d + '<span style="display:block;font-size:7px;line-height:1.2;color:#1F8F58;font-weight:900;letter-spacing:-0.01em;">W' + _cbWNum + '✓</span>'
+        : d + '<span style="display:block;font-size:7px;line-height:1.2;color:var(--muted);font-weight:800;letter-spacing:-0.01em;opacity:0.75;">W' + _cbWNum + '</span>';
     } else {
       _cbHEl.textContent = d;
     }
