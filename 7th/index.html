@@ -8436,34 +8436,7 @@ function HomePage() {
 
   page.appendChild(hero);
 
-  // 미팅 다시보기, recordingUrl 있으면 hero 바로 아래 큰 CTA 카드.
-  if (meta.recordingUrl) {
-    const recCard = el('a', {
-      href: meta.recordingUrl,
-      target: '_blank',
-      rel: 'noopener noreferrer',
-      style: {
-        display: 'block', margin: '12px 0 0', padding: '16px 18px',
-        borderRadius: '18px',
-        background: 'linear-gradient(135deg, #FFF1E5 0%, #FFE4D0 100%)',
-        border: '1px solid var(--orange-soft)',
-        textDecoration: 'none', cursor: 'pointer',
-        boxShadow: '0 4px 14px rgba(46,107,79,0.14)',
-      },
-      title: '클릭해서 미팅 녹화본 열기',
-    });
-    recCard.innerHTML = `
-      <div style="display:flex;align-items:center;gap:14px;">
-        <div style="flex-shrink:0;width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,0.7);display:flex;align-items:center;justify-content:center;font-size:22px;">🎬</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:11px;letter-spacing:0.12em;font-weight:800;color:var(--orange-dark);">MEETING REPLAY</div>
-          <div style="margin-top:3px;font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">📺 미팅 다시보기</div>
-          <div style="margin-top:2px;font-size:11.5px;color:var(--ink-soft);line-height:1.4;">못 들었던 부분 / 흐름 다시 따라가기 · Google Drive</div>
-        </div>
-        <div style="flex-shrink:0;font-size:13px;font-weight:800;color:var(--orange-dark);">→</div>
-      </div>`;
-    page.appendChild(recCard);
-  }
+
 
   // Week 진짜 외우기, 이번 주가 다 끝나거나 운영자/스태프면 홈 상단에 노출.
   // 진짜 retention 의 핵심 모먼트라 home 에서 한 번 더 리마인드.
@@ -17531,6 +17504,35 @@ function MeetingNotesPage(meetingId) {
       </div>
     </div>`;
   page.appendChild(hero);
+
+  // 미팅 다시보기, recordingUrl 있으면 hero 바로 아래 큰 CTA 카드.
+  if (meta.recordingUrl) {
+    const recCard = el('a', {
+      href: meta.recordingUrl,
+      target: '_blank',
+      rel: 'noopener noreferrer',
+      style: {
+        display: 'block', margin: '12px 0 0', padding: '16px 18px',
+        borderRadius: '18px',
+        background: 'linear-gradient(135deg, #FFF1E5 0%, #FFE4D0 100%)',
+        border: '1px solid var(--orange-soft)',
+        textDecoration: 'none', cursor: 'pointer',
+        boxShadow: '0 4px 14px rgba(46,107,79,0.14)',
+      },
+      title: '클릭해서 미팅 녹화본 열기',
+    });
+    recCard.innerHTML = `
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="flex-shrink:0;width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,0.7);display:flex;align-items:center;justify-content:center;font-size:22px;">🎬</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;letter-spacing:0.12em;font-weight:800;color:var(--orange-dark);">MEETING REPLAY</div>
+          <div style="margin-top:3px;font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">📺 미팅 다시보기</div>
+          <div style="margin-top:2px;font-size:11.5px;color:var(--ink-soft);line-height:1.4;">못 들었던 부분 / 흐름 다시 따라가기 · Google Drive</div>
+        </div>
+        <div style="flex-shrink:0;font-size:13px;font-weight:800;color:var(--orange-dark);">→</div>
+      </div>`;
+    page.appendChild(recCard);
+  }
 
   // ── 미팅 전 준비: 내 문장 1개 가져가기 (사전 제출) ──
   const __preSubmitCard = (() => {
