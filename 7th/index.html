@@ -28717,37 +28717,16 @@ function VocabMapPopupModal() {
     { fill: 'rgba(147,51,234,0.11)', stroke: '#9333EA', dot: '#9333EA',  light: 'rgba(147,51,234,0.25)' }, // W4 purple
   ];
 
-  // 3. 각 주 15개 단어 점 좌표 (320x320 SVG, 4 quadrant)
-  //    약간 불규칙하게 배치해서 땅따먹기 느낌 살리기.
-  const qPos = [
-    // Q1 top-left (Week 1)
-    [[18,28],[58,22],[98,32],[130,18],
-     [14,56],[52,62],[92,52],[128,60],
-     [22,88],[65,94],[104,84],[135,90],
-     [18,116],[60,122],[100,112]],
-    // Q2 top-right (Week 2)
-    [[182,22],[218,18],[258,28],[302,20],
-     [176,56],[214,62],[252,52],[298,58],
-     [184,88],[222,82],[260,92],[300,86],
-     [180,116],[218,122],[260,112]],
-    // Q3 bottom-left (Week 3)
-    [[16,182],[55,188],[96,178],[132,186],
-     [20,214],[60,220],[98,210],[136,218],
-     [14,244],[54,250],[94,240],[130,248],
-     [22,278],[62,284],[102,274]],
-    // Q4 bottom-right (Week 4)
-    [[180,180],[218,186],[258,178],[302,184],
-     [178,214],[216,220],[256,210],[298,218],
-     [182,244],[222,250],[262,240],[302,248],
-     [180,278],[220,284],[260,274]],
-  ];
-
-  // 4. 8기 미리보기 단어 점 (지도 중앙 + 주변에 흩뿌림)
-  const preview8Pos = [
-    [148,145],[162,148],[138,160],[168,162],[152,175],
-    [142,132],[172,135],[135,168],[178,170],[155,185],
-    [145,120],[165,122],[130,178],[180,180],[158,192],
-  ];
+  // 3. 단어 좌표: 사분면 안에서 가로 = Day 진행(왼→오), 세로 = 그날 1~3번째 단어.
+  //    같은 규칙이라 위치만 봐도 몇째 주·며칠차 단어인지 파악됨. 지터는 단어명 해시로 결정적.
+  const __wordHash = (str) => { let h = 0; for (let k = 0; k < str.length; k++) h = (h * 31 + str.charCodeAt(k)) % 9973; return h; };
+  const Q_ORIGIN = [[0, 0], [164, 0], [0, 164], [164, 164]]; // 사분면 좌상단
+  const posOf = (wi, dayIdx, rowIdx, en) => {
+    const [qx, qy] = Q_ORIGIN[wi];
+    const h = __wordHash(en);
+    const jx = (h % 7) - 3, jy = ((h >> 3) % 7) - 3;
+    return [qx + 28 + dayIdx * 26 + jx, qy + 48 + rowIdx * 38 + jy];
+  };
 
   // 5. 학습 통계
   const totalLearned = weekData.flatMap((w) => w.words).filter((wd) => wd.learned).length;
@@ -28860,60 +28839,65 @@ function VocabMapPopupModal() {
     svg.appendChild(t);
   });
 
-  // 각 주 단어 점
+  // 각 단어 = 픽셀 뭉치로 땅 색칠. 학습 완료 = 진한 픽셀 군집 + 레이블, 미학습 = 연한 픽셀 1개.
+  const px = (x, y, size, color, opacity, dashed) => {
+    const r = document.createElementNS(svgNS, 'rect');
+    r.setAttribute('x', (x - size / 2).toFixed(1)); r.setAttribute('y', (y - size / 2).toFixed(1));
+    r.setAttribute('width', size); r.setAttribute('height', size);
+    r.setAttribute('rx', '1.5');
+    if (dashed) {
+      r.setAttribute('fill', 'none'); r.setAttribute('stroke', color);
+      r.setAttribute('stroke-width', '1'); r.setAttribute('stroke-dasharray', '2,2');
+      r.setAttribute('stroke-opacity', opacity);
+    } else {
+      r.setAttribute('fill', color); r.setAttribute('fill-opacity', opacity);
+    }
+    svg.appendChild(r);
+  };
+  const __learnedPos = []; // 8기 미리보기 배치용
   weekData.forEach((w, wi) => {
     const p = palette[wi];
-    const positions = qPos[wi] || [];
-    w.words.forEach((wd, idx) => {
-      const pos = positions[idx];
-      if (!pos) return;
-      const [cx, cy] = pos;
-      const circle = document.createElementNS(svgNS, 'circle');
-      circle.setAttribute('cx', cx); circle.setAttribute('cy', cy);
-      circle.setAttribute('r', wd.learned ? '5' : '4');
+    const daysOfWeek = [...new Set(w.words.map((wd) => wd.day))].sort((a, b) => a - b);
+    w.words.forEach((wd) => {
+      const dayIdx = Math.max(0, daysOfWeek.indexOf(wd.day));
+      const rowIdx = Math.min(2, Number(wd.idx) || 0);
+      const [cx, cy] = posOf(wi, dayIdx, rowIdx, wd.en);
+      const h = __wordHash(wd.en);
       if (wd.learned) {
-        circle.setAttribute('fill', p.dot);
-        circle.setAttribute('opacity', '0.9');
-      } else {
-        circle.setAttribute('fill', p.dot);
-        circle.setAttribute('opacity', '0.2');
-      }
-      svg.appendChild(circle);
-      // 학습한 단어는 작은 글자 레이블 (축약)
-      if (wd.learned) {
+        __learnedPos.push([cx, cy, wi]);
+        // 중심 픽셀 + 주변 잔픽셀 4~6개 (해시 기반 결정적) = 칠해진 내 땅
+        px(cx, cy, 9, p.dot, 0.92);
+        const around = [[-7, -3], [6, -6], [-4, 7], [8, 4], [-9, 3], [3, 9], [9, -2]];
+        const n = 4 + (h % 3);
+        for (let k = 0; k < n; k++) {
+          const off = around[(h + k * 2) % around.length];
+          px(cx + off[0], cy + off[1], 3.5 + ((h + k) % 3), p.dot, 0.3 + ((h + k) % 3) * 0.12);
+        }
         const label = document.createElementNS(svgNS, 'text');
-        const short = wd.en.split(' ')[0].slice(0, 6);
-        label.setAttribute('x', cx + 7); label.setAttribute('y', cy + 3);
+        const short = wd.en.split(' ')[0].slice(0, 7);
+        label.setAttribute('x', cx + 8); label.setAttribute('y', cy + 3);
         label.setAttribute('font-size', '6');
         label.setAttribute('fill', p.dot);
-        label.setAttribute('opacity', '0.7');
+        label.setAttribute('opacity', '0.8');
         label.setAttribute('font-family', 'var(--font-mono, monospace)');
         label.textContent = short;
         svg.appendChild(label);
+      } else {
+        // 미학습 = 아직 안 칠해진 자리 (연하게)
+        px(cx, cy, 7, p.dot, 0.14);
       }
     });
   });
-
-  // 8기 미리보기 (지도 중앙 + 모서리에 흐릿하게)
-  preview8Pos.forEach(([cx, cy]) => {
-    const c = document.createElementNS(svgNS, 'circle');
-    c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', '4');
-    c.setAttribute('fill', 'none');
-    c.setAttribute('stroke', 'rgba(100,100,100,0.3)');
-    c.setAttribute('stroke-width', '1');
-    c.setAttribute('stroke-dasharray', '2,2');
-    svg.appendChild(c);
+  // 8기 미리보기: 익힌 단어들 바로 옆에 점선 픽셀 (같은 영역에 다음 땅이 이어진다는 신호).
+  // 학습한 게 없으면 각 사분면 모서리에 살짝.
+  const previewAnchors = __learnedPos.length
+    ? __learnedPos.filter((_, k) => k % 3 === 1)
+    : [[60, 60, 0], [250, 60, 1], [60, 250, 2], [250, 250, 3]];
+  previewAnchors.forEach(([cx, cy, wi]) => {
+    const p = palette[wi];
+    const h = __wordHash('p8:' + cx + ',' + cy);
+    px(cx + 9 + (h % 6), cy + 7 + ((h >> 2) % 6), 6, p.stroke, 0.5, true);
   });
-
-  // 8기 레이블 (중앙)
-  const lbl8 = document.createElementNS(svgNS, 'text');
-  lbl8.setAttribute('x', '160'); lbl8.setAttribute('y', '156');
-  lbl8.setAttribute('text-anchor', 'middle');
-  lbl8.setAttribute('font-size', '7.5');
-  lbl8.setAttribute('fill', 'rgba(0,0,0,0.35)');
-  lbl8.setAttribute('font-family', 'var(--font-mono, monospace)');
-  lbl8.textContent = '8기 미리보기';
-  svg.appendChild(lbl8);
 
   mapWrap.appendChild(svg);
   card.appendChild(mapWrap);
@@ -28922,13 +28906,13 @@ function VocabMapPopupModal() {
   const legend = el('div', { style: { padding: '10px 16px', background: '#F0EDE8', display: 'flex', alignItems: 'center', gap: '16px', justifyContent: 'center' } });
   legend.innerHTML = `
     <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink-soft);">
-      <span style="width:8px;height:8px;border-radius:50%;background:#2E6B4F;display:inline-block;"></span>학습 완료
+      <span style="width:8px;height:8px;border-radius:2px;background:#2E6B4F;display:inline-block;"></span>학습 완료 (색칠됨)
     </div>
     <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink-soft);">
-      <span style="width:8px;height:8px;border-radius:50%;background:rgba(100,100,100,0.2);display:inline-block;border:1px solid #aaa;"></span>아직 미학습
+      <span style="width:8px;height:8px;border-radius:2px;background:rgba(100,100,100,0.18);display:inline-block;"></span>아직 미학습
     </div>
     <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink-soft);">
-      <span style="width:8px;height:8px;border-radius:50%;border:1px dashed #999;display:inline-block;"></span>8기 미리보기
+      <span style="width:8px;height:8px;border-radius:2px;border:1px dashed #999;display:inline-block;"></span>8기 미리보기
     </div>`;
   card.appendChild(legend);
 
