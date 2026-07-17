@@ -35,7 +35,8 @@ returns table (
   progress integer,
   streak integer,
   verified_days integer[],
-  late_days integer[]
+  late_days integer[],
+  bingo_weeks integer[]
 )
 language sql
 security definer
@@ -50,6 +51,11 @@ with base as (
     coalesce(cms.app_state ->> 'timezoneOffsetText', '+0h') as timezone_text,
     coalesce(cms.app_state ->> 'goal', '') as goal,
     coalesce(cms.app_state ->> 'motive', '') as motive,
+    (
+      select coalesce(array_agg((k.k)::int order by (k.k)::int), array[]::int[])
+      from jsonb_object_keys(coalesce(cms.app_state -> 'bingo_done', '{}'::jsonb)) as k(k)
+      where k.k ~ '^[1-4]$'
+    ) as bingo_weeks,
     cms.app_state
   from public.challenge_member_state cms
   where cms.cohort = p_cohort
@@ -157,9 +163,11 @@ select
   p.progress,
   coalesce(s.streak, 0)::int as streak,
   p.verified_days,
-  p.late_days
+  p.late_days,
+  coalesce(b2.bingo_weeks, array[]::int[]) as bingo_weeks
 from progress_rows p
 left join streak_rows s on s.member_key = p.member_key
+left join base b2 on b2.member_key = p.member_key
 order by p.progress desc, coalesce(s.streak, 0) desc, p.member_name asc;
 $$;
 

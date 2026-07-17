@@ -5248,6 +5248,13 @@ function applyRemoteMemberSummaries(rows = []) {
       member.verifiedDays = nextDays;
       changed = true;
     }
+    // 주간 테스트(빙고) 완주 주차, 서버 RPC 새 버전이 내려주면 사용 (보드 W✓ 공유용).
+    const rawBingo = Array.isArray(summary.bingo_weeks) ? summary.bingo_weeks : [];
+    const nextBingo = rawBingo.map((w) => Number(w)).filter((w) => w >= 1 && w <= 4);
+    if (JSON.stringify((member.bingoWeeks || []).slice().sort()) !== JSON.stringify(nextBingo.slice().sort())) {
+      member.bingoWeeks = nextBingo;
+      changed = true;
+    }
     // 지각 인증 day 들, 서버 RPC 새 버전이 내려주면 사용. 옛 버전이면 빈 배열.
     // 안전 가드: 예정일(캘린더)이 아직 안 지난 day 는 지각이 논리적으로 불가능 → 무조건 제외.
     // (시작 전 테스트 인증이 구 일정 기준으로 late 저장돼 보드에 지각으로 뜨던 문제 방지)
@@ -9125,6 +9132,7 @@ function Checkboard() {
     koreaOpenDay(),
     JSON.stringify(state.verified || {}),
     JSON.stringify(state.verified_time || {}),
+    JSON.stringify(state.bingo_done || {}),
     !!window.__registeredLoaded,
     // 운영자 view 일 때 한글 이름 inline 표시되므로 fingerprint 에 포함 (operator 토글 시 재렌더 보장)
     !!(state.isOperator || state.isStaff),
@@ -9132,7 +9140,8 @@ function Checkboard() {
     orderedMembers.map((m) => {
       const v = Array.isArray(m.verifiedDays) ? m.verifiedDays.join(',') : '';
       const l = Array.isArray(m.lateDays) ? m.lateDays.join(',') : '';
-      return `${m.member_key || m.name}|${m.progress || 0}|${v}|${l}|${m.registered ? 1 : 0}`;
+      const bw = Array.isArray(m.bingoWeeks) ? m.bingoWeeks.join(',') : '';
+      return `${m.member_key || m.name}|${m.progress || 0}|${v}|${l}|${bw}|${m.registered ? 1 : 0}`;
     }).join('||'),
     JSON.stringify(window.__peerVerifyTimes || {}),
     JSON.stringify(state.bingo_done || {}),
@@ -9259,7 +9268,10 @@ function Checkboard() {
         else if (d === peerCurrentDay) cls += ' today';
         else if (d <= peerKoreaOpen) cls += ' today';   // 한국 기준 열린 날 (현지보다 앞) → 활성 테두리
         else                            cls += ' locked';
-        cellsHtml += `<div class="${cls}"${titleAttr}></div>`;
+        const _pWNum = d % 5 === 0 ? (d / 5) : 0;
+        const _pWDone = _pWNum && Array.isArray(m.bingoWeeks) && m.bingoWeeks.indexOf(_pWNum) >= 0;
+        const _pWStyle = _pWDone ? ` style="border-right:3px solid #1F8F58;" title="${escAttr(peerDisplay + ' · W' + _pWNum + ' 주간 테스트 완료')}"` : '';
+        cellsHtml += `<div class="${cls}"${titleAttr}${_pWDone && !titleAttr ? _pWStyle : (_pWDone ? ' style="border-right:3px solid #1F8F58;"' : '')}></div>`;
       }
     }
     return nameHtml + cellsHtml;
@@ -17699,6 +17711,19 @@ function MeetingNotesPage(meetingId) {
     appendMeetingSharedNotes(page, meetingId);
     return page; // Week 1 은 준비 + 복습 시트 + PT 준비법 + 모아보기로 완결.
   }
+
+  // Week 2~4 미팅 페이지에도 PT 준비법 카드 (W1 과 동일 내용, 공용 함수).
+  (() => {
+    const ptCard = el('div', { class: 'card', style: { padding: '20px', borderRadius: '22px', marginTop: '14px', marginBottom: '14px' } });
+    ptCard.innerHTML = '<div class="kicker" style="color:#5C53A5;">MY PT · WEEK 2~4 중 1회</div>'
+      + '<h2 class="h2" style="margin-top:6px;font-size:21px;">내 PT, 이렇게 준비해요 🎤</h2>'
+      + '<div class="t-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.6;">잘하는 자리가 아니라, 내 업무를 영어로 길게 말해보는 자리예요. 발표 신청이 열렸어요! 프리미엄 탭에서 원하는 주 자리를 잡아주세요 (선착순).</div>'
+      + '<div style="margin-top:12px;"></div>';
+    const body = el('div');
+    body.innerHTML = __ptGuideHtml();
+    ptCard.appendChild(body);
+    page.appendChild(ptCard);
+  })();
 
   // (Week 2 회의 리포트 블록 제거: 2026-07-17. Week 2 는 아래 공용 노트/모아보기 흐름 사용.)
 
