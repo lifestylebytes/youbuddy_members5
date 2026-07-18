@@ -36,7 +36,8 @@ returns table (
   streak integer,
   verified_days integer[],
   late_days integer[],
-  bingo_weeks integer[]
+  bingo_weeks integer[],
+  review_consent text
 )
 language sql
 security definer
@@ -56,6 +57,7 @@ with base as (
       from jsonb_object_keys(coalesce(cms.app_state -> 'bingo_done', '{}'::jsonb)) as k(k)
       where k.k ~ '^[1-4]$'
     ) as bingo_weeks,
+    coalesce(cms.app_state -> 'review_consent' ->> 'choice', '') as review_consent,
     cms.app_state
   from public.challenge_member_state cms
   where cms.cohort = p_cohort
@@ -164,7 +166,8 @@ select
   coalesce(s.streak, 0)::int as streak,
   p.verified_days,
   p.late_days,
-  coalesce(b2.bingo_weeks, array[]::int[]) as bingo_weeks
+  coalesce(b2.bingo_weeks, array[]::int[]) as bingo_weeks,
+  coalesce(b2.review_consent, '') as review_consent
 from progress_rows p
 left join streak_rows s on s.member_key = p.member_key
 left join base b2 on b2.member_key = p.member_key
