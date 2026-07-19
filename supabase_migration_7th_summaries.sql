@@ -120,6 +120,8 @@ progress_rows as (
     coalesce(
       array_agg(day_n order by day_n) filter (
         where verified and verified_date is not null and verified_date >= deadline_date
+          -- 개별 구제 (2026-07-17): 신현아님 Day 1~4 정시 처리 (운영자 승인).
+          and not (p_cohort = '7기' and day_rows.member_key = '신현아' and day_n between 1 and 4)
           -- Day 3 구제 (2026-07-15 리마인드 지연 사고): 한국(+0h) 멤버는
           -- 7/16(목) 오전 9시 KST 이전의 인증 이벤트가 있으면 정시로 처리.
           and not (
