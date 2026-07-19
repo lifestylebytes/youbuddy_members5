@@ -14015,6 +14015,10 @@ function setDayFsIdx(idx) {
   localStorage.setItem(DAY_FS_KEY, String(Math.max(0, Math.min(DAY_FS_STEPS.length - 1, idx))));
 }
 
+// COHORT-SLOT(manual): 주차 시작 Day 오프닝 멘트 (해당 Day 페이지 상단 카드, 비우면 미표시)
+const DAY_OPENERS = {
+  6: { emoji: '🌿', title: '해피 Week 2 시작!', body: '지난주 어렵다는 의견을 들었어요. 그래서 이번 주 월요일 시작은 비교적 쉬운 회의 안건이에요~ 부담 없이 한 줄부터 가볍게 시작해봐요 :)' },
+};
 function DayPage(dayN) {
   const d = getDay(dayN);
   if (!d) return WeeksPage();
@@ -14066,6 +14070,18 @@ function DayPage(dayN) {
   } catch (e) {}
 
   const page = el('div', { class: 'page day-note' });
+  // 주차 오프닝 카드 (DAY_OPENERS 에 있는 Day 만)
+  (() => {
+    const op = DAY_OPENERS[Number(dayN)];
+    if (!op) return;
+    const c = el('div', { class: 'card', style: { padding: '16px 18px', borderRadius: '18px', marginBottom: '14px', background: 'linear-gradient(135deg,#EAF3EE 0%,#FFFDF8 70%)', border: '1px solid rgba(46,107,79,0.25)' } });
+    c.innerHTML = '<div style="display:flex;gap:12px;align-items:flex-start;">'
+      + '<span style="font-size:26px;line-height:1;flex-shrink:0;">' + op.emoji + '</span>'
+      + '<div><div style="font-size:15px;font-weight:800;color:#1F4D38;">' + op.title + '</div>'
+      + '<div class="t-body day-fs-body" style="margin-top:4px;color:var(--ink-soft);line-height:1.6;">' + op.body + '</div></div></div>';
+    page.appendChild(c);
+  })();
+
   page.style.setProperty('--day-font-size', DAY_FS_STEPS[getDayFsIdx()] + 'px');
   const copyKey = `d${dayN}-copy`;
   const copyDone = !!state.checkpoints[copyKey];
