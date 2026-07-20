@@ -28899,64 +28899,8 @@ function VocabMapPopupModal() {
   bg.setAttribute('fill', '#F0EDE8');
   svg.appendChild(bg);
 
-  // 4개 영역 (비정형 다각형으로 불규칙 느낌)
-  const regions = [
-    'M 0,0 L 162,0 L 156,162 L 0,168 Z',     // Q1 top-left
-    'M 162,0 L 320,0 L 320,168 L 156,162 Z',  // Q2 top-right
-    'M 0,168 L 156,162 L 162,320 L 0,320 Z',  // Q3 bottom-left
-    'M 156,162 L 320,168 L 320,320 L 162,320 Z', // Q4 bottom-right
-  ];
-
-  regions.forEach((d, i) => {
-    const p = palette[i];
-    const path = document.createElementNS(svgNS, 'path');
-    path.setAttribute('d', d);
-    path.setAttribute('fill', p.fill);
-    svg.appendChild(path);
-    // 영역 테두리
-    const stroke = document.createElementNS(svgNS, 'path');
-    stroke.setAttribute('d', d);
-    stroke.setAttribute('fill', 'none');
-    stroke.setAttribute('stroke', p.stroke);
-    stroke.setAttribute('stroke-width', '1');
-    stroke.setAttribute('stroke-opacity', '0.3');
-    svg.appendChild(stroke);
-  });
-
-  // 중앙 교차선 (경계선)
-  const hLine = document.createElementNS(svgNS, 'path');
-  hLine.setAttribute('d', 'M 0,168 Q 80,162 160,162 Q 240,162 320,168');
-  hLine.setAttribute('fill', 'none');
-  hLine.setAttribute('stroke', 'rgba(0,0,0,0.12)');
-  hLine.setAttribute('stroke-width', '1.5');
-  svg.appendChild(hLine);
-
-  const vLine = document.createElementNS(svgNS, 'path');
-  vLine.setAttribute('d', 'M 162,0 Q 156,80 156,162 Q 156,240 162,320');
-  vLine.setAttribute('fill', 'none');
-  vLine.setAttribute('stroke', 'rgba(0,0,0,0.12)');
-  vLine.setAttribute('stroke-width', '1.5');
-  svg.appendChild(vLine);
-
-  // 주차 레이블
-  const qLabels = [
-    { x: 78, y: 14, text: 'W1 · 필드 읽기' },
-    { x: 238, y: 14, text: 'W2 · 회의 기술' },
-    { x: 78, y: 174, text: 'W3 · 위기 대응' },
-    { x: 238, y: 174, text: 'W4 · 커리어' },
-  ];
-  qLabels.forEach((lb, i) => {
-    const t = document.createElementNS(svgNS, 'text');
-    t.setAttribute('x', lb.x); t.setAttribute('y', lb.y);
-    t.setAttribute('text-anchor', 'middle');
-    t.setAttribute('font-size', '9');
-    t.setAttribute('font-weight', '700');
-    t.setAttribute('fill', palette[i].stroke);
-    t.setAttribute('opacity', '0.7');
-    t.setAttribute('font-family', 'var(--font-mono, monospace)');
-    t.textContent = lb.text;
-    svg.appendChild(t);
-  });
+  // (v3: 레퍼런스 무드에 맞춰 사분면 색면·경계선·라벨 제거. 배치 논리는 좌표에만 남김)
+  const INK = '#3B3125';
 
   // 아트 렌더 v2: 종이 도트 그리드 + 동심원 노드 + 위성점 + 별자리 연결선 (제너러티브 도트 아트 무드).
   const __c = (cx2, cy2, r2, o) => {
@@ -28996,14 +28940,14 @@ function VocabMapPopupModal() {
       const ln = document.createElementNS(svgNS, 'line');
       ln.setAttribute('x1', a.x); ln.setAttribute('y1', a.y);
       ln.setAttribute('x2', b.x); ln.setAttribute('y2', b.y);
-      ln.setAttribute('stroke', palette[wi].dot); ln.setAttribute('stroke-opacity', '0.28');
+      ln.setAttribute('stroke', INK); ln.setAttribute('stroke-opacity', '0.22');
       ln.setAttribute('stroke-width', '0.7');
       svg.appendChild(ln);
     }
   }
   // 4) 노드: 학습 완료 = 채운 원 + 동심원 1~2개 + 위성점, 미학습 = 빈 원
   Object.values(nodeMap).forEach((nd) => {
-    const p = palette[nd.wi];
+    const p = { dot: INK };
     const h = __wordHash(nd.en);
     if (nd.learned) {
       __c(nd.x, nd.y, 8, { stroke: p.dot, so: 0.45, sw: 0.8 });
@@ -29015,16 +28959,9 @@ function VocabMapPopupModal() {
         const off = sats[(h + k) % 5];
         __c(nd.x + off[0], nd.y + off[1], 1.1 + ((h + k) % 2) * 0.6, { fill: p.dot, fo: 0.5 });
       }
-      const label = document.createElementNS(svgNS, 'text');
-      label.setAttribute('x', nd.x + 10); label.setAttribute('y', nd.y + 3);
-      label.setAttribute('font-size', '5.6');
-      label.setAttribute('fill', p.dot);
-      label.setAttribute('opacity', '0.8');
-      label.setAttribute('font-family', 'var(--font-mono, monospace)');
-      label.textContent = nd.en.split(' ')[0].slice(0, 7);
-      svg.appendChild(label);
+      // (v3: 글자 라벨 제거, 순수 도트 아트)
     } else {
-      __c(nd.x, nd.y, 3, { stroke: p.dot, so: 0.3, sw: 0.9 });
+      __c(nd.x, nd.y, 3, { stroke: INK, so: 0.18, sw: 0.9 });
     }
   });
   // 5) 8기 미리보기: 익힌 노드 옆 점선 원 (학습한 게 없으면 각 사분면 모서리)
@@ -29033,7 +28970,7 @@ function VocabMapPopupModal() {
     : [[60, 60, 0], [250, 60, 1], [60, 250, 2], [250, 250, 3]];
   previewAnchors.forEach(([cx, cy, wi]) => {
     const h = __wordHash('p8:' + cx + ',' + cy);
-    __c(cx + 10 + (h % 5), cy + 9 + ((h >> 2) % 5), 3.4, { stroke: palette[wi].stroke, so: 0.5, sw: 0.8, dash: true });
+    __c(cx + 10 + (h % 5), cy + 9 + ((h >> 2) % 5), 3.4, { stroke: INK, so: 0.35, sw: 0.8, dash: true });
   });
 
   mapWrap.appendChild(svg);
@@ -29043,7 +28980,7 @@ function VocabMapPopupModal() {
   const legend = el('div', { style: { padding: '10px 16px', background: '#F0EDE8', display: 'flex', alignItems: 'center', gap: '16px', justifyContent: 'center' } });
   legend.innerHTML = `
     <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink-soft);">
-      <span style="width:9px;height:9px;border-radius:50%;background:#2E6B4F;display:inline-block;box-shadow:0 0 0 2px rgba(46,107,79,0.25);"></span>학습 완료
+      <span style="width:9px;height:9px;border-radius:50%;background:#3B3125;display:inline-block;box-shadow:0 0 0 2px rgba(59,49,37,0.22);"></span>학습 완료
     </div>
     <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink-soft);">
       <span style="width:8px;height:8px;border-radius:50%;border:1.5px solid rgba(100,100,100,0.45);display:inline-block;"></span>아직 미학습
