@@ -1713,6 +1713,7 @@ const defaultState = () => ({
   spaced_repeat_seen: {},           // { "day7": true } Spaced Repetition 팝업 본 상태, Day 시작 시 1회 노출용.
   review_unlock_seen: false,        // Week 2(Day 6)부터 '내 약점 복습' 기능 잠금 해제 안내 팝업 본 상태.
   bingo_intro_seen: {},             // { "1": true, "2": true } 주간 테스트 첫 진입 온보딩 팝업 본 상태. 주차별 1회.
+  week_review_intro_seen: false,    // 진짜 외우기(week-review) 첫 진입 온보딩 팝업 본 상태 (전체 1회).
   prereview_seen: {},               // { "day2": true } 매일 학습 전 "어제 단어 복습" 팝업 본 상태, Day N 진입 시 1회 노출.
   notifications_read: {},           // { "recording-m1": true, "weekly-quiz-v1": true } 종 인박스에서 읽음 처리한 알림.
   operatorViewAsMember: false,      // 운영자/스태프가 "일반 회원처럼 보기" 켜둘 때 true. 운영자 UI 다 숨김.
@@ -1798,6 +1799,7 @@ const PERSISTED_STATE_KEYS = [
   'weekly_quiz_popup_seen',
   'review_unlock_seen',
   'bingo_intro_seen',
+  'week_review_intro_seen',
   'spaced_repeat_seen',
   'prereview_seen',
   'notifications_read',
@@ -3133,7 +3135,8 @@ let showBingoIntroPopup = null; // weekN. 주간 테스트 첫 진입 시 5단�
 let showFunFactPopup = null; // 홈 진입 시 하루 1회 '오늘의 한 입' (날짜별 고정). true 면 노출.
 let showMeetingPrepPopup = null; // meetingId. 프리미엄 미팅 D-1~당일, 사전 준비(목표+문장) 안 한 멤버에게 하루 1회.
 let showVocabMapPopup = false;
-let showReviewConsentPopup = false; // 설문 후기 공개 동의 요청 팝업 (응답 전까지 세션당 1회).  // Day 17+ 멤버에게 1회 자동 노출, 어휘 영역 지도 팝업.
+let showReviewConsentPopup = false; // 설문 후기 공개 동의 요청 팝업 (응답 전까지 세션당 1회).
+let showWeekReviewIntro = false; // 진짜 외우기 첫 진입 온보딩 (3단계 진행 안내).  // Day 17+ 멤버에게 1회 자동 노출, 어휘 영역 지도 팝업.
 let showDonePopup = null;    // 그날 인증 완료 후 1회 '오늘 마무리' (스트릭/동료 상태별 분기).
 // '내 약점 복습' 기능은 Week 2(Day 6)부터 해제. 다음 기수도 동일(코호트 무관, currentDay 기준).
 function reviewFeatureUnlocked() { return (Number(state.currentDay) || 1) >= 6 || ((state.isOperator || state.isStaff) && !state.operatorViewAsMember); }
@@ -3152,7 +3155,7 @@ function anyPopupOpen() {
   return !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
     || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup
-    || showFunFactPopup || showDonePopup || showPremiumPresurvey || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup);
+    || showFunFactPopup || showDonePopup || showPremiumPresurvey || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup || showWeekReviewIntro);
 }
 
 function go(page, opts={}) {
@@ -6297,6 +6300,15 @@ function render() {
     } else {
       const staleRC = document.querySelector('[data-review-consent-popup]');
       if (staleRC) staleRC.remove();
+    }
+
+    if (showWeekReviewIntro) {
+      if (!document.querySelector('[data-week-review-intro]')) {
+        document.body.appendChild(WeekReviewIntroModal());
+      }
+    } else {
+      const staleWR = document.querySelector('[data-week-review-intro]');
+      if (staleWR) staleWR.remove();
     }
     if (showVocabMapPopup) {
       if (!document.querySelector('[data-vocab-map-popup]')) {
@@ -10951,6 +10963,14 @@ function buildWeekReviewQuestions(weekN, stage = 1) {
 }
 
 function WeekReviewPage(weekN) {
+  // 첫 진입 온보딩: '기억 안나요' 흐름을 모르는 멤버용 3단계 안내 (전체 1회).
+  if (!state.week_review_intro_seen && !showWeekReviewIntro && guidedTourStep === null && !anyPopupOpen()) {
+    setTimeout(() => {
+      if (currentPage === 'week-review' && !state.week_review_intro_seen && !showWeekReviewIntro && guidedTourStep === null && !anyPopupOpen()) {
+        showWeekReviewIntro = true; render();
+      }
+    }, 500);
+  }
   const week = (CHALLENGE.weeks || []).find((w) => w.n === weekN);
   if (!week) return WeeksPage();
 
@@ -27760,6 +27780,33 @@ function __buildFunFact(day) {
 window.__closeFunFact = () => { showFunFactPopup = null; window.__funfactPreviewDay = null; render(); };
 window.__previewFunFact = () => { showSettings = null; window.__funfactPreviewDay = Number(state.currentDay) || 1; showFunFactPopup = true; render(); };
 window.__funfactNav = (delta) => { const cur = window.__funfactPreviewDay || Number(state.currentDay) || 1; window.__funfactPreviewDay = Math.max(1, Math.min(20, cur + delta)); const ex = document.querySelector('[data-funfact-popup]'); if (ex) ex.remove(); render(); };
+window.__weekReviewIntroDone = () => {
+  state.week_review_intro_seen = true;
+  try { saveState(); } catch (e) {}
+  showWeekReviewIntro = false;
+  render();
+};
+function WeekReviewIntroModal() {
+  const wrap = el('div', { 'data-week-review-intro': '1', style: { position: 'fixed', inset: '0', zIndex: '9700', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' } });
+  const bd = el('div', { style: { position: 'absolute', inset: '0', background: 'rgba(30,26,18,0.55)', backdropFilter: 'blur(3px)' }, onClick: () => window.__weekReviewIntroDone() });
+  wrap.appendChild(bd);
+  const step = (n, emoji, t, sub) => '<div style="display:flex;gap:11px;align-items:flex-start;padding:12px 13px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);">'
+    + '<span style="flex-shrink:0;width:26px;height:26px;border-radius:9px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + n + '</span>'
+    + '<div style="min-width:0;"><div style="font-size:14px;font-weight:800;color:var(--ink);">' + emoji + ' ' + t + '</div>'
+    + '<div class="t-small" style="margin-top:2px;color:var(--ink-soft);line-height:1.55;">' + sub + '</div></div></div>';
+  const card = el('div', { style: { position: 'relative', width: '100%', maxWidth: '400px', background: '#FFFDF8', borderRadius: '22px', padding: '24px 22px', boxShadow: '0 18px 50px rgba(0,0,0,0.25)', maxHeight: '86vh', overflowY: 'auto' } });
+  card.innerHTML = '<button onclick="window.__weekReviewIntroDone()" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:13px;color:var(--muted);">✕</button>'
+    + '<div class="kicker" style="color:var(--orange-dark);">진짜 외우기 · 이렇게 진행해요</div>'
+    + '<div style="margin-top:6px;font-size:18px;font-weight:800;color:var(--ink);line-height:1.35;">3단계면 끝나요!</div>'
+    + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">'
+    + step(1, '🇰🇷', '한국어만 보고 영어로 떠올리기', '바로 탭하지 말고, 머릿속으로 먼저! 그다음 탭해서 정답과 비교해요.')
+    + step(2, '○', '안 떠올랐으면 "기억 안나요" 체크', '부끄러운 게 아니라 이게 핵심이에요. 체크한 단어만 복습 큐에 담겨요.')
+    + step(3, '🚀', '체크한 단어로 복습 시작', '내가 못 외운 것만 골라서 빠르게 한 바퀴. 끝나면 주간 테스트로 마무리!')
+    + '</div>'
+    + '<button class="btn btn-primary btn-full" style="margin-top:16px;" onclick="window.__weekReviewIntroDone()">시작하기 →</button>';
+  wrap.appendChild(card);
+  return wrap;
+}
 window.__reviewConsentPick = (choice) => {
   state.review_consent = { choice, at: new Date().toISOString() };
   try { saveState(); } catch (e) {}
