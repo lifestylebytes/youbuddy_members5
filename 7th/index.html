@@ -28844,7 +28844,7 @@ function VocabMapPopupModal() {
     const [qx, qy] = Q_ORIGIN[wi];
     const h = __wordHash(en);
     const jx = (h % 7) - 3, jy = ((h >> 3) % 7) - 3;
-    return [qx + 28 + dayIdx * 26 + jx, qy + 48 + rowIdx * 38 + jy];
+    return [qx + 30 + dayIdx * 24 + jx, qy + 46 + rowIdx * 36 + jy];
   };
 
   // 5. 학습 통계
@@ -28899,8 +28899,27 @@ function VocabMapPopupModal() {
   bg.setAttribute('fill', '#F0EDE8');
   svg.appendChild(bg);
 
-  // (v3: 레퍼런스 무드에 맞춰 사분면 색면·경계선·라벨 제거. 배치 논리는 좌표에만 남김)
+  // v4: 무채색 아트 유지 + 의미 복원. 경계는 아주 얇게, SVG 내 글자는 ASCII(W1~W4)만.
   const INK = '#3B3125';
+  ['M 0,160 L 320,160', 'M 160,0 L 160,320'].forEach((dd) => {
+    const ln = document.createElementNS(svgNS, 'path');
+    ln.setAttribute('d', dd);
+    ln.setAttribute('stroke', 'rgba(60,50,40,0.12)');
+    ln.setAttribute('stroke-width', '0.7');
+    ln.setAttribute('fill', 'none');
+    svg.appendChild(ln);
+  });
+  [['W1', 14, 20], ['W2', 174, 20], ['W3', 14, 180], ['W4', 174, 180]].forEach(([tx, x0, y0]) => {
+    const t = document.createElementNS(svgNS, 'text');
+    t.setAttribute('x', x0); t.setAttribute('y', y0);
+    t.setAttribute('font-size', '9');
+    t.setAttribute('font-weight', '700');
+    t.setAttribute('fill', INK);
+    t.setAttribute('opacity', '0.4');
+    t.setAttribute('font-family', 'var(--font-mono, monospace)');
+    t.textContent = tx;
+    svg.appendChild(t);
+  });
 
   // 아트 렌더 v2: 종이 도트 그리드 + 동심원 노드 + 위성점 + 별자리 연결선 (제너러티브 도트 아트 무드).
   const __c = (cx2, cy2, r2, o) => {
@@ -28975,6 +28994,12 @@ function VocabMapPopupModal() {
 
   mapWrap.appendChild(svg);
   card.appendChild(mapWrap);
+
+  // 구역 캡션 (HTML, 사분면 의미 안내)
+  const capt = el('div', { style: { padding: '8px 16px 0', background: '#F0EDE8', display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' } });
+  capt.innerHTML = ['W1 필드 읽기', 'W2 회의 기술', 'W3 위기 대응', 'W4 커리어'].map((t) =>
+    '<span style="font-size:10.5px;font-weight:700;color:#6B6156;"><b style="color:#3B3125;font-family:var(--font-mono,monospace);">' + t.slice(0, 2) + '</b> ' + t.slice(3) + '</span>').join('');
+  card.appendChild(capt);
 
   // 범례
   const legend = el('div', { style: { padding: '10px 16px', background: '#F0EDE8', display: 'flex', alignItems: 'center', gap: '16px', justifyContent: 'center' } });
