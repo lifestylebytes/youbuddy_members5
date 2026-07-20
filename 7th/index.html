@@ -758,10 +758,11 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .toast {
   position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
   background: var(--ink); color: var(--cream);
-  padding: 12px 18px; border-radius: 999px;
+  padding: 12px 18px; border-radius: 20px;
   font-size: 13px; font-weight: 500; z-index: 80;
   box-shadow: var(--shadow-l);
-  white-space: nowrap; text-align: center;
+  white-space: normal; word-break: keep-all; text-align: center;
+  max-width: calc(100vw - 40px);
 }
 
 /* ---------- Meeting Notes page ---------- */
