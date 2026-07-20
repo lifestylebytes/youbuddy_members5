@@ -14847,7 +14847,14 @@ function DayPage(dayN) {
         state.submitted[key] = true;
         state.submitted_text[key] = ta.value;
         saveState();
-        upsertCommunityPost(dayN, i).finally(() => render());
+        upsertCommunityPost(dayN, i)
+          .catch(() => {
+            state.submitted[key] = false;
+            delete state.submitted_text[key];
+            saveState();
+            showToast('제출 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.');
+          })
+          .finally(() => render());
         showToast(isDirty ? '수정된 문장으로 다시 제출했어요.' : '제출 완료! AI 로 수정도 해보세요. 원하면 수정된 내용으로 재제출할 수 있어요.');
         render();
       },
@@ -14856,6 +14863,11 @@ function DayPage(dayN) {
       ? `${Icon('arrowRight', 12)} 다시 제출하기`
       : (isSubmitted ? `${Icon('check', 12)} 제출 완료 (수정하기)` : `제출하기`);
     actionGroup.appendChild(submitBtn);
+    // Fix: enable submit button dynamically as user types (button starts disabled when textarea is empty)
+    ta.addEventListener('input', () => {
+      submitBtn.disabled = !ta.value.trim() && !state.submitted[key];
+      count.textContent = `${ta.value.length} chars`;
+    });
 
     // STEP B, AI review (optional, only after submit, private)
     if (isSubmitted) {
