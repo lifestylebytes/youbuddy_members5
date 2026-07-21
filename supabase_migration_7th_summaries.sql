@@ -120,6 +120,9 @@ progress_rows as (
     coalesce(
       array_agg(day_n order by day_n) filter (
         where verified and verified_date is not null and verified_date >= deadline_date
+          -- 개별 구제 (2026-07-21): 정현영(Daisy)님 Day 6 정시 처리 (그날 인증 누락 신고,
+          -- 본인이 재인증하면 지각 대신 정시로 계산됨. 운영자 승인).
+          and not (p_cohort = '7기' and day_rows.member_key = '정현영' and day_n = 6)
           -- 개별 구제 (2026-07-20): 이지원(wonnie)님 Day 5 정시 처리 (운영자 승인).
           and not (p_cohort = '7기' and day_rows.member_key = '이지원' and day_n = 5)
           -- 개별 구제 (2026-07-17): 신현아님 Day 1~4 정시 처리 (운영자 승인).
