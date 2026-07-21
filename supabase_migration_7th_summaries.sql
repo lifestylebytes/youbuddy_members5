@@ -104,7 +104,12 @@ day_rows as (
     b.goal,
     b.motive,
     dd.day_n,
-    coalesce((b.app_state -> 'verified' ->> ('d' || dd.day_n))::boolean, false) as verified,
+    (
+      coalesce((b.app_state -> 'verified' ->> ('d' || dd.day_n))::boolean, false)
+      -- 개별 구제 (2026-07-21): 정현영(Daisy) Day 6 인증 누락 신고 → 집계상 인증 처리 (운영자 승인).
+      -- 본인 기기 화면은 본인이 재인증해야 채워짐. 8기 복사 시 제거!
+      or (p_cohort = '7기' and b.member_key = '정현영' and dd.day_n = 6)
+    ) as verified,
     nullif(b.app_state -> 'verified_at' ->> ('d' || dd.day_n), '')::date as verified_date,
     dd.scheduled_date,
     dd.deadline_date
