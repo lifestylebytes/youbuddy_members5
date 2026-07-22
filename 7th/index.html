@@ -11414,6 +11414,8 @@ window.__toggleWeekReviewHint = (weekN, stage) => {
   const key = `${weekN}-s${stage}-${state.tier === 'premium' ? 'p' : 'b'}`;
   const ui = window.__weekReviewUi[key];
   if (!ui) return;
+  // 힌트 누를 때 자동진행 타이머 취소 (정답 입력 후 200ms 내 힌트 누르면 다음 문제 이동하는 버그 방지)
+  try { clearTimeout((window.__weekReviewAutoTimers || {})[key]); } catch (e) {}
   const turningOn = !ui.reveal;
   ui.reveal = !ui.reveal;
   if (turningOn) {
@@ -13428,15 +13430,21 @@ window.__bingoDrillCheck = (weekN, value) => {
   const w = drill.queue[drill.idx];
   if (!w || w.mode === 'recognition') return; // 객관식이면 typing 안 받음
   if (quizAnswerMatches(value, w.en)) {
+    if (drill._pendingNext) return; // 이미 정답 처리 중, 중복 방지
+    drill._pendingNext = true;
     _bumpBingoCount(weekN, w.en);
     recordVocabAttempt(w.en, true);
     try { document.activeElement && document.activeElement.blur(); } catch (e) {}
     window.__flashCorrect && window.__flashCorrect();
     drill.score = (drill.score || 0) + 1;
-    drill.idx += 1;
-    drill.value = '';
-    drill.reveal = false;
-    setTimeout(() => render(), 700);
+    // idx 증가를 render 와 함께 defer: 700ms 안에 힌트 버튼 눌러도 현재 문제에 머무름
+    setTimeout(() => {
+      drill._pendingNext = false;
+      drill.idx += 1;
+      drill.value = '';
+      drill.reveal = false;
+      render();
+    }, 700);
   } else {
     // 디버깅, 사용자가 '정답 맞췄는데 안 넘어감' 신고 시 잡기 위해
     // 정답 길이만큼 입력했는데 mismatch 면 콘솔에 자세히 로그 (운영자/스태프만)
@@ -13498,7 +13506,7 @@ window.__bingoDrillSkip = (weekN) => {
 };
 window.__bingoDrillToggleHint = (weekN) => {
   const drill = (window.__bingoDrill || {})[weekN];
-  if (!drill || drill.done) return;
+  if (!drill || drill.done || drill._pendingNext) return; // 정답 애니메이션 중엔 무시
   drill.reveal = !drill.reveal;
   // 힌트 본 어휘는 stats 에 기록 (정답 맞춰도 약점 신호)
   if (drill.reveal && drill.queue[drill.idx]) {
@@ -25894,6 +25902,8 @@ window.__updateVerifySettings = (dayN, key, value) => {
 window.__toggleVerifyAnswer = (dayN) => {
   window.__verifyUi = window.__verifyUi || {};
   const ui = window.__verifyUi[dayN] || { idx: 0, value: '', done: false, score: 0, activeStep: 'capture', reveal: false };
+  // 힌트 누를 때 자동진행 타이머 취소 (정답 입력 후 380ms 내 힌트 누르면 다음 문제 이동하는 버그 방지)
+  try { clearTimeout((window.__verifyAutoAdvanceTimers || {})[dayN]); } catch (e) {}
   // 힌트 false → true 전환 시 (즉 힌트 본 시점) 통계 기록.
   const turningOn = !ui.reveal;
   ui.reveal = !ui.reveal;
