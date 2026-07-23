@@ -28195,12 +28195,9 @@ const WEEK2_ROLEPLAY_SLIDES = WEEK2_HUMOR_GROUPS.map((g, i) => ({
     + '<div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">'
     + g.lines.map((l) => '<div style="padding:8px 11px;border-radius:11px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.14);"><div style="font-size:13.5px;font-family:var(--font-mono);color:var(--orange-dark);font-weight:700;">' + escapeHtml(l.en) + '</div><div style="font-size:11.5px;color:var(--ink-soft);margin-top:1px;">' + escapeHtml(l.kr) + '</div></div>').join('')
     + '</div>'
-    + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;"><b>👥 진행</b><br>' + escapeHtml(g.how) + '</div>'
-    + ((g.bank && g.bank.length) ? '<div style="margin-top:12px;padding:12px 13px;border-radius:13px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.2);">'
-      + '<div style="font-size:11.5px;font-weight:800;color:#5C53A5;">💡 이번에 쓰면 좋은 표현 · 골라 쓰면 됩니다 (다 기억 안 나도 OK!)</div>'
-      + '<div style="margin-top:7px;display:flex;flex-wrap:wrap;gap:5px;">'
-      + g.bank.map((b) => '<span style="padding:5px 10px;border-radius:999px;background:#fff;border:1px solid rgba(125,92,255,0.18);font-size:11.5px;line-height:1.4;"><b style="font-family:var(--font-mono);color:#5C53A5;">' + escapeHtml(b.en) + '</b> <span style="color:var(--ink-soft);">' + escapeHtml(b.kr) + '</span></span>').join('')
-      + '</div></div>' : ''),
+    + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;"><b>👥 진행</b><br>' + escapeHtml(g.how) + '</div>',
+  bank: g.bank || [],
+  bankKey: 'w2rp' + i,
 }));
 const WEEK2_DECK = [
   { section: '오프닝', kicker: 'WEEK 2 · 60분', title: '오늘 순서 한눈에',
@@ -28549,6 +28546,11 @@ function __deckHydrate() {
     window.__deckChecks = { ...(wk.checks || {}) };
   } catch (e) {}
 }
+window.__deckBankToggle = (k, i) => {
+  window.__deckBankChecks = window.__deckBankChecks || {};
+  window.__deckBankChecks[k + ':' + i] = !window.__deckBankChecks[k + ':' + i];
+  render();
+};
 window.__deckTogglePass = (i) => { window.__deckPass = window.__deckPass || {}; window.__deckPass[i] = !window.__deckPass[i]; __deckPersist(); render(); };
 window.__deckBingoReset = (idx, n) => { window.__deckChecks = window.__deckChecks || {}; for (let i = 0; i < n; i++) delete window.__deckChecks[idx + ':b' + i]; __deckPersist(); render(); };
 window.__deckGoSection = (sec) => { const i = __curDeck().findIndex((sl) => sl.section === sec); if (i >= 0) { window.__deckIdx = i; window.scrollTo(0, 0); render(); } };
@@ -28666,6 +28668,21 @@ function MeetingDeckPage() {
   let body = '<div class="kicker" style="color:var(--lilac);">' + escapeHtml(s.kicker) + '</div>'
     + '<h2 class="h2" style="margin-top:8px;font-size:23px;line-height:1.3;">' + escapeHtml(s.title) + '</h2>';
   if (s.html) body += '<div style="margin-top:16px;">' + s.html + '</div>';
+  if (s.bank && s.bank.length && s.bankKey) {
+    // 체크 가능한 워드뱅크: 롤플레잉 중 실제로 쓴 표현을 탭해서 표시 (세션 유지).
+    window.__deckBankChecks = window.__deckBankChecks || {};
+    body += '<div style="margin-top:12px;padding:12px 13px;border-radius:13px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.2);">'
+      + '<div style="font-size:11.5px;font-weight:800;color:#5C53A5;">💡 이번에 쓰면 좋은 표현 · 실제로 쓰면 탭해서 체크!</div>'
+      + '<div style="margin-top:7px;display:flex;flex-wrap:wrap;gap:5px;">'
+      + s.bank.map((b, bi) => {
+          const on = !!window.__deckBankChecks[s.bankKey + ':' + bi];
+          return '<button onclick="window.__deckBankToggle(\'' + s.bankKey + '\',' + bi + ')" style="cursor:pointer;padding:5px 11px;border-radius:999px;font-size:11.5px;line-height:1.4;border:1.5px solid ' + (on ? '#5C53A5' : 'rgba(125,92,255,0.18)') + ';background:' + (on ? '#5C53A5' : '#fff') + ';">'
+            + (on ? '<span style="color:#fff;font-weight:800;">✓ </span>' : '')
+            + '<b style="font-family:var(--font-mono);color:' + (on ? '#fff' : '#5C53A5') + ';">' + escapeHtml(b.en) + '</b> '
+            + '<span style="color:' + (on ? 'rgba(255,255,255,0.85)' : 'var(--ink-soft)') + ';">' + escapeHtml(b.kr) + '</span></button>';
+        }).join('')
+      + '</div></div>';
+  }
   if (s.checks) {
     body += '<div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">';
     s.checks.forEach((c, i) => {
