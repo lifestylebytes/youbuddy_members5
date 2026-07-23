@@ -28221,21 +28221,14 @@ const WEEK2_DECK = [
   { section: '오프닝', kicker: 'WEEK 2 · 60분', title: '오늘 순서 한눈에',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">7기 프리미엄 버디</b></div>'
       + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
-      + ['상황 롤플레잉 (논쟁의 기술)', 'PT 발표 + 질의응답', '짝 연습', 'Week 2 단어 복습 (Day 6~10)'].map((t, i) =>
+      + ['상황 롤플레잉 (논쟁의 기술)', 'PT 발표 + 질의응답', '회의 시뮬 · Week 2 단어 15개 (Day 6~10)'].map((t, i) =>
           '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
       + '</div>'
       + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;color:var(--ink);">🎯 목표: 반대·검증·정리, "회의를 지배하는 말"을 입에 붙이기</div>' },
   ...WEEK2_ROLEPLAY_SLIDES,
-  { section: '짝 연습', kicker: '2 · 짝 연습', title: '둘이서 주고받기',
-    html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">짝이 되어 2분간 주고받아요.</div>'
-      + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:9px;">'
-      + '<div style="padding:12px 14px;border-radius:13px;background:#EAF3EE;border:1px solid rgba(46,107,79,0.22);"><b style="color:#1F4D38;">A</b> 실제 업무에서 반대하고 싶었던 제안 하나를 던지기</div>'
-      + '<div style="padding:12px 14px;border-radius:13px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);"><b style="color:var(--orange-dark);">B</b> steelman 으로 받고, 오늘 표현으로 반론·검증하기</div>'
-      + '</div>'
-      + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;font-size:12.5px;color:var(--ink);line-height:1.6;">🔁 역할 바꿔 한 번 더. 막히면 칠판 표현으로 힌트.</div>' },
-  { section: '복습', kicker: '3 · 회의 시뮬 15문항', title: '회의에서 답을 해보아요!', meetingSim: true, sim: WEEK2_SIM,
+  { section: '복습', kicker: '2 · 회의 시뮬 15문항', title: '회의에서 답을 해보아요!', meetingSim: true, sim: WEEK2_SIM,
     script: '"이번 주 15개도 회의처럼! 상황 듣고, 상대방 말 듣고, 첫 글자 힌트 보고 문장 전체로 대답해주세요~"' },
-  { section: '마무리', kicker: '4 · 마무리', title: '마무리 체크', goalCapture: true,
+  { section: '마무리', kicker: '3 · 마무리', title: '마무리 체크', goalCapture: true,
     checks: ['오늘 표현 중 본인이 실제로 쓸 것 1개 정하기', '과제: 이번 주 회의에서 한 번 실제로 써보기'],
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래를 체크하며 마무리하고, 다음 주 목표를 받아적어요.</div>' },
   { section: '다음주 예고', kicker: '다음 주', title: 'Week 3 · 위기 커뮤니케이션',
