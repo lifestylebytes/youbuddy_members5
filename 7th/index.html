@@ -28114,6 +28114,13 @@ const WEEK1_DECK = [
 // Week 2 상황 롤플레잉 (논쟁의 기술)
 const WEEK2_HUMOR_GROUPS = [
   { sit: '🗳️ 안건이 갈릴 때, 분위기부터 재기',
+    bank: [
+      { en: 'Hive mind', kr: '다들 어떻게 생각해요? (집단지성)' },
+      { en: 'Get a clear read on', kr: '의중을 정확히 파악하다' },
+      { en: 'Float an idea', kr: '아이디어 슬쩍 띄우기' },
+      { en: 'With a caveat', kr: '단서를 달자면' },
+      { en: 'Soft commit', kr: '잠정 약속' },
+    ],
     scenario: '회의에서 두 안이 팽팽해요. 정식 결정 전에 분위기를 확인하고, 곁가지 안건은 보류함에 담아요.',
     how: 'A가 진행자로 quick poll 제안 → B·C 표결 + 의견. 곁가지 나오면 table it 처리. 역할 돌아가며.',
     lines: [
@@ -28121,6 +28128,13 @@ const WEEK2_HUMOR_GROUPS = [
       { en: "Good point. Let's table it for now.", kr: '좋은 포인트인데 일단 미뤄둘게요.' },
     ] },
   { sit: '🛡️ 반대할 거면 제대로 (steelman)',
+    bank: [
+      { en: 'With a caveat', kr: '단서를 달자면' },
+      { en: 'As presented', kr: '제시된 그대로 (받지 말고)' },
+      { en: 'Red herring', kr: '그건 헛다리예요' },
+      { en: 'Push back', kr: '정중히 반대하다' },
+      { en: 'Fair point', kr: '일리 있네요 (수긍)' },
+    ],
     scenario: '상대 제안에 반대해야 해요. 무작정 반박 말고, 최강 버전을 세워주고 나서 구멍을 짚어요.',
     how: 'A가 제안 → B가 steelman 하고 나서 반론 → C는 poke holes 로 한 번 더 흔들기.',
     lines: [
@@ -28128,6 +28142,13 @@ const WEEK2_HUMOR_GROUPS = [
       { en: "Let me poke holes in this: what if the vendor pulls out?", kr: '허점 하나 찔러볼게요. 업체가 발 빼면요?' },
     ] },
   { sit: '🔍 얕게 넘어가지 말고 더블클릭',
+    bank: [
+      { en: 'As presented', kr: '제시된 그대로 받지 않기' },
+      { en: 'Get a clear read on', kr: '정확히 파악하다' },
+      { en: 'Red herring', kr: '논점 흐리는 미끼' },
+      { en: 'Table it', kr: '일단 보류' },
+      { en: 'Sanity check', kr: '간단 검증 한 번' },
+    ],
     scenario: '보고 숫자가 어딘가 이상해요. 그 지점을 파고들되, 토끼굴에 빠지진 않게 시간을 정해요.',
     how: 'A가 지표 보고 → B가 double-click 요청 → 5분 파다가 C가 rabbit hole 경고로 끊기.',
     lines: [
@@ -28135,6 +28156,13 @@ const WEEK2_HUMOR_GROUPS = [
       { en: "We're going down a rabbit hole. Let's timebox this to five minutes.", kr: '토끼굴로 가고 있어요. 5분만 파고 끊죠.' },
     ] },
   { sit: '🧊 회의를 구하는 한마디',
+    bank: [
+      { en: 'Shelve it', kr: '접는 게 아니라 보류' },
+      { en: 'Table it', kr: '일단 미뤄두기' },
+      { en: 'Triaging', kr: '급한 순서대로' },
+      { en: 'Have the cycles', kr: '여력이 있다/없다' },
+      { en: 'Take it offline', kr: '따로 얘기하죠' },
+    ],
     scenario: '사소한 걸로 30분째 논쟁 중이고, 스코프는 자꾸 커져요. 흐름을 끊고 본론으로 돌려요.',
     how: '한 명이 bikeshedding 지적, 한 명이 boil the ocean 제동, 한 명이 결론 정리. 돌아가며.',
     lines: [
@@ -28167,7 +28195,12 @@ const WEEK2_ROLEPLAY_SLIDES = WEEK2_HUMOR_GROUPS.map((g, i) => ({
     + '<div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">'
     + g.lines.map((l) => '<div style="padding:8px 11px;border-radius:11px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.14);"><div style="font-size:13.5px;font-family:var(--font-mono);color:var(--orange-dark);font-weight:700;">' + escapeHtml(l.en) + '</div><div style="font-size:11.5px;color:var(--ink-soft);margin-top:1px;">' + escapeHtml(l.kr) + '</div></div>').join('')
     + '</div>'
-    + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;"><b>👥 진행</b><br>' + escapeHtml(g.how) + '</div>',
+    + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;"><b>👥 진행</b><br>' + escapeHtml(g.how) + '</div>'
+    + ((g.bank && g.bank.length) ? '<div style="margin-top:12px;padding:12px 13px;border-radius:13px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.2);">'
+      + '<div style="font-size:11.5px;font-weight:800;color:#5C53A5;">💡 이번에 쓰면 좋은 표현 · 골라 쓰면 됩니다 (다 기억 안 나도 OK!)</div>'
+      + '<div style="margin-top:7px;display:flex;flex-wrap:wrap;gap:5px;">'
+      + g.bank.map((b) => '<span style="padding:5px 10px;border-radius:999px;background:#fff;border:1px solid rgba(125,92,255,0.18);font-size:11.5px;line-height:1.4;"><b style="font-family:var(--font-mono);color:#5C53A5;">' + escapeHtml(b.en) + '</b> <span style="color:var(--ink-soft);">' + escapeHtml(b.kr) + '</span></span>').join('')
+      + '</div></div>' : ''),
 }));
 const WEEK2_DECK = [
   { section: '오프닝', kicker: 'WEEK 2 · 60분', title: '오늘 순서 한눈에',
