@@ -21,11 +21,14 @@ def build(data, out):
     cohort=data.get("cohort","7기"); wd=data.get("week_done",1); wn=data.get("week_next",wd+1)
     perfect=data.get("perfect") or []; eb=data.get("earlybird") or {}
     best=data.get("best") or []
+    n_perfect = len(perfect) or 1
+    chip_rows = -(-n_perfect // 5)
+    pageh = 1500 + chip_rows * 90 + (60 if best else 0)
     CSS="""
-@page { size:1080px 1350px; margin:0; }
+@page { size:1080px __PAGEH__px; margin:0; }
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Noto Sans CJK KR',sans-serif;}
-.card{width:1080px;height:1350px;position:relative;padding:70px 84px 56px;color:#3B3125;display:flex;flex-direction:column;
+.card{width:1080px;min-height:__PAGEH__px;position:relative;padding:70px 84px 56px;color:#3B3125;display:flex;flex-direction:column;
  background:
   radial-gradient(ellipse 55% 40% at 88% 8%, rgba(242,118,75,0.16) 0%, transparent 60%),
   radial-gradient(ellipse 60% 45% at 8% 100%, rgba(233,76,107,0.10) 0%, transparent 55%),
@@ -47,11 +50,12 @@ body{font-family:'Noto Sans CJK KR',sans-serif;}
 .q .en{font-family:'Liberation Serif',serif;font-style:italic;font-size:28px;color:#2B2118;line-height:1.4;}
 .q .who{margin-top:8px;font-size:23px;color:#8A7A64;font-weight:700;}
 .q .who b{color:#B5482E;}
-.moti{margin-top:auto;background:#26331F;border-radius:26px;padding:28px 34px;color:#ECEFE3;}
+.moti{margin-top:32px;background:#26331F;border-radius:26px;padding:28px 34px;color:#ECEFE3;}
 .moti .label{font-size:19px;font-weight:800;color:#FBE7A1;letter-spacing:0.14em;}
 .moti .txt{margin-top:9px;font-size:25px;font-weight:700;line-height:1.5;color:#fff;}
 .foot{margin-top:20px;font-size:19px;color:#B8A88E;font-weight:600;text-align:center;}
 """
+    CSS = CSS.replace("__PAGEH__", str(pageh))
     chips="".join(f'<span class="chip">{e(n)}</span>' for n in perfect) or '<span class="chip">이번 주 개근 도전!</span>'
     bests="".join(
         f'<div class="q"><div class="en">&#8220;{e(b.get("sentence"))}&#8221;</div>'
