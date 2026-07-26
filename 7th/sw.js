@@ -1,5 +1,5 @@
 /* YouBuddy 비즈니스 영어 챌린지 7기 · Service Worker v1.2 */
-const CACHE_NAME = 'youbuddy-7th-v5';
+const CACHE_NAME = 'youbuddy-7th-v6';
 
 /* ── 설치: 핵심 앱 셸만 캐시 ── */
 self.addEventListener('install', (e) => {
@@ -26,8 +26,11 @@ self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   if (!e.request.url.startsWith(self.location.origin)) return;
 
+  // HTML(내비게이션)은 브라우저 HTTP 캐시(GH Pages max-age 10분)를 우회해
+  // 배포가 다음 리로드에 바로 반영되게. 나머지 리소스는 기본 캐시 정책.
+  const isDoc = e.request.mode === 'navigate' || (e.request.destination === 'document');
   e.respondWith(
-    fetch(e.request)
+    fetch(isDoc ? new Request(e.request, { cache: 'no-cache' }) : e.request)
       .then((res) => {
         if (res.ok && e.request.url.includes('/7th/')) {
           const clone = res.clone();
