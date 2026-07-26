@@ -1708,6 +1708,7 @@ const defaultState = () => ({
   recording_popup_seen: {},         // { "m1": true } 미팅 다시보기 팝업을 본 상태. 한 번 X 누르면 다시 안 뜸.
   daily_funfact_seen: {},           // { "d6": true } 홈 '오늘의 한 입' 팝업을 그날 본 상태 (하루 1회).
   meeting_prep_popup_seen: {},      // { "m1": "2026-07-15" } 미팅 사전 예습 팝업을 그날 본 상태 (하루 1회, 저장하면 영구 스킵).
+  best_popup_seen: {},              // { "2": true } 이번주 베스트 팝업을 주차별로 본 상태 (자동 노출 1회).
   daily_done_popup_seen: {},        // { "d6": true } '오늘 마무리' 완료 팝업을 그날 본 상태 (하루 1회).
   weekly_quiz_popup_seen: {},       // { "v1": true } 주간 퀴즈/보상 안내 팝업 본 상태. 버전별 키로 다음 주차 새 팝업 재발행 가능.
   friday_redirect_seen: {},         // { "1": true }, Day 5/10/15/20 (= 매주 금요일) 자동 시험 페이지 redirect 본 상태. 주차별 1회만 redirect.
@@ -1787,6 +1788,7 @@ const PERSISTED_STATE_KEYS = [
   'week_survey_nudged',
   'daily_funfact_seen',
   'meeting_prep_popup_seen',
+  'best_popup_seen',
   'daily_done_popup_seen',
   'final_test',
   'final_downloads',
@@ -8333,6 +8335,27 @@ function HomePage() {
         if (guidedTourStep !== null || anyPopupOpen() || state.review_consent || window.__reviewConsentDismissed) return;
         showReviewConsentPopup = true; render();
       }, 1200);
+    }
+  } catch (e) {}
+
+  // 이번주 베스트 팝업: 지난주가 끝난 다음 주(월요일 0시, Day가 W*5 를 넘어서면)부터 전 멤버 1회 자동.
+  try {
+    const __bW = Math.min(4, Math.max(1, Math.floor((Number(state.currentDay) || 1) / 5)));
+    const __bDone = (Number(state.currentDay) || 1) > __bW * 5; // 그 주가 완전히 지나갔는가
+    if (state.onboarded && __bDone && !(state.best_popup_seen || {})[String(__bW)]
+        && !window.__bestPopupArmed && guidedTourStep === null && !anyPopupOpen()) {
+      window.__bestPopupArmed = true;
+      setTimeout(async () => {
+        if (guidedTourStep !== null || anyPopupOpen() || (state.best_popup_seen || {})[String(__bW)]) return;
+        try {
+          const data = await __computeBestPopupData();
+          state.best_popup_seen = state.best_popup_seen || {};
+          state.best_popup_seen[String(__bW)] = true;
+          try { saveState(); } catch (e) {}
+          showBestPopup = data;
+          render();
+        } catch (e) {}
+      }, 1800);
     }
   } catch (e) {}
 
@@ -27675,42 +27698,49 @@ function MyReviewPage() {
    이번주 베스트 팝업 (만점자 + 최초 5일 완주). 현재 운영자 미리보기 전용.
    ============================================================ */
 window.__closeBestPopup = () => { showBestPopup = null; render(); };
+// 베스트 팝업 데이터 계산 (미리보기·멤버 자동 노출 공용). 그 주차 단어·그 주차 날짜만 집계.
+async function __computeBestPopupData() {
+  const weekN = Math.min(4, Math.max(1, Math.floor((Number(state.currentDay) || 1) / 5)));
+  const weekDays = [1, 2, 3, 4, 5].map((k) => (weekN - 1) * 5 + k);
+  const weekWordSet = new Set();
+  weekDays.forEach((d) => { const dd = (typeof getDay === 'function') ? getDay(d) : null; ((dd && dd.words) || []).forEach((w) => weekWordSet.add(String(w.en).toLowerCase())); });
+  const [vs, mem] = await Promise.all([
+    supabaseRpc('get_cohort_vocab_stats', { p_cohort: CHALLENGE.cohort }),
+    supabaseRpc('get_cohort_member_summaries', { p_cohort: CHALLENGE.cohort }),
+  ]);
+  const enMap = {};
+  (mem || []).forEach((m) => { const k = m.member_name || ''; const e = (m.english_name || '').trim(); enMap[k] = e || k; });
+  const agg = {};
+  const words = ((vs && vs.words) || []).filter((w) => weekWordSet.has(String(w.word || '').toLowerCase()));
+  words.forEach((w) => (w.member_attempts || []).forEach((a) => {
+    const n = a.member_name; agg[n] = agg[n] || { att: 0, clean: 0, w: 0, s: 0, h: 0 };
+    if (a.first_result != null) agg[n].att++;
+    if (a.first_result === 'correct' && !a.first_hinted) agg[n].clean++;
+    agg[n].w += (a.w || 0); agg[n].s += (a.s || 0); agg[n].h += (a.h || 0);
+  }));
+  let maxAtt = 0; Object.values(agg).forEach((v) => { if (v.att > maxAtt) maxAtt = v.att; });
+  const masters = Object.entries(agg)
+    .filter(([n, v]) => v.att > 0 && v.att === maxAtt && v.clean === v.att && v.w === 0 && v.s === 0 && v.h === 0)
+    .map(([n]) => enMap[n] || n);
+  const masterSet = new Set(masters);
+  const nears = Object.entries(agg)
+    .filter(([n, v]) => v.att > 0 && (v.clean / v.att) >= 0.8 && !(v.att === maxAtt && v.clean === v.att && v.w === 0 && v.s === 0 && v.h === 0))
+    .map(([n, v]) => ({ name: enMap[n] || n, ratio: v.clean / v.att }))
+    .filter((x) => !masterSet.has(x.name))
+    .sort((a, b) => b.ratio - a.ratio)
+    .map((x) => x.name);
+  const finishers = (mem || [])
+    .filter((m) => { const vd = new Set((m.verified_days || []).map(Number)); return weekDays.every((d) => vd.has(d)); })
+    .map((m) => enMap[m.member_name] || m.member_name);
+  return { weekN, masters, maxAtt, finishers, nears };
+}
 window.__previewBestPopup = async () => {
   if (!(state.isOperator || state.isStaff)) { showToast('운영자 전용 미리보기예요'); return; }
   showToast('이번주 베스트 계산 중...');
   try {
-    const [vs, mem] = await Promise.all([
-      supabaseRpc('get_cohort_vocab_stats', { p_cohort: CHALLENGE.cohort }),
-      supabaseRpc('get_cohort_member_summaries', { p_cohort: CHALLENGE.cohort }),
-    ]);
-    const enMap = {};
-    (mem || []).forEach((m) => { const k = m.member_name || ''; const e = (m.english_name || '').trim(); enMap[k] = e || k; });
-    const agg = {};
-    const words = (vs && vs.words) || [];
-    words.forEach((w) => (w.member_attempts || []).forEach((a) => {
-      const n = a.member_name; agg[n] = agg[n] || { att: 0, clean: 0, w: 0, s: 0, h: 0 };
-      if (a.first_result != null) agg[n].att++;
-      if (a.first_result === 'correct' && !a.first_hinted) agg[n].clean++;
-      agg[n].w += (a.w || 0); agg[n].s += (a.s || 0); agg[n].h += (a.h || 0);
-    }));
-    let maxAtt = 0; Object.values(agg).forEach((v) => { if (v.att > maxAtt) maxAtt = v.att; });
-    const masters = Object.entries(agg)
-      .filter(([n, v]) => v.att > 0 && v.att === maxAtt && v.clean === v.att && v.w === 0 && v.s === 0 && v.h === 0)
-      .map(([n]) => enMap[n] || n);
-    // 거의 다 맞힌 분들: 첫시도 정답률 80%+ (무결점 만점자는 위에서 이미 호명했으니 제외). 호명 인원 넓히기용.
-    const masterSet = new Set(masters);
-    const nears = Object.entries(agg)
-      .filter(([n, v]) => v.att > 0 && (v.clean / v.att) >= 0.8 && !(v.att === maxAtt && v.clean === v.att && v.w === 0 && v.s === 0 && v.h === 0))
-      .map(([n, v]) => ({ name: enMap[n] || n, ratio: v.clean / v.att }))
-      .filter((x) => !masterSet.has(x.name))
-      .sort((a, b) => b.ratio - a.ratio)
-      .map((x) => x.name);
-    const finishers = (mem || [])
-      .filter((m) => { const vd = new Set((m.verified_days || []).map(Number)); return [1, 2, 3, 4, 5].every((d) => vd.has(d)); })
-      .map((m) => enMap[m.member_name] || m.member_name);
-    // 주차 동적: 완료된 최신 주. Day 10 완료 = Week 2, Day 11~14 진행 중에도 지난주 = 2.
-    const __bpWeek = Math.min(4, Math.max(1, Math.floor((Number(state.currentDay) || 1) / 5)));
-    showBestPopup = { weekN: __bpWeek, masters, maxAtt, finishers, nears };
+    const data = await __computeBestPopupData();
+    data.preview = true;
+    showBestPopup = data;
     render();
   } catch (e) {
     showToast('계산 실패: ' + ((e && e.message) || e));
@@ -27762,7 +27792,8 @@ function BestPopupModal(data) {
     : '<div style="background:#F1EFE8;border-radius:14px;padding:12px 14px;font-size:13px;color:var(--ink-soft);">아직 5일 완주자가 없어요. <b>금요일(Day 5)</b> 인증으로 정해져요.</div>';
   html += '</div>';
   html += '<div style="padding:0 18px 18px;"><button onclick="window.__closeBestPopup()" style="width:100%;background:var(--orange);color:#fff;border:none;border-radius:14px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;">나도 다음주 명단 노려보기</button>'
-    + '<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">👁 운영자 미리보기 · 멤버에겐 아직 안 보여요</div></div>';
+    + (data.preview ? '<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">👁 운영자 미리보기</div>' : '')
+    + '</div>';
   card.innerHTML = html;
   overlay.appendChild(card);
   return overlay;
