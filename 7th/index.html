@@ -27708,8 +27708,8 @@ window.__previewBestPopup = async () => {
     const finishers = (mem || [])
       .filter((m) => { const vd = new Set((m.verified_days || []).map(Number)); return [1, 2, 3, 4, 5].every((d) => vd.has(d)); })
       .map((m) => enMap[m.member_name] || m.member_name);
-    // 주차 동적: 완료된 최신 주 (Day 6~10 진행 중이면 지난주=1, Day 11~ 이면 2 ...)
-    const __bpWeek = Math.min(4, Math.max(1, Math.floor(((Number(state.currentDay) || 1) - 1) / 5)));
+    // 주차 동적: 완료된 최신 주. Day 10 완료 = Week 2, Day 11~14 진행 중에도 지난주 = 2.
+    const __bpWeek = Math.min(4, Math.max(1, Math.floor((Number(state.currentDay) || 1) / 5)));
     showBestPopup = { weekN: __bpWeek, masters, maxAtt, finishers, nears };
     render();
   } catch (e) {
