@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Week 3 · Live Practice · YOUBUDDY 7기</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FFFDF7;
+    --paper: #F7EFDE;
+    --paper-2: #F1E6CF;
+    --ink: #2A1F14;
+    --ink-soft: #5B4A32;
+    --muted: #8A7A5C;
+    --line: #E7DDC8;
+    --orange: #F07D38;
+    --orange-dark: #C95721;
+    --orange-bg: rgba(240,125,56,0.10);
+    --lilac: #A98BB8;
+    --lilac-dark: #6B4F7D;
+    --lilac-bg: rgba(169,139,184,0.14);
+    --gold: #FCE8B2;
+    --green: #6FAE6C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif}
+  html,body{background:var(--cream);color:var(--ink)}
+  body{min-height:100vh;padding-bottom:60px}
+
+  .proto-banner{
+    background:linear-gradient(135deg,#FFE8D1 0%,#FFF1DD 100%);color:var(--orange-dark);
+    text-align:center;padding:6px;font-size:11px;font-weight:700;letter-spacing:0.05em;
+    border-bottom:1px dashed rgba(240,125,56,0.4);
+  }
+
+  /* Meeting Info Banner */
+  .meeting-info{
+    background:linear-gradient(135deg,rgba(169,139,184,0.12) 0%,rgba(252,232,178,0.30) 100%);
+    border-bottom:1px solid var(--line);padding:12px 22px;
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  }
+  .mi-block{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .mi-title{font-size:13px;font-weight:800;color:var(--ink);letter-spacing:-0.01em}
+  .mi-title b{color:var(--lilac-dark);margin-right:4px}
+  .mi-date{font-size:11.5px;color:var(--ink-soft);font-weight:600}
+  .mi-date .tz{font-size:10.5px;color:var(--muted);font-weight:500;margin-left:6px}
+  .mi-spacer{flex:1}
+  .mi-meet{
+    padding:9px 16px;border-radius:12px;background:var(--lilac);color:#fff;
+    font-size:12.5px;font-weight:700;text-decoration:none;
+    display:inline-flex;align-items:center;gap:6px;letter-spacing:-0.005em;
+    box-shadow:0 6px 14px -6px rgba(169,139,184,0.6);
+  }
+  .mi-meet:hover{background:var(--lilac-dark);transform:translateY(-1px)}
+  .mi-copy{
+    background:transparent;border:1px solid rgba(107,79,125,0.3);color:var(--lilac-dark);
+    padding:8px 12px;border-radius:10px;font-size:11.5px;font-weight:700;cursor:pointer;
+    display:inline-flex;align-items:center;gap:5px;
+  }
+  .mi-copy:hover{background:rgba(169,139,184,0.1)}
+  @media (max-width:600px){
+    .meeting-info{padding:10px 16px;gap:10px}
+    .mi-title{font-size:12px}
+    .mi-meet{padding:7px 12px;font-size:11.5px}
+  }
+
+  /* HEADER */
+  .hdr{
+    background:var(--ink);color:#fff;padding:14px 22px;
+    display:flex;align-items:center;gap:18px;flex-wrap:wrap;border-bottom:3px solid var(--gold);
+  }
+  .hdr-title{font-size:14px;font-weight:600;color:var(--gold)}
+  .hdr-title b{color:#fff;font-weight:800;margin:0 6px}
+  .timer{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:18px;font-weight:700;color:var(--gold);min-width:90px}
+  .hdr-icon-btn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;
+    padding:7px 12px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer}
+  .hdr-icon-btn:hover{background:rgba(255,255,255,0.18)}
+  .hdr-spacer{flex:1}
+  .names-input{
+    background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);color:#fff;
+    padding:8px 12px;border-radius:10px;font-size:12.5px;min-width:280px;outline:none;
+    font-family:inherit;
+  }
+  .names-input::placeholder{color:rgba(255,255,255,0.4)}
+  .names-input:focus{border-color:var(--gold);background:rgba(255,255,255,0.14)}
+
+  /* CONTAINER */
+  .wrap{max-width:980px;margin:0 auto;padding:24px 22px}
+
+  /* SITUATION NAV */
+  .sit-nav{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+  .sit-tab{
+    padding:9px 14px;border-radius:99px;background:#fff;border:1.5px solid var(--line);
+    font-size:12.5px;font-weight:700;cursor:pointer;color:var(--ink-soft);
+    display:flex;align-items:center;gap:6px;
+  }
+  .sit-tab:hover{border-color:var(--orange)}
+  .sit-tab.active{background:var(--orange);color:#fff;border-color:var(--orange);box-shadow:0 6px 14px -6px rgba(240,125,56,0.5)}
+  .sit-tab .num{font-size:10px;background:rgba(0,0,0,0.08);padding:2px 6px;border-radius:99px}
+  .sit-tab.active .num{background:rgba(255,255,255,0.22)}
+
+  /* SITUATION CARD */
+  .sit-card{
+    background:linear-gradient(160deg,#FFFDF7 0%,#FBF3E2 100%);
+    border:1.5px solid var(--line);border-radius:24px;padding:32px;
+    box-shadow:0 24px 60px -28px rgba(58,42,82,0.18);margin-bottom:24px;
+  }
+  .sit-emoji{font-size:56px;line-height:1;margin-bottom:14px}
+  .sit-title{font-size:28px;font-weight:900;letter-spacing:-0.022em;line-height:1.25;color:var(--ink);margin-bottom:16px}
+  .sit-meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+  .sit-pill{
+    display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;
+    background:var(--lilac-bg);color:var(--lilac-dark);font-size:11.5px;font-weight:700;letter-spacing:-0.005em;
+  }
+  .sit-pill.orange{background:var(--orange-bg);color:var(--orange-dark)}
+  .sit-pill.gold{background:rgba(252,232,178,0.5);color:#8A5B0E}
+  .sit-setting{
+    background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:14px;
+    font-size:15px;line-height:1.65;color:var(--ink);letter-spacing:-0.005em;
+  }
+  .sit-setting b{color:var(--orange-dark);font-weight:700}
+  .sit-setting-en{
+    margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);
+    font-size:13.5px;line-height:1.6;color:var(--ink-soft);letter-spacing:-0.003em;
+    font-style:italic;
+  }
+  .sit-setting-en b{color:var(--orange-dark);font-style:normal;font-weight:700}
+  .sit-setting-en::before{
+    content:'EN';display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:0.1em;
+    background:var(--paper-2);color:var(--muted);padding:2px 7px;border-radius:99px;
+    margin-right:8px;vertical-align:1px;font-style:normal;
+  }
+  .sit-hint{
+    font-size:13px;color:var(--muted);line-height:1.6;padding:10px 14px;
+    background:rgba(252,232,178,0.4);border-radius:10px;margin-bottom:18px;
+  }
+  .sit-hint b{color:var(--ink-soft);font-weight:700}
+
+  /* PICKER */
+  .picker-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .picker-btn{
+    padding:12px 18px;border-radius:14px;background:var(--ink);color:#fff;border:none;
+    font-size:14px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:8px;letter-spacing:-0.005em;
+  }
+  .picker-btn:hover{background:#1a1109}
+  .picker-btn.secondary{background:#fff;color:var(--ink);border:1px solid var(--line);font-weight:700}
+  .picker-result{
+    flex:1;min-width:240px;padding:14px 18px;border-radius:14px;
+    background:linear-gradient(135deg,var(--gold) 0%,#FFC773 100%);
+    color:#5A3B12;font-size:15px;font-weight:800;letter-spacing:-0.01em;
+    display:none;align-items:center;gap:10px;
+  }
+  .picker-result.on{display:flex}
+  .picker-result .arrow{margin:0 8px;color:#A2752E;font-weight:700}
+
+  /* VOCAB POOL */
+  .pool-h{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .pool-title{font-size:18px;font-weight:800;letter-spacing:-0.015em;color:var(--ink)}
+  .pool-sub{font-size:12.5px;color:var(--muted);font-weight:500}
+  .pool-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .pool-filter{
+    padding:7px 13px;border-radius:99px;background:#fff;border:1px solid var(--line);
+    font-size:12px;font-weight:700;cursor:pointer;color:var(--ink-soft);
+  }
+  .pool-filter:hover{border-color:var(--orange)}
+  .pool-filter.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .pool-filter.bm.active{background:var(--lilac);border-color:var(--lilac)}
+
+  .vocab-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+  .vocab-card{
+    background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;
+    display:flex;flex-direction:column;gap:6px;position:relative;cursor:pointer;
+    transition:all 0.15s ease;
+  }
+  .vocab-card:hover{border-color:var(--orange);transform:translateY(-1px);box-shadow:0 12px 24px -16px rgba(0,0,0,0.12)}
+  .vocab-card.suggested{border-color:rgba(240,125,56,0.55);background:linear-gradient(135deg,#FFFDF7 0%,#FFF5E5 100%)}
+  .vocab-card.bookmarked{background:linear-gradient(135deg,#FFFDF7 0%,#F4ECFA 100%)}
+  .vocab-card-h{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .vocab-day{
+    font-size:10px;font-weight:800;letter-spacing:0.08em;color:var(--muted);
+    background:var(--paper);padding:3px 7px;border-radius:99px;flex-shrink:0;
+  }
+  .vocab-card.suggested .vocab-day{background:var(--orange-bg);color:var(--orange-dark)}
+  .bm-btn{
+    background:transparent;border:none;cursor:pointer;line-height:1;
+    color:#C8BFA8;transition:transform 0.15s ease, color 0.15s ease;
+    padding:2px;display:inline-flex;align-items:center;justify-content:center;
+  }
+  .bm-btn svg{width:20px;height:20px;display:block}
+  .bm-btn:hover{transform:scale(1.18);color:var(--orange)}
+  .bm-btn.on{color:var(--orange)}
+  .bm-btn.on:hover{color:var(--orange-dark)}
+  .vocab-en{font-size:16px;font-weight:800;letter-spacing:-0.01em;color:var(--ink);line-height:1.3}
+  .vocab-kr{font-size:13px;color:var(--ink-soft);line-height:1.45;font-style:italic}
+  .vocab-ex{
+    font-size:11.5px;color:var(--muted);line-height:1.55;padding-top:6px;border-top:1px dashed var(--line);
+    display:none;
+  }
+  .vocab-card.expanded .vocab-ex{display:block}
+  .vocab-ex b{color:var(--ink-soft);font-weight:700}
+  .vocab-suggest-pill{
+    position:absolute;top:-6px;right:8px;font-size:9.5px;font-weight:800;letter-spacing:0.05em;
+    background:var(--orange);color:#fff;padding:3px 8px;border-radius:99px;
+  }
+
+  /* SUGGESTED CHIPS */
+  .sit-suggest{margin-top:14px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .sit-suggest-label{font-size:11.5px;font-weight:700;color:var(--ink-soft);letter-spacing:-0.005em}
+  .sit-suggest-chip{
+    padding:6px 11px;border-radius:99px;background:var(--orange-bg);color:var(--orange-dark);
+    font-size:12px;font-weight:700;
+  }
+
+  /* FOOTER NAV */
+  .footer-nav{
+    position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);
+    padding:12px 22px;display:flex;align-items:center;justify-content:center;gap:10px;z-index:30;
+  }
+  .footer-btn{
+    padding:11px 18px;border-radius:99px;background:#fff;border:1px solid var(--line);
+    font-size:13px;font-weight:700;cursor:pointer;color:var(--ink);
+  }
+  .footer-btn:hover{background:var(--paper);border-color:var(--orange)}
+  .footer-btn.primary{background:var(--orange);color:#fff;border-color:var(--orange)}
+  .footer-btn.primary:hover{background:var(--orange-dark)}
+  .footer-status{font-size:11.5px;color:var(--muted);margin:0 6px}
+
+  /* RESPONSIVE */
+  @media (max-width:600px){
+    .wrap{padding:16px}
+    .sit-card{padding:20px}
+    .sit-title{font-size:22px}
+    .sit-emoji{font-size:42px}
+    .names-input{min-width:auto;flex:1}
+  }
+</style>
+</head>
+<body>
+
+<div class="proto-banner">
+  🎙️ 7기 Week 3 라이브 진행 화면, 상황 롤플레이 + Day 1~15 단어 풀 + 북마크 동기화
+</div>
+
+<!-- MEETING INFO BANNER -->
+<div class="meeting-info">
+  <div class="mi-block">
+    <div class="mi-title"><b>WEEK 3</b> · 상황 롤플레이 × Day 11~15</div>
+    <div class="mi-date">📅 7월 30일 (목) · 21:00~22:00 <span class="tz">Asia/Seoul</span></div>
+  </div>
+  <div class="mi-spacer"></div>
+  <button class="mi-copy" id="btnCopyMeet">📋 링크 복사</button>
+  <a class="mi-meet" href="https://meet.google.com/jzo-xowx-auk" target="_blank" rel="noopener">
+    🎥 Google Meet 열기 →
+  </a>
+</div>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-title">⭐ <b>WEEK 3</b> · Live Practice</div>
+  <div class="timer" id="timer">00:00</div>
+  <button class="hdr-icon-btn" id="btnTimer">⏯</button>
+  <button class="hdr-icon-btn" id="btnTimerReset">↻</button>
+  <div class="hdr-spacer"></div>
+  <input class="names-input" id="namesInput"
+         placeholder="참가자 이름 (쉼표로 구분, 랜덤 뽑기에 사용돼요)"
+         value="" />
+</header>
+
+<div class="wrap">
+
+  <!-- SITUATION TABS -->
+  <div class="sit-nav" id="sitNav"></div>
+
+  <!-- SITUATION CARD -->
+  <div class="sit-card" id="sitCard"></div>
+
+  <!-- VOCAB POOL -->
+  <div class="pool-h">
+    <div class="pool-title">📚 Day 1~15 단어 풀</div>
+    <div class="pool-sub">대화에 끼워넣을 수 있는 표현들. 모르는 건 🔖 북마크, '나' 탭에 자동 동기화</div>
+  </div>
+  <div class="pool-filters" id="poolFilters"></div>
+  <div class="vocab-grid" id="vocabGrid"></div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer-nav">
+  <button class="footer-btn" id="btnPrevSit">⏮ 이전 상황</button>
+  <div class="footer-status" id="footerStatus">상황 1 / 4</div>
+  <button class="footer-btn primary" id="btnNextSit">다음 상황 ⏭</button>
+</div>
+
+<script>
+/* ====================================================================
+   DATA, 7기 Day 1~15 (7th/index.html CHALLENGE.weeks 원본 그대로)
+==================================================================== */
+const ALL_VOCAB = [
+  // Day 1, Reading the Field
+  { day: 1, idx: 0, en: "Read between the lines", kr: "행간을 읽다, 말하지 않은 진의를 파악하다", ex: "메일엔 '급하지 않다'는데, 행간을 읽어보면 이번 주에 달라는 거예요." },
+  { day: 1, idx: 1, en: "Put out feelers", kr: "본격 제안 전에 슬쩍 떠보다, 분위기를 파악하다", ex: "공식 제안 전에 영업팀 쪽에 슬쩍 간부터 봐요." },
+  { day: 1, idx: 2, en: "Get a clear read on", kr: "상황·사람의 의중을 정확히 파악하다", ex: "클라이언트 의중을 정확히 못 읽겠더라고요. 하겠다는 건지 말겠다는 건지." },
+  // Day 2
+  { day: 2, idx: 0, en: "Float an idea", kr: "아이디어를 슬쩍 띄워 반응을 보다", ex: "전체 회의에서 아이디어를 슬쩍 띄워보고 반응을 볼게요." },
+  { day: 2, idx: 1, en: "Backchannel", kr: "공식 라인 밖 비공식 채널로 조율하다", ex: "법무에서 딜이 막혀서, 그쪽 부사장이랑 비공식 라인으로 풀었어요." },
+  { day: 2, idx: 2, en: "Soft commit", kr: "확답이 아닌 조건부 약속", ex: "금요일로 일단 잠정 약속만 해둘게요. 리뷰 끝나고 확정할게요." },
+  // Day 3
+  { day: 3, idx: 0, en: "As presented", kr: "제시된 그대로 (더 파보지 않고)", ex: "전망치를 제시된 그대로 받아들이지 마세요. 숫자 뒤에 뭐가 있는지 물어봐야죠." },
+  { day: 3, idx: 1, en: "Red herring", kr: "논점을 흐리는 미끼, 헛다리", ex: "서버 에러는 헛다리였어요. 진짜 버그는 결제 로직에 있었죠." },
+  { day: 3, idx: 2, en: "Wake-up call", kr: "정신이 번쩍 들게 하는 경고 신호", ex: "한 달에 단골 고객 둘을 잃은 게 팀 전체에 경종이 됐어요." },
+  // Day 4
+  { day: 4, idx: 0, en: "With a caveat", kr: "단서를 달자면", ex: "동의해요. 단서 하나만 달게요. 3분기에 예산은 다시 봐요." },
+  { day: 4, idx: 1, en: "Shelve it", kr: "계획을 일단 보류하다 (접는 건 아님)", ex: "리브랜딩은 지금 타이밍이 아니에요. 4분기까지 보류합시다." },
+  { day: 4, idx: 2, en: "Build in slack", kr: "일정·계획에 여유분을 미리 심어두다", ex: "3주로 말씀드리고, QA용 여유는 미리 심어두세요." },
+  // Day 5
+  { day: 5, idx: 0, en: "Underway", kr: "이미 시작되어 진행 중인", ex: "지금 세 개가 진행 중이라, 새 일은 하나 마무리된 다음에요." },
+  { day: 5, idx: 1, en: "Have the cycles", kr: "그 일을 처리할 여력이 있다", ex: "돕고는 싶은데 이번 스프린트엔 여력이 없어요." },
+  { day: 5, idx: 2, en: "Triaging", kr: "급한 순서대로 분류·처치하다", ex: "오전 내내 런칭 버그 리포트를 급한 순서로 분류했어요." },
+  // Day 6, The Art of the Argument
+  { day: 6, idx: 0, en: "Hive mind", kr: "집단지성 (에 물어보기)", ex: "집단지성에 물어볼게요. 이 업체랑 일해본 분 있어요?" },
+  { day: 6, idx: 1, en: "Quick poll", kr: "간단 투표로 팀 의견을 빠르게 모으기", ex: "간단 투표요. 목요일 출시예요 금요일 출시예요? 이모지로 반응 주세요." },
+  { day: 6, idx: 2, en: "Table it", kr: "안건을 일단 미뤄두다 (나중에 다시)", ex: "좋은 포인트예요. 일단 미뤄두고 출시 끝나고 다시 얘기하죠." },
+  // Day 7
+  { day: 7, idx: 0, en: "Steelman", kr: "상대 주장의 최강 버전을 세우고 반박하다", ex: "기각하기 전에, 공정하게 저쪽 제안의 최강 버전부터 세워볼게요." },
+  { day: 7, idx: 1, en: "Poke holes in", kr: "허점을 일부러 찾아 찔러보다", ex: "확정하기 전에, 이 계획의 허점을 같이 찔러봅시다." },
+  { day: 7, idx: 2, en: "Double-click on", kr: "그 지점을 더 깊이 파고들다", ex: "리텐션 숫자를 좀 더 파볼까요? 뭔가 이상해요." },
+  // Day 8
+  { day: 8, idx: 0, en: "Bikeshedding", kr: "사소한 것에 과몰입해 논쟁하다", ex: "버튼 색깔로 40분 싸우고 가격 모델은 5분 얘기했어요." },
+  { day: 8, idx: 1, en: "Boil the ocean", kr: "다 하려다 아무것도 못 하다", ex: "한 번에 다 하려 하지 말고, 유저가 진짜 원한 기능 하나만 내보내죠." },
+  { day: 8, idx: 2, en: "Go down the rabbit hole", kr: "한 주제에 한없이 빠져들다", ex: "분석 툴 비교하다가 토끼굴에 빠져서 반나절 날렸어요." },
+  // Day 9
+  { day: 9, idx: 0, en: "Sunk cost", kr: "이미 쓴 비용에 발목 잡히기 (매몰비용)", ex: "6개월을 쏟긴 했지만 그건 매몰비용이죠. 중요한 건 지금 뭐가 최선이냐예요." },
+  { day: 9, idx: 1, en: "Analysis paralysis", kr: "분석만 하다 결정을 못 내리는 상태", ex: "리서치만 석 달째고 결정은 없어요. 전형적인 분석 마비죠." },
+  { day: 9, idx: 2, en: "Rubber-stamp", kr: "검토 없이 형식적으로 승인만 하다", ex: "이사회는 CEO 제안을 그냥 도장만 찍어줘요." },
+  // Day 10
+  { day: 10, idx: 0, en: "Pressure-test", kr: "가정을 일부러 세게 두드려 검증하다", ex: "이사회에 보여주기 전에 매출 가정을 세게 검증해봐요." },
+  { day: 10, idx: 1, en: "Pre-mortem", kr: "'망했다 치고' 미리 원인을 점검하는 회의", ex: "런칭 전에 프리모템 한번 해요. 6개월 뒤에 망했다 치고, 왜 망했을까요?" },
+  { day: 10, idx: 2, en: "Get ahead of", kr: "문제가 커지기 전에 선수 치다", ex: "버그가 기사 탈 거예요. 오늘 입장문으로 선수 칩시다." },
+  // Day 11, In the Trenches
+  { day: 11, idx: 0, en: "Fire drill", kr: "갑자기 떨어진 긴급 업무에 팀 전체가 매달려야 하는 상황", ex: "임원이 아침 9시까지 장표 전체를 달래요. 하던 거 다 멈추고 매달려야죠." },
+  { day: 11, idx: 1, en: "Hop on a call", kr: "잠깐 통화로 이야기하자고 가볍게 제안하다", ex: "클라이언트한테서 방금 이슈가 하나 올라왔어요. 잠깐 통화 가능하세요?" },
+  { day: 11, idx: 2, en: "Client-facing", kr: "고객·클라이언트를 직접 상대하는", ex: "고객을 직접 상대하는 팀이 컴플레인도 제일 먼저 받죠." },
+  // Day 12
+  { day: 12, idx: 0, en: "Stalled out", kr: "(일이) 완전히 멈춰 서다", ex: "마이그레이션이 60%에서 멈췄어요. 마지막 구간은 담당자가 없거든요." },
+  { day: 12, idx: 1, en: "Single point of failure", kr: "하나 무너지면 전체가 무너지는 지점", ex: "배포 절차를 아는 사람이 한 명뿐이에요. 그분 없으면 전체가 서는 거죠." },
+  { day: 12, idx: 2, en: "Critical path", kr: "전체 일정을 좌우하는 핵심 경로", ex: "디자인 리뷰가 크리티컬 패스에 있어요. 그게 밀리면 런칭이 밀려요." },
+  // Day 13
+  { day: 13, idx: 0, en: "Long pole in the tent", kr: "일정에서 가장 오래 걸리는 결정적 작업", ex: "보안 심사가 제일 오래 걸리는 작업이라, 그것부터 시작해요." },
+  { day: 13, idx: 1, en: "Requirements creep", kr: "요구사항이 야금야금 불어나다", ex: "매주 '작은 요청'이 두 개씩 늘어요. 요구사항은 야금야금 붙는데 마감은 그대로죠." },
+  { day: 13, idx: 2, en: "Slow-walk", kr: "일부러 뭉개며 지연시키다", ex: "구매팀이 한 달째 우리 요청을 일부러 뭉개고 있어요." },
+  // Day 14
+  { day: 14, idx: 0, en: "Throw someone under the bus", kr: "남에게 책임을 뒤집어씌우다", ex: "클라이언트 앞에서 디자인팀에 책임을 뒤집어씌우더라고요." },
+  { day: 14, idx: 1, en: "Paper over", kr: "문제를 해결하지 않고 대충 덮다", ex: "할인으로 이탈 문제를 잠깐 덮을 순 있어도 고치진 못해요." },
+  { day: 14, idx: 2, en: "Nitpick", kr: "사소한 걸 꼬치꼬치 지적하다", ex: "트집은 아닌데, 3번 슬라이드 폰트 크기가 제각각이에요." },
+  // Day 15
+  { day: 15, idx: 0, en: "Pull the plug", kr: "(하던 프로젝트를) 접다", ex: "파일럿이 두 번 실패하자 경영진이 프로젝트를 접었어요." },
+  { day: 15, idx: 1, en: "Skin in the game", kr: "본인도 리스크를 짊어진 상태", ex: "그 판단은 믿어요. 본인 보너스 절반이 걸려 있으니 남 일이 아니거든요." },
+  { day: 15, idx: 2, en: "Scramble", kr: "허둥지둥 총동원해 수습하다", ex: "피칭 한 시간 전에 데모가 깨져서 총동원으로 다시 만들었어요." },
+];
+
+const SITUATIONS = [
+  {
+    emoji: "🚨",
+    title: "갑자기 터진 클라이언트 이슈 대응",
+    setting: "클라이언트가 갑자기 문제를 제기했어요. 다들 하던 일을 멈추고 <b>일단 통화부터</b> 잡을지, 상황부터 조용히 파악할지 정해야 해요. 침착하게 상황을 공유하고 방향을 잡아보세요.",
+    settingEn: "A client just raised an issue out of nowhere. The team drops everything: do you hop on a call right away, or quietly get the lay of the land first? Calmly share the situation and steer the call.",
+    hint: "<b>상황 공유</b> → 지금 바로 통화 vs 파악부터 → 누가 <b>고객 응대</b> 맡을지 → 다음 액션",
+    duration: "5~7분",
+    role: "2~3명 (같은 팀)",
+    suggested: ["Fire drill", "Hop on a call", "Client-facing"],
+  },
+  {
+    emoji: "🔍",
+    title: "몇 주째 멈춘 프로젝트, 원인 찾기 회의",
+    setting: "프로젝트가 몇 주째 제자리예요. 뭐가 진짜 발목을 잡고 있는지, 일정에서 <b>가장 오래 걸리는 지점</b>이 뭔지 짚어봐야 해요. 요구사항이 계속 늘어나는 것도 문제고요.",
+    settingEn: "The project has been stalled for weeks. You need to figure out what's really the single point of failure, and what the long pole in the tent is. Requirements keep creeping too.",
+    hint: "<b>현황 공유</b> → 멈춘 지점 진단 → 가장 급한 것부터 → 담당·일정 재정리",
+    duration: "5~7분",
+    role: "2~3명 (같은 팀)",
+    suggested: ["Stalled out", "Single point of failure", "Critical path", "Long pole in the tent", "Requirements creep", "Slow-walk"],
+  },
+  {
+    emoji: "🙅",
+    title: "사고 터진 다음 날, 포스트모템 회의",
+    setting: "어제 사고가 하나 터졌어요. 서로 <b>책임을 떠넘기지 않고</b>, 대충 덮지도 않고, 제대로 수습하는 대화를 해보세요. 사소한 트집이 아니라 진짜 문제에 집중하면서요.",
+    settingEn: "Something broke yesterday. Have the conversation without throwing anyone under the bus or papering over it. Focus on the real issue, not nitpicking the small stuff.",
+    hint: "우려 공유 → 남 탓 대신 사실 정리 → 접을지 살릴지 결정 → 다음 액션 합의",
+    duration: "7~10분",
+    role: "3명 (같은 팀)",
+    suggested: ["Throw someone under the bus", "Paper over", "Nitpick", "Pull the plug", "Skin in the game", "Scramble"],
+  },
+  {
+    emoji: "🎯",
+    title: "자유 · Day 1~15 전체 mix",
+    setting: "본인이 자주 만나는 <b>실제 비즈 상황</b> 하나를 골라 2~3분 짧게 풀어보세요. 그동안 배운 단어 중 자연스럽게 끼울 수 있는 거 1~3개만 골라 써보면 OK.",
+    settingEn: "Pick a real business scenario you face often and act it out for 2-3 minutes. Just naturally slip in 1-3 of the words you've learned so far.",
+    hint: "본인 상황 1줄 설정 → 단어 풀에서 쓸 단어 1~3개 픽 → 자유롭게 대화",
+    duration: "2~3분",
+    role: "1~3명",
+    suggested: [],
+  },
+];
+
+/* ====================================================================
+   STATE
+==================================================================== */
+const state = {
+  sit: 0,
+  filter: 'all', // 'all' | 'thisweek' | 'lastweek' | 'bookmarks'
+  bookmarks: {}, // {'d11-0': true}
+  expanded: {},  // {'d11-0': true}
+  timer: { start: null, elapsed: 0, running: false },
+  pickerResult: null,
+};
+
+/* ============================================================
+   Bookmark sync with main app, yb7_state_cache_v1
+   ------------------------------------------------------------
+   Main 앱에서 bookmark 토글 시 두 가지 state 가 같이 업데이트됨:
+     1) state.bookmarks['d{N}-{idx}'] = true          ← truthy 체크용
+     2) state.pitch_vocab[] 에 { word, note, source:'daily', sourceKey:'d{N}-{idx}' }
+        ← 실제 '나' 탭 단어장 화면에 표시되는 배열
+   이 페이지도 두 개 다 업데이트해야 '나' 탭에 단어가 떠요.
+============================================================ */
+const LS_KEY = 'yb7_state_cache_v1'; // 7th/index.html 의 LS_KEY 와 반드시 동일해야 sync 됨
+
+function _loadCache() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(_) { return null; }
+}
+function _saveCache(parsed) {
+  try {
+    parsed.cached_at = new Date().toISOString();
+    localStorage.setItem(LS_KEY, JSON.stringify(parsed));
+  } catch(_) {}
+}
+// parsed.state 가 항상 존재하도록 정규화 (main 앱은 항상 parsed.state.bookmarks 만 봄)
+function _normalizeCache(parsed) {
+  if (!parsed) parsed = { member_key: null, cached_at: null, state: {} };
+  if (!parsed.state || typeof parsed.state !== 'object') {
+    parsed.state = {
+      bookmarks: parsed.bookmarks || {},
+      pitch_vocab: parsed.pitch_vocab || [],
+    };
+    delete parsed.bookmarks;
+    delete parsed.pitch_vocab;
+  }
+  if (!parsed.state.bookmarks || typeof parsed.state.bookmarks !== 'object') parsed.state.bookmarks = {};
+  if (!Array.isArray(parsed.state.pitch_vocab)) parsed.state.pitch_vocab = [];
+  return parsed;
+}
+function loadBookmarks() {
+  const parsed = _normalizeCache(_loadCache());
+  return { ...parsed.state.bookmarks };
+}
+
+// vocab obj (en, kr) 받아서 bookmarks + pitch_vocab 동시 sync.
+// fresh read → mutate → write 패턴. in-memory stale state 절대 신뢰 X.
+function toggleBookmarkSynced(vocabObj, on) {
+  const parsed = _normalizeCache(_loadCache());
+  const st = parsed.state;
+
+  const sourceKey = `d${vocabObj.day}-${vocabObj.idx}`;
+  const wLower = String(vocabObj.en || '').toLowerCase().trim();
+
+  if (on) {
+    st.bookmarks[sourceKey] = true;
+    const existing = st.pitch_vocab.find(v => String(v.word || '').toLowerCase().trim() === wLower);
+    if (existing) {
+      if (!existing.sourceKey) existing.sourceKey = sourceKey;
+      if (!existing.source || existing.source === 'manual') existing.source = 'daily';
+      if (!existing.note && vocabObj.kr) existing.note = vocabObj.kr;
+      st.pitch_vocab = [existing, ...st.pitch_vocab.filter(v => v !== existing)];
+    } else {
+      st.pitch_vocab = [
+        {
+          word: vocabObj.en,
+          note: vocabObj.kr || '',
+          source: 'daily',
+          sourceKey,
+          savedAt: new Date().toISOString(),
+        },
+        ...st.pitch_vocab,
+      ];
+    }
+  } else {
+    delete st.bookmarks[sourceKey];
+    st.pitch_vocab = st.pitch_vocab.filter(v => {
+      if (v.sourceKey === sourceKey) return false;
+      if (String(v.word || '').toLowerCase().trim() === wLower && v.source === 'daily') return false;
+      return true;
+    });
+  }
+
+  _saveCache(parsed);
+  state.bookmarks = { ...st.bookmarks };
+}
+
+function isBookmarkedFresh(sourceKey) {
+  const parsed = _normalizeCache(_loadCache());
+  return !!parsed.state.bookmarks[sourceKey];
+}
+
+window.addEventListener('storage', (e) => {
+  if (e.key !== LS_KEY) return;
+  state.bookmarks = loadBookmarks();
+  try { renderFilters(); renderGrid(); } catch(_) {}
+});
+window.addEventListener('focus', () => {
+  state.bookmarks = loadBookmarks();
+  try { renderFilters(); renderGrid(); } catch(_) {}
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  state.bookmarks = loadBookmarks();
+  try { renderFilters(); renderGrid(); } catch(_) {}
+});
+
+state.bookmarks = loadBookmarks();
+
+/* ====================================================================
+   HELPERS
+==================================================================== */
+function vkey(v) { return `d${v.day}-${v.idx}`; }
+function escapeHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function getNames() {
+  return (document.getElementById('namesInput').value || '')
+    .split(',').map(s => s.trim()).filter(Boolean);
+}
+
+/* ====================================================================
+   RENDER, Situation Tabs
+==================================================================== */
+function renderTabs() {
+  const nav = document.getElementById('sitNav');
+  nav.innerHTML = '';
+  SITUATIONS.forEach((s, i) => {
+    const tab = document.createElement('button');
+    tab.className = 'sit-tab' + (i === state.sit ? ' active' : '');
+    tab.innerHTML = `<span>${s.emoji}</span><span>${escapeHtml(s.title)}</span><span class="num">${i+1}</span>`;
+    tab.onclick = () => { state.sit = i; state.pickerResult = null; renderAll(); };
+    nav.appendChild(tab);
+  });
+  document.getElementById('footerStatus').textContent = `상황 ${state.sit + 1} / ${SITUATIONS.length}`;
+}
+
+/* ====================================================================
+   RENDER, Situation Card
+==================================================================== */
+function renderCard() {
+  const sit = SITUATIONS[state.sit];
+  const card = document.getElementById('sitCard');
+  const suggestPills = sit.suggested.length
+    ? `<div class="sit-suggest">
+        <span class="sit-suggest-label">💡 이 상황에 자연스러운 표현:</span>
+        ${sit.suggested.map(s => `<span class="sit-suggest-chip">${escapeHtml(s)}</span>`).join('')}
+      </div>`
+    : `<div class="sit-suggest">
+        <span class="sit-suggest-label">💡 단어 풀 전체에서 자유롭게 골라 쓰세요</span>
+      </div>`;
+  const resultHtml = state.pickerResult
+    ? `<div class="picker-result on">🎯 시작 <span class="arrow">→</span> ${escapeHtml(state.pickerResult)}</div>`
+    : `<div class="picker-result"></div>`;
+  card.innerHTML = `
+    <div class="sit-emoji">${sit.emoji}</div>
+    <div class="sit-title">${escapeHtml(sit.title)}</div>
+    <div class="sit-meta">
+      <span class="sit-pill orange">⏱ ${sit.duration}</span>
+      <span class="sit-pill">👥 ${sit.role}</span>
+      <span class="sit-pill gold">상황 ${state.sit + 1} / ${SITUATIONS.length}</span>
+    </div>
+    <div class="sit-setting">
+      ${sit.setting}
+      ${sit.settingEn ? `<div class="sit-setting-en">${sit.settingEn}</div>` : ''}
+    </div>
+    <div class="sit-hint">💡 진행 힌트: ${sit.hint}</div>
+    <div class="picker-row">
+      <button class="picker-btn" id="btnPick">🎲 누가 시작?</button>
+      <button class="picker-btn secondary" id="btnPickAgain">↻ 다시</button>
+      ${resultHtml}
+    </div>
+    ${suggestPills}
+  `;
+  document.getElementById('btnPick').onclick = pickRandom;
+  document.getElementById('btnPickAgain').onclick = pickRandom;
+}
+
+function pickRandom() {
+  const names = getNames();
+  const sit = SITUATIONS[state.sit];
+  const m = /(\d+)/.exec(sit.role);
+  const need = m ? parseInt(m[1], 10) : 2;
+  if (names.length < need) {
+    state.pickerResult = `이름이 부족해요 (헤더에서 ${need}명 이상 입력)`;
+    renderCard();
+    return;
+  }
+  const shuffled = [...names].sort(() => Math.random() - 0.5);
+  const picked = shuffled.slice(0, need);
+  state.pickerResult = picked.join('  ·  ');
+  renderCard();
+}
+
+/* ====================================================================
+   RENDER, Vocab Pool
+==================================================================== */
+function renderFilters() {
+  const root = document.getElementById('poolFilters');
+  const bmCount = Object.values(state.bookmarks).filter(Boolean).length;
+  const filters = [
+    { id: 'all',       label: '전체',          count: ALL_VOCAB.length },
+    { id: 'thisweek',  label: 'Day 11~15',    count: ALL_VOCAB.filter(v => v.day >= 11).length },
+    { id: 'lastweek',  label: 'Day 1~10',     count: ALL_VOCAB.filter(v => v.day <= 10).length },
+    { id: 'bookmarks', label: `🔖 내 북마크`,   count: bmCount },
+  ];
+  root.innerHTML = filters.map(f =>
+    `<button class="pool-filter ${state.filter === f.id ? 'active' : ''} ${f.id === 'bookmarks' ? 'bm' : ''}"
+             data-id="${f.id}">${escapeHtml(f.label)} <span style="opacity:0.55;font-weight:500">${f.count}</span></button>`
+  ).join('');
+  root.querySelectorAll('[data-id]').forEach(btn => {
+    btn.onclick = () => { state.filter = btn.dataset.id; renderAll(); };
+  });
+}
+
+function renderGrid() {
+  const grid = document.getElementById('vocabGrid');
+  const sit = SITUATIONS[state.sit];
+  const suggested = new Set(sit.suggested);
+  let list = ALL_VOCAB;
+  if (state.filter === 'thisweek')      list = list.filter(v => v.day >= 11);
+  else if (state.filter === 'lastweek') list = list.filter(v => v.day <= 10);
+  else if (state.filter === 'bookmarks')list = list.filter(v => state.bookmarks[vkey(v)]);
+
+  list = [...list].sort((a, b) => {
+    const aS = suggested.has(a.en) ? 0 : 1;
+    const bS = suggested.has(b.en) ? 0 : 1;
+    if (aS !== bS) return aS - bS;
+    return a.day - b.day || a.idx - b.idx;
+  });
+
+  if (!list.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:32px;text-align:center;color:var(--muted);font-size:13px;">
+      ${state.filter === 'bookmarks' ? '🔖 아직 북마크한 단어가 없어요. 카드 우측 상단 북마크 아이콘 눌러보세요.' : '단어가 없어요.'}
+    </div>`;
+    return;
+  }
+
+  const bmSvg = (filled) => filled
+    ? `<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
+
+  grid.innerHTML = list.map(v => {
+    const k = vkey(v);
+    const bm = !!state.bookmarks[k];
+    const sg = suggested.has(v.en);
+    const ex = !!state.expanded[k];
+    return `
+      <div class="vocab-card ${sg?'suggested':''} ${bm?'bookmarked':''} ${ex?'expanded':''}" data-k="${k}">
+        ${sg ? '<span class="vocab-suggest-pill">이 상황에 추천</span>' : ''}
+        <div class="vocab-card-h">
+          <span class="vocab-day">DAY ${v.day}</span>
+          <button class="bm-btn ${bm?'on':''}" data-bm="${k}" title="${bm?'북마크 해제':'북마크'}" aria-label="${bm?'북마크 해제':'북마크'}">${bmSvg(bm)}</button>
+        </div>
+        <div class="vocab-en">${escapeHtml(v.en)}</div>
+        <div class="vocab-kr">${escapeHtml(v.kr)}</div>
+        <div class="vocab-ex"><b>예:</b> ${escapeHtml(v.ex)}</div>
+      </div>
+    `;
+  }).join('');
+
+  grid.querySelectorAll('.bm-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const k = btn.dataset.bm;
+      const m = /^d(\d+)-(\d+)$/.exec(k);
+      const v = m ? ALL_VOCAB.find(x => x.day === +m[1] && x.idx === +m[2]) : null;
+      const isOn = isBookmarkedFresh(k);
+      const willTurnOn = !isOn;
+      if (v) toggleBookmarkSynced(v, willTurnOn);
+      else {
+        const parsed = _normalizeCache(_loadCache());
+        if (willTurnOn) parsed.state.bookmarks[k] = true;
+        else delete parsed.state.bookmarks[k];
+        _saveCache(parsed);
+        state.bookmarks = loadBookmarks();
+      }
+      renderFilters();
+      renderGrid();
+    };
+  });
+  grid.querySelectorAll('.vocab-card').forEach(card => {
+    card.onclick = () => {
+      const k = card.dataset.k;
+      state.expanded[k] = !state.expanded[k];
+      renderGrid();
+    };
+  });
+}
+
+/* ====================================================================
+   TIMER
+==================================================================== */
+function tickTimer() {
+  if (!state.timer.running) return;
+  const el = state.timer.elapsed + (Date.now() - state.timer.start);
+  const sec = Math.floor(el / 1000);
+  const mm = String(Math.floor(sec / 60)).padStart(2,'0');
+  const ss = String(sec % 60).padStart(2,'0');
+  document.getElementById('timer').textContent = `${mm}:${ss}`;
+}
+setInterval(tickTimer, 250);
+document.getElementById('btnTimer').onclick = () => {
+  if (state.timer.running) {
+    state.timer.elapsed += Date.now() - state.timer.start;
+    state.timer.running = false;
+  } else {
+    state.timer.start = Date.now();
+    state.timer.running = true;
+  }
+};
+document.getElementById('btnTimerReset').onclick = () => {
+  state.timer.elapsed = 0; state.timer.running = false;
+  document.getElementById('timer').textContent = '00:00';
+};
+
+/* ====================================================================
+   NAV
+==================================================================== */
+document.getElementById('btnNextSit').onclick = () => {
+  state.sit = (state.sit + 1) % SITUATIONS.length;
+  state.pickerResult = null;
+  renderAll();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+document.getElementById('btnPrevSit').onclick = () => {
+  state.sit = (state.sit - 1 + SITUATIONS.length) % SITUATIONS.length;
+  state.pickerResult = null;
+  renderAll();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+/* ====================================================================
+   MEET LINK COPY
+==================================================================== */
+document.getElementById('btnCopyMeet').onclick = async () => {
+  const url = 'https://meet.google.com/jzo-xowx-auk';
+  try {
+    await navigator.clipboard.writeText(url);
+    const btn = document.getElementById('btnCopyMeet');
+    const original = btn.innerHTML;
+    btn.innerHTML = '✓ 복사됨!';
+    setTimeout(() => { btn.innerHTML = original; }, 1400);
+  } catch(_) {
+    alert(url);
+  }
+};
+
+/* ====================================================================
+   INIT
+==================================================================== */
+function renderAll() {
+  renderTabs();
+  renderCard();
+  renderFilters();
+  renderGrid();
+}
+renderAll();
+</script>
+</body>
+</html>
