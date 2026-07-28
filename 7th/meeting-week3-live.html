@@ -296,7 +296,7 @@
 <!-- FOOTER -->
 <div class="footer-nav">
   <button class="footer-btn" id="btnPrevSit">⏮ 이전 상황</button>
-  <div class="footer-status" id="footerStatus">상황 1 / 4</div>
+  <div class="footer-status" id="footerStatus">상황 1 / 6</div>
   <button class="footer-btn primary" id="btnNextSit">다음 상황 ⏭</button>
 </div>
 
@@ -368,6 +368,26 @@ const ALL_VOCAB = [
 ];
 
 const SITUATIONS = [
+  {
+    emoji: "🛗",
+    title: "엘리베이터에서 마주친 동료와 짧은 스몰토크",
+    setting: "엘리베이터에서 동료(또는 다른 팀 사람)를 딱 마주쳤어요. 안건 없이, 날씨·주말·요즘 어떠냐 같은 가벼운 주제로 짧게 대화해보세요. 층 도착하면 자연스럽게 마무리.",
+    settingEn: "You bump into a colleague in the elevator. No agenda, just a short chat about the weather, the weekend, how things are going. Wrap it up naturally when you reach your floor.",
+    hint: "가벼운 인사 → 날씨·주말 같은 안전한 주제 → (있으면) 요즘 하는 일 한 줄 → 층 도착하면 자연스럽게 마무리",
+    duration: "1~2분",
+    role: "2명",
+    suggested: [],
+  },
+  {
+    emoji: "☕",
+    title: "탕비실에서 커피 내리다 마주친 대화",
+    setting: "탕비실에서 커피나 차를 내리다 동료와 마주쳤어요. 특별한 안건 없이 편하게 근황을 묻고, 대화가 흘러가는 대로 요즘 하고 있는 일 이야기로 자연스럽게 넘어가 보세요.",
+    settingEn: "You run into a coworker in the break room while making coffee. No agenda, just catch up casually, and let the conversation drift into what you're each working on these days.",
+    hint: "가벼운 인사 → 요즘 어때요? → 자연스럽게 업무 근황으로 → 마무리 인사",
+    duration: "2~3분",
+    role: "2명",
+    suggested: [],
+  },
   {
     emoji: "🚨",
     title: "갑자기 터진 클라이언트 이슈 대응",
