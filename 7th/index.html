@@ -17973,7 +17973,7 @@ function MeetingNotesPage(meetingId) {
           <div style="font-size:11px;letter-spacing:0.14em;font-weight:800;color:#FCE8B2;">📺 미팅 진행 화면</div>
           <div style="margin-top:6px;font-size:18px;font-weight:800;letter-spacing:-0.015em;line-height:1.3;">미팅은 이렇게 진행돼요</div>
           <div style="margin-top:5px;font-size:12.5px;color:rgba(255,255,255,0.78);line-height:1.5;">
-            상황 4종 (장애 대응 / 우선순위 정리 / 도현님 투어 / 자유) + Day 1~15 단어 45개<br/>
+            실무 상황 롤플레이 4종 + Day 1~15 단어 전체<br/>
             진행자가 화면 공유하면, 보면서 자유롭게 발화하면 돼요.
           </div>
         </div>
@@ -18077,6 +18077,27 @@ function MeetingNotesPage(meetingId) {
       <div style="width:10px;height:10px;border-radius:50%;background:${accent || '#A98BB8'};box-shadow:0 0 0 3px rgba(169,139,184,0.18);"></div>
       <div style="position:absolute;top:14px;bottom:-14px;left:4.5px;width:1.5px;background:linear-gradient(to bottom, rgba(169,139,184,0.35), rgba(169,139,184,0.08));"></div>`;
     row.appendChild(stem);
+
+    // opts.bannerOnly: 제목/브리핑/노트/저장버튼 다 생략, 안내 배너 한 줄만 (예: Week3 "Day11~14 단어 복습 후 만나요!").
+    // 미팅 진행 화면(라이브 페이지)이 롤플레이·발표 안내를 대신 맡을 때 이 카드는 리마인더 역할만.
+    if (opts.bannerOnly) {
+      const bannerCard = el('div', {
+        style: {
+          flex: '1',
+          minWidth: '0',
+          background: 'rgba(240,125,56,0.08)',
+          border: '1px dashed rgba(240,125,56,0.35)',
+          borderRadius: '14px',
+          padding: '14px 16px',
+          marginBottom: '14px',
+          fontSize: '13px',
+          fontWeight: '700',
+          color: 'var(--orange-dark)',
+        }
+      }, opts.bannerText || '');
+      row.appendChild(bannerCard);
+      return row;
+    }
 
     // Card
     const card = el('div', {
@@ -18949,7 +18970,7 @@ function MeetingNotesPage(meetingId) {
         body: `<span style="color:var(--ink);">각자 맡은 역할로 비즈니스 상황을 실제처럼 재현. 대사 외우지 말고, 상황에 반응하세요.</span>`,
         briefing: roleplayBrief,
         placeholder: '예) 내가 맡은 역할: Product Lead\n내가 놓친 reframe 포인트: ...\n상대방이 쓴 괜찮은 표현: ...\n다음엔 이렇게 해볼 것: ...',
-        ...(meta.n === 3 ? { hideChips: true, chipReplacement: '📚 Day11~14 단어 복습 후 만나요!' } : {}),
+        ...(meta.n === 3 ? { bannerOnly: true, bannerText: '📚 Day11~14 단어 복습 후 만나요!' } : {}),
       }));
     }
 
@@ -19014,10 +19035,11 @@ function MeetingNotesPage(meetingId) {
           '[3] 발표자 이름',
           '- ...',
         ].join('\n'),
-        ...(meta.n === 3 ? { hideChips: true, chipReplacement: '📚 Day11~14 단어 복습 후 만나요!' } : {}),
+        ...(meta.n === 3 ? { bannerOnly: true, bannerText: '📚 Day11~14 단어 복습 후 만나요!' } : {}),
       });
       // 타이틀 밑에 발표자 pills 삽입, renderTimelineRow 는 subtitle 문자열만 받으니까,
-      // 렌더 후 DOM 에서 header card 찾아 pills 를 꽂음.
+      // 렌더 후 DOM 에서 header card 찾아 pills 를 꽂음. (bannerOnly 카드는 헤더 자체가 없어서 스킵)
+      if (meta.n !== 3) {
       try {
         const card = row.querySelector('div > div > div');
         // card 구조: row > [rail] > [stem] > [card]. card 의 첫 child = headerRow.
@@ -19031,6 +19053,7 @@ function MeetingNotesPage(meetingId) {
           }
         }
       } catch (_pillErr) {}
+      }
       wrap.appendChild(row);
     }
 

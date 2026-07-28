@@ -134,6 +134,15 @@
     font-size:13px;color:var(--muted);line-height:1.6;padding:10px 14px;
     background:rgba(252,232,178,0.4);border-radius:10px;margin-bottom:18px;
   }
+  .sit-smalltalk{
+    display:flex;gap:10px;align-items:flex-start;
+    background:rgba(111,174,108,0.08);border:1px solid rgba(111,174,108,0.28);
+    border-radius:14px;padding:12px 16px;margin-bottom:14px;
+  }
+  .sit-smalltalk .st-emoji{font-size:18px;line-height:1.4;flex-shrink:0}
+  .sit-smalltalk .st-label{font-size:10.5px;font-weight:800;letter-spacing:0.08em;color:#3B7A38;text-transform:uppercase}
+  .sit-smalltalk .st-line{margin-top:4px;font-size:13.5px;line-height:1.55;color:var(--ink);font-style:italic}
+  .sit-smalltalk .st-note{margin-top:4px;font-size:11.5px;line-height:1.5;color:var(--ink-soft);font-style:normal}
   .sit-hint b{color:var(--ink-soft);font-weight:700}
 
   /* PICKER */
@@ -364,7 +373,8 @@ const SITUATIONS = [
     title: "갑자기 터진 클라이언트 이슈 대응",
     setting: "클라이언트가 갑자기 문제를 제기했어요. 다들 하던 일을 멈추고 <b>일단 통화부터</b> 잡을지, 상황부터 조용히 파악할지 정해야 해요. 침착하게 상황을 공유하고 방향을 잡아보세요.",
     settingEn: "A client just raised an issue out of nowhere. The team drops everything: do you hop on a call right away, or quietly get the lay of the land first? Calmly share the situation and steer the call.",
-    hint: "<b>상황 공유</b> → 지금 바로 통화 vs 파악부터 → 누가 <b>고객 응대</b> 맡을지 → 다음 액션",
+    smallTalk: { line: "Sorry for pulling everyone in so suddenly, hope I'm not derailing your afternoon!", note: "급한 상황이어도 한 줄 쿠션어로 시작하면 훨씬 프로다워 보여요." },
+    hint: "☕ 짧은 쿠션어 → <b>상황 공유</b> → 지금 바로 통화 vs 파악부터 → 누가 <b>고객 응대</b> 맡을지 → 다음 액션",
     duration: "5~7분",
     role: "2~3명 (같은 팀)",
     suggested: ["Fire drill", "Hop on a call", "Client-facing"],
@@ -374,7 +384,8 @@ const SITUATIONS = [
     title: "몇 주째 멈춘 프로젝트, 원인 찾기 회의",
     setting: "프로젝트가 몇 주째 제자리예요. 뭐가 진짜 발목을 잡고 있는지, 일정에서 <b>가장 오래 걸리는 지점</b>이 뭔지 짚어봐야 해요. 요구사항이 계속 늘어나는 것도 문제고요.",
     settingEn: "The project has been stalled for weeks. You need to figure out what's really the single point of failure, and what the long pole in the tent is. Requirements keep creeping too.",
-    hint: "<b>현황 공유</b> → 멈춘 지점 진단 → 가장 급한 것부터 → 담당·일정 재정리",
+    smallTalk: { line: "Hey, before we dive in, how was your weekend? Anything fun happen?", note: "1:1은 스몰토크로 긴장부터 풀고 시작하는 게 자연스러워요." },
+    hint: "☕ 가벼운 스몰토크 → <b>현황 공유</b> → 멈춘 지점 진단 → 가장 급한 것부터 → 담당·일정 재정리",
     duration: "5~7분",
     role: "2~3명 (같은 팀)",
     suggested: ["Stalled out", "Single point of failure", "Critical path", "Long pole in the tent", "Requirements creep", "Slow-walk"],
@@ -384,7 +395,8 @@ const SITUATIONS = [
     title: "사고 터진 다음 날, 포스트모템 회의",
     setting: "어제 사고가 하나 터졌어요. 서로 <b>책임을 떠넘기지 않고</b>, 대충 덮지도 않고, 제대로 수습하는 대화를 해보세요. 사소한 트집이 아니라 진짜 문제에 집중하면서요.",
     settingEn: "Something broke yesterday. Have the conversation without throwing anyone under the bus or papering over it. Focus on the real issue, not nitpicking the small stuff.",
-    hint: "우려 공유 → 남 탓 대신 사실 정리 → 접을지 살릴지 결정 → 다음 액션 합의",
+    smallTalk: { line: "Rough day yesterday, huh? Let's grab a coffee before we get into the details.", note: "무거운 대화 전에 분위기를 한 번 풀어주는 스몰토크예요." },
+    hint: "☕ 분위기 풀기 → 우려 공유 → 남 탓 대신 사실 정리 → 접을지 살릴지 결정 → 다음 액션 합의",
     duration: "7~10분",
     role: "3명 (같은 팀)",
     suggested: ["Throw someone under the bus", "Paper over", "Nitpick", "Pull the plug", "Skin in the game", "Scramble"],
@@ -394,7 +406,8 @@ const SITUATIONS = [
     title: "자유 · Day 1~15 전체 mix",
     setting: "본인이 자주 만나는 <b>실제 비즈 상황</b> 하나를 골라 2~3분 짧게 풀어보세요. 그동안 배운 단어 중 자연스럽게 끼울 수 있는 거 1~3개만 골라 써보면 OK.",
     settingEn: "Pick a real business scenario you face often and act it out for 2-3 minutes. Just naturally slip in 1-3 of the words you've learned so far.",
-    hint: "본인 상황 1줄 설정 → 단어 풀에서 쓸 단어 1~3개 픽 → 자유롭게 대화",
+    smallTalk: { line: "So, how's everything going on your end these days?", note: "원한다면 본론 전에 스몰토크로 몸 풀고 시작해도 좋아요." },
+    hint: "(선택) ☕ 스몰토크 → 본인 상황 1줄 설정 → 단어 풀에서 쓸 단어 1~3개 픽 → 자유롭게 대화",
     duration: "2~3분",
     role: "1~3명",
     suggested: [],
@@ -566,6 +579,16 @@ function renderCard() {
   const resultHtml = state.pickerResult
     ? `<div class="picker-result on">🎯 시작 <span class="arrow">→</span> ${escapeHtml(state.pickerResult)}</div>`
     : `<div class="picker-result"></div>`;
+  const smallTalkHtml = sit.smallTalk
+    ? `<div class="sit-smalltalk">
+        <span class="st-emoji">☕</span>
+        <div>
+          <div class="st-label">먼저, 스몰토크로 몸 풀기</div>
+          <div class="st-line">"${escapeHtml(sit.smallTalk.line)}"</div>
+          <div class="st-note">${escapeHtml(sit.smallTalk.note)}</div>
+        </div>
+      </div>`
+    : '';
   card.innerHTML = `
     <div class="sit-emoji">${sit.emoji}</div>
     <div class="sit-title">${escapeHtml(sit.title)}</div>
@@ -574,6 +597,7 @@ function renderCard() {
       <span class="sit-pill">👥 ${sit.role}</span>
       <span class="sit-pill gold">상황 ${state.sit + 1} / ${SITUATIONS.length}</span>
     </div>
+    ${smallTalkHtml}
     <div class="sit-setting">
       ${sit.setting}
       ${sit.settingEn ? `<div class="sit-setting-en">${sit.settingEn}</div>` : ''}
