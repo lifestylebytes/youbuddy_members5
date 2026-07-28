@@ -18214,6 +18214,21 @@ function MeetingNotesPage(meetingId) {
     card.appendChild(ta);
 
     // Expressions chip picker, opts.hideChips 면 통째로 안 그림 (예: 미팅 중 메모 row).
+    // opts.chipReplacement 있으면 그 자리에 안내 배너 하나만 (예: Week3 "Day11~14 단어 복습 후 만나요!").
+    if (opts.hideChips && opts.chipReplacement) {
+      card.appendChild(el('div', {
+        style: {
+          marginTop: '10px',
+          padding: '10px 14px',
+          borderRadius: '12px',
+          background: 'rgba(240,125,56,0.08)',
+          border: '1px dashed rgba(240,125,56,0.35)',
+          fontSize: '12.5px',
+          fontWeight: '700',
+          color: 'var(--orange-dark)',
+        }
+      }, opts.chipReplacement));
+    }
     if (!opts.hideChips) {
     const exprWrap = el('div', { style: { marginTop: '10px' } });
     exprWrap.appendChild(el('div', {
@@ -18934,6 +18949,7 @@ function MeetingNotesPage(meetingId) {
         body: `<span style="color:var(--ink);">각자 맡은 역할로 비즈니스 상황을 실제처럼 재현. 대사 외우지 말고, 상황에 반응하세요.</span>`,
         briefing: roleplayBrief,
         placeholder: '예) 내가 맡은 역할: Product Lead\n내가 놓친 reframe 포인트: ...\n상대방이 쓴 괜찮은 표현: ...\n다음엔 이렇게 해볼 것: ...',
+        ...(meta.n === 3 ? { hideChips: true, chipReplacement: '📚 Day11~14 단어 복습 후 만나요!' } : {}),
       }));
     }
 
@@ -18998,6 +19014,7 @@ function MeetingNotesPage(meetingId) {
           '[3] 발표자 이름',
           '- ...',
         ].join('\n'),
+        ...(meta.n === 3 ? { hideChips: true, chipReplacement: '📚 Day11~14 단어 복습 후 만나요!' } : {}),
       });
       // 타이틀 밑에 발표자 pills 삽입, renderTimelineRow 는 subtitle 문자열만 받으니까,
       // 렌더 후 DOM 에서 header card 찾아 pills 를 꽂음.
