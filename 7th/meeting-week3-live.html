@@ -145,6 +145,32 @@
   .sit-smalltalk .st-note{margin-top:4px;font-size:11.5px;line-height:1.5;color:var(--ink-soft);font-style:normal}
   .sit-hint b{color:var(--ink-soft);font-weight:700}
 
+  /* PRACTICAL EXERCISE, 안건별 빈칸 채우기 스크립트 */
+  .practice-wrap{margin-bottom:18px}
+  .practice-badge{
+    display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px 99px 0 0;
+    background:var(--orange);color:#fff;font-size:11.5px;font-weight:800;letter-spacing:0.02em;
+  }
+  .practice-card{
+    background:linear-gradient(160deg,#FFF7EC 0%,#FFEFDC 100%);
+    border:1.5px solid rgba(240,125,56,0.28);border-radius:0 16px 16px 16px;
+    padding:20px 22px 22px;
+  }
+  .practice-title{font-size:16px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em}
+  .practice-sub{margin-top:5px;font-size:12px;color:var(--ink-soft);line-height:1.5}
+  .practice-steps{margin-top:14px;display:flex;flex-direction:column;gap:12px}
+  .practice-step{font-size:14.5px;line-height:2.1;color:var(--ink)}
+  .practice-step b{color:var(--orange-dark);font-weight:800;margin-right:2px}
+  .practice-input{
+    display:inline-block;min-width:60px;padding:2px 8px;margin:0 3px;
+    border:none;border-bottom:2px dashed rgba(240,125,56,0.55);
+    background:rgba(255,255,255,0.7);border-radius:4px 4px 0 0;
+    font-family:inherit;font-size:14.5px;font-weight:700;color:var(--ink);
+    text-align:center;vertical-align:baseline;
+  }
+  .practice-input:focus{outline:none;border-bottom-color:var(--orange);background:#fff}
+  .practice-input::placeholder{color:#B9A98A;font-weight:600}
+
   /* PICKER */
   .picker-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
   .picker-btn{
@@ -377,6 +403,11 @@ const SITUATIONS = [
     duration: "1~2분",
     role: "2명",
     suggested: [],
+    script: [
+      { label: '인사', en: "Hi [이름]! Crazy [날씨/주말] today, right?" },
+      { label: '안부', en: "How's your [morning/week] going so far?" },
+      { label: '마무리', en: "Well, this is my floor. [Have a great day / Catch up soon]!" },
+    ],
   },
   {
     emoji: "☕",
@@ -387,6 +418,12 @@ const SITUATIONS = [
     duration: "2~3분",
     role: "2명",
     suggested: [],
+    script: [
+      { label: '인사', en: "Oh hey, didn't expect to see you here!" },
+      { label: '안부', en: "How's everything going with [프로젝트/팀]?" },
+      { label: '근황 공유', en: "I've been [swamped with / knee-deep in] [무엇]." },
+      { label: '마무리', en: "Anyway, good seeing you, let's [grab lunch / catch up] sometime." },
+    ],
   },
   {
     emoji: "🚨",
@@ -398,6 +435,12 @@ const SITUATIONS = [
     duration: "5~7분",
     role: "2~3명 (같은 팀)",
     suggested: ["Fire drill", "Hop on a call", "Client-facing"],
+    script: [
+      { label: '쿠션어', en: "Sorry for pulling everyone in so suddenly." },
+      { label: '상황 공유', en: "[고객사]  just flagged [이슈 내용]." },
+      { label: '방향 제안', en: "I think we should [hop on a call] before we dig into the root cause." },
+      { label: '담당 배정', en: "Can [이름] take the lead on [고객 응대]?" },
+    ],
   },
   {
     emoji: "🔍",
@@ -409,6 +452,12 @@ const SITUATIONS = [
     duration: "5~7분",
     role: "2~3명 (같은 팀)",
     suggested: ["Stalled out", "Single point of failure", "Critical path", "Long pole in the tent", "Requirements creep", "Slow-walk"],
+    script: [
+      { label: '현황', en: "[프로젝트명]  has been stalled for [기간]  now." },
+      { label: '진단', en: "I think the critical path is [무엇] ." },
+      { label: '원인', en: "The single point of failure seems to be [누구/무엇] ." },
+      { label: '다음 액션', en: "Let's align on next steps by [날짜] ." },
+    ],
   },
   {
     emoji: "🙅",
@@ -420,6 +469,12 @@ const SITUATIONS = [
     duration: "7~10분",
     role: "3명 (같은 팀)",
     suggested: ["Throw someone under the bus", "Paper over", "Nitpick", "Pull the plug", "Skin in the game", "Scramble"],
+    script: [
+      { label: '사실 정리', en: "Yesterday, [무슨 일]  happened for about [시간] ." },
+      { label: '남 탓 아닌 사실', en: "This isn't about who's at fault, it's about [진짜 원인] ." },
+      { label: '결정', en: "I think we should [pull the plug / scramble to fix it] ." },
+      { label: '다음', en: "Going forward, let's [재발 방지책]  so this doesn't happen again." },
+    ],
   },
   {
     emoji: "🎯",
@@ -431,6 +486,11 @@ const SITUATIONS = [
     duration: "2~3분",
     role: "1~3명",
     suggested: [],
+    script: [
+      { label: '상황 설정', en: "So today I want to talk about [내 실제 업무 상황] ." },
+      { label: '맥락', en: "The context is [간단한 배경 설명] ." },
+      { label: '표현 활용', en: "I think the right move here is to [오늘 배운 표현 활용] ." },
+    ],
   },
 ];
 
@@ -561,6 +621,20 @@ function vkey(v) { return `d${v.day}-${v.idx}`; }
 function escapeHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
+// "[blank]" 토큰을 실제 입력창으로 바꿔주는 스크립트 라인 렌더러.
+// "Hi [Name]! How's your [morning] going?" → 인풋 두 개가 박힌 문장.
+function scriptLineToHtml(line) {
+  return String(line || '')
+    .split(/(\[[^\]]+\])/g)
+    .map((part) => {
+      const m = /^\[([^\]]+)\]$/.exec(part);
+      if (!m) return escapeHtml(part);
+      const ph = m[1];
+      const width = Math.min(Math.max(ph.length + 2, 6), 22);
+      return `<input class="practice-input" type="text" placeholder="${escapeHtml(ph)}" style="width:${width}ch;" />`;
+    })
+    .join('');
+}
 function getNames() {
   return (document.getElementById('namesInput').value || '')
     .split(',').map(s => s.trim()).filter(Boolean);
@@ -609,6 +683,18 @@ function renderCard() {
         </div>
       </div>`
     : '';
+  const practiceHtml = (sit.script && sit.script.length)
+    ? `<div class="practice-wrap">
+        <div class="practice-badge">🎯 실전 연습</div>
+        <div class="practice-card">
+          <div class="practice-title">"${escapeHtml(sit.title)}" 스크립트 빈칸 채우기</div>
+          <div class="practice-sub">이 상황에서 바로 쓸 수 있는 문장 틀이에요. 빈칸에 내 상황을 채워서 소리 내어 말해보세요.</div>
+          <div class="practice-steps">
+            ${sit.script.map((s, i) => `<div class="practice-step"><b>${i + 1}. ${escapeHtml(s.label)}:</b> ${scriptLineToHtml(s.en)}</div>`).join('')}
+          </div>
+        </div>
+      </div>`
+    : '';
   card.innerHTML = `
     <div class="sit-emoji">${sit.emoji}</div>
     <div class="sit-title">${escapeHtml(sit.title)}</div>
@@ -623,6 +709,7 @@ function renderCard() {
       ${sit.settingEn ? `<div class="sit-setting-en">${sit.settingEn}</div>` : ''}
     </div>
     <div class="sit-hint">💡 진행 힌트: ${sit.hint}</div>
+    ${practiceHtml}
     <div class="picker-row">
       <button class="picker-btn" id="btnPick">🎲 누가 시작?</button>
       <button class="picker-btn secondary" id="btnPickAgain">↻ 다시</button>
