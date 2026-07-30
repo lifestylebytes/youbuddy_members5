@@ -10357,12 +10357,21 @@ function computeQuizSplit(question) {
   for (let i = 1; i < tokens.length - 1; i += 1) {
     const cleaned = tokens[i].toLowerCase().replace(/[.,!?]+$/, '');
     if (!PRONOUNS.has(cleaned)) continue;
-    const prefix = tokens.slice(0, i).join(' ');
+    const prefixToks = tokens.slice(0, i);
+    const prefix = prefixToks.join(' ');
     const suffix = tokens.slice(i + 1).join(' ');
     if (!prefix || !suffix) continue;
     // prefix ... suffix with bounded gap (1~6 words between)
+    // prefix 첫 토큰은 동사로 보고 시제 변형까지 허용해야 함.
+    //   answer="Throw someone under the bus" / prompt="He threw the design team under the bus"
+    //   → \bThrow\b 로는 "threw" 를 못 잡아서 예전엔 통째로 fallback 되며 정답이 노출됐음.
+    const headForms3 = (typeof inflectionVariants === 'function')
+      ? inflectionVariants(prefixToks[0].toLowerCase())
+      : [prefixToks[0].toLowerCase()];
+    const restPat3 = prefixToks.slice(1).map(escapeRe).join('\\s+');
+    const prefixPat3 = '(?:' + headForms3.map(escapeRe).join('|') + ')' + (restPat3 ? '\\s+' + restPat3 : '');
     const gapRe = new RegExp(
-      '\\b' + escapeRe(prefix) + '\\b(\\s+(?:\\S+\\s+){0,6}?)\\b' + escapeRe(suffix) + '\\b',
+      '\\b' + prefixPat3 + '\\b(\\s+(?:\\S+\\s+){0,6}?)\\b' + escapeRe(suffix) + '\\b',
       'i'
     );
     const m = promptText.match(gapRe);
