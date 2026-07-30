@@ -18985,7 +18985,9 @@ function MeetingNotesPage(meetingId) {
     // 예전엔 발표자 #1/#2/#3 마다 빈칸이 3개였는데 실제 사용해보면 발표 들으면서
     // 한 번에 죽 적는 게 편함 → 하나의 노트 영역으로 통합. 발표자 이름은 상단
     // 칩으로 표시해두고, 본문에 자연스럽게 "[1] 박지혜" 같이 구획 지어 적게.
-    if (!meta.noPresenter) {
+    // Week 3 은 위 롤플레이 행이 이미 안내 배너 한 줄로 대체됐으므로, 같은 배너가
+    // 두 번 반복되지 않도록 이 행은 통째로 생략.
+    if (!meta.noPresenter && meta.n !== 3) {
       const presenterPills = el('div', {
         style: { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '2px' }
       });
@@ -19042,11 +19044,9 @@ function MeetingNotesPage(meetingId) {
           '[3] 발표자 이름',
           '- ...',
         ].join('\n'),
-        ...(meta.n === 3 ? { bannerOnly: true, bannerText: '📚 Day11~14 단어 복습 후 만나요!' } : {}),
       });
       // 타이틀 밑에 발표자 pills 삽입, renderTimelineRow 는 subtitle 문자열만 받으니까,
-      // 렌더 후 DOM 에서 header card 찾아 pills 를 꽂음. (bannerOnly 카드는 헤더 자체가 없어서 스킵)
-      if (meta.n !== 3) {
+      // 렌더 후 DOM 에서 header card 찾아 pills 를 꽂음.
       try {
         const card = row.querySelector('div > div > div');
         // card 구조: row > [rail] > [stem] > [card]. card 의 첫 child = headerRow.
@@ -19060,7 +19060,6 @@ function MeetingNotesPage(meetingId) {
           }
         }
       } catch (_pillErr) {}
-      }
       wrap.appendChild(row);
     }
 
