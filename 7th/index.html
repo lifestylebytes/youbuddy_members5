@@ -17592,7 +17592,8 @@ function MeetingNotesPage(meetingId) {
   window.__mnAi = window.__mnAi || {};
   window.__mnSync = window.__mnSync || {};
   if (!window.__mnTab[meetingId]) window.__mnTab[meetingId] = 'timeline';
-  const tab = window.__mnTab[meetingId];
+  // Week 3 은 탭 UI 자체가 없으므로 항상 timeline 고정 (예전에 ai 로 켜둔 사용자 보호).
+  const tab = (Number(meta.n) === 3) ? 'timeline' : window.__mnTab[meetingId];
   const aiState = window.__mnAi[meetingId] || { output: '', kind: null, loading: false };
   const syncState = window.__mnSync[meetingId] || { status: hasSupabase() ? 'cloud' : 'local', lastSaved: null };
 
@@ -18016,19 +18017,22 @@ function MeetingNotesPage(meetingId) {
   // (Sync bar 제거, 상단 "💾 저장" 버튼으로 통합. 자동 저장은 입력할 때마다 뒤에서 돌아감.)
 
   // Segmented control, Timeline vs AI assist
-  const seg = el('div', { class: 'mn-seg' });
-  const tabs = [
-    { k: 'timeline', label: '📋 회의록' },
-    { k: 'ai', label: '✨ AI 요약' },
-  ];
-  tabs.forEach(t => {
-    const b = el('button', {
-      class: tab === t.k ? 'active' : '',
-      onClick: () => { window.__mnTab[meetingId] = t.k; render(); }
-    }, t.label);
-    seg.appendChild(b);
-  });
-  page.appendChild(seg);
+  // Week 3 은 적을 노트가 없어서(배너만) 탭 자체를 숨김. 항상 timeline 뷰.
+  if (meta.n !== 3) {
+    const seg = el('div', { class: 'mn-seg' });
+    const tabs = [
+      { k: 'timeline', label: '📋 회의록' },
+      { k: 'ai', label: '✨ AI 요약' },
+    ];
+    tabs.forEach(t => {
+      const b = el('button', {
+        class: tab === t.k ? 'active' : '',
+        onClick: () => { window.__mnTab[meetingId] = t.k; render(); }
+      }, t.label);
+      seg.appendChild(b);
+    });
+    page.appendChild(seg);
+  }
 
   // ------------------------------------------------------------
   // TIMELINE ROW helper
@@ -18049,7 +18053,9 @@ function MeetingNotesPage(meetingId) {
       }
     });
 
-    // Left rail = time column
+    // Left rail = time column. bannerOnly 행은 시간 눈금·타임라인 줄기 자체를 생략
+    // (배너 한 줄만 남기는 게 목적이라 "0-40 / 40분" 틀이 남으면 오히려 어수선함).
+    if (!opts.bannerOnly) {
     const rail = el('div', {
       class: 'tl-rail',
       style: {
@@ -18077,6 +18083,7 @@ function MeetingNotesPage(meetingId) {
       <div style="width:10px;height:10px;border-radius:50%;background:${accent || '#A98BB8'};box-shadow:0 0 0 3px rgba(169,139,184,0.18);"></div>
       <div style="position:absolute;top:14px;bottom:-14px;left:4.5px;width:1.5px;background:linear-gradient(to bottom, rgba(169,139,184,0.35), rgba(169,139,184,0.08));"></div>`;
     row.appendChild(stem);
+    }
 
     // opts.bannerOnly: 제목/브리핑/노트/저장버튼 다 생략, 안내 배너 한 줄만 (예: Week3 "Day11~14 단어 복습 후 만나요!").
     // 미팅 진행 화면(라이브 페이지)이 롤플레이·발표 안내를 대신 맡을 때 이 카드는 리마인더 역할만.
@@ -19057,20 +19064,22 @@ function MeetingNotesPage(meetingId) {
       wrap.appendChild(row);
     }
 
-    // ---- Meta footer ----
-    const metaFooter = el('div', {
-      style: {
-        marginTop: '12px',
-        padding: '10px 14px',
-        background: 'rgba(169,139,184,0.06)',
-        borderRadius: '10px',
-        fontSize: '11.5px',
-        color: 'var(--muted)',
-        lineHeight: '1.6',
-      }
-    });
-    metaFooter.innerHTML = `💡 <b style="color:var(--ink-soft);">타임라인 뷰</b>, 세션 동안 각 구간에 기록하고, 끝나면 AI 요약 탭에서 한 장짜리 회의록으로 합칠 수 있어요. 칩으로 저장한 표현은 PT 스튜디오에서 쭉 모아볼 수 있어요.`;
-    wrap.appendChild(metaFooter);
+    // ---- Meta footer ---- (Week 3 은 기록할 칸이 없어서 안내문도 생략)
+    if (meta.n !== 3) {
+      const metaFooter = el('div', {
+        style: {
+          marginTop: '12px',
+          padding: '10px 14px',
+          background: 'rgba(169,139,184,0.06)',
+          borderRadius: '10px',
+          fontSize: '11.5px',
+          color: 'var(--muted)',
+          lineHeight: '1.6',
+        }
+      });
+      metaFooter.innerHTML = `💡 <b style="color:var(--ink-soft);">타임라인 뷰</b>, 세션 동안 각 구간에 기록하고, 끝나면 AI 요약 탭에서 한 장짜리 회의록으로 합칠 수 있어요. 칩으로 저장한 표현은 PT 스튜디오에서 쭉 모아볼 수 있어요.`;
+      wrap.appendChild(metaFooter);
+    }
 
     page.appendChild(wrap);
   }
@@ -19169,6 +19178,8 @@ function MeetingNotesPage(meetingId) {
   }
 
   // Action row, 내보내기 섹션. "여기 적은 노트를 Notion 에 옮기기" 목적을 위로 표시.
+  // Week 3 은 노트 입력칸 자체가 없어서(배너만) 내보낼 게 없음 → 섹션 통째로 생략.
+  if (meta.n !== 3) {
   const exportSection = el('div', { style: { marginTop: '24px' } });
   exportSection.appendChild(el('div', {
     style: {
@@ -19213,6 +19224,7 @@ function MeetingNotesPage(meetingId) {
   }, '📋 복사 = Notion 페이지 열고 붙여넣기 · ⬇️ 파일 = Notion > Import > Markdown 선택 (.md 파일)'));
 
   page.appendChild(exportSection);
+  } // end meta.n !== 3 (Notion 내보내기 섹션)
 
   // ──────────────────────────────────────────────────────────────────────
   // 멤버 공개, 다른 사람들이 적어둔 미팅 노트 모아보기.
