@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<!--
+  유버디 캐러셀 에디터 템플릿
+  (유버디 캐러셀 에디터 템플릿 기반)
+  수정할 곳은 딱 두 군데:
+   1) <title> 과 상단 .topbar 문구
+   2) 하단 <script> 의 `slides` 배열  (cover / story / widget 3종)
+  CSS·캡처 로직은 검증된 값이므로 건드리지 말 것.
+  위젯 카드 CSS(.wk .clist .todocard 등)는 주제에 맞게 교체하되,
+  "흰 카드 안쪽은 실제 앱 색" 원칙을 지킬 것.
+-->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>유버디 · 아침밋업 안내 캐러셀</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --pink:#F3589B; --pink-soft:#FCE7F1; --pink-line:#F6CFE2;
+    --box:rgba(255,255,255,.92);
+    --ink:#2a2622; --line:#E7E4DE; --line2:#EFEDE8;
+    --blue:#2E6BE6; --blue-bg:#EAF1FE; --blue-line:#CBDCFB;
+    --red:#E5484D; --red-bg:#FDECEC;
+    --s:0.33;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Pretendard',-apple-system,sans-serif; background:#f5f3ef; color:#2a2723; padding:24px 16px 80px; -webkit-font-smoothing:antialiased;}
+  .topbar{max-width:1180px; margin:0 auto 22px; display:flex; flex-wrap:wrap; align-items:center; gap:14px; justify-content:space-between;}
+  .topbar h1{font-size:21px; font-weight:800; letter-spacing:-.4px;}
+  .topbar h1 span{color:var(--pink);}
+  .topbar p{font-size:13px; color:#8a857d; margin-top:3px; font-weight:500;}
+  button{font-family:inherit; font-weight:700; font-size:13.5px; cursor:pointer; border:none; border-radius:10px; padding:11px 16px; transition:.15s; letter-spacing:-.2px;}
+  .btn-primary{background:var(--pink); color:#fff;} .btn-primary:hover{filter:brightness(1.06);}
+  .btn-ghost{background:#fff; color:#3a3631; border:1px solid #e2ddd4;} .btn-ghost:hover{border-color:var(--pink); color:var(--pink);}
+  .hint{max-width:1180px; margin:0 auto 22px; font-size:12.5px; color:#9a948b; background:#fff; border:1px solid #ece7df; border-radius:12px; padding:12px 16px; line-height:1.6;}
+  .hint b{color:var(--pink);}
+  .grid{max-width:1180px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(356px,1fr)); gap:26px;}
+  .card{display:flex; flex-direction:column; gap:11px;}
+  .frame{width:calc(1080px * var(--s)); height:calc(1350px * var(--s)); border-radius:14px; overflow:hidden; box-shadow:0 6px 22px rgba(0,0,0,.10); position:relative; background:#ddd;}
+  .frame.alpha{background-color:#fff;
+    background-image:linear-gradient(45deg,#dcd8d2 25%,transparent 25%),linear-gradient(-45deg,#dcd8d2 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#dcd8d2 75%),linear-gradient(-45deg,transparent 75%,#dcd8d2 75%);
+    background-size:22px 22px; background-position:0 0,0 11px,11px -11px,-11px 0;}
+  .stage{width:1080px; height:1350px; transform:scale(var(--s)); transform-origin:top left; position:relative;}
+  .slide{width:1080px; height:1350px; position:relative; overflow:hidden; background:#cfc8bd;}
+
+  .photo{position:absolute; inset:0; background-size:cover; background-position:center;}
+  .photo.empty{background:linear-gradient(155deg,#d8cfc3 0%,#b4a999 60%,#9c9082 100%);}
+  .scrim{position:absolute; inset:0; background:rgba(0,0,0,.42);}
+
+  /* COVER */
+  .slide.cover .veil{position:absolute; inset:0; background:rgba(0,0,0,.42);}
+  .slide.cover .c-body{position:absolute; left:78px; right:78px; bottom:20%;}
+  .pill{display:inline-block; background:var(--pink); color:#fff; font-weight:700; font-size:31px; padding:11px 26px; border-radius:999px; letter-spacing:-.5px; margin-bottom:30px;}
+  .cover .title{color:#fff; font-size:76px; font-weight:800; line-height:1.22; letter-spacing:-1.6px; white-space:pre-wrap; text-shadow:0 2px 14px rgba(0,0,0,.4);}
+  .cover .sub{color:#fff; font-size:43px; font-weight:600; line-height:1.34; letter-spacing:-.8px; white-space:pre-wrap; margin-top:28px; opacity:.96; text-shadow:0 2px 12px rgba(0,0,0,.42);}
+  .cover .foot{color:#fff; font-size:31px; font-weight:500; letter-spacing:-.5px; white-space:pre-wrap; margin-top:30px; opacity:.9;}
+
+  /* GENERIC */
+  .sheet{position:absolute; left:0; right:0; top:0; bottom:20%; padding:56px 70px; display:flex; flex-direction:column; justify-content:center;}
+  .header{font-size:54px; font-weight:800; line-height:1.32; letter-spacing:-1.2px; color:#fff; white-space:pre-wrap; text-shadow:0 2px 12px rgba(0,0,0,.55), 0 0 3px rgba(0,0,0,.4);}
+  .header .mark{background:rgba(243,88,155,.62); color:#fff; padding:2px 10px; border-radius:7px; -webkit-box-decoration-break:clone; box-decoration-break:clone;}
+  .header .eyebrow{color:var(--pink); -webkit-text-fill-color:var(--pink);}
+  .story .text{font-size:41px; font-weight:500; line-height:1.72; letter-spacing:-.6px; color:#F3F1EE; white-space:pre-wrap; margin-top:30px; text-shadow:0 2px 10px rgba(0,0,0,.55);}
+  .story .text b{color:#FF8FBE; font-weight:800;}
+  .widget .header{margin-bottom:22px;}
+  .cap{font-size:35px; font-weight:700; color:#fff; line-height:1.45; letter-spacing:-.7px; margin-top:26px; text-shadow:0 2px 10px rgba(0,0,0,.55);}
+  .cap b{color:#FF8FBE;}
+
+  /* ===== WEEKLY GRID ===== */
+  .wk{background:var(--box); border:1px solid var(--line); border-radius:18px; box-shadow:0 16px 40px rgba(70,55,45,.16); padding:24px 26px 28px; color:var(--ink);}
+  .wk-row{display:flex; align-items:stretch;}
+  .wk-row .rl{flex:0 0 128px; font-size:24px; font-weight:700; color:#8a857d; display:flex; align-items:center; padding-right:12px; letter-spacing:-.4px;}
+  .wk-row .cells{flex:1; display:flex;}
+  .wk-row .cells .cell{flex:1 1 0; border-left:1.5px solid var(--line2); padding:8px 6px; position:relative; min-height:78px;}
+  .wk-row .cells .cell:first-child{border-left:none;}
+  .wk-head .cells .cell{min-height:0; text-align:center; font-size:27px; font-weight:800; color:#6b675f; padding:4px 0 12px;}
+  .wk-head .cells .cell.sat{color:var(--blue);} .wk-head .cells .cell.sun{color:var(--red);}
+  .wk-row.guide .cells .cell{border-top:2px dashed #D4CEC4;}
+  .wk-row.guide .rl{align-items:flex-start; padding-top:2px;}
+  .chip{display:inline-block; font-size:20px; font-weight:700; padding:4px 9px; border-radius:6px; line-height:1.15; letter-spacing:-.3px;}
+  .chip.black{background:var(--ink); color:#fff;}
+  .chip.blue{background:var(--blue-bg); color:var(--blue); border:1px solid var(--blue-line);}
+  .chip.red{background:var(--red-bg); color:var(--red); text-decoration:line-through;}
+
+  /* time grid (미사용, 템플릿 잔존) · hours 6~22 */
+  .wkt{background:var(--box); border:1px solid var(--line); border-radius:18px; box-shadow:0 16px 40px rgba(70,55,45,.16); padding:16px 24px 18px; color:var(--ink);}
+  .wkt-row{display:flex; align-items:stretch; min-height:33px; border-top:1.5px solid var(--line2);}
+  .wkt-row.wkt-head{border-top:none;}
+  .wkt-row .hr{flex:0 0 84px; font-size:20px; font-weight:700; color:#a39d93; text-align:right; padding:3px 12px 0 0; white-space:nowrap;}
+  .wkt-row .cells{flex:1; display:flex;}
+  .wkt-row .cells .cell{flex:1 1 0; border-left:1.5px solid var(--line2); min-height:33px;}
+  .wkt-row .cells .cell:first-child{border-left:none;}
+  .wkt-head .cells .cell{min-height:0; text-align:center; font-size:24px; font-weight:800; color:#6b675f; padding:2px 0 9px;}
+  .wkt-head .cells .cell.sat{color:var(--blue);} .wkt-head .cells .cell.sun{color:var(--red);}
+  .wkt-head .hr{min-height:0;}
+  .wkt-row.lunch{border-top:2.5px solid var(--pink);} .wkt-row.end{border-top:2.5px solid var(--pink);}
+  .htag{display:inline-block; font-size:15px; font-weight:800; color:#fff; background:var(--pink); padding:1px 7px; border-radius:5px; margin-left:6px; vertical-align:middle;}
+  .wkt .chip{font-size:16px; font-weight:700; padding:2px 7px; line-height:1.1;}
+
+  /* checklist */
+  .clist{background:var(--box); border:1px solid var(--line); border-radius:20px; box-shadow:0 16px 40px rgba(70,55,45,.16); padding:40px 46px; color:var(--ink);}
+  .cli{display:flex; align-items:center; gap:18px; font-size:38px; font-weight:600; padding:13px 0;}
+  .cli .ck{color:var(--pink); font-weight:900; font-size:36px;}
+  .cli small{display:block; font-size:26px; font-weight:500; color:#a39d93;}
+
+  /* todo */
+  .todocard{background:var(--box); border:1px solid var(--line); border-radius:20px; box-shadow:0 16px 40px rgba(70,55,45,.16); padding:40px 44px; color:var(--ink);}
+  .td-h{font-size:32px; font-weight:800; color:#8a857d; margin-bottom:14px;}
+  .td{display:flex; align-items:center; gap:18px; font-size:39px; font-weight:600; padding:11px 0;}
+  .td .box{width:36px; height:36px; border:2.5px solid #CFC9C0; border-radius:9px; flex:none;}
+
+  /* day column (color coding) */
+  .daycol{background:var(--box); border:1px solid var(--line); border-radius:20px; box-shadow:0 16px 40px rgba(70,55,45,.16); padding:34px 40px; color:var(--ink);}
+  .dc-h{font-size:34px; font-weight:800; margin-bottom:16px;}
+  .entry{display:flex; align-items:center; gap:14px; font-size:34px; font-weight:700; padding:10px 0;}
+  .entry .t{font-size:26px; color:#a39d93; font-weight:700; width:96px; flex:none;}
+  .entry.fixed{color:var(--ink);}
+  .entry.done{color:var(--blue);}
+  .entry.cancel{color:var(--red); text-decoration:line-through;}
+  .legend{display:flex; gap:22px; flex-wrap:wrap; margin-top:22px; padding-top:22px; border-top:1px solid var(--line2); font-size:25px; font-weight:700;}
+  .lg{display:flex; align-items:center; gap:10px;} .lg i{width:22px; height:22px; border-radius:5px; flex:none;}
+  .lg.k i{background:var(--ink);} .lg.b i{background:var(--blue);} .lg.r i{background:var(--red);}
+  .lg.k{color:var(--ink);} .lg.b{color:var(--blue);} .lg.r{color:var(--red);}
+
+  /* gratitude + energy */
+  .mini2{background:var(--box); border:1px solid var(--line); border-radius:20px; box-shadow:0 16px 40px rgba(70,55,45,.16); padding:36px 42px; color:var(--ink);}
+  .m-h{font-size:31px; font-weight:800; margin-bottom:12px;}
+  .m-line{font-size:32px; font-weight:600; color:#4a463f; padding:6px 0; display:flex; gap:12px;}
+  .m-line b{color:var(--pink);}
+  .emeter{margin-top:24px; padding-top:22px; border-top:1px solid var(--line2); display:flex; flex-direction:column; gap:14px;}
+  .erow{display:flex; align-items:center; gap:18px; font-size:31px; font-weight:700;}
+  .erow .lb{width:96px; color:#6b675f;}
+  .dots{display:flex; gap:9px;}
+  .dots i{width:28px; height:28px; border-radius:50%; border:2.5px solid var(--pink); flex:none;}
+  .dots i.on{background:var(--pink);}
+
+  /* two-week mini */
+  .twowk{display:flex; gap:20px;}
+  .twowk .wkmini{flex:1; background:var(--box); border:1px solid var(--line); border-radius:16px; box-shadow:0 12px 32px rgba(70,55,45,.14); padding:22px 20px; color:var(--ink);}
+  .twowk .wkmini.next{border:2px dashed var(--pink-line);}
+  .wm-h{font-size:27px; font-weight:800; margin-bottom:14px; display:flex; align-items:center; gap:10px;}
+  .wm-h .tag{font-size:21px; font-weight:700; color:var(--pink); background:var(--pink-soft); padding:4px 12px; border-radius:999px;}
+  .wm-days{display:flex; gap:5px; margin-bottom:12px;}
+  .wm-days span{flex:1; text-align:center; font-size:20px; font-weight:700; color:#8a857d;}
+  .wm-line{height:2px; background:var(--line2); border-radius:2px; margin:13px 0;}
+  .wm-line.dash{background:none; border-top:2px dashed #D4CEC4;}
+
+  /* CTA */
+  .cta-card{background:var(--box); border:1px solid var(--line); border-radius:26px; box-shadow:0 16px 42px rgba(70,55,45,.16); padding:48px 46px; text-align:center; color:var(--ink);}
+  .cta-pill{display:inline-block; background:var(--pink); color:#fff; font-size:48px; font-weight:800; padding:24px 46px; border-radius:999px; letter-spacing:-1px; box-shadow:0 12px 30px rgba(243,88,155,.3);}
+  .tpl-row{display:flex; align-items:center; gap:22px; background:rgba(250,247,242,.9); border:1px solid var(--line); border-radius:18px; padding:26px 30px; margin:36px 0 22px; text-align:left;}
+  .tpl-ic{font-size:50px; flex:none;}
+  .tpl-t{font-size:35px; font-weight:800; color:#2a2622;}
+  .tpl-s{font-size:25px; font-weight:600; color:#a39d93; margin-top:6px; letter-spacing:-.4px;}
+  .cta-note{font-size:29px; font-weight:600; color:#8a857d;}
+
+  .badge{position:absolute; right:46px; bottom:calc(20% + 14px); font-size:26px; font-weight:700; color:rgba(255,255,255,.9); text-shadow:0 1px 6px rgba(0,0,0,.4);}
+  .cover .badge{bottom:calc(20% + 14px); color:rgba(255,255,255,.85);}
+
+  [contenteditable]{outline:none;}
+  [contenteditable]:focus{box-shadow:0 0 0 3px rgba(243,88,155,.35); border-radius:4px;}
+  .card-tools{display:flex; gap:7px; align-items:center;}
+  .card-tools .lbl{font-size:12.5px; font-weight:700; color:#b6b0a6; margin-right:auto; letter-spacing:-.2px;}
+  .mini{padding:8px 12px; font-size:12.5px; border-radius:9px;}
+  input[type=file]{display:none;}
+  .modal{position:fixed; inset:0; background:rgba(20,18,16,.82); display:none; align-items:center; justify-content:center; flex-direction:column; gap:16px; z-index:99; padding:24px;}
+  .modal.on{display:flex;}
+  .modal img{max-width:88vw; max-height:74vh; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,.5);}
+  .modal p{color:#fff; font-size:14px; font-weight:600; text-align:center; line-height:1.5;}
+  .modal button{background:#fff; color:#222;}
+  @media(max-width:520px){ :root{--s:0.30;} }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <h1>유버디 · <span>아침밋업</span> 안내 캐러셀</h1>
+    <p>8기 2주차부터 · 평일 매일 오전 7:00~7:50 · 3주간 스터디룸 제공</p>
+  </div>
+  <div class="actions">
+    <button class="btn-ghost" id="bgBtn" onclick="toggleBg()">배경: 사진(불투명)</button>
+    <button class="btn-ghost" onclick="downloadAll()">전체 PNG 저장</button>
+  </div>
+</div>
+
+<div class="hint">
+  📌 모든 장 <b>사진</b>(“이미지 변경”) 넣고, 텍스트는 클릭해서 바로 수정돼. &nbsp;·&nbsp; ⚠️ 마지막 CTA의 <b>참여 방법</b>은 실제 운영 방식(오픈채팅 신청/구글밋 링크 상시 공개 등) 확정되면 그 문구로 바꿔줘. &nbsp;·&nbsp; 러닝오더(7:00~7:50 흐름)는 <b>제안</b>이라 실제 운영대로 고치면 돼. &nbsp;·&nbsp; 스크림 진하기는 <b>.scrim / cover .veil</b>의 <b>.42</b> 숫자.
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="modal" id="modal">
+  <p>이미지를 길게 눌러<br>‘사진에 저장’ 하세요 📲</p>
+  <img id="modalImg" src="" alt="" />
+  <button onclick="document.getElementById('modal').classList.remove('on')">닫기</button>
+</div>
+
+<script>
+// helper: 7 cells, opt = {i:chipHTML}
+function cells(map){let h='';for(let d=0;d<7;d++){const c=(d===5?'sat':d===6?'sun':'');h+=`<div class="cell ${c}">${map&&map[d]?map[d]:''}</div>`;}return h;}
+const WKHEAD = `<div class="wk-row wk-head"><div class="rl"></div><div class="cells">
+  <div class="cell">월</div><div class="cell">화</div><div class="cell">수</div><div class="cell">목</div><div class="cell">금</div><div class="cell sat">토</div><div class="cell sun">일</div></div></div>`;
+
+function timegrid(ev){
+  ev=ev||{};
+  let rows='';
+  for(let h=6;h<=22;h++){
+    const cls=h===12?'lunch':(h===18?'end':'');
+    const tag=h===12?'<span class="htag">점심</span>':(h===18?'<span class="htag">퇴근</span>':'');
+    let cs='';
+    for(let d=0;d<7;d++){const c=(d===5?'sat':d===6?'sun':''); const e=ev[h+'-'+d]?`<span class="chip black">${ev[h+'-'+d]}</span>`:''; cs+=`<div class="cell ${c}">${e}</div>`;}
+    rows+=`<div class="wkt-row ${cls}"><div class="hr">${h}${tag}</div><div class="cells">${cs}</div></div>`;
+  }
+  return `<div class="wkt">
+    <div class="wkt-row wkt-head"><div class="hr"></div><div class="cells"><div class="cell">월</div><div class="cell">화</div><div class="cell">수</div><div class="cell">목</div><div class="cell">금</div><div class="cell sat">토</div><div class="cell sun">일</div></div></div>
+    ${rows}</div>`;
+}
+
+const slides = [
+  { type:'cover',
+    pill:'유비챌 8기 · 2주차부터',
+    title:'유버디\n아침밋업, 엽니다',
+    sub:'평일 아침 7시, 딱 50분.\n3주간 스터디룸을 열어둘게요.',
+    foot:'혼자 안 해도 되는 아침 · 저장해두세요 👇' },
+
+  { type:'story', header:'영어는 왜 자꾸 **저녁으로** 밀릴까요',
+    text:'퇴근하고 하려고 했는데\n야근, 약속, 피곤함…\n\n그렇게 하루가 넘어가는 거\n저만 그런 거 아니죠? 🥲\n\n그래서 **아무도 안 뺏어가는 시간**,\n아침으로 옮겨봤어요.' },
+
+  { type:'widget', header:'그래서 **아침 7시**, 50분',
+    widget:`<div class="daycol">
+      <div class="dc-h">⏰ 유버디 아침밋업</div>
+      <div class="entry fixed"><span class="t">07:00</span><span contenteditable>입장 (카메라 자유)</span></div>
+      <div class="entry fixed"><span class="t">07:05</span><span contenteditable>오늘 할 일 한 줄, 채팅에</span></div>
+      <div class="entry done"><span class="t">07:10</span><span contenteditable>각자 몰입 (다 같이 무음)</span></div>
+      <div class="entry done"><span class="t">07:40</span><span contenteditable>오늘 표현 소리 내어 읽기</span></div>
+      <div class="entry fixed"><span class="t">07:50</span><span contenteditable>굿모닝, 출근 준비 🙌</span></div>
+    </div>`,
+    cap:'50분이면 <b>출근 준비 전에</b> 끝나요.<br>(흐름은 참고용이라, 각자 편하게 쓰셔도 됩니다)' },
+
+  { type:'widget', header:'**3주간**, 평일 매일 열려요',
+    widget:`<div class="wk">
+      <div class="wk-row wk-head"><div class="rl"></div><div class="cells">
+        <div class="cell">월</div><div class="cell">화</div><div class="cell">수</div><div class="cell">목</div><div class="cell">금</div><div class="cell sat">토</div><div class="cell sun">일</div></div></div>
+      <div class="wk-row"><div class="rl">2주차</div><div class="cells">
+        <div class="cell"><span class="chip black">8/17</span></div><div class="cell"><span class="chip black">8/18</span></div><div class="cell"><span class="chip black">8/19</span></div><div class="cell"><span class="chip black">8/20</span></div><div class="cell"><span class="chip black">8/21</span></div><div class="cell sat"></div><div class="cell sun"></div></div></div>
+      <div class="wk-row"><div class="rl">3주차</div><div class="cells">
+        <div class="cell"><span class="chip black">8/24</span></div><div class="cell"><span class="chip black">8/25</span></div><div class="cell"><span class="chip black">8/26</span></div><div class="cell"><span class="chip black">8/27</span></div><div class="cell"><span class="chip black">8/28</span></div><div class="cell sat"></div><div class="cell sun"></div></div></div>
+      <div class="wk-row"><div class="rl">4주차</div><div class="cells">
+        <div class="cell"><span class="chip black">8/31</span></div><div class="cell"><span class="chip black">9/1</span></div><div class="cell"><span class="chip black">9/2</span></div><div class="cell"><span class="chip black">9/3</span></div><div class="cell"><span class="chip black">9/4</span></div><div class="cell sat"></div><div class="cell sun"></div></div></div>
+    </div>`,
+    cap:'2주차부터 <b>3주간, 총 15번</b>.<br>매일 나올 필요 없어요. 나오는 날만 오면 됩니다.' },
+
+  { type:'widget', header:'**규칙은 딱 4개**뿐이에요',
+    widget:`<div class="clist">
+      <div class="cli"><span class="ck">✓</span><span contenteditable>카메라·마이크 안 켜도 돼요<small>얼굴 안 보여주셔도 전혀 상관없어요</small></span></div>
+      <div class="cli"><span class="ck">✓</span><span contenteditable>늦게 들어와도 돼요<small>7시 30분에 오셔도 환영이에요</small></span></div>
+      <div class="cli"><span class="ck">✓</span><span contenteditable>중간에 나가도 돼요<small>인사 안 하고 조용히 나가셔도 괜찮아요</small></span></div>
+      <div class="cli"><span class="ck">✓</span><span contenteditable>말 안 해도 돼요<small>같이 있는 것만으로 충분해요</small></span></div>
+    </div>`,
+    cap:'부담 하나도 없게 만들었어요.<br><b>그냥 켜두고 각자 하는 자리</b>예요.' },
+
+  { type:'story', header:'유버디가 하는 건 **문 여는 것**뿐',
+    text:'가르치는 자리가 아니에요.\n\n그냥 같은 시간에\n각자 자기 걸 하는 사람들이\n한 화면에 모여 있는 것.\n\n근데 그게…\n혼자 할 때랑 **진짜 다르더라고요.**' },
+
+  { type:'widget', header:'이런 분께 **특히** 좋아요',
+    widget:`<div class="todocard">
+      <div class="td-h">🙋 이런 분이라면</div>
+      <div class="td"><span class="box"></span><span contenteditable>저녁엔 자꾸 미루게 되는 분</span></div>
+      <div class="td"><span class="box"></span><span contenteditable>아침 루틴을 만들고 싶은 분</span></div>
+      <div class="td"><span class="box"></span><span contenteditable>혼자 하면 금방 흐지부지되는 분</span></div>
+      <div class="td"><span class="box"></span><span contenteditable>인증만 겨우 하고 넘어가던 분</span></div>
+    </div>`,
+    cap:'하나라도 체크되셨다면<br><b>2주차 월요일 아침</b>에 만나요 ☕' },
+
+  { type:'widget', header:'참여는 **그냥 들어오기**',
+    widget:`<div class="cta-card">
+      <div class="cta-pill">☕ 8/17(월) 오전 7:00</div>
+      <div class="tpl-row"><span class="tpl-ic">💻</span><div><div class="tpl-t" contenteditable>스터디룸 링크는 단톡방에</div><div class="tpl-s" contenteditable>매일 아침 6시 50분에 올려드려요</div></div></div>
+      <div class="cta-note" contenteditable>신청 없이, 그날 마음 내킬 때 들어오시면 돼요 😊</div>
+    </div>`,
+    cap:'내일 아침의 나에게, <b>50분만</b> 빌려주세요 🧡' },
+];
+
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints>1 && /Mac/.test(navigator.platform));
+function mark(s){return s.replace(/\*\*(.+?)\*\*/g,'<span class="mark">$1</span>').replace(/^STEP (\d+)\./,'<span class="eyebrow">STEP $1.</span>');}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+const grid=document.getElementById('grid');
+
+slides.forEach((s,i)=>{
+  const card=document.createElement('div'); card.className='card';
+  const n=String(i+1).padStart(2,'0');
+  let inner;
+  if(s.type==='cover'){
+    inner=`<div class="slide cover" id="slide${i}"><div class="photo empty" id="photo${i}"></div><div class="veil"></div>
+      <div class="c-body"><div class="pill" contenteditable>${esc(s.pill)}</div><div class="title" contenteditable>${esc(s.title)}</div>${s.sub?`<div class="sub" contenteditable>${esc(s.sub)}</div>`:''}${s.foot?`<div class="foot" contenteditable>${esc(s.foot)}</div>`:''}</div>
+      <div class="badge">@youbuddy_day</div></div>`;
+  } else if(s.type==='story'){
+    inner=`<div class="slide story" id="slide${i}"><div class="photo empty" id="photo${i}"></div><div class="scrim"></div>
+      <div class="sheet"><div class="header" contenteditable>${mark(esc(s.header))}</div><div class="text" contenteditable>${esc(s.text).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}</div></div>
+      <div class="badge">${n} / ${slides.length}</div></div>`;
+  } else {
+    inner=`<div class="slide widget" id="slide${i}"><div class="photo empty" id="photo${i}"></div><div class="scrim"></div>
+      <div class="sheet"><div class="header" contenteditable>${mark(esc(s.header))}</div>${s.widget}<div class="cap" contenteditable>${s.cap}</div></div>
+      <div class="badge">${n} / ${slides.length}</div></div>`;
+  }
+  card.innerHTML=`<div class="frame"><div class="stage">${inner}</div></div>
+    <div class="card-tools"><span class="lbl">${n}</span>
+    <button class="btn-ghost mini" onclick="document.getElementById('file${i}').click()">이미지 변경</button>
+    <button class="btn-primary mini" onclick="save(${i})">이 장 저장</button>
+    <input type="file" id="file${i}" accept="image/*" onchange="setImg(event,${i})" /></div>`;
+  grid.appendChild(card);
+});
+
+function setImg(e,i){const f=e.target.files[0]; if(!f)return; const r=new FileReader();
+  r.onload=ev=>{const p=document.getElementById('photo'+i); p.classList.remove('empty'); p.style.backgroundImage=`url(${ev.target.result})`;}; r.readAsDataURL(f);}
+async function capture(i){await document.fonts.ready; await new Promise(r=>setTimeout(r,120));
+  const stage=document.querySelectorAll('.stage')[i]; const prev=stage.style.transform; stage.style.transform='none';
+  const canvas=await html2canvas(document.getElementById('slide'+i),{width:1080,height:1350,scale:1,useCORS:true,backgroundColor:null,logging:false});
+  stage.style.transform=prev; return canvas.toDataURL('image/png');}
+let transparentMode=false;
+function toggleBg(){
+  transparentMode=!transparentMode;
+  document.getElementById('bgBtn').textContent = transparentMode ? '배경: 투명(PNG)' : '배경: 사진(불투명)';
+  document.querySelectorAll('.photo, .scrim, .veil').forEach(el=>{ el.style.visibility = transparentMode ? 'hidden' : 'visible'; });
+  document.querySelectorAll('.slide').forEach(el=>{ el.style.background = transparentMode ? 'transparent' : ''; });
+  document.querySelectorAll('.frame').forEach(el=>{ el.classList.toggle('alpha', transparentMode); });
+}
+async function captureBlob(i){await document.fonts.ready; await new Promise(r=>setTimeout(r,120));
+  const stage=document.querySelectorAll('.stage')[i]; const prev=stage.style.transform; stage.style.transform='none';
+  const canvas=await html2canvas(document.getElementById('slide'+i),{width:1080,height:1350,scale:1,useCORS:true,backgroundColor:transparentMode?null:'#ffffff',logging:false});
+  stage.style.transform=prev;
+  return await new Promise(res=>canvas.toBlob(b=>res(b),'image/png'));}
+async function save(i){const name=`youbuddy_morning_${String(i+1).padStart(2,'0')}.png`;
+  const blob=await captureBlob(i); const url=URL.createObjectURL(blob);
+  if(isMobile){document.getElementById('modalImg').src=url; document.getElementById('modal').classList.add('on'); return;}
+  const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);}
+async function downloadAll(){if(isMobile){alert('모바일에선 한 장씩 “이 장 저장”으로 받아주세요 📲'); return;}
+  for(let i=0;i<slides.length;i++){await save(i); await new Promise(r=>setTimeout(r,500));}}
+</script>
+</body>
+</html>
