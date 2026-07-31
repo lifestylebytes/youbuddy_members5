@@ -3138,6 +3138,9 @@ let showBingoIntroPopup = null; // weekN. 주간 테스트 첫 진입 시 5단�
 let showFunFactPopup = null; // 홈 진입 시 하루 1회 '오늘의 한 입' (날짜별 고정). true 면 노출.
 let showMeetingPrepPopup = null; // meetingId. 프리미엄 미팅 D-1~당일, 사전 준비(목표+문장) 안 한 멤버에게 하루 1회.
 let showVocabMapPopup = false;
+// 운영 스위치: 어휘 영역 지도 '자동 팝업' on/off. false 면 Day 17+ 라도 스스로 안 뜸.
+// (프로필 > "나의 어휘 영역 지도" 버튼으로 여는 경로는 이 값과 무관하게 계속 동작)
+const __VOCAB_MAP_POPUP_ENABLED = false; // 2026-07-30 보류
 let showReviewConsentPopup = false; // 설문 후기 공개 동의 요청 팝업 (응답 전까지 세션당 1회).
 let showWeekReviewIntro = false; // 진짜 외우기 첫 진입 온보딩 (3단계 진행 안내).  // Day 17+ 멤버에게 1회 자동 노출, 어휘 영역 지도 팝업.
 let showDonePopup = null;    // 그날 인증 완료 후 1회 '오늘 마무리' (스트릭/동료 상태별 분기).
@@ -8298,10 +8301,12 @@ function HomePage() {
   } catch (e) {}
 
   // 어휘 영역 지도 팝업: Day 17~20, 평생 1회 (닫으면 vocab_map_seen=true).
+  // 2026-07-30 버디 요청으로 자동 노출 보류 (__VOCAB_MAP_POPUP_ENABLED=false).
+  // 프로필의 "나의 어휘 영역 지도" 버튼으로는 계속 열 수 있음, 자동으로만 안 뜸.
   try {
     const _vmDay = Number(state.currentDay) || 0;
     const _vmMember = !(state.isOperator || state.isStaff) || state.operatorViewAsMember;
-    if (_vmDay >= 17 && _vmMember && !state.vocab_map_seen
+    if (__VOCAB_MAP_POPUP_ENABLED && _vmDay >= 17 && _vmMember && !state.vocab_map_seen
         && !window.__vocabMapArmed && guidedTourStep === null && !anyPopupOpen()) {
       window.__vocabMapArmed = true;
       setTimeout(() => {
