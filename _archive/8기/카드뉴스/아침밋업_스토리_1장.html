@@ -43,8 +43,11 @@
   .title{color:#fff; font-size:88px; font-weight:800; line-height:1.2; letter-spacing:-1.8px; white-space:pre-wrap; text-shadow:0 2px 14px rgba(0,0,0,.45);}
   .sub{color:#fff; font-size:40px; font-weight:600; line-height:1.5; letter-spacing:-.7px; white-space:pre-wrap; margin-top:28px; opacity:.97; text-shadow:0 2px 12px rgba(0,0,0,.45);}
 
-  /* 흰 정보 카드 */
-  .info{background:var(--box); border:1px solid var(--line); border-radius:24px; box-shadow:0 18px 44px rgba(70,55,45,.2); padding:44px 46px; color:var(--ink); margin-top:46px;}
+  /* 흰 정보 카드
+     ⚠️ box-shadow 쓰지 말 것. html2canvas 가 그림자를 회색 사각형으로 잘못 그려서
+        PNG 저장할 때마다 카드 오른쪽이 깨져 보였음 (2026-07-31 확인).
+        배경도 rgba 반투명 대신 solid 로. 깊이는 테두리로만 표현. */
+  .info{background:#FFFFFF; border:2px solid rgba(255,255,255,.9); border-radius:24px; padding:44px 46px; color:var(--ink); margin-top:46px; overflow:hidden;}
   .row{display:flex; align-items:flex-start; gap:22px; padding:17px 0; border-top:1.5px solid var(--line2);}
   .row:first-child{border-top:none; padding-top:0;}
   .row .k{flex:0 0 150px; font-size:31px; font-weight:800; color:#8a857d; letter-spacing:-.5px; padding-top:3px;}
@@ -60,6 +63,8 @@
 
   [contenteditable]{outline:none;}
   [contenteditable]:focus{box-shadow:0 0 0 3px rgba(243,88,155,.35); border-radius:4px;}
+  /* 캡처 순간엔 포커스 링 완전히 제거 (PNG 에 핑크 테두리 찍히는 것 방지) */
+  .capturing [contenteditable]:focus{box-shadow:none !important;}
   input[type=file]{display:none;}
   .tools{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center;}
   .modal{position:fixed; inset:0; background:rgba(20,18,16,.82); display:none; align-items:center; justify-content:center; flex-direction:column; gap:16px; z-index:99; padding:24px;}
@@ -96,15 +101,15 @@
         <div class="photo empty" id="photo"></div>
         <div class="scrim"></div>
         <div class="sheet">
-          <div class="pill" contenteditable>유비챌 8기 · 2주차부터</div>
+          <div class="pill" contenteditable>유비챌 8기 특별혜택</div>
           <div class="title" contenteditable>유버디
 아침밋업 🌅</div>
           <div class="sub" contenteditable>평일 아침 7시, 딱 50분.
-3주간 스터디룸을 열어둘게요.</div>
+2주간 스터디룸을 열어둘게요.</div>
 
           <div class="info">
             <div class="row"><div class="k">언제</div><div class="v" contenteditable>평일 매일 <em>오전 7:00 ~ 7:50</em><small>50분이면 출근 준비 전에 끝나요</small></div></div>
-            <div class="row"><div class="k">기간</div><div class="v" contenteditable>8/17(월) ~ 9/4(금)<small>2주차부터 3주간, 총 15번</small></div></div>
+            <div class="row"><div class="k">기간</div><div class="v" contenteditable>8/18(화) ~ 8/28(금)<small>2주차부터 2주간, 총 9번</small></div></div>
             <div class="row"><div class="k">어디서</div><div class="v" contenteditable>온라인 스터디룸<small>링크는 매일 아침 단톡방에 올려드려요</small></div></div>
           </div>
 
@@ -145,14 +150,19 @@ function setImg(e){
   r.readAsDataURL(f);
 }
 async function captureBlob(){
+  // 방금 텍스트 고치다 저장하면 핑크 포커스 링이 PNG 에 같이 찍혀서, 먼저 포커스를 뗀다.
+  try { if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch(_){}
+  window.getSelection && window.getSelection().removeAllRanges();
   await document.fonts.ready;
-  await new Promise(r=>setTimeout(r,120));
+  await new Promise(r=>setTimeout(r,150));
+  document.body.classList.add('capturing');
   const stage=document.querySelector('.stage');
   const prev=stage.style.transform;
   stage.style.transform='none';
   const H = square ? 1080 : 1920;
   const canvas=await html2canvas(document.getElementById('slide'),{width:1080,height:H,scale:1,useCORS:true,backgroundColor:'#ffffff',logging:false});
   stage.style.transform=prev;
+  document.body.classList.remove('capturing');
   return await new Promise(res=>canvas.toBlob(b=>res(b),'image/png'));
 }
 async function save(){
