@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<!--
+  유버디 아침밋업 · 스토리 1장 (단톡방 공지용)
+  (유버디 캐러셀 에디터 템플릿 기반, 1장 버전)
+  · 사진 넣고 텍스트 클릭해서 고친 뒤 "PNG 저장"
+  · 사이즈 토글: 스토리 1080x1920 / 정사각 1080x1080
+-->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>유버디 · 아침밋업 스토리 1장</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --pink:#F3589B; --box:rgba(255,255,255,.94);
+    --ink:#2a2622; --line:#E7E4DE; --line2:#EFEDE8;
+    --W:1080px; --H:1920px; --s:0.30;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Pretendard',-apple-system,sans-serif; background:#f5f3ef; color:#2a2723; padding:24px 16px 80px; -webkit-font-smoothing:antialiased;}
+  .topbar{max-width:900px; margin:0 auto 18px; display:flex; flex-wrap:wrap; align-items:center; gap:12px; justify-content:space-between;}
+  .topbar h1{font-size:20px; font-weight:800; letter-spacing:-.4px;}
+  .topbar h1 span{color:var(--pink);}
+  .topbar p{font-size:13px; color:#8a857d; margin-top:3px; font-weight:500;}
+  button{font-family:inherit; font-weight:700; font-size:13.5px; cursor:pointer; border:none; border-radius:10px; padding:11px 16px; transition:.15s; letter-spacing:-.2px;}
+  .btn-primary{background:var(--pink); color:#fff;} .btn-primary:hover{filter:brightness(1.06);}
+  .btn-ghost{background:#fff; color:#3a3631; border:1px solid #e2ddd4;} .btn-ghost:hover{border-color:var(--pink); color:var(--pink);}
+  .hint{max-width:900px; margin:0 auto 20px; font-size:12.5px; color:#9a948b; background:#fff; border:1px solid #ece7df; border-radius:12px; padding:12px 16px; line-height:1.6;}
+  .hint b{color:var(--pink);}
+  .wrap{max-width:900px; margin:0 auto; display:flex; flex-direction:column; align-items:center; gap:14px;}
+  .frame{width:calc(var(--W) * var(--s)); height:calc(var(--H) * var(--s)); border-radius:14px; overflow:hidden; box-shadow:0 6px 22px rgba(0,0,0,.12); position:relative; background:#ddd;}
+  .stage{width:var(--W); height:var(--H); transform:scale(var(--s)); transform-origin:top left; position:relative;}
+  .slide{width:var(--W); height:var(--H); position:relative; overflow:hidden; background:#cfc8bd;}
+  .photo{position:absolute; inset:0; background-size:cover; background-position:center;}
+  .photo.empty{background:linear-gradient(155deg,#d8cfc3 0%,#b4a999 60%,#9c9082 100%);}
+  .scrim{position:absolute; inset:0; background:rgba(0,0,0,.46);}
+
+  /* 콘텐츠는 세로 중앙, 하단 여백 확보 */
+  .sheet{position:absolute; left:0; right:0; top:0; bottom:12%; padding:70px 76px; display:flex; flex-direction:column; justify-content:center;}
+  .pill{display:inline-block; align-self:flex-start; background:var(--pink); color:#fff; font-weight:700; font-size:32px; padding:12px 28px; border-radius:999px; letter-spacing:-.5px; margin-bottom:34px;}
+  .title{color:#fff; font-size:88px; font-weight:800; line-height:1.2; letter-spacing:-1.8px; white-space:pre-wrap; text-shadow:0 2px 14px rgba(0,0,0,.45);}
+  .sub{color:#fff; font-size:40px; font-weight:600; line-height:1.5; letter-spacing:-.7px; white-space:pre-wrap; margin-top:28px; opacity:.97; text-shadow:0 2px 12px rgba(0,0,0,.45);}
+
+  /* 흰 정보 카드 */
+  .info{background:var(--box); border:1px solid var(--line); border-radius:24px; box-shadow:0 18px 44px rgba(70,55,45,.2); padding:44px 46px; color:var(--ink); margin-top:46px;}
+  .row{display:flex; align-items:flex-start; gap:22px; padding:17px 0; border-top:1.5px solid var(--line2);}
+  .row:first-child{border-top:none; padding-top:0;}
+  .row .k{flex:0 0 150px; font-size:31px; font-weight:800; color:#8a857d; letter-spacing:-.5px; padding-top:3px;}
+  .row .v{flex:1; font-size:37px; font-weight:700; line-height:1.36; letter-spacing:-.7px;}
+  .row .v small{display:block; font-size:27px; font-weight:600; color:#a39d93; margin-top:7px; letter-spacing:-.4px;}
+  .row .v em{font-style:normal; color:var(--pink); font-weight:800;}
+
+  .rules{margin-top:34px; display:flex; flex-wrap:wrap; gap:12px;}
+  .rule{background:rgba(255,255,255,.16); border:1.5px solid rgba(255,255,255,.42); color:#fff; font-size:29px; font-weight:700; padding:12px 22px; border-radius:999px; letter-spacing:-.5px; text-shadow:0 1px 6px rgba(0,0,0,.4);}
+
+  .foot{color:#fff; font-size:33px; font-weight:600; letter-spacing:-.6px; margin-top:40px; opacity:.95; text-shadow:0 2px 10px rgba(0,0,0,.5); white-space:pre-wrap;}
+  .badge{position:absolute; right:70px; bottom:calc(12% - 62px); font-size:27px; font-weight:700; color:rgba(255,255,255,.88); text-shadow:0 1px 6px rgba(0,0,0,.45);}
+
+  [contenteditable]{outline:none;}
+  [contenteditable]:focus{box-shadow:0 0 0 3px rgba(243,88,155,.35); border-radius:4px;}
+  input[type=file]{display:none;}
+  .tools{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center;}
+  .modal{position:fixed; inset:0; background:rgba(20,18,16,.82); display:none; align-items:center; justify-content:center; flex-direction:column; gap:16px; z-index:99; padding:24px;}
+  .modal.on{display:flex;}
+  .modal img{max-width:88vw; max-height:74vh; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,.5);}
+  .modal p{color:#fff; font-size:14px; font-weight:600; text-align:center; line-height:1.5;}
+  .modal button{background:#fff; color:#222;}
+  @media(max-width:520px){ :root{--s:0.24;} }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <h1>유버디 · <span>아침밋업</span> 스토리 1장</h1>
+    <p>단톡방 공지용 · 사진 넣고 텍스트만 고쳐서 저장</p>
+  </div>
+  <div class="tools">
+    <button class="btn-ghost" id="sizeBtn" onclick="toggleSize()">사이즈: 스토리 1080x1920</button>
+    <button class="btn-ghost" onclick="document.getElementById('file').click()">이미지 변경</button>
+    <button class="btn-primary" onclick="save()">PNG 저장</button>
+    <input type="file" id="file" accept="image/*" onchange="setImg(event)" />
+  </div>
+</div>
+
+<div class="hint">
+  📌 텍스트는 <b>클릭해서 바로 수정</b>돼요. &nbsp;·&nbsp; 사진은 아침·커피·창가 느낌이 잘 어울려요. &nbsp;·&nbsp; 단톡방에 보낼 거면 <b>정사각</b>으로 토글하는 게 잘림 없이 깔끔해요. &nbsp;·&nbsp; 스크림 진하기는 <b>.scrim</b>의 <b>.46</b> 숫자.
+</div>
+
+<div class="wrap">
+  <div class="frame">
+    <div class="stage">
+      <div class="slide" id="slide">
+        <div class="photo empty" id="photo"></div>
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="pill" contenteditable>유비챌 8기 · 2주차부터</div>
+          <div class="title" contenteditable>유버디
+아침밋업 🌅</div>
+          <div class="sub" contenteditable>평일 아침 7시, 딱 50분.
+3주간 스터디룸을 열어둘게요.</div>
+
+          <div class="info">
+            <div class="row"><div class="k">언제</div><div class="v" contenteditable>평일 매일 <em>오전 7:00 ~ 7:50</em><small>50분이면 출근 준비 전에 끝나요</small></div></div>
+            <div class="row"><div class="k">기간</div><div class="v" contenteditable>8/17(월) ~ 9/4(금)<small>2주차부터 3주간, 총 15번</small></div></div>
+            <div class="row"><div class="k">어디서</div><div class="v" contenteditable>온라인 스터디룸<small>링크는 매일 아침 단톡방에 올려드려요</small></div></div>
+          </div>
+
+          <div class="rules">
+            <span class="rule" contenteditable>카메라 안 켜도 OK</span>
+            <span class="rule" contenteditable>늦게 와도 OK</span>
+            <span class="rule" contenteditable>중간에 나가도 OK</span>
+            <span class="rule" contenteditable>말 안 해도 OK</span>
+          </div>
+
+          <div class="foot" contenteditable>신청 없이, 그날 마음 내킬 때 들어오시면 돼요 🧡</div>
+        </div>
+        <div class="badge">@youbuddy_day</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <p>이미지를 길게 눌러<br>‘사진에 저장’ 하세요 📲</p>
+  <img id="modalImg" src="" alt="" />
+  <button onclick="document.getElementById('modal').classList.remove('on')">닫기</button>
+</div>
+
+<script>
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints>1 && /Mac/.test(navigator.platform));
+let square=false;
+function toggleSize(){
+  square=!square;
+  const r=document.documentElement.style;
+  r.setProperty('--H', square ? '1080px' : '1920px');
+  document.getElementById('sizeBtn').textContent = square ? '사이즈: 정사각 1080x1080' : '사이즈: 스토리 1080x1920';
+}
+function setImg(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{const p=document.getElementById('photo'); p.classList.remove('empty'); p.style.backgroundImage=`url(${ev.target.result})`;};
+  r.readAsDataURL(f);
+}
+async function captureBlob(){
+  await document.fonts.ready;
+  await new Promise(r=>setTimeout(r,120));
+  const stage=document.querySelector('.stage');
+  const prev=stage.style.transform;
+  stage.style.transform='none';
+  const H = square ? 1080 : 1920;
+  const canvas=await html2canvas(document.getElementById('slide'),{width:1080,height:H,scale:1,useCORS:true,backgroundColor:'#ffffff',logging:false});
+  stage.style.transform=prev;
+  return await new Promise(res=>canvas.toBlob(b=>res(b),'image/png'));
+}
+async function save(){
+  const name = square ? 'youbuddy_morning_square.png' : 'youbuddy_morning_story.png';
+  const blob=await captureBlob();
+  const url=URL.createObjectURL(blob);
+  if(isMobile){document.getElementById('modalImg').src=url; document.getElementById('modal').classList.add('on'); return;}
+  const a=document.createElement('a'); a.href=url; a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+</script>
+</body>
+</html>
