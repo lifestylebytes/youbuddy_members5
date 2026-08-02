@@ -21097,9 +21097,12 @@ function SettingsModal() {
             <button id="__settingsOpenScreenshotGuide" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(46,107,79,0.28);color:var(--orange-dark);">📸 스크린샷 가이드 열기</button>
           </div>
           <div style="margin-top:14px;padding-top:12px;border-top:1px dotted rgba(46,107,79,0.18);">
-            <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🏆 이번주 베스트 팝업 미리보기</div>
-            <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">힌트 없이 만점자 + 최초 5일 완주자 팝업을 <b>실데이터로</b> 미리 봐요. 멤버에겐 아직 안 보여요.</div>
-            <button onclick="showSettings=null;window.__previewBestPopup()" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(46,107,79,0.28);color:var(--orange-dark);">🏆 베스트 팝업 미리보기</button>
+            <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🏆 베스트 팝업 미리보기</div>
+            <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">힌트 없이 만점자 + 5일 완주자 + 베스트 문장을 <b>실데이터로</b> 미리 봐요. 멤버에겐 아직 안 보여요.<br>주차를 골라서 볼 수 있어요. <b>멤버는 그 주가 끝난 다음 주 월요일부터</b> 자동으로 1회 봐요 (예: Week 3 → Day 16).</div>
+            <button onclick="showSettings=null;window.__previewBestPopup()" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(46,107,79,0.28);color:var(--orange-dark);">🏆 지금 기준으로 미리보기</button>
+            <div style="display:flex;gap:6px;margin-top:8px;">
+              ${[1, 2, 3, 4].map((w) => `<button onclick="showSettings=null;window.__previewBestPopup(${w})" class="btn btn-ghost" style="flex:1;justify-content:center;padding:9px 0;font-size:12px;border-color:rgba(46,107,79,0.28);color:var(--orange-dark);">W${w}</button>`).join('')}
+            </div>
           </div>
           <div style="margin-top:14px;padding-top:12px;border-top:1px dotted rgba(46,107,79,0.18);">
             <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🎲 데일리 팝업 미리보기</div>
@@ -27872,8 +27875,11 @@ function MyReviewPage() {
    ============================================================ */
 window.__closeBestPopup = () => { showBestPopup = null; render(); };
 // 베스트 팝업 데이터 계산 (미리보기·멤버 자동 노출 공용). 그 주차 단어·그 주차 날짜만 집계.
-async function __computeBestPopupData() {
-  const weekN = Math.min(4, Math.max(1, Math.floor((Number(state.currentDay) || 1) / 5)));
+async function __computeBestPopupData(weekOverride) {
+  // weekOverride 없으면 currentDay 기준 (멤버 자동 노출과 동일). 운영자 미리보기에선 주차 지정 가능.
+  const weekN = Number.isFinite(Number(weekOverride))
+    ? Math.min(4, Math.max(1, Number(weekOverride)))
+    : Math.min(4, Math.max(1, Math.floor((Number(state.currentDay) || 1) / 5)));
   const weekDays = [1, 2, 3, 4, 5].map((k) => (weekN - 1) * 5 + k);
   const weekWordSet = new Set();
   weekDays.forEach((d) => { const dd = (typeof getDay === 'function') ? getDay(d) : null; ((dd && dd.words) || []).forEach((w) => weekWordSet.add(String(w.en).toLowerCase())); });
@@ -27907,11 +27913,12 @@ async function __computeBestPopupData() {
     .map((m) => enMap[m.member_name] || m.member_name);
   return { weekN, masters, maxAtt, finishers, nears };
 }
-window.__previewBestPopup = async () => {
+window.__previewBestPopup = async (weekOverride) => {
   if (!(state.isOperator || state.isStaff)) { showToast('운영자 전용 미리보기예요'); return; }
-  showToast('이번주 베스트 계산 중...');
+  const wLabel = Number.isFinite(Number(weekOverride)) ? `Week ${Number(weekOverride)}` : '이번주';
+  showToast(`${wLabel} 베스트 계산 중...`);
   try {
-    const data = await __computeBestPopupData();
+    const data = await __computeBestPopupData(weekOverride);
     data.preview = true;
     showBestPopup = data;
     render();
@@ -27926,6 +27933,13 @@ const WEEK_BEST_SENTENCES = {
     { name: 'Oheun', word: 'Boil the ocean', sentence: "Let's not boil the ocean. Just release with one bug fix.", ko: '다 하려다 아무것도 못 하니 버그픽스 하나만 배포하죠' },
     { name: 'Sarah', word: 'Sunk cost', sentence: 'The tooling cost is already a sunk cost.', ko: '금형 비용은 이미 매몰비용입니다' },
     { name: 'Jin', word: 'Pre-mortem', sentence: "Before we launch, let's do a pre-mortem.", ko: '출시 전에 실패 원인을 미리 예상해 봅시다' },
+  ],
+  // Week 3 (Day 11~15). 커뮤니티 제출 449건에서 선정, W2 와 겹치지 않는 멤버로 4명.
+  3: [
+    { name: '슐슐', word: 'Hop on a call', sentence: 'Could you hop on a call with the mill to get a clear read on whether the target date is realistic?', ko: '공장이랑 잠깐 통화해서 그 납기가 현실적인지 정확히 파악해주실 수 있어요?' },
+    { name: 'Ellen', word: 'Single point of failure', sentence: "We need a backup owner so that this role doesn't become a single point of failure.", ko: '이 역할이 한 사람한테만 걸리지 않게 백업 담당자를 둬야 해요' },
+    { name: 'Joy', word: 'Requirements creep', sentence: 'We should lock the deliverables now before requirements creep turns one campaign into three different projects.', ko: '요구사항이 야금야금 붙어서 캠페인 하나가 세 개가 되기 전에, 지금 산출물을 확정해둬야 해요' },
+    { name: 'Tracy', word: 'Scramble', sentence: "I'd rather invest time upfront than scramble during the month-end close.", ko: '월말 마감 때 허둥지둥하느니, 차라리 미리 시간을 들이는 게 나아요' },
   ],
 };
 function BestPopupModal(data) {
