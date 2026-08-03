@@ -21322,10 +21322,6 @@ function SettingsModal() {
             <button id="__settingsTogglePreviewUnlock" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:${state.operatorPreviewUnlock ? 'rgba(22,163,74,0.32)' : 'rgba(46,107,79,0.28)'};color:${state.operatorPreviewUnlock ? '#16A34A' : 'var(--orange-dark)'};">${state.operatorPreviewUnlock ? '✅ 프리뷰 언락 중, 끄기' : '🔓 프리뷰 언락 켜기'}</button>
           </div>
           <div style="margin-top:14px;padding-top:12px;border-top:1px dotted rgba(46,107,79,0.18);">
-            <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📸 4/27 공지용 스크린샷 가이드</div>
-            <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">베이직/프리미엄 단톡방 공지에 넣을 스크린샷 7장을 한 페이지에서 순서대로 캡처할 수 있어요.</div>
-            <button id="__settingsOpenScreenshotGuide" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(46,107,79,0.28);color:var(--orange-dark);">📸 스크린샷 가이드 열기</button>
-          </div>
           <div style="margin-top:14px;padding-top:12px;border-top:1px dotted rgba(46,107,79,0.18);">
             <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📊 데일리 펄스 (미니설문)</div>
             <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">Day 15~20, 인증 끝낸 멤버에게 하루 1~2문항. 결과는 실시간 집계로 봐요.<br>미리보기는 <b>저장 안 되니</b> 편하게 눌러보세요.</div>
@@ -24071,7 +24067,15 @@ function OpsDashboardPage() {
     const nm = (m) => (m.english_name || '').trim() || m.member_name;
     const V = (m) => (m.verified_days || []).length;
     const Bg = (m) => (m.bingo_weeks || []).length;
-    const rest = (m) => { try { return __memberRestInfo(m).dormant; } catch (e) { return false; } };
+    // ⚠️ __memberRestInfo 는 보드용 객체(camelCase verifiedDays)를 기대해서 여기 summaries
+    //    (snake_case verified_days) 를 그대로 넣으면 전원이 dormant 로 잡힌다. 로컬로 계산.
+    const rest = (m) => {
+      const vset = new Set((m.verified_days || []).map(Number));
+      if (vset.has(cur)) return false;              // 오늘 인증했으면 활성
+      let run = 0;
+      for (let d = cur - 1; d >= 1; d--) { if (!vset.has(d)) run += 1; else break; }
+      return run >= CB_REST_THRESHOLD;
+    };
 
     box.innerHTML = '';
 
@@ -24164,8 +24168,16 @@ function OpsDashboardPage() {
       ['🏆 베스트 팝업', () => window.__previewBestPopup()],
       ['🗳 펄스 미리보기', () => window.__previewDailyPulse(cur)],
       ['📈 단어 통계', () => go('vocab-stats')],
-      ['📋 주간 설문 결과', () => go('week-survey-result')],
-      ['📸 스크린샷 가이드', () => go('screenshot-guide')],
+      // 주간 설문은 weekN 컨텍스트가 있어야 열림. 없으면 빈 화면이 떠서 여기서 직접 세팅.
+      ['📋 주간 설문 결과', async () => {
+        const wk = Math.min(4, Math.max(1, Math.floor(cur / 5)));
+        showToast(`Week ${wk} 설문 불러오는 중...`);
+        try {
+          const data = await supabaseRpc('get_cohort_week_survey', { p_cohort: CHALLENGE.cohort, p_week: wk });
+          window.__weekSurveyResult = { weekN: wk, data };
+          go('week-survey-result');
+        } catch (e) { showToast('불러오기 실패: ' + ((e && e.message) || e)); }
+      }],
       ['⚙️ 설정 전체', () => { showSettings = 'operator'; render(); }],
     ].forEach(([label, fn]) => {
       tools.appendChild(el('button', { class: 'btn btn-ghost', style: { justifyContent: 'center', fontSize: '12px', padding: '11px 6px' }, onClick: fn }, label));
