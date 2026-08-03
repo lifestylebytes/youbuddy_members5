@@ -6107,6 +6107,7 @@ function render() {
     else if (currentPage === 'my-review') page = MyReviewPage();
     else if (currentPage === 'meeting-deck') page = MeetingDeckPage();
     else if (currentPage === 'final-report') page = FinalReportPage();
+    else if (currentPage === 'ops') page = OpsDashboardPage();
     else page = HomePage();
 
     app.appendChild(page);
@@ -8620,6 +8621,20 @@ function HomePage() {
 
   page.appendChild(hero);
 
+  // 운영자 전용: 운영 대시보드 진입 (멤버에겐 아예 안 그려짐)
+  if ((state.isOperator || state.isStaff) && !state.operatorViewAsMember) {
+    const opsBtn = el('button', {
+      style: {
+        width: '100%', margin: '10px 0 0', padding: '13px 16px', borderRadius: '14px',
+        background: 'linear-gradient(135deg,#1F1630,#3A2A52)', color: '#fff', border: 'none',
+        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        fontFamily: 'inherit', fontWeight: '800', fontSize: '14px', letterSpacing: '-0.01em',
+      },
+      onClick: () => go('ops'),
+    });
+    opsBtn.innerHTML = '<span>🛠 운영 대시보드</span><span style="font-size:12px;color:#FCE8B2;">오늘 볼 것만 →</span>';
+    page.appendChild(opsBtn);
+  }
 
 
   // Week 진짜 외우기, 이번 주가 다 끝나거나 운영자/스태프면 홈 상단에 노출.
@@ -23988,6 +24003,180 @@ function ScreenshotGuidePage() {
 /* ============================================================
    EXPORT PAGE, Notion-ready markdown export
    ============================================================ */
+/* ============================================================
+   운영 대시보드 (#ops) · 운영자 전용
+   ------------------------------------------------------------
+   "오늘 뭘 봐야 하나"만 한 화면에. 설정 안에 흩어진 도구는 맨 아래 바로가기로.
+   데이터는 get_cohort_member_summaries + get_cohort_full_export 두 개만 쓴다.
+   ============================================================ */
+// COHORT-SLOT(manual): 다음 기수(8기) 결제 완료한 7기 멤버의 "7기 이름".
+// 결제 시트에서 이름만 옮겨 적으면 재구매 리드 계산이 자동으로 갱신됨.
+const NEXT_COHORT_BUYERS = ['정주혜', '김민영', '최예준', '박은실', '홍현정'];
+
+window.__opsCache = window.__opsCache || null;
+window.__opsReload = async () => { window.__opsCache = null; render(); };
+function OpsDashboardPage() {
+  const page = el('div', { class: 'page' });
+  if (!(state.isOperator || state.isStaff)) {
+    page.appendChild(el('div', { class: 'card', style: { padding: '28px', textAlign: 'center' } }, '운영자 전용 페이지예요'));
+    return page;
+  }
+  const head = el('div', { class: 'row-between', style: { marginBottom: '12px' } });
+  head.innerHTML = '<button class="icon-btn" onclick="go(\'home\')" style="background:#fff;border:1px solid var(--line);">' + Icon('arrowLeft', 16) + '</button>'
+    + '<div class="kicker" style="color:var(--orange-dark);">OPS · 운영 대시보드</div>'
+    + '<button class="icon-btn" onclick="window.__opsReload()" style="background:#fff;border:1px solid var(--line);">↻</button>';
+  page.appendChild(head);
+
+  const cur = Number(state.currentDay) || 1;
+  const left = Math.max(0, 20 - cur);
+  const hero = el('div', { style: { padding: '16px 18px', borderRadius: '18px', background: 'linear-gradient(135deg,#1F1630,#3A2A52)', color: '#fff', marginBottom: '12px' } });
+  hero.innerHTML = `<div style="font-size:11px;letter-spacing:0.14em;font-weight:800;color:#FCE8B2;">${escapeHtml(CHALLENGE.cohort)} · DAY ${cur} / 20</div>`
+    + `<div style="margin-top:6px;font-size:19px;font-weight:800;">수료까지 ${left}일 남았어요</div>`
+    + `<div style="margin-top:4px;font-size:12px;color:rgba(255,255,255,0.75);">마지막 날 ${escapeHtml(CHALLENGE.end_date)}</div>`;
+  page.appendChild(hero);
+
+  const box = el('div');
+  box.innerHTML = '<div class="card" style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">불러오는 중...</div>';
+  page.appendChild(box);
+
+  const mkCard = (title, sub) => {
+    const c = el('div', { class: 'card', style: { padding: '16px 18px', borderRadius: '16px', marginBottom: '10px' } });
+    c.innerHTML = `<div style="font-size:14px;font-weight:800;color:var(--ink);">${title}</div>`
+      + (sub ? `<div style="margin-top:3px;font-size:11.5px;color:var(--muted);line-height:1.5;">${sub}</div>` : '');
+    return c;
+  };
+  const chip = (t, bg, fg) => `<span style="display:inline-block;background:${bg};color:${fg};font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;margin:3px 4px 0 0;">${escapeHtml(t)}</span>`;
+
+  (async () => {
+    let sums, full;
+    try {
+      if (window.__opsCache) { ({ sums, full } = window.__opsCache); }
+      else {
+        [sums, full] = await Promise.all([
+          supabaseRpc('get_cohort_member_summaries', { p_cohort: CHALLENGE.cohort }),
+          supabaseRpc('get_cohort_full_export', { p_cohort: CHALLENGE.cohort }),
+        ]);
+        window.__opsCache = { sums, full };
+      }
+    } catch (e) {
+      box.innerHTML = `<div class="card" style="padding:20px;color:#A32D2D;font-size:13px;">불러오기 실패: ${escapeHtml((e && e.message) || String(e))}</div>`;
+      return;
+    }
+    // 운영팀은 한글 본명과 영어 닉네임 둘 다로 걸러야 함 (member_name 만 보면 Lehn·Rice 가 샌다).
+    const STAFF = new Set(['유버디', 'Lehn', 'Rice']);
+    const isStaffRow = (m) => STAFF.has(m.member_name) || STAFF.has((m.english_name || '').trim());
+    const mem = (sums || []).filter((m) => !isStaffRow(m));
+    const rows = ((full && full.member_state) || []);
+    const stMap = {}; rows.forEach((r) => { stMap[r.member_name] = r.app_state || {}; });
+    const nm = (m) => (m.english_name || '').trim() || m.member_name;
+    const V = (m) => (m.verified_days || []).length;
+    const Bg = (m) => (m.bingo_weeks || []).length;
+    const rest = (m) => { try { return __memberRestInfo(m).dormant; } catch (e) { return false; } };
+
+    box.innerHTML = '';
+
+    // ── 1. 오늘 인증 현황 ──
+    const doneToday = mem.filter((m) => (m.verified_days || []).map(Number).includes(cur));
+    const activePool = mem.filter((m) => !rest(m));
+    const notYet = activePool.filter((m) => !(m.verified_days || []).map(Number).includes(cur));
+    const rate = activePool.length ? Math.round(doneToday.length / activePool.length * 100) : 0;
+    const c1 = mkCard(`✅ 오늘 인증 ${doneToday.length} / ${activePool.length}명 <span style="color:${rate >= 70 ? '#1F8F58' : '#C2410C'};">(${rate}%)</span>`, '쉬는중 멤버는 분모에서 빠져요');
+    if (notYet.length) {
+      c1.innerHTML += `<div style="margin-top:9px;font-size:11.5px;color:var(--ink-soft);font-weight:700;">아직 안 한 ${notYet.length}명</div><div style="margin-top:2px;">`
+        + notYet.map((m) => chip(nm(m), '#FDECEC', '#A32D2D')).join('') + '</div>';
+    }
+    box.appendChild(c1);
+
+    // ── 2. 재구매 리드 (핵심) ──
+    const buyers = mem.filter((m) => NEXT_COHORT_BUYERS.includes(m.member_name));
+    const nonBuyers = mem.filter((m) => !NEXT_COHORT_BUYERS.includes(m.member_name));
+    const hot = nonBuyers.filter((m) => V(m) >= cur - 3 && !rest(m)).sort((a, b) => V(b) - V(a) || Bg(b) - Bg(a));
+    const c2 = mkCard(`🔥 재구매 리드 ${hot.length}명`, `이미 산 ${buyers.length}명 제외 · 참여도 높은데 아직 안 산 사람 = 개인톡 1순위`);
+    c2.innerHTML += '<div style="margin-top:9px;">' + (hot.length
+      ? hot.slice(0, 30).map((m) => {
+          const strong = Bg(m) >= 2;
+          return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--line2);font-size:12.5px;">`
+            + `<span style="flex:1;font-weight:${strong ? '800' : '600'};color:var(--ink);">${escapeHtml(nm(m))}${m.tier === 'premium' ? ' <span style="font-size:9.5px;color:#7B5E8C;">PREM</span>' : ''}</span>`
+            + `<span style="font-size:11px;color:var(--muted);">인증 ${V(m)}/${cur} · 테스트 ${Bg(m)}</span></div>`;
+        }).join('')
+      : '<div style="font-size:12px;color:var(--muted);">해당 없음</div>') + '</div>';
+    box.appendChild(c2);
+
+    // ── 3. 재구매 패턴 (왜 사고 왜 안 사는가) ──
+    const seg = (lo, hi) => {
+      const g = mem.filter((m) => V(m) >= lo && V(m) <= hi);
+      const b = g.filter((m) => NEXT_COHORT_BUYERS.includes(m.member_name));
+      return { n: g.length, b: b.length, pct: g.length ? Math.round(b.length / g.length * 100) : 0 };
+    };
+    const bands = [[`인증 ${cur - 2}일+`, seg(cur - 2, cur)], ['중간층', seg(Math.floor(cur * 0.6), cur - 3)], ['저참여', seg(0, Math.floor(cur * 0.6) - 1)]];
+    const c3 = mkCard('📊 참여도별 재구매율', '재구매는 "완주 궤도"에서만 나와요');
+    c3.innerHTML += '<div style="margin-top:8px;">' + bands.map(([lab, s]) =>
+      `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;">`
+      + `<span style="flex:1;color:var(--ink);">${escapeHtml(lab)}</span>`
+      + `<span style="flex:0 0 96px;height:7px;background:#F0E8D8;border-radius:4px;position:relative;overflow:hidden;"><span style="position:absolute;left:0;top:0;bottom:0;width:${s.pct}%;background:#7B5E8C;"></span></span>`
+      + `<span style="flex:0 0 78px;text-align:right;font-size:11px;color:var(--muted);font-family:var(--font-mono);">${s.b}/${s.n} · ${s.pct}%</span></div>`).join('') + '</div>';
+    box.appendChild(c3);
+
+    // ── 4. 펄스 응답 ──
+    const pDays = [15, 16, 17, 18, 19, 20].filter((d) => DAILY_PULSE[d]);
+    const c4 = mkCard('🗳 데일리 펄스 응답', '이탈 신호를 고른 사람은 빨간색');
+    let p4 = '<div style="margin-top:8px;">';
+    pDays.forEach((d) => {
+      const ans = mem.map((m) => ({ m, v: ((stMap[m.member_name] || {}).daily_pulse || {})[String(d)] })).filter((x) => x.v);
+      const risky = ['will_stop', 'find_other', 'unsure_effect', 'money', 'time', 'level', 'alone_ok', 'worse', 'same'];
+      const flagged = ans.filter((x) => risky.includes(x.v.a) || risky.includes(x.v.b));
+      p4 += `<div style="padding:5px 0;border-top:1px solid var(--line2);font-size:12.5px;">`
+        + `<span style="font-weight:700;color:${d === cur ? 'var(--orange-dark)' : 'var(--ink)'};">D${d}${d === cur ? ' (오늘)' : ''}</span> `
+        + `<span style="color:var(--muted);font-size:11.5px;">응답 ${ans.length}/${mem.length}</span>`;
+      if (flagged.length) p4 += `<div style="margin-top:3px;">` + flagged.map((x) => chip(nm(x.m), '#FDECEC', '#A32D2D')).join('') + '</div>';
+      p4 += '</div>';
+    });
+    p4 += '</div>';
+    c4.innerHTML += p4;
+    c4.appendChild(el('button', { class: 'btn btn-ghost btn-full', style: { marginTop: '10px' }, onClick: () => window.__showPulseResults() }, '📊 응답 원문 전체 보기'));
+    box.appendChild(c4);
+
+    // ── 5. 위험 멤버 ──
+    const dormant = mem.filter((m) => rest(m));
+    if (dormant.length) {
+      const c5 = mkCard(`💤 쉬는중 ${dormant.length}명`, '4일+ 연속 미인증 · 보드에서 숨김 처리됨');
+      c5.innerHTML += '<div style="margin-top:8px;">' + dormant.sort((a, b) => V(b) - V(a)).map((m) => chip(`${nm(m)} (${V(m)}일)`, 'rgba(154,139,115,0.16)', 'var(--muted)')).join('') + '</div>';
+      box.appendChild(c5);
+    }
+
+    // ── 6. 이번주 할 일 ──
+    const c6 = mkCard('📌 이번주 남은 일', '');
+    const todo = [
+      { d: 18, t: '펄스 핵심 질문 (끝나고 계획 + 미등록 이유)' },
+      { d: 19, t: 'W4 미팅 21:00' },
+      { d: 20, t: '수료식 카드뉴스 · 단어집 PDF · 후기 수집' },
+    ];
+    c6.innerHTML += '<div style="margin-top:8px;">' + todo.map((x) =>
+      `<div style="display:flex;gap:9px;padding:5px 0;border-top:1px solid var(--line2);font-size:12.5px;">`
+      + `<span style="flex:0 0 38px;font-weight:800;color:${x.d < cur ? 'var(--muted)' : x.d === cur ? 'var(--orange-dark)' : 'var(--ink)'};">D${x.d}</span>`
+      + `<span style="flex:1;color:${x.d < cur ? 'var(--muted)' : 'var(--ink)'};${x.d < cur ? 'text-decoration:line-through;' : ''}">${escapeHtml(x.t)}</span></div>`).join('') + '</div>';
+    box.appendChild(c6);
+
+    // ── 7. 도구 바로가기 ──
+    const c7 = mkCard('🧰 자주 쓰는 도구', '');
+    const tools = el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '10px' } });
+    [
+      ['🏆 베스트 팝업', () => window.__previewBestPopup()],
+      ['🗳 펄스 미리보기', () => window.__previewDailyPulse(cur)],
+      ['📈 단어 통계', () => go('vocab-stats')],
+      ['📋 주간 설문 결과', () => go('week-survey-result')],
+      ['📸 스크린샷 가이드', () => go('screenshot-guide')],
+      ['⚙️ 설정 전체', () => { showSettings = 'operator'; render(); }],
+    ].forEach(([label, fn]) => {
+      tools.appendChild(el('button', { class: 'btn btn-ghost', style: { justifyContent: 'center', fontSize: '12px', padding: '11px 6px' }, onClick: fn }, label));
+    });
+    c7.appendChild(tools);
+    box.appendChild(c7);
+  })();
+
+  return page;
+}
+
 function ExportPage() {
   const page = el('div', { class: 'page' });
   const head = el('div', { class: 'topbar' });
@@ -28256,7 +28445,7 @@ window.__showPulseResults = async () => {
   } catch (e) { showToast('불러오기 실패: ' + ((e && e.message) || e)); return; }
 
   const STAFF = new Set(['유버디', 'Lehn', 'Rice']);
-  const people = rows.filter((r) => !STAFF.has(r.member_name));
+  const people = rows.filter((r) => !STAFF.has(r.member_name) && !STAFF.has((((r.app_state || {}).englishName) || '').trim()));
   const nameOf = (r) => {
     const st = r.app_state || {};
     return (st.englishName || '').trim() || r.member_name || '?';
