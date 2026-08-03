@@ -14201,6 +14201,27 @@ function setDayFsIdx(idx) {
    dayN 키. opts 의 v 값이 저장된다. type: 'choice' | 'text'
    ============================================================ */
 const DAILY_PULSE = {
+  // D15 는 워밍업. 가볍고 재밌는 질문으로 "답하면 뭔가 돌아온다"는 감각을 먼저 만든다.
+  // (여기서 나온 순위는 8기 단어 큐레이션에도 그대로 쓴다)
+  15: {
+    kicker: '가벼운 질문 하나',
+    emoji: '🔥',
+    q1: {
+      type: 'choice',
+      q: '이번 주 표현 중에 "이건 진짜 써먹겠다" 싶었던 거 하나만!',
+      opts: [
+        { v: 'fire_drill', label: 'Fire drill (다 멈추고 급한 일에 매달리기)' },
+        { v: 'spof', label: 'Single point of failure (한 명 빠지면 전체가 멈춤)' },
+        { v: 'long_pole', label: 'Long pole in the tent (제일 오래 걸리는 그 일)' },
+        { v: 'under_bus', label: 'Throw under the bus (책임 떠넘기기)' },
+        { v: 'pull_plug', label: 'Pull the plug (접기로 결정)' },
+        { v: 'etc', label: '기타 (직접 쓸게요)', etc: true },
+      ],
+    },
+    reaction: {
+      _any: '오, 그거 고르셨군요. 이번 주 뭐가 제일 와닿았는지 보고 다음 단어를 고르거든요. 고마워요 🧡',
+    },
+  },
   16: {
     kicker: '30초 질문',
     emoji: '📈',
@@ -21292,10 +21313,10 @@ function SettingsModal() {
           </div>
           <div style="margin-top:14px;padding-top:12px;border-top:1px dotted rgba(46,107,79,0.18);">
             <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📊 데일리 펄스 (미니설문)</div>
-            <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">Day 16~20, 인증 끝낸 멤버에게 하루 1~2문항. 결과는 실시간 집계로 봐요.<br>미리보기는 <b>저장 안 되니</b> 편하게 눌러보세요.</div>
+            <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">Day 15~20, 인증 끝낸 멤버에게 하루 1~2문항. 결과는 실시간 집계로 봐요.<br>미리보기는 <b>저장 안 되니</b> 편하게 눌러보세요.</div>
             <button onclick="window.__showPulseResults()" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(46,107,79,0.28);color:var(--orange-dark);">📊 펄스 응답 결과 보기</button>
             <div style="display:flex;gap:6px;margin-top:8px;">
-              ${[16, 17, 18, 19, 20].map((d) => `<button onclick="window.__previewDailyPulse(${d})" class="btn btn-ghost" style="flex:1;justify-content:center;padding:9px 0;font-size:12px;border-color:rgba(46,107,79,0.28);color:var(--orange-dark);">D${d}</button>`).join('')}
+              ${[15, 16, 17, 18, 19, 20].map((d) => `<button onclick="window.__previewDailyPulse(${d})" class="btn btn-ghost" style="flex:1;justify-content:center;padding:9px 0;font-size:12px;border-color:rgba(46,107,79,0.28);color:var(--orange-dark);">D${d}</button>`).join('')}
             </div>
           </div>
           <div style="margin-top:14px;padding-top:12px;border-top:1px dotted rgba(46,107,79,0.18);">
@@ -28252,7 +28273,7 @@ window.__showPulseResults = async () => {
     + `<div style="font-size:12px;color:var(--muted);margin-top:4px;">대상 ${people.length}명 (운영팀 제외)</div>`
     + '</div><div style="padding:14px 16px 18px;">';
 
-  [16, 17, 18, 19, 20].forEach((d) => {
+  [15, 16, 17, 18, 19, 20].forEach((d) => {
     const cfg = DAILY_PULSE[d]; if (!cfg) return;
     const ans = people.map((r) => ({ r, v: ((r.app_state || {}).daily_pulse || {})[String(d)] })).filter((x) => x.v);
     const skips = people.filter((r) => (((r.app_state || {}).daily_pulse_skipped || {})[String(d)])).length;
