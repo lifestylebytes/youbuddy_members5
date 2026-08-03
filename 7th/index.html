@@ -1710,6 +1710,8 @@ const defaultState = () => ({
   meeting_prep_popup_seen: {},      // { "m1": "2026-07-15" } 미팅 사전 예습 팝업을 그날 본 상태 (하루 1회, 저장하면 영구 스킵).
   best_popup_seen: {},              // { "2": true } 이번주 베스트 팝업을 주차별로 본 상태 (자동 노출 1회).
   daily_done_popup_seen: {},        // { "d6": true } '오늘 마무리' 완료 팝업을 그날 본 상태 (하루 1회).
+  daily_pulse: {},                  // { "16": { a: 'keep', b: 'time', text: '...', at: ISO } } 데일리 펄스(1~2문항 초경량 설문) 응답. Day 키.
+  daily_pulse_skipped: {},          // { "16": true } 그날 '다음에요'로 닫은 상태. 같은 Day 재노출 안 함.
   weekly_quiz_popup_seen: {},       // { "v1": true } 주간 퀴즈/보상 안내 팝업 본 상태. 버전별 키로 다음 주차 새 팝업 재발행 가능.
   friday_redirect_seen: {},         // { "1": true }, Day 5/10/15/20 (= 매주 금요일) 자동 시험 페이지 redirect 본 상태. 주차별 1회만 redirect.
   spaced_repeat_seen: {},           // { "day7": true } Spaced Repetition 팝업 본 상태, Day 시작 시 1회 노출용.
@@ -1790,6 +1792,8 @@ const PERSISTED_STATE_KEYS = [
   'meeting_prep_popup_seen',
   'best_popup_seen',
   'daily_done_popup_seen',
+  'daily_pulse',
+  'daily_pulse_skipped',
   'final_test',
   'final_downloads',
   'cohort6_popup_seen',
@@ -3144,6 +3148,7 @@ const __VOCAB_MAP_POPUP_ENABLED = false; // 2026-07-30 보류
 let showReviewConsentPopup = false; // 설문 후기 공개 동의 요청 팝업 (응답 전까지 세션당 1회).
 let showWeekReviewIntro = false; // 진짜 외우기 첫 진입 온보딩 (3단계 진행 안내).  // Day 17+ 멤버에게 1회 자동 노출, 어휘 영역 지도 팝업.
 let showDonePopup = null;    // 그날 인증 완료 후 1회 '오늘 마무리' (스트릭/동료 상태별 분기).
+let showDailyPulse = null;   // { day, step, a, b, text } 데일리 펄스(1~2문항) 팝업 진행 상태.
 // '내 약점 복습' 기능은 Week 2(Day 6)부터 해제. 다음 기수도 동일(코호트 무관, currentDay 기준).
 function reviewFeatureUnlocked() { return (Number(state.currentDay) || 1) >= 6 || ((state.isOperator || state.isStaff) && !state.operatorViewAsMember); }
 // 알림 인박스 패널, TopBar 종 누르면 열림.
@@ -3161,7 +3166,8 @@ function anyPopupOpen() {
   return !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
     || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup
-    || showFunFactPopup || showDonePopup || showPremiumPresurvey || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup || showWeekReviewIntro);
+    || showFunFactPopup || showDonePopup || showPremiumPresurvey || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup || showWeekReviewIntro
+    || showDailyPulse);
 }
 
 function go(page, opts={}) {
@@ -6320,6 +6326,17 @@ function render() {
       const stale = document.querySelector('[data-best-popup]');
       if (stale) stale.remove();
     }
+    if (showDailyPulse) {
+      const cur = document.querySelector('[data-daily-pulse]');
+      // step 이 바뀌면 다시 그려야 하므로 step 을 속성으로 비교.
+      if (!cur || cur.getAttribute('data-pulse-step') !== String(showDailyPulse.step)) {
+        if (cur) cur.remove();
+        document.body.appendChild(DailyPulseModal(showDailyPulse));
+      }
+    } else {
+      const stale = document.querySelector('[data-daily-pulse]');
+      if (stale) stale.remove();
+    }
     if (showReviewUnlockPopup) {
       if (!document.querySelector('[data-review-unlock-popup]')) {
         document.body.appendChild(ReviewUnlockPopupModal());
@@ -8419,6 +8436,30 @@ function HomePage() {
           }
         }, 650);
       }
+    }
+  } catch (e) {}
+
+  // 데일리 펄스 (초경량 설문): 그날 인증을 끝낸 멤버에게만, 하루 1회.
+  // '오늘 마무리' 팝업을 이미 본 뒤에 뜨게 해서 인증 흐름을 절대 막지 않는다.
+  try {
+    const pDay = Number(state.currentDay) || 0;
+    const cfg = DAILY_PULSE[pDay];
+    const pMember = !(state.isOperator || state.isStaff) || state.operatorViewAsMember;
+    const answered = !!(state.daily_pulse || {})[String(pDay)];
+    const skipped = !!(state.daily_pulse_skipped || {})[String(pDay)];
+    const vToday2 = !!(state.verified && state.verified['d' + pDay]);
+    const doneSeen2 = !!(state.daily_done_popup_seen || {})['d' + pDay];
+    window.__pulseArmed = window.__pulseArmed || {};
+    if (cfg && pMember && vToday2 && doneSeen2 && !answered && !skipped
+        && challengeStarted() && guidedTourStep === null && !anyPopupOpen()
+        && !window.__pulseArmed[pDay]) {
+      window.__pulseArmed[pDay] = true;
+      setTimeout(() => {
+        if (guidedTourStep !== null || anyPopupOpen()) return;
+        if ((state.daily_pulse || {})[String(pDay)] || (state.daily_pulse_skipped || {})[String(pDay)]) return;
+        showDailyPulse = { day: pDay, step: 0, a: null, b: null, text: '' };
+        render();
+      }, 900);
     }
   } catch (e) {}
 
@@ -14144,6 +14185,145 @@ function getDayFsIdx() {
 function setDayFsIdx(idx) {
   localStorage.setItem(DAY_FS_KEY, String(Math.max(0, Math.min(DAY_FS_STEPS.length - 1, idx))));
 }
+
+/* ============================================================
+   COHORT-SLOT(manual): 데일리 펄스 (초경량 1~2문항 설문)
+   ------------------------------------------------------------
+   설계 원칙 (2026-08-02 버디 확정):
+   · 하루 1~2문항, 최대 3탭. 길면 안 한다.
+   · **의견이 아니라 행동을 묻는다** ("만족하셨나요" X / "끝나면 뭐 하실 거예요" O)
+   · **판매 문구 절대 금지.** 섞는 순간 응답률과 솔직함이 같이 떨어진다.
+     8기 얘기는 결과 보고 개인톡으로. 리액션에서도 다음 기수 언급 X.
+   · **무례하지 않게.** "왜 재등록 안 하세요"가 아니라 "나중에 한다면 이유는" 으로.
+   · 답한 직후 **리액션 카드**를 보여준다. 여기가 핵심:
+     답을 판단하지 않고 받아준 뒤, 이미 쌓은 것을 상기시켜 "계속하고 싶다"는 마음이 들게.
+   · 인증 완료한 날에만, 인증 흐름 끝난 뒤에. 스킵 자유.
+   dayN 키. opts 의 v 값이 저장된다. type: 'choice' | 'text'
+   ============================================================ */
+const DAILY_PULSE = {
+  16: {
+    kicker: '30초 질문',
+    emoji: '📈',
+    q1: {
+      type: 'choice',
+      q: '3주 전의 나랑 비교하면, 지금 영어로 말하는 게 어때요?',
+      opts: [
+        { v: 'much_better', label: '확실히 편해졌어요' },
+        { v: 'bit_better', label: '조금 나아진 것 같아요' },
+        { v: 'same', label: '아직 잘 모르겠어요' },
+        { v: 'worse', label: '오히려 더 어렵게 느껴져요' },
+      ],
+    },
+    reaction: {
+      much_better: '그 감각이 진짜예요. 20일 중 {done}일을 직접 채워서 만든 거니까요.',
+      bit_better: '"조금"이 제일 정직한 답이에요. 3주에 조금이면, 그 속도가 맞는 거예요.',
+      same: '변화는 원래 본인이 제일 늦게 알아채요. {done}일치 문장이 이미 쌓여 있어요.',
+      worse: '아는 게 늘면 안 보이던 게 보여서 그래요. 어려워졌다는 건 기준이 올라갔다는 뜻이에요.',
+    },
+  },
+  17: {
+    kicker: '30초 질문',
+    emoji: '🎁',
+    q1: {
+      type: 'choice',
+      q: '이 챌린지에서 제일 도움된 거 하나만 고른다면?',
+      opts: [
+        { v: 'routine', label: '매일 하게 만드는 루틴 자체' },
+        { v: 'words', label: '표현·단어를 실제로 익힌 것' },
+        { v: 'ai', label: 'AI 첨삭으로 내 문장 고친 것' },
+        { v: 'peers', label: '다른 멤버들 문장 보는 것' },
+        { v: 'meeting', label: '미팅에서 직접 말해본 것' },
+      ],
+    },
+    reaction: {
+      routine: '루틴이 1등으로 꼽히는 이유가 있어요. 표현은 잊어도 습관은 남거든요.',
+      words: '지금까지 60개 중 절반 넘게 지나왔어요. 남은 것도 같은 속도면 돼요.',
+      ai: 'AI가 고쳐준 문장들, "나" 탭에 다 남아 있어요. 그게 본인 교재예요.',
+      peers: '남의 문장에서 배우는 게 제일 빨라요. 커뮤니티 탭은 끝나도 열려 있어요.',
+      meeting: '입 밖으로 내본 표현만 실전에서 나와요. 그걸 이미 하고 계신 거예요.',
+    },
+  },
+  18: {
+    kicker: '오늘은 두 개만',
+    emoji: '🌱',
+    q1: {
+      type: 'choice',
+      q: '7기 끝나면 영어 공부는 어떻게 하실 계획이세요?',
+      opts: [
+        { v: 'keep_alone', label: '혼자라도 계속해볼 생각이에요' },
+        { v: 'will_stop', label: '솔직히 끊길 것 같아요' },
+        { v: 'find_other', label: '다른 방법을 찾아볼 거예요' },
+        { v: 'not_yet', label: '아직 생각 안 해봤어요' },
+      ],
+    },
+    q2: {
+      type: 'choice',
+      q: '만약 다음 기수를 지금 말고 나중에 한다면, 가장 큰 이유는 뭘까요?',
+      hint: '솔직할수록 좋아요. 지금 결정하시는 거 전혀 아니에요.',
+      opts: [
+        { v: 'time', label: '시간이 안 나서' },
+        { v: 'money', label: '금액이 부담돼서' },
+        { v: 'alone_ok', label: '이제 혼자 해볼 만해서' },
+        { v: 'unsure_effect', label: '효과를 잘 모르겠어서' },
+        { v: 'level', label: '난이도가 안 맞아서' },
+      ],
+    },
+    reaction: {
+      keep_alone: '그럼 딱 하나만. 단어장이랑 내 문장은 끝나도 안 사라져요. 거기서부터 이어가면 돼요.',
+      will_stop: '그럴 수 있어요. 그래도 20일 동안 만든 문장들은 그대로 남아요. 나중에 필요할 때 열어보세요.',
+      find_other: '뭐가 맞을지 찾아보는 것도 공부예요. 여기서 뭐가 잘 맞았는지만 기억해두시면 좋아요.',
+      not_yet: '아직 안 정해도 괜찮아요. 오늘 인증한 것만으로 이미 충분히 하고 계세요.',
+    },
+  },
+  19: {
+    kicker: '30초 질문',
+    emoji: '💭',
+    q1: {
+      type: 'choice',
+      q: '"이것만 있었으면 더 좋았겠다" 싶은 거 하나만 고르면?',
+      opts: [
+        { v: 'morning', label: '아침에 같이 하는 시간' },
+        { v: 'lighter', label: '더 짧고 가볍게' },
+        { v: 'coach_1on1', label: '1:1로 봐주는 피드백' },
+        { v: 'report', label: '내가 얼마나 늘었는지 보여주는 리포트' },
+        { v: 'more_speak', label: '실제로 말해보는 시간 더' },
+        { v: 'etc', label: '다른 게 있어요' },
+      ],
+    },
+    q2: {
+      type: 'text',
+      q: '한 줄만 더 적어주실 수 있어요? (선택)',
+      placeholder: '예) 아침 7시에 30분만 같이 하는 방이 있었으면',
+      optional: true,
+    },
+    reaction: {
+      _any: '적어주신 거 하나하나 다 읽어요. 이런 얘기가 다음을 만들어요. 고마워요 🧡',
+    },
+  },
+  20: {
+    kicker: '마지막 질문이에요',
+    emoji: '🎓',
+    q1: {
+      type: 'choice',
+      q: '20일 끝! 이 챌린지를 친구에게 한마디로 설명한다면?',
+      opts: [
+        { v: 'habit', label: '"영어를 매일 하게 만들어주는 곳"' },
+        { v: 'practical', label: '"회사에서 진짜 쓰는 표현만 배우는 곳"' },
+        { v: 'together', label: '"혼자 안 해도 되게 해주는 곳"' },
+        { v: 'speak', label: '"입으로 뱉어보게 만드는 곳"' },
+      ],
+    },
+    q2: {
+      type: 'text',
+      q: '20일 완주한 지금 기분, 한 줄로 남겨주세요 (선택)',
+      placeholder: '예) 20일 전엔 회의에서 한마디도 못 했는데',
+      optional: true,
+    },
+    reaction: {
+      _any: '완주 진심으로 축하드려요 🎓 여기 쓰신 한 줄, 1년 뒤에 다시 보면 더 좋을 거예요.',
+    },
+  },
+};
 
 // COHORT-SLOT(manual): 주차 시작 Day 오프닝 멘트 (해당 Day 페이지 상단 카드, 비우면 미표시)
 const DAY_OPENERS = {
@@ -21097,6 +21277,14 @@ function SettingsModal() {
             <button id="__settingsOpenScreenshotGuide" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(46,107,79,0.28);color:var(--orange-dark);">📸 스크린샷 가이드 열기</button>
           </div>
           <div style="margin-top:14px;padding-top:12px;border-top:1px dotted rgba(46,107,79,0.18);">
+            <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">📊 데일리 펄스 (미니설문)</div>
+            <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">Day 16~20, 인증 끝낸 멤버에게 하루 1~2문항. 결과는 실시간 집계로 봐요.<br>미리보기는 <b>저장 안 되니</b> 편하게 눌러보세요.</div>
+            <button onclick="window.__showPulseResults()" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(46,107,79,0.28);color:var(--orange-dark);">📊 펄스 응답 결과 보기</button>
+            <div style="display:flex;gap:6px;margin-top:8px;">
+              ${[16, 17, 18, 19, 20].map((d) => `<button onclick="window.__previewDailyPulse(${d})" class="btn btn-ghost" style="flex:1;justify-content:center;padding:9px 0;font-size:12px;border-color:rgba(46,107,79,0.28);color:var(--orange-dark);">D${d}</button>`).join('')}
+            </div>
+          </div>
+          <div style="margin-top:14px;padding-top:12px;border-top:1px dotted rgba(46,107,79,0.18);">
             <div style="font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">🏆 베스트 팝업 미리보기</div>
             <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">힌트 없이 만점자 + 5일 완주자 + 베스트 문장을 <b>실데이터로</b> 미리 봐요. 멤버에겐 아직 안 보여요.<br>주차를 골라서 볼 수 있어요. <b>멤버는 그 주가 끝난 다음 주 월요일부터</b> 자동으로 1회 봐요 (예: Week 3 → Day 16).</div>
             <button onclick="showSettings=null;window.__previewBestPopup()" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(46,107,79,0.28);color:var(--orange-dark);">🏆 지금 기준으로 미리보기</button>
@@ -27873,6 +28061,222 @@ function MyReviewPage() {
 /* ============================================================
    이번주 베스트 팝업 (만점자 + 최초 5일 완주). 현재 운영자 미리보기 전용.
    ============================================================ */
+/* ============================================================
+   데일리 펄스 모달 (DAILY_PULSE)
+   step 0 = Q1, 1 = Q2(있으면), 2 = 리액션 카드.
+   저장은 state.daily_pulse[day] (app_state 로 서버 동기화됨).
+   ============================================================ */
+window.__pulseSkip = () => {
+  const p = showDailyPulse; if (!p) return;
+  if (!p.preview) {
+    state.daily_pulse_skipped = state.daily_pulse_skipped || {};
+    state.daily_pulse_skipped[String(p.day)] = true;
+    try { saveState(); } catch (e) {}
+  }
+  showDailyPulse = null; render();
+};
+window.__pulseClose = () => { showDailyPulse = null; render(); };
+window.__pulseSetText = (v) => { if (showDailyPulse) showDailyPulse.text = v; };
+// 답 저장 후 다음 스텝. key='a'(Q1) | 'b'(Q2)
+window.__pulsePick = (key, v) => {
+  const p = showDailyPulse; if (!p) return;
+  p[key] = v;
+  const cfg = DAILY_PULSE[p.day] || {};
+  const hasQ2 = !!cfg.q2;
+  if (key === 'a' && hasQ2) p.step = 1;
+  else { __pulseSave(); p.step = 2; }
+  render();
+};
+window.__pulseSubmitText = () => { __pulseSave(); if (showDailyPulse) { showDailyPulse.step = 2; render(); } };
+function __pulseSave() {
+  const p = showDailyPulse; if (!p) return;
+  // 운영자 미리보기는 절대 저장하지 않는다 (집계 오염 방지).
+  if (p.preview) return;
+  state.daily_pulse = state.daily_pulse || {};
+  state.daily_pulse[String(p.day)] = {
+    a: p.a || null,
+    b: p.b || null,
+    text: (p.text || '').trim() || null,
+    at: new Date().toISOString(),
+  };
+  try { saveState(); } catch (e) {}
+}
+function DailyPulseModal(p) {
+  const cfg = DAILY_PULSE[p.day] || {};
+  const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
+  overlay.setAttribute('data-daily-pulse', '1');
+  overlay.setAttribute('data-pulse-step', String(p.step));
+  const card = el('div', { style: { width: '100%', maxWidth: '360px', background: 'var(--paper)', borderRadius: '24px', overflow: 'hidden', maxHeight: '86vh', overflowY: 'auto' } });
+
+  const doneDays = (() => { try { return Object.keys(state.verified || {}).filter((k) => state.verified[k]).length; } catch (e) { return 0; } })();
+  const fill = (s) => String(s || '').replace(/\{done\}/g, String(doneDays));
+
+  if (p.step === 2) {
+    // ── 리액션 카드 ──
+    const rmap = cfg.reaction || {};
+    const msg = fill(rmap._any || rmap[p.a] || '답변 고마워요 🧡');
+    card.innerHTML =
+      '<div style="background:#fff;padding:26px 22px 22px;text-align:center;">'
+      + `<div style="font-size:40px;line-height:1;">${cfg.emoji || '🧡'}</div>`
+      + '<div style="margin-top:12px;font-size:15.5px;line-height:1.65;color:var(--ink);font-weight:600;">' + escapeHtml(msg) + '</div>'
+      + '</div>'
+      + '<div style="padding:16px 18px 20px;">'
+      + '<div style="font-size:11.5px;color:var(--muted);text-align:center;line-height:1.5;">답변은 유버디만 봐요. 통계로만 씁니다.</div>'
+      + '</div>';
+    const btn = el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '-8px', width: 'calc(100% - 36px)', marginLeft: '18px', marginBottom: '18px' }, onClick: () => window.__pulseClose() }, '닫기');
+    card.appendChild(btn);
+    overlay.appendChild(card);
+    return overlay;
+  }
+
+  const isQ2 = p.step === 1;
+  const q = isQ2 ? cfg.q2 : cfg.q1;
+  const key = isQ2 ? 'b' : 'a';
+  let html = '<div style="background:#fff;padding:20px 20px 16px;position:relative;">'
+    + `<div style="font-size:11px;letter-spacing:0.06em;color:var(--orange-dark);font-weight:800;">${escapeHtml(cfg.kicker || '30초 질문')}${cfg.q2 ? ` · ${isQ2 ? 2 : 1}/2` : ''}</div>`
+    + `<div style="margin-top:8px;font-size:17px;font-weight:800;line-height:1.45;color:var(--ink);">${escapeHtml(q.q)}</div>`
+    + (q.hint ? `<div style="margin-top:6px;font-size:12px;color:var(--muted);line-height:1.5;">${escapeHtml(q.hint)}</div>` : '')
+    + '</div>';
+  card.innerHTML = html;
+
+  const body = el('div', { style: { padding: '14px 18px 18px' } });
+  if (q.type === 'text') {
+    const ta = el('textarea', {
+      class: 'input',
+      placeholder: q.placeholder || '',
+      style: { width: '100%', minHeight: '92px', fontSize: '14px', lineHeight: '1.6', resize: 'vertical', fontFamily: 'inherit' },
+    });
+    ta.value = p.text || '';
+    ta.addEventListener('input', (e) => window.__pulseSetText(e.target.value));
+    body.appendChild(ta);
+    body.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '12px' }, onClick: () => window.__pulseSubmitText() }, '보내기'));
+    if (q.optional) {
+      body.appendChild(el('button', { class: 'btn btn-ghost btn-full', style: { marginTop: '8px' }, onClick: () => window.__pulseSubmitText() }, '이번엔 건너뛸게요'));
+    }
+  } else {
+    (q.opts || []).forEach((o) => {
+      const b = el('button', {
+        class: 'btn btn-ghost btn-full',
+        style: { marginTop: '8px', textAlign: 'left', justifyContent: 'flex-start', fontWeight: '700', fontSize: '14px', lineHeight: '1.5', padding: '13px 15px', whiteSpace: 'normal', height: 'auto' },
+        onClick: () => window.__pulsePick(key, o.v),
+      }, o.label);
+      body.appendChild(b);
+    });
+  }
+  card.appendChild(body);
+
+  // 스킵은 Q1 에서만 (Q2 는 이미 참여한 상태라 저장하고 넘어감)
+  const foot = el('div', { style: { padding: '0 18px 18px', textAlign: 'center' } });
+  if (!isQ2) {
+    foot.appendChild(el('button', {
+      style: { background: 'none', border: 'none', color: 'var(--muted)', fontSize: '12.5px', cursor: 'pointer', padding: '6px 10px', fontFamily: 'inherit' },
+      onClick: () => window.__pulseSkip(),
+    }, '다음에요'));
+  }
+  card.appendChild(foot);
+  overlay.appendChild(card);
+  return overlay;
+}
+/* 운영자: 데일리 펄스 응답 집계.
+   get_cohort_full_export 로 전원 app_state 를 받아 client 에서 집계 (Supabase SQL 변경 불필요). */
+window.__showPulseResults = async () => {
+  if (!(state.isOperator || state.isStaff)) { showToast('운영자 전용이에요'); return; }
+  showSettings = null; render();
+  showToast('펄스 응답 불러오는 중...');
+  let rows = [];
+  try {
+    const data = await supabaseRpc('get_cohort_full_export', { p_cohort: CHALLENGE.cohort });
+    rows = (data && data.member_state) || [];
+  } catch (e) { showToast('불러오기 실패: ' + ((e && e.message) || e)); return; }
+
+  const STAFF = new Set(['유버디', 'Lehn', 'Rice']);
+  const people = rows.filter((r) => !STAFF.has(r.member_name));
+  const nameOf = (r) => {
+    const st = r.app_state || {};
+    return (st.englishName || '').trim() || r.member_name || '?';
+  };
+
+  const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px' } });
+  overlay.setAttribute('data-pulse-results', '1');
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  const card = el('div', { style: { width: '100%', maxWidth: '420px', background: 'var(--paper)', borderRadius: '22px', overflow: 'hidden', maxHeight: '88vh', overflowY: 'auto' } });
+
+  let html = '<div style="background:#fff;padding:18px 18px 14px;position:relative;">'
+    + '<div style="font-size:11px;letter-spacing:0.06em;color:var(--muted);">OPERATOR · 데일리 펄스</div>'
+    + '<div style="font-size:18px;font-weight:800;color:var(--ink);margin-top:4px;">미니설문 응답 현황</div>'
+    + `<div style="font-size:12px;color:var(--muted);margin-top:4px;">대상 ${people.length}명 (운영팀 제외)</div>`
+    + '</div><div style="padding:14px 16px 18px;">';
+
+  [16, 17, 18, 19, 20].forEach((d) => {
+    const cfg = DAILY_PULSE[d]; if (!cfg) return;
+    const ans = people.map((r) => ({ r, v: ((r.app_state || {}).daily_pulse || {})[String(d)] })).filter((x) => x.v);
+    const skips = people.filter((r) => (((r.app_state || {}).daily_pulse_skipped || {})[String(d)])).length;
+    const rate = people.length ? Math.round(ans.length / people.length * 100) : 0;
+    html += `<div style="margin-top:14px;padding:14px 14px 12px;background:#fff;border-radius:14px;border:1px solid var(--line);">`
+      + `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">`
+      + `<div style="font-size:13.5px;font-weight:800;color:var(--ink);">Day ${d} ${cfg.emoji || ''}</div>`
+      + `<div style="font-size:11.5px;color:${ans.length ? '#2E6B4F' : 'var(--muted)'};font-weight:700;">응답 ${ans.length}/${people.length} (${rate}%)${skips ? ` · 스킵 ${skips}` : ''}</div>`
+      + `</div>`;
+    if (!ans.length) {
+      html += '<div style="margin-top:8px;font-size:12px;color:var(--muted);">아직 응답 없음</div></div>';
+      return;
+    }
+    // Q1 / Q2 분포
+    [['a', cfg.q1], ['b', cfg.q2]].forEach(([k, q]) => {
+      if (!q || q.type !== 'choice') return;
+      const dist = {};
+      ans.forEach((x) => { const v = x.v[k]; if (v) dist[v] = (dist[v] || 0) + 1; });
+      const tot = Object.values(dist).reduce((s, v) => s + v, 0);
+      if (!tot) return;
+      html += `<div style="margin-top:10px;font-size:11.5px;font-weight:700;color:var(--ink-soft);line-height:1.45;">${escapeHtml(q.q)}</div>`;
+      (q.opts || []).forEach((o) => {
+        const n = dist[o.v] || 0; if (!n) return;
+        const pct = Math.round(n / tot * 100);
+        html += `<div style="display:flex;align-items:center;gap:8px;margin-top:5px;font-size:12px;">`
+          + `<span style="flex:1;color:var(--ink);">${escapeHtml(o.label)}</span>`
+          + `<span style="flex:0 0 84px;height:7px;background:#F0E8D8;border-radius:4px;position:relative;overflow:hidden;"><span style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:#7B5E8C;"></span></span>`
+          + `<span style="flex:0 0 52px;text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--muted);">${n}명·${pct}%</span></div>`;
+      });
+      // 누가 뭘 골랐는지 (이탈 신호 추적용)
+      const byOpt = {};
+      ans.forEach((x) => { const v = x.v[k]; if (v) (byOpt[v] = byOpt[v] || []).push(nameOf(x.r)); });
+      const risky = ['will_stop', 'find_other', 'unsure_effect', 'money', 'time', 'level', 'alone_ok', 'worse', 'same'];
+      const riskLines = Object.entries(byOpt).filter(([v]) => risky.includes(v));
+      if (riskLines.length) {
+        html += '<div style="margin-top:7px;padding:8px 10px;background:rgba(226,75,74,0.06);border-radius:9px;border:1px solid rgba(226,75,74,0.18);">';
+        riskLines.forEach(([v, names]) => {
+          const o = (q.opts || []).find((x) => x.v === v);
+          html += `<div style="font-size:11px;color:#A32D2D;line-height:1.5;"><b>${escapeHtml((o && o.label) || v)}</b> · ${escapeHtml(names.join(', '))}</div>`;
+        });
+        html += '</div>';
+      }
+    });
+    // 주관식 원문
+    const texts = ans.filter((x) => x.v.text);
+    if (texts.length) {
+      html += `<div style="margin-top:10px;font-size:11.5px;font-weight:700;color:var(--ink-soft);">주관식 ${texts.length}건</div>`;
+      texts.forEach((x) => {
+        html += `<div style="margin-top:5px;padding:8px 10px;background:#FBF7EF;border-radius:9px;font-size:12px;line-height:1.55;color:var(--ink);">"${escapeHtml(x.v.text)}"<div style="font-size:10.5px;color:var(--muted);margin-top:3px;">${escapeHtml(nameOf(x.r))}</div></div>`;
+      });
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  card.innerHTML = html;
+  const close = el('button', { class: 'btn btn-ghost btn-full', style: { width: 'calc(100% - 32px)', margin: '0 16px 16px' }, onClick: () => overlay.remove() }, '닫기');
+  card.appendChild(close);
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+};
+window.__previewDailyPulse = (dayOverride) => {
+  if (!(state.isOperator || state.isStaff)) { showToast('운영자 전용 미리보기예요'); return; }
+  const d = Number(dayOverride) || Number(state.currentDay) || 16;
+  if (!DAILY_PULSE[d]) { showToast(`Day ${d} 에는 펄스 문항이 없어요`); return; }
+  showSettings = null;
+  showDailyPulse = { day: d, step: 0, a: null, b: null, text: '', preview: true };
+  render();
+};
+
 window.__closeBestPopup = () => { showBestPopup = null; render(); };
 // 베스트 팝업 데이터 계산 (미리보기·멤버 자동 노출 공용). 그 주차 단어·그 주차 날짜만 집계.
 async function __computeBestPopupData(weekOverride) {
