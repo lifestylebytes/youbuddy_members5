@@ -8409,6 +8409,35 @@ function HomePage() {
     }
   } catch (e) {}
 
+  // 데일리 펄스 (초경량 1~2문항 설문): 접속하면 제일 먼저, 다른 자동 팝업보다 앞에.
+  //   7기 D15 응답률 0/42 사고 원인: 예전엔 "그날 인증 완료 + '오늘 마무리' 팝업 확인"
+  //   두 게이트를 모두 통과해야 떴다. 인증 안 하고 들어온 날은 영영 못 보고,
+  //   Day 가 넘어가면 그 문항은 그대로 유실됐음. 게이트를 없애고 접속 즉시 노출로 변경.
+  //   하루 한 개만: 오늘 문항이 남아 있으면 오늘 것, 이미 답했으면 안 답한 가장 오래된 날 것을
+  //   하나만 회수한다 ('다음에요'로 닫은 날은 존중해서 다시 안 물음).
+  try {
+    const pDay = Number(state.currentDay) || 0;
+    const pMember = !(state.isOperator || state.isStaff) || state.operatorViewAsMember;
+    const pending = (d) => !!DAILY_PULSE[d]
+      && !(state.daily_pulse || {})[String(d)]
+      && !(state.daily_pulse_skipped || {})[String(d)];
+    // 오늘 것 우선, 없으면 지난 날 중 가장 오래된 미응답 1개 회수
+    const pTarget = pending(pDay)
+      ? pDay
+      : Object.keys(DAILY_PULSE).map(Number).filter((d) => d < pDay && pending(d)).sort((a, b) => a - b)[0];
+    window.__pulseArmed = window.__pulseArmed || {};
+    if (pTarget && pMember && challengeStarted()
+        && guidedTourStep === null && !anyPopupOpen() && !window.__pulseArmed.session) {
+      window.__pulseArmed.session = true;   // 한 세션에 한 번만
+      setTimeout(() => {
+        if (guidedTourStep !== null || anyPopupOpen()) return;
+        if (!pending(pTarget)) return;
+        showDailyPulse = { day: pTarget, stage: 'q1', a: null, b: null, etcA: '', etcB: '', text: '' };
+        render();
+      }, 350);
+    }
+  } catch (e) {}
+
   // 데일리 팝업: 그날 인증 완료하면 '오늘 마무리'(우선), 아직이면 홈 진입 '오늘의 한 입'. 하루 1회씩.
   // 둘 다 코호트 무관 (날짜·라이브 데이터·고정 문구) 라 다음 기수 복사해도 그대로 동작.
   try {
@@ -8437,30 +8466,6 @@ function HomePage() {
           }
         }, 650);
       }
-    }
-  } catch (e) {}
-
-  // 데일리 펄스 (초경량 설문): 그날 인증을 끝낸 멤버에게만, 하루 1회.
-  // '오늘 마무리' 팝업을 이미 본 뒤에 뜨게 해서 인증 흐름을 절대 막지 않는다.
-  try {
-    const pDay = Number(state.currentDay) || 0;
-    const cfg = DAILY_PULSE[pDay];
-    const pMember = !(state.isOperator || state.isStaff) || state.operatorViewAsMember;
-    const answered = !!(state.daily_pulse || {})[String(pDay)];
-    const skipped = !!(state.daily_pulse_skipped || {})[String(pDay)];
-    const vToday2 = !!(state.verified && state.verified['d' + pDay]);
-    const doneSeen2 = !!(state.daily_done_popup_seen || {})['d' + pDay];
-    window.__pulseArmed = window.__pulseArmed || {};
-    if (cfg && pMember && vToday2 && doneSeen2 && !answered && !skipped
-        && challengeStarted() && guidedTourStep === null && !anyPopupOpen()
-        && !window.__pulseArmed[pDay]) {
-      window.__pulseArmed[pDay] = true;
-      setTimeout(() => {
-        if (guidedTourStep !== null || anyPopupOpen()) return;
-        if ((state.daily_pulse || {})[String(pDay)] || (state.daily_pulse_skipped || {})[String(pDay)]) return;
-        showDailyPulse = { day: pDay, stage: 'q1', a: null, b: null, etcA: '', etcB: '', text: '' };
-        render();
-      }, 900);
     }
   } catch (e) {}
 
