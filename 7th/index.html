@@ -13282,17 +13282,6 @@ window.__showPdfRewardPopup = function (opts) {
         </div>
       </div>
 
-      <div style="margin-top:9px;padding:11px 12px;border-radius:12px;background:linear-gradient(135deg,rgba(240,172,61,0.16),rgba(240,172,61,0.06));border:1px solid rgba(240,172,61,0.4);">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-size:13px;">⚡</span>
-          <span style="font-size:11.5px;font-weight:800;color:var(--orange-dark);">스페셜 카드 ${sc.cards}장</span>
-        </div>
-        <div style="margin-top:4px;font-size:11px;color:var(--ink-soft);line-height:1.6;">
-          마감 전에 끝낸 날마다 카드가 한 장씩 쌓여요. 수료식에서 카드 많은 분들 따로 불러드릴 거예요.
-          ${sc.cards >= 15 ? ' <b style="color:var(--orange-dark);">지금 충분히 모으셨어요!</b>' : ` 남은 ${Math.max(0, left)}일 마감 전에 하시면 ${sc.cards + Math.max(0, left)}장이에요.`}
-        </div>
-      </div>
-
       <button data-pr-ok class="btn btn-primary btn-full" style="margin-top:14px;background:var(--orange);border:none;color:#fff;font-size:14px;padding:14px;font-weight:800;">${sc.passed && fin ? '좋아요, 마지막 날 기다릴게요' : '알겠어요, 채우러 갈게요'}</button>
     </div>
   `;
@@ -13335,8 +13324,8 @@ function computeVerifyScore() {
     //   멤버들은 "매일 인증하면 완주"로 알고 달려왔다. 그 약속을 지킨다.
     need: Math.max(0, 18 - days),           // 수료까지 남은 일수
     passed: days >= 18,
-    // ⚡ 스페셜 카드 = 정시 인증 1일당 1장. 수료 게이트가 아니라 그 위에 얹는 보상.
-    //   지각에 벌점을 주는 대신 정시에 보너스를 주는 방향 (아무도 잃지 않게).
+    // 정시 인증 수. 멤버 화면에는 안 보인다 (미리 알리면 헷갈린다는 판단, 2026-08-05).
+    //   수료식 '스페셜 카드상' 시상에만 쓰는 내부 값.
     cards: onTime,
   };
 }
@@ -13663,7 +13652,8 @@ window.__buildAwardsHtml = function (data, tier) {
   const finishers = ms.filter((m) => awDays(m) >= 18).sort((a, b) => awDays(b) - awDays(a));
   cats.push({ emoji: '🏅', title: '완주상', sub: '18일 이상, 끝까지 해낸 완주자', winners: finishers, metric: (m) => `${awDays(m)}일 완주`, big: true });
 
-  // ⚡ 스페셜 카드상, 정시 인증만 세서 시상 (지각 벌점이 아니라 정시 보너스).
+  // ⚡ 스페셜 카드상. 사전 공지 없이 수료식에서 처음 공개하는 서프라이즈 시상.
+  //   (멤버 화면·공지에는 노출하지 않음. 미리 알리면 조건이 두 개처럼 읽혀 헷갈림)
   const cardKings = ms.filter((m) => awCards(m) >= 15).sort((a, b) => awCards(b) - awCards(a));
   if (cardKings.length) {
     cats.push({ emoji: '⚡', title: '스페셜 카드상', sub: '마감 전에 끝낸 날이 가장 많은', winners: cardKings.slice(0, 8), metric: (m) => `카드 ${awCards(m)}장` });
