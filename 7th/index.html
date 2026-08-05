@@ -4758,6 +4758,8 @@ function reviewDeadlineDay(weekN) {
 // 이 날(포함)까지 도전 가능, 다음 날부터 자동으로 닫힘.
 // 파이널(Week 4) 복습 마감. 코호트 무관 자동 계산: 마지막 Day 날짜 + 3일, 저녁 7시 (수료식 여유).
 // (예전엔 '2026-05-25' 5기 고정값이 박혀 있어서 7기부터는 파이널 복습이 이미 잠겨버리는 버그가 있었음.)
+// (미사용) 파이널 마감 시각. 2026-08-05 부터 파이널은 마감 없이 영구 개방이라
+// 판정에 쓰이지 않는다. 다시 마감을 두려면 isReviewLocked 의 Week 4 분기를 되살릴 것.
 const FINAL_REVIEW_DEADLINE_AT = (() => {
   try {
     const allDays = (CHALLENGE.weeks || []).flatMap((w) => w.days || []);
@@ -4778,8 +4780,10 @@ const FINAL_REVIEW_DEADLINE_LABEL = (() => {
 function isReviewLocked(weekN) {
   // 운영자/스태프 (operatorViewAsMember false) 는 데드라인 무시
   if ((state.isOperator || state.isStaff) && !state.operatorViewAsMember) return false;
-  // Week 4 (파이널) 은 실제 날짜·시각 기준 (FINAL_REVIEW_DEADLINE_AT = 마지막 Day + 3일 저녁 7시) 지나면 닫힘.
-  if (Number(weekN) === 4) { try { return Date.now() > new Date(FINAL_REVIEW_DEADLINE_AT).getTime(); } catch (e) { return false; } }
+  // Week 4 (파이널) 은 마감 없음, 영구 개방 (2026-08-05 확정).
+  //   파이널 응시가 단어집 PDF 의 조건이라, 여기가 닫히면 학습 18일을 채워도 PDF 를
+  //   영영 못 받는 사람이 생긴다. 학습(인증) 은 이미 마감이 없으므로 파이널만 맞춰 연다.
+  if (Number(weekN) === 4) return false;
   const today = Number(state.currentDay) || 0;
   return today > reviewDeadlineDay(weekN);
 }
@@ -8768,7 +8772,7 @@ function HomePage() {
         <div class="t-small" style="margin-top:5px;font-size:12.5px;color:var(--orange-dark);font-weight:700;letter-spacing:-0.01em;display:inline-flex;align-items:center;gap:4px;">${bannerCta}</div>
         ${isFinalWeek ? `<div class="t-small" style="margin-top:6px;font-size:12px;color:var(--ink-soft);font-weight:600;letter-spacing:-0.01em;line-height:1.5;">응시만 하시면 4주 단어집 PDF가 바로 열려요 🧡</div>` : ''}
         <div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:${isUrgent ? '#1F4D38' : 'rgba(31,77,56,0.10)'};color:${isUrgent ? '#fff' : '#1F4D38'};font-size:11px;font-weight:800;letter-spacing:-0.005em;">
-          ⏰ ${isFinalWeek ? FINAL_REVIEW_DEADLINE_LABEL : `다음 주 (Day ${deadlineDay})`}까지만 도전 가능
+          ${isFinalWeek ? '♾ 마감 없이 언제든 응시 가능' : `⏰ 다음 주 (Day ${deadlineDay})까지만 도전 가능`}
         </div>
       </div>
     `;
@@ -9771,7 +9775,7 @@ function WeeksPage() {
         onClick: (ev) => {
           ev.stopPropagation();
           if (effectivelyLocked) {
-            showToast(`도전 기간 종료, Week ${w.n} 복습은 ${w.n === 4 ? FINAL_REVIEW_DEADLINE_LABEL : `Day ${deadlineDay}`}까지만 가능했어요`);
+            showToast(`도전 기간 종료, Week ${w.n} 복습은 Day ${deadlineDay} 까지만 가능했어요`);
             return;
           }
           window.__currentReviewWeek = w.n;
@@ -9783,12 +9787,12 @@ function WeeksPage() {
       if (effectivelyLocked) {
         reviewBtn.innerHTML = `
           <span>🔒 ${weekReviewLabelShort(w.n)} · 기간 종료</span>
-          <span style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:-0.005em;">${w.n === 4 ? FINAL_REVIEW_DEADLINE_LABEL : `Day ${deadlineDay}`}까지였어요</span>
+          <span style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:-0.005em;">Day ${deadlineDay} 까지였어요</span>
         `;
       } else {
         reviewBtn.innerHTML = `
           <span>${w.n === 4 ? '🏆' : '🧠'} ${weekReviewLabelShort(w.n)}${w.n === 4 ? ' (Day 1~20 종합)' : ', 3단계 복습'}${previewTag}</span>
-          <span style="font-size:11px;font-weight:700;color:${limitColor};letter-spacing:-0.005em;">⏰ ${w.n === 4 ? FINAL_REVIEW_DEADLINE_LABEL : `다음 주 (Day ${deadlineDay})`}까지만 도전 가능</span>
+          <span style="font-size:11px;font-weight:700;color:${limitColor};letter-spacing:-0.005em;">${w.n === 4 ? '♾ 마감 없이 언제든 응시 가능' : `⏰ 다음 주 (Day ${deadlineDay})까지만 도전 가능`}</span>
         `;
       }
       if (w.n === 1) reviewBtn.setAttribute('data-tour', 'week-quiz'); // 가이드 투어: 주간 미션/복습 버튼 강조용
@@ -11244,7 +11248,7 @@ function WeekReviewPage(weekN) {
     card.innerHTML = `
       <div style="font-size:48px;line-height:1;margin-bottom:10px;">🔒</div>
       <div class="kicker" style="color:var(--muted);">도전 기간 종료</div>
-      <div style="margin-top:8px;font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">${weekReviewLabelShort(weekN)}는<br>${Number(weekN) === 4 ? FINAL_REVIEW_DEADLINE_LABEL : `Day ${reviewDeadlineDay(weekN)}`} 까지만 가능했어요</div>
+      <div style="margin-top:8px;font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">${weekReviewLabelShort(weekN)}는<br>Day ${reviewDeadlineDay(weekN)} 까지만 가능했어요</div>
       <div class="t-small" style="margin-top:10px;color:var(--ink-soft);line-height:1.55;font-size:12.5px;">아쉽지만 이번엔 다음 주차에서 만나요, 새 단어가 또 기다리고 있어요!</div>
     `;
     page.appendChild(card);
@@ -13264,6 +13268,7 @@ window.__showPdfRewardPopup = function (opts) {
   })();
   // 파이널 테스트는 4주 단어가 다 열린 뒤에만 (Day 20 도달, 또는 Week4 를 미리 다 푼 사람).
   // 이 가드가 없으면 D17 에 아직 안 배운 Day 18~20 단어로 시험을 보게 된다.
+  //   (마감은 없앴으므로 '4주 단어가 다 열렸는가' 만 본다)
   const finalOpen = (() => {
     try {
       if (gDay >= CHALLENGE.total_days) return true;
