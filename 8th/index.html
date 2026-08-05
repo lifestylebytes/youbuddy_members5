@@ -2812,7 +2812,7 @@ function canUseAiForSentence(dayN, sentenceKey) {
 /* ============================================================
    ROUTER, just a simple page state
    ============================================================ */
-const ROUTE_KEY = 'yb7_route_v1';
+const ROUTE_KEY = 'yb8_route_v1';
 function loadRoute() {
   try {
     const raw = localStorage.getItem(ROUTE_KEY);
@@ -3201,7 +3201,7 @@ function startGuidedTour() {
 }
 function endGuidedTour(done) {
   guidedTourStep = null;
-  try { sessionStorage.removeItem('yb7_tour_step'); } catch (e) {}
+  try { sessionStorage.removeItem('yb8_tour_step'); } catch (e) {}
   if (window.__updateBannerPending) { window.__updateBannerPending = false; setTimeout(() => { try { __showUpdateBanner(); } catch (e) {} }, 800); }
   window.__tourLastPositionedStep = null;
   window.__tourVerifyPreview = null;
@@ -3218,7 +3218,7 @@ function guidedTourGo(delta) {
   if (ni >= steps.length) { endGuidedTour(true); return; }
   const prev = steps[guidedTourStep];
   guidedTourStep = ni;
-  try { sessionStorage.setItem('yb7_tour_step', String(ni)); } catch (e) {}
+  try { sessionStorage.setItem('yb8_tour_step', String(ni)); } catch (e) {}
   const s = steps[ni];
   // 같은 페이지 안에서의 스텝 이동이면 전체 render 없이 오버레이만 갈아끼움 (깜빡임 방지).
   const samePage = prev && s && prev.page === s.page && !s.opts && !prev.opts && currentPage === s.page;
@@ -8226,18 +8226,21 @@ function HomePage() {
     if (state.onboarded && !state.guided_tour_done && guidedTourStep === null
         && !window.__tourAutoStarted && !anyPopupOpen()) {
       let __savedStep = null;
-      try { const v = sessionStorage.getItem('yb7_tour_step'); if (v !== null) __savedStep = Number(v); } catch (e) {}
+      try { const v = sessionStorage.getItem('yb8_tour_step'); if (v !== null) __savedStep = Number(v); } catch (e) {}
       // 홈이 아니면: 새로고침으로 끊긴 투어 재개만 (신규 시작은 홈에서)
       if (currentPage === 'home' || __savedStep !== null) {
+        // guidedTourStep 을 '동기적으로' 먼저 세운다.
+        //   예전엔 500ms setTimeout 안에서 세웠는데, 주간 퀴즈 팝업이 400ms 라
+        //   100ms 차이로 먼저 떠버리고 투어는 anyPopupOpen() 에 걸려 취소됐다.
+        //   게다가 __tourAutoStarted 를 이미 켜둔 뒤라 그 세션에선 재시도도 안 됐다.
+        //   (8기 첫 로그인에 '앱 사용법' 대신 'Week1 보상'이 뜨던 원인)
+        //   여기서 동기로 세우면 같은 렌더 패스의 다른 자동 팝업들이 전부 스킵된다.
         window.__tourAutoStarted = true;
-        setTimeout(() => {
-          if (guidedTourStep !== null || state.guided_tour_done || anyPopupOpen()) return;
-          const steps = activeTourSteps();
-          const idx = (__savedStep !== null && __savedStep >= 0 && __savedStep < steps.length) ? __savedStep : 0;
-          guidedTourStep = idx;
-          try { sessionStorage.setItem('yb7_tour_step', String(idx)); } catch (e) {}
-          __tourNav(steps[idx]);
-        }, 500);
+        const steps = activeTourSteps();
+        const idx = (__savedStep !== null && __savedStep >= 0 && __savedStep < steps.length) ? __savedStep : 0;
+        guidedTourStep = idx;
+        try { sessionStorage.setItem('yb8_tour_step', String(idx)); } catch (e) {}
+        setTimeout(() => { try { __tourNav(steps[idx]); } catch (e) {} }, 60);
       }
     }
   } catch (e) {}
@@ -14012,7 +14015,7 @@ window.__bingoDownloadJpg = (weekN) => {
 const LIGHTNING_TIME_S = 30;
 const LIGHTNING_BONUS_S = 2;
 const LIGHTNING_PENALTY_S = 1;
-const LIGHTNING_BEST_KEY = 'yb7_lightning_best_v1';
+const LIGHTNING_BEST_KEY = 'yb8_lightning_best_v1';
 
 function _lightningPool(weekN) {
   // Cloze sprint, 영어 예문에 타깃 빈칸. 메인 어휘만 (ex_en 가진 거).
@@ -27833,9 +27836,9 @@ function __checkForUpdate() {
       .then((j) => {
         const tag = j && String(j.prompt || '').trim();
         if (!tag) return;
-        let seen = null; try { seen = localStorage.getItem('yb7_update_prompt_seen'); } catch (e) {}
+        let seen = null; try { seen = localStorage.getItem('yb8_update_prompt_seen'); } catch (e) {}
         if (seen === tag) return;
-        try { localStorage.setItem('yb7_update_prompt_seen', tag); } catch (e) {}
+        try { localStorage.setItem('yb8_update_prompt_seen', tag); } catch (e) {}
         __showUpdateBanner();
       })
       .catch(() => {});
