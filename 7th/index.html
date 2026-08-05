@@ -13380,11 +13380,11 @@ window.__showPdfRewardPopup = function (opts) {
 window.__previewPdfRewardPopup = () => window.__showPdfRewardPopup({ preview: true });
 
 /* ============================================================
-   인증 점수 계산, 정시 1점 + 지각 0.5점 (7기 공지 룰)
+   학습 현황 계산 (수료 판정의 단일 소스)
    ------------------------------------------------------------
-   기존엔 지각도 1일로 세서 "늦으면 0.5점" 이라던 안내와 어긋났음.
-   verified / verified_late 는 같은 Day 에 둘 다 찍힐 수 있으므로
-   late 로 확정된 Day 를 먼저 빼고 나머지를 정시로 센다.
+   수료 = 학습 18일 이상. 지각도 1일로 그대로 인정 (2026-08-05 확정).
+   정시/지각 구분은 수료식 '스페셜 카드' 시상에만 쓰고 게이트에는 안 쓴다.
+   지각 판정은 dayStatus 가 유일한 정답 (verified_at vs 예정일, Day1 유예 포함).
    ============================================================ */
 function computeVerifyScore() {
   const total = (typeof CHALLENGE !== 'undefined' && CHALLENGE.total_days) || 20;
@@ -13435,7 +13435,7 @@ window.__openFinalDownloads = function () {
   if (existing) existing.remove();
   const driveUrl = 'https://drive.google.com/drive/folders/1kEQtx6ygGZzQG-V_iuZ4YvafgL8NMKKo?usp=sharing';
   // 단어집 PDF 게이트 = 18일+ 인증 AND 파이널 테스트 완료 (운영자/스태프 예외).
-  const __fdSc = computeVerifyScore();     // 정시 1점 + 지각 0.5점
+  const __fdSc = computeVerifyScore();     // 수료 = 18일 (지각 포함)
   const __fdVc = __fdSc.scoreText;
   const __fdFinalDone = finalTestDone();
   const __fdIsOp = (state.isOperator || state.isStaff) && !state.operatorViewAsMember;
@@ -22630,7 +22630,7 @@ function FinalReportPage() {
   const top5Sentences = bestSentences.slice(0, 5);
 
   const overall = Math.round((verifiedCount / total) * 100);
-  const __frSc = computeVerifyScore();       // 정시 1점 + 지각 0.5점
+  const __frSc = computeVerifyScore();       // 수료 = 18일 (지각 포함)
   const isCompletion = __frSc.passed;        // 수료 기준 = 인증 18일 이상
   // 단어집 PDF = 18일+ 인증 AND 파이널 테스트 완료 (운영자/스태프는 예외).
   const finalTestDone = !!(state.final_test && state.final_test.at) || !!(state.bingo_done && state.bingo_done['4']);
