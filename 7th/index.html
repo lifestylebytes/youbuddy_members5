@@ -13254,23 +13254,42 @@ window.__showPdfRewardPopup = function (opts) {
      앱은 이미 본인 인증 일수·파이널 여부를 알고 있으므로 사람마다 다른 문장이 뜬다.
      (CLAUDE.md 톤: 죄책감 자극 금지, 구체 숫자 제시, 도달 불가여도 문 닫지 않기) */
   const myName = ((state.name || '').trim()) || '버디';
+  // 파이널 테스트는 4주 단어가 다 열린 뒤에만 (Day 20 도달, 또는 Week4 를 미리 다 푼 사람).
+  // 이 가드가 없으면 D17 에 아직 안 배운 Day 18~20 단어로 시험을 보게 된다.
+  const finalOpen = (() => {
+    try {
+      if (gDay >= CHALLENGE.total_days) return true;
+      const w4 = (CHALLENGE.weeks || []).find((w) => w.n === 4);
+      return !!(w4 && typeof weekProgress === 'function' && weekProgress(w4) === w4.days.length);
+    } catch (e) { return gDay >= CHALLENGE.total_days; }
+  })();
+  const force = (opts && opts.branch) || null;   // 운영자 테스트용 강제 분기
   let personal, cta, ctaSub = '', ctaAction = 'close';
-  if (done) {
+  if (force === 'done' || (!force && done)) {
     personal = `${escapeHtml(myName)}님, 조건 두 개 다 채우셨어요! 👏<br>마지막 날에 바로 받아가시면 됩니다.`;
     cta = '좋아요, 마지막 날 기다릴게요';
-  } else if (sc.passed && !fin) {
+  } else if (force === 'C' || (!force && sc.passed && !fin)) {
     // (C) 인증은 됐고 파이널만 남음
-    personal = `${escapeHtml(myName)}님, 인증은 이미 ${sc.days}일 넘으셨어요! 👏<br>파이널 테스트만 보시면 바로 열려요. 점수 기준 없고 제출만 하시면 끝이라 10분이면 돼요.`;
-    cta = '🏆 파이널 테스트 보러 가기';
-    ctaSub = '나중에 볼게요';
-    ctaAction = 'final';
-  } else if (canStillMake) {
+    if (finalOpen || force === 'C') {
+      personal = `${escapeHtml(myName)}님, 인증은 이미 ${sc.days}일 넘으셨어요! 👏<br>파이널 테스트만 보시면 바로 열려요. 점수 기준 없고 제출만 하시면 끝이라 10분이면 돼요.`;
+      cta = '🏆 파이널 테스트 보러 가기';
+      ctaSub = '나중에 볼게요';
+      ctaAction = 'final';
+    } else {
+      // 아직 4주 단어가 다 안 열림. 재촉하지 않고 기다리게 안내만.
+      personal = `${escapeHtml(myName)}님, 인증은 이미 ${sc.days}일 넘으셨어요! 👏<br>`
+        + `이제 파이널 테스트 하나만 남았는데, 4주 단어를 다 배운 뒤에 보는 시험이라 <b>마지막 날에 열려요.</b> 그때 딱 한 번만 들러주세요 :)`;
+      cta = '알겠어요, 마지막 날에 볼게요';
+    }
+  } else if (force === 'A' || (!force && canStillMake)) {
     // (A) 아직 모자라지만 채울 수 있음
     const parts = [];
     if (left > 0) parts.push(`남은 ${left}일`);
     if (missedPast > 0) parts.push(`놓친 ${missedPast}일 지각 인증`);
-    personal = `${escapeHtml(myName)}님, 지금 ${sc.days}일 인증하셨어요.<br>`
-      + `<b style="color:var(--orange-dark);">${sc.need}일만 더</b> 채우면 되는데, ${parts.join(' + ')}${parts.length > 1 ? ' 까지 하면' : ' 이면'} 충분해요 :)`;
+    const needTxt = force ? 2 : sc.need;
+    const daysTxt = force ? 16 : sc.days;
+    personal = `${escapeHtml(myName)}님, 지금 ${daysTxt}일 인증하셨어요.<br>`
+      + `<b style="color:var(--orange-dark);">${needTxt}일만 더</b> 채우면 되는데, ${(parts.length ? parts : ['남은 날']).join(' + ')}${parts.length > 1 ? ' 까지 하면' : ' 이면'} 충분해요 :)`;
     cta = '채우러 가기';
     ctaSub = '나중에 할게요';
     ctaAction = 'weeks';
@@ -21475,7 +21494,17 @@ function SettingsModal() {
             <div style="font-size:11.5px;line-height:1.55;color:var(--muted);margin-bottom:8px;">👀 멤버 화면 그대로 테스트 (운영자 본인만, 멤버 영향 X)</div>
             <button id="__settingsPreviewSurvey4" class="btn btn-ghost btn-full" style="border-color:rgba(155,127,174,0.32);color:#6B4F7D;">👀 Week 4 설문 미리보기</button>
             <button id="__settingsPreviewFinalTest" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(46,107,79,0.28);color:var(--orange-dark);">🏆 파이널 테스트 미리보기</button>
-            <button id="__settingsPreviewPdfReward" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(240,172,61,0.42);color:var(--orange-dark);">🎁 졸업 선물 PDF 팝업 미리보기</button>
+            <div style="margin-top:10px;padding:10px 11px;border-radius:12px;background:var(--paper2);border:1px solid var(--line2);">
+              <div style="font-size:11.5px;font-weight:800;color:var(--ink);">🎁 졸업 선물 PDF 팝업</div>
+              <div style="margin-top:3px;font-size:10.5px;color:var(--muted);line-height:1.5;">멤버 상태별로 다른 문장이 떠요. 분기를 골라서 확인해보세요.</div>
+              <button id="__settingsPreviewPdfReward" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(240,172,61,0.42);color:var(--orange-dark);font-size:12.5px;padding:10px;">내 실제 상태로 보기</button>
+              <div style="margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                <button data-pr-preview="A" class="btn btn-ghost" style="border-color:rgba(46,107,79,0.28);color:var(--orange-dark);font-size:11.5px;padding:9px 4px;">A 채울 수 있음</button>
+                <button data-pr-preview="B" class="btn btn-ghost" style="border-color:rgba(46,107,79,0.28);color:var(--orange-dark);font-size:11.5px;padding:9px 4px;">B 케어</button>
+                <button data-pr-preview="C" class="btn btn-ghost" style="border-color:rgba(46,107,79,0.28);color:var(--orange-dark);font-size:11.5px;padding:9px 4px;">C 파이널만</button>
+                <button data-pr-preview="done" class="btn btn-ghost" style="border-color:rgba(46,107,79,0.28);color:var(--orange-dark);font-size:11.5px;padding:9px 4px;">완료</button>
+              </div>
+            </div>
           </div>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(46,107,79,0.22);">
@@ -21799,6 +21828,13 @@ function SettingsModal() {
       showSettings = false; render();
       setTimeout(() => { try { window.__showPdfRewardPopup({ preview: true }); } catch (e) {} }, 120);
     };
+    document.querySelectorAll('[data-pr-preview]').forEach((btn) => {
+      btn.onclick = () => {
+        const br = btn.getAttribute('data-pr-preview');
+        showSettings = false; render();
+        setTimeout(() => { try { window.__showPdfRewardPopup({ preview: true, branch: br }); } catch (e) {} }, 120);
+      };
+    });
 
     // Operator: 🚫 무참여자 리스트 (블록 리스트)
     const autoFillNonpBtn = document.getElementById('__settingsAutoFillNonparticipants');
