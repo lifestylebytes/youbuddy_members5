@@ -14,8 +14,15 @@ self.addEventListener('install', (e) => {
 /* ── 활성화: 이전 캐시 정리 ── */
 self.addEventListener('activate', (e) => {
   e.waitUntil(
+    // 내 기수 캐시의 '옛 버전'만 지운다.
+    // 예전엔 CACHE_NAME 이 아닌 걸 전부 지워서, 같은 도메인의 다른 기수 캐시까지
+    // 날려버렸다 (7기 SW 가 8기 캐시를, 8기 SW 가 7기 캐시를 삭제).
+    // 두 기수를 같이 쓰는 사람은 오프라인 캐시가 계속 초기화됐다.
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      Promise.all(
+        keys.filter((k) => k.startsWith('youbuddy-8th-') && k !== CACHE_NAME)
+            .map((k) => caches.delete(k))
+      )
     )
   );
   self.clients.claim();
