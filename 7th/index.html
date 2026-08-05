@@ -9124,13 +9124,13 @@ function HomePage() {
             </div>
           </div>
           <div style="margin-top:12px;font-size:12px;color:var(--green);font-weight:700;text-align:center;">
-            ${done >= 18 ? '완주 확정! 다음 기수도 함께해요 🎉' : done >= 14 ? `${18 - done}일 더 하면 완주예요. 거의 다 왔어요!` : `꾸준히 쌓아온 ${done}일, 대단해요!`}
+            ${(() => { const _s = computeVerifyScore(); return _s.passed ? '완주 확정! 다음 기수도 함께해요 🎉' : (_s.score >= 14 ? `${_s.need % 1 ? _s.need.toFixed(1) : _s.need}점 더 채우면 완주예요. 거의 다 왔어요!` : `꾸준히 쌓아온 ${done}일, 대단해요!`); })()}
           </div>`;
         page.appendChild(reportCard);
       })();
 
       // ── 카드 3: 얼리버드 배너 (Day 20 완료자만) ───────────────────────────
-      if (done >= 18) {
+      if (computeVerifyScore().passed) {
         (() => {
           // 완주 기준일 = CHALLENGE.end_date + 72시간
           const deadline = new Date(CHALLENGE.end_date + 'T23:59:59+09:00');
@@ -9397,7 +9397,10 @@ function Checkboard() {
     const memberRef = m.member_key || m.name;
     // 완주자, 18일 이상 인증한 멤버 이름을 초록색 + 🏅 로 강조.
     const cbDone = m.me ? (typeof completedCount === 'function' ? completedCount() : (Number(m.progress) || 0)) : (Number(m.progress) || 0);
-    const cbCompleted = cbDone >= 18;
+    // 완주 판정 = 인증 점수 18점 (정시 1점 / 지각 0.5점). 일수가 아니라 점수여야
+    // PDF 게이트·수료 기준과 같은 답이 나온다.
+    const cbScore = m.me ? computeVerifyScore().score : memberVerifyScore(m);
+    const cbCompleted = cbScore >= 18;
     const rest = cbRestState(m);
     const isDormant = rest.dormant && !cbCompleted && !isUnreg;
     const isComeback = rest.comeback && !cbCompleted;
@@ -9422,7 +9425,7 @@ function Checkboard() {
           <div style="display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden;">
             <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto;${nameStyle}">${escapeHtml(displayName(m))}</span>
             ${restBadge}
-            ${cbCompleted ? `<span title="완주 · 18일+ 인증" style="flex-shrink:0;font-size:11px;line-height:1;">🏅</span>` : ''}
+            ${cbCompleted ? `<span title="완주 · 인증 18점+" style="flex-shrink:0;font-size:11px;line-height:1;">🏅</span>` : ''}
             ${krShadow ? `<span style="font-size:10px;color:var(--muted);font-weight:500;flex-shrink:0;letter-spacing:-0.01em;opacity:0.85;" title="한글 이름 (운영자 view 전용)">· ${escapeHtml(krShadow)}</span>` : ''}
             ${premiumPill(m)}
             ${showTz ? `<span style="font-size:9.5px;font-family:var(--font-mono);color:var(--muted);font-weight:500;flex-shrink:0;letter-spacing:-0.02em;" title="한국(KST) 대비 시차">${escapeHtml(memberTz)}</span>` : ''}
@@ -13301,12 +13304,17 @@ window.__previewPdfRewardPopup = () => window.__showPdfRewardPopup({ preview: tr
 function computeVerifyScore() {
   const total = (typeof CHALLENGE !== 'undefined' && CHALLENGE.total_days) || 20;
   const v = state.verified || {};
-  const vl = state.verified_late || {};
+  const vl = state.verified_late || {};   // 레거시 키. 실제로 기록되는 곳이 없어 항상 비어 있음.
   let onTime = 0, late = 0;
   for (let d = 1; d <= total; d++) {
     const k = 'd' + d;
-    if (vl[k]) late += 1;
-    else if (v[k]) onTime += 1;
+    if (!v[k] && !vl[k]) continue;
+    // 지각 판정의 유일한 정답은 dayStatus (verified_at 과 예정일 비교, Day1 유예까지 반영).
+    // state.verified_late 만 보면 항상 0 이라 점수가 인증 일수와 똑같아진다.
+    let st = null;
+    try { st = dayStatus(d); } catch (e) {}
+    if (st === 'done-late' || vl[k]) late += 1;
+    else onTime += 1;
   }
   const score = onTime + late * 0.5;
   return {
@@ -13318,6 +13326,14 @@ function computeVerifyScore() {
     passed: score >= 18,
   };
 }
+// 다른 멤버 점수, 서버 요약(progress = 인증 일수) + late_days 배열로 계산.
+// late_days 를 안 내려주는 구버전 RPC 면 지각 0 으로 보고 인증 일수를 그대로 쓴다.
+function memberVerifyScore(m) {
+  const days = Number((m && m.progress) || 0);
+  const lateArr = Array.isArray(m && m.lateDays) ? m.lateDays : [];
+  const late = Math.min(days, lateArr.length);
+  return Math.max(0, days - late * 0.5);
+}
 function finalTestDone() {
   return !!(state.final_test && state.final_test.at) || !!(state.bingo_done && state.bingo_done['4']);
 }
@@ -13325,7 +13341,7 @@ function finalTestDone() {
 window.__openFinalDownloads = function () {
   const existing = document.querySelector('[data-final-download-popup]');
   if (existing) existing.remove();
-  const driveUrl = 'https://drive.google.com/file/d/1yegEN4zZqZcetmr7omby58hl0Z3hmStF/view?usp=drivesdk';
+  const driveUrl = 'https://drive.google.com/drive/folders/1kEQtx6ygGZzQG-V_iuZ4YvafgL8NMKKo?usp=sharing';
   // 단어집 PDF 게이트 = 18일+ 인증 AND 파이널 테스트 완료 (운영자/스태프 예외).
   const __fdSc = computeVerifyScore();     // 정시 1점 + 지각 0.5점
   const __fdVc = __fdSc.scoreText;
@@ -13535,7 +13551,9 @@ window.__openAwardsCeremony = async function () {
     // 멤버 집계 + 어휘 통계 동시 fetch. '가장 헷갈린 단어' 는 SQL 간이집계 대신
     // 검증된 get_cohort_vocab_stats 를 본 단어(syn 제외)로 필터해서 다시 계산.
     const [data, vocab] = await Promise.all([
-      supabaseRpc('get_cohort_awards', { p_cohort: CHALLENGE.cohort }),
+      // v2 = late_days 포함 (수료식 완주상 점수 판정용). 마이그레이션 전이면 구버전으로 폴백.
+      supabaseRpc('get_cohort_awards_v2', { p_cohort: CHALLENGE.cohort })
+        .catch(() => supabaseRpc('get_cohort_awards', { p_cohort: CHALLENGE.cohort })),
       supabaseRpc('get_cohort_vocab_stats', { p_cohort: CHALLENGE.cohort }).catch(() => null),
     ]);
     if (!data) throw new Error('빈 응답');
@@ -13622,8 +13640,14 @@ window.__buildAwardsHtml = function (data, tier) {
   cats.push({ emoji: '🦉', title: '불타는 올빼미상', sub: '하루의 끝을 영어로 마무리한', winners: topN(3, (m) => m.latest_minutes, (m) => m.latest_minutes != null), metric: (m) => `${m.latest_time} 인증` });
 
   // 5. 완주상, 18일 이상
-  const finishers = ms.filter((m) => (m.verified_days || 0) >= 18).sort((a, b) => b.verified_days - a.verified_days);
-  cats.push({ emoji: '🏅', title: '완주상', sub: '18일 이상, 끝까지 해낸 완주자', winners: finishers, metric: (m) => `${m.verified_days}일 완주`, big: true });
+  // 완주상도 점수 기준. late_days 를 안 내려주는 구버전 RPC 면 지각 0 으로 보고 일수 그대로.
+  const awScore = (m) => {
+    const days = Number(m.verified_days || 0);
+    const late = Math.min(days, Number(m.late_days || 0));
+    return Math.max(0, days - late * 0.5);
+  };
+  const finishers = ms.filter((m) => awScore(m) >= 18).sort((a, b) => awScore(b) - awScore(a));
+  cats.push({ emoji: '🏅', title: '완주상', sub: '인증 18점 이상, 끝까지 해낸 완주자', winners: finishers, metric: (m) => { const sc = awScore(m); return `${Number.isInteger(sc) ? sc : sc.toFixed(1)}점 완주`; }, big: true });
 
   // 6. AI 단짝상, AI 교정 가장 많이 활용
   cats.push({ emoji: '🤖', title: 'AI 단짝상', sub: 'AI 첨삭을 가장 알뜰히 부려먹은', winners: topN(3, (m) => m.ai_uses || 0, (m) => (m.ai_uses || 0) > 0), metric: (m) => `AI 교정 ${m.ai_uses}회` });
@@ -20254,7 +20278,7 @@ function CertPage() {
     disabled: done < 18,
     onClick: () => downloadCertificate(state.name, done, total, overall),
   });
-  dl.innerHTML = `${Icon('download', 16)} 인증서 다운로드 ${done < 18 ? '(18일 인증 시 열림)' : ''}`;
+  dl.innerHTML = `${Icon('download', 16)} 인증서 다운로드 ${computeVerifyScore().passed ? '' : '(인증 18점 시 열림)'}`;
   page.appendChild(dl);
 
   // ---- Cert profile 상태 표시, keyVocab 은 personal_quiz 에서 자동 추출됨 ----
@@ -22669,7 +22693,7 @@ function FinalReportPage() {
         return;
       }
       // 4주 단어집 PDF, 구글 드라이브 링크로 이동 (인앱 생성 대신).
-      const driveUrl = 'https://drive.google.com/file/d/1yegEN4zZqZcetmr7omby58hl0Z3hmStF/view?usp=drivesdk';
+      const driveUrl = 'https://drive.google.com/drive/folders/1kEQtx6ygGZzQG-V_iuZ4YvafgL8NMKKo?usp=sharing';
       showToast('구글 드라이브에서 4주 단어집 PDF를 열어요 🧡');
       window.open(driveUrl, '_blank', 'noopener');
     },
@@ -22837,7 +22861,7 @@ window.__downloadFinalPdfBook = function() {
       <div class="cover-num-wrap">
         <div class="cover-num">${verifiedCount}<span>/${total}일</span></div>
         <div class="cover-sub">전체 인증률 ${Math.round((verifiedCount/total)*100)}%</div>
-        ${verifiedCount >= 18 ? '<div class="cover-badge">🏆 수료 자격 충족 (18일 이상)</div>' : ''}
+        ${computeVerifyScore().passed ? '<div class="cover-badge">🏆 수료 자격 충족 (인증 18점 이상)</div>' : ''}
       </div>
       <div class="cover-toc">
         <div class="toc-title">목차</div>
