@@ -21406,6 +21406,7 @@ function SettingsModal() {
             <div style="font-size:11.5px;line-height:1.55;color:var(--muted);margin-bottom:8px;">👀 멤버 화면 그대로 테스트 (운영자 본인만, 멤버 영향 X)</div>
             <button id="__settingsPreviewSurvey4" class="btn btn-ghost btn-full" style="border-color:rgba(155,127,174,0.32);color:#6B4F7D;">👀 Week 4 설문 미리보기</button>
             <button id="__settingsPreviewFinalTest" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(46,107,79,0.28);color:var(--orange-dark);">🏆 파이널 테스트 미리보기</button>
+            <button id="__settingsPreviewPdfReward" class="btn btn-ghost btn-full" style="margin-top:8px;border-color:rgba(240,172,61,0.42);color:var(--orange-dark);">🎁 졸업 선물 PDF 팝업 미리보기</button>
           </div>
         </div>
         <div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(46,107,79,0.22);">
@@ -21721,6 +21722,13 @@ function SettingsModal() {
     if (previewFinalTestBtn) previewFinalTestBtn.onclick = () => {
       showSettings = false;
       try { window.__startFinalTest(); } catch (e) {}
+    };
+
+    // Operator: 🎁 졸업 선물 PDF 팝업 미리보기 (preview 모드라 seen 플래그 안 남김)
+    const previewPdfRewardBtn = document.getElementById('__settingsPreviewPdfReward');
+    if (previewPdfRewardBtn) previewPdfRewardBtn.onclick = () => {
+      showSettings = false; render();
+      setTimeout(() => { try { window.__showPdfRewardPopup({ preview: true }); } catch (e) {} }, 120);
     };
 
     // Operator: 🚫 무참여자 리스트 (블록 리스트)
