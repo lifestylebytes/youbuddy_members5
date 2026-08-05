@@ -3080,7 +3080,7 @@ function anyPopupOpen() {
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
     || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup
     || showFunFactPopup || showDonePopup || showPremiumPresurvey || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup || showWeekReviewIntro
-    || showDailyPulse || showPremiumIntake);
+    || showDailyPulse || showDailyCheck || showPremiumIntake);
 }
 
 function go(page, opts={}) {
@@ -6251,6 +6251,12 @@ function render() {
       const stale = document.querySelector('[data-premium-intake]');
       if (stale) stale.remove();
     }
+    if (showDailyCheck) {
+      if (!document.querySelector('[data-daily-check]')) document.body.appendChild(DailyCheckModal(showDailyCheck));
+    } else {
+      const _dc = document.querySelector('[data-daily-check]');
+      if (_dc) _dc.remove();
+    }
     if (showDailyPulse) {
       const cur = document.querySelector('[data-daily-pulse]');
       // step 이 바뀌면 다시 그려야 하므로 step 을 속성으로 비교.
@@ -8333,6 +8339,27 @@ function HomePage() {
           }, 900);
         }
       }
+    }
+  } catch (e) {}
+
+  // 매일 1탭 난이도 체크: 그날 인증을 끝낸 사람에게만, 하루 1회.
+  //   인증 직후여야 난이도 기억이 생생하고, 성취감 끝에 물으니 기분 좋게 답한다.
+  //   심화 펄스보다 먼저 잡아서 (같은 날 둘 다 뜨는 경우) 가벼운 것부터 처리.
+  try {
+    const cDay = Number(state.currentDay) || 0;
+    const cMember = !(state.isOperator || state.isStaff) || state.operatorViewAsMember;
+    const cDone = !!(state.verified && state.verified['d' + cDay]);
+    const cAnswered = !!(state.daily_check || {})[String(cDay)];
+    if (cDay >= 1 && cMember && cDone && !cAnswered && challengeStarted()
+        && guidedTourStep === null && !anyPopupOpen() && !window.__checkPending) {
+      window.__checkPending = true;
+      setTimeout(() => {
+        window.__checkPending = false;
+        if (guidedTourStep !== null || anyPopupOpen()) return;
+        if ((state.daily_check || {})[String(cDay)]) return;
+        showDailyCheck = { day: cDay };
+        render();
+      }, 300);
     }
   } catch (e) {}
 
@@ -14349,8 +14376,136 @@ function setDayFsIdx(idx) {
    · 인증 완료한 날에만, 인증 흐름 끝난 뒤에. 스킵 자유.
    dayN 키. opts 의 v 값이 저장된다. type: 'choice' | 'text'
    ============================================================ */
+/* ============================================================
+   8기 펄스 설계 (2026-08-05 확정) · 매일 1탭 + 주 1회 심화
+   ------------------------------------------------------------
+   7기 교훈: D15~20 에 매일 "진짜 질문"을 던졌더니 응답률이
+   10% → 29% → 22% 로 4번 만에 꺾였다. 문항이 무거우면 안 답한다.
+   그래서 무게를 둘로 쪼갠다.
+
+   ① 매일 1탭 (D1~D20, DAILY_CHECK)
+      인증을 끝낸 직후 딱 한 번, 3지선다. 타이핑 없음.
+      목적은 설문이 아니라 "개인별 난이도 궤적" 확보.
+      3일 연속 😵 = 이탈 신호 → 운영 대시보드에 경보 (앱은 아무 말 안 함).
+
+   ② 주 1회 심화 (D5·D10·D15·D19, DAILY_PULSE)
+      진짜 묻고 싶은 것만 네 번. 각 주의 마지막 학습일에 배치.
+        D5  첫 고비. 뭐가 제일 어려운지
+        D10 중간 점검. 2주 전 대비 체감
+        D15 효과 체감 + 제일 도움된 것
+        D19 다음 기수 계획 + 안 하는 이유 (재구매 핵심)
+      D20 은 비워둔다. 마지막 날은 완주 축하와 수료 흐름이 우선.
+
+   신뢰 규칙: 답을 실제로 쓴다는 걸 보여줘야 응답이 유지된다.
+   주간 공지에 "어렵다는 분이 많아서 D12 난이도 낮췄어요" 식으로 회신할 것.
+   ============================================================ */
+
+// ① 매일 1탭. 인증 완료 직후 노출, 타이핑 없음.
+const DAILY_CHECK = {
+  q: '오늘 어땠어요?',
+  sub: '한 번만 눌러주세요. 다음 날 난이도 잡는 데 써요.',
+  opts: [
+    { v: 'easy', emoji: '😄', label: '쉬웠어요' },
+    { v: 'ok',   emoji: '😐', label: '적당했어요' },
+    { v: 'hard', emoji: '😵', label: '어려웠어요' },
+  ],
+};
+const DAILY_CHECK_ALERT_STREAK = 3;   // 연속 '어려웠어요' 몇 번이면 경보
+
+// ② 주 1회 심화. Day 키.
 const DAILY_PULSE = {
-  // COHORT-SLOT(manual): 8기 후반(D15~20) 미니설문. 7기 문항은 _archive/7기 참고.
+  5: {
+    kicker: '첫 주 끝! 한 가지만',
+    emoji: '🌱',
+    q1: {
+      type: 'choice',
+      q: '첫 주 해보니까, 제일 힘든 게 뭐였어요?',
+      opts: [
+        { v: 'time',      label: '시간 내는 것 자체' },
+        { v: 'words',     label: '단어가 잘 안 외워져요' },
+        { v: 'sentence',  label: '내 문장 쓰는 게 어려워요' },
+        { v: 'recording', label: '녹음해서 올리는 게 부담돼요' },
+        { v: 'nothing',   label: '아직 할 만해요!' },
+        { v: 'etc',       label: '기타 (직접 쓸게요)' },
+      ],
+    },
+  },
+  10: {
+    kicker: '절반 왔어요',
+    emoji: '📈',
+    q1: {
+      type: 'choice',
+      q: '2주 전의 나랑 비교하면, 지금 영어로 말하는 게 어때요?',
+      opts: [
+        { v: 'much_better', label: '확실히 편해졌어요' },
+        { v: 'bit_better',  label: '조금 나아진 것 같아요' },
+        { v: 'same',        label: '아직 잘 모르겠어요' },
+        { v: 'worse',       label: '오히려 더 어렵게 느껴져요' },
+        { v: 'etc',         label: '기타 (직접 쓸게요)' },
+      ],
+    },
+    q2: {
+      type: 'choice',
+      q: '남은 2주에 제일 바라는 건요?',
+      opts: [
+        { v: 'more_speak', label: '말해보는 시간 더' },
+        { v: 'more_words', label: '표현 더 많이' },
+        { v: 'feedback',   label: '내 문장 피드백 더' },
+        { v: 'lighter',    label: '지금보다 좀 가볍게' },
+        { v: 'keep',       label: '지금 그대로가 좋아요' },
+        { v: 'etc',        label: '기타 (직접 쓸게요)' },
+      ],
+    },
+  },
+  15: {
+    kicker: '3주차 마무리',
+    emoji: '🔥',
+    q1: {
+      type: 'choice',
+      q: '지금까지 제일 도움된 거 하나만 고른다면?',
+      opts: [
+        { v: 'routine', label: '매일 하게 만드는 루틴 자체' },
+        { v: 'words',   label: '표현·단어를 실제로 익힌 것' },
+        { v: 'ai',      label: 'AI 첨삭으로 내 문장 고친 것' },
+        { v: 'peers',   label: '다른 멤버들 문장 보는 것' },
+        { v: 'meeting', label: '미팅에서 직접 말해본 것' },
+        { v: 'etc',     label: '기타 (직접 쓸게요)' },
+      ],
+    },
+    q2: {
+      type: 'text',
+      q: '"이건 진짜 써먹었다" 싶은 순간이 있었나요? (선택)',
+      placeholder: '예) 회의에서 Keep you posted 를 그대로 썼어요',
+    },
+  },
+  19: {
+    kicker: '거의 다 왔어요',
+    emoji: '🎬',
+    q1: {
+      type: 'choice',
+      q: '8기 끝나면 영어 공부는 어떻게 하실 계획이세요?',
+      opts: [
+        { v: 'next_cohort', label: '다음 기수도 이어서 할래요' },
+        { v: 'keep_alone',  label: '혼자라도 계속해볼 생각이에요' },
+        { v: 'will_stop',   label: '솔직히 끊길 것 같아요' },
+        { v: 'find_other',  label: '다른 방법을 찾아볼 거예요' },
+        { v: 'not_yet',     label: '아직 생각 안 해봤어요' },
+        { v: 'etc',         label: '기타 (직접 쓸게요)' },
+      ],
+    },
+    q2: {
+      type: 'choice',
+      q: '만약 다음 기수를 지금 말고 나중에 한다면, 가장 큰 이유는 뭘까요?',
+      opts: [
+        { v: 'time',          label: '시간이 안 나서' },
+        { v: 'money',         label: '금액이 부담돼서' },
+        { v: 'alone_ok',      label: '이제 혼자 해볼 만해서' },
+        { v: 'unsure_effect', label: '효과를 잘 모르겠어서' },
+        { v: 'level',         label: '난이도가 안 맞아서' },
+        { v: 'etc',           label: '기타 (직접 쓸게요)' },
+      ],
+    },
+  },
 };
 
 // COHORT-SLOT(manual): 주차 시작 Day 오프닝 멘트 (해당 Day 페이지 상단 카드, 비우면 미표시)
@@ -24131,6 +24286,49 @@ function OpsDashboardPage() {
     c4.appendChild(el('button', { class: 'btn btn-ghost btn-full', style: { marginTop: '10px' }, onClick: () => window.__showPulseResults() }, '📊 응답 원문 전체 보기'));
     box.appendChild(c4);
 
+    // ── 4.4 난이도 경보 (매일 1탭 체크 기반) ──
+    //   인증률이 떨어진 뒤에 아는 건 늦다. "어려웠어요"가 연속으로 찍히는 사람은
+    //   아직 인증은 하고 있어도 곧 놓을 사람이다. 그 전에 개인톡 한 번이면 살릴 수 있다.
+    //   앱은 멤버에게 아무 말도 하지 않는다 (관찰당하는 느낌 방지). 여기서만 본다.
+    try {
+      const curD = Number(state.currentDay) || 0;
+      const hardRows = mem.map((m) => {
+        const st = stMap[m.member_name] || {};
+        return { m, run: hardStreak(st.daily_check, curD), map: st.daily_check || {} };
+      }).filter((x) => x.run >= DAILY_CHECK_ALERT_STREAK)
+        .sort((a, b) => b.run - a.run);
+
+      // 오늘 난이도 분포 (전체 온도계)
+      const todayVals = mem.map((m) => ((stMap[m.member_name] || {}).daily_check || {})[String(curD)])
+        .filter(Boolean).map((c) => c.v);
+      const cnt = (v) => todayVals.filter((x) => x === v).length;
+
+      const c44 = mkCard(`🌡 오늘 난이도 ${todayVals.length}명 응답`,
+        hardRows.length ? `⚠️ 연속 ${DAILY_CHECK_ALERT_STREAK}회+ 어려움 ${hardRows.length}명` : '연속 어려움 신호 없음');
+      let hh = '<div style="margin-top:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center;">';
+      [['😄', '쉬웠어요', cnt('easy')], ['😐', '적당', cnt('ok')], ['😵', '어려웠어요', cnt('hard')]].forEach(([e2, l, n]) => {
+        hh += `<div style="padding:9px 4px;border-radius:11px;background:var(--paper2);border:1px solid var(--line2);">
+          <div style="font-size:19px;line-height:1;">${e2}</div>
+          <div style="margin-top:4px;font-size:15px;font-weight:800;color:var(--ink);font-family:var(--font-mono);">${n}</div>
+          <div style="font-size:10px;color:var(--muted);">${l}</div></div>`;
+      });
+      hh += '</div>';
+      if (hardRows.length) {
+        hh += '<div style="margin-top:10px;padding-top:9px;border-top:1px solid var(--line2);">';
+        hh += '<div style="font-size:10.5px;font-weight:800;color:#A32D2D;letter-spacing:0.04em;">개인톡 후보 (아직 인증은 하고 있어요)</div>';
+        hardRows.forEach((x) => {
+          hh += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;">
+            <span style="flex:0 0 76px;font-weight:800;color:#A32D2D;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(nm(x.m))}</span>
+            <span style="flex:1;min-width:0;color:var(--ink-soft);">😵 ${x.run}일 연속</span>
+            <span style="flex:0 0 auto;font-family:var(--font-mono);font-size:11px;color:var(--muted);">${(x.m.verified_days || []).length}일 인증</span>
+          </div>`;
+        });
+        hh += '<div style="margin-top:6px;font-size:10.5px;color:var(--muted);line-height:1.5;">난이도를 낮췄다는 회신을 주간 공지에 한 줄 넣으면 응답률이 유지돼요.</div></div>';
+      }
+      c44.innerHTML += hh;
+      box.appendChild(c44);
+    } catch (e) {}
+
     // ── 4.5 프리미엄 진단 응답 (첫 미팅 준비용) ──
     const prem = mem.filter((m) => m.tier === 'premium');
     if (prem.length) {
@@ -28575,6 +28773,71 @@ window.__previewPremiumIntake = () => {
   if (!(state.isOperator || state.isStaff)) { showToast('운영자 전용 미리보기예요'); return; }
   showSettings = null; window.__intakeDraft = {}; showPremiumIntake = true; render();
 };
+
+/* ============================================================
+   매일 1탭 난이도 체크 (DAILY_CHECK)
+   ------------------------------------------------------------
+   인증을 끝낸 직후에만, 하루 한 번, 버튼 하나 누르면 끝.
+   설문처럼 보이지 않게 안부 톤으로. 타이핑·스크롤 없음.
+   저장은 state.daily_check[day] = { v, at }.
+   ============================================================ */
+window.__closeDailyCheck = () => { showDailyCheck = null; render(); };
+window.__saveDailyCheck = (v) => {
+  const d = showDailyCheck;
+  if (!d) return;
+  if (!d.preview) {
+    state.daily_check = state.daily_check || {};
+    state.daily_check[String(d.day)] = { v, at: new Date().toISOString() };
+    try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+  }
+  showDailyCheck = null;
+  const msg = v === 'hard' ? '알려줘서 고마워요. 참고할게요 🧡'
+    : (v === 'easy' ? '좋아요! 내일도 이 페이스로 🔥' : '오늘도 잘하셨어요 🧡');
+  showToast(msg);
+  render();
+};
+function DailyCheckModal(d) {
+  const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
+  overlay.setAttribute('data-daily-check', '1');
+  const card = el('div', { style: { width: '100%', maxWidth: '340px', background: 'var(--paper)', borderRadius: '24px', padding: '24px 20px 20px', textAlign: 'center' } });
+  card.innerHTML =
+    `<div style="font-size:11px;font-weight:800;letter-spacing:0.1em;color:var(--muted);">DAY ${d.day}</div>`
+    + `<div style="margin-top:8px;font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;">${escapeHtml(DAILY_CHECK.q)}</div>`
+    + `<div class="t-small" style="margin-top:6px;font-size:12px;color:var(--muted);line-height:1.55;">${escapeHtml(DAILY_CHECK.sub)}</div>`
+    + '<div style="margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'
+    + DAILY_CHECK.opts.map((o) => `<button data-dc="${o.v}" style="padding:16px 4px 13px;border-radius:16px;border:1.5px solid var(--line-soft);background:#fff;cursor:pointer;font-family:inherit;">
+        <div style="font-size:26px;line-height:1;">${o.emoji}</div>
+        <div style="margin-top:7px;font-size:11.5px;font-weight:700;color:var(--ink);">${escapeHtml(o.label)}</div>
+      </button>`).join('')
+    + '</div>';
+  const later = el('button', {
+    style: { width: '100%', marginTop: '12px', background: 'none', border: 'none', color: 'var(--muted)', fontSize: '12.5px', cursor: 'pointer', padding: '6px', fontFamily: 'inherit' },
+    onClick: () => window.__closeDailyCheck(),
+  }, '다음에요');
+  card.appendChild(later);
+  overlay.appendChild(card);
+  setTimeout(() => {
+    try {
+      card.querySelectorAll('[data-dc]').forEach((b) => {
+        b.onclick = () => window.__saveDailyCheck(b.getAttribute('data-dc'));
+      });
+    } catch (e) {}
+  }, 20);
+  return overlay;
+}
+// 연속 '어려웠어요' 횟수 (오늘부터 거꾸로). 이탈 조기경보용.
+function hardStreak(checkMap, uptoDay) {
+  const m = checkMap || {};
+  let run = 0;
+  for (let d = uptoDay; d >= 1; d--) {
+    const c = m[String(d)];
+    if (!c) continue;              // 미응답 날은 건너뜀 (연속 판정을 끊지 않음)
+    if (c.v === 'hard') run += 1;
+    else break;
+  }
+  return run;
+}
+window.__previewDailyCheck = () => { showDailyCheck = { day: state.currentDay || 1, preview: true }; render(); };
 
 /* ============================================================
    데일리 펄스 모달 (DAILY_PULSE)
