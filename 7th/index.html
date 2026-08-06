@@ -1448,6 +1448,30 @@ const CHALLENGE = {
    - premium/basic tier
    - operator flag
 */
+/* ============================================================
+   발표 피드백 리포트 (프리미엄, 개인별)
+   ------------------------------------------------------------
+   COHORT-SLOT(manual): 멤버 이름 → 리포트 URL.
+   URL 은 추측 불가능한 파일명(sha 앞자리)이고 noindex 를 걸어뒀지만,
+   GitHub Pages 라 링크를 아는 사람은 볼 수 있다. 멤버 본인 이름·직무가
+   들어가므로 링크를 단톡방 같은 공개 채널에 붙이지 말 것.
+   더 엄격하게 가려면 Google Drive 비공개 공유로 옮기고 이 URL 만 교체하면 된다.
+   ============================================================ */
+const MEMBER_REPORTS = {
+  '박서영': { url: '/7th/r/f59dbbf8a2864d94d129.html', week: 2, at: '2026-08-06' },
+};
+function myReport() {
+  try {
+    // 운영자·스태프는 검수용으로 첫 리포트를 그대로 본다.
+    if ((state.isOperator || state.isStaff) && !state.operatorViewAsMember) {
+      const first = Object.keys(MEMBER_REPORTS)[0];
+      return first ? Object.assign({ owner: first, preview: true }, MEMBER_REPORTS[first]) : null;
+    }
+    const r = MEMBER_REPORTS[(state.name || '').trim()];
+    return r ? Object.assign({ owner: (state.name || '').trim() }, r) : null;
+  } catch (e) { return null; }
+}
+
 const MEMBER_DIRECTORY = [
   /* 운영진
      - isOperator: 설정 모달 OPERATOR ONLY 섹션 접근 권한 (유버디 본인만)
@@ -1703,6 +1727,7 @@ const defaultState = () => ({
   premium_presurvey_seen: false,   // 프리미엄 사전설문(Tally) 팝업 1회 노출 여부.
   cohort_complete_popup_seen: false,// PDF까지 다 받은 완주자에게 1회 노출되는 완주 축하 팝업 본 상태.
   pdf_reward_popup_seen: false,     // 졸업 선물(단어집 PDF) 예고 팝업 본 상태. D17+ 1회.
+  report_popup_seen: {},            // { "w2": true } 발표 피드백 리포트 도착 팝업 본 상태 (주차별 1회).
   guided_tour_done: false,          // 첫 로그인 후 가이드 투어(앱 사용법 OT)를 1회 본 상태.
   meeting_briefing_open: {},        // { "m1-intro": true } 미팅 노트 페이지의 "브리핑" 펼침 상태, 새로고침/15초 sync 에도 유지.
   nonparticipant_list: [],          // ['강태윤', ...] Week 1 무참여자, 대시보드 맨 아래로 + 향후 기능 제한 대상.
@@ -1802,6 +1827,7 @@ const PERSISTED_STATE_KEYS = [
   'vocab_map_seen',
   'cohort_complete_popup_seen',
   'pdf_reward_popup_seen',
+  'report_popup_seen',
   'guided_tour_done',
   'meeting_briefing_open',
   'recording_popup_seen',
@@ -3171,7 +3197,7 @@ function anyPopupOpen() {
     || showFunFactPopup || showDonePopup || showPremiumPresurvey || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup || showWeekReviewIntro
     || showDailyPulse
     // DOM 으로 직접 붙는 팝업들 (render 상태값이 없음)
-    || (typeof document !== 'undefined' && document.querySelector('[data-pdf-reward-popup],[data-final-download-popup],[data-cohort-complete-popup]')));
+    || (typeof document !== 'undefined' && document.querySelector('[data-pdf-reward-popup],[data-final-download-popup],[data-cohort-complete-popup],[data-report-popup]')));
 }
 
 function go(page, opts={}) {
@@ -8446,6 +8472,21 @@ function HomePage() {
     }
   } catch (e) {}
 
+  // 발표 피드백 리포트 도착 팝업: 리포트가 등록된 멤버에게 주차당 1회.
+  try {
+    const rHas = (typeof myReport === 'function') ? myReport() : null;
+    const rSeen = rHas ? (state.report_popup_seen || {})['w' + rHas.week] : true;
+    if (rHas && !rSeen && challengeStarted()
+        && guidedTourStep === null && !anyPopupOpen() && !window.__reportPending) {
+      window.__reportPending = true;
+      setTimeout(() => {
+        window.__reportPending = false;
+        if (guidedTourStep !== null || anyPopupOpen()) return;
+        try { window.__showReportPopup(); } catch (e) {}
+      }, 700);
+    }
+  } catch (e) {}
+
   // 졸업 선물(단어집 PDF) 예고 팝업: D17 부터 1회. 펄스 다음 순서.
   //   마지막 주에 "조건이 뭐였지" 를 없애려고, 받게 될 물건을 눈으로 보여주고
   //   내 현재 점수·남은 점수를 정확히 붙여준다. 아직 시간이 있을 때 띄우는 게 핵심.
@@ -13189,6 +13230,65 @@ function __renderFinalTestResult(page, sess) {
 
 // 다운로드 안내 팝업, 4주 단어집 PDF + 내 전체 문장(노션용). 다운로드 기록 state 저장.
 /* ============================================================
+   발표 피드백 리포트 도착 팝업 (프리미엄, 개인별)
+   ------------------------------------------------------------
+   본인 발표가 끝난 주에 딱 한 번. "버디가 내 발표를 따로 정리해줬다"는
+   사실 자체가 프리미엄의 체감이라, 앱 안에서 먼저 알려준다.
+   ============================================================ */
+window.__showReportPopup = function (opts) {
+  const preview = !!(opts && opts.preview);
+  const r = myReport();
+  if (!r) return;
+  const key = 'w' + r.week;
+  if (!preview) {
+    const seen = state.report_popup_seen;
+    if (seen && typeof seen === 'object' && seen[key]) return;
+  }
+  if (document.querySelector('[data-report-popup]')) return;
+
+  const backdrop = el('div', { class: 'modal-backdrop', 'data-report-popup': '1' });
+  const close = () => {
+    if (!preview) {
+      const cur = state.report_popup_seen;
+      state.report_popup_seen = (cur && typeof cur === 'object') ? cur : {};
+      state.report_popup_seen[key] = true;
+      try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+    }
+    backdrop.remove();
+  };
+  backdrop.onclick = (e) => { if (e.target === backdrop) close(); };
+  const modal = el('div', { class: 'modal', style: { width: 'min(92vw, 372px)', padding: '0', borderRadius: '26px', overflow: 'hidden', background: '#fff', border: '1px solid var(--line)' } });
+  const who = (state.englishName || state.name || '').trim();
+  modal.innerHTML = `
+    <div style="position:relative;padding:26px 22px 20px;background:linear-gradient(160deg,#FFF8EA,#FFEFD6);text-align:center;">
+      <button data-rp-x style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,0.75);border:none;color:var(--ink-soft);font-size:14px;cursor:pointer;">✕</button>
+      <div style="font-size:40px;line-height:1;">🎤</div>
+      <div class="kicker" style="margin-top:8px;color:#A07A2A;">MY FEEDBACK REPORT</div>
+      <div style="margin-top:7px;font-size:19px;font-weight:800;color:var(--ink);line-height:1.35;">${escapeHtml(who)}님 발표,<br>버디가 하나하나 정리했어요</div>
+      <div class="t-small" style="margin-top:9px;font-size:12.5px;color:var(--ink-soft);line-height:1.65;">Week ${r.week} 발표에서 하신 말을 그대로 가져와,<br>더 자연스러운 표현으로 바꿔봤어요.</div>
+    </div>
+    <div style="padding:16px 20px 20px;">
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        ${[['⭐', '이번에 가져갈 표현 3개'], ['🎯', '빈칸 채우기로 복습'], ['📋', '다음 주 영어 액션']].map((x) =>
+          `<div style="display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:12px;background:var(--paper2);border:1px solid var(--line2);">
+             <span style="font-size:15px;">${x[0]}</span>
+             <span style="font-size:13px;font-weight:700;color:var(--ink);">${x[1]}</span></div>`).join('')}
+      </div>
+      <button data-rp-go class="btn btn-primary btn-full" style="margin-top:14px;background:var(--orange);border:none;color:#fff;font-size:14px;padding:14px;font-weight:800;">리포트 열어보기 →</button>
+      <button data-rp-later style="width:100%;margin-top:8px;background:none;border:none;color:var(--muted);font-size:12.5px;cursor:pointer;padding:6px;font-family:inherit;">나중에 볼게요</button>
+    </div>`;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  modal.querySelector('[data-rp-x]').onclick = close;
+  modal.querySelector('[data-rp-later]').onclick = close;
+  modal.querySelector('[data-rp-go]').onclick = () => {
+    close();
+    try { window.open(r.url, '_blank', 'noopener'); } catch (e) {}
+  };
+};
+window.__previewReportPopup = () => window.__showReportPopup({ preview: true });
+
+/* ============================================================
    졸업 선물 예고 팝업 (D17~), PDF 실물을 눈으로 보여주고 남은 조건을 짚어줌
    ------------------------------------------------------------
    목적: "18일 인증 + 파이널" 이라는 조건을 글로만 알리면 안 움직인다.
@@ -16802,7 +16902,24 @@ function PremiumPage() {
     <div class="kicker" style="margin-top:8px;">PERSONAL QUIZ</div>
     <div class="h3" style="margin-top:4px;">내 약점 퀴즈</div>
     <div class="t-small" style="margin-top:4px;">${pqSubcopy}</div>`;
-  doubleRow.appendChild(quizCard);
+  // 발표 피드백 리포트가 있는 멤버는 이 자리에 리포트 카드를 먼저 보여준다.
+  // (약점 퀴즈보다 지금 볼 이유가 분명한 것이 앞자리를 차지)
+  const __rep = (typeof myReport === 'function') ? myReport() : null;
+  if (__rep) {
+    const repCard = el('button', {
+      class: 'card',
+      style: { textAlign: 'left', cursor: 'pointer', border: '1px solid rgba(240,172,61,0.5)', background: 'linear-gradient(160deg,#FFF8EA,#FFF3DC)' },
+      onClick: () => { try { window.open(__rep.url, '_blank', 'noopener'); } catch (e) {} },
+    });
+    repCard.innerHTML = `
+      <div style="font-size:22px;">🎤</div>
+      <div class="kicker" style="margin-top:8px;color:#A07A2A;">MY FEEDBACK</div>
+      <div class="h3" style="margin-top:4px;">내 발표 피드백 리포트</div>
+      <div class="t-small" style="margin-top:4px;">Week ${__rep.week} 발표 · 버디가 정리했어요${__rep.preview ? ' (검수용)' : ''}</div>`;
+    doubleRow.appendChild(repCard);
+  } else {
+    doubleRow.appendChild(quizCard);
+  }
 
   const certCard = el('button', { class: 'card', style: { textAlign: 'left', cursor: 'pointer', border: 'none', background: 'var(--cream)' }, onClick: () => go('certification') });
   certCard.innerHTML = `

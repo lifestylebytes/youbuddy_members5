@@ -1,0 +1,223 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow,noarchive"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Selina 님 · Week 2 발표 피드백</title><link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet"><style>
+:root{--green:#2E6B4F;--dark:#1F4D38;--gold:#F0AC3D;--paper:#FFFDF7;--ink:#2A2620;--soft:#5C5449;--muted:#94897A;--line:rgba(46,107,79,.16)}
+*{box-sizing:border-box}
+body{margin:0;background:#F2EFE7;color:var(--ink);font-family:Pretendard,system-ui,sans-serif;line-height:1.75;-webkit-font-smoothing:antialiased}
+.bar{position:sticky;top:0;z-index:50;background:var(--dark);color:#fff;padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bar .t{font-size:12.5px;font-weight:700;margin-right:auto}
+.bar button{padding:7px 13px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.bar button:hover{background:rgba(255,255,255,.2)}
+.bar button.on{background:var(--gold);border-color:var(--gold);color:#3A2A08}
+.hint{background:#FFF4DC;color:#8A6212;font-size:12px;padding:8px 16px;border-bottom:1px solid rgba(240,172,61,.4)}
+.page{max-width:720px;margin:22px auto;background:var(--paper);padding:34px 30px 60px;border-radius:14px}
+[contenteditable=true]{outline:1px dashed rgba(46,107,79,.35);outline-offset:3px;border-radius:3px;transition:background .15s}
+[contenteditable=true]:hover{background:rgba(240,172,61,.08)}
+[contenteditable=true]:focus{outline:2px solid var(--gold);background:#fff}
+.hd{background:linear-gradient(165deg,var(--green),var(--dark));color:#fff;border-radius:18px;padding:28px 26px}
+.hd .k{font-size:11px;letter-spacing:.2em;color:var(--gold);font-weight:700}
+.hd h1{margin:11px 0 0;font-size:26px;font-weight:800;letter-spacing:-.02em}
+.hd .m{margin-top:7px;font-size:13px;color:#C8DDD0}
+.oneline{margin-top:12px;background:#fff;border:1.5px solid rgba(240,172,61,.55);border-radius:14px;padding:18px 20px;text-align:center}
+.oneline .l{font-size:10px;letter-spacing:.14em;font-weight:800;color:#A07A2A}
+.oneline .t{margin-top:7px;font-size:18px;font-weight:800;color:var(--dark);line-height:1.5}
+.oneline .s{margin-top:8px;font-size:12.5px;color:var(--soft)}
+h2{margin:38px 0 12px;font-size:17.5px;font-weight:800;color:var(--dark);letter-spacing:-.02em;padding-bottom:8px;border-bottom:2px solid var(--dark)}
+.buddy{background:#fff;border:1px solid var(--line);border-left:4px solid var(--green);border-radius:0 14px 14px 0;padding:20px 22px;font-size:14px;color:var(--soft);line-height:2}
+.buddy b{color:var(--ink)}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px 17px;margin-top:10px}
+.lab{font-size:10px;letter-spacing:.14em;font-weight:800;color:var(--gold)}
+.good{background:rgba(46,107,79,.06);border:1px dashed var(--line);border-radius:12px;padding:16px 18px}
+.quote{margin-top:9px;padding:11px 13px;background:#fff;border-radius:9px;font-size:13px;font-style:italic;color:var(--dark);line-height:1.8}
+.top3{background:linear-gradient(160deg,#FFF8EA,#FFF3DC);border:1.5px solid rgba(240,172,61,.5);border-radius:16px;padding:18px 20px 14px}
+.w3{padding:12px 0;border-top:1px dashed rgba(240,172,61,.5)}
+.w3:first-of-type{border-top:none;padding-top:4px}
+.w3 .n{display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;border-radius:50%;background:var(--gold);color:#fff;font-size:11px;font-weight:800;margin-right:7px}
+.w3 .t{font-size:15.5px;font-weight:800;color:var(--dark)}
+.w3 .d{margin-top:2px;font-size:12.5px;color:var(--soft)}
+.w3 .ex{margin-top:6px;padding:8px 11px;background:rgba(255,255,255,.75);border-radius:8px;font-size:12.5px;font-style:italic;color:var(--dark)}
+.qa .ask{font-size:13.5px;color:var(--dark);font-style:italic;line-height:1.65}
+.qa .ans{margin-top:10px;padding:10px 12px;background:rgba(46,107,79,.06);border-radius:9px;font-size:13px;color:var(--soft);line-height:1.7}
+.qa .tip{margin-top:11px;padding-top:10px;border-top:1px dashed var(--line);font-size:13px;color:var(--soft);line-height:1.8}
+.qa .tip b{color:var(--ink)}
+.quiz{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px 17px;margin-top:10px}
+.quiz .ctx{font-size:11.5px;color:var(--muted)}
+.quiz .said{margin-top:4px;font-size:12.5px;color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(148,137,122,.45)}
+.quiz .fill{margin-top:10px;font-size:17px;font-weight:800;color:var(--dark);letter-spacing:.02em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.quiz details{margin-top:9px}
+.quiz summary{font-size:11.5px;color:var(--green);cursor:pointer;font-weight:700;list-style:none}
+.quiz summary::-webkit-details-marker{display:none}
+.quiz summary::before{content:"▸ ";}
+.quiz details[open] summary::before{content:"▾ ";}
+.quiz .ansbox{margin-top:7px;padding:10px 12px;background:rgba(46,107,79,.06);border-radius:9px}
+.quiz .ansbox .a{font-size:14px;font-weight:800;color:var(--green)}
+.quiz .ansbox .w{margin-top:5px;font-size:12.5px;color:var(--soft);line-height:1.7}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px;background:#fff;border-radius:10px;overflow:hidden}
+th{background:rgba(46,107,79,.09);color:var(--dark);font-weight:800;text-align:left;padding:10px 12px;font-size:12px}
+td{padding:10px 12px;border-top:1px solid var(--line);color:var(--soft);vertical-align:top}
+td:first-child{font-weight:700;color:var(--ink);white-space:nowrap}
+.chk{display:inline-block;width:13px;height:13px;border:1.5px solid var(--muted);border-radius:3px;margin-right:7px;vertical-align:-1px}
+.end{margin-top:34px;background:#EAF3DE;border-radius:16px;padding:22px 24px;color:#2D5410;font-size:14px;line-height:1.9}
+.end b{color:#1F4D38}
+.sig{margin-top:15px;font-size:12px;color:#5A7A3A;letter-spacing:.06em;font-weight:700}
+@media print{.bar,.hint{display:none}body{background:#fff}.page{margin:0;padding:0;max-width:none;border-radius:0}
+[contenteditable]{outline:none!important;background:transparent!important}
+.quiz details{display:none}h2{page-break-after:avoid}.card,.quiz,.top3,.qa,.buddy,table{page-break-inside:avoid}}
+</style></head><body>
+<style>
+#pdfbtn{position:fixed;top:14px;right:14px;z-index:99;padding:10px 16px;border-radius:10px;border:none;
+background:#2E6B4F;color:#fff;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 2px 10px rgba(31,77,56,.25)}
+#pdfbtn:hover{background:#1F4D38}
+@media print{#pdfbtn{display:none}}
+</style>
+<button id="pdfbtn" onclick="window.print()">📄 PDF로 저장</button>
+<div class="page" id="doc">
+
+<div class="hd">
+<div class="k" data-e="" contenteditable="false">YOUBUDDY · 7기 프리미엄 · WEEK 2</div>
+<h1 data-e="" contenteditable="false">Selina 님 발표 피드백</h1>
+<div class="m" data-e="" contenteditable="false">의료 AI 연구원 · 데이터 분석 · 2026년 7월</div>
+</div>
+
+<div class="oneline">
+<div class="l" data-e="" contenteditable="false">오늘의 한 줄</div>
+<div class="t" data-e="" contenteditable="false">한국인은 나 혼자지만, 잘 해내고 있는 AI Researcher!!!</div>
+<div class="s" data-e="" contenteditable="false">미국 온 지 다섯 달, 주 6일 9 to 9. 그 안에서 세 프로젝트를 영어로 보고하고 있어요.</div>
+</div>
+
+<h2 data-e="" contenteditable="false">유버디가 드리는 말</h2>
+<div class="buddy" data-e="" contenteditable="false">
+Selina 님의 고민은 <b>영어로 발표하는 것</b>이고, 게다가 듣는 분들이 모두 서양인 의사들이라 조금 떨리는 것도 있으실 것 같아요. 근데 저는 오히려 <b>기술직이라 다행이다</b> 싶은 생각도 들었어요. 데이터로 설명하는 거고, 결과 보고를 이미 잘 하고 계시거든요.<br><br>
+여기서 가장 중요한 건 <b>계속 말해보는 자세</b>예요. 저라면 의학 용어 팟캐스트랑 관련 자료를 더 많이 찾아서, 적어도 리스닝에서는 막히지 않게 만들어둘 것 같아요.<br><br>
+그리고 말씀하실 때 <b>표정을 정말 잘 쓰세요.</b> 그래서 대화할 때도 잘 통하실 거예요. 여기에 맞장구 치는 문장, 그리고 냉철하게 "그건 아닌 것 같다"고 할 때 쓰는 문장을 <b>각각 10개씩</b> 늘려서 골라 쓰시는 걸 추천드려요 ㅎㅎ
+</div>
+
+<h2 data-e="" contenteditable="false">오늘 가장 좋았던 것</h2>
+<div class="good">
+<div class="lab" style="color:var(--green);" data-e="" contenteditable="false">배운 표현이 사흘 만에 본인 문장이 됐어요</div>
+<div class="quote" data-e="" contenteditable="false">
+"<b>With a caveat</b>, some important variables are still missing."<br>
+"The main workflow is still <b>underway</b>."
+</div>
+<div style="margin-top:11px;font-size:13.5px;color:var(--soft);line-height:1.8;" data-e="" contenteditable="false">
+연습 문장이 아니라 <b style="color:var(--ink);">진짜 주간 보고 안에서</b> 나왔어요. 그리고 전부 숫자로 말하신 것도 좋았습니다. 30%, 두 개의 training, second revision. 외국계 회의에서 신뢰를 만드는 건 유창함이 아니라 이 구체성이에요.
+</div></div>
+
+<h2 data-e="" contenteditable="false">⭐ 이번에 가져갈 표현 3개</h2>
+<div class="top3">
+<div class="w3"><div><span class="n">1</span><span class="t" data-e="" contenteditable="false">Take it offline</span></div>
+<div class="d" data-e="" contenteditable="false">이 얘기는 회의 끝나고 따로 하죠</div>
+<div class="ex" data-e="" contenteditable="false">"Let's take it offline and I'll follow up after the meeting."</div></div>
+<div class="w3"><div><span class="n">2</span><span class="t" data-e="" contenteditable="false">We don't have the bandwidth</span></div>
+<div class="d" data-e="" contenteditable="false">지금 그걸 할 여력이 없어요</div>
+<div class="ex" data-e="" contenteditable="false">"We don't have the bandwidth before the report deadline."</div></div>
+<div class="w3"><div><span class="n">3</span><span class="t" data-e="" contenteditable="false">This is a blocker</span></div>
+<div class="d" data-e="" contenteditable="false">이것 때문에 다음 단계가 멈춰 있어요</div>
+<div class="ex" data-e="" contenteditable="false">"The pending data approval is a blocker for the cohort build."</div></div>
+</div>
+
+<h2 data-e="" contenteditable="false">프레젠테이션 피드백</h2>
+
+<div class="card qa">
+<div class="lab" data-e="" contenteditable="false">Q. 제가 물어봤죠</div>
+<div class="ask" data-e="" contenteditable="false">"If the Vital and ADI variables don't come through in time, would you proceed with imputation?"</div>
+<div class="ans" data-e="" contenteditable="false">Vital 은 키·몸무게·BMI 라 다른 데이터로 대체가 안 되고, ADI 는 소득 관련이라 건너뛸 수 있다고 나눠서 답하셨어요.</div>
+<div class="tip" data-e="" contenteditable="false">이 답이 오늘 제일 좋았어요. "둘 다 필요해요"가 아니라 <b>왜 하나는 되고 하나는 안 되는지</b>를 갈라서 말하셨거든요. 다음엔 앞에 한 문장만 붙여보세요. <b>"Let me break that down."</b> 듣는 사람이 준비하고 들어요.</div>
+</div>
+
+<div class="card qa">
+<div class="lab" data-e="" contenteditable="false">Q. 제가 물어봤죠</div>
+<div class="ask" data-e="" contenteditable="false">"Is AI helpful for that part of your work?"</div>
+<div class="ans" data-e="" contenteditable="false">환자 데이터라 ChatGPT 를 쓸 수 없고 코딩을 직접 하신다고요. 그리고 Jack 이 카드를 꽂아줘야 분석을 시작할 수 있다고요.</div>
+<div class="tip" data-e="" contenteditable="false">카드 꽂아줄 사람 기다렸다가 분석 시작하는 거, 그거 진짜 답답하시겠어요. 그 상황을 말할 때 쓰는 표현이 있어요. <b>"He badges me in so I can run the analysis."</b> badge in 이 카드로 출입 인증하는 그 동작이에요.</div>
+</div>
+
+<div class="card qa">
+<div class="lab" data-e="" contenteditable="false">Q. 제가 물어봤죠</div>
+<div class="ask" data-e="" contenteditable="false">"What is the hardest part, aside from the English?"</div>
+<div class="ans" data-e="" contenteditable="false">"I should know both computer science and medical terms. I think I'm in the middle."</div>
+<div class="tip" data-e="" contenteditable="false">"I'm in the middle" 을 약점처럼 말씀하셨는데, 영어권에서는 <b>그게 강점으로 팔리는 자리</b>예요. 둘 다 아는 사람이 드무니까요. 단어 하나만 바꾸면 됩니다. <b>"My work is highly interdisciplinary."</b></div>
+</div>
+
+<h2 data-e="" contenteditable="false">이렇게 말하면 더 자연스러워요</h2>
+<div style="font-size:12.5px;color:var(--muted);margin-bottom:4px;" data-e="" contenteditable="false">빈칸을 먼저 채워보시고, 아래 정답을 열어보세요.</div>
+
+<div class="quiz">
+<div class="ctx" data-e="" contenteditable="false">회의가 딴 길로 샐 때 · 이 얘긴 끝나고 따로 하자</div>
+<div class="said" data-e="" contenteditable="false">"... and then table it offline."</div>
+<div class="fill" data-e="" contenteditable="false">Let's ____ __ ________.</div>
+<details><summary>정답 보기</summary><div class="ansbox">
+<div class="a" data-e="" contenteditable="false">Let's take it offline.</div>
+<div class="w" data-e="" contenteditable="false"><b>Table it</b> 은 안건을 나중으로 미루기, <b>Take it offline</b> 은 이 얘기를 회의 끝나고 따로 하기. 두 개가 붙어버렸어요. 그날 상황은 take it offline 쪽이었어요.</div>
+</div></details></div>
+
+<div class="quiz">
+<div class="ctx" data-e="" contenteditable="false">지금 그걸 할 여력이 없다고 할 때</div>
+<div class="said" data-e="" contenteditable="false">"'Cause we don't have any cycle."</div>
+<div class="fill" data-e="" contenteditable="false">We don't have the _________.</div>
+<details><summary>정답 보기</summary><div class="ansbox">
+<div class="a" data-e="" contenteditable="false">We don't have the bandwidth.</div>
+<div class="w" data-e="" contenteditable="false">cycle 은 "무슨 주기?"로 들려요. 회의에서 두 번 쓰셨는데 둘 다 bandwidth 자리였어요.</div>
+</div></details></div>
+
+<div class="quiz" style="border-left:3px solid #C0392B;">
+<div class="ctx" data-e="" contenteditable="false">⚠️ 환자 데이터 보안을 설명할 때 · 뜻이 반대로 나갔어요</div>
+<div class="said" data-e="" contenteditable="false">"Patient data is so private, so we can use internet and any ChatGPT."</div>
+<div class="fill" data-e="" contenteditable="false">Patient data is sensitive, so we ____ use ChatGPT for it.</div>
+<details><summary>정답 보기</summary><div class="ansbox">
+<div class="a" data-e="" contenteditable="false">... so we can't use ChatGPT for it.</div>
+<div class="w" data-e="" contenteditable="false">not 이 빠지면서 "환자 데이터에 ChatGPT 를 씁니다"로 들렸어요. 보안 얘기라 오해가 크게 날 수 있는 자리예요. 뒤에 <b>"That's restricted for HIPAA reasons."</b> 를 붙이면 더 안전해요.</div>
+</div></details></div>
+
+<div class="quiz">
+<div class="ctx" data-e="" contenteditable="false">Jack 이 카드를 꽂아줘야 분석이 시작될 때</div>
+<div class="said" data-e="" contenteditable="false">"He should insert his card to my laptop ... we are pair."</div>
+<div class="fill" data-e="" contenteditable="false">He ______ me in, and we're _______ up for data access.</div>
+<details><summary>정답 보기</summary><div class="ansbox">
+<div class="a" data-e="" contenteditable="false">He badges me in, and we're pairing up for data access.</div>
+<div class="w" data-e="" contenteditable="false">pair 는 명사라 그대로 못 써요. 카드로 인증하는 건 <b>badge in</b> 이 딱이에요.</div>
+</div></details></div>
+
+<div class="quiz">
+<div class="ctx" data-e="" contenteditable="false">발음 · 매주 나오는 두 단어예요</div>
+<div class="said" data-e="" contenteditable="false">"first one is a general revision" / "health tech up data"</div>
+<div class="fill" data-e="" contenteditable="false">_______ revision / health _______ data</div>
+<details><summary>정답 보기</summary><div class="ansbox">
+<div class="a" data-e="" contenteditable="false">journal revision / health checkup data</div>
+<div class="w" data-e="" contenteditable="false">journal 은 <b>[저-널]</b> 두 음절로 끊고, checkup 은 <b>[체컵]</b>에 가깝게. 이 둘만 잡아도 전달력이 확 올라가요. 나머지 문법(both of thing, a AI model)은 이미 아시는 규칙이라 발표 직전에 소리 내어 한 번 읽으면 안 나와요.</div>
+</div></details></div>
+
+<h2 data-e="" contenteditable="false">연구 직무에서 알아두면 좋은 표현</h2>
+<div class="card"><div style="font-size:14.5px;font-weight:800;color:var(--dark);" data-e="" contenteditable="false">ETL (Extract, Transform, Load)</div>
+<div style="margin-top:3px;font-size:13px;color:var(--soft);" data-e="" contenteditable="false">흩어진 병원 데이터를 끌어와 정리하고 합치는 과정 전체. "merge split data" 대신 <i>"the ETL pipeline for the hospital records"</i></div></div>
+<div class="card"><div style="font-size:14.5px;font-weight:800;color:var(--dark);" data-e="" contenteditable="false">Feature selection</div>
+<div style="margin-top:3px;font-size:13px;color:var(--soft);" data-e="" contenteditable="false">ADI, Vital 중 어떤 변수를 쓸지 고르는 작업. <i>"We're still doing feature selection."</i></div></div>
+<div class="card"><div style="font-size:14.5px;font-weight:800;color:var(--dark);" data-e="" contenteditable="false">PII · HIPAA compliance</div>
+<div style="margin-top:3px;font-size:13px;color:var(--soft);" data-e="" contenteditable="false">환자 데이터 접근 권한 얘기가 나올 때. 규정을 지키고 있다는 신호를 같이 줘요. <i>"Access is restricted for HIPAA compliance."</i></div></div>
+<div class="card"><div style="font-size:14.5px;font-weight:800;color:var(--dark);" data-e="" contenteditable="false">Interdisciplinary</div>
+<div style="margin-top:3px;font-size:13px;color:var(--soft);" data-e="" contenteditable="false">CS 와 의학을 동시에 다뤄야 하는 본인 일의 성격. 자기소개에서 강점으로 쓰기 좋아요.</div></div>
+
+<h2 data-e="" contenteditable="false">외국계에서 더 잘 통하는 방식, 알고 계셨나요?</h2>
+<div class="card"><div style="font-size:14px;font-weight:800;color:var(--dark);" data-e="" contenteditable="false">숫자 뒤에 성공 기준 붙이기</div>
+<div style="margin-top:4px;font-size:13px;color:var(--soft);" data-e="" contenteditable="false">Selina 님 이미 숫자로 정말 잘 말하고 계세요. 여기에 <b>"목표는 이번 달 말 70%"</b> 처럼 기준을 붙이면 듣는 사람이 판단할 수 있게 돼요.</div></div>
+<div class="card"><div style="font-size:14px;font-weight:800;color:var(--dark);" data-e="" contenteditable="false">기다린다고만 하지 않기</div>
+<div style="margin-top:4px;font-size:13px;color:var(--soft);" data-e="" contenteditable="false">"waiting for approval" 로 끝나면 그냥 근황이에요. <b>그 대기가 뭘 막고 있는지</b>까지 말해야 우선순위가 올라가요. <i>"This is blocking the cohort build."</i></div></div>
+<div class="card"><div style="font-size:14px;font-weight:800;color:var(--dark);" data-e="" contenteditable="false">모르는 약어는 그 자리에서 되묻기</div>
+<div style="margin-top:4px;font-size:13px;color:var(--soft);" data-e="" contenteditable="false">의학 약어가 빠르게 지나갈 때 <i>"Sorry, what does that stand for?"</i> 한 문장이면 돼요. 되묻는 건 실력 부족이 아니라 정확성을 챙기는 사람의 태도로 읽혀요.</div></div>
+
+<h2 data-e="" contenteditable="false">다음 주 영어 액션</h2>
+<table>
+<tbody><tr><th>무엇을</th><th>어떻게</th><th>언제</th></tr>
+<tr><td data-e="" contenteditable="false">의학 용어 리스닝</td><td data-e="" contenteditable="false">의학·헬스케어 팟캐스트 하루 15분. 안 들린 단어만 적어두기</td><td data-e="" contenteditable="false"><span class="chk"></span>매일</td></tr>
+<tr><td data-e="" contenteditable="false">맞장구 문장 10개</td><td data-e="" contenteditable="false">"That makes sense." "Good point." 처럼 동의할 때 쓰는 문장 모으기</td><td data-e="" contenteditable="false"><span class="chk"></span>주말</td></tr>
+<tr><td data-e="" contenteditable="false">반대 문장 10개</td><td data-e="" contenteditable="false">"I see it differently." "One caveat though." 처럼 냉철하게 반박하는 문장</td><td data-e="" contenteditable="false"><span class="chk"></span>주말</td></tr>
+<tr><td data-e="" contenteditable="false">발음 두 개</td><td data-e="" contenteditable="false">journal [저-널] / checkup [체컵] 소리 내어 각 10번</td><td data-e="" contenteditable="false"><span class="chk"></span>발표 전</td></tr>
+<tr><td data-e="" contenteditable="false">표현 3개 실전</td><td data-e="" contenteditable="false">take it offline · bandwidth · blocker 를 Jack 미팅에서 한 번씩</td><td data-e="" contenteditable="false"><span class="chk"></span>다음 미팅</td></tr>
+</tbody></table>
+
+<div class="end" data-e="" contenteditable="false">
+Selina 님, 미국 온 지 다섯 달 만에 주 6일 9 to 9 로 일하면서, 컴퓨터공학과 의학 용어를 동시에 다루고 계시죠. 그 안에서 세 프로젝트 진행률을 하나도 안 빼먹고 영어로 보고한다는 건 쉬운 일이 아니에요.<br><br>
+문법은 이미 다 아시는 것들이 말할 때만 미끄러지는 수준이라 걱정 안 하셔도 돼요. 그것보다 <b>맞장구와 반박 문장을 늘리는 것</b>이 지금 제일 효과가 클 거예요. 발표는 이미 되시니까, 이제 대화에서 밀리지 않는 쪽으로요.
+<div class="sig">YOUBUDDY · 유버디</div>
+</div>
+
+</div></body></html>
