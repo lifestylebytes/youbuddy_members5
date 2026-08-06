@@ -1464,15 +1464,27 @@ const MEMBER_REPORTS = {
 };
 function myReport() {
   try {
-    // 운영자·스태프는 검수용으로 첫 리포트를 그대로 본다.
-    if ((state.isOperator || state.isStaff) && !state.operatorViewAsMember) {
+    const nm = (state.name || '').trim();
+    const en = (state.englishName || '').trim();
+    // 1) 본인 리포트 (이름 또는 영어 닉네임으로 매칭)
+    const mine = MEMBER_REPORTS[nm] || MEMBER_REPORTS[en];
+    if (mine) return Object.assign({ owner: nm || en }, mine);
+    // 2) 운영자·스태프는 검수용으로 첫 리포트를 본다.
+    //    operatorViewAsMember 켜둔 상태에서도 보이게 한다 (그거 켜두고 확인하는 일이 잦음).
+    if (state.isOperator || state.isStaff) {
       const first = Object.keys(MEMBER_REPORTS)[0];
-      return first ? Object.assign({ owner: first, preview: true }, MEMBER_REPORTS[first]) : null;
+      if (first) return Object.assign({ owner: first, preview: true }, MEMBER_REPORTS[first]);
     }
-    const r = MEMBER_REPORTS[(state.name || '').trim()];
-    return r ? Object.assign({ owner: (state.name || '').trim() }, r) : null;
+    return null;
   } catch (e) { return null; }
 }
+// 콘솔 진단용: myReport() 가 왜 null 인지 바로 보이게.
+window.__reportDebug = () => ({
+  name: state.name, englishName: state.englishName,
+  isOperator: state.isOperator, isStaff: state.isStaff,
+  viewAsMember: state.operatorViewAsMember,
+  keys: Object.keys(MEMBER_REPORTS), result: myReport(),
+});
 
 const MEMBER_DIRECTORY = [
   /* 운영진
