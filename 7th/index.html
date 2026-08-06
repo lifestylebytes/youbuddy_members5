@@ -29929,7 +29929,7 @@ const WEEK4_DECK = [
   { section: '오프닝', kicker: 'WEEK 4 · 마지막 · 60분', title: '4주 총정리, 오늘 순서',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">7기 프리미엄 버디</b> · 마지막 주, 축하하는 자리예요.</div>'
     + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
-    + ['☕️ 스몰톡 워밍업 (7분)', '📋 4주 단어 60개 칠판 (4분)', '🎬 회사 상황 종합 롤플레잉 (15분)', '🎤 파이널 발표 + Q&A (20분)', '⚡ 60개 빠른 한 바퀴 (5분)', '🎉 어휘 복습하며 클로징 (9분)'].map((t, i) =>
+    + ['☕️ 스몰톡 워밍업 (8분)', '📋 4주 단어 60개 칠판 (5분)', '🎬 회사 상황 종합 롤플레잉 (15분)', '🎤 파이널 발표 + Q&A (20분)', '⚡ 60개 빠른 한 바퀴 (5분)', '🎉 어휘 복습하며 클로징 (7분)'].map((t, i) =>
         '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
     + '</div>'
     + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎯 오늘은 <b>가르치는 날이 아니라 쓰는 날</b>이에요. 버디는 순서만 넘기고, 말은 여러분이 해요.</div>' },
@@ -29958,21 +29958,23 @@ const WEEK4_DECK = [
         + '</div>'
         + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">쭉 훑으며 <b>"입에서 바로 안 나온다" 싶은 것</b>만 눈도장. 그게 오늘 빙고·롤플레잉에서 노릴 표현이에요.</div>';
     })() },
-  { section: '빙고', kicker: '3 · 단어 빙고', title: '🎲 단어 빙고 · 쓰면 마크',
+  // (숨김 2026-08-06, 버디) 발표 시간 확보로 빙고 슬라이드 제외.
+  //   되살리려면 아래 hidden: true 만 지우면 됨.
+  { section: '빙고', hidden: true, kicker: '3 · 단어 빙고', title: '🎲 단어 빙고 · 쓰면 마크',
     bingoGrid: BINGO_WORDS,
     how: '대화·롤플레잉 중에 칸의 표현을 실제 문장으로 입 밖에 내면 그 칸을 탭해서 마크해요. 한 줄(가로·세로·대각) 또는 8칸 채우면 빙고! "본인 상황 문장"으로 써야 인정.' },
-  { section: '종합 롤플레잉', kicker: '4 · 종합 롤플레잉', title: '한 프로젝트에 4주 단어 녹이기',
+  { section: '종합 롤플레잉', kicker: '3 · 종합 롤플레잉', title: '한 프로젝트에 4주 단어 녹이기',
     html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">가상의 <b>신규 프로젝트</b>를 다 같이 굴려요. 간 보기 → 논쟁 → 위기 → 전략 결정 흐름을 타면 4주 표현이 자연스럽게 다 나와요.</div>'
     + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">'
     + [['🟢 분위기 파악', 'read between the lines · put out feelers · float an idea · soft commit'], ['🟡 논쟁', 'steelman · quick poll · double-click on · sunk cost'], ['🔴 위기', 'fire drill · hop on a call · get ahead of · critical path'], ['🟣 커리어', 'total comp · take ownership · track record · handover']].map((r) =>
         '<div style="padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);"><div style="font-size:13px;font-weight:800;color:var(--ink);">' + r[0] + '</div><div style="margin-top:2px;font-size:11.5px;font-family:var(--font-mono);color:var(--orange-dark);">' + r[1] + '</div></div>').join('')
     + '</div>'
-    + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;font-size:12.5px;color:var(--ink);line-height:1.6;">🔁 운영자: 흐름 막히면 칠판 표현으로 힌트. 표현 쓸 때마다 빙고판 같이 마크.</div>' },
-  { section: '발표', kicker: '5 · 파이널 발표', title: '🎤 7분 발표 + 3분 Q&A', presenterList: 4,
+    + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;font-size:12.5px;color:var(--ink);line-height:1.6;">🔁 운영자: 흐름 막히면 칠판 표현으로 힌트. 표현 쓸 때마다 칠판에서 체크.</div>' },
+  { section: '발표', kicker: '4 · 파이널 발표', title: '🎤 7분 발표 + 3분 Q&A', presenterList: 4,
     html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">4주간 배운 표현을 <b>내 실제 업무 상황</b>에 녹여 7분. 마지막 발표예요.</div>'
     + '<div style="margin-top:12px;padding:12px 14px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);">'
     + '<div style="font-size:12px;font-weight:800;color:var(--orange-dark);">발표 규칙</div>'
-    + '<div style="margin-top:5px;font-size:12.5px;color:var(--ink);line-height:1.65;">4주 단어 <b>10개 이상</b> 녹이기 · 7분 발표 · 3분 Q&A<br>듣는 사람은 쓰인 표현을 빙고판에서 같이 마크해요.</div></div>'
+    + '<div style="margin-top:5px;font-size:12.5px;color:var(--ink);line-height:1.65;">4주 단어 <b>10개 이상</b> 녹이기 · 7분 발표 · 3분 Q&A<br>듣는 사람은 쓰인 표현을 칠판에서 같이 체크해요.</div></div>'
     + '<div style="margin-top:12px;padding:12px 14px;border-radius:13px;background:#FFF7EC;">'
     + '<div style="font-size:12px;font-weight:800;color:var(--orange-dark);">Q&A 질문 (버디가 던지기)</div>'
     + '<div style="margin-top:6px;display:flex;flex-direction:column;gap:5px;">'
@@ -29982,9 +29984,9 @@ const WEEK4_DECK = [
         '<div style="font-size:12px;font-family:var(--font-mono);color:var(--ink);line-height:1.5;">· ' + q + '</div>').join('')
     + '</div></div>',
     checks: ['발표자 전원 7분 채웠나', '각 발표마다 Q&A 최소 1개 나왔나', '빙고판 같이 마크했나'] },
-  { section: '복습', kicker: '6 · 60개 스윕', title: '한국어 → 영어 빠른 한 바퀴', worksheet: true,
+  { section: '복습', kicker: '5 · 60개 스윕', title: '한국어 → 영어 빠른 한 바퀴', worksheet: true,
     html: '<div style="font-size:13px;color:var(--ink-soft);line-height:1.6;">60개 다 완벽히 말고, <b>막히는 것만 🔖</b> 표시하며 빠르게.</div>' },
-  { section: '계획 공유', kicker: '7 · 앞으로', title: '🗣 나는 이렇게 이어갈게요', wrapGoals: true,
+  { section: '계획 공유', kicker: '6 · 앞으로', title: '🗣 나는 이렇게 이어갈게요', wrapGoals: true,
     wrapLabels: {
       title: '📝 각자 계획 받아적기 → 앱 목표에 그대로 저장',
       sub: '한 명씩 소리 내어 말하고, 버디가 여기에 받아적어요. 저장하면 각자 앱 목표에 이어붙어요.',
@@ -29999,7 +30001,7 @@ const WEEK4_DECK = [
         '<div style="padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);"><div style="font-size:12px;font-weight:800;color:var(--ink);">' + r[0] + '</div><div style="margin-top:3px;font-size:12px;font-family:var(--font-mono);color:var(--orange-dark);">' + r[1] + '</div></div>').join('')
     + '</div>'
     + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;font-size:12.5px;color:var(--ink);line-height:1.6;">⚠️ 여기서 새 목표를 만들지 않아요. 이미 하고 있던 걸 <b>어디에 붙일지</b>만 정합니다.</div>' },
-  { section: '마무리', kicker: '8 · 클로징', title: '🎉 20일, 끝까지 왔어요',
+  { section: '마무리', kicker: '7 · 클로징', title: '🎉 20일, 끝까지 왔어요',
     checks: ['각자 "실제 내 단어가 된 표현 3개" 꼽기', '서로 한마디씩 (한국어 OK)', '단체 사진 한 장 📸'],
     html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">마지막은 가볍게. 잘한 것만 얘기해요.</div>'
     + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">'
@@ -30015,7 +30017,9 @@ const __DECK_BY_MID = { m1: 'WEEK1', m2: 'WEEK2', m3: 'WEEK3', m4: 'WEEK4' };
 function __curMid() { return __DECK_BY_MID[window.__currentMeetingId] ? window.__currentMeetingId : 'm1'; }
 function __curWk() { return 'week' + __curMid().slice(1); }
 function __curDeck() {
-  const d = { m2: typeof WEEK2_DECK !== 'undefined' && WEEK2_DECK, m3: typeof WEEK3_DECK !== 'undefined' && WEEK3_DECK, m4: typeof WEEK4_DECK !== 'undefined' && WEEK4_DECK }[__curMid()];
+  // hidden: true 슬라이드는 덱에서 통째로 뺀다 (번호·섹션 탭도 자동으로 재계산됨).
+  const d0 = { m2: typeof WEEK2_DECK !== 'undefined' && WEEK2_DECK, m3: typeof WEEK3_DECK !== 'undefined' && WEEK3_DECK, m4: typeof WEEK4_DECK !== 'undefined' && WEEK4_DECK }[__curMid()];
+  const d = Array.isArray(d0) ? d0.filter((sl) => !sl.hidden) : d0;
   return d || WEEK1_DECK;
 }
 function __curWarmup() {
