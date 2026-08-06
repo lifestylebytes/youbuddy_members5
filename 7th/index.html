@@ -29805,11 +29805,23 @@ const WEEK4_DECK = [
   { section: '오프닝', kicker: 'WEEK 4 · 마지막 · 60분', title: '4주 총정리, 오늘 순서',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">7기 프리미엄 버디</b> · 마지막 주, 축하하는 자리예요.</div>'
     + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
-    + ['4주 단어 60개 칠판 한눈에', '단어 빙고 (쓰면 마크 · 입에 붙이기)', '전체 단어 녹인 종합 롤플레잉', '60개 복습 한 바퀴 (막힌 것 🔖)', '수료 마무리 · 다음 스텝'].map((t, i) =>
+    + ['☕️ 스몰톡 워밍업 (8분)', '📋 4주 단어 60개 칠판 (5분)', '🎬 회사 상황 종합 롤플레잉 (20분 · 빙고 동시 마크)', '⚡ 60개 빠른 한 바퀴 (8분)', '🗣 앞으로의 영어 계획 서로 공유 (10분)', '🎉 클로징 파티 (6분)'].map((t, i) =>
         '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
     + '</div>'
-    + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎯 목표: 4주간 쌓은 표현을 <b>실제 대화 속에서 자연스럽게 꺼내 쓰기</b>.</div>' },
-  { section: '복습', kicker: '1 · 4주 칠판', title: '4주 단어 60개 · 주차별',
+    + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,107,79,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎯 오늘은 <b>가르치는 날이 아니라 쓰는 날</b>이에요. 버디는 순서만 넘기고, 말은 여러분이 해요.</div>' },
+  { section: '스몰톡', kicker: '1 · 워밍업', title: '☕️ 회의 시작 전 3분, 그 대화',
+    html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">회의 본론보다 어려운 게 <b>본론 들어가기 전 3분</b>이에요. 오늘은 그것부터 풀고 시작해요.</div>'
+    + '<div style="margin-top:12px;font-size:12px;font-weight:800;color:var(--orange-dark);letter-spacing:0.04em;">진행: 두 명씩 짝 → 2분 대화 → 짝 바꿔 한 번 더</div>'
+    + '<div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">'
+    + [['🛗 엘리베이터에서 마주쳤어요', 'How\'s your week going? / Busy season for you too?'],
+       ['☕️ 탕비실에서 커피 타다가', 'Any big plans this weekend? / Have you tried the new place downstairs?'],
+       ['💻 회의 접속했는데 나랑 상대만 먼저 들어옴', 'How\'s it going on your end? / Can you hear me okay?'],
+       ['✈️ 해외 동료가 한국 온다고 함', 'First time in Seoul? / Let me know if you want food recommendations.']].map((r) =>
+        '<div style="padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);"><div style="font-size:13px;font-weight:800;color:var(--ink);">' + r[0] + '</div><div style="margin-top:3px;font-size:11.5px;font-family:var(--font-mono);color:var(--orange-dark);line-height:1.5;">' + r[1] + '</div></div>').join('')
+    + '</div>'
+    + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;font-size:12.5px;color:var(--ink);line-height:1.6;"><b>규칙 하나</b><br>답을 한 문장으로 끝내지 않기. 되물어주기 (<i>How about you?</i>) 까지 해야 대화가 이어져요.</div>',
+    checks: ['전원 최소 두 명과 대화했나', '되묻기(How about you?)까지 나왔나'] },
+  { section: '복습', kicker: '2 · 4주 칠판', title: '4주 단어 60개 · 주차별',
     html: (() => {
       const block = (g) => '<div style="margin-top:13px;padding-top:11px;border-top:1px dashed rgba(255,255,255,0.18);">'
         + '<div style="font-size:12px;font-weight:800;color:#9FE1CB;">' + escapeHtml(g.label) + '</div>'
@@ -29822,22 +29834,43 @@ const WEEK4_DECK = [
         + '</div>'
         + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">쭉 훑으며 <b>"입에서 바로 안 나온다" 싶은 것</b>만 눈도장. 그게 오늘 빙고·롤플레잉에서 노릴 표현이에요.</div>';
     })() },
-  { section: '빙고', kicker: '2 · 단어 빙고', title: '🎲 단어 빙고 · 쓰면 마크',
+  { section: '빙고', kicker: '3 · 단어 빙고', title: '🎲 단어 빙고 · 쓰면 마크',
     bingoGrid: BINGO_WORDS,
     how: '대화·롤플레잉 중에 칸의 표현을 실제 문장으로 입 밖에 내면 그 칸을 탭해서 마크해요. 한 줄(가로·세로·대각) 또는 8칸 채우면 빙고! "본인 상황 문장"으로 써야 인정.' },
-  { section: '종합 롤플레잉', kicker: '3 · 종합 롤플레잉', title: '한 프로젝트에 4주 단어 녹이기',
+  { section: '종합 롤플레잉', kicker: '4 · 종합 롤플레잉', title: '한 프로젝트에 4주 단어 녹이기',
     html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">가상의 <b>신규 프로젝트</b>를 다 같이 굴려요. 간 보기 → 논쟁 → 위기 → 전략 결정 흐름을 타면 4주 표현이 자연스럽게 다 나와요.</div>'
     + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">'
     + [['🟢 분위기 파악', 'read between the lines · put out feelers · float an idea · soft commit'], ['🟡 논쟁', 'steelman · quick poll · double-click on · sunk cost'], ['🔴 위기', 'fire drill · hop on a call · get ahead of · critical path'], ['🟣 커리어', 'total comp · take ownership · track record · handover']].map((r) =>
         '<div style="padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);"><div style="font-size:13px;font-weight:800;color:var(--ink);">' + r[0] + '</div><div style="margin-top:2px;font-size:11.5px;font-family:var(--font-mono);color:var(--orange-dark);">' + r[1] + '</div></div>').join('')
     + '</div>'
     + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;font-size:12.5px;color:var(--ink);line-height:1.6;">🔁 운영자: 흐름 막히면 칠판 표현으로 힌트. 표현 쓸 때마다 빙고판 같이 마크.</div>' },
-  { section: '복습', kicker: '4 · 60개 스윕', title: '한국어 → 영어 빠른 한 바퀴', worksheet: true,
+  { section: '복습', kicker: '5 · 60개 스윕', title: '한국어 → 영어 빠른 한 바퀴', worksheet: true,
     html: '<div style="font-size:13px;color:var(--ink-soft);line-height:1.6;">60개 다 완벽히 말고, <b>막히는 것만 🔖</b> 표시하며 빠르게.</div>' },
-  { section: '마무리', kicker: '5 · 수료 마무리', title: '4주 수고했어요 💚', wrapGoals: true,
-    checks: ['각자 "실제 내 단어가 된 표현 3개" 꼽기', '복습에서 🔖 표시한 표현 다시 한 바퀴', '수료 후에도 이어갈 한 가지 정하기'],
-    html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">4주 챌린지 마지막이에요. 아래 체크하고, 각자 한마디씩 받아적어요.</div>'
-    + '<div style="margin-top:12px;padding:13px 15px;border-radius:14px;background:#EAF3DE;color:#3B6D11;font-size:13.5px;line-height:1.7;">🎁 수료 보상·다음 기수 안내. 끝까지 와줘서 고마워요 💚</div>' },
+  { section: '계획 공유', kicker: '6 · 앞으로', title: '🗣 나는 이렇게 이어갈게요', wrapGoals: true,
+    wrapLabels: {
+      title: '📝 각자 계획 받아적기 → 앱 목표에 그대로 저장',
+      sub: '한 명씩 소리 내어 말하고, 버디가 여기에 받아적어요. 저장하면 각자 앱 목표에 이어붙어요.',
+      goal: '앞으로 영어를 쓸 장면 (예: 매주 월요일 주간회의)',
+      rev: '어떻게 이어갈지 (예: 단어집 PDF 회의 전 1장)',
+    },
+    checks: ['전원 한 명씩 소리 내어 말했나', '"막연히 열심히" 대신 장면·요일까지 구체적인가'],
+    html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">4주 동안 만든 루틴을 <b>내일부터 어디에 붙일지</b> 한 명씩 말해요. 남의 계획을 듣는 게 핵심이에요. 좋은 건 그대로 훔쳐가세요.</div>'
+    + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">'
+    + [['말하는 틀', 'I\'m going to keep using English in ___ , starting ___ .'],
+       ['서로에게', 'That\'s a good one, I might steal that.']].map((r) =>
+        '<div style="padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);"><div style="font-size:12px;font-weight:800;color:var(--ink);">' + r[0] + '</div><div style="margin-top:3px;font-size:12px;font-family:var(--font-mono);color:var(--orange-dark);">' + r[1] + '</div></div>').join('')
+    + '</div>'
+    + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;font-size:12.5px;color:var(--ink);line-height:1.6;">⚠️ 여기서 새 목표를 만들지 않아요. 이미 하고 있던 걸 <b>어디에 붙일지</b>만 정합니다.</div>' },
+  { section: '마무리', kicker: '7 · 클로징', title: '🎉 20일, 끝까지 왔어요',
+    checks: ['각자 "실제 내 단어가 된 표현 3개" 꼽기', '서로 한마디씩 (한국어 OK)', '단체 사진 한 장 📸'],
+    html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">마지막은 가볍게. 잘한 것만 얘기해요.</div>'
+    + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">'
+    + [['🏆 첫 주엔 안 나오던 게 지금 나온 순간', '각자 하나씩. 버디가 본 것도 짚어주기'],
+       ['💬 이 방에서 제일 고마웠던 사람', '이름 부르고 한 문장'],
+       ['📸 화면 캡처 단체 사진', '다 같이 손 흔들고 한 장']].map((r) =>
+        '<div style="padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,107,79,0.16);"><div style="font-size:13px;font-weight:800;color:var(--ink);">' + r[0] + '</div><div style="margin-top:2px;font-size:11.5px;color:var(--muted);">' + r[1] + '</div></div>').join('')
+    + '</div>'
+    + '<div style="margin-top:12px;padding:13px 15px;border-radius:14px;background:#EAF3DE;color:#3B6D11;font-size:13.5px;line-height:1.7;">🎁 <b>단어집 PDF</b>는 18일 학습 + 금요일 파이널 응시하면 바로 열려요.<br>금요일 지나도 계속 열어두니까 늦어도 괜찮아요. 끝까지 와줘서 고마워요 💚</div>' },
 ];
 
 const __DECK_BY_MID = { m1: 'WEEK1', m2: 'WEEK2', m3: 'WEEK3', m4: 'WEEK4' };
@@ -30176,14 +30209,15 @@ function MeetingDeckPage() {
     const dr = window.__deckWrapDraft || {};
     const fld = (id, ph) => '<input id="' + id + '" class="input" style="margin-top:6px;" placeholder="' + ph + '" value="' + escapeHtml(dr[id] || '') + '" oninput="(window.__deckWrapDraft=window.__deckWrapDraft||{})[\'' + id + '\']=this.value" />';
     body += '<div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(154,139,115,0.3);">'
-      + '<div style="font-size:13px;font-weight:800;color:var(--ink);">📝 다음 주 사용 장면 받아적기 → 멤버 목표에 추가</div>'
-      + '<div class="t-small" style="margin:4px 0 10px;color:var(--ink-soft);line-height:1.5;">저장하면 각자 앱 목표에 이어붙어요 (기존 안 지움).</div>';
+      + '<div style="font-size:13px;font-weight:800;color:var(--ink);">' + escapeHtml((s.wrapLabels && s.wrapLabels.title) || '📝 다음 주 사용 장면 받아적기 → 멤버 목표에 추가') + '</div>'
+      + '<div class="t-small" style="margin:4px 0 10px;color:var(--ink-soft);line-height:1.5;">' + escapeHtml((s.wrapLabels && s.wrapLabels.sub) || '저장하면 각자 앱 목표에 이어붙어요 (기존 안 지움).') + '</div>';
     if (!roster.length) {
       body += '<div style="padding:11px 13px;border-radius:12px;background:rgba(154,139,115,0.1);border:1px dashed rgba(154,139,115,0.35);font-size:12.5px;color:var(--muted);">프리미엄 멤버 확정 후 자동으로 입력칸이 생겨요 (MEMBER_DIRECTORY).</div>';
     } else {
       roster.forEach((m) => {
         body += '<div style="font-size:12px;font-weight:800;color:#1F4D38;margin:10px 0 2px;">' + escapeHtml(__rosterDisplayName(m)) + ' 님</div>'
-          + fld('w_' + m.id + '_goal', '다음 주에 써먹을 장면 한 줄') + fld('w_' + m.id + '_rev', '어떻게 복습할지');
+          + fld('w_' + m.id + '_goal', (s.wrapLabels && s.wrapLabels.goal) || '다음 주에 써먹을 장면 한 줄')
+          + fld('w_' + m.id + '_rev', (s.wrapLabels && s.wrapLabels.rev) || '어떻게 복습할지');
       });
       body += '<button class="btn btn-primary btn-full" style="margin-top:12px;" onclick="window.__deckSaveWrap()">💾 저장 · 멤버 목표에 추가</button>';
     }
