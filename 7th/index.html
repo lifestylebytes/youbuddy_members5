@@ -9536,7 +9536,9 @@ function Checkboard() {
     // 완주자, 18일 이상 인증한 멤버 이름을 초록색 + 🏅 로 강조.
     const cbDone = m.me ? (typeof completedCount === 'function' ? completedCount() : (Number(m.progress) || 0)) : (Number(m.progress) || 0);
     // 완주 판정 = 인증 18일 (지각도 1일). PDF 게이트·수료 기준과 같은 답이 나오게 한 곳에서만 계산.
-    const cbScore = m.me ? computeVerifyScore().score : memberVerifyScore(m);
+    // computeVerifyScore() 는 .score 를 안 준다 (2026-08-05 개편에서 .days 로 바뀜).
+    // .score 로 읽던 동안 undefined >= 18 이 항상 false 라 본인 이름엔 🏅 가 절대 안 붙었다.
+    const cbScore = m.me ? computeVerifyScore().days : memberVerifyScore(m);
     const cbCompleted = cbScore >= 18;
     const rest = cbRestState(m);
     const isDormant = rest.dormant && !cbCompleted && !isUnreg;
@@ -13634,7 +13636,6 @@ window.__openFinalDownloads = function () {
   const driveUrl = 'https://drive.google.com/drive/folders/1kEQtx6ygGZzQG-V_iuZ4YvafgL8NMKKo?usp=sharing';
   // 단어집 PDF 게이트 = 18일+ 인증 AND 파이널 테스트 완료 (운영자/스태프 예외).
   const __fdSc = computeVerifyScore();     // 수료 = 18일 (지각 포함)
-  const __fdVc = __fdSc.scoreText;
   const __fdFinalDone = finalTestDone();
   const __fdIsOp = (state.isOperator || state.isStaff) && !state.operatorViewAsMember;
   const canGetPdf = (__fdSc.passed && __fdFinalDone) || __fdIsOp;
@@ -17031,6 +17032,30 @@ function PremiumPage() {
   doubleRow.appendChild(certCard);
 
   page.appendChild(doubleRow);
+
+  // 아직 발표 피드백 리포트를 못 받은 멤버에게 샘플 리포트를 보여준다.
+  // (발표를 안 했거나, 그 주 리포트가 아직 안 나온 경우)
+  // "프리미엄이 뭘 주는지"를 글로 설명하는 것보다 실물 한 장이 훨씬 빠르다.
+  if (!__rep) {
+    const sampleCard = el('button', {
+      class: 'card',
+      style: {
+        width: '100%', marginTop: '12px', textAlign: 'left', cursor: 'pointer',
+        border: '1px dashed rgba(240,172,61,0.65)', background: 'linear-gradient(160deg,#FFFCF4,#FFF7E9)',
+        display: 'flex', alignItems: 'center', gap: '13px',
+      },
+      onClick: () => { try { window.open('/sample-report.html', '_blank', 'noopener'); } catch (e) {} },
+    });
+    sampleCard.innerHTML = `
+      <div style="flex-shrink:0;width:46px;height:46px;border-radius:14px;background:rgba(240,172,61,0.22);display:grid;place-items:center;font-size:22px;">🎤</div>
+      <div style="flex:1;min-width:0;">
+        <div class="kicker" style="color:#A07A2A;">SAMPLE REPORT</div>
+        <div class="h3" style="margin-top:3px;">발표 피드백 리포트, 이렇게 나와요</div>
+        <div class="t-small" style="margin-top:4px;line-height:1.55;">미팅에서 발표하시면 버디가 하신 말을 그대로 가져와 한 장으로 정리해드려요. 샘플 먼저 보실래요?</div>
+      </div>
+      <div style="flex-shrink:0;color:var(--orange-dark);font-size:16px;font-weight:800;">→</div>`;
+    page.appendChild(sampleCard);
+  }
 
   return page;
 }

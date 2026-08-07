@@ -1,0 +1,289 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tracy 님 · Week 3~4 발표 피드백</title><link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet"><style>
+:root{--green:#2E6B4F;--dark:#1F4D38;--gold:#F0AC3D;--paper:#FFFDF7;--ink:#2A2620;--soft:#5C5449;--muted:#94897A;--line:rgba(46,107,79,.16)}
+*{box-sizing:border-box}
+body{margin:0;background:#F2EFE7;color:var(--ink);font-family:Pretendard,system-ui,sans-serif;line-height:1.75;-webkit-font-smoothing:antialiased}
+.bar{position:sticky;top:0;z-index:50;background:var(--dark);color:#fff;padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bar .t{font-size:12.5px;font-weight:700;margin-right:auto}
+.bar button{padding:7px 13px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.bar button:hover{background:rgba(255,255,255,.2)}
+.bar button.on{background:var(--gold);border-color:var(--gold);color:#3A2A08}
+.hint{background:#FFF4DC;color:#8A6212;font-size:12px;padding:8px 16px;border-bottom:1px solid rgba(240,172,61,.4)}
+.page{max-width:720px;margin:22px auto;background:var(--paper);padding:34px 30px 60px;border-radius:14px}
+[contenteditable=true]{outline:1px dashed rgba(46,107,79,.35);outline-offset:3px;border-radius:3px;transition:background .15s}
+[contenteditable=true]:hover{background:rgba(240,172,61,.08)}
+[contenteditable=true]:focus{outline:2px solid var(--gold);background:#fff}
+.hd{background:linear-gradient(165deg,var(--green),var(--dark));color:#fff;border-radius:18px;padding:28px 26px}
+.hd .k{font-size:11px;letter-spacing:.2em;color:var(--gold);font-weight:700}
+.hd h1{margin:11px 0 0;font-size:26px;font-weight:800;letter-spacing:-.02em}
+.hd .m{margin-top:7px;font-size:13px;color:#C8DDD0}
+.oneline{margin-top:12px;background:#fff;border:1.5px solid rgba(240,172,61,.55);border-radius:14px;padding:18px 20px;text-align:center}
+.oneline .l{font-size:10px;letter-spacing:.14em;font-weight:800;color:#A07A2A}
+.oneline .t{margin-top:7px;font-size:18px;font-weight:800;color:var(--dark);line-height:1.5}
+.oneline .s{margin-top:8px;font-size:12.5px;color:var(--soft)}
+h2{margin:38px 0 12px;font-size:17.5px;font-weight:800;color:var(--dark);letter-spacing:-.02em;padding-bottom:8px;border-bottom:2px solid var(--dark)}
+.buddy{background:#fff;border:1px solid var(--line);border-left:4px solid var(--green);border-radius:0 14px 14px 0;padding:20px 22px;font-size:14px;color:var(--soft);line-height:2}
+.buddy b{color:var(--ink)}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px 17px;margin-top:10px}
+.lab{font-size:10px;letter-spacing:.14em;font-weight:800;color:var(--gold)}
+.good{background:rgba(46,107,79,.06);border:1px dashed var(--line);border-radius:12px;padding:16px 18px}
+.quote{margin-top:9px;padding:11px 13px;background:#fff;border-radius:9px;font-size:13px;font-style:italic;color:var(--dark);line-height:1.8}
+.grow{margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.grow .gl{font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.06em}
+.grow .gb{margin-top:7px;display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.grow .w3b{flex:1;min-width:190px;background:rgba(148,137,122,.09);border-radius:9px;padding:10px 12px;font-size:12.5px;color:var(--muted);line-height:1.7}
+.grow .w4b{flex:1;min-width:190px;background:rgba(46,107,79,.09);border-radius:9px;padding:10px 12px;font-size:13px;color:var(--dark);font-weight:700;line-height:1.7}
+.grow .tag{display:block;font-size:10px;letter-spacing:.1em;font-weight:800;margin-bottom:4px;opacity:.85}
+.top3{background:linear-gradient(160deg,#FFF8EA,#FFF3DC);border:1.5px solid rgba(240,172,61,.5);border-radius:16px;padding:18px 20px 14px}
+.w3{padding:12px 0;border-top:1px dashed rgba(240,172,61,.5)}
+.w3:first-of-type{border-top:none;padding-top:4px}
+.w3 .n{display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;border-radius:50%;background:var(--gold);color:#fff;font-size:11px;font-weight:800;margin-right:7px}
+.w3 .t{font-size:15.5px;font-weight:800;color:var(--dark)}
+.w3 .d{margin-top:2px;font-size:12.5px;color:var(--soft)}
+.w3 .ex{margin-top:6px;padding:8px 11px;background:rgba(255,255,255,.75);border-radius:8px;font-size:12.5px;font-style:italic;color:var(--dark)}
+.qa .ask{font-size:13.5px;color:var(--dark);font-style:italic;line-height:1.65}
+.qa .ans{margin-top:10px;padding:10px 12px;background:rgba(46,107,79,.06);border-radius:9px;font-size:13px;color:var(--soft);line-height:1.7}
+.qa .tip{margin-top:11px;padding-top:10px;border-top:1px dashed var(--line);font-size:13px;color:var(--soft);line-height:1.8}
+.qa .tip b{color:var(--ink)}
+.quiz{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px 17px;margin-top:10px}
+.quiz .ctx{font-size:11.5px;color:var(--muted)}
+.quiz .said{margin-top:4px;font-size:12.5px;color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(148,137,122,.45)}
+.quiz .fill{margin-top:10px;font-size:17px;font-weight:800;color:var(--dark);letter-spacing:.02em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.quiz details{margin-top:9px}
+.quiz summary{font-size:11.5px;color:var(--green);cursor:pointer;font-weight:700;list-style:none}
+.quiz summary::-webkit-details-marker{display:none}
+.quiz summary::before{content:"▸ ";}
+.quiz details[open] summary::before{content:"▾ ";}
+.quiz .ansbox{margin-top:7px;padding:10px 12px;background:rgba(46,107,79,.06);border-radius:9px}
+.quiz .ansbox .a{font-size:14px;font-weight:800;color:var(--green)}
+.quiz .ansbox .w{margin-top:5px;font-size:12.5px;color:var(--soft);line-height:1.7}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px;background:#fff;border-radius:10px;overflow:hidden}
+th{background:rgba(46,107,79,.09);color:var(--dark);font-weight:800;text-align:left;padding:10px 12px;font-size:12px}
+td{padding:10px 12px;border-top:1px solid var(--line);color:var(--soft);vertical-align:top}
+td:first-child{font-weight:700;color:var(--ink);white-space:nowrap}
+.chk{display:inline-block;width:13px;height:13px;border:1.5px solid var(--muted);border-radius:3px;margin-right:7px;vertical-align:-1px}
+.goal{margin-top:10px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--green);border-radius:0 12px 12px 0;padding:15px 17px}
+.goal .gn{font-size:10px;letter-spacing:.14em;font-weight:800;color:var(--green)}
+.goal .gt{margin-top:5px;font-size:15px;font-weight:800;color:var(--dark);line-height:1.5}
+.goal .gd{margin-top:6px;font-size:13px;color:var(--soft);line-height:1.8}
+.goal .gm{margin-top:9px;padding:7px 11px;background:rgba(46,107,79,.06);border-radius:8px;font-size:12px;font-weight:700;color:var(--green)}
+.end{margin-top:34px;background:#EAF3DE;border-radius:16px;padding:22px 24px;color:#2D5410;font-size:14px;line-height:1.9}
+.end b{color:#1F4D38}
+.sig{margin-top:15px;font-size:12px;color:#5A7A3A;letter-spacing:.06em;font-weight:700}
+@media print{.bar,.hint{display:none}body{background:#fff}.page{margin:0;padding:0;max-width:none;border-radius:0}
+[contenteditable]{outline:none!important;background:transparent!important}
+.quiz details{display:none}h2{page-break-after:avoid}.card,.quiz,.top3,.qa,.buddy,.grow,.goal,table{page-break-inside:avoid}}
+</style></head><body><div class="page" id="doc">
+
+<div class="hd">
+<div class="k" data-e="" contenteditable="false">YOUBUDDY · 7기 프리미엄 · WEEK 3 → WEEK 4</div>
+<h1 data-e="" contenteditable="false">Tracy 님 발표 피드백</h1>
+<div class="m" data-e="" contenteditable="false">Finance · Credit &amp; Collection (E-Dunning 프로젝트) · 2026년 7~8월</div>
+</div>
+
+<div class="oneline">
+<div class="l" data-e="" contenteditable="false">두 번의 발표를 마치고</div>
+<div class="t" data-e="" contenteditable="false">숫자로 증명해온 사람은, 영어로도 결국 증명합니다</div>
+<div class="s" data-e="" contenteditable="false">Week 3에서 Week 4까지 딱 2주. "이전보다 확실히 자신감이 생겼다"는 말을 들으셨어요.</div>
+</div>
+
+<h2 data-e="" contenteditable="false">유버디가 드리는 말</h2>
+<div class="buddy" data-e="" contenteditable="false">
+Tracy 님은 제가 만나본 분들 중에 <b>준비를 가장 촘촘하게 하시는 분</b>이에요. 예상 질문지를 직접 만들어서 저한테 주시고, 새벽에 외우고, 이틀 전 것까지 복습하시잖아요. 그래서 <b>준비된 질문에 대한 답은 거의 완성형</b>입니다. Week 4에서 true north 질문에 바로 Efficiency 라고 답하신 것도 그 준비에서 나온 거예요.<br><br>
+그래서 지금 남은 건 딱 하나예요. <b>준비 안 된 질문이 들어왔을 때</b>요. 그 순간에만 "how how how", "under under" 처럼 단어가 반복되거든요. 이건 영어 실력 문제가 아니라 <b>연습 방식의 문제</b>라고 봐요. 지금까지는 답을 외우는 연습을 하셨으니, 이제는 <b>모르는 질문을 받고 그 자리에서 만드는 연습</b>으로 바꾸면 됩니다.<br><br>
+10월 온라인 미팅 준비하고 계시잖아요? 거기까지 두 달 남았으니, AI한테 <b>매일 랜덤 질문을 던져달라고 하고 혼자 중얼중얼 답해보는 것</b>을 추천드려요. 우리 목표는 처음부터 완벽하고 정확한 단어를 써서 답을 잘하려는 게 아니고, 일단 반복되지 않는 소리 내는 것부터 시작입니다. Tracy 님은 한국어로는 이미 일 잘하기로 증명된 분이라, 그 실력이 영어에서도 그대로 보이게만 만들면 됩니다.
+</div>
+
+<h2 data-e="" contenteditable="false">Week 3 → Week 4, 이렇게 달라지셨어요</h2>
+<div class="good">
+<div class="lab" style="color:var(--green);" data-e="" contenteditable="false">2주 만에 눈에 보이는 변화 네 가지</div>
+
+<div class="grow">
+<div class="gl" data-e="" contenteditable="false">① 발표의 층위가 올라갔어요</div>
+<div class="gb">
+<div class="w3b"><span class="tag">WEEK 3</span><span data-e="" contenteditable="false">"수동 엑셀 작업을 자동화해서 4시간을 줄였고 누락이 0건입니다." 성과를 보고하는 발표.</span></div>
+<div class="w4b"><span class="tag">WEEK 4</span><span data-e="" contenteditable="false">"단순 자동화가 아니라 자본 통제력을 강화하는 전략적 진화입니다." 의미를 정의하는 발표.</span></div>
+</div>
+</div>
+
+<div class="grow">
+<div class="gl" data-e="" contenteditable="false">② 반복 습관이 확 줄었어요</div>
+<div class="gb">
+<div class="w3b"><span class="tag">WEEK 3</span><span data-e="" contenteditable="false">긴장하면 "how how how did many efforts" 처럼 같은 단어를 세 번씩 반복.</span></div>
+<div class="w4b"><span class="tag">WEEK 4</span><span data-e="" contenteditable="false">반복이 눈에 띄게 줄고, 어려운 단어에서만 한 번씩 걸리더라고요. 문장을 끝까지 밀고 가셨어요.</span></div>
+</div>
+</div>
+
+<div class="grow">
+<div class="gl" data-e="" contenteditable="false">③ Q&amp;A에서 도망가지 않으셨어요</div>
+<div class="gb">
+<div class="w3b"><span class="tag">WEEK 3</span><span data-e="" contenteditable="false">준비한 내용 위주로 답변. 예상 밖 질문에는 문장이 짧아짐.</span></div>
+<div class="w4b"><span class="tag">WEEK 4</span><span data-e="" contenteditable="false">vetting process, true north 같은 처음 듣는 표현이 나와도 되묻고 답까지 가셨어요.</span></div>
+</div>
+</div>
+
+<div class="grow">
+<div class="gl" data-e="" contenteditable="false">④ 리스크를 먼저 말하기 시작하셨어요</div>
+<div class="gb">
+<div class="w3b"><span class="tag">WEEK 3</span><span data-e="" contenteditable="false">잘된 결과 중심. 자동화의 사각지대는 질문을 받고 나서 설명.</span></div>
+<div class="w4b"><span class="tag">WEEK 4</span><span data-e="" contenteditable="false">당일 입금자, 분쟁 계좌 같은 예외 케이스를 먼저 꺼내셨어요. 외국계에서 신뢰가 올라가는 순서예요.</span></div>
+</div>
+</div>
+
+<div style="margin-top:12px;font-size:13.5px;color:var(--soft);line-height:1.8;" data-e="" contenteditable="false">
+그리고 두 번 다 공통으로 좋았던 것. <b style="color:var(--ink);">전부 숫자로 말씀하셨어요.</b> 4시간 단축, 누락 0건, 100% SAP 동기화, 고객 불만 0건. 외국계 회의에서 신뢰를 만드는 건 유창함이 아니라 이 구체성이에요. Phase 1, 2, 3로 이어지는 로드맵까지 붙이신 건 실무자가 아니라 <b style="color:var(--ink);">리더의 발표</b>였습니다.
+</div>
+</div>
+
+<h2 data-e="" contenteditable="false">⭐ 이번에 가져갈 표현 3개</h2>
+<div style="font-size:12.5px;color:var(--muted);margin-bottom:6px;" data-e="" contenteditable="false">세 개 다 "모르는 질문이 들어왔을 때"를 위한 문장이에요. 10월 미팅 전까지 이것만 입에 붙여두세요.</div>
+<div class="top3">
+<div class="w3"><div><span class="n">1</span><span class="t" data-e="" contenteditable="false">Could you rephrase that for me?</span></div>
+<div class="d" data-e="" contenteditable="false">질문을 다시 한 번만 말씀해 주시겠어요?</div>
+<div class="ex" data-e="" contenteditable="false">"Sorry, could you rephrase that for me? I want to make sure I answer the right question."</div></div>
+<div class="w3"><div><span class="n">2</span><span class="t" data-e="" contenteditable="false">That's a sharp question. Let me think for a second.</span></div>
+<div class="d" data-e="" contenteditable="false">좋은 질문이네요. 잠깐 생각해볼게요 (= 3초 벌기)</div>
+<div class="ex" data-e="" contenteditable="false">"That's a sharp question. Let me think for a second... Yes, we handle that as an exception."</div></div>
+<div class="w3"><div><span class="n">3</span><span class="t" data-e="" contenteditable="false">I see your point, but from my perspective...</span></div>
+<div class="d" data-e="" contenteditable="false">무슨 말씀인지 알겠어요. 다만 제가 보기엔</div>
+<div class="ex" data-e="" contenteditable="false">"I see your point, but from my perspective, manual review still needs to stay in place."</div></div>
+</div>
+
+<h2 data-e="" contenteditable="false">프레젠테이션 피드백</h2>
+
+<div class="card qa">
+<div class="lab" data-e="" contenteditable="false">Q. 제가 물어봤죠 · WEEK 4</div>
+<div class="ask" data-e="" contenteditable="false">"What's the true north of this project?"</div>
+<div class="ans" data-e="" contenteditable="false">"Efficiency" 라고 같이 결론을 내렸는데요.</div>
+<div class="tip" data-e="" contenteditable="false">이게 Week 4에서 제일 좋았어요.&nbsp;외국계 임원들이 딱 좋아하는 답변 길이인데, 이 프로젝트의 핵심 목표와 성과를 한 줄로 정리해두는 게 중요하거든요. 여기에 한 문장만 더 붙이면 완벽해집니다. <b>"Efficiency. Everything else is a by-product of that."</b></div>
+</div>
+
+<div class="card qa">
+<div class="lab" data-e="" contenteditable="false">Q. 제가 물어봤죠 · WEEK 4</div>
+<div class="ask" data-e="" contenteditable="false">"Have you finished the vetting process for this project?"</div>
+<div class="ans" data-e="" contenteditable="false">vetting 이라는 단어에서 잠깐 멈추셨다가, 승인 절차 이야기로 답을 이어가셨어요.</div>
+<div class="tip" data-e="" contenteditable="false">멈추셨지만 <b>결국 맞는 방향으로 답을 찾아가셨어요.</b> 그게 실력입니다. vetting 은 "제대로 검증하고 승인받았느냐"를 묻는 단어예요. 앞으로 이런 순간엔 이렇게 되물으시면 돼요. <b>"Do you mean the internal approval process?"</b> 되묻는 게 훨씬 안전하고, 듣는 사람도 전혀 이상하게 안 봐요.</div>
+</div>
+
+<div class="card qa">
+<div class="lab" data-e="" contenteditable="false">Q. 제가 물어봤죠 · WEEK 3</div>
+<div class="ask" data-e="" contenteditable="false">"Are you relying on the system too much now that it's automated?"</div>
+<div class="ans" data-e="" contenteditable="false">아직 그 정도로 의존하고 있진 않다고, 수동 검토를 같이 유지하고 있다고 답하셨어요.</div>
+<div class="tip" data-e="" contenteditable="false">내용은 정확했어요. 다만 자동화 보고에서 이 질문이 나오면, 방어보다 <b>통제권을 강조</b>하는 쪽이 훨씬 세게 들려요. <b>"We keep human control over critical exceptions."</b> 사람이 여전히 신경쓴다는 한 문장이 시스템 리스크 걱정을 한 번에 해소시켜줍니다.</div>
+</div>
+
+<h2 data-e="" contenteditable="false">이렇게 말하면 더 자연스러울거에요.</h2>
+<div style="font-size:12.5px;color:var(--muted);margin-bottom:4px;" data-e="" contenteditable="false">빈칸을 먼저 채워보시고, 아래 정답을 열어보세요.</div>
+
+<div class="quiz" style="border-left:3px solid #C0392B;">
+<div class="ctx" data-e="" contenteditable="false">⚠️ 이 프로젝트의 핵심 성과 · 뜻이 다르게 나갔어요</div>
+<div class="said" data-e="" contenteditable="false">"... based on zero mission."</div>
+<div class="fill" data-e="" contenteditable="false">... based on zero __________.</div>
+<details open=""><summary>정답 보기</summary><div class="ansbox">
+<div class="a" data-e="" contenteditable="false">omissions</div>
+<div class="w" data-e="" contenteditable="false"><b>omission</b>은 [오미션], <b>mission</b>은 [미션]. 앞의 [오] 하나 차이인데 "누락 제로"가 "임무 없음"으로 들려버려요. 이 프로젝트에서 제일 자랑스러운 숫자니까 여기만큼은 또박또박. Tracy 님 암기 노트에는 zero omissions 로 정확히 적혀 있었어요.</div>
+</div></details></div>
+
+<div class="quiz">
+<div class="ctx" data-e="" contenteditable="false">프로젝트의 성격을 설명할 때 · WEEK 4</div>
+<div class="said" data-e="" contenteditable="false">"This is not a simple cost coding project."</div>
+<div class="fill" data-e="" contenteditable="false">This is not a simple ____-_______ project.</div>
+<details open=""><summary>정답 보기</summary><div class="ansbox">
+<div class="a" data-e="" contenteditable="false">cost-cutting</div>
+<div class="w" data-e="" contenteditable="false">coding 으로 나가면 "코드 짜는 프로젝트"로 들려서, 정반대 얘기가 돼요. 비용 절감은 <b>cost-cutting</b>. 하이픈으로 한 단어처럼 붙여서 [코스트커팅] 으로 굴려주세요.</div>
+</div></details></div>
+
+<div class="quiz">
+<div class="ctx" data-e="" contenteditable="false">시스템에 너무 기대는 것 아니냐는 질문에</div>
+<div class="said" data-e="" contenteditable="false">"So far there is no too much railing on to this point."</div>
+<div class="fill" data-e="" contenteditable="false">We're not ____-______ on the system at this point.</div>
+<details open=""><summary>정답 보기</summary><div class="ansbox">
+<div class="a" data-e="" contenteditable="false">over-relying</div>
+<div class="w" data-e="" contenteditable="false">rely on 을 급하게 말하려다 railing 이 됐어요. <b>over-relying</b> 하나면 "너무 기대고 있진 않다"가 그대로 전달됩니다. 뒤에 <b>"We maintain manual oversight in parallel."</b> 를 붙이면 답이 완성돼요.</div>
+</div></details></div>
+
+<div class="quiz">
+<div class="ctx" data-e="" contenteditable="false">질문을 못 알아들었을 때 · 여기가 제일 중요해요</div>
+<div class="said" data-e="" contenteditable="false">"I cannot clearly understand meaning."</div>
+<div class="fill" data-e="" contenteditable="false">Could you _________ that for me?</div>
+<details open=""><summary>정답 보기</summary><div class="ansbox">
+<div class="a" data-e="" contenteditable="false">rephrase</div>
+<div class="w" data-e="" contenteditable="false">원래 문장은 "내 이해력이 부족하다"로 들려요. rephrase 로 물으면 <b>"정확히 답하고 싶으니 한 번만 다르게 말해달라"</b>가 됩니다. 같은 상황인데 듣는 사람이 받는 인상이 완전히 달라져요. 그리고 이 한 문장이 생각할 시간도 벌어줍니다.</div>
+</div></details></div>
+
+<div class="quiz">
+<div class="ctx" data-e="" contenteditable="false">발음 · 재무에서 매번 나오는 두 단어예요</div>
+<div class="said" data-e="" contenteditable="false">"bad depth" / "sropriator cost customers"</div>
+<div class="fill" data-e="" contenteditable="false">bad ____ / ____ __________ customers</div>
+<details open=""><summary>정답 보기</summary><div class="ansbox">
+<div class="a" data-e="" contenteditable="false">debt / sole proprietor customers</div>
+<div class="w" data-e="" contenteditable="false"><b>debt</b> 는 b 를 아예 소리내지 않아요. [뎃] 한 음절. depth [뎁쓰] 로 나가면 "깊이"가 됩니다. <b>sole proprietor</b> 는 [쏘울 프러프라이어터] 로 네 박자 끊어서. 개인 사업자 고객 얘기는 Tracy 님 업무에서 계속 나오는 주제라 이 둘만 잡아도 전달력이 확 올라가요.</div>
+</div></details></div>
+
+<h2 data-e="" contenteditable="false">재무 직무에서 알아두면 좋은 표현</h2>
+<div class="card"><div style="font-size:14.5px;font-weight:800;color:var(--dark);" data-e="" contenteditable="false">DSO reduction · Cash conversion cycle</div>
+<div style="margin-top:3px;font-size:13px;color:var(--soft);" data-e="" contenteditable="false">Week 3에서 "DSO pressure" 를 정확히 쓰셨어요. 여기서 한 칸 더 나가면 성과를 말할 수 있어요. <i>"This directly contributes to DSO reduction."</i></div></div>
+<div class="card"><div style="font-size:14.5px;font-weight:800;color:var(--dark);" data-e="" contenteditable="false">Mitigating bad debt risk</div>
+<div style="margin-top:3px;font-size:13px;color:var(--soft);" data-e="" contenteditable="false">대손 채권을 "관리한다"는 말은 manage 보다 <b>mitigate</b> 가 재무 회의에서 훨씬 자연스러워요. <i>"The automated dunning helps us mitigate bad debt risk."</i></div></div>
+<div class="card"><div style="font-size:14.5px;font-weight:800;color:var(--dark);" data-e="" contenteditable="false">Exception handling</div>
+<div style="margin-top:3px;font-size:13px;color:var(--soft);" data-e="" contenteditable="false">당일 입금자, 분쟁 계좌처럼 자동화에서 빼야 하는 케이스 전체를 한 단어로. <i>"Same-day depositors are covered under exception handling."</i></div></div>
+<div class="card"><div style="font-size:14.5px;font-weight:800;color:var(--dark);" data-e="" contenteditable="false">Internalize the process</div>
+<div style="margin-top:3px;font-size:13px;color:var(--soft);" data-e="" contenteditable="false">지금은 IT 의존도가 높지만 나중에 운영팀이 직접 하겠다는 계획을 말할 때. <i>"Phase 2 is about internalizing the rule-management process."</i></div></div>
+<div class="card"><div style="font-size:14.5px;font-weight:800;color:var(--dark);" data-e="" contenteditable="false">Tailor the global framework</div>
+<div style="margin-top:3px;font-size:13px;color:var(--soft);" data-e="" contenteditable="false">글로벌 프로세스를 한국 규정에 맞추는 작업. localize 보다 이 표현이 "그냥 번역이 아니라 판단이 들어갔다"는 뉘앙스를 줘요. <i>"We tailored the global framework to local regulations."</i></div></div>
+
+<h2 data-e="" contenteditable="false">외국계에서 더 잘 통하는 방식, 알고 계셨나요?</h2>
+<div class="card"><div style="font-size:14px;font-weight:800;color:var(--dark);" data-e="" contenteditable="false">직설 화법은 그대로 두고, 앞에 반 문장만</div>
+<div style="margin-top:4px;font-size:13px;color:var(--soft);" data-e="" contenteditable="false">Tracy 님의 직설적인 화법은 <b>고칠 게 아니라 지킬 강점</b>이에요. 시간 안 끌고 병목을 바로 짚어내시니까요. 다만 영어로는 톤이 안 실려서 의도보다 세게 들릴 수 있어요. 결론 앞에 <i>"I see your point, but..."</i> 반 문장만 얹으면, 세기는 그대로인데 협업하는 사람으로 읽힙니다.</div></div>
+<div class="card"><div style="font-size:14px;font-weight:800;color:var(--dark);" data-e="" contenteditable="false">자동화를 보고할 땐 '사람이 쥐고 있다'를 같이</div>
+<div style="margin-top:4px;font-size:13px;color:var(--soft);" data-e="" contenteditable="false">"시스템이 알아서 합니다"로 끝나면 듣는 사람은 리스크부터 떠올려요. <i>"We keep human control over critical exceptions."</i> 를 붙이면 같은 성과가 <b>통제되고 있는 성과</b>로 들립니다.</div></div>
+<div class="card"><div style="font-size:14px;font-weight:800;color:var(--dark);" data-e="" contenteditable="false">되묻는 건 실력 부족이 아니에요</div>
+<div style="margin-top:4px;font-size:13px;color:var(--soft);" data-e="" contenteditable="false">모르는 단어가 나왔을 때 <i>"Could you rephrase that?"</i> 하고 되묻는 사람은, 못 알아들은 사람이 아니라 <b>정확히 답하려는 사람</b>으로 읽혀요. 어설프게 넘겨짚어 답하는 것보다 훨씬 안전합니다.</div></div>
+
+<h2 data-e="" contenteditable="false">10월 미팅까지, 영어 액션</h2>
+<table>
+<tbody><tr><th>무엇을</th><th>어떻게</th><th>언제</th></tr>
+<tr><td data-e="" contenteditable="false">랜덤 질문 3개</td><td data-e="" contenteditable="false">AI에게 업무 내용을 주고 <b>"예상 못 할 질문 3개만"</b> 요청. 답을 적지 말고 <b>소리 내서</b> 바로 답하기</td><td data-e="" contenteditable="false"><span class="chk"></span>매일</td></tr>
+<tr><td data-e="" contenteditable="false">내 목소리 다시 듣기</td><td data-e="" contenteditable="false">그 답변을 녹음해서 한 번 들어보기. 단어가 반복되는 지점만 표시</td><td data-e="" contenteditable="false"><span class="chk"></span>주 2회</td></tr>
+<tr><td data-e="" contenteditable="false">브릿지 문장 3개</td><td data-e="" contenteditable="false">rephrase · sharp question · I see your point 를 실제 회의에서 한 번씩</td><td data-e="" contenteditable="false"><span class="chk"></span>다음 미팅</td></tr>
+<tr><td data-e="" contenteditable="false">발음 네 개</td><td data-e="" contenteditable="false">omission [오미션] · debt [뎃] · cost-cutting [코스트커팅] · sole proprietor 각 10번</td><td data-e="" contenteditable="false"><span class="chk"></span>발표 전</td></tr>
+<tr><td data-e="" contenteditable="false">AI 교정 한 단계 추가</td><td data-e="" contenteditable="false">답변을 넣고 <b>"Make this sound more professional for a CFO"</b> 로 다듬어보기</td><td data-e="" contenteditable="false"><span class="chk"></span>주말</td></tr>
+</tbody></table>
+
+<h2 data-e="" contenteditable="false">다음 기수에서의 Tracy 님의 목표</h2>
+<div style="font-size:12.5px;color:var(--muted);margin-bottom:6px;" data-e="" contenteditable="false">7기 목표가 "영어로 발표를 해내는 것"이었다면, 8기는 여기서 한 칸 더 갑니다. 10월 온라인 미팅이 기준점이에요.</div>
+
+<div class="goal">
+<div class="gn" data-e="" contenteditable="false">목표 1</div>
+<div class="gt" data-e="" contenteditable="false">준비 안 된 질문에 3초 안에 입을 떼기</div>
+<div class="gd" data-e="" contenteditable="false">지금은 준비한 질문에 거의 완성형으로 답하시고, 예상 밖 질문에서만 단어가 반복돼요. 8기 20일 동안 <b>매일 랜덤 질문 3개에 소리 내어 답하기</b>를 루틴으로 만들어서, 모르는 질문이 와도 브릿지 문장으로 일단 시작하는 걸 몸에 붙입니다.</div>
+<div class="gm" data-e="" contenteditable="false">측정: 미팅 Q&amp;A에서 "how how how" 같은 반복 0회</div>
+</div>
+
+<div class="goal">
+<div class="gn" data-e="" contenteditable="false">목표 2</div>
+<div class="gt" data-e="" contenteditable="false">반대 의견을 부드럽게, 그런데 세게</div>
+<div class="gd" data-e="" contenteditable="false">Tracy 님의 직설적인 화법은 강점이라 바꾸지 않아요. 대신 앞에 얹을 <b>Cushion 문장을 5개까지</b> 늘려서 상황에 따라 골라 쓰시는 게 목표예요. 같은 결론인데 "밀어붙이는 사람"이 아니라 "설득하는 사람"으로 읽히게요.</div>
+<div class="gm" data-e="" contenteditable="false">측정: 프리미엄 미팅에서 반대 의견을 Cushion 붙여 2회 이상</div>
+</div>
+
+<div class="goal">
+<div class="gn" data-e="" contenteditable="false">목표 3</div>
+<div class="gt" data-e="" contenteditable="false">재무 용어 10개, 발음까지 내 것으로</div>
+<div class="gd" data-e="" contenteditable="false">omission · debt · cost-cutting · sole proprietor · DSO · vetting · exception handling · mitigate · internalize · tailor. 이 열 개는 Tracy 님 업무에서 매번 나오는 단어라, <b>뜻이 아니라 소리</b>를 잡아두면 발표 전체의 신뢰도가 올라가요.</div>
+<div class="gm" data-e="" contenteditable="false">측정: 8기 마지막 발표에서 이 10개를 한 번도 안 더듬고 통과</div>
+</div>
+
+<div class="goal" style="border-left-color:var(--gold);background:linear-gradient(160deg,#FFF8EA,#FFF3DC);">
+<div class="gn" style="color:#A07A2A;" data-e="" contenteditable="false">10월 미팅에서의 모습</div>
+<div class="gt" data-e="" contenteditable="false">"영어를 잘하는 사람"이 아니라 "일 잘하는 사람"으로 기억되기</div>
+<div class="gd" data-e="" contenteditable="false">사실 Tracy 님의 목표는 유창해지는 게 아니잖아요. 회의가 끝났을 때 <b>"저 사람 일 제대로 하는구나"</b>가 남는 것. 그건 문장이 매끄러운 사람이 아니라, 숫자로 말하고 리스크를 먼저 꺼내고 모르면 되묻는 사람에게 남아요. 셋 다 이미 하고 계시고요.</div>
+</div>
+
+<div class="end" data-e="" contenteditable="false">
+Tracy 님, 새벽에 예상 질문을 외우고 이틀 전 것까지 복습하신다는 얘기를 듣고 사실 조금 놀랐어요. 그렇게까지 준비하시는 분이라 Week 3에서 Week 4로 넘어오는 2주 동안 변화가 그렇게 크게 보였던 거예요. 발표의 층위가 성과 보고에서 전략 설명으로 올라갔고, 반복 습관은 줄었고, 예외 케이스를 먼저 꺼내기 시작하셨어요.<br><br>
+남은 건 <b>준비 안 된 질문 하나</b>입니다. 그런데 이건 실력이 아니라 연습의 종류 문제라, 랜덤 질문에 소리 내어 답하는 걸 두 달만 하시면 10월 미팅에서는 다른 사람처럼 보이실 거예요.<br><br>
+Tracy 님이 한국어로 일하는 모습을 아는 사람은 아무도 실력을 의심하지 않아요. 다만 처음 만나는 분들은 영어만 보고 판단하니까, 그 간극을 좁히는 게 지금 하고 계신 일이에요. <b>그리고 이미 잘 좁혀지고 있습니다.</b>
+<div class="sig">YOUBUDDY · 유버디</div>
+</div>
+
+</div></body></html>
