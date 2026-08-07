@@ -1411,9 +1411,41 @@ const MEMBER_DIRECTORY = [
   { code: '01', id: 'p1',  name: '이규태', color: 'ink',   tier: 'premium', role: '운영팀', isStaff: true }, // 사전 테스터 (프리미엄 시점)
   { code: '02', id: 'b1',  name: '이지흔', color: 'cream', tier: 'basic',   role: '운영팀', isStaff: true }, // 사전 테스터 (베이직 시점)
 
-  // COHORT-SLOT(manual): 8기 멤버 명단. 8/7 결제 마감 후 결제순으로 채우기.
+  // COHORT-SLOT(manual): 8기 멤버 명단 (2026-08-07 결제 기준, 결제순 = code 순).
   // 형식: { code: '03', id: 'p2', name: '홍길동', color: 'ink', tier: 'premium' },  // 영어닉네임
+  // name 이 로그인 키다. 멤버가 입력하는 영어 닉네임(englishName)은 온보딩에서 본인이 넣는다.
   // 해외 멤버는 tz: '-14h' 식으로 운영자 지정 (본인이 못 바꿈).
+  { code: '03', id: 'b2',  name: '김태형',   color: 'cream', tier: 'basic'  },  // mushroom
+  { code: '04', id: 'p2',  name: '노연서',   color: 'ink', tier: 'premium' },  // hailey
+  { code: '05', id: 'b3',  name: '황영인',   color: 'cream', tier: 'basic'  },  // Iris
+  { code: '06', id: 'p3',  name: '정주혜',   color: 'ink', tier: 'premium' },  // Hera
+  { code: '07', id: 'b4',  name: '김성현',   color: 'cream', tier: 'basic'  },  // Christine
+  { code: '08', id: 'b5',  name: '강부희',   color: 'cream', tier: 'basic'  },  // BUHEE
+  { code: '09', id: 'b6',  name: '정다운',   color: 'cream', tier: 'basic'  },  // Deana
+  { code: '10', id: 'b7',  name: '이삼기',   color: 'cream', tier: 'basic'  },  // Sam
+  { code: '11', id: 'b8',  name: '김민영',   color: 'cream', tier: 'basic'  },  // Mia
+  { code: '12', id: 'b9',  name: '류연화',   color: 'cream', tier: 'basic'  },  // 유나
+  { code: '13', id: 'p4',  name: '최예준',   color: 'ink', tier: 'premium' },  // Yeajoon
+  { code: '14', id: 'b10', name: '임초영',   color: 'cream', tier: 'basic'  },  // Olivia
+  { code: '15', id: 'b11', name: '류채리',   color: 'cream', tier: 'basic'  },  // Kate
+  { code: '16', id: 'b12', name: '최이슬',   color: 'cream', tier: 'basic'  },  // Yui
+  { code: '17', id: 'b13', name: '안주희',   color: 'cream', tier: 'basic'  },  // 리리
+  { code: '18', id: 'p5',  name: '오채미',   color: 'ink', tier: 'premium' },  // Cham
+  { code: '19', id: 'b14', name: '이철진',   color: 'cream', tier: 'basic'  },  // jin lee
+  { code: '20', id: 'b15', name: '이명주',   color: 'cream', tier: 'basic'  },  // 맛동산
+  { code: '21', id: 'b16', name: '박은실',   color: 'cream', tier: 'basic'  },  // Silvia
+  { code: '22', id: 'p6',  name: '홍현정',   color: 'ink', tier: 'premium' },  // Tracy
+  { code: '23', id: 'b17', name: '김',     color: 'cream', tier: 'basic'  },  // J
+  { code: '24', id: 'b18', name: '문수영',   color: 'cream', tier: 'basic'  },  // Su
+  { code: '25', id: 'b19', name: '정고운',   color: 'cream', tier: 'basic'  },  // Goun
+  { code: '26', id: 'b20', name: '오은경',   color: 'cream', tier: 'basic'  },  // Eunkyeong
+  { code: '27', id: 'b21', name: '백승택',   color: 'cream', tier: 'basic'  },  // Steve
+  { code: '28', id: 'p7',  name: '옥은정',   color: 'ink', tier: 'premium' },  // Julia
+  { code: '29', id: 'b22', name: '권지선',   color: 'cream', tier: 'basic'  },  // Joy
+  { code: '30', id: 'p8',  name: '박세은',   color: 'ink', tier: 'premium' },  // 슐슐
+  { code: '31', id: 'b23', name: '이성경',   color: 'cream', tier: 'basic'  },  // Kathrine
+  { code: '32', id: 'b24', name: '전수진',   color: 'cream', tier: 'basic'  },  // Sujin
+  { code: '33', id: 'b25', name: '노승희',   color: 'cream', tier: 'basic'  },  // Shea
 ];
 
 /* 5기 roster used across dashboard/community/profile */
