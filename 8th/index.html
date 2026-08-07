@@ -3196,10 +3196,10 @@ const KAKAO_ILLUST = `
 </svg>`;
 const GUIDED_TOUR_STEPS = [
   { page: 'home',      target: '[data-tour="home-hero"]',     title: '👋 환영해요!', bodyHtml: '여기가 홈이에요. 오늘 며칠째인지 진도가 보이고, 이 카드의 큰 버튼으로 오늘 학습을 바로 열 수 있어요.<br><br><span style="font-size:12px;color:#8A93A0;">이 안내는 조금 길어요. 중간에 그만둬도 괜찮아요. 언제든 "나" 탭 &gt; 앱 사용법 다시 보기로 다시 볼 수 있어요.</span>', body: '여기가 홈이에요. 오늘 며칠째인지 진도가 보이고, 이 카드의 큰 버튼으로 오늘 학습을 바로 열 수 있어요. (이 안내는 언제든 "나" 탭 > 앱 사용법 다시 보기로 다시 볼 수 있어요.)' },
-  { page: 'home',      target: '[data-tour="streak-board"]',  targetUnion: ['.cb-name.cb-row-me', '.cb-cell.cb-cell-me'], title: '데일리 인증 보드', bodyHtml: '여기 내 칸에 매일 인증이 쌓여요. 정시 인증은 1점, 늦으면 0.5점이에요.<br><br>자정을 지나면 인증이 안 되냐구요? 아니요! <b style="color:#2E6FA8;font-weight:800;">자정이 지나도 언제든 오셔서 학습하실 수 있어요 (지각 인증)</b>. 18일 이상 인증하면 단어집 PDF를 받아가실 수 있어요.<br><br><b style="color:#2E6FA8;font-weight:800;">단, 4번 연속으로 참여하지 않으면 계정이 비활성화돼요</b> (다시 시작하려면 유버디에게 따로 연락주세요). 끝까지 함께 가려고 강하게 잡는 거니 참고해주세요!', body: '여기 내 칸에 매일 인증이 쌓여요. 정시 인증은 1점, 늦으면 0.5점이에요. 자정이 지나도 언제든 학습할 수 있어요 (지각 인증). 18일 이상 인증하면 단어집 PDF를 받아가실 수 있어요. 단, 4번 연속으로 참여하지 않으면 계정이 비활성화돼요 (다시 시작하려면 유버디에게 따로 연락주세요).' },
+  { page: 'home',      target: '[data-tour="streak-board"]',  targetUnion: ['.cb-name.cb-row-me', '.cb-cell.cb-cell-me'], title: '데일리 인증 보드', bodyHtml: '여기 내 칸에 매일 인증이 쌓여요.<br><br>자정을 지나면 인증이 안 되냐구요? 아니요! <b style="color:#2E6FA8;font-weight:800;">자정이 지나도 언제든 오셔서 학습하실 수 있어요 (지각 인증)</b>. 늦게 하셔도 그대로 1일로 쳐드려요.<br><br><b style="color:#2E6FA8;font-weight:800;">보상은 두 갈래예요.</b><br>· 20일 중 <b>18일 이상 정시 인증</b> → <b style="color:#2E6FA8;">1일1비 한 달권 + 8기 단어 정리집 PDF</b><br>· 20일 중 <b>18일 이상 인증</b> (지각 포함) → <b style="color:#2E6FA8;">8기 단어 정리집 PDF</b><br><br><b style="color:#2E6FA8;font-weight:800;">단, 4번 연속으로 참여하지 않으면 계정이 비활성화돼요</b> (다시 시작하려면 유버디에게 따로 연락주세요). 끝까지 함께 가려고 강하게 잡는 거니 참고해주세요!', body: '여기 내 칸에 매일 인증이 쌓여요. 자정이 지나도 언제든 학습할 수 있어요 (지각 인증). 18일 이상 정시 인증하면 1일1비 한 달권 + 8기 단어 정리집 PDF, 18일 이상 인증(지각 포함)하면 8기 단어 정리집 PDF를 받아가실 수 있어요. 단, 4번 연속으로 참여하지 않으면 계정이 비활성화돼요 (다시 시작하려면 유버디에게 따로 연락주세요).' },
   { page: 'weeks',     target: '[data-tour="tab-weeks"]',     title: '내 학습 탭', body: '오늘 학습은 이 탭이 모여있는 곳이에요. Day 1~20 페이지를 언제든 다시 볼 수 있어요.' },
   { page: 'day', opts: { day: 1, week: 1 }, target: '[data-tour="day-today3"]',      title: '① 오늘의 표현 3개', body: '먼저 오늘 배울 표현 3개를 만나요. 여기 today\'s 3 에서 오늘의 표현을 한눈에 볼 수 있어요.' },
-  { page: 'day', opts: { day: 1, week: 1 }, target: '[data-tour="day-vocab-first"]',      title: '② 따라 읽기', body: '이렇게 표현이 한 장씩 카드로 나와요 (예: #1 Pull in). 🔊 버튼으로 발음을 듣고 한 번씩 소리 내어 따라 읽어요. 입으로 굴려봐야 실전에서 나와요.' },
+  { page: 'day', opts: { day: 1, week: 1 }, target: '[data-tour="day-vocab-first"]',      title: '② 따라 읽기', body: '이렇게 표현이 한 장씩 카드로 나와요. 🔊 버튼으로 발음을 듣고 한 번씩 소리 내어 따라 읽어요. 입으로 굴려봐야 실전에서 나와요.' },
   { page: 'day', opts: { day: 1, week: 1 }, target: '[data-tour="day-read-check"]', title: '③ 3번 읽기 체크 (필수)', body: '3번 소리 내어 읽었으면 이 버튼을 꼭 눌러주세요. 인증의 첫 단계예요.' },
   { page: 'day', opts: { day: 1, week: 1 }, target: '[data-tour="day-compose-block"]', title: '④ 영작', body: '내가 실제로 쓸 수 있는 말을 한국어로 먼저 작성하고, 그 다음 오늘 배운 표현으로 영어로 써보세요.' },
   { page: 'day', opts: { day: 1, week: 1 }, previewSubmit: true, target: '[data-tour="day-ai-btn"]', title: '⑤ AI 첨삭', body: '문장을 제출하면 이 AI 첨삭 버튼이 생겨요. 누르면 AI가 어색한 부분을 자연스럽게 고쳐줘요. 베이직은 한 문장당 한 번 받을 수 있고, 프리미엄은 무제한으로 받을 수 있어요.' },
@@ -5516,9 +5516,12 @@ async function refreshRemoteStateAndCommunity(opts = {}) {
     if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return false;
     const since = Date.now() - (window.__lastTypingAt || 0);
     if (since < 1500) return false;
-    // 진행 중인 save 가 있으면 끝날 때까지 기다림.
-    if (statePersistInFlight || statePersistQueued) return false;
   }
+  // 진행 중인 save 가 있으면 remote merge 를 건너뛴다.
+  // force(포커스·가시성 복귀) 일 때도 예외 없이. 예전엔 이 가드가 !force 블록
+  // 안에만 있어서, 목표를 저장하자마자 탭을 전환하면 아직 안 올라간 값이
+  // 서버의 옛 값으로 덮어써져 방금 쓴 목표가 사라졌다. (2026-08-07)
+  if (statePersistInFlight || statePersistQueued) return false;
   let changed = false;
   try {
     const remote = await loadRemoteState();
@@ -7051,6 +7054,25 @@ document.addEventListener('visibilitychange', () => {
 function getNotifications() {
   const list = [];
 
+  // 0. 프리미엄 사전 진단지, 아직 안 쓴 사람에게 첫 미팅 전까지 계속.
+  //    팝업은 한 번 닫으면 사라져서, 알림에도 남겨둬야 다시 찾아올 수 있다.
+  try {
+    if (state.tier === 'premium' && !(state.premium_intake && state.premium_intake.at)) {
+      const _m1 = ((CHALLENGE.premium && CHALLENGE.premium.weekly_meetings) || [])[0];
+      list.push({
+        id: 'premium-intake',
+        icon: '📝',
+        color: '#7B5E8C',
+        title: '사전 진단지, 아직 안 하셨어요',
+        body: _m1
+          ? `첫 미팅 전에 받아야 그 장면에 맞는 표현으로 준비해드릴 수 있어요. 3분이면 끝나요.`
+          : '3분이면 끝나요. 미팅을 내 상황에 맞게 준비해드릴게요.',
+        createdAt: (CHALLENGE.start_date || '2026-08-10') + 'T09:00:00',
+        cta: { label: '지금 작성하기 →', kind: 'intake' },
+      });
+    }
+  } catch (e) {}
+
   // 1. 미팅 다시보기, 프리미엄 + recordingUrl 있는 미팅마다
   if (state.tier === 'premium') {
     (CHALLENGE.premium && CHALLENGE.premium.weekly_meetings || []).forEach((m) => {
@@ -7145,6 +7167,8 @@ function handleNotificationCta(n) {
   } else if (kind === 'review' || kind === 'go-week-review') {
     window.__currentReviewWeek = n.cta.weekN || 1;
     setTimeout(() => go('week-review'), 30);
+  } else if (kind === 'intake') {
+    setTimeout(() => { try { window.__openPremiumIntake(); } catch (_) {} }, 30);
   } else if (kind === 'url') {
     try { window.open(n.cta.url, '_blank', 'noopener,noreferrer'); } catch (_) {}
   }
@@ -8405,7 +8429,9 @@ function HomePage() {
     // 운영진은 어차피 모든 집계에서 이름으로 제외되므로 데이터가 오염되지 않는다.
     const _iMember = true;
     if (_iPrem && _iMember && _iDay >= 1 && _iDay <= 3 && !state.premium_intake
-        && state.onboarded && challengeStarted() && guidedTourStep === null && !anyPopupOpen()
+        && state.onboarded && guidedTourStep === null && !anyPopupOpen()
+        // challengeStarted() 조건 삭제: 첫 미팅 전에 받아야 의미가 있는 자료라
+        // 시작일(8/10) 전 온보딩 주말에도 떠야 한다. (2026-08-07)
         && !window.__intakeArmed) {
       window.__intakeArmed = true;
       setTimeout(() => {
@@ -20257,7 +20283,10 @@ function ProfilePage() {
       `<div style="display:flex;align-items:center;gap:6px;">`
     +   `<span style="color:var(--lilac);display:inline-flex;">${Icon('crown', 11)}</span>`
     +   `<span style="font-size:10px;font-weight:800;letter-spacing:0.1em;color:#7B5E8C;">${_pi ? 'MY TRACK' : 'MY GOAL'}</span>`
-    +   `<button id="__editGoalBtn" style="margin-left:auto;background:transparent;border:none;font-size:11px;color:#7B5E8C;cursor:pointer;padding:2px 4px;font-family:inherit;font-weight:700;">${hasGoal ? '수정' : '+ 목표 추가'}</button>`
+    +   `<span style="margin-left:auto;display:inline-flex;gap:2px;align-items:center;">`
+    +     (_pi ? `<button id="__editIntakeBtn" style="background:transparent;border:none;font-size:11px;color:#7B5E8C;cursor:pointer;padding:2px 5px;font-family:inherit;font-weight:700;">진단 수정</button><span style="color:rgba(123,94,140,0.4);font-size:10px;">·</span>` : '')
+    +     `<button id="__editGoalBtn" style="background:transparent;border:none;font-size:11px;color:#7B5E8C;cursor:pointer;padding:2px 5px;font-family:inherit;font-weight:700;">${_pi ? '목표' : (hasGoal ? '수정' : '+ 목표 추가')}</button>`
+    +   `</span>`
     + `</div>`
     + (_pi
         ? `<div style="margin-top:6px;font-size:14px;font-weight:800;color:var(--ink);line-height:1.4;">${escapeHtml(premiumSceneLabel(_pi.scene))}</div>`
@@ -20277,6 +20306,9 @@ function ProfilePage() {
   setTimeout(() => {
     const btn = document.getElementById('__editGoalBtn');
     if (btn) btn.onclick = () => { showGoalEditor = true; render(); };
+    // 진단 12문항 전체를 다시 열어 수정 (장면·부담감·대본·데드라인·성공기준 포함).
+    const iBtn = document.getElementById('__editIntakeBtn');
+    if (iBtn) iBtn.onclick = () => { try { window.__openPremiumIntake(); } catch (e) {} };
   }, 0);
 
   // 3.5 내 대본 모음 카드, quick link to scripts page
