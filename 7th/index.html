@@ -8788,12 +8788,22 @@ function HomePage() {
           showToast(`Day ${lastDay} 까지 ${targetWeek.days.length}일 인증 다 채우고 들어와요 (지금 ${doneCount}/${targetWeek.days.length})`);
           return;
         }
+        // Week 4 배너는 '파이널 테스트' 라고 써 있으므로 파이널로 직행한다.
+        // (week-review 는 Week 4 테스트 = 3단계 복습이라 다른 화면. 2026-08-07 수정)
+        if (targetWeek.n === 4) {
+          try { window.__startFinalTest(); } catch (e) {}
+          return;
+        }
         window.__currentReviewWeek = targetWeek.n;
         go('week-review');
       },
     });
-    // 복습 완료 여부, bingo_done flag 확인
-    const isReviewed = !!(state.bingo_done && state.bingo_done[String(targetWeek.n)]);
+    // 복습 완료 여부, bingo_done flag 확인.
+    // Week 4 만은 파이널 응시 여부(final_test.at)로 판정한다. bingo_done['4'] 는
+    // 운영자 건너뛰기 버튼으로도 켜져서 "안 봤는데 완료" 로 보이던 문제가 있었다.
+    const isReviewed = targetWeek.n === 4
+      ? !!(state.final_test && state.final_test.at)
+      : !!(state.bingo_done && state.bingo_done[String(targetWeek.n)]);
     if (isReviewed) {
       // Week 4(파이널)은 숨기지 않고 '완료 + 다시 풀기' 배너로. 클릭하면 파이널 테스트 재응시.
       if (targetWeek.n === 4) {
@@ -11077,10 +11087,10 @@ const STAGE_META = {
 // 한 주에서 모든 어휘 (메인 + 옵션으로 유의어) 끌어오기.
 // Week 4 = 파이널 테스트 (Day 1~20 종합). 라벨 통일 헬퍼.
 function weekReviewLabel(weekN) {
-  return Number(weekN) === 4 ? '🏆 파이널 테스트' : `Week ${weekN} 진짜 외우기`;
+  return Number(weekN) === 4 ? '🏆 Week 4 테스트' : `Week ${weekN} 진짜 외우기`;
 }
 function weekReviewLabelShort(weekN) {
-  return Number(weekN) === 4 ? '파이널 테스트' : `Week ${weekN} 진짜 외우기`;
+  return Number(weekN) === 4 ? 'Week 4 테스트' : `Week ${weekN} 진짜 외우기`;
 }
 
 function _collectWeekVocab(weekN, includeSyn) {
