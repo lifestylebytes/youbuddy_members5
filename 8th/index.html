@@ -3078,7 +3078,7 @@ let showPreReviewPopup = null;
 // 주간 설문 작성 모달, 홈 배너 클릭 시 활성. 값: 주차 번호 (1~4).
 let showSurveyFillModal = null;
 let showMiniWeekSurvey = null;
-let showPremiumPresurvey = false; // 프리미엄 사전설문(Tally) 팝업 // weekN, 단어 시험 입구에서 띄우는 3문항 미니 설문
+// weekN, 단어 시험 입구에서 띄우는 3문항 미니 설문
 let showWeekWrapupPopup = null; // weekN, 매주 금요일 (Day 5/10/15/20) 자동 노출. "지금 풀러가기 / 주말에 보기"
 let showBestPopup = null; // 이번주 베스트(만점자+최초완주) 팝업 데이터. 현재 운영자 미리보기 전용.
 let showReviewUnlockPopup = false; // Week 2(Day 6) 진입 시 '내 약점 복습' 기능 해제 온보딩 팝업.
@@ -3111,7 +3111,7 @@ function anyPopupOpen() {
   return !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
     || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup
-    || showFunFactPopup || showDonePopup || showPremiumPresurvey || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup || showWeekReviewIntro
+    || showFunFactPopup || showDonePopup || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup || showWeekReviewIntro
     || showDailyPulse || showPremiumIntake);
 }
 
@@ -6247,30 +6247,6 @@ function render() {
       const stale = document.querySelector('[data-mini-week-survey]');
       if (stale) stale.remove();
     }
-    if (showPremiumPresurvey) {
-      if (!document.querySelector('[data-premium-presurvey]')) {
-        document.body.appendChild(PremiumPresurveyModal());
-      }
-    } else {
-      const staleP = document.querySelector('[data-premium-presurvey]');
-      if (staleP) staleP.remove();
-    }
-    if (showWeekWrapupPopup) {
-      if (!document.querySelector('[data-week-wrapup-popup]')) {
-        document.body.appendChild(WeekWrapupPopupModal());
-      }
-    } else {
-      const stale = document.querySelector('[data-week-wrapup-popup]');
-      if (stale) stale.remove();
-    }
-    if (showBestPopup) {
-      if (!document.querySelector('[data-best-popup]')) {
-        document.body.appendChild(BestPopupModal(showBestPopup));
-      }
-    } else {
-      const stale = document.querySelector('[data-best-popup]');
-      if (stale) stale.remove();
-    }
     if (showPremiumIntake) {
       if (!document.querySelector('[data-premium-intake]')) {
         document.body.appendChild(PremiumIntakeModal());
@@ -8294,18 +8270,10 @@ function HomePage() {
     }
   } catch (e) {}
 
-  // 프리미엄 사전설문(Tally) 팝업: 프리미엄만, 평생 1회 노출 (닫기·이미했어요·작성 모두 본 것으로 처리).
-  try {
-    if (state.tier === 'premium' && state.onboarded && !state.premium_presurvey_seen
-        && !window.__presurveyArmed && guidedTourStep === null && !anyPopupOpen()) {
-      window.__presurveyArmed = true;
-      setTimeout(() => {
-        if (guidedTourStep !== null || anyPopupOpen() || state.premium_presurvey_seen) return;
-        showPremiumPresurvey = true;
-        render();
-      }, 650);
-    }
-  } catch (e) {}
+  // (제거됨) 프리미엄 사전설문 Tally 팝업.
+  //   7기 Tally 폼(tally.so/r/gDrGA4)으로 내보내던 팝업인데, 8기부터 진단을 앱 안으로
+  //   옮겼는데도 이 트리거가 남아 있어서 650ms 로 먼저 떠버렸다. 그 결과 프리미엄 멤버가
+  //   앱 내 진단 대신 7기 링크를 보게 됐다. PremiumIntakeModal 하나만 남긴다. (2026-08-07)
 
   // 후기 공개 동의 팝업: 주간 설문을 제출한 멤버에게, 응답할 때까지 세션당 1회.
   try {
@@ -16091,6 +16059,35 @@ function PremiumPage() {
   // 유저 피드백: '너무 의도가 뻔히 보여서'. 베이직 유저가 프리미엄 탭에 들어와도
   // 각 세부 페이지 (MeetingNotesPage / QuizPage / CertificationPage) 진입 시
   // premiumGatePage() 가 이미 개별로 잠금 + 설명해주니까 중복 안내 제거.
+
+  // ── 사전 진단지 상시 진입점 (미팅 달력 바로 위) ─────────────────────────
+  // 진단 팝업은 Day1~3 에 1회만 자동으로 뜨는데, 그때 닫으면 다시 찾을 길이 없었다.
+  // 첫 미팅 전에 받아야 의미가 있는 자료라 미팅 자리 바로 위에 상시로 세워둔다.
+  if (isPremium) {
+    const _done = !!(state.premium_intake && state.premium_intake.at);
+    const intakeCard = el('button', {
+      style: {
+        width: '100%', marginTop: '22px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+        padding: _done ? '13px 16px' : '17px 18px', borderRadius: _done ? '14px' : '18px',
+        display: 'flex', alignItems: 'center', gap: '13px',
+        background: _done ? 'var(--paper2)' : 'linear-gradient(150deg,#FFF6E4 0%,#FFE9CC 100%)',
+        border: _done ? '1px solid var(--line2)' : '1.5px solid rgba(240,172,61,0.65)',
+      },
+      onClick: () => { try { window.__openPremiumIntake(); } catch (e) {} },
+    });
+    intakeCard.innerHTML = _done
+      ? `<span style="flex-shrink:0;font-size:16px;">✅</span>
+         <span style="flex:1;min-width:0;font-size:12.5px;color:var(--ink-soft);">사전 진단지 작성 완료 · 내용 바꾸고 싶으시면 탭하세요</span>
+         <span style="flex-shrink:0;color:var(--muted);font-size:14px;">→</span>`
+      : `<span style="flex-shrink:0;width:46px;height:46px;border-radius:14px;background:rgba(240,172,61,0.25);display:grid;place-items:center;font-size:22px;">📝</span>
+         <span style="flex:1;min-width:0;">
+           <span class="kicker" style="display:block;color:#A07A2A;">BEFORE WEEK 1</span>
+           <span style="display:block;margin-top:3px;font-size:15.5px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">사전 진단지, 아직 안 하셨어요</span>
+           <span style="display:block;margin-top:5px;font-size:12.5px;color:var(--ink-soft);line-height:1.6;">첫 미팅 전에 받아야 그 장면에 맞는 표현으로 준비해드릴 수 있어요. 3분이면 끝나요 :)</span>
+         </span>
+         <span style="flex-shrink:0;color:var(--orange-dark);font-size:17px;font-weight:800;">→</span>`;
+    page.appendChild(intakeCard);
+  }
 
   page.appendChild(el('div', { class: 'kicker', style: { marginTop: '24px' } }, `${calBaseY}년 ${calBaseMo}월 · 목요일 미팅`));
   page.appendChild(el('h2', { class: 'h2', style: { marginTop: '6px', marginBottom: '12px' } },
@@ -25404,37 +25401,8 @@ function SurveyFillModal() {
    3문항 (≤30s), 응답률 부스트용. state.week_survey[N].mini 에 저장.
    메인 설문 이미 답한 사람은 자동 skip. 응답 후 시험 (week-review) 으로 자동 이동.
    ============================================================ */
-// 프리미엄 사전설문 (Tally) 팝업. 1회 노출 후 영구 숨김.
-function PremiumPresurveyModal() {
-  const seen = (via) => {
-    state.premium_presurvey_seen = true;
-    try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
-    showPremiumPresurvey = false;
-    render();
-  };
-  const backdrop = el('div', { class: 'modal-backdrop', 'data-premium-presurvey': '1', onClick: (e) => { if (e.target === backdrop) seen('close'); } });
-  const modal = el('div', { class: 'modal', style: { width: 'min(92vw, 380px)', padding: '0', borderRadius: '24px', overflow: 'hidden', background: '#fff', border: '1px solid var(--line)' } });
-  modal.innerHTML = `
-    <div style="position:relative;padding:26px 22px 18px;background:linear-gradient(135deg,#EAF2FA 0%,#CDE2F2 100%);text-align:center;">
-      <button data-ps-close style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,0.7);border:none;color:var(--ink-soft);font-size:14px;cursor:pointer;">✕</button>
-      <div style="font-size:40px;line-height:1;">💎</div>
-      <div class="kicker" style="color:var(--orange-dark);margin-top:6px;">PREMIUM ONLY</div>
-      <div style="margin-top:6px;font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">프리미엄이신 분만!<br>사전 설문을 작성해주세요</div>
-      <div class="t-small" style="margin-top:8px;font-size:12px;color:var(--ink-soft);line-height:1.6;">직군·니즈를 미리 알려주시면<br>미팅·예문을 <b>내 업계 맞춤</b>으로 준비해드려요 (1분)</div>
-    </div>
-    <div style="padding:16px 20px 18px;display:flex;flex-direction:column;gap:9px;">
-      <button data-ps-go class="btn btn-primary btn-full" style="background:var(--orange);border:none;color:#fff;font-size:14px;padding:13px;font-weight:800;">📝 설문 작성하러 가기 →</button>
-      <button data-ps-done class="btn btn-full" style="background:#fff;border:1px solid var(--line);color:var(--ink-soft);font-size:13px;padding:11px;font-weight:700;">이미 했어요</button>
-    </div>`;
-  modal.querySelector('[data-ps-close]').onclick = () => seen('close');
-  modal.querySelector('[data-ps-done]').onclick = () => seen('done');
-  modal.querySelector('[data-ps-go]').onclick = () => {
-    try { window.open('https://tally.so/r/gDrGA4', '_blank', 'noopener,noreferrer'); } catch (e) {}
-    seen('go');
-  };
-  backdrop.appendChild(modal);
-  return backdrop;
-}
+/* (제거됨) PremiumPresurveyModal · 7기 Tally 폼으로 내보내던 팝업.
+   8기부터 진단은 PremiumIntakeModal(앱 내 12문항)로 대체됨. 2026-08-07 */
 
 function MiniWeekSurveyModal() {
   const weekN = showMiniWeekSurvey;
@@ -28526,6 +28494,19 @@ function MyReviewPage() {
    즉석 지목은 부담 / 스페인어가 튀어나올 수 있어요) 을 정식 문항으로 승격.
    프리미엄만, Day1~3 사이 1회. 답은 홈 트랙 카드·운영 대시보드에 그대로 뜬다.
    ============================================================ */
+// 진단 팝업을 언제든 수동으로 여는 진입점. 프리미엄 탭 배너에서 호출한다.
+// 이미 작성한 사람은 기존 답을 draft 로 불러와서 수정할 수 있게 한다.
+window.__openPremiumIntake = function () {
+  try {
+    window.__intakeDraft = (state.premium_intake && typeof state.premium_intake === 'object')
+      ? Object.assign({}, state.premium_intake)
+      : {};
+    window.__intakeArmed = true;   // 자동 트리거가 뒤늦게 또 뜨지 않도록
+    showPremiumIntake = true;
+    render();
+  } catch (e) {}
+};
+
 const PREMIUM_SCENES = [
   { v: 'meeting',   emoji: '🗣', label: '회의에서 내 의견 말하기' },
   { v: 'email',     emoji: '✉️', label: '메일·메신저로 정확히 쓰기' },
