@@ -8956,88 +8956,102 @@ function HomePage() {
       })();
       const _ddayTxt = _dday === 0 ? '오늘 밤' : (_dday === 1 ? '내일 밤' : `D-${_dday}`);
       const _isPrem = state.tier === 'premium';
+
+      // 미팅 배너 + 미팅 전 할 일을 한 카드로 묶는다.
+      // 따로 두면 앞 카드(MY TRACK)에 붙어 보여서 무슨 항목인지 안 읽힌다.
+      const _mid = 'm' + _next.n;
+      const _todo = (state.pre_meeting_todo && state.pre_meeting_todo[_mid]) || {};
+      const _nt = (state.meeting_notes && state.meeting_notes[_mid]) || {};
+      // 1·2 는 데이터로 자동 판정하되, 본인이 직접 체크한 게 있으면 그걸 우선한다.
+      // (미팅 페이지를 다 채웠는데 판정 기준이 달라 체크가 안 되는 일이 있어서)
+      const _c1 = !!_todo.intake || !!(state.premium_intake && state.premium_intake.at);
+      const _c2 = !!_todo.notes  || !!((_nt.talk_points || '').trim() || (_nt.meeting_notes || '').trim());
+      const _c3 = !!_todo.intro;
+      const _allDone = _isPrem && _c1 && _c2 && _c3;
+      const _doneN = [_c1, _c2, _c3].filter(Boolean).length;
+
+      const mtgBox = el('div', {
+        style: {
+          width: '100%', marginTop: '22px', borderRadius: '16px', overflow: 'hidden',
+          border: `1px solid ${_allDone ? 'rgba(34,179,106,0.42)' : (_isPrem ? 'rgba(169,139,184,0.34)' : 'var(--line)')}`,
+          background: '#fff',
+        },
+      });
+
       const mtgLine = el(_isPrem ? 'button' : 'div', {
         style: {
-          width: '100%', marginTop: '20px', padding: '13px 16px',
-          borderRadius: _isPrem ? '14px 14px 0 0' : '14px',
-          background: _isPrem ? 'rgba(169,139,184,0.10)' : 'var(--cream)',
-          border: _isPrem ? '1px solid rgba(169,139,184,0.32)' : '1px solid var(--line)',
-          borderBottom: _isPrem ? 'none' : undefined,
+          width: '100%', padding: '14px 16px',
+          background: _allDone ? 'rgba(34,179,106,0.10)' : (_isPrem ? 'rgba(169,139,184,0.12)' : 'var(--cream)'),
+          border: 'none',
           display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'left',
           cursor: _isPrem ? 'pointer' : 'default', fontFamily: 'inherit',
         },
         ...(_isPrem ? { onClick: () => go('premium') } : {}),
       });
       mtgLine.innerHTML = _isPrem
-        ? `<span style="flex-shrink:0;color:var(--lilac);display:inline-flex;">${Icon('crown', 14)}</span>
+        ? `<span style="flex-shrink:0;color:${_allDone ? '#1F8F58' : 'var(--lilac)'};display:inline-flex;">${Icon('crown', 14)}</span>
            <span style="flex:1;min-width:0;font-size:12.5px;line-height:1.5;color:var(--ink);">
-             <b style="color:#7B5E8C;">Week ${_next.n} 미팅 ${_ddayTxt}</b> · 목 21:00 · 여기서 직접 말해보는 자리예요
+             <b style="color:${_allDone ? '#1F8F58' : '#7B5E8C'};">Week ${_next.n} 미팅 ${_ddayTxt}</b> · 목 21:00 · 여기서 직접 말해보는 자리예요
            </span>
-           <span style="flex-shrink:0;font-size:11px;color:#7B5E8C;font-weight:700;">준비하기 →</span>`
+           <span style="flex-shrink:0;font-size:11px;color:${_allDone ? '#1F8F58' : '#7B5E8C'};font-weight:700;">준비하기 →</span>`
         : `<span style="flex-shrink:0;color:var(--lilac);display:inline-flex;">${Icon('crown', 14)}</span>
            <span style="flex:1;min-width:0;font-size:12px;line-height:1.5;color:var(--muted);">
              ${_ddayTxt === '오늘 밤' ? '오늘 밤' : `${_ddayTxt}, 목요일 밤`} 프리미엄 버디들은 미팅에서 이번 주 표현을 직접 말해봐요
            </span>`;
-      page.appendChild(mtgLine);
+      mtgBox.appendChild(mtgLine);
 
-      /* ── 미팅 전 할 일 3가지 (프리미엄) ────────────────────────────
-         1·2 는 실제 데이터로 자동 판정, 3(자기소개)만 본인이 탭해서 체크.
-         셋 다 되면 카드 전체가 초록으로 바뀌고 '미팅 준비 완료' 로 닫힌다. */
       if (_isPrem) {
-        const _mid = 'm' + _next.n;
-        const _todo = (state.pre_meeting_todo && state.pre_meeting_todo[_mid]) || {};
-        const _nt = (state.meeting_notes && state.meeting_notes[_mid]) || {};
-        const _c1 = !!(state.premium_intake && state.premium_intake.at);
-        const _c2 = !!((_nt.talk_points || '').trim() || (_nt.meeting_notes || '').trim());
-        const _c3 = !!_todo.intro;
-        const _allDone = _c1 && _c2 && _c3;
-        const _doneN = [_c1, _c2, _c3].filter(Boolean).length;
-
         const prep = el('div', {
           style: {
-            width: '100%', padding: '12px 16px 13px', borderRadius: '0 0 14px 14px',
-            background: _allDone ? 'rgba(34,179,106,0.09)' : 'rgba(169,139,184,0.05)',
-            border: `1px solid ${_allDone ? 'rgba(34,179,106,0.38)' : 'rgba(169,139,184,0.32)'}`,
-            borderTop: `1px dashed ${_allDone ? 'rgba(34,179,106,0.32)' : 'rgba(169,139,184,0.28)'}`,
+            padding: '13px 16px 14px',
+            background: _allDone ? 'rgba(34,179,106,0.045)' : '#fff',
+            borderTop: `1px solid ${_allDone ? 'rgba(34,179,106,0.22)' : 'var(--line2)'}`,
           },
         });
         const _row = (on, label, attr, hint) =>
-          `<button ${attr} style="display:flex;align-items:center;gap:9px;width:100%;padding:6px 0;background:none;border:none;text-align:left;cursor:pointer;font-family:inherit;">
-             <span style="flex-shrink:0;width:17px;height:17px;border-radius:5px;display:grid;place-items:center;font-size:10px;font-weight:800;
-               background:${on ? '#22B36A' : 'transparent'};border:${on ? 'none' : '1.5px solid rgba(169,139,184,0.5)'};color:#fff;">${on ? '✓' : ''}</span>
-             <span style="flex:1;min-width:0;font-size:12.5px;line-height:1.5;color:${on ? 'var(--muted)' : 'var(--ink)'};${on ? 'text-decoration:line-through;text-decoration-color:rgba(148,137,122,0.45);' : ''}">${label}</span>
-             ${!on && hint ? `<span style="flex-shrink:0;font-size:11px;color:#7B5E8C;font-weight:700;">${hint}</span>` : ''}
+          `<button ${attr} style="display:flex;align-items:center;gap:10px;width:100%;padding:7px 0;background:none;border:none;text-align:left;cursor:pointer;font-family:inherit;">
+             <span style="flex-shrink:0;width:18px;height:18px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:800;
+               background:${on ? '#22B36A' : '#fff'};border:${on ? 'none' : '1.5px solid rgba(169,139,184,0.45)'};color:#fff;">${on ? '✓' : ''}</span>
+             <span style="flex:1;min-width:0;font-size:13px;line-height:1.5;color:${on ? 'var(--muted)' : 'var(--ink)'};${on ? 'text-decoration:line-through;text-decoration-color:rgba(148,137,122,0.4);' : ''}">${label}</span>
+             ${hint ? `<span style="flex-shrink:0;font-size:11px;color:${on ? 'var(--muted)' : '#7B5E8C'};font-weight:700;">${hint}</span>` : ''}
            </button>`;
         prep.innerHTML =
-            `<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
-               <span style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:${_allDone ? '#1F8F58' : '#7B5E8C'};">${_allDone ? '✅ 미팅 준비 완료' : '미팅 전 할 일'}</span>
+            `<div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;">
+               <span style="font-size:10.5px;font-weight:800;letter-spacing:0.08em;color:${_allDone ? '#1F8F58' : '#7B5E8C'};">${_allDone ? '✅ 미팅 준비 완료' : '미팅 전 할 일'}</span>
                <span style="font-size:10.5px;color:var(--muted);font-weight:700;">${_doneN}/3</span>
+               ${!_allDone ? `<span style="margin-left:auto;font-size:10.5px;color:var(--muted);">체크박스를 눌러 직접 체크할 수도 있어요</span>` : ''}
              </div>`
-          + _row(_c1, '사전 진단지 작성', 'data-prep="intake"', '작성 →')
-          + _row(_c2, `Meeting ${_next.n} 페이지 채우기`, 'data-prep="notes"', '채우러 →')
-          + _row(_c3, '카카오톡에 자기소개 올리기', 'data-prep="intro"', '탭해서 체크')
+          + _row(_c1, '사전 진단지 작성', 'data-prep="intake"', _c1 ? '' : '작성하러 →')
+          + _row(_c2, `Meeting ${_next.n} 페이지 채우기`, 'data-prep="notes"', _c2 ? '' : '채우러 →')
+          + _row(_c3, '카카오톡에 자기소개 올리기', 'data-prep="intro"', '')
           + (_allDone
-              ? `<div style="margin-top:6px;font-size:11.5px;color:#1F8F58;line-height:1.5;">준비 다 하셨어요. 목요일 밤에 뵐게요 :)</div>`
+              ? `<div style="margin-top:7px;font-size:11.5px;color:#1F8F58;line-height:1.5;">준비 다 하셨어요. 목요일 밤에 뵐게요 :)</div>`
               : '');
+
+        // 체크박스(왼쪽 네모)를 누르면 항목과 무관하게 수동 토글.
+        // 그 외 영역을 누르면 해당 화면으로 이동 (진단 열기 / 미팅 노트).
+        const _toggle = (k) => {
+          const cur = (state.pre_meeting_todo && typeof state.pre_meeting_todo === 'object') ? state.pre_meeting_todo : {};
+          cur[_mid] = cur[_mid] || {};
+          if (cur[_mid][k]) delete cur[_mid][k]; else cur[_mid][k] = true;
+          state.pre_meeting_todo = cur;
+          try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+          showToast(cur[_mid][k] ? '체크했어요 ✅' : '체크 해제');
+          render();
+        };
         prep.querySelectorAll('[data-prep]').forEach((btn) => {
           btn.onclick = (ev) => {
             ev.stopPropagation();
             const k = btn.getAttribute('data-prep');
+            const onBox = ev.target && ev.target === btn.firstElementChild;
+            if (onBox || k === 'intro') { _toggle(k); return; }
             if (k === 'intake') { try { window.__openPremiumIntake(); } catch (e) {} return; }
             if (k === 'notes') { window.__currentMeetingId = _mid; go('meeting-notes'); return; }
-            // 자기소개는 앱이 알 수 없으니 본인이 체크. 다시 누르면 해제.
-            const cur = (state.pre_meeting_todo && typeof state.pre_meeting_todo === 'object') ? state.pre_meeting_todo : {};
-            cur[_mid] = cur[_mid] || {};
-            if (cur[_mid].intro) delete cur[_mid].intro; else cur[_mid].intro = true;
-            state.pre_meeting_todo = cur;
-            try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
-            showToast(cur[_mid].intro ? '자기소개 완료 체크 ✅' : '체크 해제');
-            render();
           };
         });
-        page.appendChild(prep);
+        mtgBox.appendChild(prep);
       }
-      page.appendChild(mtgLine);
+      page.appendChild(mtgBox);
     }
   } catch (e) {}
 
@@ -9059,12 +9073,6 @@ function HomePage() {
       onClick: () => window.__toggleRecCheckMode(),
     }, window.__recCheckMode ? '🎙 녹음 체크 모드 ON · 칸 탭 = 토글' : '🎙 녹음 체크 모드');
     cbWrap.appendChild(recBtn);
-    const ibBtn = el('button', {
-      class: 'btn btn-ghost',
-      style: { marginBottom: '10px', marginLeft: '8px', fontSize: '12px', padding: '8px 14px' },
-      onClick: () => { try { window.__openIntakeBoard(); } catch (e) {} },
-    }, '📋 프리미엄 진단 응답 보기');
-    cbWrap.appendChild(ibBtn);
   }
   cbWrap.appendChild(Checkboard());
   page.appendChild(cbWrap);
@@ -24197,6 +24205,26 @@ function OpsDashboardPage() {
     + `<div style="margin-top:6px;font-size:19px;font-weight:800;">수료까지 ${left}일 남았어요</div>`
     + `<div style="margin-top:4px;font-size:12px;color:rgba(255,255,255,0.75);">마지막 날 ${escapeHtml(CHALLENGE.end_date)}</div>`;
   page.appendChild(hero);
+
+  // 프리미엄 사전 진단 응답 모아보기 (미팅 직전에 SQL 없이 바로 확인)
+  const ibCard = el('button', {
+    style: {
+      width: '100%', marginBottom: '12px', padding: '14px 16px', borderRadius: '16px',
+      background: 'linear-gradient(150deg,#FFF8EA,#FFF1DC)', border: '1.5px solid rgba(240,172,61,0.5)',
+      cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+      display: 'flex', alignItems: 'center', gap: '12px',
+    },
+    onClick: () => { try { window.__openIntakeBoard(); } catch (e) {} },
+  });
+  ibCard.innerHTML = `
+    <span style="flex-shrink:0;width:42px;height:42px;border-radius:13px;background:rgba(240,172,61,0.25);display:grid;place-items:center;font-size:20px;">📋</span>
+    <span style="flex:1;min-width:0;">
+      <span class="kicker" style="display:block;color:#A07A2A;">PREMIUM INTAKE</span>
+      <span style="display:block;margin-top:3px;font-size:14.5px;font-weight:800;color:var(--ink);">프리미엄 사전 진단 응답</span>
+      <span style="display:block;margin-top:3px;font-size:11.5px;color:var(--ink-soft);line-height:1.5;">부담감 높은 순으로 정렬 · 미작성자도 같이 보여요</span>
+    </span>
+    <span style="flex-shrink:0;color:var(--orange-dark);font-size:16px;font-weight:800;">→</span>`;
+  page.appendChild(ibCard);
 
   const box = el('div');
   box.innerHTML = '<div class="card" style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">불러오는 중...</div>';
