@@ -6597,7 +6597,7 @@ function onboardingTourSteps(tier) {
       emoji: '🎁',
       kicker: 'Step 4 · Wrap',
       title: '완주 기준은 18/20',
-      body: `20일 중 <b>18일 이상 학습</b> 하면 완주 (지각이셔도 1일로 인정). 완주한 버디에게는 <b>이번 기수 단어장 PDF + 완주 배지 + 7기 얼리버드 쿠폰</b> 을 보내드려요. 준비 끝, 시작할게요!`,
+      body: `20일 중 <b>18일 이상 학습</b> 하고 <b>파이널 테스트</b>까지 보시면 완주예요 (지각이셔도 1일로 인정). 완주한 버디에게는 <b>이번 기수 4주 단어집 PDF + 완주 배지</b> 를 드려요. 준비 끝, 시작할게요!`,
     },
   ];
 }
@@ -9223,24 +9223,20 @@ function HomePage() {
       // ── 카드 3: 얼리버드 배너 (Day 20 완료자만) ───────────────────────────
       if (computeVerifyScore().passed) {
         (() => {
-          // 완주 기준일 = CHALLENGE.end_date + 72시간
-          const deadline = new Date(CHALLENGE.end_date + 'T23:59:59+09:00');
-          deadline.setHours(deadline.getHours() + 72);
-          const msLeft = deadline - Date.now();
-          const hoursLeft = Math.max(0, Math.floor(msLeft / 3600000));
-          const minutesLeft = Math.max(0, Math.floor((msLeft % 3600000) / 60000));
-
+          // 2026-08-07: '7기 수료 특가 + 72시간 카운트다운' 제거.
+          // 실제로 할인이 없는데 "특가 · N시간 남음" 이 떠서 없는 혜택을 만들고 있었고,
+          // 마감 계산도 end_date + 72시간(8/10, 8기 개강일)이라 안내와 어긋났다.
+          // 지금은 할인·마감 없이 8기 이어가기 안내만 남긴다.
           const ebCard = el('div', { style: {
             marginTop: '14px', background: 'linear-gradient(135deg,#fff8e7 0%,#fff3d4 100%)',
             borderRadius: '20px', padding: '18px', border: '1px solid rgba(251,146,60,0.3)',
           }});
-          const timeStr = msLeft > 0 ? `${hoursLeft}시간 ${minutesLeft}분 남음` : '마감';
           ebCard.innerHTML = `
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-              <span style="font-size:20px;">🎁</span>
+              <span style="font-size:20px;">🚀</span>
               <div>
-                <div style="font-size:13px;font-weight:800;color:var(--ink);">7기 수료 특가</div>
-                <div style="font-size:11px;color:var(--muted);">완주 멤버 전용 · ${timeStr}</div>
+                <div style="font-size:13px;font-weight:800;color:var(--ink);">8기, 이어서 가볼까요?</div>
+                <div style="font-size:11px;color:var(--muted);">20일 완주하신 분께 드리는 안내</div>
               </div>
             </div>
             <div style="font-size:12px;color:var(--ink-soft);margin-bottom:12px;">8기는 더 어렵고 더 재밌을 거예요. 이번에 쌓은 감각, 이어서 키워봐요.</div>`;
@@ -12042,7 +12038,7 @@ function renderBingoMode(page, weekN, week, isPremium) {
             <li>📊 종합 리포트 들어가서 본인 4주 stats 확인</li>
             <li>📥 4주 단어집 PDF 다운로드 → 졸업 후에도 펼쳐보는 본인 사전</li>
             <li>📜 본인 문장 아카이브 (Notion export)</li>
-            <li>🎁 다음 기수 신청 (얼리버드 자리 한정)</li>
+            <li>🎁 다음 기수 신청 (8기 8/10 시작)</li>
           </ol>
         </div>
         <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
