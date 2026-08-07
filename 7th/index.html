@@ -9544,7 +9544,10 @@ function Checkboard() {
     const isDormant = rest.dormant && !cbCompleted && !isUnreg;
     const isComeback = rest.comeback && !cbCompleted;
     const memberTz = (memberTimezoneText(m) || '').trim();
-    const showTz = memberTz && memberTz !== '+0h';
+    // 완주자는 시차 배지를 숨기고 🏅 를 살린다.
+    // 이름칸이 좁아 배지가 밀리는데, 시차는 "아직 못 채운 날이 있는 사람"을 볼 때만
+    // 쓰는 정보라 완주 후에는 의미가 없다. 메달이 시차보다 우선.
+    const showTz = memberTz && memberTz !== '+0h' && !cbCompleted;
     // 운영자/스태프 view, 영어 닉네임 옆에 작은 한글 이름 inline 노출 (멤버 매핑 빠르게)
     const isOpView = (state.isOperator || state.isStaff) && !m.me;
     const krShadow = isOpView
