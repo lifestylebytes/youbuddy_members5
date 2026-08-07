@@ -8837,6 +8837,43 @@ function HomePage() {
         <div class="serif" style="font-size:28px;line-height:1.15;margin-top:6px;color:var(--orange);">🎉 완료!</div>
         <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.55;">20일 여정을 모두 끝냈어요. 정말 수고하셨어요 🧡</div>
       </div>`;
+  } else if (!challengeStarted()) {
+    // 시작 전(온보딩 주말). 인증률은 아직 의미가 없으니 카운트다운 + 함께 시작하는 인원.
+    // "나 혼자가 아니다" 를 먼저 보여주는 게 첫 화면에서 제일 중요하다.
+    const _dStart = (() => {
+      try {
+        const [y1, m1, d1] = koreaTodayStr().split('-').map(Number);
+        const [y2, m2, d2] = CHALLENGE.start_date.split('-').map(Number);
+        return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
+      } catch (e) { return null; }
+    })();
+    const _dTxt = _dStart === 0 ? 'D-DAY' : (_dStart === 1 ? 'D-1' : `D-${_dStart}`);
+    const _startDow = (() => {
+      try { const [y, m, d] = CHALLENGE.start_date.split('-').map(Number);
+        return ['일','월','화','수','목','금','토'][new Date(y, m - 1, d).getDay()]; } catch (e) { return ''; }
+    })();
+    const _pool = (typeof paidMembers === 'function') ? paidMembers() : [];
+    const _cnt = (t) => _pool.filter((m) => (m.me ? (state.tier || 'basic') : m.tier) === t).length;
+    // 입장(코드 입력) 완료 인원. 서버에서 registered 가 도착한 뒤에만 노출.
+    const _reg = (t) => _pool.filter((m) => ((m.me ? (state.tier || 'basic') : m.tier) === t) && (m.me || m.registered)).length;
+    const _sub = (t) => (window.__registeredLoaded ? `${_reg(t)}명 입장 완료` : '함께 시작해요');
+    const [_sm, _sd] = CHALLENGE.start_date.split('-').slice(1);
+    stats.innerHTML = `
+      <button class="card card-flat" data-stat-tier="all" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
+        <div class="kicker">챌린지 시작</div>
+        <div class="serif" style="font-size:26px;line-height:1.1;margin-top:6px;color:var(--orange);">${_dTxt}</div>
+        <div class="t-small" style="margin-top:4px;">${Number(_sm)}월 ${Number(_sd)}일 ${_startDow}요일 시작</div>
+      </button>
+      <button class="card card-flat" data-stat-tier="basic" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
+        <div class="kicker">베이직</div>
+        <div class="serif" style="font-size:18px;line-height:1.15;margin-top:6px;color:var(--ink-soft);">${_cnt('basic')}명 ☕️</div>
+        <div class="t-small" style="margin-top:4px;">${_sub('basic')}</div>
+      </button>
+      <button class="card card-flat" data-stat-tier="premium" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
+        <div class="kicker">프리미엄</div>
+        <div class="serif" style="font-size:18px;line-height:1.15;margin-top:6px;color:#7B5E8C;">${_cnt('premium')}명 🌿</div>
+        <div class="t-small" style="margin-top:4px;">${_sub('premium')}</div>
+      </button>`;
   } else if (isWeekend) {
     stats.innerHTML = `
       <button class="card card-flat" data-stat-tier="all" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
@@ -9022,6 +9059,12 @@ function HomePage() {
       onClick: () => window.__toggleRecCheckMode(),
     }, window.__recCheckMode ? '🎙 녹음 체크 모드 ON · 칸 탭 = 토글' : '🎙 녹음 체크 모드');
     cbWrap.appendChild(recBtn);
+    const ibBtn = el('button', {
+      class: 'btn btn-ghost',
+      style: { marginBottom: '10px', marginLeft: '8px', fontSize: '12px', padding: '8px 14px' },
+      onClick: () => { try { window.__openIntakeBoard(); } catch (e) {} },
+    }, '📋 프리미엄 진단 응답 보기');
+    cbWrap.appendChild(ibBtn);
   }
   cbWrap.appendChild(Checkboard());
   page.appendChild(cbWrap);
@@ -28538,6 +28581,97 @@ function premiumStuckLabel(v) { const f = PREMIUM_STUCKS.find((x) => x.v === v);
 function premiumGoalLabel(v) { const f = PREMIUM_GOALS.find((x) => x.v === v); return f ? f.label : ''; }
 function premiumLevelLabel(v) { const f = PREMIUM_LEVELS.find((x) => x.v === v); return f ? f.label : ''; }
 function premiumEnvLabel(v) { const f = PREMIUM_ENVS.find((x) => x.v === v); return f ? f.label : ''; }
+
+/* ============================================================
+   운영자 전용: 프리미엄 사전 진단 응답 모아보기
+   ------------------------------------------------------------
+   각 멤버의 app_state.premium_intake 를 서버에서 직접 읽어 한 화면에 편다.
+   미팅 직전에 SQL 을 돌리지 않아도 되게 하는 게 목적.
+   부담감 높은 순으로 정렬해서, 먼저 챙겨야 할 사람이 맨 위에 온다.
+   ============================================================ */
+window.__intakeBoard = window.__intakeBoard || { rows: null, loading: false, error: '' };
+async function loadIntakeBoard() {
+  const ib = window.__intakeBoard;
+  if (ib.loading) return;
+  ib.loading = true; ib.error = ''; render();
+  try {
+    const rows = [];
+    const dir = (typeof MEMBER_DIRECTORY !== 'undefined' ? MEMBER_DIRECTORY : [])
+      .filter((m) => m.tier === 'premium' && !m.isOperator && !m.isStaff);
+    for (const m of dir) {
+      let payload = null;
+      try {
+        payload = await supabaseRpc('get_member_app_state', { p_cohort: CHALLENGE.cohort, p_member_key: m.name });
+      } catch (e) {}
+      const pi = payload && payload.premium_intake;
+      rows.push({ name: m.name, eng: (payload && payload.englishName) || '', intake: (pi && pi.at) ? pi : null });
+    }
+    rows.sort((a, b) => {
+      if (!!a.intake !== !!b.intake) return a.intake ? -1 : 1;
+      return Number((b.intake && b.intake.pressure) || 0) - Number((a.intake && a.intake.pressure) || 0);
+    });
+    ib.rows = rows;
+  } catch (e) { ib.error = '불러오지 못했어요. 네트워크 확인 후 다시 시도해주세요.'; }
+  finally { ib.loading = false; render(); }
+}
+window.__openIntakeBoard = function () {
+  if (document.querySelector('[data-intake-board]')) return;
+  const backdrop = el('div', { class: 'modal-backdrop', 'data-intake-board': '1' });
+  const close = () => backdrop.remove();
+  backdrop.onclick = (e) => { if (e.target === backdrop) close(); };
+  const modal = el('div', { class: 'modal', style: { width: 'min(94vw, 560px)', maxHeight: '86vh', overflow: 'auto', padding: '0', borderRadius: '22px', background: '#fff', border: '1px solid var(--line)' } });
+  const ib = window.__intakeBoard;
+  const esc = (x) => escapeHtml(String(x == null ? '' : x));
+  const row = (k, v) => v ? `<div style="display:flex;gap:8px;margin-top:4px;font-size:12px;line-height:1.55;"><span style="flex:0 0 68px;color:var(--muted);font-weight:700;">${k}</span><span style="flex:1;min-width:0;color:var(--ink-soft);">${esc(v)}</span></div>` : '';
+  const body = ib.loading
+    ? `<div style="padding:34px 20px;text-align:center;color:var(--muted);font-size:13px;">불러오는 중이에요...</div>`
+    : ib.error
+    ? `<div style="padding:28px 20px;text-align:center;color:#C0392B;font-size:13px;">${esc(ib.error)}</div>`
+    : !ib.rows
+    ? `<div style="padding:28px 20px;text-align:center;color:var(--muted);font-size:13px;">아래 버튼으로 불러오세요.</div>`
+    : (ib.rows.map((r) => {
+        const pi = r.intake;
+        const who = esc(r.eng ? `${r.eng} · ${r.name}` : r.name);
+        if (!pi) return `<div style="padding:13px 16px;border-top:1px solid var(--line2);display:flex;align-items:center;gap:8px;">
+            <span style="font-size:13.5px;font-weight:800;color:var(--muted);">${who}</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--muted);">미작성</span></div>`;
+        const pr = Number(pi.pressure || 0);
+        const prColor = pr >= 8 ? '#C0392B' : (pr >= 6 ? '#A07A2A' : '#7B5E8C');
+        const stucks = Array.isArray(pi.stuck) ? pi.stuck.map(premiumStuckLabel).filter(Boolean).join(' · ') : '';
+        return `<div style="padding:14px 16px 15px;border-top:1px solid var(--line2);">
+            <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+              <span style="font-size:14.5px;font-weight:800;color:var(--ink);">${who}</span>
+              ${pr ? `<span style="font-size:11px;font-weight:800;color:${prColor};">부담감 ${pr}/10</span>` : ''}
+              <span style="margin-left:auto;font-size:10.5px;color:var(--muted);">${esc(String(pi.at || '').slice(0, 10))}</span>
+            </div>
+            ${row('직무', pi.job)}
+            ${row('환경', premiumEnvLabel(pi.env))}
+            ${row('레벨', premiumLevelLabel(pi.level))}
+            ${row('목표 장면', premiumSceneLabel(pi.scene))}
+            ${row('막힌 순간', pi.moment)}
+            ${row('데드라인', pi.deadline)}
+            ${row('막히는 점', stucks)}
+            ${row('해본 것', pi.tried)}
+            ${row('대본 목표', premiumGoalLabel(pi.goal_track))}
+            ${row('성공 기준', pi.success)}
+            ${pi.must_know ? `<div style="margin-top:8px;padding:9px 11px;border-radius:9px;background:rgba(240,172,61,0.14);border:1px solid rgba(240,172,61,0.4);font-size:12px;line-height:1.6;color:var(--ink);"><b style="color:#A07A2A;">꼭 알아야 할 점</b><br>${esc(pi.must_know)}</div>` : ''}
+          </div>`;
+      }).join(''));
+  const doneN = ib.rows ? ib.rows.filter((r) => r.intake).length : 0;
+  modal.innerHTML = `
+    <div style="position:sticky;top:0;z-index:2;padding:18px 20px 14px;background:linear-gradient(160deg,#F4ECFA,#FFFDF7);border-bottom:1px solid var(--line2);">
+      <button data-ib-x style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,0.75);border:none;color:var(--ink-soft);font-size:14px;cursor:pointer;">✕</button>
+      <div class="kicker" style="color:#7B5E8C;">OPERATOR · PREMIUM INTAKE</div>
+      <div style="margin-top:5px;font-size:18px;font-weight:800;color:var(--ink);">프리미엄 사전 진단 응답${ib.rows ? ` ${doneN}/${ib.rows.length}` : ''}</div>
+      <div class="t-small" style="margin-top:4px;font-size:11.5px;color:var(--ink-soft);">부담감 높은 순. 미작성자는 아래에 모아둡니다.</div>
+      <button data-ib-load class="btn btn-ghost" style="margin-top:10px;font-size:12px;padding:7px 13px;">${ib.rows ? '↻ 새로고침' : '불러오기'}</button>
+    </div>
+    <div>${body}</div>`;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  modal.querySelector('[data-ib-x]').onclick = close;
+  modal.querySelector('[data-ib-load]').onclick = () => { close(); loadIntakeBoard().then(() => window.__openIntakeBoard()); };
+};
 
 window.__closePremiumIntake = () => { showPremiumIntake = false; render(); };
 window.__intakeStep = window.__intakeStep || 1;
