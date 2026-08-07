@@ -1652,6 +1652,7 @@ const defaultState = () => ({
   meeting_prep_popup_seen: {},      // { "m1": "2026-07-15" } 미팅 사전 예습 팝업을 그날 본 상태 (하루 1회, 저장하면 영구 스킵).
   best_popup_seen: {},              // { "2": true } 이번주 베스트 팝업을 주차별로 본 상태 (자동 노출 1회).
   daily_done_popup_seen: {},        // { "d6": true } '오늘 마무리' 완료 팝업을 그날 본 상태 (하루 1회).
+  pre_meeting_todo: {},             // 미팅 전 할 일 수동 체크 { m1: { intro: true } }. 자동 항목(진단·노트)은 여기 안 씀.
   premium_intake: null,             // 프리미엄 D1 진단 12문항 { job, env, level, scene, moment, deadline, stuck[], tried, pressure, goal_track, success, must_know, at }
   daily_pulse: {},                  // { "16": { a: 'keep', b: 'time', text: '...', at: ISO } } 데일리 펄스(1~2문항 초경량 설문) 응답. Day 키.
   daily_pulse_skipped: {},          // { "16": true } 그날 '다음에요'로 닫은 상태. 같은 Day 재노출 안 함.
@@ -1735,6 +1736,7 @@ const PERSISTED_STATE_KEYS = [
   'meeting_prep_popup_seen',
   'best_popup_seen',
   'daily_done_popup_seen',
+  'pre_meeting_todo',
   'premium_intake',
   'daily_pulse',
   'daily_pulse_skipped',
@@ -8919,9 +8921,11 @@ function HomePage() {
       const _isPrem = state.tier === 'premium';
       const mtgLine = el(_isPrem ? 'button' : 'div', {
         style: {
-          width: '100%', marginTop: '20px', padding: '13px 16px', borderRadius: '14px',
+          width: '100%', marginTop: '20px', padding: '13px 16px',
+          borderRadius: _isPrem ? '14px 14px 0 0' : '14px',
           background: _isPrem ? 'rgba(169,139,184,0.10)' : 'var(--cream)',
           border: _isPrem ? '1px solid rgba(169,139,184,0.32)' : '1px solid var(--line)',
+          borderBottom: _isPrem ? 'none' : undefined,
           display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'left',
           cursor: _isPrem ? 'pointer' : 'default', fontFamily: 'inherit',
         },
@@ -8937,6 +8941,65 @@ function HomePage() {
            <span style="flex:1;min-width:0;font-size:12px;line-height:1.5;color:var(--muted);">
              ${_ddayTxt === '오늘 밤' ? '오늘 밤' : `${_ddayTxt}, 목요일 밤`} 프리미엄 버디들은 미팅에서 이번 주 표현을 직접 말해봐요
            </span>`;
+      page.appendChild(mtgLine);
+
+      /* ── 미팅 전 할 일 3가지 (프리미엄) ────────────────────────────
+         1·2 는 실제 데이터로 자동 판정, 3(자기소개)만 본인이 탭해서 체크.
+         셋 다 되면 카드 전체가 초록으로 바뀌고 '미팅 준비 완료' 로 닫힌다. */
+      if (_isPrem) {
+        const _mid = 'm' + _next.n;
+        const _todo = (state.pre_meeting_todo && state.pre_meeting_todo[_mid]) || {};
+        const _nt = (state.meeting_notes && state.meeting_notes[_mid]) || {};
+        const _c1 = !!(state.premium_intake && state.premium_intake.at);
+        const _c2 = !!((_nt.talk_points || '').trim() || (_nt.meeting_notes || '').trim());
+        const _c3 = !!_todo.intro;
+        const _allDone = _c1 && _c2 && _c3;
+        const _doneN = [_c1, _c2, _c3].filter(Boolean).length;
+
+        const prep = el('div', {
+          style: {
+            width: '100%', padding: '12px 16px 13px', borderRadius: '0 0 14px 14px',
+            background: _allDone ? 'rgba(34,179,106,0.09)' : 'rgba(169,139,184,0.05)',
+            border: `1px solid ${_allDone ? 'rgba(34,179,106,0.38)' : 'rgba(169,139,184,0.32)'}`,
+            borderTop: `1px dashed ${_allDone ? 'rgba(34,179,106,0.32)' : 'rgba(169,139,184,0.28)'}`,
+          },
+        });
+        const _row = (on, label, attr, hint) =>
+          `<button ${attr} style="display:flex;align-items:center;gap:9px;width:100%;padding:6px 0;background:none;border:none;text-align:left;cursor:pointer;font-family:inherit;">
+             <span style="flex-shrink:0;width:17px;height:17px;border-radius:5px;display:grid;place-items:center;font-size:10px;font-weight:800;
+               background:${on ? '#22B36A' : 'transparent'};border:${on ? 'none' : '1.5px solid rgba(169,139,184,0.5)'};color:#fff;">${on ? '✓' : ''}</span>
+             <span style="flex:1;min-width:0;font-size:12.5px;line-height:1.5;color:${on ? 'var(--muted)' : 'var(--ink)'};${on ? 'text-decoration:line-through;text-decoration-color:rgba(148,137,122,0.45);' : ''}">${label}</span>
+             ${!on && hint ? `<span style="flex-shrink:0;font-size:11px;color:#7B5E8C;font-weight:700;">${hint}</span>` : ''}
+           </button>`;
+        prep.innerHTML =
+            `<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+               <span style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:${_allDone ? '#1F8F58' : '#7B5E8C'};">${_allDone ? '✅ 미팅 준비 완료' : '미팅 전 할 일'}</span>
+               <span style="font-size:10.5px;color:var(--muted);font-weight:700;">${_doneN}/3</span>
+             </div>`
+          + _row(_c1, '사전 진단지 작성', 'data-prep="intake"', '작성 →')
+          + _row(_c2, `Meeting ${_next.n} 페이지 채우기`, 'data-prep="notes"', '채우러 →')
+          + _row(_c3, '카카오톡에 자기소개 올리기', 'data-prep="intro"', '탭해서 체크')
+          + (_allDone
+              ? `<div style="margin-top:6px;font-size:11.5px;color:#1F8F58;line-height:1.5;">준비 다 하셨어요. 목요일 밤에 뵐게요 :)</div>`
+              : '');
+        prep.querySelectorAll('[data-prep]').forEach((btn) => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            const k = btn.getAttribute('data-prep');
+            if (k === 'intake') { try { window.__openPremiumIntake(); } catch (e) {} return; }
+            if (k === 'notes') { window.__currentMeetingId = _mid; go('meeting-notes'); return; }
+            // 자기소개는 앱이 알 수 없으니 본인이 체크. 다시 누르면 해제.
+            const cur = (state.pre_meeting_todo && typeof state.pre_meeting_todo === 'object') ? state.pre_meeting_todo : {};
+            cur[_mid] = cur[_mid] || {};
+            if (cur[_mid].intro) delete cur[_mid].intro; else cur[_mid].intro = true;
+            state.pre_meeting_todo = cur;
+            try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+            showToast(cur[_mid].intro ? '자기소개 완료 체크 ✅' : '체크 해제');
+            render();
+          };
+        });
+        page.appendChild(prep);
+      }
       page.appendChild(mtgLine);
     }
   } catch (e) {}
