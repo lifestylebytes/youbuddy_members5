@@ -13613,6 +13613,11 @@ function computeVerifyScore() {
     // 정시 인증 수. 멤버 화면에는 안 보인다 (미리 알리면 헷갈린다는 판단, 2026-08-05).
     //   수료식 '스페셜 카드상' 시상에만 쓰는 내부 값.
     cards: onTime,
+    // 레거시 별칭. 예전 이름(.score / .scoreText)으로 읽는 코드가 남아 있어도
+    // undefined 가 되어 조용히 false 로 새지 않게 한다.
+    // (2026-08-07: 체크보드가 .score 로 읽고 있어 본인 이름에 🏅 가 안 붙던 사고가 있었음)
+    score: days,
+    scoreText: `${days}일`,
   };
 }
 // 다른 멤버 점수, 서버 요약(progress = 인증 일수) + late_days 배열로 계산.
