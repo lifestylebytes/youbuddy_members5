@@ -8400,7 +8400,10 @@ function HomePage() {
   try {
     const _iDay = Number(state.currentDay) || 0;
     const _iPrem = state.tier === 'premium';
-    const _iMember = !(state.isOperator || state.isStaff) || state.operatorViewAsMember;
+    // 운영자·스태프도 멤버와 똑같이 뜨게 한다. 예전엔 제외했는데,
+    // 그러면 운영자가 멤버 화면을 검수할 방법이 없고 본인 트랙 카드도 안 생겼다.
+    // 운영진은 어차피 모든 집계에서 이름으로 제외되므로 데이터가 오염되지 않는다.
+    const _iMember = true;
     if (_iPrem && _iMember && _iDay >= 1 && _iDay <= 3 && !state.premium_intake
         && state.onboarded && challengeStarted() && guidedTourStep === null && !anyPopupOpen()
         && !window.__intakeArmed) {
@@ -8769,128 +8772,11 @@ function HomePage() {
     page.appendChild(surveyBanner);
   })();
 
-  // Premium 이번 주 미팅 hero, 프리미엄 유저에게만 노출. 발표 자리 잡기 CTA 가
-  // 가장 많이 놓치는 포인트라 Home 에서 한 번 더 리마인드.
-  if (state.tier === 'premium') {
-    requestPresenterSignups();
-    const thisWk = currentPremiumWeek();
-    if (thisWk) {
-      const iAmP = isMePresenterInWeek(thisWk.n);
-      const rem = presenterSlotsRemaining(thisWk.n);
-      const dTo = daysUntilMeeting(thisWk.date);
-      const isPastWk = dTo !== null && dTo < 0;
-      const [_py, _pm, _pd] = thisWk.date.split('-');
-      const pMon = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][parseInt(_pm,10)-1];
-
-      const pCard = el('div', {
-        style: {
-          marginTop: '14px',
-          padding: '16px',
-          borderRadius: '20px',
-          border: '1px solid rgba(169,139,184,0.35)',
-          background: iAmP
-            ? 'linear-gradient(160deg, #1F1630 0%, #3A2A52 100%)'
-            : 'linear-gradient(160deg, #FFFDF7 0%, #F4ECFA 100%)',
-          color: iAmP ? '#fff' : 'var(--ink)',
-          cursor: 'pointer',
-        },
-      });
-
-      const dCountdown = isPastWk
-        ? (dTo === -0 ? '오늘' : `D+${Math.abs(dTo)}`)
-        : dTo === 0 ? '오늘 미팅'
-        : dTo === 1 ? '내일 미팅'
-        : `D-${dTo}`;
-
-      let statusLine, ctaLabel;
-      const weekHasP = weekHasPresenter(thisWk.n);
-      if (!weekHasP) {
-        // Week 1 같은 noPresenter 주, 전원 자기소개 / 아이스브레이킹 주간.
-        statusLine = `✨ 발표 없음 · 전원 자기소개 · ${thisWk.scenario?.setting || thisWk.title}`;
-        ctaLabel = '미팅 노트 준비하기 →';
-      } else if (iAmP) {
-        statusLine = '🎤 내가 이번 주 발표자';
-        ctaLabel = '발표 준비하러 →';
-      } else if (rem === 0) {
-        statusLine = `자리 마감 · ${thisWk.scenario?.setting || thisWk.title}`;
-        ctaLabel = '미팅 노트 준비하기 →';
-      } else if (__PT_HIDDEN) {
-        statusLine = `${thisWk.scenario?.setting || thisWk.title}`;
-        ctaLabel = '미팅 노트 준비하기 →';
-      } else {
-        statusLine = `${rem}자리 남음 · ${thisWk.scenario?.setting || thisWk.title}`;
-        ctaLabel = '발표 자리 잡기 →';
-      }
-
-      pCard.innerHTML = `
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-          <div style="font-size:11px;letter-spacing:0.12em;font-weight:700;color:${iAmP ? 'rgba(252,232,178,0.9)' : 'var(--lilac)'};">
-            ⭐ WEEK ${thisWk.n} · ${pMon} ${parseInt(_pd,10)}
-          </div>
-          <div style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;background:${iAmP ? 'rgba(252,232,178,0.22)' : 'rgba(169,139,184,0.15)'};color:${iAmP ? '#FCE8B2' : 'var(--lilac)'};">
-            ${dCountdown}
-          </div>
-        </div>
-        <div style="font-size:17px;font-weight:800;margin-top:8px;line-height:1.35;">${escapeHtml(thisWk.title)}</div>
-        <div style="font-size:13px;margin-top:4px;color:${iAmP ? 'rgba(255,255,255,0.82)' : 'var(--ink-soft)'};line-height:1.5;">
-          ${escapeHtml(statusLine)}
-        </div>
-        ${thisWk.meetUrl ? `
-          <a href="${escapeHtml(thisWk.meetUrl)}" target="_blank" rel="noopener noreferrer"
-             data-meet-link="1"
-             style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:${iAmP ? 'rgba(252,232,178,0.20)' : 'rgba(125,92,255,0.14)'};color:${iAmP ? '#FCE8B2' : '#5C53A5'};font-size:11.5px;font-weight:700;text-decoration:none;letter-spacing:-0.005em;">
-            🔗 Google Meet 열기 →
-          </a>
-        ` : ''}
-        <div style="margin-top:12px;font-size:13px;font-weight:700;color:${iAmP ? '#FCE8B2' : 'var(--lilac)'};">
-          ${ctaLabel}
-        </div>`;
-
-      pCard.addEventListener('click', (ev) => {
-        // meet 링크 클릭은 새 탭으로 열려야, pCard 의 navigation 핸들러 막음.
-        if (ev.target && ev.target.closest && ev.target.closest('[data-meet-link]')) return;
-        if (!weekHasP) {
-          // noPresenter 주, 미팅 노트 페이지로 바로 이동 (말할 거리 준비).
-          // MeetingNotesPage 는 'm{n}' 형식만 resolve 함 ('week1-2026-04-30' 같은 구
-          // 포맷을 쓰면 "미팅 정보를 찾을 수 없어요" 로 튕김). 주차별 recap 카드/
-          // PremiumPage 의 기존 링크들과 동일한 ID 체계로 통일.
-          window.__currentMeetingId = `m${thisWk.n}`;
-          go('meeting-notes');
-        } else if (iAmP) {
-          // 준비 공간 폐기: '발표 준비하러 →' = 그 주 회의록으로.
-          window.__currentMeetingId = `m${thisWk.n}`;
-          go('meeting-notes');
-        } else {
-          go('premium');
-        }
-      });
-      page.appendChild(pCard);
-    }
-
-    // PT 준비 페이지 바로가기 (숨김 기간엔 미노출)
-    if (!(__PT_HIDDEN || __PT_STUDIO_DISABLED) || (state.isOperator && !state.operatorViewAsMember)) {
-    const pitchLink = el('button', {
-      style: {
-        marginTop: '8px',
-        width: '100%',
-        padding: '10px 14px',
-        background: 'transparent',
-        border: '1px dashed rgba(169,139,184,0.38)',
-        borderRadius: '12px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '8px',
-        cursor: 'pointer',
-        color: '#7B5E8C',
-        fontSize: '12.5px',
-        fontWeight: '600',
-      },
-      onClick: () => go('pitch-prep')
-    }, '💎 내 PT 스튜디오 (어휘·스크립트) 열기 →');
-    page.appendChild(pitchLink);
-    }
-  }
+  // (제거됨) 홈의 'Premium 이번 주 미팅 hero' 큰 카드 + 'PT 스튜디오 열기' 배너.
+  //   같은 홈 화면 아래쪽에 이미 '미팅 한 줄'(Week N 미팅 D-N · 목 21:00 · 준비하기)이
+  //   있어서 같은 정보가 두 번 나왔다. 큰 카드가 화면을 반쯤 먹으면서 정작 그 아래
+  //   MY TRACK 과 인증 보드가 밀렸다. 미팅 상세는 프리미엄 탭에 그대로 있으므로
+  //   홈에서는 한 줄만 남긴다. (2026-08-07)
 
   // Premium teaser 제거됨, 5기 도중에는 프리미엄 업그레이드가 불가능해서
   // "₩169,000 업그레이드" 배너가 오히려 혼란을 줌. 프리미엄 안내는 나(프로필)
@@ -20341,44 +20227,53 @@ function ProfilePage() {
 
   // 3. 목표, 온보딩에서 입력한 본인 목표를 그대로 보여줌. 편집 가능.
   // 줄바꿈을 허용해서 여러 목표를 리스트처럼 볼 수 있음 (한 줄 = 하나의 목표).
-  const goalCard = el('div', { class: 'card', style: { marginTop: '18px' } });
+  // 홈 탭의 MY TRACK 카드와 같은 디자인·같은 내용으로 통일 (2026-08-07).
+  //   예전엔 나 탭은 자유 목표만(파란 박스), 홈 탭은 진단 결과만(라일락) 보여줘서
+  //   같은 사람의 "내 목표"가 두 화면에서 다르게 보였다. 이제 한 카드로 합치고,
+  //   나 탭에만 수정 버튼을 둔다.
   const goalText = (state.goal || '').trim();
   const hasGoal = !!goalText;
   const goalLines = hasGoal
     ? goalText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
     : [];
-  const multiGoal = goalLines.length > 1;
-  const goalBody = hasGoal
-    ? (multiGoal
-        ? `<ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;">
-             ${goalLines.map((line) => `
-               <li style="display:flex;gap:10px;align-items:flex-start;">
-                 <span style="font-size:13px;line-height:1.55;color:var(--orange-dark);flex-shrink:0;margin-top:2px;">•</span>
-                 <span style="font-size:14px;line-height:1.55;color:var(--ink);letter-spacing:-0.01em;word-break:keep-all;">${escapeHtml(line)}</span>
-               </li>`).join('')}
-           </ul>`
-        : `<div style="display:flex;gap:10px;align-items:flex-start;">
-             <span style="font-size:18px;line-height:1.1;flex-shrink:0;">🎯</span>
-             <p style="margin:0;font-size:14px;line-height:1.55;color:var(--ink);letter-spacing:-0.01em;word-break:keep-all;">${escapeHtml(goalLines[0] || goalText)}</p>
-           </div>`)
+  const _pi = (state.tier === 'premium' && state.premium_intake && state.premium_intake.scene)
+    ? state.premium_intake : null;
+
+  const goalCard = el('div', {
+    style: {
+      marginTop: '18px', padding: '16px 18px', borderRadius: '16px',
+      background: _pi
+        ? 'linear-gradient(135deg,rgba(123,94,140,0.10),rgba(169,139,184,0.06))'
+        : 'linear-gradient(135deg,rgba(123,94,140,0.06),rgba(169,139,184,0.04))',
+      border: '1px solid rgba(169,139,184,0.3)',
+    },
+  });
+  const _rowT = (k, v) => `<div style="display:flex;gap:8px;margin-top:5px;font-size:11.5px;line-height:1.5;"><span style="flex:0 0 52px;color:var(--muted);font-weight:700;">${k}</span><span style="flex:1;min-width:0;color:var(--ink-soft);">${escapeHtml(v)}</span></div>`;
+  const _goalRows = goalLines.length
+    ? goalLines.map((line, i) => _rowT(i === 0 ? '내 목표' : '', line)).join('')
     : '';
-  goalCard.innerHTML = `
-    <div class="row-between" style="align-items:flex-start;">
-      <div>
-        <div class="kicker">MY GOAL · 이번 챌린지 목표</div>
-        <h3 class="h3" style="margin-top:6px;margin-bottom:4px;">${hasGoal ? '4주 뒤 이렇게 되고 싶어요' : '아직 목표를 정하지 않았어요'}</h3>
-      </div>
-      <button id="__editGoalBtn" style="background:transparent;border:none;font-size:11px;color:var(--orange-dark);cursor:pointer;padding:4px 8px;">${hasGoal ? '수정' : '+ 추가'}</button>
-    </div>
-    ${hasGoal
-      ? `<div style="margin-top:10px;padding:14px 16px;background:var(--orange-ghost);border-radius:14px;border:1px solid rgba(46,111,168,0.22);">${goalBody}</div>`
-      : `<div style="margin-top:10px;padding:14px 16px;background:var(--paper);border-radius:14px;border:1px dashed var(--line);">
-           <p style="margin:0;font-size:13px;color:var(--muted);line-height:1.55;">+ 추가 버튼을 눌러 이번 챌린지에서 이루고 싶은 목표를 적어보세요. 한 줄에 하나씩 여러 개도 가능해요.</p>
-         </div>`
-    }
-  `;
+
+  goalCard.innerHTML =
+      `<div style="display:flex;align-items:center;gap:6px;">`
+    +   `<span style="color:var(--lilac);display:inline-flex;">${Icon('crown', 11)}</span>`
+    +   `<span style="font-size:10px;font-weight:800;letter-spacing:0.1em;color:#7B5E8C;">${_pi ? 'MY TRACK' : 'MY GOAL'}</span>`
+    +   `<button id="__editGoalBtn" style="margin-left:auto;background:transparent;border:none;font-size:11px;color:#7B5E8C;cursor:pointer;padding:2px 4px;font-family:inherit;font-weight:700;">${hasGoal ? '수정' : '+ 목표 추가'}</button>`
+    + `</div>`
+    + (_pi
+        ? `<div style="margin-top:6px;font-size:14px;font-weight:800;color:var(--ink);line-height:1.4;">${escapeHtml(premiumSceneLabel(_pi.scene))}</div>`
+          + `<div class="t-small" style="margin-top:4px;color:var(--ink-soft);line-height:1.5;">이번 기수 목표 장면이에요. 미팅에서 이 장면으로 연습해요.${_pi.pressure ? ` · 시작 부담감 <b style="color:#7B5E8C;">${_pi.pressure}/10</b>` : ''}</div>`
+        : `<div style="margin-top:6px;font-size:14px;font-weight:800;color:var(--ink);line-height:1.4;">${hasGoal ? '4주 뒤 이렇게 되고 싶어요' : '아직 목표를 정하지 않았어요'}</div>`
+          + `<div class="t-small" style="margin-top:4px;color:var(--ink-soft);line-height:1.5;">${hasGoal ? '20일 내내 여기 그대로 있어요. 언제든 바꾸셔도 돼요.' : '수정을 눌러 이번 챌린지에서 이루고 싶은 걸 적어보세요. 한 줄에 하나씩요.'}</div>`)
+    + ((_pi || goalLines.length)
+        ? `<div style="margin-top:9px;padding-top:9px;border-top:1px solid rgba(169,139,184,0.25);">`
+          + (_pi && _pi.goal_track ? _rowT('내 대본', premiumGoalLabel(_pi.goal_track)) : '')
+          + (_pi && _pi.deadline ? _rowT('데드라인', _pi.deadline) : '')
+          + (_pi && _pi.success ? _rowT('성공 기준', _pi.success) : '')
+          + _goalRows
+          + `</div>`
+        : '');
   page.appendChild(goalCard);
-  // Wire up goal edit, opens the GoalModal (자체 모달, window.prompt 대체).
+  // 목표 수정 = GoalModal (자체 모달, window.prompt 대체).
   setTimeout(() => {
     const btn = document.getElementById('__editGoalBtn');
     if (btn) btn.onclick = () => { showGoalEditor = true; render(); };
