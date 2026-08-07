@@ -1459,9 +1459,23 @@ const CHALLENGE = {
    ============================================================ */
 const MEMBER_REPORTS = {
   // 키 = MEMBER_DIRECTORY 의 name (= state.name). 7기는 이 값이 영어 닉네임인 멤버가 있다.
-  'Selina': { url: '/7th/report-f59dbbf8a2864d94d129.html', week: 2, at: '2026-08-06' },
+  // 한 사람당 한글 이름·영문 닉네임 두 키를 모두 등록해야 로그인 이름이 뭐든 잡힌다.
+  // label = 운영자 목록에 뜨는 이름. 같은 리포트를 가리키는 두 키 중 하나에만 label 을 넣어
+  // 목록에 중복으로 안 뜨게 한다.
+  'Selina': { url: '/7th/report-f59dbbf8a2864d94d129.html', week: 2, at: '2026-08-06', label: 'Selina · 박서영' },
   '박서영': { url: '/7th/report-f59dbbf8a2864d94d129.html', week: 2, at: '2026-08-06' },
+  'Tracy':  { url: '/7th/report-8c444b73508cacf40792.html', week: 4, at: '2026-08-07', label: 'Tracy · 홍현정', weekLabel: 'Week 3~4' },
+  '홍현정':  { url: '/7th/report-8c444b73508cacf40792.html', week: 4, at: '2026-08-07', weekLabel: 'Week 3~4' },
 };
+// 운영자 목록용. label 이 있는 항목만 (= 사람 단위로 한 번씩) 최신순.
+function allReports() {
+  try {
+    return Object.keys(MEMBER_REPORTS)
+      .filter((k) => MEMBER_REPORTS[k] && MEMBER_REPORTS[k].label)
+      .map((k) => Object.assign({ key: k, owner: k }, MEMBER_REPORTS[k]))
+      .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+  } catch (e) { return []; }
+}
 function myReport() {
   try {
     const nm = (state.name || '').trim();
@@ -1469,15 +1483,52 @@ function myReport() {
     // 1) 본인 리포트 (이름 또는 영어 닉네임으로 매칭)
     const mine = MEMBER_REPORTS[nm] || MEMBER_REPORTS[en];
     if (mine) return Object.assign({ owner: nm || en }, mine);
-    // 2) 운영자·스태프는 검수용으로 첫 리포트를 본다.
+    // 2) 운영자·스태프는 검수용으로 가장 최근 리포트를 본다. list:true 면 카드가 목록을 연다.
     //    operatorViewAsMember 켜둔 상태에서도 보이게 한다 (그거 켜두고 확인하는 일이 잦음).
     if (state.isOperator || state.isStaff) {
-      const first = Object.keys(MEMBER_REPORTS)[0];
-      if (first) return Object.assign({ owner: first, preview: true }, MEMBER_REPORTS[first]);
+      const all = allReports();
+      if (all.length) return Object.assign({ preview: true, list: true, count: all.length }, all[0]);
     }
     return null;
   } catch (e) { return null; }
 }
+// 운영자, 올려둔 프리미엄 리포트 전체 목록. 눌러서 바로 열기.
+window.__openReportList = function () {
+  const all = allReports();
+  if (!all.length) { showToast('아직 올린 리포트가 없어요.'); return; }
+  if (document.querySelector('[data-report-list]')) return;
+  const backdrop = el('div', { class: 'modal-backdrop', 'data-report-list': '1' });
+  const close = () => backdrop.remove();
+  backdrop.onclick = (e) => { if (e.target === backdrop) close(); };
+  const modal = el('div', { class: 'modal', style: { width: 'min(92vw, 400px)', padding: '0', borderRadius: '24px', overflow: 'hidden', background: '#fff', border: '1px solid var(--line)' } });
+  modal.innerHTML = `
+    <div style="position:relative;padding:20px 22px 16px;background:linear-gradient(160deg,#FFF8EA,#FFEFD6);">
+      <button data-rl-x style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,0.75);border:none;color:var(--ink-soft);font-size:14px;cursor:pointer;">✕</button>
+      <div class="kicker" style="color:#A07A2A;">OPERATOR · FEEDBACK REPORTS</div>
+      <div style="margin-top:6px;font-size:18px;font-weight:800;color:var(--ink);">프리미엄 발표 피드백 ${all.length}개</div>
+      <div class="t-small" style="margin-top:5px;font-size:12px;color:var(--ink-soft);">멤버 본인에게도 같은 링크가 보여요.</div>
+    </div>
+    <div style="padding:14px 18px 20px;display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow:auto;">
+      ${all.map((r, i) => `
+        <button data-rl-go="${i}" style="display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:13px 14px;border-radius:14px;background:var(--paper2);border:1px solid var(--line2);cursor:pointer;font-family:inherit;">
+          <span style="flex-shrink:0;width:36px;height:36px;border-radius:11px;background:rgba(240,172,61,0.22);display:grid;place-items:center;font-size:17px;">🎤</span>
+          <span style="flex:1;min-width:0;">
+            <span style="display:block;font-size:14px;font-weight:800;color:var(--ink);">${escapeHtml(r.label || r.owner)}</span>
+            <span style="display:block;margin-top:2px;font-size:11.5px;color:var(--muted);">${escapeHtml(r.weekLabel || ('Week ' + r.week))} · ${escapeHtml(r.at || '')}</span>
+          </span>
+          <span style="flex-shrink:0;color:var(--orange-dark);font-size:15px;font-weight:800;">→</span>
+        </button>`).join('')}
+    </div>`;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  modal.querySelector('[data-rl-x]').onclick = close;
+  modal.querySelectorAll('[data-rl-go]').forEach((b) => {
+    b.onclick = () => {
+      const r = all[Number(b.getAttribute('data-rl-go'))];
+      if (r) { try { window.open(r.url, '_blank', 'noopener'); } catch (e) {} }
+    };
+  });
+};
 // 콘솔 진단용: myReport() 가 왜 null 인지 바로 보이게.
 window.__reportDebug = () => ({
   name: state.name, englishName: state.englishName,
@@ -13307,7 +13358,7 @@ window.__showReportPopup = function (opts) {
       <div style="font-size:40px;line-height:1;">🎤</div>
       <div class="kicker" style="margin-top:8px;color:#A07A2A;">MY FEEDBACK REPORT</div>
       <div style="margin-top:7px;font-size:19px;font-weight:800;color:var(--ink);line-height:1.35;">${escapeHtml(who)}님 발표,<br>버디가 하나하나 정리했어요</div>
-      <div class="t-small" style="margin-top:9px;font-size:12.5px;color:var(--ink-soft);line-height:1.65;">Week ${r.week} 발표에서 하신 말을 그대로 가져와,<br>더 자연스러운 표현으로 바꿔봤어요.</div>
+      <div class="t-small" style="margin-top:9px;font-size:12.5px;color:var(--ink-soft);line-height:1.65;">${escapeHtml(r.weekLabel || ('Week ' + r.week))} 발표에서 하신 말을 그대로 가져와,<br>더 자연스러운 표현으로 바꿔봤어요.</div>
     </div>
     <div style="padding:16px 20px 20px;">
       <div style="display:flex;flex-direction:column;gap:7px;">
@@ -16951,13 +17002,21 @@ function PremiumPage() {
     const repCard = el('button', {
       class: 'card',
       style: { textAlign: 'left', cursor: 'pointer', border: '1px solid rgba(240,172,61,0.5)', background: 'linear-gradient(160deg,#FFF8EA,#FFF3DC)' },
-      onClick: () => { try { window.open(__rep.url, '_blank', 'noopener'); } catch (e) {} },
+      onClick: () => {
+        // 운영자는 올려둔 리포트 전체 목록, 멤버는 본인 것 바로 열기.
+        if (__rep.list) { try { window.__openReportList(); } catch (e) {} return; }
+        try { window.open(__rep.url, '_blank', 'noopener'); } catch (e) {}
+      },
     });
-    repCard.innerHTML = `
-      <div style="font-size:22px;">🎤</div>
+    repCard.innerHTML = __rep.list
+      ? `<div style="font-size:22px;">🗂</div>
+      <div class="kicker" style="margin-top:8px;color:#A07A2A;">OPERATOR</div>
+      <div class="h3" style="margin-top:4px;">프리미엄 피드백 리포트</div>
+      <div class="t-small" style="margin-top:4px;">올려둔 ${__rep.count}개 전체 보기</div>`
+      : `<div style="font-size:22px;">🎤</div>
       <div class="kicker" style="margin-top:8px;color:#A07A2A;">MY FEEDBACK</div>
       <div class="h3" style="margin-top:4px;">내 발표 피드백 리포트</div>
-      <div class="t-small" style="margin-top:4px;">Week ${__rep.week} 발표 · 버디가 정리했어요${__rep.preview ? ' (검수용)' : ''}</div>`;
+      <div class="t-small" style="margin-top:4px;">${escapeHtml(__rep.weekLabel || ('Week ' + __rep.week))} 발표 · 버디가 정리했어요</div>`;
     doubleRow.appendChild(repCard);
   } else {
     doubleRow.appendChild(quizCard);
