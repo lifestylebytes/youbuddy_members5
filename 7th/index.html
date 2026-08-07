@@ -1416,7 +1416,7 @@ const CHALLENGE = {
         zoom: 'Google Meet',
         meetUrl: 'https://meet.google.com/jzo-xowx-auk', // 매주 목 21:00 공용 Meet 링크
         // 미팅 다시보기 (Google Drive 공유 링크). 멤버 권한 필요할 수 있음.
-        recordingUrl: '',
+        recordingUrl: 'https://drive.google.com/file/d/1yT-MhWPYdkNQ1c1DBahulYFORLeGVNc2/view?usp=sharing', // Week 4 녹화 (2026-08-06)
         // 버디가 미팅 후 직접 채움, recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
         recap: '',
         pptUrl: '',
@@ -8483,6 +8483,28 @@ function HomePage() {
         showDailyPulse = { day: pTarget, stage: 'q1', a: null, b: null, etcA: '', etcB: '', text: '' };
         render();
       }, 350);
+    }
+  } catch (e) {}
+
+  // 미팅 다시보기 도착 팝업: 프리미엄 + recordingUrl 채워진 미팅마다 1회.
+  //   컴포넌트(RecordingPopupModal)는 예전부터 있었는데 자동으로 띄우는 트리거가 없어서
+  //   녹화를 올려도 아무도 모르고 지나갔음. 가장 최근 회차 하나만 잡아서 띄운다.
+  try {
+    const recAsMember = !(state.isOperator || state.isStaff) || state.operatorViewAsMember;
+    if ((state.tier === 'premium' || !recAsMember) && !showRecordingPopup && !window.__recPopPending) {
+      const seenRec = state.recording_popup_seen || {};
+      const mtgs = (CHALLENGE.premium && CHALLENGE.premium.weekly_meetings) || [];
+      const target = mtgs.slice().reverse().find((m) => m && m.recordingUrl && !seenRec['m' + m.n]);
+      if (target && challengeStarted() && guidedTourStep === null && !anyPopupOpen()) {
+        window.__recPopPending = true;
+        setTimeout(() => {
+          window.__recPopPending = false;
+          if (guidedTourStep !== null || anyPopupOpen() || showRecordingPopup) return;
+          if ((state.recording_popup_seen || {})['m' + target.n]) return;
+          showRecordingPopup = target;
+          render();
+        }, 500);
+      }
     }
   } catch (e) {}
 
