@@ -9427,6 +9427,16 @@ function Checkboard() {
       const tra = tierRank(a), trb = tierRank(b);
       if (tra !== trb) return tra - trb;
     }
+    // 2-b) 챌린지 시작 전에는 인증 수가 전원 0 이라 순서가 무의미하다.
+    //      이때만 '입장(코드 입력) 완료' 를 tier 안에서 위로 올린다.
+    //      Day 1 이 시작되면 자동으로 꺼지고 인증 수 정렬로 돌아간다. (2026-08-08)
+    try {
+      if (typeof challengeStarted === 'function' && !challengeStarted()) {
+        const reg = (m) => (m.me || m.registered) ? 1 : 0;
+        const rd = reg(b) - reg(a);
+        if (rd !== 0) return rd;
+      }
+    } catch (e) {}
     // 3) 인증 많이 한 사람 순 (내림차순)
     const pa = participationOf(a), pb = participationOf(b);
     if (pa !== pb) return pb - pa;
