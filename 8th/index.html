@@ -4675,6 +4675,17 @@ function memberSortCompare(a, b) {
   const tierWeight = (m) => (m.tier === 'premium' ? 0 : 1);
   const tw = tierWeight(a) - tierWeight(b);
   if (tw !== 0) return tw;
+  // 4-0) 챌린지 시작 전에는 참여율이 전부 0 이라 순서가 무의미하다.
+  //      이때만 '입장(코드 입력) 완료' 를 위로 올린다. 아직 안 들어온 분이
+  //      아래로 모여서 운영자가 누구한테 리마인드할지 바로 보인다.
+  //      Day 1 이 시작되면 이 분기는 꺼지고 참여율 정렬로 돌아간다. (2026-08-08)
+  try {
+    if (typeof challengeStarted === 'function' && !challengeStarted()) {
+      const reg = (m) => (m.me || m.registered) ? 1 : 0;
+      const rd = reg(b) - reg(a);
+      if (rd !== 0) return rd;
+    }
+  } catch (e) {}
   // 4) 같은 tier 안에서 참여율 높은 순 (progress desc)
   const pa = Number(a.progress || 0);
   const pb = Number(b.progress || 0);
