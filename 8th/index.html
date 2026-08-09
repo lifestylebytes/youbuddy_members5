@@ -5251,6 +5251,10 @@ async function supabaseRpc(fn, payload={}) {
 const communityFeedCache = {};
 const communityFeedInFlight = {};
 const COMMUNITY_REFRESH_MS = 15000;
+// 남의 데이터(피어 보드·커뮤니티 글) 캐시 수명. 내 app_state 동기화 주기
+// (COMMUNITY_REFRESH_MS) 와 일부러 분리했다. 내 상태는 다기기 덮어쓰기를 막으려고
+// 15초를 유지하고, 읽기 전용인 남의 데이터만 60초로 늘려 에그레스를 줄인다. (2026-08-09)
+const PEER_CACHE_MS = 60000;
 let memberSummaryCache = { loadedAt: 0, rows: [] };
 let memberSummaryInFlight = null;
 let memberSummaryRpcUnavailable = false;
@@ -5375,7 +5379,7 @@ function applyRemoteMemberSummaries(rows = []) {
 async function loadMemberSummaries(opts = {}) {
   if (!hasSupabase() || memberSummaryRpcUnavailable) return memberSummaryCache.rows || [];
   const { force = false } = opts;
-  if (!force && memberSummaryCache.rows.length && (Date.now() - memberSummaryCache.loadedAt) < COMMUNITY_REFRESH_MS) {
+  if (!force && memberSummaryCache.rows.length && (Date.now() - memberSummaryCache.loadedAt) < PEER_CACHE_MS) {
     return memberSummaryCache.rows;
   }
   if (memberSummaryInFlight) return memberSummaryInFlight;
@@ -5417,7 +5421,7 @@ async function loadMemberSummaries(opts = {}) {
 }
 
 function requestMemberSummaries(opts = {}) {
-  const stale = !memberSummaryCache.loadedAt || (Date.now() - memberSummaryCache.loadedAt) >= COMMUNITY_REFRESH_MS;
+  const stale = !memberSummaryCache.loadedAt || (Date.now() - memberSummaryCache.loadedAt) >= PEER_CACHE_MS;
   if (hasSupabase() && !memberSummaryRpcUnavailable && (opts.force || stale)) {
     const before = JSON.stringify(memberSummaryCache.rows || []);
     loadMemberSummaries({ force: true }).then((rows) => {
@@ -5448,7 +5452,7 @@ async function loadCommunityPosts(dayN, opts = {}) {
   if (!hasSupabase()) return [];
   const { force = false } = opts;
   const cached = communityFeedCache[dayN];
-  if (!force && cached && (Date.now() - (cached.loadedAt || 0)) < COMMUNITY_REFRESH_MS) {
+  if (!force && cached && (Date.now() - (cached.loadedAt || 0)) < PEER_CACHE_MS) {
     return cached.rows || [];
   }
   if (communityFeedInFlight[dayN]) return communityFeedInFlight[dayN];
@@ -5473,7 +5477,7 @@ async function loadCommunityPosts(dayN, opts = {}) {
 
 function requestCommunityPosts(dayN, opts = {}) {
   const cached = communityFeedCache[dayN];
-  const stale = !cached || (Date.now() - (cached.loadedAt || 0)) >= COMMUNITY_REFRESH_MS;
+  const stale = !cached || (Date.now() - (cached.loadedAt || 0)) >= PEER_CACHE_MS;
   if (hasSupabase() && (opts.force || stale)) {
     loadCommunityPosts(dayN, { force: true }).then(() => {
       if (currentPage === 'community' || currentPage === 'day') render();
@@ -5573,7 +5577,9 @@ async function refreshRemoteStateAndCommunity(opts = {}) {
     if (force || isOnCommunityPage) {
       const before = communityFeedCache[dayToRefresh]?.rows || [];
       const beforeJson = JSON.stringify(before.map((p) => p.id + ':' + (p.updated_at || '') + ':' + (p.likes_count || 0)));
-      await loadCommunityPosts(dayToRefresh, { force: true });
+      // force(포커스·가시성 복귀) 일 때만 강제로 받고, 주기 폴링은 PEER_CACHE_MS 캐시를 탄다.
+      // 예전엔 항상 force: true 라 15초마다 하루치 글을 통째로 다시 받았다. (2026-08-09)
+      await loadCommunityPosts(dayToRefresh, { force });
       const after = communityFeedCache[dayToRefresh]?.rows || [];
       const afterJson = JSON.stringify(after.map((p) => p.id + ':' + (p.updated_at || '') + ':' + (p.likes_count || 0)));
       if (afterJson !== beforeJson) changed = true;
@@ -6768,10 +6774,15 @@ async function globalPeerTick() {
     if (!hasSupabase()) return;
     // 로그인 전(온보딩/로그인 화면)이나 가이드 투어 중에는 폴링·토스트로 화면을 건드리지 않음 (깜빡임 방지).
     if (!state.onboarded || guidedTourStep !== null) return;
-    // currentDay 가 디바이스 마다 다를 수 있어서, 최근 3일 다 폴링해서 합침.
-    // 어떤 날에 글이 올라가도 다른 디바이스에서 잡힘.
+    // 탭이 안 보이면 폴링하지 않는다. 띄울 화면이 없는데 계속 받고 있었고,
+    // 켜두고 안 보는 백그라운드 탭 하나가 에그레스의 최대 항목이었다. (2026-08-09)
+    if (document.hidden) return;
+    // 평소엔 오늘 하루만 확인한다. currentDay 가 디바이스마다 다를 수 있다는 이유로
+    // 매 틱 3일치를 받으면 트래픽이 그대로 3배가 된다. 날짜가 바뀐 직후 1회만 앞뒤를 같이 본다.
     const cDay = Number(state.currentDay) || 1;
-    const daysToCheck = [cDay, cDay - 1, cDay + 1].filter((d) => d >= 1 && d <= 20);
+    const dayChanged = window.__peerLastDay !== cDay;
+    window.__peerLastDay = cDay;
+    const daysToCheck = (dayChanged ? [cDay, cDay - 1, cDay + 1] : [cDay]).filter((d) => d >= 1 && d <= 20);
     try { console.log('[peer-ticker] tick start days=' + daysToCheck.join(',') + ' firstPoll=' + window.__peerFirstPoll + ' seen=' + window.__peerSeenIds.size); } catch (_) {}
     const allPosts = [];
     for (const d of daysToCheck) {
@@ -6828,7 +6839,7 @@ function _postId(p) {
 function startGlobalPeerTicker() {
   if (window.__globalPeerTimer) return;
   setTimeout(globalPeerTick, 2000);
-  window.__globalPeerTimer = setInterval(globalPeerTick, 20000); // 20초 주기, 빠르게
+  window.__globalPeerTimer = setInterval(globalPeerTick, 60000); // 60초. 20초는 에그레스 과다였음 (2026-08-09)
   try { requestPeerNotifPermission(); } catch (_) {}
 }
 
