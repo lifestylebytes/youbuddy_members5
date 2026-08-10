@@ -6976,7 +6976,14 @@ function _postId(p) {
   return String(p.id || (p.member_key || '') + '::' + (p.sentence || '').slice(0, 60));
 }
 
+// '~님이 방금 문장을 제출했어요' 실시간 토스트.
+// 이 티커 하나가 전 멤버 브라우저에서 60초마다 커뮤니티 글을 받아오기 때문에
+// Supabase 에그레스의 큰 몫을 차지한다. 무료 한도를 지키려고 끈다. (2026-08-11)
+// 커뮤니티 탭을 직접 열면 그때 정상적으로 불러오므로 글이 안 보이지는 않는다.
+// 다시 켜려면 이 값만 true 로.
+const PEER_TOAST_ENABLED = false;
 function startGlobalPeerTicker() {
+  if (!PEER_TOAST_ENABLED) return;
   if (window.__globalPeerTimer) return;
   setTimeout(globalPeerTick, 2000);
   window.__globalPeerTimer = setInterval(globalPeerTick, 60000); // 60초. 20초는 에그레스 과다였음 (2026-08-09)
