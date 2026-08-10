@@ -1426,7 +1426,7 @@ const MEMBER_DIRECTORY = [
   { code: '07', id: 'b4',  name: '김성현',   color: 'cream', tier: 'basic'  },  // Christine
   { code: '08', id: 'b5',  name: '강부희',   color: 'cream', tier: 'basic'  },  // BUHEE
   { code: '09', id: 'b6',  name: '정다운',   color: 'cream', tier: 'basic'  },  // Deana
-  { code: '10', id: 'b7',  name: '이삼기',   color: 'cream', tier: 'basic'  },  // Sam
+  { code: '10', id: 'b7',  name: '이삼기',   color: 'cream', tier: 'basic', tz: '-16h' },  // Sam
   { code: '11', id: 'b8',  name: '김민영',   color: 'cream', tier: 'basic'  },  // Mia
   { code: '12', id: 'b9',  name: '류연화',   color: 'cream', tier: 'basic'  },  // 유나
   { code: '13', id: 'p4',  name: '최예준',   color: 'ink', tier: 'premium' },  // Yeajoon
@@ -3660,7 +3660,11 @@ function parseTimezoneShift(raw) {
   const sign = match[1] === '-' ? -1 : 1;
   const hours = Number(match[2] || 0);
   const minutes = Number(match[3] || 0);
-  const total = sign * (hours * 60 + minutes);
+  let total = sign * (hours * 60 + minutes);
+  // 부호를 안 적으면 +로 잡힌다. 그런데 한국보다 앞선 시간대는 최대 +5h (UTC+14) 뿐이라,
+  // +5h 를 넘는 값은 100% 마이너스를 빠뜨린 입력이다. (이삼기 님이 '16' 입력 → +16h 로 저장된 사고)
+  // 그대로 두면 본인 Day 가 한국보다 앞서가서 오늘 학습이 'missed' 로 잠긴다. 부호를 되돌려준다.
+  if (total > 5 * 60) total = -total;
   if (total < -23 * 60 || total > 23 * 60 + 59) return { ok: false };
   return {
     ok: true,
@@ -3996,10 +4000,20 @@ function computeCurrentDay() {
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
     const s = `${y}-${m}-${dd}`;
-    if (today === s) return n;          // 정확히 그 Day 평일
+    if (today === s) {                  // 정확히 그 Day 평일
+      try { const c = koreaOpenDay(); if (Number.isFinite(c) && n > c) return c; } catch (e) {}
+      return n;
+    }
     if (today < s) break;               // 미래, 더 볼 필요 X
     lastPassedDay = n;                  // 지나간 평일 Day 중 가장 최근
   }
+  // 한국 기준으로 아직 안 열린 Day 로는 절대 앞서가지 않는다.
+  // 시차가 앞선(+) 멤버는 현지 날짜가 먼저 넘어가서 오늘 콘텐츠가 'missed' 로 잠기는 일이 있었다.
+  // 뒤처진(-) 멤버는 원래 값이 더 작아서 min 이 그대로 통과된다 (마감 여유는 그대로 유지). (2026-08-10)
+  try {
+    const cap = koreaOpenDay();
+    if (Number.isFinite(cap) && lastPassedDay > cap) return cap;
+  } catch (e) {}
   return lastPassedDay;                 // 주말이면 직전 평일 Day, post-end 면 20
 }
 function formatDateKR(date) {
