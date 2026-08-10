@@ -1412,7 +1412,7 @@ const CHALLENGE = {
 */
 const MEMBER_DIRECTORY = [
   { code: '00', id: 'op1', name: '유버디', color: 'ink',   tier: 'premium', role: '운영팀', isOperator: true,  isStaff: true },
-  { code: '01', id: 'p1',  name: '이규태', color: 'ink',   tier: 'premium', role: '운영팀', isStaff: true }, // 사전 테스터 (프리미엄 시점)
+  { code: '01', id: 'p1',  name: '이규태', color: 'ink',   tier: 'premium', role: '운영팀', isStaff: true, memberHidden: true }, // 사전 테스터 (프리미엄 시점)
   { code: '02', id: 'b1',  name: '이지흔', color: 'cream', tier: 'basic',   role: '운영팀', isStaff: true }, // 사전 테스터 (베이직 시점)
 
   // COHORT-SLOT(manual): 8기 멤버 명단 (2026-08-07 결제 기준, 결제순 = code 순).
@@ -1469,6 +1469,7 @@ const MEMBERS = [
     isStaff: !!member.isStaff,
     ghost: !!member.ghost,
     hidden: !!member.hidden,
+    memberHidden: !!member.memberHidden,
   })),
 ];
 
@@ -1531,7 +1532,10 @@ function bindMeToMembers() {
    - isStaff:true → 노출은 함 (유버디/이규태/이지흔도 streak 쌓는 모습 보임)
    단, ghost (본인이 me 인 경우에도 다른 사람한텐 안 보여야 함) 은 self view 에서만 보이고 others view 에서는 hidden:true 덕분에 자동으로 빠짐. */
 function visibleMembers() {
-  return MEMBERS.filter((m) => !m.hidden);
+  // memberHidden: 멤버 화면에서만 안 보이는 사람 (사전 테스터 등).
+  // 운영자·스태프 화면에서는 그대로 보이고, 본인이 로그인했을 땐 자기 행은 남는다. (2026-08-10)
+  const opView = (state.isOperator || state.isStaff) && !state.operatorViewAsMember;
+  return MEMBERS.filter((m) => !m.hidden && (opView || m.me || !m.memberHidden));
 }
 /* 통계 (완주율·인증률·"5기 39명") 용, staff/ghost 제외, 실제 참가자 39 명만 */
 // ── 쉬는 중(dormant) 전역 판정: 본인 시차 '오늘' 직전까지 4일+ 연속 미인증. ──
@@ -5970,6 +5974,62 @@ function requestRender() {
   });
 }
 
+
+/* 운영자 퀵 토글 (우측 상단 고정)
+   설정에 들어가서 껐다 켜는 게 번거로워 화면 위에 상시 노출한다.
+   운영자·스태프 계정에만 붙고, '멤버' 뷰를 켠 상태에서도 이 토글만은 남긴다
+   (안 그러면 되돌릴 방법이 사라진다). (2026-08-10) */
+function renderOperatorQuickToggle() {
+  const old = document.getElementById('opQuickToggle');
+  if (!(state.isOperator || state.isStaff) || !state.onboarded) { if (old) old.remove(); return; }
+  const asMember = !!state.operatorViewAsMember;
+  const tierOv = state.tierOverride || null;
+  const box = old || el('div', { id: 'opQuickToggle' });
+  box.setAttribute('style', [
+    'position:fixed', 'top:calc(env(safe-area-inset-top,0px) + 8px)', 'right:8px', 'z-index:9000',
+    'background:rgba(255,255,255,0.94)', '-webkit-backdrop-filter:blur(8px)', 'backdrop-filter:blur(8px)',
+    'border:1px solid var(--line)', 'border-radius:12px', 'padding:5px 6px',
+    'box-shadow:0 3px 12px rgba(0,0,0,0.10)', 'display:flex', 'flex-direction:column', 'gap:4px',
+    'font-family:inherit',
+  ].join(';'));
+  const chip = (label, on, act, accent) =>
+    '<button data-op="' + act + '" style="padding:3px 8px;border-radius:7px;font-size:10.5px;font-weight:800;cursor:pointer;font-family:inherit;line-height:1.5;white-space:nowrap;'
+    + 'border:1px solid ' + (on ? accent : 'var(--line)') + ';background:' + (on ? accent : '#fff') + ';color:' + (on ? '#fff' : 'var(--muted)') + ';">' + label + '</button>';
+  box.innerHTML =
+    '<div style="display:flex;gap:3px;align-items:center;">'
+    + '<span style="font-size:9px;font-weight:800;color:var(--muted);margin-right:1px;">뷰</span>'
+    + chip('운영자', !asMember, 'view-op', '#1E5FA0')
+    + chip('멤버', asMember, 'view-member', '#1E5FA0')
+    + '</div>'
+    + '<div style="display:flex;gap:3px;align-items:center;">'
+    + '<span style="font-size:9px;font-weight:800;color:var(--muted);margin-right:1px;">티어</span>'
+    + chip('자동', !tierOv, 'tier-auto', '#7B5E8C')
+    + chip('프리', tierOv === 'premium', 'tier-premium', '#7B5E8C')
+    + chip('베이직', tierOv === 'basic', 'tier-basic', '#7B5E8C')
+    + '</div>';
+  box.querySelectorAll('[data-op]').forEach((b) => {
+    b.onclick = (ev) => {
+      ev.stopPropagation();
+      const a = b.getAttribute('data-op');
+      if (a === 'view-op') state.operatorViewAsMember = false;
+      else if (a === 'view-member') state.operatorViewAsMember = true;
+      else if (a === 'tier-auto') state.tierOverride = null;
+      else if (a === 'tier-premium') state.tierOverride = 'premium';
+      else if (a === 'tier-basic') state.tierOverride = 'basic';
+      try { cacheState(); } catch (e) {}
+      window.__cbCachedFingerprint = null;
+      try {
+        showToast(a === 'view-member' ? '👀 멤버 화면으로 보는 중'
+          : a === 'view-op' ? '운영자 화면'
+          : a === 'tier-auto' ? '티어 자동'
+          : a === 'tier-premium' ? '프리미엄 화면으로 보는 중' : '베이직 화면으로 보는 중');
+      } catch (e) {}
+      render();
+    };
+  });
+  if (!old) document.body.appendChild(box);
+}
+
 function render() {
   // Keyboard stays open on mobile as long as the focused textarea/input stays in the DOM.
   // If a typing field is focused right now, defer the re-render until blur, otherwise
@@ -6102,6 +6162,7 @@ function render() {
     app.appendChild(TabBar());
     // atomic swap, DOM tree 가 한 번에 교체돼서 빈 상태 없음 → scrollY 유지.
     root.replaceChildren(app);
+    try { renderOperatorQuickToggle(); } catch (e) {}
 
     // 프리미엄 전용 플로팅 🎤 버튼, 이번 주 발표 상태에 따라 직관적으로 점프.
     //   · 내가 발표자 → PresenterPrepPage
@@ -6439,6 +6500,7 @@ function render() {
     app.appendChild(fallback);
     app.appendChild(TabBar());
     root.replaceChildren(app);
+    try { renderOperatorQuickToggle(); } catch (e) {}
   }
 }
 
