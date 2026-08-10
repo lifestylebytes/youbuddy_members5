@@ -5983,7 +5983,8 @@ function renderOperatorQuickToggle() {
   const old = document.getElementById('opQuickToggle');
   if (!(state.isOperator || state.isStaff) || !state.onboarded) { if (old) old.remove(); return; }
   const asMember = !!state.operatorViewAsMember;
-  const tierOv = state.tierOverride || null;
+  // '자동' 칩은 뺐다. 오버라이드가 없으면 지금 실제 티어를 켜진 상태로 보여준다.
+  const shownTier = state.tierOverride || (state.tier === 'premium' ? 'premium' : 'basic');
   const box = old || el('div', { id: 'opQuickToggle' });
   box.setAttribute('style', [
     'position:fixed', 'top:calc(env(safe-area-inset-top,0px) + 8px)', 'right:8px', 'z-index:9000',
@@ -6003,9 +6004,8 @@ function renderOperatorQuickToggle() {
     + '</div>'
     + '<div style="display:flex;gap:3px;align-items:center;">'
     + '<span style="font-size:9px;font-weight:800;color:var(--muted);margin-right:1px;">티어</span>'
-    + chip('자동', !tierOv, 'tier-auto', '#7B5E8C')
-    + chip('프리', tierOv === 'premium', 'tier-premium', '#7B5E8C')
-    + chip('베이직', tierOv === 'basic', 'tier-basic', '#7B5E8C')
+    + chip('프리', shownTier === 'premium', 'tier-premium', '#7B5E8C')
+    + chip('베이직', shownTier === 'basic', 'tier-basic', '#7B5E8C')
     + '</div>';
   box.querySelectorAll('[data-op]').forEach((b) => {
     b.onclick = (ev) => {
@@ -6013,7 +6013,6 @@ function renderOperatorQuickToggle() {
       const a = b.getAttribute('data-op');
       if (a === 'view-op') state.operatorViewAsMember = false;
       else if (a === 'view-member') state.operatorViewAsMember = true;
-      else if (a === 'tier-auto') state.tierOverride = null;
       else if (a === 'tier-premium') state.tierOverride = 'premium';
       else if (a === 'tier-basic') state.tierOverride = 'basic';
       try { cacheState(); } catch (e) {}
@@ -6021,7 +6020,6 @@ function renderOperatorQuickToggle() {
       try {
         showToast(a === 'view-member' ? '👀 멤버 화면으로 보는 중'
           : a === 'view-op' ? '운영자 화면'
-          : a === 'tier-auto' ? '티어 자동'
           : a === 'tier-premium' ? '프리미엄 화면으로 보는 중' : '베이직 화면으로 보는 중');
       } catch (e) {}
       render();
