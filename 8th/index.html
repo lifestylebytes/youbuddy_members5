@@ -1129,7 +1129,7 @@ const CHALLENGE = {
           words: [
             { en: "Drive", pron: "/draɪv/", pos: "verb", def: "주도해서 끌고 가다", ex_en: "Who's going to drive the vendor selection this time?", ex_kr: "이번 업체 선정은 누가 끌고 갈 거예요?", syn: ["Own it end to end", "Lead the charge"], nuance: "⚠️ 운전이 아니라 **일의 운전대**예요. 참여(join)나 도움(help)이 아니라 \"이 일이 굴러가는 책임이 나한테 있다\"는 뜻이에요. `Who's driving this?`는 외국계 회의에서 담당자를 찾는 가장 흔한 질문이고, 답할 때 `I'm driving it`이라고 하면 주인이 나라고 선언하는 겁니다." },
             { en: "Free rein", pron: "/ˌfriː ˈreɪn/", pos: "noun", def: "알아서 하도록 맡겨진 재량", ex_en: "They gave me free rein on the campaign concept, which was scary at first.", ex_kr: "캠페인 컨셉은 알아서 하라고 맡겨줬는데, 처음엔 좀 무섭더라고요.", syn: ["Free hand", "Leave it up to me"], nuance: "말고삐(rein)를 풀어준 그림이에요. 권한을 준다는 좋은 뜻이지만, 실제로는 \"지시가 없어서 막막하다\"는 양면이 같이 담겨요. 그래서 자율성을 자랑할 때도, 방목당했다고 하소연할 때도 똑같이 씁니다." },
-            { en: "Roll your sleeves up", pron: "/ˌroʊl jər ˈsliːvz ˌʌp/", pos: "phrase", def: "팔 걷고 직접 뛰어들다", ex_en: "At some point you just have to roll your sleeves up and rebuild the file.", ex_kr: "어느 순간엔 그냥 팔 걷고 파일을 다시 만드는 수밖에 없어요.", syn: ["Get hands-on", "Dig in myself"], nuance: "셔츠 소매를 걷어붙이는 장면 그대로예요. 지시하고 감독하는 자리에 있던 사람이 직접 실무에 뛰어들 때 특히 강하게 들려요. 리더가 `I'll roll my sleeves up too`라고 하면 팀이 확 움직입니다." },
+            { en: "Roll your sleeves up", pron: "/ˌroʊl jər ˈsliːvz ˌʌp/", pos: "phrase", def: "(네) 팔 걷고 직접 뛰어들다", ex_en: "At some point you just have to roll your sleeves up and rebuild the file.", ex_kr: "어느 순간엔 그냥 팔 걷고 파일을 다시 만드는 수밖에 없어요.", syn: ["Get hands-on", "Dig in myself"], nuance: "셔츠 소매를 걷어붙이는 장면 그대로예요. 지시하고 감독하는 자리에 있던 사람이 직접 실무에 뛰어들 때 특히 강하게 들려요. 리더가 `I'll roll my sleeves up too`라고 하면 팀이 확 움직입니다." },
           ] },
                 { day: 3, title: "안 보이는 일도 보이게", goal_en: "Make the invisible work visible.", goal_kr: "안 보이는 일 보이게 하기.",
           words: [
@@ -4109,6 +4109,37 @@ function defaultNuance(w) {
 // 각 Day의 메인 표현별 syn 2~3개를 실제 현업 뉘앙스로 짧게 정리한 glossary.
 // 키는 반드시 lowercase. syn 추가 시 원문 대소문자 그대로 lower()만 취하면 됨.
 const SYNONYM_GLOSSARY = {
+  // 8기 Week 1 (Day 1~5) 유의어 뜻. 2026-08-11 추가.
+  "keep you in the loop": "계속 공유받게 해주다",
+  "give a heads-up": "미리 귀띔해주다",
+  "regroup": "흩어졌다 다시 모이다",
+  "touch base": "짧게 상황만 확인하다",
+  "shoot me a message": "메시지 하나 보내다",
+  "give me a shout": "필요하면 부르다",
+  "own it end to end": "처음부터 끝까지 책임지다",
+  "lead the charge": "앞장서서 이끌다",
+  "free hand": "재량껏 할 권한",
+  "leave it up to me": "저한테 맡겨주세요",
+  "get hands-on": "직접 실무에 붙다",
+  "dig in myself": "내가 직접 파고들다",
+  "juggle several roles": "여러 역할을 동시에 굴리다",
+  "cover a lot of ground": "넓은 범위를 맡다",
+  "groundwork": "나중을 위한 토대 작업",
+  "the prep work": "사전 준비 작업",
+  "someone on site": "현장에 나가 있는 사람",
+  "feet on the ground": "현장 인력",
+  "fill you in": "빠진 내용을 채워주다",
+  "catch you up": "밀린 것을 따라잡게 해주다",
+  "get the hang of it": "요령이 손에 붙다",
+  "find your footing": "자리를 잡아가다",
+  "in the thick of it": "한창 정신없는 와중",
+  "down in the weeds with us": "세부까지 같이 파고든 상태",
+  "where we're at": "지금 우리 위치",
+  "current status": "현재 상태",
+  "all set": "준비 다 됐다",
+  "clear to proceed": "진행 승인이 났다",
+  "game plan": "우리 작전",
+  "how we'll tackle this": "이걸 어떻게 풀지",
   // 7기 유의어 뜻 사전 (soft-fail: 없으면 일반 문구)
   "test the waters": "본격 전에 반응을 떠보다",
   "float the idea quietly": "아이디어를 조용히 흘려보다",
@@ -4276,6 +4307,38 @@ const SYNONYM_GLOSSARY = {
 // pair-specific nuance: "메인 표현 vs 해당 syn" 비교해서 실제 현업에서 어떻게 다른지 한줄.
 // key = `${word.en}::${syn}` (대소문자 · 공백 원문 그대로).
 const SYNONYM_NUANCE = {
+  // 8기 Week 1 (Day 1~5). 규칙: 메인 표현(이미 배운 것)을 기준으로,
+  // 이 유의어를 "언제 골라 쓰는지"만 쓴다. 학습자가 모르는 단어를 비교 기준으로 삼지 않는다.
+  "Keep someone posted::Keep you in the loop": "진행 상황을 한 번 알려주는 게 아니라 \"이 건에서 나를 빼지 말아달라\"는 요청이에요. 프로젝트에서 소외될까 걱정될 때 `Please keep me in the loop.` 한 줄이면 충분합니다.",
+  "Keep someone posted::Give a heads-up": "결과가 아니라 \"곧 이런 일이 생긴다\"를 앞당겨 알리는 쪽이에요. 상대가 놀라지 않게 하려는 배려라, 나쁜 소식을 예고할 때도 자주 씁니다.",
+  "Circle up::Regroup": "계획이 어긋난 뒤 다시 정비한다는 뉘앙스가 강해요. 일이 꼬였을 때 `Let's regroup tomorrow.` 라고 하면 그냥 다시 모이자가 아니라 \"다시 짜자\"에 가깝습니다.",
+  "Circle up::Touch base": "여럿이 모이는 게 아니라 보통 1:1 로 짧게 확인하는 자리예요. 야구에서 베이스를 찍고 지나가는 그림이라, `Let's touch base Friday.` 는 5분짜리 통화 느낌입니다.",
+  "Drop someone a line::Shoot me a message": "메일보다 슬랙·문자 쪽이에요. shoot 이 들어가서 더 빠르고 캐주얼하게 들리니 동료 사이에서 편하게 쓰기 좋습니다.",
+  "Drop someone a line::Give me a shout": "도와줄 준비가 돼 있다는 신호예요. `Give me a shout if you get stuck.` 처럼 상대가 막혔을 때 부담 없이 부르라고 할 때 씁니다. 영국계 회사에서 특히 자주 들려요.",
+  "Drive::Own it end to end": "책임 범위를 못 박는 말이에요. 일부만 돕는 게 아니라는 걸 분명히 할 때 씁니다. 평가나 면접에서 내 기여를 말할 때 특히 강하게 들려요.",
+  "Drive::Lead the charge": "돌격을 이끄는 그림이라 새로 시작하거나 어려운 걸 뚫을 때 어울려요. 이미 굴러가는 일을 관리할 때보다 처음 여는 일에 씁니다.",
+  "Free rein::Free hand": "뜻은 거의 같은데 문서나 계약처럼 조금 더 격식 있는 자리에서 보여요. 말할 때는 free rein 이 더 자연스럽습니다.",
+  "Free rein::Leave it up to me": "권한을 받은 상태를 설명하는 게 아니라, 내가 먼저 달라고 요청하는 문장이에요. 회의에서 주도권을 가져오고 싶을 때 씁니다.",
+  "Roll your sleeves up::Get hands-on": "각오보다 \"실무에 직접 붙는다\"는 상태에 초점이 있어요. 채용 공고나 자기소개에서 `hands-on experience` 처럼 명사로도 자주 씁니다.",
+  "Roll your sleeves up::Dig in myself": "남에게 맡기던 걸 내가 직접 들여다보겠다는 선언이에요. 데이터나 문서를 뒤져야 할 때 잘 어울리고, 혼자 하겠다는 뉘앙스가 있습니다.",
+  "Wear many hats::Juggle several roles": "저글링 그림이라 \"떨어뜨리지 않으려 애쓴다\"는 부담이 같이 들려요. 힘들다는 걸 살짝 내비치고 싶을 때 이쪽이 맞습니다.",
+  "Wear many hats::Cover a lot of ground": "역할 개수가 아니라 다루는 영역의 넓이를 말해요. 회의 끝에 `We covered a lot of ground today.` 처럼 진도 얘기에도 그대로 씁니다.",
+  "Legwork::Groundwork": "발로 뛴 수고보다 \"나중에 성과가 나올 기반\"에 방점이 있어요. 지금 결과가 안 보이는 일을 설명할 때 `lay the groundwork` 로 씁니다.",
+  "Legwork::The prep work": "가장 담백한 표현이에요. 관용구 느낌이 없어서 상대가 비원어민일 때 가장 안전하게 통합니다.",
+  "Boots on the ground::Someone on site": "군대 비유를 뺀 중립적인 말이에요. 고객사나 격식 있는 자리에서는 이쪽이 무난합니다.",
+  "Boots on the ground::Feet on the ground": "같은 그림인데 군사색이 옅어요. 다만 `have your feet on the ground` 는 \"현실감각이 있다\"는 전혀 다른 뜻이라, 앞에 인력 얘기가 붙는지로 구분하시면 됩니다.",
+  "Bring someone up to speed::Fill you in": "더 짧고 캐주얼해요. 회의 직전 복도에서 1분 요약해줄 때 `Let me fill you in.` 이 가장 자연스럽습니다.",
+  "Bring someone up to speed::Catch you up": "자리를 비웠던 사람에게 씁니다. 휴가나 병가에서 돌아온 동료에게 `Let me catch you up on last week.` 이 딱 맞아요.",
+  "Learn the ropes::Get the hang of it": "조직 적응이 아니라 개별 작업이 손에 익는 걸 말해요. 새 툴이나 새 업무를 익히는 중이라면 `I'm getting the hang of it.` 로 씁니다.",
+  "Learn the ropes::Find your footing": "발 디딜 곳을 찾는 그림이라 심리적인 안정까지 포함해요. 이직 초기의 불안을 솔직하게 말할 때 어울립니다.",
+  "Be in the trenches::In the thick of it": "함께 고생했다는 동료애보다 \"지금 한복판\"이라는 시점에 초점이 있어요. 바빠서 답이 늦었다고 할 때 `I was in the thick of it.` 로 씁니다.",
+  "Be in the trenches::Down in the weeds with us": "잡초 속이라는 그림이라 \"디테일에 너무 빠졌다\"는 뉘앙스도 같이 옵니다. 임원이 실무 디테일까지 들어왔을 때 칭찬으로도, 불평으로도 쓸 수 있어요.",
+  "Where things stand::Where we're at": "훨씬 캐주얼해서 팀 내부에서 씁니다. 외부로 나가는 격식 있는 메일에는 where things stand 가 안전해요.",
+  "Where things stand::Current status": "문서나 보고서 제목에 그대로 넣는 딱딱한 말이에요. 입으로 말하면 사무적으로 들려서 슬라이드 헤더에 더 어울립니다.",
+  "Good to go::All set": "사람에게도 물건에도 붙는 만능 표현이에요. 식당에서 `Are you all set?` 은 \"다 되셨어요?\" 라서 회사 밖에서도 자주 들립니다.",
+  "Good to go::Clear to proceed": "승인해준 주체가 있다는 게 드러나요. 법무나 규제 검토를 통과했다고 보고할 때 무게가 실립니다.",
+  "Plan of attack::Game plan": "스포츠에서 온 말이라 공격성이 덜하고 팀워크 느낌이 강해요. `What's our game plan?` 은 회의를 여는 가장 흔한 문장 중 하나입니다.",
+  "Plan of attack::How we'll tackle this": "관용구가 아니라 그냥 문장이라 가장 안전해요. 표현이 안 떠오르거나 상대가 비원어민일 때 이렇게 풀어 말하면 그대로 통합니다.",
   // 7기 메인::유의어 뉘앙스 비교 (soft-fail: 없으면 일반 문구)
   "Put out feelers::Test the waters": "\"Test the waters\"가 발끝으로 물 온도 재보는 일반 표현이라면, \"Put out feelers\"는 더듬이를 뻗어 특정 상대의 반응을 살피는 더 은밀하고 사교적인 그림이에요.",
   "Put out feelers::Float the idea quietly": "\"Float the idea quietly\"가 아이디어를 조용히 띄워본다는 행동 설명이라면, \"Put out feelers\"는 그걸 한 단어 관용구로 처리하는 네이티브의 축약이에요.",
@@ -10892,10 +10955,15 @@ function VerifyPage(dayN) {
   const sentenceDone = d.words.every((_, i) => !!state.submitted[`d${dayN}-${i}`]);
   const quizKey = `d${dayN}-quiz`;
   const recordKey = `d${dayN}-record`;
+  // 각 단계 안에서 정확히 무엇이 남았는지 보이게 subs 를 같이 넘긴다.
+  // "왜 인증 마무리가 안 눌리지" 를 멤버가 스스로 알 수 있어야 문의가 줄어든다. (2026-08-11)
   const steps = [
-    { id: 'copy', label: '오늘의 표현 3번씩 소리 내어 읽기', time: '2분', done: !!state.checkpoints[copyKey] },
-    { id: 'sentence', label: '내 문장 3개 제출하기', time: '5분', done: sentenceDone },
-    { id: 'capture', label: '단어 시험 바로 풀기', time: '1분', done: !!state.checkpoints[quizKey] },
+    { id: 'copy', label: '오늘의 표현 3번씩 소리 내어 읽기', time: '2분', done: !!state.checkpoints[copyKey],
+      subs: [{ t: '3번 읽고 체크 버튼 누르기', ok: !!state.checkpoints[copyKey] }] },
+    { id: 'sentence', label: '내 문장 3개 제출하기', time: '5분', done: sentenceDone,
+      subs: d.words.map((w, i) => ({ t: `문장 ${i + 1} 제출 (${w.en})`, ok: !!state.submitted[`d${dayN}-${i}`] })) },
+    { id: 'capture', label: '단어 시험 바로 풀기', time: '1분', done: !!state.checkpoints[quizKey],
+      subs: [{ t: '시험 결과 제출하기', ok: !!state.checkpoints[quizKey] }] },
   ];
   const completed = steps.filter((step) => step.done).length;
   const activeStep = steps.find((step) => !step.done)?.id || 'capture';
@@ -11178,7 +11246,17 @@ function VerifyPage(dayN) {
         }
       }
     });
-    row.innerHTML = `<div style="width:56px;height:56px;border-radius:18px;background:${step.done ? 'rgba(107,142,78,0.12)' : 'var(--paper)'};display:grid;place-items:center;color:${step.done ? 'var(--green)' : 'var(--ink-soft)'};">${step.done ? Icon('check', 18) : Icon(idx === 0 ? 'mic' : idx === 1 ? 'edit' : idx === 2 ? 'play' : 'mic', 18)}</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:800;color:var(--ink);">${step.label}</div><div class="t-small mono" style="margin-top:4px;color:var(--muted);">${step.time} · Step ${idx + 1}</div></div>${step.done ? '<span class="badge badge-green">완료</span>' : isActive ? '<span class="badge badge-orange">진행</span>' : Icon('lock', 14)}`;
+    // 아직 안 끝난 단계는 세부 항목을 펼쳐서 뭐가 남았는지 그대로 보여준다.
+    const subsHtml = (!step.done && Array.isArray(step.subs) && step.subs.length)
+      ? `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:6px;">`
+        + step.subs.map((sb) => `<div style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:${sb.ok ? 'var(--green)' : 'var(--muted)'};">`
+            + `<span style="flex:0 0 auto;font-size:12px;">${sb.ok ? '✓' : '○'}</span>`
+            + `<span style="flex:1;min-width:0;${sb.ok ? 'text-decoration:line-through;opacity:0.65;' : 'font-weight:700;'}">${escapeHtml(sb.t)}</span></div>`).join('')
+        + `</div>`
+      : '';
+    row.innerHTML = `<div style="display:flex;align-items:center;gap:14px;width:100%;"><div style="width:56px;height:56px;border-radius:18px;flex:0 0 auto;background:${step.done ? 'rgba(107,142,78,0.12)' : 'var(--paper)'};display:grid;place-items:center;color:${step.done ? 'var(--green)' : 'var(--ink-soft)'};">${step.done ? Icon('check', 18) : Icon(idx === 0 ? 'mic' : idx === 1 ? 'edit' : idx === 2 ? 'play' : 'mic', 18)}</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:800;color:var(--ink);">${step.label}</div><div class="t-small mono" style="margin-top:4px;color:var(--muted);">${step.time} · Step ${idx + 1}</div></div>${step.done ? '<span class="badge badge-green">완료</span>' : isActive ? '<span class="badge badge-orange">진행</span>' : Icon('lock', 14)}</div>${subsHtml}`;
+    row.style.flexDirection = 'column';
+    row.style.alignItems = 'stretch';
     stepList.appendChild(row);
   });
   page.appendChild(stepList);
@@ -11216,7 +11294,15 @@ function VerifyPage(dayN) {
       ${stampText ? `<span style="font-size:11px;font-weight:500;opacity:0.75;letter-spacing:0.02em;">인증 ${escapeHtml(stampText)}</span>` : ''}
     `;
   } else {
-    finalBtn.textContent = allDone ? '인증 완료하기 ✓' : `${completed}/3 단계 완료`;
+    if (allDone) {
+      finalBtn.textContent = '인증 완료하기 ✓';
+    } else {
+      // 버튼이 왜 안 눌리는지 버튼 자리에서 바로 알려준다.
+      const remain = [];
+      steps.forEach((st) => (st.subs || []).forEach((sb) => { if (!sb.ok) remain.push(sb.t); }));
+      finalBtn.innerHTML = `<span style="font-size:17px;font-weight:800;">${completed}/3 단계 완료</span>`
+        + (remain.length ? `<span style="font-size:12px;font-weight:600;opacity:0.9;line-height:1.5;">아직 남았어요 · ${escapeHtml(remain.slice(0, 3).join(' / '))}${remain.length > 3 ? ` 외 ${remain.length - 3}개` : ''}</span>` : '');
+    }
   }
   page.appendChild(finalBtn);
   return page;
@@ -26889,6 +26975,9 @@ window.__advanceVerifyQuiz = (dayN, skipped) => {
   } else {
     ui.idx += 1;
     ui.value = '';
+    // 2칸짜리 문제의 입력값도 같이 비운다. 이걸 안 지워서 앞 문제의 답이
+    // 다음 2칸 문제에 그대로 채워져 있는 버그가 있었다. (2026-08-11)
+    ui.values = ['', ''];
   }
   ui.reveal = false;
   ui.revealAnswer = false;
