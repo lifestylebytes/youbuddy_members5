@@ -10088,7 +10088,10 @@ function WeeksPage() {
 function getVerifySettings() {
   const s = state.verify_settings || {};
   const isPremium = state.tier === 'premium';
-  const includeSyn = !!s.includeSyn && isPremium;
+  // 프리미엄은 '유의어까지 출제' 를 기본 ON 으로 둔다.
+  // 예전엔 기본 OFF 라, 체크박스를 못 찾은 프리미엄 멤버가 "유의어가 안 나온다" 고 느꼈다.
+  // 본인이 직접 끈 적이 있을 때(synUserSet)만 그 선택을 따른다. (2026-08-11)
+  const includeSyn = isPremium && (s.synUserSet ? !!s.includeSyn : true);
   let count = Number(s.questionCount) || 10;
   if (count !== 5 && count !== 10 && count !== 20) count = 10;
   if (count === 20 && !isPremium) count = 10;
@@ -14895,7 +14898,7 @@ function DayPage(dayN) {
       overflow: 'hidden',
     }
   });
-  overview.innerHTML = `<span class="kicker" style="font-size:10px;color:var(--muted);letter-spacing:0.1em;flex:0 0 auto;">today's 3</span>`;
+  overview.innerHTML = `<span class="kicker" style="font-size:10px;color:var(--muted);letter-spacing:0.1em;flex:0 0 auto;" title="왼쪽부터 자주 쓰는 순서예요">today's 3</span>`;
   const overviewScroll = el('div', {
     style: {
       display: 'flex',
@@ -15024,8 +15027,16 @@ function DayPage(dayN) {
     card.appendChild(topRow);
 
     const defRow = el('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '4px' } });
+    // 하루 3개는 '빈도 높은 순 → 생소한 순' 으로 배치돼 있는데 화면에 안 드러나서
+    // 멤버가 그냥 나열로 읽었다. 순서의 의도를 배지로 보이게. (2026-08-11)
+    const FREQ_TAG = [
+      { t: '가장 자주 써요', bg: 'rgba(46,111,168,0.12)', c: '#1E5FA0' },
+      { t: '회의에서 자주', bg: 'rgba(46,107,79,0.12)',  c: '#2E6B4F' },
+      { t: '알면 티 나요',  bg: 'rgba(240,172,61,0.18)', c: '#A07A2A' },
+    ][i] || null;
     defRow.innerHTML = `
       <span class="badge" style="padding:6px 12px;font-size:10px;font-weight:700;background:var(--paper);color:var(--ink-soft);letter-spacing:0.04em;font-family:var(--font-mono);">${escapeHtml(w.pos)}</span>
+      ${FREQ_TAG ? `<span class="badge" style="padding:6px 11px;font-size:10px;font-weight:800;background:${FREQ_TAG.bg};color:${FREQ_TAG.c};letter-spacing:0.02em;">${FREQ_TAG.t}</span>` : ''}
       <span class="day-fs-text" style="color:var(--ink-soft);">${escapeHtml(w.def)}</span>
       <button class="icon-btn" style="margin-left:auto;width:36px;height:36px;border-radius:12px;background:var(--orange-ghost);border-color:var(--orange-soft);color:var(--orange-dark);" onclick="window.__speakWord(${dayN}, ${i})" title="발음 듣기">${Icon('volume', 16)}</button>`;
     card.appendChild(defRow);
@@ -26804,6 +26815,7 @@ window.__updateVerifySettings = (dayN, key, value) => {
   if (key === 'includeSyn') {
     if (state.tier !== 'premium') return; // premium 만 가능
     state.verify_settings.includeSyn = !!value;
+    state.verify_settings.synUserSet = true; // 본인이 직접 고른 값이라는 표시
   } else if (key === 'questionCount') {
     const n = Number(value);
     if (n === 20 && state.tier !== 'premium') return; // 20 은 premium 만
