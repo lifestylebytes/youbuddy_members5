@@ -1443,13 +1443,13 @@ const MEMBER_DIRECTORY = [
   { code: '24', id: 'b18', name: '문수영',   color: 'cream', tier: 'basic', kakao: 'su' },  // Su
   { code: '25', id: 'b19', name: '정고운',   color: 'cream', tier: 'basic', kakao: 'Goun' },  // Goun
   { code: '26', id: 'b20', name: '오은경',   color: 'cream', tier: 'basic', kakao: '오은경/Eunkyeong' },  // Eunkyeong
-  { code: '27', id: 'b21', name: '백승택',   color: 'cream', tier: 'basic'  },  // Steve
+  { code: '27', id: 'b21', name: '백승택',   color: 'cream', tier: 'basic', kakao: 'Steve' },  // Steve
   { code: '28', id: 'p7',  name: '옥은정',   color: 'ink', tier: 'premium', kakao: '옥은정/Julia' },  // Julia
   { code: '29', id: 'b22', name: '권지선',   color: 'cream', tier: 'basic', kakao: 'Joy' },  // Joy
   { code: '30', id: 'p8',  name: '박세은',   color: 'ink', tier: 'premium', kakao: '슐슐' },  // 슐슐
   { code: '31', id: 'b23', name: '이성경',   color: 'cream', tier: 'basic', kakao: 'kathrine' },  // Kathrine
   { code: '32', id: 'b24', name: '전수진',   color: 'cream', tier: 'basic', kakao: '전수진' },  // Sujin
-  { code: '33', id: 'b25', name: '노승희',   color: 'cream', tier: 'basic'  },  // Shea
+  { code: '33', id: 'b25', name: '노승희',   color: 'cream', tier: 'basic', kakao: 'Shea' },  // Shea
   { code: '34', id: 'b26', name: '이성은',   color: 'cream', tier: 'basic', kakao: 'Joy은' },  // 7기 재등록 · 계좌이체라 결제 시트 미기록, 8/7 수기 추가
   { code: '35', id: 'p9',  name: '이나윤',   color: 'ink', tier: 'premium' },  // Casey · 8/8 결제, 수기 추가
 ];
@@ -28774,8 +28774,23 @@ function vsCopyMemberLabel(m) {
   const dir = (typeof MEMBER_DIRECTORY !== 'undefined' ? MEMBER_DIRECTORY : []).find((x) => x.name === m.name);
   return (dir && dir.kakao) || m.englishName || m.english_name || m.name;
 }
+/* 해외 멤버는 아직 그날 마감(본인 자정)이 안 지났는데 미인증으로 호명되면 억울하다.
+   한국보다 2시간 이상 뒤처져 있고, 본인 현지 날짜가 아직 그 Day 를 안 넘겼으면 '시차 대기중'.
+   (이나윤 님처럼 1시간 차이는 사실상 같은 하루라 threshold 로 걸러진다.) 2026-08-10 */
+const VS_TZ_WAIT_MIN = -120;
+function vsCopyTzWaiting(m, day) {
+  try {
+    const t = parseTimezoneShift(memberTimezoneText(m));
+    if (!t || !t.ok) return false;
+    const shift = t.offsetMinutes - DEFAULT_TIMEZONE_OFFSET;
+    if (shift > VS_TZ_WAIT_MIN) return false;
+    const dd = dayDate(day);
+    const dayStr = dd.getFullYear() + '-' + String(dd.getMonth() + 1).padStart(2, '0') + '-' + String(dd.getDate()).padStart(2, '0');
+    return todayStrForOffset(t.offsetMinutes) <= dayStr;
+  } catch (e) { return false; }
+}
 function vsCopyBuckets(day, tier) {
-  const out = { both: [], recOnly: [], webOnly: [], done: [] };
+  const out = { both: [], recOnly: [], webOnly: [], tzWait: [], done: [] };
   paidMembers().filter((m) => (m.tier === 'premium') === (tier === 'premium')).forEach((m) => {
     const set = Array.isArray(m.verifiedDays) && m.verifiedDays.length
       ? new Set(m.verifiedDays.map(Number)) : null;
@@ -28785,6 +28800,7 @@ function vsCopyBuckets(day, tier) {
     const rec = recChecked(m.name, day);
     const label = vsCopyMemberLabel(m);
     if (web && rec) out.done.push(label);
+    else if (vsCopyTzWaiting(m, day)) out.tzWait.push(label);
     else if (!web && !rec) out.both.push(label);
     else if (web && !rec) out.recOnly.push(label);
     else out.webOnly.push(label);
@@ -28798,6 +28814,7 @@ function vsCopyText(day, tier, withIntro) {
   if (b.both.length) lines.push('❌ 웹 미인증 + 녹음 미인증 : ' + tag(b.both));
   if (b.recOnly.length) lines.push('🎤 녹음 미인증 : ' + tag(b.recOnly));
   if (b.webOnly.length) lines.push('❓ 웹 미인증 : ' + tag(b.webOnly));
+  if (b.tzWait.length) lines.push('📬 시차 대기중 : ' + tag(b.tzWait));
   const names = lines.join('\n');
   if (!withIntro) return names || '(전원 인증 완료했어요)';
   const intro = 'Day ' + day + ' 리마인드 드립니다\n'
@@ -28819,7 +28836,7 @@ window.__openVerifyStatusCopy = function () {
   const paint = () => {
     const day = window.__vsCopyDay, tier = window.__vsCopyTier;
     const b = vsCopyBuckets(day, tier);
-    const total = b.both.length + b.recOnly.length + b.webOnly.length + b.done.length;
+    const total = b.both.length + b.recOnly.length + b.webOnly.length + b.tzWait.length + b.done.length;
     const chip = (t, on, act) => `<button data-act="${act}" style="padding:6px 12px;border-radius:999px;font-size:12px;font-weight:800;cursor:pointer;border:1px solid ${on ? '#1E5FA0' : 'var(--line)'};background:${on ? '#1E5FA0' : '#fff'};color:${on ? '#fff' : 'var(--muted)'};font-family:inherit;">${t}</button>`;
     const bucket = (emoji, title, arr, color) => !arr.length ? '' :
       `<div style="padding:11px 14px;border-radius:12px;background:${color};margin-top:8px;">
@@ -28840,14 +28857,15 @@ window.__openVerifyStatusCopy = function () {
           ${chip('베이직', tier === 'basic', 'tier-basic')}
           ${chip('프리미엄', tier === 'premium', 'tier-premium')}
         </div>
-        <div style="margin-top:8px;font-size:11.5px;color:var(--muted);">전체 ${total}명 중 <b style="color:#1E5FA0;">${b.done.length}명 완료</b> · ${total - b.done.length}명 남음</div>
+        <div style="margin-top:8px;font-size:11.5px;color:var(--muted);">전체 ${total}명 중 <b style="color:#1E5FA0;">${b.done.length}명 완료</b> · ${total - b.done.length - b.tzWait.length}명 남음${b.tzWait.length ? ` · 시차 대기 ${b.tzWait.length}명` : ''}</div>
       </div>
       <div style="padding:14px 16px 18px;">
-        ${(!b.both.length && !b.recOnly.length && !b.webOnly.length)
+        ${(!b.both.length && !b.recOnly.length && !b.webOnly.length && !b.tzWait.length)
           ? `<div style="padding:26px 12px;text-align:center;font-size:13.5px;color:#1E5FA0;font-weight:800;">🎉 전원 인증 완료했어요!</div>`
           : bucket('❌', '웹 미인증 + 녹음 미인증', b.both, 'rgba(192,57,43,0.07)')
             + bucket('🎤', '녹음 미인증', b.recOnly, 'rgba(240,172,61,0.14)')
-            + bucket('❓', '웹 미인증', b.webOnly, 'rgba(148,137,122,0.10)')}
+            + bucket('❓', '웹 미인증', b.webOnly, 'rgba(148,137,122,0.10)')
+            + bucket('📬', '시차 대기중 (아직 마감 전)', b.tzWait, 'rgba(46,107,79,0.09)')}
         <div style="display:flex;gap:8px;margin-top:15px;flex-wrap:wrap;">
           <button data-act="copy-full" class="btn btn-primary" style="flex:1;min-width:150px;font-size:12.5px;padding:11px;">전체 메시지 복사</button>
           <button data-act="copy-names" class="btn btn-ghost" style="flex:1;min-width:120px;font-size:12.5px;padding:11px;">명단만 복사</button>
