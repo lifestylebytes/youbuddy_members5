@@ -711,7 +711,10 @@ input, textarea, select { font-family: inherit; }
 .cb-cell.on { background: #A9D0EC; border-color: #8FBEE2; } /* 앱 인증만 = 연한 하늘 */
 .cb-cell.on.late { background: #B89E7A; border-color: #A88B65; }
 .cb-cell.on.rec { background: #1E5FA0; border-color: #174C80; } /* 녹음까지 = 새파랑, 완전한 인증 */
-.cb-cell.on.rec.late { background: #4C7FB0; border-color: #3B688F; } /* 지각이지만 녹음은 완료 */
+/* 지각이면 녹음을 했든 안 했든 갈색. 예전엔 녹음 완료를 파랑으로 덮어써서
+   지각인데도 정시처럼 보였다 (8기 Day 1 에 26명 전원 지각인 걸 못 알아챈 원인).
+   녹음 체크 여부는 색이 아니라 '📋 인증 상태 복사' 팝업에서 확인한다. (2026-08-11) */
+.cb-cell.on.rec.late { background: #B89E7A; border-color: #A88B65; }
 .cb-rec-mode .cb-cell.on { cursor: pointer; outline: 1px dashed rgba(30,95,160,0.45); outline-offset: 1px; }
 /* today = 오늘이지만 아직 미인증.
    인증된 'on'(꽉 찬 주황) 과 구분되도록 속은 비우고 주황 실선 링만. */
@@ -9163,8 +9166,8 @@ function HomePage() {
   // 색 범례: 새파랑만 완전한 인증이라는 걸 멤버 모두가 알게.
   const cbLegend = el('div', { style: { display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '10px', fontSize: '11px', color: 'var(--ink-soft)' } });
   cbLegend.innerHTML = `
-    <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#1E5FA0;"></span>녹음까지 완료 (완전한 인증)</span>
-    <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#A9D0EC;"></span>앱 인증만 (녹음 대기)</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#1E5FA0;"></span>정시 + 녹음까지 완료 (완전한 인증)</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#A9D0EC;"></span>정시 + 녹음 대기</span>
     <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#B89E7A;"></span>지각</span>`;
   cbWrap.appendChild(cbLegend);
   // 스태프(이지흔)·운영자 전용: 녹음 체크 모드 토글
