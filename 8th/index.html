@@ -1662,6 +1662,7 @@ const defaultState = () => ({
   nonparticipant_list: [],          // ['강태윤', ...] Week 1 무참여자, 대시보드 맨 아래로 + 향후 기능 제한 대상.
   recording_popup_seen: {},         // { "m1": true } 미팅 다시보기 팝업을 본 상태. 한 번 X 누르면 다시 안 뜸.
   daily_funfact_seen: {},           // { "d6": true } 홈 '오늘의 한 입' 팝업을 그날 본 상태 (하루 1회).
+  help_hint_seen: false,            // 상단 ? 설명서 안내 팝업을 봤는지 (계정당 1회).
   meeting_prep_popup_seen: {},      // { "m1": "2026-07-15" } 미팅 사전 예습 팝업을 그날 본 상태 (하루 1회, 저장하면 영구 스킵).
   best_popup_seen: {},              // { "2": true } 이번주 베스트 팝업을 주차별로 본 상태 (자동 노출 1회).
   daily_done_popup_seen: {},        // { "d6": true } '오늘 마무리' 완료 팝업을 그날 본 상태 (하루 1회).
@@ -1746,6 +1747,7 @@ const PERSISTED_STATE_KEYS = [
   'review_consent',
   'week_survey_nudged',
   'daily_funfact_seen',
+  'help_hint_seen',
   'meeting_prep_popup_seen',
   'best_popup_seen',
   'daily_done_popup_seen',
@@ -2915,6 +2917,7 @@ function routeToHash() {
       case 'community':    return '#community';
       case 'premium':      return '#premium';
       case 'profile':      return '#profile';
+      case 'help':         return '#help';
       case 'pitch-prep':   return '#pitch';
       case 'verify':       return `#verify/${currentDay || 1}`;
       case 'meeting-notes':
@@ -2958,6 +2961,7 @@ function applyHashRoute(rawHash) {
     case 'community':  currentPage = 'community';  return true;
     case 'premium':    currentPage = 'premium';    return true;
     case 'profile':    currentPage = 'profile';    return true;
+    case 'help':       currentPage = 'help';       return true;
     case 'pitch':      currentPage = 'pitch-prep'; return true;
     case 'verify':
       currentPage = 'verify';
@@ -3099,6 +3103,7 @@ let showBestPopup = null; // 이번주 베스트(만점자+최초완주) 팝업 
 let showReviewUnlockPopup = false; // Week 2(Day 6) 진입 시 '내 약점 복습' 기능 해제 온보딩 팝업.
 let showBingoIntroPopup = null; // weekN. 주간 테스트 첫 진입 시 5단계 온보딩 팝업.
 let showFunFactPopup = null; // 홈 진입 시 하루 1회 '오늘의 한 입' (날짜별 고정). true 면 노출.
+let showHelpHintPopup = false; // '?' 설명서 안내, 계정당 1회만.
 let showMeetingPrepPopup = null; // meetingId. 프리미엄 미팅 D-1~당일, 사전 준비(목표+문장) 안 한 멤버에게 하루 1회.
 let showVocabMapPopup = false;
 // 운영 스위치: 어휘 영역 지도 '자동 팝업' on/off. false 면 Day 17+ 라도 스스로 안 뜸.
@@ -3127,7 +3132,7 @@ function anyPopupOpen() {
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
     || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup
     || showFunFactPopup || showDonePopup || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup || showWeekReviewIntro
-    || showDailyPulse || showPremiumIntake);
+    || showDailyPulse || showPremiumIntake || showHelpHintPopup);
 }
 
 function go(page, opts={}) {
@@ -4109,6 +4114,97 @@ function defaultNuance(w) {
 // 각 Day의 메인 표현별 syn 2~3개를 실제 현업 뉘앙스로 짧게 정리한 glossary.
 // 키는 반드시 lowercase. syn 추가 시 원문 대소문자 그대로 lower()만 취하면 됨.
 const SYNONYM_GLOSSARY = {
+  // 8기 Day 6~20 유의어 뜻. 2026-08-11 추가.
+  "long story short": "길게 말할 걸 줄이면",
+  "the short version is": "짧은 버전으로 말하면",
+  "quantify it": "수치화하다",
+  "give me a figure": "숫자로 하나 달라",
+  "to sum it up": "정리하자면",
+  "the gist is": "요지는",
+  "compared to last year": "작년과 비교하면",
+  "on an annual basis": "연간 기준으로",
+  "compare against": "~에 견주어 보다",
+  "stack it up": "나란히 놓고 재보다",
+  "compare to": "~와 비교하다",
+  "measure up against": "~에 견줄 만한지 보다",
+  "roughly": "대략",
+  "or thereabouts": "그 언저리",
+  "general guideline": "일반적인 지침",
+  "ballpark rule": "대략의 기준",
+  "rough math": "대충 해본 계산",
+  "quick estimate": "빠른 추정치",
+  "still early days": "아직 초반이다",
+  "jury's still out": "아직 결론이 안 났다",
+  "early signal": "초기 신호",
+  "predictive metric": "예측 지표",
+  "count on": "믿고 기대다",
+  "take it as a given": "당연한 전제로 두다",
+  "still flexible": "아직 조정 가능하다",
+  "nothing's final yet": "아직 확정된 건 없다",
+  "still undecided": "아직 미정이다",
+  "nothing confirmed": "확정된 게 없다",
+  "keep options open": "선택지를 열어두다",
+  "have a plan b ready": "대비책을 준비해두다",
+  "take it up a level": "한 단계 위로 올리다",
+  "bring in leadership": "리더십을 끌어들이다",
+  "in jeopardy": "위태롭다",
+  "might slip": "밀릴 수도 있다",
+  "put it on the table": "논의 테이블에 올리다",
+  "look into it": "들여다보다",
+  "backup option": "예비 안",
+  "plan b": "차선책",
+  "schedule drift": "일정이 조금씩 흘러가는 것",
+  "days lost": "잃어버린 일수",
+  "get ahead of it": "앞질러 대응하다",
+  "nip it in the bud": "싹부터 자르다",
+  "narrow the scope": "범위를 좁히다",
+  "do less, better": "적게, 대신 잘",
+  "adjust as we go": "가면서 조정하다",
+  "change tack": "방향을 바꾸다",
+  "trim it down": "덜어내다",
+  "strip it back": "뼈대만 남기다",
+  "be straight with you": "솔직히 말씀드리면",
+  "lay it out honestly": "있는 그대로 펼쳐놓다",
+  "sugarcoat it": "좋게 포장하다",
+  "keep it to yourself": "혼자만 알고 있다",
+  "take responsibility for": "책임을 지다",
+  "admit it outright": "대놓고 인정하다",
+  "do-nothing cost": "아무것도 안 할 때의 비용",
+  "what it costs to wait": "기다리면 드는 비용",
+  "miss the mark": "과녁을 빗나가다",
+  "come up short": "모자라다",
+  "brush it aside": "대수롭지 않게 넘기다",
+  "bury it": "묻어버리다",
+  "take it on": "맡아서 하다",
+  "fill the gap": "빈자리를 메우다",
+  "build the argument for": "논거를 쌓다",
+  "push for it with data": "데이터로 밀어붙이다",
+  "outperform our size": "규모 이상으로 해내다",
+  "do more with less": "적은 자원으로 더 해내다",
+  "hats off to": "~에게 경의를",
+  "that was their win": "그건 저분 성과였어요",
+  "kudos to": "~에게 찬사를",
+  "big thanks to": "~에게 큰 감사를",
+  "speak highly of": "높이 평가해 말하다",
+  "talk them up": "띄워주다",
+  "development area": "개발이 필요한 영역",
+  "something i'm working on": "지금 노력 중인 부분",
+  "level the ratings": "등급을 맞추다",
+  "align on standards": "기준을 맞추다",
+  "blow your own trumpet": "자기 자랑을 하다",
+  "speak up for yourself": "자기 목소리를 내다",
+  "a step-up project": "한 단계 위 프로젝트",
+  "something that pushes me": "저를 밀어붙이는 일",
+  "advocate for you": "당신을 대변해주는 사람",
+  "someone in your corner": "내 편에 서 있는 사람",
+  "spread too thin": "너무 얇게 퍼져 있다",
+  "maxed out right now": "지금 한계치다",
+  "transition process": "인수인계 절차",
+  "wrapping up your handover": "인수인계를 마무리하는 중",
+  "a huge plus for": "~에게 큰 플러스",
+  "valuable addition to": "~에 값진 합류",
+  "plain sailing": "순조로운 항해",
+  "no bumps since": "그 뒤로 문제 없었어요",
   // 8기 Week 1 (Day 1~5) 유의어 뜻. 2026-08-11 추가.
   "keep you in the loop": "계속 공유받게 해주다",
   "give a heads-up": "미리 귀띔해주다",
@@ -4307,6 +4403,97 @@ const SYNONYM_GLOSSARY = {
 // pair-specific nuance: "메인 표현 vs 해당 syn" 비교해서 실제 현업에서 어떻게 다른지 한줄.
 // key = `${word.en}::${syn}` (대소문자 · 공백 원문 그대로).
 const SYNONYM_NUANCE = {
+  // 8기 Day 6~20.
+  "Bottom line::Long story short": "얘기가 길어질 텐데 요약하겠다는 예고예요. 배경 설명을 건너뛴다는 양해를 구하는 느낌이라, 상대가 시간이 없어 보일 때 앞에 붙이면 좋습니다.",
+  "Bottom line::The short version is": "긴 버전이 따로 있다는 걸 암시해요. 자세한 건 나중에 하고 지금은 요약만 하겠다는 뜻이라 회의 시간이 촉박할 때 씁니다.",
+  "Put a number on it::Quantify it": "문서나 이메일에 어울리는 딱딱한 말이에요. 회의에서 입으로 하면 사무적으로 들릴 수 있습니다.",
+  "Put a number on it::Give me a figure": "상대에게 직접 요구하는 문장이라 조금 더 셉니다. 상급자가 실무자에게 쓰면 압박이 되니 톤을 부드럽게 해주세요.",
+  "In a nutshell::To sum it up": "이야기를 마무리하며 씁니다. 앞에서 이미 설명을 다 한 뒤 닫는 말이에요.",
+  "In a nutshell::The gist is": "세부는 생략하고 핵심만 전달할 때예요. 남의 발표나 문서를 대신 요약해줄 때 특히 자주 씁니다.",
+  "Year over year::Compared to last year": "가장 쉬운 풀어쓰기예요. 비원어민이 섞인 자리나 구두 설명에서 안전합니다.",
+  "Year over year::On an annual basis": "보고서 문어체예요. 분기나 월 기준과 구분해서 말해야 할 때 명확해집니다.",
+  "Benchmark::Compare against": "기준점이 정해져 있지 않아도 쓸 수 있는 일반 동사예요. 그냥 둘을 나란히 놓고 볼 때 씁니다.",
+  "Benchmark::Stack it up": "구어체라 회의에서 가볍게 던지기 좋아요. 문서에는 잘 안 씁니다.",
+  "Stack up against::Compare to": "가장 중립적이에요. 우열을 가린다는 느낌이 없어서 단순 비교에 적합합니다.",
+  "Stack up against::Measure up against": "기준을 충족하느냐를 따지는 말이에요. 사람 평가에 쓰면 기대에 미치는지를 묻는 뜻이 되니 조심하세요.",
+  "Give or take::Roughly": "숫자 앞에 붙여요. give or take 는 숫자 뒤에 오는데 이건 앞에 온다는 게 다릅니다.",
+  "Give or take::Or thereabouts": "격식 있고 살짝 옛스러워요. 영국계 문서나 메일에서 보입니다.",
+  "Rule of thumb::General guideline": "문서에 쓰는 딱딱한 말이에요. 공식 가이드가 있는 것처럼 들리니, 경험으로 아는 기준일 뿐이라면 원래 표현이 정확합니다.",
+  "Rule of thumb::Ballpark rule": "야구장 크기만큼 뭉뚱그린다는 뜻이라 정밀하지 않다는 걸 먼저 알립니다. 틀려도 부담이 덜해요.",
+  "Back-of-the-envelope::Rough math": "가장 짧고 편해요. 슬랙이나 구두로 대충 계산해봤다고 할 때 씁니다.",
+  "Back-of-the-envelope::Quick estimate": "중립적이고 안전해요. 고객사나 임원 앞에서는 이쪽이 무난합니다.",
+  "Too early to tell::Still early days": "시간이 더 필요하다는 쪽에 초점이 있어요. 프로젝트 초반 성과를 물어볼 때 좋습니다.",
+  "Too early to tell::Jury's still out": "배심원이 안 나왔다는 그림이라, 의견이 갈려서 판단이 안 섰다는 뉘앙스가 있어요.",
+  "Leading indicator::Early signal": "지표라기보다 조짐이에요. 정식 데이터가 아니어도 쓸 수 있어서 부담이 적습니다.",
+  "Leading indicator::Predictive metric": "데이터 팀에서 쓰는 정식 용어예요. 실제로 모델이나 지표가 있을 때만 쓰세요.",
+  "Bank on::Count on": "사람에게 씁니다. 당신만 믿는다는 신뢰 표현이라 따뜻하게 들려요.",
+  "Bank on::Take it as a given": "이미 확정된 걸로 깔고 간다는 뜻이에요. 회의에서 그 논의를 건너뛸 때 씁니다.",
+  "Not set in stone::Still flexible": "긍정적으로 들려요. 상대에게 여지를 주고 싶을 때 좋습니다.",
+  "Not set in stone::Nothing's final yet": "가장 단호하게 선을 긋는 말이에요. 성급한 실행을 막아야 할 때 씁니다.",
+  "Up in the air::Still undecided": "중립적이고 사무적이에요. 문서나 공식 답변에 적합합니다.",
+  "Up in the air::Nothing confirmed": "외부에 답할 때 안전한 표현이에요. 약속으로 오해받지 않습니다.",
+  "Hedge your bets::Keep options open": "긍정적인 표현이에요. 우유부단이 아니라 신중함으로 들립니다.",
+  "Hedge your bets::Have a plan B ready": "구체적인 행동을 말해요. 실제로 준비된 안이 있을 때만 쓰세요.",
+  "Escalate::Take it up a level": "부드러운 풀어쓰기예요. 원래 표현이 부담스러운 자리에서 완충 역할을 합니다.",
+  "Escalate::Bring in leadership": "누구를 부르는지 분명해져요. 절차상 필요한 일이라는 걸 강조할 때 씁니다.",
+  "At risk::In jeopardy": "훨씬 무겁고 급해요. 정말 심각할 때만 쓰세요. 남발하면 신뢰가 떨어집니다.",
+  "At risk::Might slip": "가장 부드러워요. 아직 확실하지 않지만 미리 알리고 싶을 때 딱 맞습니다.",
+  "Surface an issue::Put it on the table": "다 같이 보자는 초대에 가까워요. 공개적으로 다루자는 신호입니다.",
+  "Surface an issue::Look into it": "문제를 드러내는 게 아니라 조사한다는 뜻이라 방향이 달라요. 원인을 파악하겠다고 할 때 씁니다.",
+  "Fallback::Backup option": "가장 알아듣기 쉬워요. 비원어민이 섞인 자리에서 안전합니다.",
+  "Fallback::Plan B": "한국에서도 그대로 쓰는 말이라 편해요. 다만 캐주얼해서 공식 문서에는 원래 표현이 낫습니다.",
+  "Slippage::Schedule drift": "원인 없이 자연스럽게 밀린다는 뉘앙스예요. 책임 소재를 흐리지 않고 현상만 말할 때 씁니다.",
+  "Slippage::Days lost": "숫자로 못 박아요. 사흘을 잃었다는 식으로 쓰면 심각성이 바로 전달됩니다.",
+  "Head something off::Get ahead of it": "요즘 회사에서 가장 많이 들리는 표현이에요. 문제뿐 아니라 소문이나 예상 질문에도 씁니다.",
+  "Head something off::Nip it in the bud": "초기에 확실히 끝낸다는 강한 말이에요. 작은 문제일 때 어울리고 큰 사안에 쓰면 과해 보입니다.",
+  "Scale back::Narrow the scope": "프로젝트 용어라 회의에서 정확하게 통해요. 무엇을 뺄지 이야기할 때 씁니다.",
+  "Scale back::Do less, better": "방어가 아니라 전략처럼 들려요. 줄이자는 제안을 설득력 있게 만듭니다.",
+  "Course-correct::Adjust as we go": "유연하게 들려요. 계획이 틀렸다고 인정하지 않고도 방향을 틀 수 있습니다.",
+  "Course-correct::Change tack": "배가 바람을 받아 방향을 트는 데서 온 말이에요. 접근법 자체를 바꿀 때 씁니다.",
+  "Pare back::Trim it down": "가장 흔하고 편해요. 문서나 발표 분량을 줄일 때 자주 씁니다.",
+  "Pare back::Strip it back": "훨씬 과감해요. 부가 기능을 다 걷어내고 핵심만 남길 때 씁니다.",
+  "Be upfront::Be straight with you": "사람 대 사람으로 말을 여는 느낌이에요. 어려운 이야기 앞에 붙이면 상대가 마음을 엽니다.",
+  "Be upfront::Lay it out honestly": "정보를 숨김없이 다 내놓는다는 쪽이에요. 나쁜 소식까지 포함한다는 신호가 됩니다.",
+  "Hold back::Sugarcoat it": "숨기는 게 아니라 부드럽게 꾸민다는 뜻이에요. 포장하지 않겠다는 부정형으로 자주 씁니다.",
+  "Hold back::Keep it to yourself": "남에게 말하지 말라는 요청이 될 수도 있어요. 문맥에 따라 뜻이 갈리니 주의하세요.",
+  "Own up to::Take responsibility for": "공식적이고 무거워요. 사과문이나 공개 자리에 어울립니다.",
+  "Own up to::Admit it outright": "변명 없이 바로 인정한다는 속도감이 있어요. 빨리 넘어가고 싶을 때 효과적입니다.",
+  "Cost of inaction::Do-nothing cost": "더 직설적이라 슬라이드 한 줄로 쓰기 좋아요.",
+  "Cost of inaction::What it costs to wait": "문장이라 이해가 즉시 돼요. 결정을 미루는 사람을 움직일 때 씁니다.",
+  "Fall short::Miss the mark": "방향이 틀렸다는 뉘앙스가 있어요. 양이 아니라 방향이 문제일 때 정확합니다.",
+  "Fall short::Come up short": "양이 부족했다는 쪽이에요. 목표 수치에 못 미쳤을 때 씁니다.",
+  "Sweep it under the rug::Brush it aside": "숨긴다기보다 무시한다는 뜻이에요. 의견이 묵살될 때 씁니다.",
+  "Sweep it under the rug::Bury it": "가장 강하고 부정적이에요. 고의로 은폐했다는 비난이 되니 사실일 때만 쓰세요.",
+  "Step up::Take it on": "중립적이고 부담이 없어요. 자원할 때 가장 자연스럽습니다.",
+  "Step up::Fill the gap": "누군가 빠진 자리를 대신했다는 게 드러나요. 팀 사정을 설명할 때 좋습니다.",
+  "Make the case for::Build the argument for": "준비 과정에 초점이 있어요. 아직 설득 전 단계일 때 씁니다.",
+  "Make the case for::Push for it with data": "무기가 데이터라는 걸 분명히 해요. 감이 아니라 근거로 간다는 신호입니다.",
+  "Punch above your weight::Outperform our size": "팀이나 회사에 씁니다. 개인에게 쓰면 어색해요.",
+  "Punch above your weight::Do more with less": "자원 부족을 강점으로 바꿔 말하는 방식이에요. 예산 이야기에서 특히 잘 통합니다.",
+  "Give credit to::Hats off to": "모자를 벗어 인사하는 그림이라 진심이 실려요. 짧은 축하 메시지에 딱 맞습니다.",
+  "Give credit to::That was their win": "성과의 주인을 분명히 넘겨요. 내가 칭찬받는 자리에서 쓰면 신뢰가 크게 올라갑니다.",
+  "Shout-out::Kudos to": "슬랙에서 가장 흔한 칭찬 표현이에요. 짧고 가벼워서 자주 써도 부담이 없습니다.",
+  "Shout-out::Big thanks to": "칭찬보다 감사 쪽이에요. 도움받은 걸 갚는 자리에 어울립니다.",
+  "Sing someone's praises::Speak highly of": "격식 있고 차분해요. 추천서나 레퍼런스 체크에서 씁니다.",
+  "Sing someone's praises::Talk them up": "의도적으로 좋게 말한다는 뉘앙스가 있어요. 누군가를 소개하거나 밀어줄 때 씁니다.",
+  "Growth area::Development area": "인사 문서의 공식 용어예요. 평가서에 쓸 때 안전합니다.",
+  "Growth area::Something I'm working on": "이미 행동하고 있다는 게 드러나요. 약점을 말할 때 방어적으로 들리지 않습니다.",
+  "Calibrate::Level the ratings": "점수 자체를 조정한다는 구체적인 행위예요. 평가 회의 자리에서 씁니다.",
+  "Calibrate::Align on standards": "점수보다 기준 합의에 초점이 있어요. 평가 전에 미리 이야기할 때 적합합니다.",
+  "Toot your own horn::Blow your own trumpet": "영국식 표현이에요. 뜻과 뉘앙스는 같으니 상대 국적에 맞춰 고르시면 됩니다.",
+  "Toot your own horn::Speak up for yourself": "자랑이 아니라 정당한 주장이라는 쪽이에요. 부정적인 뉘앙스가 없어서 남에게 조언할 때 좋습니다.",
+  "Stretch assignment::A step-up project": "쉽게 풀어쓴 말이라 설명 없이 통해요.",
+  "Stretch assignment::Something that pushes me": "내 의지를 드러내는 문장이에요. 면담에서 먼저 요청할 때 씁니다.",
+  "Sponsor::Advocate for you": "역할을 풀어서 설명해요. 원래 표현이 안 통하는 조직에서 유용합니다.",
+  "Sponsor::Someone in your corner": "권투 코너에서 온 말이라 든든함이 실려요. 사적인 대화에서 자연스럽습니다.",
+  "Stretched thin::Spread too thin": "여러 일에 나뉘어 어디에도 집중을 못 한다는 그림이에요.",
+  "Stretched thin::Maxed out right now": "더는 못 받는다는 걸 분명히 해요. 업무를 거절할 때 가장 명확합니다.",
+  "Offboarding::Transition process": "중립적이고 공식적이에요. 퇴사가 아닌 부서 이동에도 씁니다.",
+  "Offboarding::Wrapping up your handover": "진행 중이라는 상태를 말해요. 남은 기간에 무엇을 하는지 설명할 때 씁니다.",
+  "An asset to::A huge plus for": "가볍고 구어적이에요. 추천사에서 편하게 씁니다.",
+  "An asset to::Valuable addition to": "새로 들어온 사람에게 씁니다. 이미 있던 사람에게는 어색해요.",
+  "Smooth sailing::Plain sailing": "영국식 표현이에요. 뜻은 같습니다.",
+  "Smooth sailing::No bumps since": "특정 시점 이후를 말해요. 문제가 있다가 해결됐다는 맥락이 깔립니다.",
   // 8기 Week 1 (Day 1~5). 규칙: 메인 표현(이미 배운 것)을 기준으로,
   // 이 유의어를 "언제 골라 쓰는지"만 쓴다. 학습자가 모르는 단어를 비교 기준으로 삼지 않는다.
   "Keep someone posted::Keep you in the loop": "진행 상황을 한 번 알려주는 게 아니라 \"이 건에서 나를 빼지 말아달라\"는 요청이에요. 프로젝트에서 소외될까 걱정될 때 \"Please keep me in the loop.\" 한 줄이면 충분합니다.",
@@ -6463,6 +6650,15 @@ function render() {
       const stale = document.querySelector('[data-done-popup]');
       if (stale) stale.remove();
     }
+    if (showHelpHintPopup) {
+      if (!document.querySelector('[data-help-hint-popup]')) {
+        document.body.appendChild(HelpHintPopupModal());
+      }
+    } else {
+      const staleHH = document.querySelector('[data-help-hint-popup]');
+      if (staleHH) staleHH.remove();
+    }
+
     if (showFunFactPopup) {
       if (!document.querySelector('[data-funfact-popup]')) {
         document.body.appendChild(FunFactPopupModal());
@@ -7559,106 +7755,198 @@ function TopBar(title='') {
    상단바 ? 아이콘에서 열림. 반복되는 문의를 한 곳에 모아둔다.
    노션 '유비챌 알차게 이용하기' 와 같은 내용. (2026-08-11)
    ============================================================ */
+
+/* 상단 ? 설명서 안내. 계정당 1회, 온보딩을 마친 뒤 조용히 한 번만. (2026-08-11) */
+function HelpHintPopupModal() {
+  const backdrop = el('div', { class: 'modal-backdrop', 'data-help-hint-popup': '1' });
+  const close = () => { showHelpHintPopup = false; render(); };
+  backdrop.onclick = (e) => { if (e.target === backdrop) close(); };
+  const modal = el('div', { class: 'modal', style: { width: 'min(92vw, 380px)', padding: '26px 24px 22px', borderRadius: '24px', textAlign: 'center' } });
+  modal.innerHTML = `
+    <div style="width:56px;height:56px;margin:0 auto;border-radius:50%;background:var(--orange-ghost);border:1.5px solid var(--orange-soft);display:grid;place-items:center;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--orange-dark)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"/><path d="M9.2 9.2a2.9 2.9 0 0 1 5.6 1c0 2-2.8 2.5-2.8 4"/><path d="M12 17.2h.01"/>
+      </svg>
+    </div>
+    <div style="margin-top:15px;font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">궁금한 게 생기면 여기예요</div>
+    <div style="margin-top:9px;font-size:13.5px;line-height:1.75;color:var(--ink-soft);">
+      화면 <b style="color:var(--ink);">오른쪽 위 ?</b> 를 누르시면<br>앱 사용 설명서가 열려요.<br><br>
+      인증이 왜 안 넘어가는지, 보드 색이 무슨 뜻인지<br>같은 것들을 한 곳에 모아뒀어요 :)
+    </div>
+    <button data-hh="go" class="btn btn-full" style="margin-top:18px;">설명서 한번 볼래요</button>
+    <button data-hh="close" class="btn btn-ghost btn-full" style="margin-top:8px;">나중에 볼게요</button>`;
+  modal.querySelector('[data-hh="go"]').onclick = () => { showHelpHintPopup = false; go('help'); };
+  modal.querySelector('[data-hh="close"]').onclick = close;
+  backdrop.appendChild(modal);
+  return backdrop;
+}
+
 function HelpPage() {
   const page = el('div', { class: 'page' });
   const isPrem = state.tier === 'premium';
-  const esc = (x) => escapeHtml(String(x == null ? '' : x));
 
   page.appendChild(el('div', { class: 'kicker' }, '앱 사용 설명서'));
   page.appendChild(el('h1', { class: 'h1', style: { marginTop: '4px' } }, '유비챌 알차게 쓰기'));
   page.appendChild(el('p', { class: 'sub', style: { marginTop: '6px' } },
     '필요한 것만 찾아보셔도 되고, 한 번 쭉 훑으시면 "이런 것도 있었네" 하는 게 몇 개 나올 거예요.'));
 
-  const card = (title, bodyHtml, tone) => {
-    const c = el('div', { class: 'card', style: { marginTop: '14px', padding: '16px 18px', ...(tone ? { background: tone.bg, border: `1px solid ${tone.bd}` } : {}) } });
-    c.innerHTML = `<div style="font-size:14.5px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${title}</div>
-      <div style="margin-top:9px;font-size:13px;line-height:1.75;color:var(--ink-soft);">${bodyHtml}</div>`;
-    return c;
+  // 목차, 탭하면 해당 섹션으로 스크롤
+  const SECTIONS = [
+    ['flow', '⏱', '하루 흐름'],
+    ['color', '🎨', '보드 색깔'],
+    ['learn', '📚', '내 학습'],
+    ['tip', '⚙️', '알아두면 편한 것'],
+    ['faq', '❓', '자주 묻는 것'],
+  ];
+  const toc = el('div', { style: { display: 'flex', gap: '7px', flexWrap: 'wrap', marginTop: '16px' } });
+  toc.innerHTML = SECTIONS.map(([id, ic, t]) =>
+    `<button data-jump="${id}" style="padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer;">${ic} ${t}</button>`).join('');
+  toc.querySelectorAll('[data-jump]').forEach((b) => {
+    b.onclick = () => {
+      const t = document.getElementById('help-' + b.getAttribute('data-jump'));
+      if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  });
+  page.appendChild(toc);
+
+  const H = (id, ic, t, sub) => {
+    const h = el('div', { id: 'help-' + id, style: { marginTop: '30px', scrollMarginTop: '76px' } });
+    h.innerHTML = `<div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:19px;">${ic}</span>
+        <span style="font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;">${t}</span>
+      </div>${sub ? `<div style="margin-top:5px;font-size:12.5px;color:var(--muted);">${sub}</div>` : ''}`;
+    page.appendChild(h);
   };
-  const H = (t) => page.appendChild(el('div', { class: 'kicker', style: { marginTop: '26px' } }, t));
+  const card = (title, bodyHtml, accent) => {
+    const c = el('div', {
+      style: {
+        marginTop: '10px', padding: '15px 17px', borderRadius: '16px', background: '#fff',
+        border: '1px solid var(--line)', ...(accent ? { borderLeft: `3px solid ${accent}` } : {}),
+      },
+    });
+    c.innerHTML = `${title ? `<div style="font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${title}</div>` : ''}
+      <div style="${title ? 'margin-top:8px;' : ''}font-size:13px;line-height:1.75;color:var(--ink-soft);">${bodyHtml}</div>`;
+    page.appendChild(c);
+  };
 
-  H('하루 흐름');
-  page.appendChild(card('5분이면 끝나요', `
-    <div style="display:flex;flex-direction:column;gap:7px;">
-      <div><b style="color:var(--orange-dark);">1</b> &nbsp;오늘의 표현 3개 읽고 <b>3번 읽기 체크</b> 누르기</div>
-      <div><b style="color:var(--orange-dark);">2</b> &nbsp;표현마다 <b>내 문장 만들어 제출</b> (3개)</div>
-      <div><b style="color:var(--orange-dark);">3</b> &nbsp;<b>단어 시험</b> 풀고 결과 제출</div>
-      <div><b style="color:var(--orange-dark);">4</b> &nbsp;<b>인증 마무리</b> 버튼 누르기</div>
-      <div><b style="color:var(--orange-dark);">5</b> &nbsp;<b>카톡방에 문장 3개 녹음</b> 올리기</div>
+  /* ── 하루 흐름 ── */
+  H('flow', '⏱', '하루 흐름', '5분이면 끝나요');
+  const STEPS = [
+    ['오늘의 표현 3개 읽기', '읽고 <b>3번 읽기 체크</b> 누르기', '앱'],
+    ['내 문장 3개 제출', '표현마다 하나씩', '앱'],
+    ['단어 시험', '풀고 결과 제출', '앱'],
+    ['인증 마무리', '버튼 누르기', '앱'],
+    ['카톡방에 녹음 올리기', '내 문장 3개 소리 내어', '카톡'],
+  ];
+  const flow = el('div', { style: { marginTop: '10px', padding: '6px 0', borderRadius: '16px', background: '#fff', border: '1px solid var(--line)' } });
+  flow.innerHTML = STEPS.map(([t, sub, where], k) => `
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:13px 16px;${k ? 'border-top:1px solid var(--line-soft);' : ''}">
+      <span style="flex:0 0 auto;width:24px;height:24px;border-radius:50%;background:${where === '카톡' ? '#FEE500' : 'var(--orange)'};color:${where === '카톡' ? '#3A2A08' : '#fff'};font-size:12px;font-weight:800;display:grid;place-items:center;">${k + 1}</span>
+      <span style="flex:1;min-width:0;">
+        <span style="font-size:13.5px;font-weight:800;color:var(--ink);">${t}</span>
+        <span style="display:block;margin-top:2px;font-size:12px;color:var(--muted);">${sub}</span>
+      </span>
+      <span style="flex:0 0 auto;font-size:10px;font-weight:800;padding:3px 8px;border-radius:7px;background:${where === '카톡' ? 'rgba(254,229,0,0.28)' : 'var(--paper)'};color:${where === '카톡' ? '#8A6212' : 'var(--muted)'};">${where}</span>
+    </div>`).join('');
+  page.appendChild(flow);
+  card('', `<b style="color:var(--ink);">5번까지 해야 완전한 인증이에요.</b> 앱에서만 끝내면 절반만 된 거라 보드에 연한 하늘색으로 남아요.`, 'var(--orange)');
+
+  /* ── 보드 색깔 ── */
+  H('color', '🎨', '보드 색깔', '색만 봐도 상태를 알 수 있어요');
+  const COLORS = [
+    ['#1E5FA0', '정시 인증 + 녹음까지', '이게 완전한 인증이에요'],
+    ['#A9D0EC', '앱 인증만 완료', '카톡 녹음 대기 중'],
+    ['#B89E7A', '지각', '그날 자정을 넘겨서 인증'],
+    ['#EDE7DC', '아직 안 한 날', ''],
+  ];
+  const cw = el('div', { style: { marginTop: '10px', padding: '6px 0', borderRadius: '16px', background: '#fff', border: '1px solid var(--line)' } });
+  cw.innerHTML = COLORS.map(([c, t, sub], k) => `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;${k ? 'border-top:1px solid var(--line-soft);' : ''}">
+      <span style="flex:0 0 auto;width:26px;height:26px;border-radius:8px;background:${c};border:1px solid rgba(0,0,0,0.06);"></span>
+      <span style="flex:1;min-width:0;"><span style="font-size:13.5px;font-weight:800;color:var(--ink);">${t}</span>
+      ${sub ? `<span style="display:block;margin-top:2px;font-size:12px;color:var(--muted);">${sub}</span>` : ''}</span>
+    </div>`).join('');
+  page.appendChild(cw);
+  card('', '칸을 눌러보시면 몇 시에 인증했는지도 보여요.');
+
+  /* ── 내 학습 ── */
+  H('learn', '📚', '내 학습');
+  card('표현 3개는 순서에 뜻이 있어요', `
+    하루에 나오는 3개는 <b>자주 쓰는 순서</b>로 배치돼 있어요. 카드 옆 <b>빈도 점</b>이 그 표시예요.
+    <div style="margin-top:9px;display:flex;flex-direction:column;gap:5px;">
+      ${[['1번', 5], ['2번', 4], ['3번', 3]].map(([n, lv]) => `<div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:11.5px;font-weight:800;color:var(--muted);width:26px;">${n}</span>
+        <span style="display:inline-flex;gap:3px;">${Array.from({ length: 5 }, (_, k) => `<span style="width:7px;height:7px;border-radius:50%;background:${k < lv ? 'var(--orange)' : 'var(--line)'};"></span>`).join('')}</span></div>`).join('')}
     </div>
-    <div style="margin-top:11px;padding:10px 12px;border-radius:10px;background:rgba(240,172,61,0.14);color:var(--ink);font-weight:700;">
-      5번까지 해야 완전한 인증이에요. 앱에서만 끝내면 절반만 된 거라 보드에 연한 하늘색으로 남아요.
-    </div>`));
-
-  H('보드 색깔');
-  page.appendChild(card('무슨 색인지로 상태를 알 수 있어요', `
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      ${[['#1E5FA0', '정시 인증 + 녹음까지 완료', '이게 완전한 인증이에요'],
-         ['#A9D0EC', '앱 인증만 완료', '카톡 녹음 대기 중'],
-         ['#B89E7A', '지각', '그날 자정을 넘겨서 인증'],
-         ['var(--line)', '아직 안 한 날', '']].map(([c, t, sub]) =>
-        `<div style="display:flex;align-items:center;gap:9px;"><span style="width:15px;height:15px;border-radius:4px;background:${c};flex:0 0 auto;"></span><span><b style="color:var(--ink);">${t}</b>${sub ? ` · ${sub}` : ''}</span></div>`).join('')}
-    </div>
-    <div style="margin-top:9px;">칸을 눌러보시면 몇 시에 인증했는지도 보여요.</div>`));
-
-  H('내 학습');
-  page.appendChild(card('표현 3개는 순서에 뜻이 있어요', `
-    하루에 나오는 3개는 <b>자주 쓰는 순서</b>로 배치돼 있어요. 카드 옆의 <b>빈도 점</b>이 그 표시예요.<br>
-    시간이 없는 날은 <b>1번만</b>이라도 확실히 가져가시면 됩니다.`));
-  page.appendChild(card('내 문장 만들기', `
+    <div style="margin-top:9px;">시간이 없는 날은 <b>1번만</b>이라도 확실히 가져가세요.</div>`, 'var(--orange)');
+  card('내 문장 만들기', `
     한국어로 먼저 쓰고, 그다음 오늘 표현으로 영어 문장을 만드시면 돼요.<br>
-    <b>잘 쓰려고 애쓰지 않으셔도 돼요.</b> 한국어가 섞여도 AI가 알아듣고 고쳐줍니다.
-    중요한 건 예쁜 문장이 아니라 <b>내가 실제로 쓸 상황</b>으로 만드는 거예요.`));
-  page.appendChild(card('AI 첨삭', `
-    문장을 제출하면 <b>AI 첨삭</b> 버튼이 생겨요. 어색한 부분을 자연스럽게 고쳐줍니다.<br><br>
-    <span style="display:inline-block;padding:3px 9px;border-radius:8px;background:var(--paper);font-weight:700;">베이직 · 문장당 1회</span>
-    &nbsp;<span style="display:inline-block;padding:3px 9px;border-radius:8px;background:#F4F0FA;color:#7B5E8C;font-weight:700;">프리미엄 · 무제한</span>`));
-  page.appendChild(card('단어 시험', `
+    <b>잘 쓰려고 애쓰지 않으셔도 돼요.</b> 한국어가 섞여도 AI 가 알아듣고 고쳐줍니다.
+    중요한 건 예쁜 문장이 아니라 <b>내가 실제로 쓸 상황</b>으로 만드는 거예요.`);
+  card('AI 첨삭', `
+    문장을 제출하면 <b>AI 첨삭</b> 버튼이 생겨요. 어색한 부분을 자연스럽게 고쳐줍니다.
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+      <span style="flex:1;min-width:120px;padding:9px 11px;border-radius:11px;background:var(--paper);border:1px solid var(--line);">
+        <span style="display:block;font-size:10.5px;font-weight:800;color:var(--muted);">베이직</span>
+        <span style="display:block;margin-top:2px;font-size:13px;font-weight:800;color:var(--ink);">문장당 1회</span></span>
+      <span style="flex:1;min-width:120px;padding:9px 11px;border-radius:11px;background:#F4F0FA;border:1.5px solid #B79AD0;">
+        <span style="display:block;font-size:10.5px;font-weight:800;color:#7B5E8C;">👑 프리미엄</span>
+        <span style="display:block;margin-top:2px;font-size:13px;font-weight:800;color:#7B5E8C;">무제한</span></span>
+    </div>`);
+  card('단어 시험', `
     그날까지 배운 표현에서 빈칸 채우기로 나와요. 모르면 <b>힌트 보기</b>나 <b>Skip</b> 하셔도 되고,
     <b>점수로 거르지 않아요.</b><br>
     시작 전 화면에서 문항 수를 5 / 10 / 20 중에 고르실 수 있어요.
-    ${isPrem ? `<div style="margin-top:10px;padding:11px 13px;border-radius:11px;background:#F4F0FA;border:1px solid rgba(123,94,140,0.3);">
-      <b style="color:#7B5E8C;">👑 프리미엄 · 유의어까지 출제</b><br>
-      메인 표현뿐 아니라 유의어까지 문제로 나와요. 기본으로 켜져 있고, 시험 시작 전 화면에서 끄실 수도 있어요.
-      같은 뜻을 여러 방식으로 말할 수 있게 되면 실전에서 말이 막히는 순간이 확 줄어들어요.</div>` : ''}`));
-  page.appendChild(card('주간 테스트 · 파이널', `
+    ${isPrem ? `<div style="margin-top:11px;padding:12px 13px;border-radius:12px;background:#F4F0FA;border:1px solid rgba(123,94,140,0.3);">
+      <div style="font-size:12.5px;font-weight:800;color:#7B5E8C;">👑 프리미엄 · 유의어까지 출제</div>
+      <div style="margin-top:5px;">메인 표현뿐 아니라 유의어까지 문제로 나와요. 기본으로 켜져 있고 시험 시작 전 화면에서 끄실 수도 있어요.
+      같은 뜻을 여러 방식으로 말할 수 있게 되면 실전에서 말이 막히는 순간이 확 줄어들어요.</div></div>` : ''}`);
+  card('주간 테스트 · 파이널', `
     <b>주간 테스트</b>는 그 주 5일을 다 채우면 열려요. 통과하시면 <b>잠금화면 단어장 🎁</b> 을 드려요.<br>
-    <b>파이널 테스트</b>는 마지막 날에 열리는 20일 총정리예요. 10분이면 끝나고, 점수로 거르지 않아요. <b>응시 자체가 수료 조건</b>입니다.`));
+    <b>파이널 테스트</b>는 마지막 날에 열리는 20일 총정리예요. 10분이면 끝나고 점수로 거르지 않아요.
+    <b>응시 자체가 수료 조건</b>입니다.`);
 
-  H('알아두면 편한 것');
-  page.appendChild(card('앱이 이상하게 열려요', `
-    <b>카톡 안에서 열면 가끔 문제가 생겨요.</b> 주소를 복사해서 사파리나 크롬으로 열어주세요.`));
-  page.appendChild(card('홈 화면에 추가하기', `
+  /* ── 알아두면 편한 것 ── */
+  H('tip', '⚙️', '알아두면 편한 것');
+  card('앱이 이상하게 열려요', `<b>카톡 안에서 열면 가끔 문제가 생겨요.</b> 주소를 복사해서 사파리나 크롬으로 열어주세요.`, '#C0392B');
+  card('홈 화면에 추가하기', `
     매번 주소를 치지 않아도 돼요.<br>
     <b>아이폰</b> · 사파리에서 공유 버튼 → 홈 화면에 추가<br>
-    <b>안드로이드</b> · 크롬 메뉴 → 홈 화면에 추가`));
-  page.appendChild(card('해외에 계신 분', `
+    <b>안드로이드</b> · 크롬 메뉴 → 홈 화면에 추가`);
+  card('해외에 계신 분', `
     시차를 등록해두시면 <b>본인 현지 시간 기준</b>으로 마감이 계산돼요. 한국 자정이 아니라 본인 자정까지가 정시입니다.<br>
-    다만 <b>미팅과 모닝 밋업은 한국 시간 고정</b>이에요.`));
-  page.appendChild(card('쉬는 상태가 됐어요', `
+    다만 <b>미팅과 모닝 밋업은 한국 시간 고정</b>이에요.`);
+  card('쉬는 상태가 됐어요', `
     4일 연속 인증이 없으면 계정이 잠깐 <b>쉬는 상태</b>로 바뀌어요.
-    <b>잘못된 게 아니에요.</b> 돌아오실 때 고객센터로 톡 한 번만 주시면 바로 풀어드려요.`));
-  page.appendChild(card('앱 사용법 다시 보기', `
-    처음에 보신 안내를 언제든 다시 보실 수 있어요. <b>[나] 탭 → 앱 사용법 다시 보기</b>`));
+    <b>잘못된 게 아니에요.</b> 돌아오실 때 고객센터로 톡 한 번만 주시면 바로 풀어드려요.`);
+  card('앱 사용법 다시 보기', `처음에 보신 안내를 언제든 다시 보실 수 있어요. <b>[나] 탭 → 앱 사용법 다시 보기</b>`);
 
-  H('자주 묻는 것');
-  page.appendChild(card('늦게 하면 인정이 안 되나요?', `
-    <b>인정됩니다.</b> 늦게 하셔도 그날 1일로 그대로 들어가요. 마감이 따로 없어서 밀린 날도 나중에 채우실 수 있어요.<br><br>
-    다만 보상은 두 갈래예요.<br>
-    <b>1.</b> 18일 이상 <b>정시</b> 인증 + 파이널 → 1일1비 한 달권 + 단어집 PDF + 수료증<br>
-    <b>2.</b> 18일 이상 인증 (지각 포함) + 파이널 → 단어집 PDF + 수료증`));
-  page.appendChild(card('기간 연장이 되나요?', `
-    다 같이 같은 날짜로 달리는 챌린지라 연장이나 연기는 따로 없어요.<br>
-    <b>대신 20일 중 18일이 기준이라 이틀은 빠지셔도 수료됩니다.</b> 바쁜 주에는 하루 5분만 잡고 가볍게 넘어가셔도 충분해요.`));
-  page.appendChild(card('인증했는데 보드에 안 찍혔어요', `
-    앱 인증과 카톡 녹음은 별개예요. <b>녹음까지 올리셔야 진한 파랑</b>이 됩니다.
-    녹음은 운영진이 확인하고 체크하는 거라 조금 걸릴 수 있어요. <b>늦게 체크돼도 지각이 되지 않으니</b> 안심하셔도 됩니다.`));
-  page.appendChild(card('인증 마무리 버튼이 안 눌려요', `
-    버튼 바로 위에 <b>뭐가 남았는지</b> 목록으로 떠요. 보통은 문장 3개 중 하나가 제출이 안 된 경우예요.`));
-  page.appendChild(card('주말에도 해야 하나요?', `
-    아니에요. <b>평일만 진행</b>하고 주말은 쉬어갑니다.`));
+  /* ── FAQ ── */
+  H('faq', '❓', '자주 묻는 것');
+  const FAQ = [
+    ['늦게 하면 인정이 안 되나요?', `<b>인정됩니다.</b> 늦게 하셔도 그날 1일로 그대로 들어가요. 마감이 따로 없어서 밀린 날도 나중에 채우실 수 있어요.
+      <div style="margin-top:9px;padding:11px 13px;border-radius:11px;background:var(--paper);">
+        <div><b style="color:var(--ink);">1.</b> 18일 이상 <b>정시</b> 인증 + 파이널<br><span style="color:var(--muted);">→ 1일1비 한 달권 + 단어집 PDF + 수료증</span></div>
+        <div style="margin-top:7px;"><b style="color:var(--ink);">2.</b> 18일 이상 인증 (지각 포함) + 파이널<br><span style="color:var(--muted);">→ 단어집 PDF + 수료증</span></div>
+      </div>`],
+    ['기간 연장이 되나요?', `다 같이 같은 날짜로 달리는 챌린지라 연장이나 연기는 따로 없어요.<br>
+      <b>대신 20일 중 18일이 기준이라 이틀은 빠지셔도 수료됩니다.</b> 바쁜 주에는 하루 5분만 잡고 가볍게 넘어가셔도 충분해요.`],
+    ['인증했는데 보드에 안 찍혔어요', `앱 인증과 카톡 녹음은 별개예요. <b>녹음까지 올리셔야 진한 파랑</b>이 됩니다.
+      녹음은 운영진이 확인하고 체크하는 거라 조금 걸릴 수 있어요. <b>늦게 체크돼도 지각이 되지 않으니</b> 안심하셔도 됩니다.`],
+    ['인증 마무리 버튼이 안 눌려요', `버튼 바로 위에 <b>뭐가 남았는지</b> 목록으로 떠요. 보통은 문장 3개 중 하나가 제출이 안 된 경우예요.`],
+    ['주말에도 해야 하나요?', `아니에요. <b>평일만 진행</b>하고 주말은 쉬어갑니다.`],
+  ];
+  const faqWrap = el('div', { style: { marginTop: '10px', borderRadius: '16px', background: '#fff', border: '1px solid var(--line)', overflow: 'hidden' } });
+  faqWrap.innerHTML = FAQ.map(([q, a], k) => `
+    <details ${k ? 'style="border-top:1px solid var(--line-soft);"' : ''}>
+      <summary style="list-style:none;padding:14px 16px;cursor:pointer;font-size:13.5px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:8px;">
+        <span style="flex:1;min-width:0;">${q}</span><span style="flex:0 0 auto;color:var(--muted);font-size:12px;">＋</span>
+      </summary>
+      <div style="padding:0 16px 15px;font-size:13px;line-height:1.75;color:var(--ink-soft);">${a}</div>
+    </details>`).join('');
+  page.appendChild(faqWrap);
 
-  const foot = el('div', { style: { marginTop: '24px', padding: '17px 19px', borderRadius: '16px', background: 'var(--orange-ghost)', border: '1px solid var(--orange-soft)' } });
+  const foot = el('div', { style: { marginTop: '26px', padding: '17px 19px', borderRadius: '16px', background: 'var(--orange-ghost)', border: '1px solid var(--orange-soft)' } });
   foot.innerHTML = `<div style="font-size:13.5px;line-height:1.75;color:var(--ink-soft);">
     여기에 없는 게 궁금하시면 단톡방이든 1:1 이든 편하게 물어봐주세요.<br>
     물어보신 건 이 페이지에 계속 추가해둘게요 🧡</div>
@@ -8701,6 +8989,16 @@ function HomePage() {
     const dDay = Number(state.currentDay) || 0;
     window.__dailyPopupArmed = window.__dailyPopupArmed || {};
     // 정식 오픈: 전체 멤버 자동 노출 (홈 들어오면 '오늘의 한 입', 인증 끝내면 '오늘 마무리').
+    // ? 설명서 안내, 계정당 1회. 다른 팝업이 없을 때만 조용히.
+    if (state.onboarded && !state.help_hint_seen && guidedTourStep === null && !anyPopupOpen()
+        && !window.__helpHintArmed) {
+      window.__helpHintArmed = true;
+      setTimeout(() => {
+        if (guidedTourStep !== null || anyPopupOpen() || state.help_hint_seen) return;
+        state.help_hint_seen = true; try { saveState(); } catch (e) {}
+        showHelpHintPopup = true; render();
+      }, 1800);
+    }
     if (dDay >= 1 && challengeStarted() && guidedTourStep === null && !anyPopupOpen()) {
       const vToday = !!(state.verified && state.verified['d' + dDay]);
       const doneSeen = !!(state.daily_done_popup_seen || {})['d' + dDay];
