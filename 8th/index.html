@@ -15271,8 +15271,15 @@ function DayPage(dayN) {
 
   // header
   const head = el('div', { class: 'topbar' });
-  const back = el('button', { class: 'icon-btn', onClick: () => goBack('weeks') });
-  back.innerHTML = Icon('arrowLeft', 16);
+  // 화살표만 있으면 어디로 가는지 몰라서 안 누른다. 지난 Day 를 다시 보러 가는
+  // 통로라는 걸 라벨로 밝힌다. (2026-08-11)
+  const back = el('button', {
+    class: 'btn btn-ghost',
+    style: { padding: '8px 13px', fontSize: '12.5px', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '999px' },
+    onClick: () => goBack('weeks'),
+    title: '전체 커리큘럼 보기',
+  });
+  back.innerHTML = Icon('arrowLeft', 14) + '<span>전체 커리큘럼</span>';
   head.appendChild(back);
   head.appendChild(el('div', {})); // spacer
   // 오른쪽 클러스터: 글자 크기 A- / A+ + 프로필 버튼
@@ -15383,22 +15390,6 @@ function DayPage(dayN) {
   page.appendChild(banner);
 
   // Yellow tip card, low-pressure encouragement
-  const tipCard = el('div', {
-    style: {
-      marginTop: '12px',
-      background: 'linear-gradient(135deg, #FFF5DC 0%, #FFECC2 100%)',
-      border: '1px solid #F3DCA3',
-      borderRadius: '18px',
-      padding: '12px 16px',
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: '10px',
-    }
-  });
-  tipCard.innerHTML = `
-    <span style="font-size:18px;flex-shrink:0;line-height:1.2;">⚡</span>
-    <span style="font-size:13px;line-height:1.55;color:#6B5A1A;flex:1;">2분만 투자해도 Day ${dayN} 완료 <span style="color:#B38A2F;opacity:0.5;">|</span> 완벽 금지 <span style="color:#B38A2F;opacity:0.5;">|</span> 오늘은 <b>"${escapeHtml(d.title)} 표현 한 번 써보기"</b>만 해요.</span>`;
-  page.appendChild(tipCard);
 
   // 인증 완료 후엔 '녹음 제출하러 가기'를 페이지 상단에 크게 배치.
   // 8기: 보너스 영상 제도 폐지, 그 자리에 녹음 제출 + 카톡방 링크 (tier 별).
@@ -15505,17 +15496,17 @@ function DayPage(dayN) {
   });
   overview.appendChild(overviewScroll);
   page.appendChild(overview);
-  // 오늘 하루의 목표치를 낮춰주는 한 줄. 3개 다 못 해도 괜찮다는 걸 먼저 말해준다.
+  // 오늘 목표치를 낮춰주는 안내. 3개 다 못 해도 괜찮다는 걸 먼저 말해주고,
   // 1~3번이 빈도순이라는 설계 의도도 여기서 한 번만 설명한다. (2026-08-11)
   const dayNudge = el('div', {
     style: {
-      marginTop: '10px', padding: '12px 15px', borderRadius: '14px',
-      background: 'var(--orange-ghost)', border: '1px solid var(--orange-soft)',
+      marginTop: '10px', padding: '13px 16px', borderRadius: '16px',
+      background: 'rgba(46,111,168,0.07)', border: '1px solid rgba(46,111,168,0.2)',
     },
   });
   dayNudge.innerHTML = `
-    <div style="font-size:12.5px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em;">⏱ 2분만 투자해도 Day ${dayN} 완료 · 완벽 금지</div>
-    <div style="margin-top:6px;font-size:12.5px;line-height:1.65;color:var(--ink-soft);">
+    <div style="font-size:13px;font-weight:800;color:#1E5FA0;letter-spacing:-0.01em;">⏱ 2분만 투자해도 Day ${dayN} 완료 · 완벽 금지</div>
+    <div style="margin-top:7px;font-size:13px;line-height:1.7;color:var(--ink-soft);">
       오늘은 <b style="color:var(--ink);">${escapeHtml(d.title || '')}</b> 표현 한 번 써보기만 해요.<br>
       1~3번은 자주 쓰는 순서라, 시간 없으시면 1번만 챙기셔도 충분해요!
     </div>`;
@@ -16597,7 +16588,7 @@ function DayPage(dayN) {
 
   page.appendChild(s2);
 
-  // 녹음 제출 카드는 페이지 상단, tipCard 바로 아래에서 바로 보여요.
+  // 녹음 제출 카드는 페이지 상단에서 바로 보여요.
 
   // Complete button
   const verified = !!state.verified['d'+dayN];
