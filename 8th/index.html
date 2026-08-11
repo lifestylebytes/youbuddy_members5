@@ -7795,6 +7795,7 @@ function HelpPage() {
     ['flow', '⏱', '하루 흐름'],
     ['color', '🎨', '보드 색깔'],
     ['learn', '📚', '내 학습'],
+    ['tips', '🔥', '학습 꿀팁'],
     ['tip', '⚙️', '알아두면 편한 것'],
     ['faq', '❓', '자주 묻는 것'],
   ];
@@ -7905,6 +7906,30 @@ function HelpPage() {
     <b>주간 테스트</b>는 그 주 5일을 다 채우면 열려요. 통과하시면 <b>잠금화면 단어장 🎁</b> 을 드려요.<br>
     <b>파이널 테스트</b>는 마지막 날에 열리는 20일 총정리예요. 10분이면 끝나고 점수로 거르지 않아요.
     <b>응시 자체가 수료 조건</b>입니다.`);
+
+  /* ── 학습 꿀팁 ── */
+  H('tips', '🔥', '학습 꿀팁', '결국 반복이 전부예요');
+  const TIPS = [
+    ['1', '단어 공부법',
+     '오늘 나온 단어를 <b>자꾸 보시는 게</b> 좋아요. 옮겨 적으시거나 엑셀에 옮기시거나 하셔서 <b>본인의 문장을 외워줍니다.</b>'],
+    ['2', '녹음할 때',
+     '최대한 <b>외워본 걸로</b> 말해보는 거 추천드려요. 그럴려면 입에 붙여야겠죠?<br><span style="color:var(--muted);">연습을 많이 하면 많이 할수록 얻어가는 게 많아져요... 결국 내 문장, 입으로 붙은 것만 실제로 입 밖으로 나온다는 사실!!!</span>'],
+    ['3', '단어 시험은 많이 돌릴수록',
+     '인증하고 끝~ 이건 <b>루틴만 설정하는 거예요.</b> 최대한 <b>단어 시험 다시보기</b> 기능을 이용해서 하루에 3~5번 반복해보세요.<br><br>진짜 외우고 싶을 때는 <b>20문제로 켜서 하루에 10번</b> 도전해보세요. Day 1~10 까지는 단어가 바로바로 안 떠올라도, <b>그 이후에는 저절로 파박 기억나는 나 자신</b>을 볼 수 있을 거예요.'],
+    ['4', '결국은 반복',
+     '단어 학습? 내 문장? <b>모두 반복 학습이 받쳐줘야 한다는 걸</b> 기억합시다.'],
+  ];
+  const tipWrap = el('div', { style: { marginTop: '10px', borderRadius: '16px', background: '#fff', border: '1px solid var(--line)', overflow: 'hidden' } });
+  tipWrap.innerHTML = TIPS.map(([n, t, body], k) => `
+    <div style="padding:15px 17px;${k ? 'border-top:1px solid var(--line-soft);' : ''}">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <span style="flex:0 0 auto;width:22px;height:22px;border-radius:7px;background:var(--orange-ghost);color:var(--orange-dark);font-size:11.5px;font-weight:800;display:grid;place-items:center;">${n}</span>
+        <span style="font-size:13.5px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${t}</span>
+      </div>
+      <div style="margin-top:8px;padding-left:31px;font-size:13px;line-height:1.75;color:var(--ink-soft);">${body}</div>
+    </div>`).join('');
+  page.appendChild(tipWrap);
+  card('', `<b style="color:var(--ink);">단어 시험 다시보기</b> 는 인증 화면에서 <b>단어 시험 단계를 한 번 더 누르면</b> 열려요. 몇 번을 다시 풀어도 인증 상태는 그대로예요.`, 'var(--orange)');
 
   /* ── 알아두면 편한 것 ── */
   H('tip', '⚙️', '알아두면 편한 것');
