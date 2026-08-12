@@ -2179,6 +2179,7 @@ async function callAiReviewEdgeFunction(payload) {
     verdict: data.verdict,
     feedback: (data.feedback && typeof data.feedback === 'object') ? data.feedback : undefined,
     syn_examples: Array.isArray(data.syn_examples) ? data.syn_examples : undefined,
+    deep: typeof data.deep === 'string' ? data.deep : '',
   };
 }
 
@@ -2462,8 +2463,27 @@ function buildAiFeedbackHtml(fb, fallbackWhy) {
       </div>`);
     });
   }
-  if (rows.length) return `<div style="display:flex;flex-direction:column;gap:7px;">${rows.join('')}</div>`;
-  return `<div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(fallbackWhy || '')}</div>`;
+  // 프리미엄: 왜 고쳤는지 심화 설명. 베이직: 그런 게 있다는 안내 한 줄.
+  // 팝업으로 광고하지 않는다. 첨삭을 막 본 그 자리에서만, 한 번만. (2026-08-12)
+  const isPrem = (typeof state !== 'undefined' && state.tier === 'premium');
+  const deepTxt = String((fb && fb.deep) || '').trim();
+  let tail = '';
+  if (isPrem && deepTxt) {
+    tail = `<div style="margin-top:11px;padding:12px 14px;border-radius:12px;background:#F4F0FA;border:1px solid rgba(123,94,140,0.28);">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:10px;font-weight:800;color:#7B5E8C;letter-spacing:0.06em;">👑 PREMIUM</span>
+          <span style="font-size:11px;font-weight:800;color:#7B5E8C;">왜 이렇게 고쳤을까요</span>
+        </div>
+        <div class="t-small" style="margin-top:7px;color:var(--ink-soft);line-height:1.75;">${escapeHtml(deepTxt)}</div>
+      </div>`;
+  } else if (!isPrem && rows.length) {
+    tail = `<div style="margin-top:10px;padding-top:9px;border-top:1px dashed var(--line);font-size:11.5px;color:var(--muted);line-height:1.6;">
+        프리미엄은 <b style="color:#7B5E8C;">왜 이렇게 고쳤는지</b>까지 설명해드려요.
+      </div>`;
+  }
+
+  if (rows.length) return `<div style="display:flex;flex-direction:column;gap:7px;">${rows.join('')}</div>${tail}`;
+  return `<div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(fallbackWhy || '')}</div>${tail}`;
 }
 
 // 같은 '원문'을 다시 제출한 경우: 이전에 준 교정을 글자 그대로 재현한다 (API 호출 X).
@@ -2512,6 +2532,8 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
     word: { en: word.en, def: word.def },
     text: sentence,
     korean: (koreanContext || '').trim() || undefined,
+    // 프리미엄은 '왜 고쳤는지' 심화 설명(deep)까지 받는다. (2026-08-12)
+    tier: (state.tier === 'premium') ? 'premium' : 'basic',
     temperature: 0,
   };
 
@@ -2600,6 +2622,8 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
         corrected: sentence,
         diff_html: escapeHtml(sentence),
         why: '이미 충분히 자연스러워요! 비즈니스 영어로 그대로 가셔도 OK 입니다 🧡',
+        feedback: result.feedback,
+        deep: result.deep,
         originalInput: sentence,
         isFallback: false,
         isAlreadyNatural: true,
@@ -2696,6 +2720,7 @@ async function requestStoryCorrection(words, text, koreanContext) {
     })),
     text,
     korean: (koreanContext || '').trim() || undefined,
+    tier: (state.tier === 'premium') ? 'premium' : 'basic',
   };
 
   // 히스토리 기반 단계적 코칭

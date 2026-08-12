@@ -51,7 +51,7 @@ function json(body: unknown, status = 200) {
 
 const SYSTEM_PROMPT = `You are a warm, encouraging business English coach for Korean learners.
 You ALWAYS reply with a single valid JSON object and nothing else:
-{"corrected": string, "why": string, "verdict": "correct" | "fixed", "feedback": {"grammar": string, "vocab": string, "nuance": string}}
+{"corrected": string, "why": string, "verdict": "correct" | "fixed", "feedback": {"grammar": string, "vocab": string, "nuance": string}, "deep": string}
 
 HOW TO REVIEW - follow these steps in order, every time.
 
@@ -90,6 +90,13 @@ FIELDS:
   - "vocab": 어휘 교정 (오철자, 콜로케이션, 콩글리시, 한국어 단어 번역)
   - "nuance": 선택적 코멘트만 (칭찬, 격식/쓰임새 팁). corrected 를 바꾸는 근거가 될 수 없음.
   Do not repeat the same point across categories.
+- "deep": ONLY filled when the request says PREMIUM. Otherwise return "".
+  2-3 Korean sentences, under 260 chars, explaining WHY the change was needed, in this order:
+  (1) 어떤 규칙이나 습관 때문에 그렇게 쓰기 쉬운지 (한국어 화자가 자주 하는 실수의 이유)
+  (2) 원어민이 그 자리에서 무엇을 기대하는지
+  (3) 다음에 같은 상황이 오면 무엇을 먼저 떠올리면 되는지 (한 줄 규칙)
+  If verdict is "correct", instead explain WHY the sentence already works: 어떤 선택이 좋았는지 짚어준다.
+  Write like a colleague explaining over coffee, not like a textbook. No bullet points, no markdown.
 - "corrected": normal sentence case, no bold or tricks.
 Do not include markdown, code fences, or any prose outside the JSON.`;
 
@@ -345,6 +352,8 @@ serve(async (req) => {
   // Korean intent sentence (optional). Used as the meaning anchor so the model
   // doesn't guess when the learner's English is ambiguous.
   const korean = String(body?.korean || '').trim().slice(0, 500);
+  // 프리미엄이면 '왜 고쳤는지' 심화 설명(deep)까지 생성한다. 베이직은 빈 값.
+  const isPremium = String(body?.tier || '') === 'premium';
   if (!text) return json({ error: 'text required' }, 400);
   if (text.length > 800) return json({ error: 'text too long' }, 400);
 
@@ -413,7 +422,10 @@ serve(async (req) => {
       return json({ error: 'mode must be sentence|story' }, 400);
     }
 
-    const raw = await callOpenAI(userMessage);
+    const tierNote = isPremium
+      ? '\n\n*** PREMIUM request. Fill "deep" following the FIELDS rule. ***'
+      : '\n\n*** BASIC request. Return "deep" as an empty string "". ***';
+    const raw = await callOpenAI(userMessage + tierNote);
     const parsed = extractJson(raw);
     let corrected = String(parsed?.corrected || text).trim();
     let why = String(parsed?.why || '').trim() ||
@@ -460,7 +472,7 @@ serve(async (req) => {
           : 'Rewrite so the phrase is contained verbatim (or with grammatical inflection only).'
       } Same JSON shape.`;
       try {
-        const retryRaw = await callOpenAI(`${userMessage}\n\n${retryMsg}`);
+        const retryRaw = await callOpenAI(`${userMessage}${tierNote}\n\n${retryMsg}`);
         const retryParsed = extractJson(retryRaw);
         const retryCorrected = String(retryParsed?.corrected || '').trim();
         const stillMissing = targetSlots.filter((slot, i) => {
@@ -495,6 +507,8 @@ serve(async (req) => {
         vocab: String(parsed?.feedback?.vocab || '').slice(0, 200),
         nuance: String(parsed?.feedback?.nuance || '').slice(0, 200),
       },
+      // 프리미엄 전용 심화 설명 (왜 고쳤는지). 베이직 요청이면 빈 문자열로 온다.
+      deep: isPremium ? String(parsed?.deep || '').slice(0, 400) : '',
     });
   } catch (e) {
     console.error('ai-review error', e);
