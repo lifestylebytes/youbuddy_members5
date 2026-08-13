@@ -9730,6 +9730,21 @@ function HomePage() {
     }
   } catch (e) {}
 
+  /* ── 🎯 이번 주 과제 카드 (미팅에서 정한 것, 프리미엄) ── */
+  try {
+    const _wt = splitGoalAndTasks(state.goal).tasks;
+    if (_wt.length) {
+      const taskCard = el('div', {
+        style: { marginTop: '10px', padding: '14px 16px', borderRadius: '16px', background: 'linear-gradient(135deg,#FFF8EA,#FFF3DC)', border: '1px solid rgba(240,172,61,0.5)' }
+      });
+      taskCard.innerHTML =
+        `<div style="display:flex;align-items:center;gap:6px;"><span style="font-size:13px;">🎯</span><span style="font-size:10px;font-weight:800;letter-spacing:0.1em;color:#A07A2A;">THIS WEEK</span></div>`
+        + _wt.map((t) => `<div style="margin-top:7px;font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.6;">${escapeHtml(t.replace(/^🎯\s*/, ''))}</div>`).join('')
+        + `<div class="t-small" style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(240,172,61,0.4);color:var(--muted);line-height:1.5;">미팅에서 같이 정한 이번 주 과제예요. 매일 인증 문장을 이 방향으로 쓰시면 그게 과제가 됩니다 :)</div>`;
+      page.appendChild(taskCard);
+    }
+  } catch (e) {}
+
   /* ── 미팅 한 줄 (8기 신설) ────────────────────────────────────────────
      프리미엄: 다음 미팅 D-day 리마인드 (미팅 없는 날에도 "내 트랙" 감각 유지)
      베이직: 미팅이라는 게 있다는 정보성 한 줄 (조르지 않음, 가격·구매 문구 금지) */
@@ -21254,11 +21269,10 @@ function ProfilePage() {
   //   예전엔 나 탭은 자유 목표만(파란 박스), 홈 탭은 진단 결과만(라일락) 보여줘서
   //   같은 사람의 "내 목표"가 두 화면에서 다르게 보였다. 이제 한 카드로 합치고,
   //   나 탭에만 수정 버튼을 둔다.
-  const goalText = (state.goal || '').trim();
+  const __split = splitGoalAndTasks(state.goal);
+  const goalLines = __split.goals;
+  const goalText = goalLines.join('\n');
   const hasGoal = !!goalText;
-  const goalLines = hasGoal
-    ? goalText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
-    : [];
   const _pi = (state.tier === 'premium' && state.premium_intake && state.premium_intake.scene)
     ? state.premium_intake : null;
 
@@ -21299,6 +21313,15 @@ function ProfilePage() {
           + `</div>`
         : '');
   page.appendChild(goalCard);
+  try {
+    const _wt2 = __split.tasks;
+    if (_wt2.length) {
+      const tk = el('div', { style: { marginTop: '10px', padding: '13px 16px', borderRadius: '14px', background: 'linear-gradient(135deg,#FFF8EA,#FFF3DC)', border: '1px solid rgba(240,172,61,0.5)' } });
+      tk.innerHTML = `<div style="display:flex;align-items:center;gap:6px;"><span style="font-size:12px;">🎯</span><span style="font-size:10px;font-weight:800;letter-spacing:0.1em;color:#A07A2A;">THIS WEEK</span></div>`
+        + _wt2.map((t) => `<div style="margin-top:6px;font-size:13px;font-weight:700;color:var(--ink);line-height:1.6;">${escapeHtml(t.replace(/^🎯\s*/, ''))}</div>`).join('');
+      page.appendChild(tk);
+    }
+  } catch (e) {}
   // 목표 수정 = GoalModal (자체 모달, window.prompt 대체).
   setTimeout(() => {
     const btn = document.getElementById('__editGoalBtn');
@@ -30769,6 +30792,19 @@ window.__openReportList = function () {
     };
   });
 };
+
+/* ------------------------------------------------------------
+   목표(goal) 안의 "🎯 Week N 과제" 줄을 일반 목표와 분리.
+   미팅에서 받아적은 과제는 append_member_goal 로 goal 뒤에 붙는데,
+   같은 카드에 섞여 보이면 "과제"라는 게 안 읽힌다. (2026-08-13)
+   저장 구조는 그대로 두고 (goal 하나로 sync 단순 유지) 표시만 나눈다.
+   ------------------------------------------------------------ */
+function splitGoalAndTasks(goalText) {
+  const lines = String(goalText || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const goals = [], tasks = [];
+  lines.forEach((l) => { (l.indexOf('🎯') === 0 ? tasks : goals).push(l); });
+  return { goals, tasks };
+}
 
 const WEEK1_DECK = [
   { section: '오프닝', kicker: 'WEEK 1 · 60분', title: '오늘 순서 한눈에',
