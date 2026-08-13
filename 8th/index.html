@@ -6740,6 +6740,17 @@ function render() {
       const stale = document.querySelector('[data-daily-pulse]');
       if (stale) stale.remove();
     }
+    // 금요일 주간 랩업 팝업. ⚠️ 이 마운트가 빠져 있어서 Day 5 아침에
+    // '보이지 않는 팝업'이 스크롤만 잠그는 사고가 났다 (2026-08-14, 전 멤버 영향).
+    // 플래그를 켜는 코드(9266)와 모달 컴포넌트(27183)는 있는데 그리는 코드가 없었다.
+    if (showWeekWrapupPopup) {
+      if (!document.querySelector('[data-week-wrapup-popup]')) {
+        document.body.appendChild(WeekWrapupPopupModal());
+      }
+    } else {
+      const staleWW = document.querySelector('[data-week-wrapup-popup]');
+      if (staleWW) staleWW.remove();
+    }
     if (showWeekTaskPopup) {
       // ⚠️ 중복 방지 필수. 이 가드가 없으면 15초 폴링 렌더마다 전체화면 레이어가
       // 한 장씩 쌓여서 스크롤이 죽는다. (2026-08-14 실사고)
