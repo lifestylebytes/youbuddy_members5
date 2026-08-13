@@ -14,6 +14,45 @@
  * 기수가 바뀌면 아래 COHORT 와 START_DATE 두 줄만 고치면 된다.
  */
 
+/* ════════════════════════════════════════════════════════════
+   ★★★ 이것만 실행하세요: 한번에_실행 ★★★
+   ------------------------------------------------------------
+   새 코드를 붙여넣은 뒤 함수 선택창에서 「한번에_실행」 하나만 돌리면
+   그 시점에 필요한 모든 갱신이 순서대로 적용됩니다.
+   · 이미 된 작업은 알아서 건너뜁니다 (여러 번 실행해도 안전)
+   · 아래의 개별 함수들은 몰라도 됩니다 (문제 생겼을 때 수리용)
+   ════════════════════════════════════════════════════════════ */
+
+function 한번에_실행() {
+  const done = [], skip = [], fail = [];
+  const step = function (name, fn) {
+    try { const r = fn(); (r === 'skip' ? skip : done).push(name); }
+    catch (e) { fail.push(name + ' → ' + String(e && e.message || e).slice(0, 80)); }
+  };
+
+  step('모닝공지 탭 분리', function () {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (ss.getSheetByName(MORNING_SHEET)) return 'skip';
+    splitMorningSheet();
+  });
+  step('메시지 원고 채우기/갱신', function () { fillOpsMessages(); });
+  step('미팅 예고(D-1) 행', function () { addMeetingPreviewRows(); });
+  step('미팅 예고 원고', function () { addMeetingPreviewMessage(); });
+  step('약점 복습(Day6) 안내', function () { addWeaknessReviewRow(); });
+  step('금요일 녹화본 공지 행', function () { addRecordingNoticeRows(); });
+  step('주말(토·일) 행', function () { addWeekendRows(); });
+  step('체크리스트 메시지 링크', function () { linkChecklistMessages(); });
+  step('시각·담당·정렬·색·병합 정리', function () { refreshChecklist(); });
+  step('매일 07시 인증률 트리거', function () { setupTrigger(); });
+  step('월요 07시 주간회고 트리거', function () { setupWeeklyTrigger(); });
+
+  const msg = '✅ 완료 ' + done.length + '건: ' + done.join(', ')
+    + '\n⏭ 건너뜀 ' + skip.length + '건'
+    + (fail.length ? '\n❌ 실패 ' + fail.length + '건:\n' + fail.join('\n') : '');
+  Logger.log(msg);
+  try { SpreadsheetApp.getUi().alert('한번에 실행 결과', msg, SpreadsheetApp.getUi().ButtonSet.OK); } catch (e) {}
+}
+
 const SUPABASE_URL = 'https://qaasxvatmribkgtatine.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_XNd9sxTnMsuNmdT1JSXtdw_wMj0Ma9R';
 const COHORT     = '8기';
