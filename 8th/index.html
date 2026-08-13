@@ -7831,6 +7831,7 @@ function HelpPage() {
     ['learn', '📚', '내 학습'],
     ['tips', '🔥', '학습 꿀팁'],
     ['tip', '⚙️', '알아두면 편한 것'],
+    ['qna', '🎤', '미팅 Q&A'],
     ['faq', '❓', '자주 묻는 것'],
   ];
   const toc = el('div', { style: { display: 'flex', gap: '7px', flexWrap: 'wrap', marginTop: '16px' } });
@@ -7979,6 +7980,50 @@ function HelpPage() {
     4일 연속 인증이 없으면 계정이 잠깐 <b>쉬는 상태</b>로 바뀌어요.
     <b>잘못된 게 아니에요.</b> 돌아오실 때 고객센터로 톡 한 번만 주시면 바로 풀어드려요.`);
   card('앱 사용법 다시 보기', `처음에 보신 안내를 언제든 다시 보실 수 있어요. <b>[나] 탭 → 앱 사용법 다시 보기</b>`);
+
+
+  /* ── 미팅에서 나온 질문 (Week 1) ── */
+  H('qna', '🎤', '미팅 Q&A', '프리미엄 미팅에서 나온 질문을 정리해뒀어요. 매주 늘어납니다.');
+  card('대면에서 단어가 생각 안 날 때는요?', `
+    단어를 모르는 게 문제가 아니라 <b>멈추는 게</b> 문제예요. 원어민도 매일 단어가 안 떠오릅니다. 다만 안 멈출 뿐이에요.<br><br>
+    <b>1) 시간 벌기</b> (2초만 벌면 대부분 떠올라요)<br>
+    <span style="font-family:var(--font-mono);font-size:12.5px;">"Let me think for a second."<br>"How do I put this..."<br>"The word is escaping me."</span><br><br>
+    <b>2) 돌려 말하기</b><br>
+    <span style="font-family:var(--font-mono);font-size:12.5px;">"It's the thing you use to check the quality."<br>"It's like a report, but shorter."<br>"What's the word for when a shipment is delayed?"</span><br><br>
+    마지막 문장이 특히 좋아요. 상대가 단어를 알려주거든요. 그렇게 알게 된 단어는 안 잊어버립니다.<br>
+    <b>딱 하나만 골라서 외워두세요.</b> 꺼낼 카드가 하나만 있어도 안 멈추게 돼요.`);
+  card('세미콜론 · 하이픈 · 긴 줄표는 언제 쓰나요?', `
+    실무에선 <b>하이픈만 정확히</b> 쓰시면 충분해요.<br><br>
+    <b>하이픈 (-)</b> 단어를 붙여 형용사로 만들 때<br>
+    <span style="font-family:var(--font-mono);font-size:12.5px;">long-term plan · follow-up meeting · client-facing role</span><br>
+    <span style="color:var(--muted);">명사 앞에 올 때만 붙여요. "in the long term" 은 안 붙입니다.</span><br><br>
+    <b>세미콜론 (;)</b> 두 완전한 문장을 이어붙일 때<br>
+    <span style="color:var(--muted);">비즈니스 메일에선 거의 안 써요. 마침표 찍고 새 문장 쓰는 게 안전합니다.</span><br><br>
+    <b>긴 줄표</b> (하이픈 두 개를 치면 워드가 바꿔줘요)<br>
+    문장 중간에 부연을 끼워 넣을 때 써요. 콤마보다 세고 괄호보다 캐주얼해요.<br>
+    <span style="color:var(--muted);">슬랙이나 사내 메일엔 괜찮고, 고객사 제안서엔 자제하는 게 좋아요.</span><br><br>
+    <b>헷갈리면 마침표와 콤마로 다 처리하세요.</b> 문장부호로 실력이 평가되는 일은 거의 없어요.`);
+  card('구동사 책부터 해도 될까요?', `
+    방향은 아주 좋아요. 회의에서 체감 난이도를 제일 많이 낮춰주는 게 구동사거든요.
+    원어민이 회의에서 쓰는 건 어려운 단어가 아니라 구동사예요. (follow up, loop in, push back, roll out, sort out)<br><br>
+    다만 <b>책을 처음부터 끝까지 훑는 건 추천드리지 않아요.</b> 구동사는 3천 개가 넘고 빈도 차이가 어마어마해서, 앞에서부터 가면 안 쓰는 것에 시간을 다 씁니다.<br><br>
+    <b>이렇게 해보세요.</b><br>
+    1. 내 업무 장면을 5개만 먼저 적기<br>
+    <span style="color:var(--muted);">업체 독촉 / 일정 밀림 보고 / 회의 끼어들기 / 인수인계 / 문제 공유</span><br>
+    2. 책에서 그 장면에 나오는 구동사만 뽑기<br>
+    3. 뽑은 걸로 내 문장 만들어 녹음<br><br>
+    그리고 구동사는 뜻을 외우면 안 써먹게 돼요. <b>언제 꺼내는 말인지</b>로 외우셔야 입에서 나옵니다.<br>
+    <span style="color:var(--muted);">📌 발표나 미팅이 한 달 안에 있으시면, 책은 그 뒤로 미루고 그 준비에 시간을 쓰시는 게 낫습니다.</span>`);
+  card('발표는 격식체가 좋을까요, 평소 쓰던 게 좋을까요?', `
+    정답은 중간이에요. 기억하실 건 하나입니다.<br>
+    <b style="color:var(--orange-dark);">문장 구조는 평소처럼 단순하게, 단어는 격식 있게.</b><br><br>
+    격식체로 문장을 길게 쓰시면 읽는 티가 확 나요. 그리고 긴장하는 순간 그 긴 문장이 제일 먼저 무너집니다.<br><br>
+    ✅ <b>써도 되는 것</b> don't, we're 같은 줄임말 (발표에서도 자연스러워요)<br>
+    ❌ <b>빼야 하는 것</b> kinda, you know, like, stuff 같은 필러와 슬랭<br>
+    ✅ <b>문장은 짧게</b> 관계대명사가 두 번 겹치면 거기서 꼬여요<br><br>
+    팁 하나 더 드리면, <b>오프닝과 클로징 두 문장만</b> 격식 있는 문장으로 정해두세요.<br>
+    <span style="font-family:var(--font-mono);font-size:12.5px;">"Today I'd like to walk you through ___."<br>"That's all from me. Happy to take any questions."</span><br><br>
+    시작과 끝이 단단하면 중간이 좀 흔들려도 전체가 프로처럼 들려요.`);
 
   /* ── FAQ ── */
   H('faq', '❓', '자주 묻는 것');
@@ -17393,28 +17438,7 @@ function PremiumPage() {
 
   // Quiz + Cert cards
   const doubleRow = el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '20px' } });
-  // self-serve 빈칸 퀴즈, 게이팅 없음. 대사 붙여넣으면 바로 생성.
-  const pqItems = (state.personal_quiz && Array.isArray(state.personal_quiz.fill_items)) ? state.personal_quiz.fill_items : [];
-  const pqHas = pqItems.length > 0;
-  const pqSubmitted = (state.personal_quiz_submitted || {}).fill;
-  const pqSubcopy = pqHas
-    ? (pqSubmitted ? '✅ 풀이 완료 · 다시 풀기' : `내 대사 빈칸 ${pqItems.length}문항`)
-    : '내 대사 붙여넣고 시작';
-  const quizCard = el('button', {
-    class: 'card',
-    style: {
-      textAlign: 'left',
-      cursor: 'pointer',
-      border: 'none',
-      background: 'var(--cream)',
-    },
-    onClick: () => go('quiz'),
-  });
-  quizCard.innerHTML = `
-    <div style="font-size:22px;">🧩</div>
-    <div class="kicker" style="margin-top:8px;">PERSONAL QUIZ</div>
-    <div class="h3" style="margin-top:4px;">내 약점 퀴즈</div>
-    <div class="t-small" style="margin-top:4px;">${pqSubcopy}</div>`;
+  // '내 약점 퀴즈' 카드 제거 (2026-08-13). 이 자리는 발표 피드백 리포트가 쓴다.
   // 발표 피드백 리포트가 이 자리(구 '내 약점 퀴즈')를 항상 차지한다.
   // 리포트가 아직 없으면 샘플로, 있으면 본인 것으로, 운영자면 전체 목록으로 바뀐다.
   // "프리미엄이 뭘 주는지"를 글로 설명하는 것보다 실물 한 장이 훨씬 빠르다. (2026-08-13)
@@ -17452,11 +17476,6 @@ function PremiumPage() {
   doubleRow.appendChild(certCard);
 
   page.appendChild(doubleRow);
-
-  // '내 약점 퀴즈' 는 리포트에 앞자리를 내주고 아래 전체폭으로 내려온다. (기능은 그대로)
-  quizCard.style.width = '100%';
-  quizCard.style.marginTop = '10px';
-  page.appendChild(quizCard);
 
   return page;
 }
@@ -28950,6 +28969,63 @@ function __levelLabel(pct) {
   if (pct >= 50) return { t: '성장 중 📈', c: '#BA7517' };
   return { t: '워밍업 💪', c: '#E24B4A' };
 }
+/* ------------------------------------------------------------
+   내 문장에서 표현 자리를 찾아 빈칸으로 바꾸기.
+   사전형("Keep someone posted")과 실제 문장("keep you posted")은 글자가 다르다.
+   그냥 문자열로 찾으면 거의 다 실패하고, 그러면 정답이 그대로 노출된 채
+   "뜻 보고 떠올려보세요" 가 떠버린다. (2026-08-13 신고)
+   그래서 (1) someone/something 류는 아무 단어나 / (2) 동사는 어형 변화까지 허용한다.
+   ------------------------------------------------------------ */
+const __IRREGULAR_VERBS = {
+  keep: 'keep|keeps|kept|keeping', get: 'get|gets|got|gotten|getting',
+  give: 'give|gives|gave|given|giving', take: 'take|takes|took|taken|taking',
+  make: 'make|makes|made|making', run: 'run|runs|ran|running',
+  bring: 'bring|brings|brought|bringing', hold: 'hold|holds|held|holding',
+  put: 'put|puts|putting', let: 'let|lets|letting', go: 'go|goes|went|gone|going',
+  come: 'come|comes|came|coming', be: 'be|is|am|are|was|were|been|being',
+  do: 'do|does|did|done|doing', have: 'have|has|had|having',
+  draw: 'draw|draws|drew|drawn|drawing', sweep: 'sweep|sweeps|swept|sweeping',
+  throw: 'throw|throws|threw|thrown|throwing', speak: 'speak|speaks|spoke|spoken|speaking',
+  stand: 'stand|stands|stood|standing', win: 'win|wins|won|winning',
+  cut: 'cut|cuts|cutting', hit: 'hit|hits|hitting', set: 'set|sets|setting',
+};
+function __wordPattern(w, isFirst) {
+  const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const low = w.toLowerCase().replace(/[^a-z']/g, '');
+  // 목적어 자리표시자: 아무 단어(들)나 들어갈 수 있다.
+  if (/^(someone|somebody|sb|something|sth|one|oneself|your|his|her|their|its|my)$/.test(low)) {
+    return "[\\w'’-]+?(?:\\s+[\\w'’-]+?){0,2}";
+  }
+  if (low === "one's" || low === "someone's" || low === "sb's") return "[\\w'’-]+(?:'s)?";
+  if (isFirst && __IRREGULAR_VERBS[low]) return '(?:' + __IRREGULAR_VERBS[low] + ')';
+  if (isFirst && /^[a-z]{3,}$/.test(low)) {
+    // 규칙 동사 어형: work / works / worked / working
+    const stem = low.replace(/e$/, '');
+    return '(?:' + esc(low) + '|' + esc(low) + 's|' + esc(low) + 'es|' + esc(stem) + 'ed|' + esc(stem) + 'ing|' + esc(stem) + 'd)';
+  }
+  return esc(w);
+}
+function __maskExpression(sentence, expr) {
+  const raw = String(sentence || '');
+  const e = String(expr || '').trim();
+  if (!raw || !e) return null;
+  const parts = e.split(/\s+/).filter(Boolean);
+  if (!parts.length) return null;
+  const build = (arr) => '\\b' + arr.map((w, i) => __wordPattern(w, i === 0)).join("[\\s,]+") + '\\b';
+  const PLACE = /^(someone|somebody|sb|something|sth|oneself|one's|someone's|sb's)$/i;
+  const tries = [build(parts)];
+  // "loop in Sarah" 처럼 목적어가 뒤로 가는 어순: 자리표시자를 뺀 형태도 시도
+  const noPlace = parts.filter((w) => !PLACE.test(w.replace(/[^a-z']/gi, '')));
+  if (noPlace.length && noPlace.length !== parts.length) tries.push(build(noPlace));
+  for (const p of tries) {
+    try {
+      const re = new RegExp(p, 'i');
+      const m = raw.match(re);
+      if (m && m[0] && m[0].length >= 3) return raw.replace(re, '______');
+    } catch (_) {}
+  }
+  return null;
+}
 function buildReviewMySentences() {
   const out = [];
   (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((d) => (d.words || []).forEach((w, i) => {
@@ -28957,11 +29033,7 @@ function buildReviewMySentences() {
     const corrected = (state.ai_feedback && state.ai_feedback[k] && state.ai_feedback[k].corrected) || '';
     const raw = (corrected || (state.sentences && state.sentences[k]) || '').trim();
     if (!raw || raw.length < 8) return;
-    let masked = null;
-    try {
-      const re = new RegExp(String(w.en).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      if (re.test(raw)) masked = raw.replace(re, '______');
-    } catch (e) {}
+    const masked = __maskExpression(raw, w.en);
     out.push({ en: w.en, kr: w.kr || w.def || '', sentence: raw, masked, day: d.day });
   })));
   return out;
@@ -29268,7 +29340,8 @@ function MyReviewPage() {
   if (cur.isSyn) {
     contextHtml = `<div style="margin-top:16px;font-size:13.5px;color:#8B84D7;font-weight:700;">💜 <b>${escapeHtml(cur.base || '')}</b> 의 유의어를 입력하세요</div>`;
   } else if (ui.mode === 'sentence' && noPrompt) {
-    contextHtml = `<div style="margin-top:16px;font-size:16px;line-height:1.6;color:#6C6A86;">${escapeHtml(cur.sentence || '')}</div><div style="margin-top:6px;font-size:11.5px;color:#9A96B5;">(문장에 표현이 그대로 없어요. 뜻 보고 떠올려보세요)</div>`;
+    // 빈칸을 못 만들었으면 문장을 보여주면 안 된다. 답이 그 안에 그대로 들어있다.
+    contextHtml = `<div style="margin-top:14px;padding:11px 13px;border-radius:12px;background:#F3F1FB;border:1px dashed #C9C3E6;font-size:12.5px;line-height:1.6;color:#6C6A86;">이 표현은 내 문장에서 빈칸을 못 만들었어요.<br>뜻만 보고 <b>표현 자체</b>를 떠올려 적어주세요.</div>`;
   }
   const panel = el('div', { style: { padding: '18px 18px 20px', borderRadius: '22px', background: '#F7F5FF', border: '1px solid rgba(92,83,165,0.14)', color: 'var(--ink)' } });
   panel.innerHTML = `
