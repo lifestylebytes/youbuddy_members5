@@ -9843,9 +9843,21 @@ function HomePage() {
       const _nt = (state.meeting_notes && state.meeting_notes[_mid]) || {};
       // 1·2 는 데이터로 자동 판정하되, 본인이 직접 체크한 게 있으면 그걸 우선한다.
       // (미팅 페이지를 다 채웠는데 판정 기준이 달라 체크가 안 되는 일이 있어서)
-      const _c1 = !!_todo.intake || !!(state.premium_intake && state.premium_intake.at);
-      const _c2 = !!_todo.notes  || !!((_nt.talk_points || '').trim() || (_nt.meeting_notes || '').trim());
-      const _c3 = !!_todo.intro;
+      // Week 1: 진단지·자기소개가 준비물. Week 2부터는 발표 자리·과제 회고·어휘 복습. (2026-08-14)
+      const _isW1 = Number(_next.n) === 1;
+      const _mySignedUp = (() => {
+        try {
+          const arr = (state.presenterSignups || {})['w' + _next.n] || [];
+          return arr.indexOf(memberKey()) >= 0;
+        } catch (e) { return false; }
+      })();
+      const _c1 = _isW1
+        ? (!!_todo.intake || !!(state.premium_intake && state.premium_intake.at))
+        : (!!_todo.signup || _mySignedUp);
+      const _c2 = _isW1
+        ? (!!_todo.notes || !!((_nt.talk_points || '').trim() || (_nt.meeting_notes || '').trim()))
+        : !!_todo.feedback;
+      const _c3 = _isW1 ? !!_todo.intro : (!!_todo.review || !!(state.bingo_weeks && state.bingo_weeks['w' + (_next.n - 1)]));
       const _allDone = _isPrem && _c1 && _c2 && _c3;
       const _doneN = [_c1, _c2, _c3].filter(Boolean).length;
 
@@ -9900,9 +9912,13 @@ function HomePage() {
                <span style="font-size:10.5px;color:var(--muted);font-weight:700;">${_doneN}/3</span>
                ${!_allDone ? `<span style="margin-left:auto;font-size:10.5px;color:var(--muted);">체크박스를 눌러 직접 체크할 수도 있어요</span>` : ''}
              </div>`
-          + _row(_c1, '사전 진단지 작성', 'data-prep="intake"', _c1 ? '' : '작성하러 →')
-          + _row(_c2, `Meeting ${_next.n} 페이지 채우기`, 'data-prep="notes"', _c2 ? '' : '채우러 →')
-          + _row(_c3, '카카오톡에 자기소개 올리기', 'data-prep="intro"', '')
+          + (_isW1
+              ? _row(_c1, '사전 진단지 작성', 'data-prep="intake"', _c1 ? '' : '작성하러 →')
+                + _row(_c2, `Meeting ${_next.n} 페이지 채우기`, 'data-prep="notes"', _c2 ? '' : '채우러 →')
+                + _row(_c3, '카카오톡에 자기소개 올리기', 'data-prep="intro"', '')
+              : _row(_c1, '발표 자리 잡기 (이번 주 안 하면 다음 주에!)', 'data-prep="signup"', _c1 ? '' : '자리 보기 →')
+                + _row(_c2, '이번 주 과제 어땠는지, 한 마디 준비', 'data-prep="feedback"', '')
+                + _row(_c3, '이번 주 어휘 복습해두기', 'data-prep="review"', _c3 ? '' : '복습하러 →'))
           + (_allDone
               ? `<div style="margin-top:7px;font-size:11.5px;color:#1F8F58;line-height:1.5;">준비 다 하셨어요. 목요일 밤에 뵐게요 :)</div>`
               : '');
@@ -9923,9 +9939,11 @@ function HomePage() {
             ev.stopPropagation();
             const k = btn.getAttribute('data-prep');
             const onBox = ev.target && ev.target === btn.firstElementChild;
-            if (onBox || k === 'intro') { _toggle(k); return; }
+            if (onBox || k === 'intro' || k === 'feedback') { _toggle(k); return; }
             if (k === 'intake') { try { window.__openPremiumIntake(); } catch (e) {} return; }
             if (k === 'notes') { window.__currentMeetingId = _mid; go('meeting-notes'); return; }
+            if (k === 'signup') { go('premium'); return; }
+            if (k === 'review') { go('my-review'); return; }
           };
         });
         mtgBox.appendChild(prep);
