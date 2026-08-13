@@ -7919,7 +7919,7 @@ function HelpPage() {
   };
   // 챕터 안 소제목. id 가 없어서 아코디언 묶기에 안 걸린다.
   const sh = (ic, t) => {
-    const e2 = el('div', { style: { marginTop: '22px', display: 'flex', alignItems: 'center', gap: '7px' } });
+    const e2 = el('div', { 'data-sh': t, 'data-sh-ic': ic, style: { marginTop: '22px', display: 'flex', alignItems: 'center', gap: '7px' } });
     e2.innerHTML = `<span style="font-size:15px;">${ic}</span><span style="font-size:14.5px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${t}</span><span style="flex:1;height:1px;background:var(--line);opacity:0.6;"></span>`;
     page.appendChild(e2);
   };
@@ -8207,49 +8207,123 @@ function HelpPage() {
     <a href="http://pf.kakao.com/_ExdxcGX" target="_blank" rel="noopener noreferrer" class="btn btn-full" style="margin-top:12px;text-decoration:none;justify-content:center;">고객센터로 문의하기</a>`;
   page.appendChild(foot);
 
-  /* ── 블로그형 챕터 재구성 (2026-08-13) ──
-     챕터 헤더(id=help-*) 뒤의 콘텐츠를 접히는 챕터 카드로 묶는다.
-     후처리라서 위의 콘텐츠 생성 코드는 하나도 안 건드린다.
-     기본은 전부 접힘 = 목차처럼 훑고, 누른 챕터만 아래로 펼쳐진다. */
+  /* ── 블로그 구조: 글 목록 → 글 상세 (2026-08-14) ──
+     네이버 블로그처럼. 목록에는 글 제목 행만 쭉, 누르면 그 글만 크게 열린다.
+     콘텐츠 생성 코드는 그대로 두고, 만들어진 DOM 을 여기서 글 단위로 재조립한다.
+     경계: sh() 소제목 = 글 시작 / details(질문 카드) = 각각이 글 하나. */
   try {
     const kids = Array.from(page.children);
     const groups = [];
     let cur = null;
     kids.forEach((k) => {
-      if (k.getAttribute && (k.getAttribute('data-help-foot') || k === foot)) { cur = null; return; }
-      if (k.id && k.id.indexOf('help-') === 0) { cur = { head: k, items: [] }; groups.push(cur); }
+      if (k === foot || k === hero || k === toc) { return; }
+      if (k.id && k.id.indexOf('help-') === 0) { cur = { id: k.id, head: k, items: [] }; groups.push(cur); }
       else if (cur) cur.items.push(k);
     });
+
+    const CATMETA = { 'help-guide': ['📖', '사용법'], 'help-faq': ['❓', 'FAQ'], 'help-qna': ['🎤', '8기 미팅 Q&A'] };
+    const posts = [];
     groups.forEach((g) => {
-      const isQna = g.head.id === 'help-qna';
-      const d = el('details', { id: g.head.id, style: {
-        marginTop: '12px', borderRadius: '18px', overflow: 'hidden', scrollMarginTop: '76px', position: 'relative',
-        border: isQna ? '1px solid rgba(123,94,140,0.4)' : '1px solid var(--line)',
-        background: isQna
-          ? 'linear-gradient(150deg, rgba(123,94,140,0.12), rgba(169,139,184,0.06))'
-          : '#FFFDF8',
-      } });
-      g.head.removeAttribute('id');
-      g.head.style.marginTop = '0';
-      const sm = el('summary', { style: { cursor: 'pointer', listStyle: 'none', padding: '15px 16px 11px' } });
-      sm.appendChild(g.head);
-      const arrow = el('span', { style: { position: 'absolute', top: '19px', right: '15px', fontSize: '12px', fontWeight: '800', color: isQna ? '#7B5E8C' : 'var(--muted)' } }, '▾');
-      sm.appendChild(arrow);
-      d.appendChild(sm);
-      const body = el('div', { style: { padding: '0 16px 18px' } });
-      g.items.forEach((it) => body.appendChild(it));
-      d.appendChild(body);
-      d.addEventListener('toggle', () => { arrow.textContent = d.open ? '▴' : '▾'; });
-      // 블로그처럼 "N개의 글" 카운트. 안에 있는 details(글 행) 수를 센다.
-      try {
-        const n2 = body.querySelectorAll('details').length;
-        if (n2 > 0) {
-          const cnt = el('span', { style: { position: 'absolute', top: '21px', right: '34px', fontSize: '10.5px', fontWeight: '800', color: isQna ? '#7B5E8C' : 'var(--muted)' } }, n2 + '개의 글');
-          sm.appendChild(cnt);
+      const meta2 = CATMETA[g.id] || ['📄', '기타'];
+      let sub = null;
+      const flush = () => { if (sub && sub.nodes.length) posts.push(sub); sub = null; };
+      g.items.forEach((it) => {
+        if (it.getAttribute && it.getAttribute('data-sh')) {
+          flush();
+          sub = { cat: meta2[1], catId: g.id, emoji: it.getAttribute('data-sh-ic') || meta2[0], title: String(it.getAttribute('data-sh')).split('·')[0].trim(), nodes: [] };
+          return;
         }
-      } catch (e) {}
-      page.insertBefore(d, foot);
+        const innerD = (it.tagName !== 'DETAILS' && it.querySelectorAll) ? Array.from(it.querySelectorAll(':scope > details')) : [];
+        if (it.tagName === 'DETAILS' || innerD.length) {
+          flush();
+          (it.tagName === 'DETAILS' ? [it] : innerD).forEach((d) => {
+            const sm2 = d.querySelector('summary');
+            const spans = sm2 ? sm2.querySelectorAll('span') : [];
+            const title = spans[1] ? spans[1].textContent.trim() : (sm2 ? sm2.textContent.trim() : '글');
+            const emoji = spans[0] ? spans[0].textContent.trim() : meta2[0];
+            const bodyEl = d.children[1] || null;
+            posts.push({ cat: meta2[1], catId: g.id, emoji, title, nodes: bodyEl ? [bodyEl] : [] });
+          });
+          return;
+        }
+        if (!sub) sub = { cat: meta2[1], catId: g.id, emoji: meta2[0], title: meta2[1], nodes: [] };
+        sub.nodes.push(it);
+      });
+      flush();
+      // 원래 챕터 DOM 은 목록에서 제거
+      try { page.removeChild(g.head); } catch (e) {}
+      g.items.forEach((it) => { try { page.removeChild(it); } catch (e) {} });
     });
+
+    /* ── 글 상세 화면 ── */
+    const openId = window.__helpPostId || null;
+    const found = openId ? posts.find((p) => p.title === openId) : null;
+    if (found) {
+      const art = el('div', { class: 'page' });
+      const backBar = el('button', { style: { display: 'flex', alignItems: 'center', gap: '7px', padding: '9px 14px', borderRadius: '999px', border: '1px solid var(--line)', background: '#fff', color: 'var(--ink-soft)', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: '800', cursor: 'pointer' }, onClick: () => { window.__helpPostId = null; render(); window.scrollTo(0, 0); } }, '← 목록으로');
+      art.appendChild(backBar);
+      const isQ = found.catId === 'help-qna';
+      const headBox = el('div', { style: { marginTop: '14px', paddingBottom: '16px', borderBottom: '1px solid var(--line)' } });
+      headBox.innerHTML = `
+        <span style="display:inline-block;padding:3px 10px;border-radius:999px;background:${isQ ? 'rgba(123,94,140,0.14)' : 'var(--paper2,#F7F4EE)'};color:${isQ ? '#7B5E8C' : 'var(--ink-soft)'};font-size:10.5px;font-weight:800;letter-spacing:0.05em;">${found.emoji} ${escapeHtml(found.cat)}</span>
+        <div style="margin-top:10px;font-size:21px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;line-height:1.4;">${escapeHtml(found.title)}</div>
+        <div style="margin-top:6px;font-size:11.5px;color:var(--muted);">유비챌 8기 · 앱 사용 설명서</div>`;
+      art.appendChild(headBox);
+      const bodyWrap = el('div', { style: { marginTop: '16px' } });
+      found.nodes.forEach((n) => { n.style.marginTop = n.style.marginTop || '12px'; n.style.padding = n.style.padding || '0'; bodyWrap.appendChild(n); });
+      art.appendChild(bodyWrap);
+      const others = posts.filter((p) => p.catId === found.catId && p.title !== found.title).slice(0, 3);
+      if (others.length) {
+        const rel = el('div', { style: { marginTop: '28px', paddingTop: '16px', borderTop: '1px solid var(--line)' } });
+        rel.innerHTML = '<div style="font-size:12px;font-weight:800;color:var(--muted);letter-spacing:0.05em;">이 카테고리의 다른 글</div>';
+        others.forEach((p) => {
+          const r = el('button', { style: { display: 'flex', alignItems: 'center', gap: '9px', width: '100%', textAlign: 'left', padding: '11px 4px', background: 'none', border: 'none', borderBottom: '1px solid var(--line-soft)', fontFamily: 'inherit', cursor: 'pointer' }, onClick: () => { window.__helpPostId = p.title; render(); window.scrollTo(0, 0); } });
+          r.innerHTML = `<span style="font-size:14px;">${p.emoji}</span><span style="flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--ink);">${escapeHtml(p.title)}</span><span style="color:var(--muted);font-size:12px;">›</span>`;
+          rel.appendChild(r);
+        });
+        art.appendChild(rel);
+      }
+      art.appendChild(el('button', { class: 'btn btn-ghost btn-full', style: { marginTop: '18px' }, onClick: () => { window.__helpPostId = null; render(); window.scrollTo(0, 0); } }, '← 전체 글 목록'));
+      return art;
+    }
+
+    /* ── 글 목록 화면 ── */
+    const catNow = window.__helpCat || '전체';
+    const cats = ['전체'];
+    posts.forEach((p) => { if (cats.indexOf(p.cat) < 0) cats.push(p.cat); });
+    toc.style.display = 'flex';
+    toc.style.gridTemplateColumns = '';
+    toc.style.flexWrap = 'wrap';
+    toc.style.gap = '7px';
+    toc.innerHTML = cats.map((c) => {
+      const n2 = c === '전체' ? posts.length : posts.filter((p) => p.cat === c).length;
+      const on = c === catNow;
+      const isQ = c === '8기 미팅 Q&A';
+      return `<button data-hcat="${escapeHtml(c)}" style="padding:8px 14px;border-radius:999px;border:1px solid ${on ? 'transparent' : 'var(--line)'};background:${on ? (isQ ? '#7B5E8C' : 'var(--ink)') : '#fff'};color:${on ? '#fff' : (isQ ? '#7B5E8C' : 'var(--ink-soft)')};font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer;">${escapeHtml(c)} <span style="opacity:0.65;font-size:11px;">${n2}</span></button>`;
+    }).join('');
+    toc.querySelectorAll('[data-hcat]').forEach((b2) => {
+      b2.onclick = () => { window.__helpCat = b2.getAttribute('data-hcat'); render(); };
+    });
+
+    const shown = catNow === '전체' ? posts : posts.filter((p) => p.cat === catNow);
+    const listWrap = el('div', { style: { marginTop: '12px', borderRadius: '16px', background: '#fff', border: '1px solid var(--line)', overflow: 'hidden' } });
+    const lhead = el('div', { style: { display: 'flex', alignItems: 'center', padding: '11px 16px', borderBottom: '1px solid var(--line)', background: 'var(--paper2,#FAF8F3)' } });
+    lhead.innerHTML = `<span style="flex:1;font-size:11.5px;font-weight:800;color:var(--muted);">글 제목</span><span style="font-size:11.5px;font-weight:800;color:var(--muted);">${shown.length}개의 글</span>`;
+    listWrap.appendChild(lhead);
+    shown.forEach((p, i2) => {
+      const isQ = p.catId === 'help-qna';
+      const row = el('button', { style: { display: 'flex', alignItems: 'center', gap: '11px', width: '100%', textAlign: 'left', padding: '13px 16px', background: 'none', border: 'none', borderTop: i2 ? '1px solid var(--line-soft)' : 'none', fontFamily: 'inherit', cursor: 'pointer' }, onClick: () => { window.__helpPostId = p.title; render(); window.scrollTo(0, 0); } });
+      row.innerHTML = `
+        <span style="flex-shrink:0;width:36px;height:36px;border-radius:11px;background:${isQ ? 'rgba(123,94,140,0.12)' : 'var(--paper2,#F7F4EE)'};display:grid;place-items:center;font-size:17px;">${p.emoji}</span>
+        <span style="flex:1;min-width:0;">
+          <span style="display:block;font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.45;">${escapeHtml(p.title)}</span>
+          <span style="display:block;margin-top:2px;font-size:11px;color:${isQ ? '#7B5E8C' : 'var(--muted)'};font-weight:700;">${escapeHtml(p.cat)}</span>
+        </span>
+        <span style="flex-shrink:0;color:var(--muted);font-size:13px;">›</span>`;
+      listWrap.appendChild(row);
+    });
+    page.insertBefore(listWrap, foot);
+    foot.style.marginTop = '18px';
   } catch (e) {}
 
   return page;
