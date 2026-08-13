@@ -7791,17 +7791,18 @@ function TopBar(title='') {
   `;
   actions.appendChild(bell);
 
-  // 앱 사용 설명서. 알림과 프로필 사이. 문의가 반복되는 항목을 한 곳에 모아둔 페이지. (2026-08-11)
+  // 앱 사용 설명서. 알림과 프로필 사이.
+  // 원래 얇은 ? 아이콘이었는데 "안 누르고 싶게 생겼다"는 피드백 → 책 아이콘 + 채운 배경으로. (2026-08-13)
   const helpBtn = el('button', {
     class: 'icon-btn',
     onClick: () => go('help'),
     title: '앱 사용 설명서',
+    style: { background: 'var(--orange-ghost, #FFF3E0)', border: '1px solid var(--orange-soft, #F0C989)', color: 'var(--orange-dark, #B4690E)' },
   });
   helpBtn.innerHTML = `
-    <svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
-      <circle cx="12" cy="12" r="9"/>
-      <path d="M9.2 9.2a2.9 2.9 0 0 1 5.6 1c0 2-2.8 2.5-2.8 4"/>
-      <path d="M12 17.2h.01"/>
+    <svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
     </svg>`;
   actions.appendChild(helpBtn);
 
