@@ -7831,7 +7831,7 @@ function HelpPage() {
     ['learn', '📚', '내 학습'],
     ['tips', '🔥', '학습 꿀팁'],
     ['tip', '⚙️', '알아두면 편한 것'],
-    ['qna', '🎤', '미팅 Q&A'],
+    ...((isPrem || state.isOperator || state.isStaff) ? [['qna', '🎤', '미팅 Q&A']] : []),
     ['faq', '❓', '자주 묻는 것'],
   ];
   const toc = el('div', { style: { display: 'flex', gap: '7px', flexWrap: 'wrap', marginTop: '16px' } });
@@ -7852,6 +7852,27 @@ function HelpPage() {
         <span style="font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;">${t}</span>
       </div>${sub ? `<div style="margin-top:5px;font-size:12.5px;color:var(--muted);">${sub}</div>` : ''}`;
     page.appendChild(h);
+  };
+  // 긴 답변은 기본으로 접어둔다. 설명서가 줄글 벽이 되면 아무도 안 읽는다. (2026-08-13)
+  // 질문 제목만 쭉 보이고, 궁금한 것만 펼쳐서 읽는 구조.
+  const foldCard = (title, bodyHtml, accent) => {
+    const d = el('details', {
+      style: {
+        marginTop: '9px', borderRadius: '16px', background: '#fff', overflow: 'hidden',
+        border: '1px solid var(--line)', ...(accent ? { borderLeft: `3px solid ${accent}` } : {}),
+      },
+    });
+    d.innerHTML = `<summary style="cursor:pointer;list-style:none;padding:14px 16px;display:flex;align-items:center;gap:10px;">
+        <span style="flex:1;min-width:0;font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.5;">${title}</span>
+        <span data-fold-x style="flex-shrink:0;width:22px;height:22px;border-radius:7px;background:var(--paper2,#F7F4EE);color:var(--ink-soft);display:grid;place-items:center;font-size:11px;font-weight:800;">▾</span>
+      </summary>
+      <div style="padding:0 16px 15px;font-size:13px;line-height:1.75;color:var(--ink-soft);">${bodyHtml}</div>`;
+    d.addEventListener('toggle', () => {
+      const x = d.querySelector('[data-fold-x]');
+      if (x) x.textContent = d.open ? '▴' : '▾';
+    });
+    page.appendChild(d);
+    return d;
   };
   const card = (title, bodyHtml, accent) => {
     const c = el('div', {
@@ -7982,17 +8003,25 @@ function HelpPage() {
   card('앱 사용법 다시 보기', `처음에 보신 안내를 언제든 다시 보실 수 있어요. <b>[나] 탭 → 앱 사용법 다시 보기</b>`);
 
 
-  /* ── 미팅에서 나온 질문 (Week 1) ── */
-  H('qna', '🎤', '미팅 Q&A', '프리미엄 미팅에서 나온 질문을 정리해뒀어요. 매주 늘어납니다.');
-  card('대면에서 단어가 생각 안 날 때는요?', `
+  /* ── 미팅에서 나온 질문 (프리미엄 전용) ── */
+  if (isPrem || state.isOperator || state.isStaff) {
+  H('qna', '🎤', '미팅 Q&A', '8기 프리미엄 미팅에서 나온 질문 모음이에요. 매주 늘어납니다.');
+  foldCard('대면에서 단어가 생각 안 날 때는요?', `
     단어를 모르는 게 문제가 아니라 <b>멈추는 게</b> 문제예요. 원어민도 매일 단어가 안 떠오릅니다. 다만 안 멈출 뿐이에요.<br><br>
     <b>1) 시간 벌기</b> (2초만 벌면 대부분 떠올라요)<br>
     <span style="font-family:var(--font-mono);font-size:12.5px;">"Let me think for a second."<br>"How do I put this..."<br>"The word is escaping me."</span><br><br>
     <b>2) 돌려 말하기</b><br>
     <span style="font-family:var(--font-mono);font-size:12.5px;">"It's the thing you use to check the quality."<br>"It's like a report, but shorter."<br>"What's the word for when a shipment is delayed?"</span><br><br>
     마지막 문장이 특히 좋아요. 상대가 단어를 알려주거든요. 그렇게 알게 된 단어는 안 잊어버립니다.<br>
-    <b>딱 하나만 골라서 외워두세요.</b> 꺼낼 카드가 하나만 있어도 안 멈추게 돼요.`);
-  card('세미콜론 · 하이픈 · 긴 줄표는 언제 쓰나요?', `
+    <b>딱 하나만 골라서 외워두세요.</b> 꺼낼 카드가 하나만 있어도 안 멈추게 돼요.
+    <div style="margin-top:11px;padding:11px 13px;border-radius:11px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);">
+      <b style="color:var(--orange-dark);">🕶️ 미팅에서 농담으로 나온 얘기인데요</b><br>
+      Meta AI 글래스가 지난달부터 한국어 실시간 번역을 지원해요. 상대 말이 안경 스피커로 번역돼 나오고, 폰 앱에 스크립트도 같이 뜹니다. (저 진짜 사볼 거예요 ㅋㅋㅋ)<br><br>
+      근데 솔직하게 말씀드리면, 이건 <b>상대 말을 알아듣는</b> 데 쓰는 거예요.
+      해외 발음이 다양해서 놓치는 분들껜 진짜 도움이 됩니다.<br>
+      다만 <b>내 입에서 단어가 안 나오는 건</b> 안경이 못 해줘요. 그건 여전히 위 문장들이 답이에요 :)
+    </div>`);
+  foldCard('세미콜론 · 하이픈 · 긴 줄표는 언제 쓰나요?', `
     실무에선 <b>하이픈만 정확히</b> 쓰시면 충분해요.<br><br>
     <b>하이픈 (-)</b> 단어를 붙여 형용사로 만들 때<br>
     <span style="font-family:var(--font-mono);font-size:12.5px;">long-term plan · follow-up meeting · client-facing role</span><br>
@@ -8008,7 +8037,7 @@ function HelpPage() {
       공들여 쓴 메일이 그렇게 읽히면 억울하잖아요. 저는 그냥 <b>쉼표나 괄호</b>로 처리합니다 :)
     </div><br>
     <b>헷갈리면 마침표와 콤마로 다 처리하세요.</b> 문장부호로 실력이 평가되는 일은 거의 없어요.`);
-  card('구동사 책부터 해도 될까요?', `
+  foldCard('구동사 책부터 해도 될까요?', `
     방향은 아주 좋아요. 회의에서 체감 난이도를 제일 많이 낮춰주는 게 구동사거든요.
     원어민이 회의에서 쓰는 건 어려운 단어가 아니라 구동사예요. (follow up, loop in, push back, roll out, sort out)<br><br>
     다만 <b>책을 처음부터 끝까지 훑는 건 추천드리지 않아요.</b> 구동사는 3천 개가 넘고 빈도 차이가 어마어마해서, 앞에서부터 가면 안 쓰는 것에 시간을 다 씁니다.<br><br>
@@ -8019,7 +8048,7 @@ function HelpPage() {
     3. 뽑은 걸로 내 문장 만들어 녹음<br><br>
     그리고 구동사는 뜻을 외우면 안 써먹게 돼요. <b>언제 꺼내는 말인지</b>로 외우셔야 입에서 나옵니다.<br>
     <span style="color:var(--muted);">📌 발표나 미팅이 한 달 안에 있으시면, 책은 그 뒤로 미루고 그 준비에 시간을 쓰시는 게 낫습니다.</span>`);
-  card('발표는 격식체가 좋을까요, 평소 쓰던 게 좋을까요?', `
+  foldCard('발표는 격식체가 좋을까요, 평소 쓰던 게 좋을까요?', `
     정답은 중간이에요. 기억하실 건 하나입니다.<br>
     <b style="color:var(--orange-dark);">문장 구조는 평소처럼 단순하게, 단어는 격식 있게.</b><br><br>
     격식체로 문장을 길게 쓰시면 읽는 티가 확 나요. 그리고 긴장하는 순간 그 긴 문장이 제일 먼저 무너집니다.<br><br>
@@ -8029,6 +8058,7 @@ function HelpPage() {
     팁 하나 더 드리면, <b>오프닝과 클로징 두 문장만</b> 격식 있는 문장으로 정해두세요.<br>
     <span style="font-family:var(--font-mono);font-size:12.5px;">"Today I'd like to walk you through ___."<br>"That's all from me. Happy to take any questions."</span><br><br>
     시작과 끝이 단단하면 중간이 좀 흔들려도 전체가 프로처럼 들려요.`);
+  }
 
   /* ── FAQ ── */
   H('faq', '❓', '자주 묻는 것');
