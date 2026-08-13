@@ -389,6 +389,9 @@ const OPS_MSGS = [
   ['day 03', '앱 사용 설명서 링크 공유', '양 톡방 · Day 3 · 버디', '앱 사용 설명서를 만들어뒀어요! 📖\n\n앱 오른쪽 위 <?> 아이콘을 누르시면 언제든 열립니다.\n· 하루 흐름이 어떻게 되는지\n· 대시보드 색이 각각 무슨 뜻인지\n· 지난 Day 를 어떻게 다시 여는지\n· 학습 꿀팁 4가지\n\n특히 <학습 꿀팁>은 꼭 한 번 읽어보세요.\n같은 10분을 써도 남는 게 달라집니다 :)\n\n읽으시다가 "이건 설명이 없네" 싶은 게 있으면 편하게 말씀해주세요.\n바로 추가해드릴게요 🧡'],
   ['day 17', '턱걸이 인원 개별 안내', '1:1 개인톡 · Day 17 전후 · 매니저', '{이름}님 안녕하세요 🧡 ~~\n\n요즘 일정은 괜찮으세요?\n혹시 어려움이나 피드백 있으면 편하게 알려주시구요~!\n\n수료 보상은 18일 이상 인증 기준인데,\n{이름}님 지금 {N}일이시라 남은 {M}일 다 인증해주시면 정확히 18점입니다!\n\n빠진 날은 지금 채우셔도 그대로 1일로 들어가요. 마감이 따로 없어요.\n앱 [내 학습] → 왼쪽 상단 <전체 커리큘럼>에서 지난 Day 를 여실 수 있습니다.\n\n혹시 하시면서 재미 없어진 점 / 귀찮아진 이유가 (…솔직한 게 좋아요!!!) 있으시다면\n부담 없이 답장 부탁드려요!'],
   ['day 11', '쉬는 상태 진입자 1:1', '1:1 개인톡 · 4일 연속 미인증 · 매니저', '{이름}님 안녕하세요 🧡 ~~\n\n며칠 인증이 안 보이셔서 혹시 무슨 일 있으신가 해서 연락드려요.\n바쁘신 시기일 수도 있고요, 그럴 수 있어요!\n\n혹시 시작이 막막하셨거나, 앱에서 막히는 부분이 있으셨을까요?\n(…솔직한 게 좋아요!!!) 편하게 말씀해주시면 바로 도와드릴게요.\n\n📌 4일 연속 참여가 없으면 계정이 잠시 <쉬는 상태>가 되는데,\n벌이 아니라 그냥 숨 돌리는 공간이에요. 단톡방에 언급되지도 않고요.\n돌아오고 싶으실 때 저한테 톡 한 번만 주시면 바로 풀어드립니다!\n\n빠진 날도 나중에 채우시면 그대로 1일로 들어가요.\n부담 없이 답장 부탁드려요 🧡'],
+  ['day 05', '(주말·토) 주말 리마인드', '양 톡방 · 토 14:00 · 매니저', '주말 잘 보내고 계신가요?~\n\n이번 주 5일 다 채우신 분들은 <진짜 외우기> 열려 있어요!\n틈날 때 봐주시면 체크 보드 오른쪽에 살짜쿵 표시된답니다 ✅\n\n아직 이번 주 인증 못 하신 날이 있다면 주말에 편하게 채워주세요 :)\n늦게 하셔도 그대로 1일로 들어가요~\n\n@all 다들 이번 주도 고생 많으셨습니다! 푹 쉬면서 에너지 채워봐요 🧡'],
+  ['day 05', '(주말·일) 주간 마무리 리마인드', '양 톡방 · 일 19:00 · 매니저', '여러분 주말 잘 마무리하고 계신가요? :)\n\n아직 이번 주 <진짜 외우기> 안 풀어주신 분들은\n복습 차원에서 꼭 풀어봐주세요~ @all\n\n밀린 인증 채우기도 오늘까지가 딱 좋아요!\n내일부터 새로운 한 주, 가볍게 시작해봐요 😊\n\n보내주신 피드백 잘 보고 있습니다 :)\n적용할 수 있는 건 바로바로 반영할게요~'],
+
 ];
 
 function fillOpsMessages() {
@@ -441,6 +444,8 @@ const LINK_MAP = [
   ['첫 주 마무리',            '첫 주 마무리 격려'],
   ['2주차 오프닝',            '2주차 오프닝 + 모닝 밋업 안내'],
   ['약점 복습',               '★ 내 약점 복습 오픈 안내'],
+  ['주말·토',                 '(주말·토) 주말 리마인드'],
+  ['주말·일',                 '(주말·일) 주간 마무리 리마인드'],
   ['발표자',                  '발표자 모집 안내'],
   ['절반 지점',               '절반 지점 격려'],
   ['피드백 리포트',           '발표 피드백 리포트 발행 알림'],
@@ -549,7 +554,7 @@ function linkChecklistMessages() {
       규칙을 바꾸려면 반드시 6행 수식을 다시 쓸 것.
    ============================================================ */
 
-const TIME_FORMULA = '=MAP($F6:$F200,LAMBDA(t,IF(t="","",IFS(REGEXMATCH(t,"모닝 공지"),"06:00",REGEXMATCH(t,"인증률"),"07:00",REGEXMATCH(t,"한 스푼 더"),"19:00",REGEXMATCH(t,"녹음 확인"),"20:30",REGEXMATCH(t,"미인증 명단|미팅 진행"),"21:00",REGEXMATCH(t,"1:1 케어|쉬는 상태"),"21:30",REGEXMATCH(t,"녹화본"),"22:00",REGEXMATCH(t,"가이드 투어|집계 쿼리|피드백 리포트 작성"),"그날 중",TRUE,"08:00"))))';
+const TIME_FORMULA = '=MAP($F6:$F200,LAMBDA(t,IF(t="","",IFS(REGEXMATCH(t,"모닝 공지"),"06:00",REGEXMATCH(t,"인증률"),"07:00",REGEXMATCH(t,"한 스푼 더"),"19:00",REGEXMATCH(t,"녹음 확인"),"20:30",REGEXMATCH(t,"미인증 명단|미팅 진행"),"21:00",REGEXMATCH(t,"1:1 케어|쉬는 상태"),"21:30",REGEXMATCH(t,"녹화본"),"22:00",REGEXMATCH(t,"주말·토"),"토 14:00",REGEXMATCH(t,"주말·일"),"일 19:00",REGEXMATCH(t,"가이드 투어|집계 쿼리|피드백 리포트 작성"),"그날 중",TRUE,"08:00"))))';
 
 // 시각(D열) 배열 수식 복구 + 아침 발송 규칙 반영
 function fixChecklistTimes() {
@@ -769,7 +774,7 @@ function refreshChecklist() {
    중간 셀에 값을 쓰면 통째로 #REF! 가 되니 절대 직접 입력하지 말 것.
    ============================================================ */
 
-const OWNER_FORMULA = '=MAP($F6:$F200,LAMBDA(t,IF(t="","",IF(REGEXMATCH(t,"모닝 공지|인증률|녹음 확인|미인증 명단|1:1|미완료자 리마인드|미팅 전 할 일|발표자|미응시자|턱걸이|쉬는 상태"),"매니저","버디"))))';
+const OWNER_FORMULA = '=MAP($F6:$F200,LAMBDA(t,IF(t="","",IF(REGEXMATCH(t,"모닝 공지|인증률|녹음 확인|미인증 명단|1:1|미완료자 리마인드|미팅 전 할 일|발표자|미응시자|턱걸이|쉬는 상태|주말"),"매니저","버디"))))';
 
 function fixChecklistOwners() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CHECK_SHEET);
@@ -881,4 +886,44 @@ function setupWeeklyTrigger() {
   });
   ScriptApp.newTrigger('writeWeeklyRecap').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(7).create();
   Logger.log('월요일 07시 주간 회고 트리거 설정 완료');
+}
+
+/* ============================================================
+   주말 행 추가 (2026-08-14 · 7기 톡 패턴에서 복원)
+   ------------------------------------------------------------
+   7기에서 토(14시쯤)·일(저녁)에 실제로 보내던 주말 리마인드가
+   체크리스트에 빠져 있었다. Day 5/10/15 블록 끝에 넣는다.
+   (Day 20 주말은 수료식이 따로 있어 제외)
+   ============================================================ */
+
+function addWeekendRows() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CHECK_SHEET);
+  const T1 = '(주말·토) 주간 테스트 + 밀린 인증 리마인드 발송';
+  const T2 = '(주말·일) 주간 마무리 리마인드 + 늦참 녹음 체크';
+  const targets = [5, 10, 15];
+
+  const last = sh.getLastRow();
+  const tasks = sh.getRange(6, 6, last - 5, 1).getDisplayValues()
+    .map(function (r) { return String(r[0] || ''); });
+  if (tasks.indexOf(T1) >= 0) { Logger.log('이미 있어요.'); return; }
+
+  const days = sh.getRange(6, 1, last - 5, 1).getDisplayValues();
+  let cur = 0;
+  const endRow = {};
+  for (let i = 0; i < days.length; i++) {
+    const m2 = String(days[i][0] || '').match(/Day\s*(\d+)/i);
+    if (m2) cur = Number(m2[1]);
+    if (cur) endRow[cur] = 6 + i;
+  }
+
+  targets.sort(function (a, b) { return b - a; }).forEach(function (d) {
+    const r = endRow[d];
+    if (!r) return;
+    sh.insertRowsAfter(r, 2);
+    sh.getRange(r + 1, 6).setValue(T1);
+    sh.getRange(r + 2, 6).setValue(T2);
+  });
+
+  refreshChecklist();
+  Logger.log('주말 행 6개 추가 완료 (Day 5/10/15 × 토·일)');
 }
