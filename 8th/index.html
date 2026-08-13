@@ -1676,6 +1676,7 @@ const defaultState = () => ({
   friday_redirect_seen: {},         // { "1": true }, Day 5/10/15/20 (= 매주 금요일) 자동 시험 페이지 redirect 본 상태. 주차별 1회만 redirect.
   spaced_repeat_seen: {},           // { "day7": true } Spaced Repetition 팝업 본 상태, Day 시작 시 1회 노출용.
   review_unlock_seen: false,        // Week 2(Day 6)부터 '내 약점 복습' 기능 잠금 해제 안내 팝업 본 상태.
+  week_task_popup_seen: {},         // { "WEEK 1": true } 미팅 과제 등록 알림 팝업 본 상태 (주차별 1회).
   bingo_intro_seen: {},             // { "1": true, "2": true } 주간 테스트 첫 진입 온보딩 팝업 본 상태. 주차별 1회.
   week_review_intro_seen: false,    // 진짜 외우기(week-review) 첫 진입 온보딩 팝업 본 상태 (전체 1회).
   prereview_seen: {},               // { "day2": true } 매일 학습 전 "어제 단어 복습" 팝업 본 상태, Day N 진입 시 1회 노출.
@@ -1769,6 +1770,7 @@ const PERSISTED_STATE_KEYS = [
   'recording_popup_seen',
   'weekly_quiz_popup_seen',
   'review_unlock_seen',
+  'week_task_popup_seen',      // { "Week 1": true } 주차 과제 등록 알림 팝업 본 상태.
   'bingo_intro_seen',
   'week_review_intro_seen',
   'spaced_repeat_seen',
@@ -3128,7 +3130,8 @@ let showMiniWeekSurvey = null;
 // weekN, 단어 시험 입구에서 띄우는 3문항 미니 설문
 let showWeekWrapupPopup = null; // weekN, 매주 금요일 (Day 5/10/15/20) 자동 노출. "지금 풀러가기 / 주말에 보기"
 let showBestPopup = null; // 이번주 베스트(만점자+최초완주) 팝업 데이터. 현재 운영자 미리보기 전용.
-let showReviewUnlockPopup = false; // Week 2(Day 6) 진입 시 '내 약점 복습' 기능 해제 온보딩 팝업.
+let showReviewUnlockPopup = false;
+let showWeekTaskPopup = null; // { wk: 'WEEK 1', tasks: [...] } 미팅 과제 등록 다음날 알림 팝업. // Week 2(Day 6) 진입 시 '내 약점 복습' 기능 해제 온보딩 팝업.
 let showBingoIntroPopup = null; // weekN. 주간 테스트 첫 진입 시 5단계 온보딩 팝업.
 let showFunFactPopup = null; // 홈 진입 시 하루 1회 '오늘의 한 입' (날짜별 고정). true 면 노출.
 let showHelpHintPopup = false; // '?' 설명서 안내, 계정당 1회만.
@@ -3164,7 +3167,7 @@ let dashboardStats = {
 function anyPopupOpen() {
   return !!(showSettings || showGoalEditor || showPremiumGate || activeMemberCard || verificationReviewDay
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
-    || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup
+    || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup || showWeekTaskPopup
     || showFunFactPopup || showDonePopup || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup || showWeekReviewIntro
     || showDailyPulse || showPremiumIntake || showHelpHintPopup);
 }
@@ -6689,6 +6692,9 @@ function render() {
       const stale = document.querySelector('[data-daily-pulse]');
       if (stale) stale.remove();
     }
+    if (showWeekTaskPopup) {
+      document.body.appendChild(WeekTaskPopupModal());
+    }
     if (showReviewUnlockPopup) {
       if (!document.querySelector('[data-review-unlock-popup]')) {
         document.body.appendChild(ReviewUnlockPopupModal());
@@ -9336,6 +9342,28 @@ function HomePage() {
           render();
         }
       }, 500);
+    }
+  } catch (e) {}
+
+  // 🎯 미팅 과제 등록 알림 (프리미엄, 주차별 1회). 미팅에서 받아적은 과제가
+  // 서버에 붙은 다음 접속 때 팝업으로 알려준다. 안 알려주면 홈 카드를 그냥 지나친다. (2026-08-14)
+  try {
+    if (state.tier === 'premium' && !showWeekTaskPopup && !anyPopupOpen() && guidedTourStep === null) {
+      const _tk = splitGoalAndTasks(state.goal).tasks;
+      if (_tk.length) {
+        const last = _tk[_tk.length - 1];
+        const m2 = last.match(/Week\s*(\d+)/i);
+        const wkLabel = m2 ? ('WEEK ' + m2[1]) : 'THIS WEEK';
+        const seen = (state.week_task_popup_seen && typeof state.week_task_popup_seen === 'object') ? state.week_task_popup_seen : {};
+        if (!seen[wkLabel]) {
+          setTimeout(() => {
+            if (!showWeekTaskPopup && !anyPopupOpen() && guidedTourStep === null) {
+              showWeekTaskPopup = { wk: wkLabel, tasks: _tk.slice(-2) };
+              render();
+            }
+          }, 700);
+        }
+      }
     }
   } catch (e) {}
 
@@ -30485,6 +30513,32 @@ function BingoIntroPopupModal() {
 
 window.__closeReviewUnlock = () => { state.review_unlock_seen = true; saveState(); showReviewUnlockPopup = false; render(); };
 window.__goReviewFromUnlock = () => { state.review_unlock_seen = true; saveState(); showReviewUnlockPopup = false; go('my-review'); };
+window.__closeWeekTaskPopup = () => {
+  try {
+    const seen = (state.week_task_popup_seen && typeof state.week_task_popup_seen === 'object') ? state.week_task_popup_seen : {};
+    if (showWeekTaskPopup && showWeekTaskPopup.wk) seen[showWeekTaskPopup.wk] = true;
+    state.week_task_popup_seen = seen;
+    saveState();
+  } catch (e) {}
+  showWeekTaskPopup = null; render();
+};
+function WeekTaskPopupModal() {
+  const ctx = showWeekTaskPopup || { wk: 'THIS WEEK', tasks: [] };
+  const wrap = el('div', { 'data-week-task-popup': '1', style: { position: 'fixed', inset: '0', zIndex: '9700', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' } });
+  wrap.appendChild(el('div', { style: { position: 'absolute', inset: '0', background: 'rgba(30,26,18,0.55)', backdropFilter: 'blur(3px)' }, onClick: () => window.__closeWeekTaskPopup() }));
+  const card = el('div', { style: { position: 'relative', width: '100%', maxWidth: '400px', background: '#FFFDF8', borderRadius: '22px', padding: '24px 22px', boxShadow: '0 18px 50px rgba(0,0,0,0.28)' } });
+  card.innerHTML = '<button onclick="window.__closeWeekTaskPopup()" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);font-size:13px;cursor:pointer;">✕</button>'
+    + '<div style="font-size:34px;">🎯</div>'
+    + '<div class="kicker" style="margin-top:8px;color:var(--orange-dark);">' + escapeHtml(ctx.wk) + ' · 미팅에서 정했어요</div>'
+    + '<div style="margin-top:5px;font-size:18px;font-weight:800;color:var(--ink);line-height:1.35;">이번 주 과제가 등록됐어요!</div>'
+    + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:7px;">'
+    + (ctx.tasks || []).map((t) => '<div style="padding:11px 13px;border-radius:13px;background:#FFF7EC;border:1px solid rgba(240,172,61,0.4);font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.6;">' + escapeHtml(String(t).replace(/^🎯\s*/, '')) + '</div>').join('')
+    + '</div>'
+    + '<div class="t-small" style="margin-top:11px;color:var(--ink-soft);line-height:1.6;">따로 시간 내서 하는 게 아니라, <b>매일 인증 문장을 이 방향으로</b> 쓰시면 그게 과제예요 :) 홈 화면 🎯 THIS WEEK 카드에서 언제든 다시 볼 수 있어요.</div>'
+    + '<button class="btn btn-primary btn-full" style="margin-top:15px;" onclick="window.__closeWeekTaskPopup()">좋아요, 오늘부터 해볼게요!</button>';
+  wrap.appendChild(card);
+  return wrap;
+}
 function ReviewUnlockPopupModal() {
   const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
   overlay.setAttribute('data-review-unlock-popup', '1');
