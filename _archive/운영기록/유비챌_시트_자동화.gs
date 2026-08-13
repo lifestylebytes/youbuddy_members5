@@ -541,50 +541,80 @@ function linkChecklistMessages() {
 }
 
 /* ============================================================
-   2026-08-13 수정분 (한 번만 실행)
+   2026-08-13 수정분
    ------------------------------------------------------------
-   1) 미팅 알림 / 미팅 전 할 일 리마인드 = 아침에 보내는 일로 변경
-   2) '당일 미팅 알림' 원고를 버디 말투 버전으로 교체
+   ⚠️ D(시각) E(담당) G(지침) H(메시지 링크) 는 6행에 걸린 배열 수식이다.
+      중간 셀에 setValue 를 하면 수식 전체가 #REF! 로 깨진다.
+      규칙을 바꾸려면 반드시 6행 수식을 다시 쓸 것.
    ============================================================ */
 
-function applyTodayEdits() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+const TIME_FORMULA = '=MAP($F6:$F200,LAMBDA(t,IF(t="","",IFS(REGEXMATCH(t,"모닝 공지"),"06:00",REGEXMATCH(t,"인증률"),"07:00",REGEXMATCH(t,"유버디 메시지"),"18:00",REGEXMATCH(t,"녹음 확인"),"수시",REGEXMATCH(t,"미인증 명단"),"21:00~",REGEXMATCH(t,"1:1 케어"),"밤",REGEXMATCH(t,"미팅 진행"),"21:00",REGEXMATCH(t,"미팅 알림|미팅 예고|미팅 전 할 일|주간 테스트|파이널|단어집 PDF|수료 기준|발표자|녹화본|턱걸이"),"아침",TRUE,"그날 중"))))';
 
-  // 1) 시각을 '아침' 으로
-  const chk = ss.getSheetByName(CHECK_SHEET);
-  const last = chk.getLastRow();
-  const tasks = chk.getRange(6, 6, last - 5, 1).getDisplayValues();
-  let moved = 0;
-  tasks.forEach(function (r, i) {
-    const t = String(r[0] || '');
-    if (/미팅 알림|미팅 전 할 일/.test(t)) {
-      chk.getRange(6 + i, 4).setValue('아침');
-      moved++;
-    }
-  });
+// 시각(D열) 배열 수식 복구 + 아침 발송 규칙 반영
+function fixChecklistTimes() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CHECK_SHEET);
+  const last = Math.max(sh.getLastRow(), 7);
+  sh.getRange(6, 4, last - 5, 1).clearContent();   // 깨진 값·#REF! 전부 비우고
+  SpreadsheetApp.flush();
+  sh.getRange('D6').setFormula(TIME_FORMULA);
+  Logger.log('시각 수식 복구 완료');
+}
 
-  // 1-2) 슬랙 표기 제거 (슬랙 안 씀, 2026-08-13)
-  let cleaned = 0;
-  tasks.forEach(function (r, i) {
-    const t = String(r[0] || '');
-    if (t.indexOf('슬랙') >= 0) {
-      chk.getRange(6 + i, 6).setValue(t.replace(/슬랙\s*#?\d*\s*/g, '').trim());
-      cleaned++;
-    }
-  });
+// 미팅 하루 전 예고 행 추가 (Day 3 / 8 / 13 / 18 끝에)
+function addMeetingPreviewRows() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CHECK_SHEET);
+  const TASK = '다음날 미팅 예고 + 참여자 조사';
+  const targets = [3, 8, 13, 18];
 
-  // 2) 원고 교체
-  const msg = ss.getSheetByName(MSG_SHEET);
-  const mLast = msg.getLastRow();
-  const titles = msg.getRange(1, 3, mLast, 1).getDisplayValues();
-  let replaced = 0;
-  for (let i = 0; i < titles.length; i++) {
-    if (String(titles[i][0] || '').indexOf('당일 미팅 알림') >= 0) {
-      msg.getRange(i + 1, 4).setValue('안녕하세요! 오늘은 첫 번째 미팅이 있는 날이에요 :)\n\n🗓 오늘 밤 9:00~10:00 · Google Meet\nhttps://meet.google.com/sff-fgce-npj\n\n부담 노노! 우리는 회사에서 더 잘하려고 모이는 거잖아요~\n회사에서 어떤 업무를 하고 계신지, 골은 뭔지 자기소개하며 공유해봅시다.\n\n또 프리젠테이션은 어떻게 진행되는지, 그리고 롤플레잉도 설명드릴 거예요.\n못 오시는 분들껜 녹화본이 제공되니 편하게 봐주세요!\n\n미팅 전에 세 가지만 부탁드려요~ (앱 홈 <미팅 전 할 일>에서 확인 가능해요)\n· 사전 진단지 작성\n· Meeting 1 페이지 채우기\n· 이 방에 간단히 자기소개 남기기\n\n📌 인원 파악을 위해, 오실 수 있는 분은 이모지 눌러주세요!');
-      replaced++;
-      break;
-    }
+  // 이미 있으면 건너뛴다
+  const last = sh.getLastRow();
+  const all = sh.getRange(6, 6, last - 5, 1).getDisplayValues()
+    .map(function (r) { return String(r[0] || ''); });
+  if (all.some(function (t) { return t === TASK; })) {
+    Logger.log('예고 행이 이미 있어요. 건너뜁니다.');
+    return;
   }
 
-  Logger.log('시각 변경 ' + moved + '건 · 슬랙 표기 제거 ' + cleaned + '건 · 원고 교체 ' + replaced + '건');
+  // Day 번호별 마지막 행을 먼저 구한다 (아래에서 위로 넣어야 행번호가 안 밀린다)
+  const days = sh.getRange(6, 1, last - 5, 1).getDisplayValues();
+  let cur = 0;
+  const endRow = {};
+  for (let i = 0; i < days.length; i++) {
+    const m = String(days[i][0] || '').match(/Day\s*(\d+)/i);
+    if (m) cur = Number(m[1]);
+    if (cur) endRow[cur] = 6 + i;
+  }
+
+  targets.sort(function (a, b) { return b - a; }).forEach(function (d) {
+    const r = endRow[d];
+    if (!r) return;
+    sh.insertRowAfter(r);
+    sh.getRange(r + 1, 5).setValue('버디');   // 담당은 수식이 아니라 값이면 여기서 채워짐
+    sh.getRange(r + 1, 6).setValue(TASK);
+  });
+
+  fixChecklistTimes();
+  Logger.log('예고 행 ' + targets.length + '개 추가 완료');
+}
+
+// 미팅 예고(D-1) 원고를 '주요 메시지' 에 추가
+function addMeetingPreviewMessage() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MSG_SHEET);
+  const last = Math.max(sh.getLastRow(), 1);
+  const titles = sh.getRange(1, 3, last, 1).getDisplayValues()
+    .map(function (r) { return String(r[0] || ''); });
+  const TITLE = '미팅 예고 (하루 전) + 참여자 조사';
+  const BODY = '오늘 밤이 아니라 하루 먼저 알려드릴게요 :)\n\n🗓 내일 밤 9:00~10:00 · Google Meet\nhttps://meet.google.com/sff-fgce-npj\n\n내일 미팅에서 뭘 하는지 미리 알려드리면\n마음의 준비를 하고 오실 수 있을 것 같아서요 ㅎㅎ\n\n부담 노노! 우리는 회사에서 더 잘하려고 모이는 거잖아요~\n회사에서 어떤 업무를 하고 계신지, 골은 뭔지 나누는 자리예요.\n\n미팅 전에 세 가지만 부탁드려요~ (앱 홈 <미팅 전 할 일>에서 확인 가능해요)\n· 사전 진단지 작성\n· Meeting 페이지 채우기\n· 이 방에 간단히 자기소개 남기기\n\n📌 인원 파악을 위해, 오실 수 있는 분은 미리 이모지 눌러주세요!\n못 오시는 분들껜 녹화본이 제공되니 편하게 봐주세요 :)';
+  const WHO = '프리미엄 · 미팅 전날 아침 · 버디';
+
+  const idx = titles.indexOf(TITLE);
+  if (idx >= 0) {
+    sh.getRange(idx + 1, 4).setValue(BODY);
+    sh.getRange(idx + 1, 5).setValue(WHO);
+  } else {
+    sh.appendRow(['Ongoing', 'day 03', TITLE, BODY, WHO]);
+  }
+  const n = sh.getLastRow();
+  sh.getRange(1, 4, n, 1).setWrap(true).setVerticalAlignment('top');
+  Logger.log('미팅 예고 원고 반영 완료');
 }
