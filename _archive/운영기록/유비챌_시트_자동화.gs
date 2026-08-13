@@ -549,7 +549,7 @@ function linkChecklistMessages() {
       규칙을 바꾸려면 반드시 6행 수식을 다시 쓸 것.
    ============================================================ */
 
-const TIME_FORMULA = '=MAP($F6:$F200,LAMBDA(t,IF(t="","",IFS(REGEXMATCH(t,"모닝 공지"),"06:00",REGEXMATCH(t,"인증률"),"07:00",REGEXMATCH(t,"유버디 메시지"),"18:00",REGEXMATCH(t,"녹음 확인"),"수시",REGEXMATCH(t,"미인증 명단"),"21:00~",REGEXMATCH(t,"1:1 케어"),"밤",REGEXMATCH(t,"미팅 진행"),"21:00",REGEXMATCH(t,"미팅 알림|미팅 예고|미팅 전 할 일|주간 테스트|파이널|단어집 PDF|수료 기준|발표자|녹화본|턱걸이|약점 복습|진짜 외우기"),"아침",TRUE,"그날 중"))))';
+const TIME_FORMULA = '=MAP($F6:$F200,LAMBDA(t,IF(t="","",IFS(REGEXMATCH(t,"모닝 공지"),"06:00",REGEXMATCH(t,"인증률"),"07:00",REGEXMATCH(t,"한 스푼 더"),"19:00",REGEXMATCH(t,"녹음 확인"),"20:30",REGEXMATCH(t,"미인증 명단|미팅 진행"),"21:00",REGEXMATCH(t,"1:1 케어|쉬는 상태"),"21:30",REGEXMATCH(t,"녹화본"),"22:00",REGEXMATCH(t,"가이드 투어|집계 쿼리|피드백 리포트 작성"),"그날 중",TRUE,"08:00"))))';
 
 // 시각(D열) 배열 수식 복구 + 아침 발송 규칙 반영
 function fixChecklistTimes() {
@@ -680,4 +680,85 @@ function addWeaknessReviewRow() {
   msg.getRange(1, 4, n, 1).setWrap(true).setVerticalAlignment('top');
 
   Logger.log('약점 복습 안내 + 진짜 외우기 교정 반영 완료');
+}
+
+/* ============================================================
+   시간순 정렬 (2026-08-13)
+   ------------------------------------------------------------
+   ⚠️ D(시각) E(담당) G(지침) H(메시지 링크) 는 F(할 일) 을 읽는 배열 수식이다.
+      그래서 F 와 I(✅ 체크) 만 순서를 바꾸면 나머지는 알아서 따라온다.
+      K(메모/로그) 는 Day 단위 병합이라 건드리지 않는다.
+
+   유버디가 보내는 안내는 하루 두 번, 08:00 과 19:00 뿐이다.
+     06:00 모닝 공지 (매니저)
+     07:00 어제 인증률 (자동)
+     08:00 유버디 아침 안내  ← 주간 테스트·약점 복습·미팅 예고 등 전부 여기
+     19:00 유버디 저녁 (한 스푼 더)
+     20:30 녹음 확인 마감
+     21:00 미인증 명단 리마인드 · 미팅 진행
+     21:30 1:1 케어 톡
+     22:00 미팅 녹화본 링크 입력
+   ============================================================ */
+
+function sortChecklistByTime() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CHECK_SHEET);
+  const first = 6;
+  const last = sh.getLastRow();
+  const n = last - first + 1;
+
+  const days = sh.getRange(first, 1, n, 1).getDisplayValues();
+  const times = sh.getRange(first, 4, n, 1).getDisplayValues();
+  const tasks = sh.getRange(first, 6, n, 1).getValues();
+  const checks = sh.getRange(first, 9, n, 1).getValues();
+
+  // Day 블록 경계 찾기 (Day 칸은 병합이라 첫 행에만 값이 있다)
+  const starts = [];
+  for (let i = 0; i < n; i++) {
+    if (/Day\s*\d+/i.test(String(days[i][0] || ''))) starts.push(i);
+  }
+  if (!starts.length) throw new Error('Day 블록을 못 찾았어요');
+  starts.push(n);
+
+  const rank = function (t) {
+    const v = String(t || '').trim();
+    if (!v || v === '그날 중') return '99:99';
+    return v.replace('~', '');
+  };
+
+  let moved = 0;
+  for (let b = 0; b < starts.length - 1; b++) {
+    const from = starts[b], to = starts[b + 1];
+    const rows = [];
+    for (let i = from; i < to; i++) {
+      if (!String(tasks[i][0] || '').trim()) continue;
+      rows.push({ t: rank(times[i][0]), f: tasks[i][0], c: checks[i][0], ord: i });
+    }
+    if (rows.length < 2) continue;
+
+    const before = rows.map(function (r) { return r.ord; }).join(',');
+    // 같은 시각이면 원래 순서 유지 (안정 정렬)
+    rows.sort(function (a, b2) { return a.t === b2.t ? a.ord - b2.ord : (a.t < b2.t ? -1 : 1); });
+    if (rows.map(function (r) { return r.ord; }).join(',') === before) continue;
+
+    const outF = [], outC = [];
+    for (let k = 0; k < to - from; k++) {
+      outF.push([rows[k] ? rows[k].f : '']);
+      outC.push([rows[k] ? rows[k].c : '']);
+    }
+    sh.getRange(first + from, 6, to - from, 1).setValues(outF);
+    sh.getRange(first + from, 9, to - from, 1).setValues(outC);
+    moved++;
+  }
+
+  SpreadsheetApp.flush();
+  Logger.log('시간순 정렬 완료 · Day ' + moved + '개 블록 재배치');
+}
+
+// 시각 수식 갱신 → 시간순 정렬 → 색 다시 칠하기. 이거 하나만 돌리면 됩니다.
+function refreshChecklist() {
+  fixChecklistTimes();
+  SpreadsheetApp.flush();
+  sortChecklistByTime();
+  try { paintChecklist(); } catch (e) {}
+  Logger.log('체크리스트 정리 완료');
 }
