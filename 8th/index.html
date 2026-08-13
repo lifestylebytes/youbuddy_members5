@@ -30063,7 +30063,8 @@ function vsCopyTzWaiting(m, day) {
 }
 function vsCopyBuckets(day, tier) {
   const out = { both: [], recOnly: [], webOnly: [], tzWait: [], done: [] };
-  paidMembers().filter((m) => (m.tier === 'premium') === (tier === 'premium')).forEach((m) => {
+  // memberHidden(사전 테스터 등 숨김 처리된 사람)은 단톡방에 없으니 태그 명단에서 제외. (2026-08-14 버디 확정)
+  paidMembers().filter((m) => !m.memberHidden && (m.tier === 'premium') === (tier === 'premium')).forEach((m) => {
     const set = Array.isArray(m.verifiedDays) && m.verifiedDays.length
       ? new Set(m.verifiedDays.map(Number)) : null;
     const web = m.me
