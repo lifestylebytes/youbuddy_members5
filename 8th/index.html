@@ -7867,13 +7867,9 @@ function HelpPage() {
 
   // 목차, 탭하면 해당 섹션으로 스크롤
   const SECTIONS = [
-    ['flow', '⏱', '하루 흐름'],
-    ['color', '🎨', '보드 색깔'],
-    ['learn', '📚', '내 학습'],
-    ['tips', '🔥', '학습 꿀팁'],
-    ['tip', '⚙️', '알아두면 편한 것'],
-    ['qna', '🎤', '미팅 Q&A'],
+    ['guide', '📖', '이렇게 쓰면 돼요'],
     ['faq', '❓', '자주 묻는 것'],
+    ...((isPrem || state.isOperator || state.isStaff) ? [['qna', '🎤', '미팅 Q&A']] : []),
   ];
   const toc = el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '14px' } });
   toc.innerHTML = SECTIONS.map(([id, ic, t], i) =>
@@ -7915,6 +7911,12 @@ function HelpPage() {
       ${sub ? `<div style="margin-top:7px;padding-left:51px;font-size:12.5px;color:var(--muted);line-height:1.55;">${sub}</div>` : ''}`;
     page.appendChild(h);
   };
+  // 챕터 안 소제목. id 가 없어서 아코디언 묶기에 안 걸린다.
+  const sh = (ic, t) => {
+    const e2 = el('div', { style: { marginTop: '22px', display: 'flex', alignItems: 'center', gap: '7px' } });
+    e2.innerHTML = `<span style="font-size:15px;">${ic}</span><span style="font-size:14.5px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">${t}</span><span style="flex:1;height:1px;background:var(--line);opacity:0.6;"></span>`;
+    page.appendChild(e2);
+  };
   // 긴 답변은 기본으로 접어둔다. 설명서가 줄글 벽이 되면 아무도 안 읽는다. (2026-08-13)
   // 질문 제목만 쭉 보이고, 궁금한 것만 펼쳐서 읽는 구조.
   const foldCard = (title, bodyHtml, accent) => {
@@ -7949,7 +7951,8 @@ function HelpPage() {
   };
 
   /* ── 하루 흐름 ── */
-  H('flow', '⏱', '하루 흐름', '하루 5분이면 끝나요. 근데 그 5분이 어떻게 흘러가는지, 한번 볼까요?');
+  H('guide', '📖', '이렇게 쓰면 돼요', '하루 흐름부터 보드 색깔, 숨은 기능, 꿀팁까지 한 번에 정리했어요~');
+  sh('⏱', '하루 흐름 · 5분이면 끝나요');
   const STEPS = [
     ['오늘의 표현 3개 읽기', '읽고 <b>3번 읽기 체크</b> 누르기', '앱'],
     ['내 문장 3개 제출', '표현마다 하나씩', '앱'],
@@ -7971,7 +7974,7 @@ function HelpPage() {
   card('', `<b style="color:var(--ink);">5번까지 해야 완전한 인증이에요.</b> 앱에서만 끝내면 절반만 된 거라 보드에 연한 하늘색으로 남아요.`, 'var(--orange)');
 
   /* ── 보드 색깔 ── */
-  H('color', '🎨', '보드 색깔', '연한 파랑? 진한 파랑? 저도 처음엔 헷갈렸어요 ㅎㅎ 색만 알면 보드가 한눈에 읽힙니다');
+  sh('🎨', '보드 색깔 · 색만 알면 한눈에 읽혀요');
   const COLORS = [
     ['#1E5FA0', '정시 인증 + 녹음까지', '이게 완전한 인증이에요'],
     ['#A9D0EC', '앱 인증만 완료', '카톡 녹음 대기 중'],
@@ -7989,7 +7992,7 @@ function HelpPage() {
   card('', '칸을 눌러보시면 몇 시에 인증했는지도 보여요.');
 
   /* ── 내 학습 ── */
-  H('learn', '📚', '내 학습', '내 학습 탭에 숨어 있는 기능이 은근 많아요. 모르고 지나가면 아까운 것들만 모았어요~');
+  sh('📚', '내 학습 · 숨은 기능들');
   card('표현 3개는 순서에 뜻이 있어요', `
     하루에 나오는 3개는 <b>자주 쓰는 순서</b>로 배치돼 있어요. 카드 옆 <b>빈도 점</b>이 그 표시예요.
     <div style="margin-top:9px;display:flex;flex-direction:column;gap:5px;">
@@ -8026,7 +8029,7 @@ function HelpPage() {
     <b>응시 자체가 수료 조건</b>입니다.`);
 
   /* ── 학습 꿀팁 ── */
-  H('tips', '🔥', '학습 꿀팁', '같은 10분을 써도 남는 게 달라지는 방법이에요. 결국은... 반복입니다 :)');
+  sh('🔥', '학습 꿀팁 · 결국은 반복이에요');
   const TIPS = [
     ['1', '단어 공부법',
      '오늘 나온 단어를 <b>자꾸 보시는 게</b> 좋아요. 옮겨 적으시거나 엑셀에 옮기시거나 하셔서 <b>본인의 문장을 외워줍니다.</b>'],
@@ -8050,7 +8053,8 @@ function HelpPage() {
   card('', `<b style="color:var(--ink);">단어 시험 다시보기</b> 는 인증 화면에서 <b>단어 시험 단계를 한 번 더 누르면</b> 열려요. 몇 번을 다시 풀어도 인증 상태는 그대로예요.`, 'var(--orange)');
 
   /* ── 알아두면 편한 것 ── */
-  H('tip', '⚙️', '알아두면 편한 것', '몰라도 되는데 알면 소소하게 편해지는 것들이에요 ㅎㅎ');
+  H('faq', '❓', '자주 묻는 것', '자주 물어보시는 것들 + 알아두면 편한 것들이에요. 여기에 없으면 부담 없이 톡 주세요~');
+  sh('⚙️', '알아두면 편한 것');
   card('앱이 이상하게 열려요', `<b>카톡 안에서 열면 가끔 문제가 생겨요.</b> 주소를 복사해서 사파리나 크롬으로 열어주세요.`, '#C0392B');
   card('홈 화면에 추가하기', `
     매번 주소를 치지 않아도 돼요.<br>
@@ -8064,6 +8068,31 @@ function HelpPage() {
     <b>잘못된 게 아니에요.</b> 돌아오실 때 고객센터로 톡 한 번만 주시면 바로 풀어드려요.`);
   card('앱 사용법 다시 보기', `처음에 보신 안내를 언제든 다시 보실 수 있어요. <b>[나] 탭 → 앱 사용법 다시 보기</b>`);
 
+
+  /* ── FAQ ── */
+  sh('💬', '자주 묻는 질문');
+  const FAQ = [
+    ['늦게 하면 인정이 안 되나요?', `<b>인정됩니다.</b> 늦게 하셔도 그날 1일로 그대로 들어가요. 마감이 따로 없어서 밀린 날도 나중에 채우실 수 있어요.
+      <div style="margin-top:9px;padding:11px 13px;border-radius:11px;background:var(--paper);">
+        <div><b style="color:var(--ink);">1.</b> 18일 이상 <b>정시</b> 인증 + 파이널<br><span style="color:var(--muted);">→ 1일1비 한 달권 + 단어집 PDF + 수료증</span></div>
+        <div style="margin-top:7px;"><b style="color:var(--ink);">2.</b> 18일 이상 인증 (지각 포함) + 파이널<br><span style="color:var(--muted);">→ 단어집 PDF + 수료증</span></div>
+      </div>`],
+    ['기간 연장이 되나요?', `다 같이 같은 날짜로 달리는 챌린지라 연장이나 연기는 따로 없어요.<br>
+      <b>대신 20일 중 18일이 기준이라 이틀은 빠지셔도 수료됩니다.</b> 바쁜 주에는 하루 5분만 잡고 가볍게 넘어가셔도 충분해요.`],
+    ['인증했는데 보드에 안 찍혔어요', `앱 인증과 카톡 녹음은 별개예요. <b>녹음까지 올리셔야 진한 파랑</b>이 됩니다.
+      녹음은 운영진이 확인하고 체크하는 거라 조금 걸릴 수 있어요. <b>늦게 체크돼도 지각이 되지 않으니</b> 안심하셔도 됩니다.`],
+    ['인증 마무리 버튼이 안 눌려요', `버튼 바로 위에 <b>뭐가 남았는지</b> 목록으로 떠요. 보통은 문장 3개 중 하나가 제출이 안 된 경우예요.`],
+    ['주말에도 해야 하나요?', `아니에요. <b>평일만 진행</b>하고 주말은 쉬어갑니다.`],
+  ];
+  const faqWrap = el('div', { style: { marginTop: '10px', borderRadius: '16px', background: '#fff', border: '1px solid var(--line)', overflow: 'hidden' } });
+  faqWrap.innerHTML = FAQ.map(([q, a], k) => `
+    <details ${k ? 'style="border-top:1px solid var(--line-soft);"' : ''}>
+      <summary style="list-style:none;padding:14px 16px;cursor:pointer;font-size:13.5px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:8px;">
+        <span style="flex:1;min-width:0;">${q}</span><span style="flex:0 0 auto;color:var(--muted);font-size:12px;">＋</span>
+      </summary>
+      <div style="padding:0 16px 15px;font-size:13px;line-height:1.75;color:var(--ink-soft);">${a}</div>
+    </details>`).join('');
+  page.appendChild(faqWrap);
 
   /* ── 미팅에서 나온 질문 (프리미엄 전용) ── */
   const __seesQna = isPrem || state.isOperator || state.isStaff;
@@ -8140,30 +8169,6 @@ function HelpPage() {
     시작과 끝이 단단하면 중간이 좀 흔들려도 전체가 프로처럼 들려요.`, PREM_C);
   }
 
-  /* ── FAQ ── */
-  H('faq', '❓', '자주 묻는 것', '제일 많이 물어보시는 것들이에요. 여기에 없으면 부담 없이 톡 주세요~');
-  const FAQ = [
-    ['늦게 하면 인정이 안 되나요?', `<b>인정됩니다.</b> 늦게 하셔도 그날 1일로 그대로 들어가요. 마감이 따로 없어서 밀린 날도 나중에 채우실 수 있어요.
-      <div style="margin-top:9px;padding:11px 13px;border-radius:11px;background:var(--paper);">
-        <div><b style="color:var(--ink);">1.</b> 18일 이상 <b>정시</b> 인증 + 파이널<br><span style="color:var(--muted);">→ 1일1비 한 달권 + 단어집 PDF + 수료증</span></div>
-        <div style="margin-top:7px;"><b style="color:var(--ink);">2.</b> 18일 이상 인증 (지각 포함) + 파이널<br><span style="color:var(--muted);">→ 단어집 PDF + 수료증</span></div>
-      </div>`],
-    ['기간 연장이 되나요?', `다 같이 같은 날짜로 달리는 챌린지라 연장이나 연기는 따로 없어요.<br>
-      <b>대신 20일 중 18일이 기준이라 이틀은 빠지셔도 수료됩니다.</b> 바쁜 주에는 하루 5분만 잡고 가볍게 넘어가셔도 충분해요.`],
-    ['인증했는데 보드에 안 찍혔어요', `앱 인증과 카톡 녹음은 별개예요. <b>녹음까지 올리셔야 진한 파랑</b>이 됩니다.
-      녹음은 운영진이 확인하고 체크하는 거라 조금 걸릴 수 있어요. <b>늦게 체크돼도 지각이 되지 않으니</b> 안심하셔도 됩니다.`],
-    ['인증 마무리 버튼이 안 눌려요', `버튼 바로 위에 <b>뭐가 남았는지</b> 목록으로 떠요. 보통은 문장 3개 중 하나가 제출이 안 된 경우예요.`],
-    ['주말에도 해야 하나요?', `아니에요. <b>평일만 진행</b>하고 주말은 쉬어갑니다.`],
-  ];
-  const faqWrap = el('div', { style: { marginTop: '10px', borderRadius: '16px', background: '#fff', border: '1px solid var(--line)', overflow: 'hidden' } });
-  faqWrap.innerHTML = FAQ.map(([q, a], k) => `
-    <details ${k ? 'style="border-top:1px solid var(--line-soft);"' : ''}>
-      <summary style="list-style:none;padding:14px 16px;cursor:pointer;font-size:13.5px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:8px;">
-        <span style="flex:1;min-width:0;">${q}</span><span style="flex:0 0 auto;color:var(--muted);font-size:12px;">＋</span>
-      </summary>
-      <div style="padding:0 16px 15px;font-size:13px;line-height:1.75;color:var(--ink-soft);">${a}</div>
-    </details>`).join('');
-  page.appendChild(faqWrap);
 
   const foot = el('div', { style: { marginTop: '26px', padding: '17px 19px', borderRadius: '16px', background: 'var(--orange-ghost)', border: '1px solid var(--orange-soft)' } });
   foot.innerHTML = `<div style="font-size:13.5px;line-height:1.75;color:var(--ink-soft);">
