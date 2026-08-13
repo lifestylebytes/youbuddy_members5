@@ -30571,7 +30571,8 @@ const WEEK1_DECK = [
       + '<div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);">'
       + '<div style="font-size:12px;font-weight:800;color:var(--orange-dark);">🎯 목표는 아주 구체적으로</div>'
       + '<div style="margin-top:8px;font-size:13.5px;line-height:1.9;color:var(--ink);">❌ "영어를 잘하고 싶다"<br>⭕ "9월 미팅에서 아젠다를 영어로 열고, 이해 안 된 부분을 다시 확인하고, 내 의견을 한 번 말한다"</div>'
-      + '<div class="t-small" style="margin-top:8px;color:var(--ink-soft);line-height:1.6;">구체적이어야 4주 뒤에 됐는지 안 됐는지를 셀 수 있어요. 아래 칸에 각자 말한 목표를 받아적어 주세요.</div></div>' },
+      + '<div class="t-small" style="margin-top:8px;color:var(--ink-soft);line-height:1.6;">구체적이어야 4주 뒤에 됐는지 안 됐는지를 셀 수 있어요.</div>'
+      + '<div style="margin-top:10px;padding:11px 13px;border-radius:12px;background:#fff;border:1px dashed rgba(46,111,168,0.35);font-size:13px;color:var(--ink);line-height:1.7;">📌 <b>여기서 정한 게 이번 주 과제예요.</b><br>아래 칸에 받아적고 저장하면 각자 앱 홈에 <b>🎯 이번 주 과제</b>로 붙습니다. 한 주 내내 홈에서 보이니, 이번 주 안에 진짜 할 수 있는 크기로 잡아주세요.</div></div>' },
 
   { section: '미팅 운영', kicker: '5 · 앞으로', title: '앞으로 미팅은 이렇게 굴러가요',
     script: '"오늘은 OT라 발표가 없었지만, 다음 주부터는 이 흐름으로 갑니다. 60분 안에 다 들어가요~"',
@@ -31144,11 +31145,14 @@ window.__deckSaveGoals = async () => {
   if (!hasSupabase()) { showToast('서버 연결이 없어 저장만 임시로 해뒀어요'); return; }
   showToast('멤버 목표에 추가 중...');
   try {
+    // 그냥 붙이면 멤버는 이게 '과제'인 줄 모른다. 앞에 표식을 달아서 홈에서 바로 읽히게. (2026-08-13)
+    const wkNow = Math.max(1, Math.ceil((Number(state.currentDay) || 1) / 5));
     for (const e of entries) {
-      await supabaseRpc('append_member_goal', { p_cohort: CHALLENGE.cohort, p_member_name: e.name, p_text: e.text });
+      const tagged = '🎯 Week ' + wkNow + ' 과제 · ' + e.text;
+      await supabaseRpc('append_member_goal', { p_cohort: CHALLENGE.cohort, p_member_name: e.name, p_text: tagged });
     }
     window.__deckGoalDraft = {};
-    showToast('저장 완료! 멤버 목표 아래에 추가됐어요 ✅');
+    showToast('저장 완료! 각자 홈에 🎯 이번 주 과제로 붙었어요 ✅');
     render();
   } catch (e) { showToast('저장 실패: ' + ((e && e.message) || e)); }
 };
@@ -31228,8 +31232,8 @@ function MeetingDeckPage() {
     const roster = __premiumRoster();
     const dr = window.__deckGoalDraft || {};
     body += '<div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(154,139,115,0.3);">'
-      + '<div style="font-size:13px;font-weight:800;color:var(--ink);">📝 받아적기 → 멤버 목표에 이어붙이기</div>'
-      + '<div class="t-small" style="margin:4px 0 9px;color:var(--ink-soft);line-height:1.5;">말한 목표·상황을 적고 저장하면 각자 앱 목표 <b>아래에 추가</b>돼요 (기존 건 안 지워짐).</div>';
+      + '<div style="font-size:13px;font-weight:800;color:var(--ink);">📝 받아적기 → 멤버 목표에 이어붙이기 <span style="font-size:11px;font-weight:800;background:#FFF0D6;color:var(--orange-dark);padding:2px 8px;border-radius:999px;vertical-align:middle;">과제가 됩니다!</span></div>'
+      + '<div class="t-small" style="margin:4px 0 9px;color:var(--ink-soft);line-height:1.6;">말한 목표·상황을 적고 저장하면 각자 앱 홈의 <b>내 목표</b> 아래에 <b>🎯 이번 주 과제</b>로 붙어요 (기존 건 안 지워짐).<br>멤버는 이걸 이번 주 내내 홈에서 보게 되니, 실제로 해올 수 있는 크기로 적어주세요.</div>';
     if (!roster.length) {
       body += '<div style="padding:11px 13px;border-radius:12px;background:rgba(154,139,115,0.1);border:1px dashed rgba(154,139,115,0.35);font-size:12.5px;color:var(--muted);">프리미엄 멤버 확정 후 자동으로 입력칸이 생겨요 (MEMBER_DIRECTORY).</div>';
     } else {
