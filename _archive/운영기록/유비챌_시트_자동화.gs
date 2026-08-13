@@ -539,3 +539,42 @@ function linkChecklistMessages() {
   Logger.log('링크 ' + done + '개 연결 완료');
   if (miss.length) Logger.log('원고 없음 (' + miss.length + '건)\n' + miss.join('\n'));
 }
+
+/* ============================================================
+   2026-08-13 수정분 (한 번만 실행)
+   ------------------------------------------------------------
+   1) 미팅 알림 / 미팅 전 할 일 리마인드 = 아침에 보내는 일로 변경
+   2) '당일 미팅 알림' 원고를 버디 말투 버전으로 교체
+   ============================================================ */
+
+function applyTodayEdits() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // 1) 시각을 '아침' 으로
+  const chk = ss.getSheetByName(CHECK_SHEET);
+  const last = chk.getLastRow();
+  const tasks = chk.getRange(6, 6, last - 5, 1).getDisplayValues();
+  let moved = 0;
+  tasks.forEach(function (r, i) {
+    const t = String(r[0] || '');
+    if (/미팅 알림|미팅 전 할 일/.test(t)) {
+      chk.getRange(6 + i, 4).setValue('아침');
+      moved++;
+    }
+  });
+
+  // 2) 원고 교체
+  const msg = ss.getSheetByName(MSG_SHEET);
+  const mLast = msg.getLastRow();
+  const titles = msg.getRange(1, 3, mLast, 1).getDisplayValues();
+  let replaced = 0;
+  for (let i = 0; i < titles.length; i++) {
+    if (String(titles[i][0] || '').indexOf('당일 미팅 알림') >= 0) {
+      msg.getRange(i + 1, 4).setValue('안녕하세요! 오늘은 첫 번째 미팅이 있는 날이에요 :)\n\n🗓 오늘 밤 9:00~10:00 · Google Meet\nhttps://meet.google.com/sff-fgce-npj\n\n부담 노노! 우리는 회사에서 더 잘하려고 모이는 거잖아요~\n회사에서 어떤 업무를 하고 계신지, 골은 뭔지 자기소개하며 공유해봅시다.\n\n또 프리젠테이션은 어떻게 진행되는지, 그리고 롤플레잉도 설명드릴 거예요.\n못 오시는 분들껜 녹화본이 제공되니 편하게 봐주세요!\n\n미팅 전에 세 가지만 부탁드려요~ (앱 홈 <미팅 전 할 일>에서 확인 가능해요)\n· 사전 진단지 작성\n· Meeting 1 페이지 채우기\n· 이 방에 간단히 자기소개 남기기\n\n📌 인원 파악을 위해, 오실 수 있는 분은 이모지 눌러주세요!');
+      replaced++;
+      break;
+    }
+  }
+
+  Logger.log('시각 변경 ' + moved + '건 · 원고 교체 ' + replaced + '건');
+}
