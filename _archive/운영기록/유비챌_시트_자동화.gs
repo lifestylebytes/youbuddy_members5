@@ -817,3 +817,68 @@ function addRecordingNoticeRows() {
   refreshChecklist();
   Logger.log('녹화본 공지 행 4개 추가 완료');
 }
+
+/* ============================================================
+   월요일 주간 회고 (구 슬랙 월요 카드 대체 · 2026-08-14)
+   ------------------------------------------------------------
+   슬랙 자동 발송 4건을 끄면서, 시트에 없던 것은 이것 하나였다:
+   "지난주 인증 요약 + 개근 명단 + 월요일 카톡 복붙 메시지".
+   매주 월요일 07:00 에 '인증률' 시트 끝에 주간 회고 블록을 쓴다.
+   setupWeeklyTrigger() 를 한 번 실행하면 트리거가 걸린다.
+   ============================================================ */
+
+function writeWeeklyRecap() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(SHEET_NAME);
+  if (!sh) throw new Error("'" + SHEET_NAME + "' 시트를 못 찾았어요");
+
+  // 지난주 (월~금) 의 Day 번호 범위 계산
+  const dates = dayDates_();
+  const now = new Date();
+  const monday = new Date(now); monday.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // 이번 주 월요일
+  const lastMon = new Date(monday); lastMon.setDate(monday.getDate() - 7);
+  const lastFri = new Date(monday); lastFri.setDate(monday.getDate() - 3);
+  const inLastWeek = [];
+  for (let d = 1; d <= dates.length; d++) {
+    const dt = new Date(dates[d - 1] + 'T00:00:00');
+    if (dt >= lastMon && dt <= lastFri) inLastWeek.push(d);
+  }
+  if (!inLastWeek.length) { Logger.log('지난주에 해당하는 Day 가 없어요 (기수 시작 전이거나 종료 후)'); return; }
+  const wkN = Math.ceil(inLastWeek[0] / 5);
+
+  const rows = fetchSummaries_().filter(function (r) { return STAFF.indexOf(r.member_name) < 0; });
+  const stat = { basic: { n: 0, sum: 0 }, premium: { n: 0, sum: 0 } };
+  const perfect = [];
+  rows.forEach(function (r) {
+    const days = (r.verified_days || []);
+    const hit = inLastWeek.filter(function (d) { return days.indexOf(d) >= 0; }).length;
+    const t = (r.tier === 'premium') ? 'premium' : 'basic';
+    stat[t].n++; stat[t].sum += hit;
+    if (hit === inLastWeek.length) perfect.push(r.english_name || r.member_name);
+  });
+  const pct = function (o) { return o.n ? Math.round(o.sum / (o.n * inLastWeek.length) * 100) : 0; };
+
+  const msg = 'Week ' + wkN + ' 마무리 회고예요 :)\n\n'
+    + '지난주 우리 인증률\n'
+    + '· 베이직 ' + pct(stat.basic) + '%  · 프리미엄 ' + pct(stat.premium) + '%\n\n'
+    + (perfect.length
+        ? '🏅 지난주 개근 (' + perfect.length + '분)\n' + perfect.join(' · ') + '\n짝짝짝 👏 이 흐름 그대로 가봐요!\n\n'
+        : '')
+    + '이번 주도 하루 10분씩, 가볍게 시작해요.\n'
+    + '빠진 날이 있어도 채우면 그대로 1일이에요 🧡';
+
+  const r0 = sh.getLastRow() + 2;
+  sh.getRange(r0, 1).setValue('📅 Week ' + wkN + ' 회고 (' + ymd_(lastMon) + '~' + ymd_(lastFri) + ')');
+  sh.getRange(r0, 1).setFontWeight('bold');
+  sh.getRange(r0 + 1, 1).setValue(msg);
+  sh.getRange(r0 + 1, 1, 1, 1).setWrap(true);
+  Logger.log('주간 회고 기록 완료 · Week ' + wkN);
+}
+
+function setupWeeklyTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'writeWeeklyRecap') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('writeWeeklyRecap').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(7).create();
+  Logger.log('월요일 07시 주간 회고 트리거 설정 완료');
+}
