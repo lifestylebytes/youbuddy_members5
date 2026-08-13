@@ -764,6 +764,7 @@ function refreshChecklist() {
   SpreadsheetApp.flush();
   sortChecklistByTime();
   try { paintChecklist(); } catch (e) {}
+  try { formatDayBlocks(); } catch (e) {}
   Logger.log('체크리스트 정리 완료');
 }
 
@@ -926,4 +927,49 @@ function addWeekendRows() {
 
   refreshChecklist();
   Logger.log('주말 행 6개 추가 완료 (Day 5/10/15 × 토·일)');
+}
+
+/* ============================================================
+   Day 블록 서식 (2026-08-14)
+   ------------------------------------------------------------
+   행을 추가하면 Day/날짜/요일(A~C)·메모(K) 병합과 날짜 구분선이 깨진다.
+   이 함수가 블록을 다시 읽어 병합·구분선·정렬을 전부 다시 잡는다.
+   refreshChecklist() 끝에서 자동 호출되므로 따로 돌릴 일은 없다.
+   ============================================================ */
+
+function formatDayBlocks() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CHECK_SHEET);
+  const first = 6;
+  const last = sh.getLastRow();
+  const n = last - first + 1;
+  if (n < 2) return;
+
+  // 블록 경계: Day 칸에 값이 보이는 행 (병합이면 맨 윗칸에만 보인다)
+  const days = sh.getRange(first, 1, n, 1).getDisplayValues();
+  const starts = [];
+  for (let i = 0; i < n; i++) {
+    if (/Day\s*\d+/i.test(String(days[i][0] || ''))) starts.push(first + i);
+  }
+  if (!starts.length) return;
+  starts.push(first + n);
+
+  // 기존 병합 전부 해제 (값은 왼쪽 위 칸에 남는다)
+  sh.getRange(first, 1, n, 3).breakApart();   // A~C
+  sh.getRange(first, 11, n, 1).breakApart();  // K 메모/로그
+
+  for (let b = 0; b < starts.length - 1; b++) {
+    const r0 = starts[b];
+    const len = starts[b + 1] - r0;
+    if (len > 1) {
+      sh.getRange(r0, 1, len, 1).merge();   // Day
+      sh.getRange(r0, 2, len, 1).merge();   // 날짜
+      sh.getRange(r0, 3, len, 1).merge();   // 요일
+      sh.getRange(r0, 11, len, 1).merge();  // 메모/로그
+    }
+    sh.getRange(r0, 1, len, 3).setVerticalAlignment('middle').setHorizontalAlignment('center');
+    sh.getRange(r0, 11, len, 1).setVerticalAlignment('top').setWrap(true);
+    // 날짜 구분선: 블록 마지막 행 아래 굵은 선 (A~K)
+    sh.getRange(r0 + len - 1, 1, 1, 11).setBorder(null, null, true, null, null, null, '#3D3527', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  }
+  Logger.log('Day 블록 ' + (starts.length - 1) + '개 병합·구분선 정리 완료');
 }
