@@ -6695,7 +6695,14 @@ function render() {
       if (stale) stale.remove();
     }
     if (showWeekTaskPopup) {
-      document.body.appendChild(WeekTaskPopupModal());
+      // ⚠️ 중복 방지 필수. 이 가드가 없으면 15초 폴링 렌더마다 전체화면 레이어가
+      // 한 장씩 쌓여서 스크롤이 죽는다. (2026-08-14 실사고)
+      if (!document.querySelector('[data-week-task-popup]')) {
+        document.body.appendChild(WeekTaskPopupModal());
+      }
+    } else {
+      const stale = document.querySelector('[data-week-task-popup]');
+      if (stale) stale.remove();
     }
     if (showReviewUnlockPopup) {
       if (!document.querySelector('[data-review-unlock-popup]')) {
