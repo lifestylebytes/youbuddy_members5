@@ -7925,23 +7925,32 @@ function HelpPage() {
   };
   // 긴 답변은 기본으로 접어둔다. 설명서가 줄글 벽이 되면 아무도 안 읽는다. (2026-08-13)
   // 질문 제목만 쭉 보이고, 궁금한 것만 펼쳐서 읽는 구조.
+  // 블로그 글 목록처럼: 제목 행이 리스트로 쌓이고, 누르면 본문이 아래로 펼쳐진다. (2026-08-14)
+  // __postList() 로 시작한 묶음 안에 foldCard 들이 글 행으로 들어간다.
+  let __postWrap = null;
+  const __postList = (accent) => {
+    __postWrap = el('div', { style: {
+      marginTop: '10px', borderRadius: '16px', background: '#fff', overflow: 'hidden',
+      border: accent ? `1px solid rgba(123,94,140,0.35)` : '1px solid var(--line)',
+    } });
+    page.appendChild(__postWrap);
+    return __postWrap;
+  };
   const foldCard = (title, bodyHtml, accent) => {
-    const d = el('details', {
-      style: {
-        marginTop: '9px', borderRadius: '16px', background: '#fff', overflow: 'hidden',
-        border: '1px solid var(--line)', ...(accent ? { borderLeft: `3px solid ${accent}` } : {}),
-      },
-    });
-    d.innerHTML = `<summary style="cursor:pointer;list-style:none;padding:14px 16px;display:flex;align-items:center;gap:10px;">
-        <span style="flex:1;min-width:0;font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.5;">${title}</span>
-        <span data-fold-x style="flex-shrink:0;width:22px;height:22px;border-radius:7px;background:var(--paper2,#F7F4EE);color:var(--ink-soft);display:grid;place-items:center;font-size:11px;font-weight:800;">▾</span>
+    const host = __postWrap || page;
+    const first = host === __postWrap && !host.children.length;
+    const d = el('details', { style: first ? {} : { borderTop: '1px solid var(--line-soft)' } });
+    d.innerHTML = `<summary style="cursor:pointer;list-style:none;padding:14px 16px;display:flex;align-items:center;gap:11px;">
+        <span style="flex-shrink:0;width:34px;height:34px;border-radius:10px;background:${accent ? 'rgba(123,94,140,0.12)' : 'var(--paper2,#F7F4EE)'};display:grid;place-items:center;font-size:16px;">📄</span>
+        <span style="flex:1;min-width:0;font-size:13.5px;font-weight:700;color:var(--ink);letter-spacing:-0.01em;line-height:1.5;">${title}</span>
+        <span data-fold-x style="flex-shrink:0;color:var(--muted);font-size:12px;font-weight:800;">＋</span>
       </summary>
-      <div style="padding:0 16px 15px;font-size:13px;line-height:1.75;color:var(--ink-soft);">${bodyHtml}</div>`;
+      <div style="padding:2px 16px 16px 61px;font-size:13px;line-height:1.75;color:var(--ink-soft);border-left:none;">${bodyHtml}</div>`;
     d.addEventListener('toggle', () => {
       const x = d.querySelector('[data-fold-x]');
-      if (x) x.textContent = d.open ? '▴' : '▾';
+      if (x) x.textContent = d.open ? '－' : '＋';
     });
-    page.appendChild(d);
+    host.appendChild(d);
     return d;
   };
   const card = (title, bodyHtml, accent) => {
@@ -8093,16 +8102,19 @@ function HelpPage() {
   const faqWrap = el('div', { style: { marginTop: '10px', borderRadius: '16px', background: '#fff', border: '1px solid var(--line)', overflow: 'hidden' } });
   faqWrap.innerHTML = FAQ.map(([q, a], k) => `
     <details ${k ? 'style="border-top:1px solid var(--line-soft);"' : ''}>
-      <summary style="list-style:none;padding:14px 16px;cursor:pointer;font-size:13.5px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:8px;">
-        <span style="flex:1;min-width:0;">${q}</span><span style="flex:0 0 auto;color:var(--muted);font-size:12px;">＋</span>
+      <summary style="list-style:none;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:11px;">
+        <span style="flex-shrink:0;width:34px;height:34px;border-radius:10px;background:var(--paper2,#F7F4EE);display:grid;place-items:center;font-size:16px;">💬</span>
+        <span style="flex:1;min-width:0;font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.5;">${q}</span>
+        <span style="flex:0 0 auto;color:var(--muted);font-size:12px;font-weight:800;">＋</span>
       </summary>
-      <div style="padding:0 16px 15px;font-size:13px;line-height:1.75;color:var(--ink-soft);">${a}</div>
+      <div style="padding:2px 16px 16px 61px;font-size:13px;line-height:1.75;color:var(--ink-soft);">${a}</div>
     </details>`).join('');
   page.appendChild(faqWrap);
 
   /* ── 미팅에서 나온 질문 (프리미엄 전용) ── */
   const __seesQna = isPrem || state.isOperator || state.isStaff;
   H('qna', '🎤', '8기 미팅 Q&A', '8기 미팅에서만 나온, 다른 데선 못 듣는 질문들이에요. 우리끼리 쌓아가는 아카이브 :)', PREM_C);
+  if (__seesQna) __postList(PREM_C);
   if (!__seesQna) {
     // 아예 숨기면 "없는 것" 이 되어버린다. 질문 제목은 보여주고 답만 잠근다.
     const lock = el('div', { style: { marginTop: '10px', padding: '16px 18px', borderRadius: '16px', background: '#FBFAFF', border: '1px solid rgba(169,139,184,0.35)' } });
@@ -8187,6 +8199,7 @@ function HelpPage() {
   }
 
 
+  __postWrap = null;
   const foot = el('div', { style: { marginTop: '26px', padding: '17px 19px', borderRadius: '16px', background: 'var(--orange-ghost)', border: '1px solid var(--orange-soft)' } });
   foot.innerHTML = `<div style="font-size:13.5px;line-height:1.75;color:var(--ink-soft);">
     여기에 없는 게 궁금하시면 단톡방이든 1:1 이든 편하게 물어봐주세요.<br>
@@ -8227,6 +8240,14 @@ function HelpPage() {
       g.items.forEach((it) => body.appendChild(it));
       d.appendChild(body);
       d.addEventListener('toggle', () => { arrow.textContent = d.open ? '▴' : '▾'; });
+      // 블로그처럼 "N개의 글" 카운트. 안에 있는 details(글 행) 수를 센다.
+      try {
+        const n2 = body.querySelectorAll('details').length;
+        if (n2 > 0) {
+          const cnt = el('span', { style: { position: 'absolute', top: '21px', right: '34px', fontSize: '10.5px', fontWeight: '800', color: isQna ? '#7B5E8C' : 'var(--muted)' } }, n2 + '개의 글');
+          sm.appendChild(cnt);
+        }
+      } catch (e) {}
       page.insertBefore(d, foot);
     });
   } catch (e) {}
