@@ -31150,22 +31150,37 @@ window.__m2Save = (field, val) => {
     saveState();
   } catch (e) {}
 };
+// append_member_goal 은 이름이 아니라 member_key 로 찾는다.
+// (p_member_name 으로 부르면 PGRST202 로 조용히 실패한다. 2026-08-13에 터짐)
+function __memberKeyByName(name) {
+  const want = String(name || '').trim();
+  if (!want) return null;
+  const rows = (typeof memberSummaryCache !== 'undefined' && memberSummaryCache && memberSummaryCache.rows) || [];
+  const hit = rows.find((r) => String(r.member_name || '').trim() === want)
+    || rows.find((r) => String(r.english_name || '').trim() === want);
+  return hit ? hit.member_key : null;
+}
 window.__deckSaveGoals = async () => {
   const roster = __premiumRoster();
   const dr = window.__deckGoalDraft || {};
-  const entries = roster.map((m) => ({ name: m.name, text: String(dr[m.id] || '').trim() })).filter((e) => e.text);
+  const entries = roster.map((m) => ({ name: m.name, key: __memberKeyByName(m.name), text: String(dr[m.id] || '').trim() })).filter((e) => e.text);
   if (!entries.length) { showToast('받아적은 내용이 없어요'); return; }
   if (!hasSupabase()) { showToast('서버 연결이 없어 저장만 임시로 해뒀어요'); return; }
+  const missing = entries.filter((e) => !e.key).map((e) => e.name);
+  if (missing.length) { showToast('아직 가입 안 된 분이 있어요: ' + missing.join(', ')); }
   showToast('멤버 목표에 추가 중...');
   try {
     // 그냥 붙이면 멤버는 이게 '과제'인 줄 모른다. 앞에 표식을 달아서 홈에서 바로 읽히게. (2026-08-13)
     const wkNow = Math.max(1, Math.ceil((Number(state.currentDay) || 1) / 5));
+    let saved = 0;
     for (const e of entries) {
+      if (!e.key) continue;
       const tagged = '🎯 Week ' + wkNow + ' 과제 · ' + e.text;
-      await supabaseRpc('append_member_goal', { p_cohort: CHALLENGE.cohort, p_member_name: e.name, p_text: tagged });
+      await supabaseRpc('append_member_goal', { p_cohort: CHALLENGE.cohort, p_member_key: e.key, p_text: tagged });
+      saved++;
     }
     window.__deckGoalDraft = {};
-    showToast('저장 완료! 각자 홈에 🎯 이번 주 과제로 붙었어요 ✅');
+    showToast(saved + '명 저장 완료! 각자 홈에 🎯 이번 주 과제로 붙었어요 ✅');
     render();
   } catch (e) { showToast('저장 실패: ' + ((e && e.message) || e)); }
 };
