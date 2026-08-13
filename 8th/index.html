@@ -9274,6 +9274,9 @@ function HomePage() {
         setTimeout(() => {
           if (showWeekWrapupPopup || guidedTourStep !== null || anyPopupOpen()) return;
           if ((state.friday_redirect_seen || {})[String(weekN)]) return;
+          // ⚠️ 세션 가드를 여기서 실제로 세운다. 예전엔 읽기만 하고 아무도 안 세워서,
+          // 15초 동기화가 friday_redirect_seen 을 잠깐 되돌리면 팝업이 무한 재등장했다. (2026-08-14)
+          window.__wrapupTriggeredSession[String(weekN)] = true;
           showWeekWrapupPopup = weekN;
           render();
         }, 600);
@@ -27200,6 +27203,7 @@ function WeekWrapupPopupModal() {
       state.friday_redirect_seen[String(weekN)] = true;
       try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
     }
+    try { window.__wrapupTriggeredSession = window.__wrapupTriggeredSession || {}; window.__wrapupTriggeredSession[String(weekN)] = true; } catch (e) {}
     showWeekWrapupPopup = null;
     render();
   };
