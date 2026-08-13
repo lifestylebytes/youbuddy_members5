@@ -9966,21 +9966,24 @@ function HomePage() {
         + (_pi.success ? _rowT('성공 기준', _pi.success) : '')
         + `</div>`;
       page.appendChild(trackCard);
-    }
-  } catch (e) {}
+      window.__homeTrackCard = trackCard;
+    } else { window.__homeTrackCard = null; }
+  } catch (e) { window.__homeTrackCard = null; }
 
-  /* ── 🎯 이번 주 과제 카드 (미팅에서 정한 것, 프리미엄) ── */
+  /* ── 🎯 이번 주 과제: MY TRACK 카드 안 콜아웃으로 (2026-08-14 버디 요청).
+     카드가 따로 서 있으면 목표와 과제가 딴 얘기처럼 읽힌다. 트랙 카드가 없으면 단독 카드로. ── */
   try {
     const _wt = splitGoalAndTasks(state.goal).tasks;
     if (_wt.length) {
-      const taskCard = el('div', {
-        style: { marginTop: '10px', padding: '14px 16px', borderRadius: '16px', background: 'linear-gradient(135deg,#FFF8EA,#FFF3DC)', border: '1px solid rgba(240,172,61,0.5)' }
+      const co = el('div', {
+        style: { marginTop: '11px', padding: '12px 14px', borderRadius: '13px', background: 'linear-gradient(135deg,#FFF8EA,#FFF3DC)', border: '1px solid rgba(240,172,61,0.5)' }
       });
-      taskCard.innerHTML =
+      co.innerHTML =
         `<div style="display:flex;align-items:center;gap:6px;"><span style="font-size:13px;">🎯</span><span style="font-size:10px;font-weight:800;letter-spacing:0.1em;color:#A07A2A;">THIS WEEK</span></div>`
-        + _wt.map((t) => `<div style="margin-top:7px;font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.6;">${escapeHtml(t.replace(/^🎯\s*/, ''))}</div>`).join('')
-        + `<div class="t-small" style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(240,172,61,0.4);color:var(--muted);line-height:1.5;">미팅에서 같이 정한 이번 주 과제예요. 매일 인증 문장을 이 방향으로 쓰시면 그게 과제가 됩니다 :)</div>`;
-      page.appendChild(taskCard);
+        + _wt.map((t) => `<div style="margin-top:6px;font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.6;">${escapeHtml(t.replace(/^🎯\s*/, ''))}</div>`).join('')
+        + `<div class="t-small" style="margin-top:7px;padding-top:7px;border-top:1px dashed rgba(240,172,61,0.4);color:var(--muted);line-height:1.5;">미팅에서 같이 정한 과제예요. 매일 인증 문장을 이 방향으로 쓰시면 그게 과제가 됩니다 :)</div>`;
+      const host = (typeof window !== 'undefined' && window.__homeTrackCard) ? window.__homeTrackCard : null;
+      if (host) host.appendChild(co); else { co.style.borderRadius = '16px'; page.appendChild(co); }
     }
   } catch (e) {}
 
@@ -21642,16 +21645,17 @@ function ProfilePage() {
           + _goalRows
           + `</div>`
         : '');
-  page.appendChild(goalCard);
   try {
     const _wt2 = __split.tasks;
     if (_wt2.length) {
-      const tk = el('div', { style: { marginTop: '10px', padding: '13px 16px', borderRadius: '14px', background: 'linear-gradient(135deg,#FFF8EA,#FFF3DC)', border: '1px solid rgba(240,172,61,0.5)' } });
+      // MY TRACK/MY GOAL 카드 안 콜아웃 (2026-08-14 버디 요청)
+      const tk = el('div', { style: { marginTop: '12px', padding: '12px 14px', borderRadius: '13px', background: 'linear-gradient(135deg,#FFF8EA,#FFF3DC)', border: '1px solid rgba(240,172,61,0.5)' } });
       tk.innerHTML = `<div style="display:flex;align-items:center;gap:6px;"><span style="font-size:12px;">🎯</span><span style="font-size:10px;font-weight:800;letter-spacing:0.1em;color:#A07A2A;">THIS WEEK</span></div>`
         + _wt2.map((t) => `<div style="margin-top:6px;font-size:13px;font-weight:700;color:var(--ink);line-height:1.6;">${escapeHtml(t.replace(/^🎯\s*/, ''))}</div>`).join('');
-      page.appendChild(tk);
+      goalCard.appendChild(tk);
     }
   } catch (e) {}
+  page.appendChild(goalCard);
   // 목표 수정 = GoalModal (자체 모달, window.prompt 대체).
   setTimeout(() => {
     const btn = document.getElementById('__editGoalBtn');
