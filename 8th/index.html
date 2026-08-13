@@ -10191,6 +10191,19 @@ function HomePage() {
   const cbWrap = el('div', { 'data-tour': 'streak-board', style: { marginTop: '24px' } });
   cbWrap.appendChild(el('div', { class: 'kicker' }, '데일리 루틴 보드'));
   cbWrap.appendChild(el('h2', { class: 'h2', style: { marginTop: '4px', marginBottom: '6px' } }, 'Daily Streak Board'));
+  // 운영자 뷰: 숨김 처리(memberHidden)된 인원이 있으면 몇 명인지 표시.
+  // 안 보이는 사람이 "존재는 하는" 상태라는 걸 운영자만 알 수 있게. (2026-08-14 버디 요청)
+  try {
+    if ((state.isOperator || state.isStaff) && !state.operatorViewAsMember) {
+      const hid = MEMBERS.filter((m) => m.memberHidden);
+      if (hid.length) {
+        cbWrap.appendChild(el('div', {
+          style: { display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '8px', padding: '4px 11px', borderRadius: '999px', background: 'rgba(154,139,115,0.14)', border: '1px dashed rgba(154,139,115,0.45)', fontSize: '11px', fontWeight: '700', color: 'var(--muted)' },
+          title: hid.map((m) => m.name).join(', '),
+        }, `👻 숨김 처리 ${hid.length}명 (${hid.map((m) => m.name).join(', ')}) · 멤버 화면·태그 명단에서 제외됨`));
+      }
+    }
+  } catch (e) {}
   // 색 범례: 새파랑만 완전한 인증이라는 걸 멤버 모두가 알게.
   const cbLegend = el('div', { style: { display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '10px', fontSize: '11px', color: 'var(--ink-soft)' } });
   cbLegend.innerHTML = `
