@@ -19050,9 +19050,12 @@ function MeetingNotesPage(meetingId) {
     : (meta.n === 2 && typeof WEEK2_DECK !== 'undefined') ? WEEK2_DECK
     : (meta.n === 3 && typeof WEEK3_DECK !== 'undefined') ? WEEK3_DECK
     : (meta.n === 4 && typeof WEEK4_DECK !== 'undefined') ? WEEK4_DECK : null;
-  if (__deckForMeeting && state.isOperator) {
+  if (__deckForMeeting && (state.isOperator || state.isStaff || state.tier === 'premium')) {
+    const __opBtn = !!(state.isOperator || state.isStaff);
     const deckBtn = el('button', { class: 'btn btn-primary btn-full btn-lg', style: { marginBottom: '14px' }, onClick: () => { window.__currentMeetingId = meetingId; window.__deckIdx = 0; if (typeof __deckHydrate === 'function') __deckHydrate(); go('meeting-deck'); } });
-    deckBtn.innerHTML = `🎤 발표 모드 시작 (운영자 전용) · 슬라이드 ${__deckForMeeting.length}장 ${Icon('arrowRight', 16)}`;
+    deckBtn.innerHTML = __opBtn
+      ? `🎤 발표 모드 시작 (운영자) · 슬라이드 ${__deckForMeeting.length}장 ${Icon('arrowRight', 16)}`
+      : `📑 미팅 슬라이드 보기 · ${__deckForMeeting.length}장 ${Icon('arrowRight', 16)}`;
     page.appendChild(deckBtn);
   }
 
@@ -31599,9 +31602,12 @@ window.__deckSaveGoals = async () => {
   } catch (e) { showToast('저장 실패: ' + ((e && e.message) || e)); }
 };
 function MeetingDeckPage() {
-  if (!(state.isOperator || state.isStaff)) {
+  // 프리미엄 멤버도 슬라이드를 볼 수 있다 (2026-08-14). 받아적기·저장 같은
+  // 운영 도구는 아래에서 __deckIsOp 로 운영자에게만 보여준다.
+  const __deckIsOp = !!(state.isOperator || state.isStaff);
+  if (!__deckIsOp && state.tier !== 'premium') {
     const p = el('div', { class: 'page' });
-    p.appendChild(el('div', { class: 't-body', style: { padding: '40px 20px', textAlign: 'center' } }, '운영자 전용 화면이에요.'));
+    p.appendChild(el('div', { class: 't-body', style: { padding: '40px 20px', textAlign: 'center' } }, '프리미엄 미팅 자료예요.'));
     p.appendChild(el('button', { class: 'btn btn-primary btn-full', onClick: () => go('meeting-notes') }, '← 회의록으로'));
     return p;
   }
@@ -31670,7 +31676,7 @@ function MeetingDeckPage() {
     });
     body += '</div>';
   }
-  if (s.goalCapture) {
+  if (s.goalCapture && __deckIsOp) {
     const roster = __premiumRoster();
     const dr = window.__deckGoalDraft || {};
     body += '<div style="margin-top:16px;padding-top:14px;border-top:1px dashed rgba(154,139,115,0.3);">'
@@ -31809,7 +31815,7 @@ function MeetingDeckPage() {
         : '<div style="margin-top:6px;font-size:12.5px;color:var(--muted);">표시한 게 없어요. 워밍업 슬라이드에서 막힌 단어를 🔖 표시하면 여기 모여요.</div>')
       + '</div>';
   }
-  if (s.wrapGoals) {
+  if (s.wrapGoals && __deckIsOp) {
     const roster = __premiumRoster();
     const dr = window.__deckWrapDraft || {};
     const fld = (id, ph) => '<input id="' + id + '" class="input" style="margin-top:6px;" placeholder="' + ph + '" value="' + escapeHtml(dr[id] || '') + '" oninput="(window.__deckWrapDraft=window.__deckWrapDraft||{})[\'' + id + '\']=this.value" />';
