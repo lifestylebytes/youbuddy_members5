@@ -3144,6 +3144,12 @@ let showPremiumIntake = false; // 프리미엄 D1 온보딩 진단 팝업 (2문�
 let showDailyPulse = null;   // { day, step, a, b, text } 데일리 펄스(1~2문항) 팝업 진행 상태.
 // '내 약점 복습' 기능은 Week 2(Day 6)부터 해제. 다음 기수도 동일(코호트 무관, currentDay 기준).
 function reviewFeatureUnlocked() { return (Number(state.currentDay) || 1) >= 6 || ((state.isOperator || state.isStaff) && !state.operatorViewAsMember); }
+// 프리미엄 화면을 볼 수 있는가. 운영자/스태프도 '멤버처럼 보기' 를 켜두면 베이직과 똑같이 잠긴다.
+// (이게 없으면 운영자가 베이직 뷰로 확인해도 프리미엄 전용 시험이 그냥 열려서 잠금 확인이 안 된다. 2026-08-13)
+function seesPremiumNow() {
+  if (state.tier === 'premium') return true;
+  return (state.isOperator || state.isStaff) && !state.operatorViewAsMember;
+}
 // 알림 인박스 패널, TopBar 종 누르면 열림.
 let showNotifications = false;
 let toast = null;
@@ -3262,7 +3268,7 @@ const GUIDED_TOUR_STEPS = [
 // tier 별 노출 스텝. 베이직은 premiumOnly 스텝(프리미엄 주간 미팅)을 건너뜀.
 // 운영자/스태프·프리미엄은 전체 노출. guidedTourStep 은 이 필터된 배열의 인덱스로 동작.
 function activeTourSteps() {
-  const seesPremium = state.tier === 'premium' || state.isOperator || state.isStaff;
+  const seesPremium = seesPremiumNow();
   return GUIDED_TOUR_STEPS.filter((s) => seesPremium || !s.premiumOnly);
 }
 function __tourNav(s) {
@@ -28931,7 +28937,7 @@ function buildReviewMySentences() {
 }
 window.__reviewUi = window.__reviewUi || null;
 window.__startReview = (mode) => {
-  const _isPrem = state.tier === 'premium' || state.isOperator || state.isStaff;
+  const _isPrem = seesPremiumNow();
   if (!_isPrem && (mode === 'sentence' || mode === 'weak')) {
     showToast(mode === 'sentence' ? '내 문장 테스트는 프리미엄 전용이에요 💜' : '약점 단어 테스트는 프리미엄 전용이에요 🔒');
     return;
@@ -29049,7 +29055,7 @@ window.__exitReview = () => { window.__reviewUi = null; go('home'); };
 
 function MyReviewPage() {
   const page = el('div', { class: 'page' });
-  const isPrem = state.tier === 'premium' || state.isOperator || state.isStaff;
+  const isPrem = seesPremiumNow();
   const head = el('div', { class: 'row-between', style: { marginBottom: '14px' } });
   head.innerHTML = '<button class="icon-btn" onclick="window.__exitReview()" style="background:#fff;border:1px solid var(--line);">' + Icon('arrowLeft', 16) + '</button><div class="kicker" style="color:var(--orange-dark);">MY REVIEW · 내 복습</div><div style="width:36px;"></div>';
   page.appendChild(head);
