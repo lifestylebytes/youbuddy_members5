@@ -440,6 +440,7 @@ const LINK_MAP = [
   ['주간 테스트 1',           '주간 테스트 오픈 안내'],
   ['첫 주 마무리',            '첫 주 마무리 격려'],
   ['2주차 오프닝',            '2주차 오프닝 + 모닝 밋업 안내'],
+  ['약점 복습',               '★ 내 약점 복습 오픈 안내'],
   ['발표자',                  '발표자 모집 안내'],
   ['절반 지점',               '절반 지점 격려'],
   ['피드백 리포트',           '발표 피드백 리포트 발행 알림'],
@@ -548,7 +549,7 @@ function linkChecklistMessages() {
       규칙을 바꾸려면 반드시 6행 수식을 다시 쓸 것.
    ============================================================ */
 
-const TIME_FORMULA = '=MAP($F6:$F200,LAMBDA(t,IF(t="","",IFS(REGEXMATCH(t,"모닝 공지"),"06:00",REGEXMATCH(t,"인증률"),"07:00",REGEXMATCH(t,"유버디 메시지"),"18:00",REGEXMATCH(t,"녹음 확인"),"수시",REGEXMATCH(t,"미인증 명단"),"21:00~",REGEXMATCH(t,"1:1 케어"),"밤",REGEXMATCH(t,"미팅 진행"),"21:00",REGEXMATCH(t,"미팅 알림|미팅 예고|미팅 전 할 일|주간 테스트|파이널|단어집 PDF|수료 기준|발표자|녹화본|턱걸이"),"아침",TRUE,"그날 중"))))';
+const TIME_FORMULA = '=MAP($F6:$F200,LAMBDA(t,IF(t="","",IFS(REGEXMATCH(t,"모닝 공지"),"06:00",REGEXMATCH(t,"인증률"),"07:00",REGEXMATCH(t,"유버디 메시지"),"18:00",REGEXMATCH(t,"녹음 확인"),"수시",REGEXMATCH(t,"미인증 명단"),"21:00~",REGEXMATCH(t,"1:1 케어"),"밤",REGEXMATCH(t,"미팅 진행"),"21:00",REGEXMATCH(t,"미팅 알림|미팅 예고|미팅 전 할 일|주간 테스트|파이널|단어집 PDF|수료 기준|발표자|녹화본|턱걸이|약점 복습|진짜 외우기"),"아침",TRUE,"그날 중"))))';
 
 // 시각(D열) 배열 수식 복구 + 아침 발송 규칙 반영
 function fixChecklistTimes() {
@@ -617,4 +618,66 @@ function addMeetingPreviewMessage() {
   const n = sh.getLastRow();
   sh.getRange(1, 4, n, 1).setWrap(true).setVerticalAlignment('top');
   Logger.log('미팅 예고 원고 반영 완료');
+}
+
+/* ============================================================
+   Day 6 · '내 약점 복습' 오픈 안내 + '진짜 외우기' 원고 교정
+   (2026-08-13 추가)
+   ------------------------------------------------------------
+   · 약점 복습은 앱에서 Day 6 에 자동 해제되는데 톡 안내가 없어 놓치는 사람이 많다.
+   · 주간 테스트의 앱 정식 명칭은 '진짜 외우기' 이고, 3단계는
+     익히기/떠올리기/섞어보기 가 아니라
+     떠올려보기 → '기억 안나요' 체크 → 체크한 것만 복습 이다.
+   ============================================================ */
+
+function addWeaknessReviewRow() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(CHECK_SHEET);
+  const TASK = '★ 내 약점 복습 오픈 안내 (Week 2 신기능)';
+
+  const last = sh.getLastRow();
+  const tasks = sh.getRange(6, 6, last - 5, 1).getDisplayValues()
+    .map(function (r) { return String(r[0] || ''); });
+
+  if (tasks.indexOf(TASK) >= 0) {
+    Logger.log('체크리스트 항목은 이미 있어요.');
+  } else {
+    // Day 6 의 마지막 행. Day 칸은 병합이라 값이 보이는 행에서만 갱신된다.
+    const days = sh.getRange(6, 1, last - 5, 1).getDisplayValues();
+    let cur = 0, endRow = 0;
+    for (let i = 0; i < days.length; i++) {
+      const m = String(days[i][0] || '').match(/Day\s*(\d+)/i);
+      if (m) cur = Number(m[1]);
+      if (cur === 6) endRow = 6 + i;
+    }
+    if (!endRow) throw new Error('Day 6 을 못 찾았어요');
+    sh.insertRowAfter(endRow);
+    sh.getRange(endRow + 1, 5).setValue('버디');
+    sh.getRange(endRow + 1, 6).setValue(TASK);
+    fixChecklistTimes();
+  }
+
+  // 원고 3건 (약점 복습 2건 + 진짜 외우기 교정본)
+  const msg = ss.getSheetByName(MSG_SHEET);
+  const rows = [
+    ['day 06', '★ 내 약점 복습 오픈 안내', '양 톡방 · Day 6 아침 · 버디', '2주차 첫날, 새 기능이 하나 열렸어요! 🔓\n\n<내 약점 복습>이 생겼습니다.\n앱 홈에서 ✍️ 내 약점 복습 버튼을 눌러보세요.\n\n지금까지 단어시험에서 틀렸던 단어, 힌트 봤던 단어를\n앱이 알아서 다 모아뒀어요.\n\n📊 내 숙련도 게이지 + 약점 막대그래프\n   지금 내 실력이 어디쯤인지 한눈에 보여요\n🎯 약한 단어만 골라서 다시 시험\n   전체 다시 볼 필요 없이, 안 외워진 것만 콕 집어서요\n\n일주일 지나면 "내가 뭘 모르는지"가 제일 먼저 흐려지잖아요.\n그걸 앱이 대신 기억해뒀다가 알려주는 거라 복습이 훨씬 빨라집니다 :)\n\n오늘 딱 3분만 들어가보세요~'],
+    ['day 06', '내 약점 복습 · 프리미엄 추가 안내', '프리미엄 · Day 6 아침 · 버디', '프리미엄 여러분께는 하나 더 있어요 👑\n\n<내 약점 복습>에 들어가시면\n직접 쓰신 문장으로 만든 빈칸 테스트가 같이 나옵니다.\n\n남이 만든 예문이 아니라 내가 쓴 문장이라\n"이 표현을 내 상황에서 쓸 수 있나"를 바로 확인하실 수 있어요.\n\n목요일 미팅 전에 한 번 돌려보시면\n발표할 때 문장이 훨씬 잘 나옵니다 :)'],
+    ['day 05', '주간 테스트 오픈 안내', '양 톡방 · Day 5/10/15 아침 · 버디', '이번 주 5일을 다 채우신 분들은 <진짜 외우기>가 열렸어요! 🎁\n\n앱 [내 학습]에서 이번 주 카드를 눌러보시면 보입니다.\n3단계인데, 10분이면 끝나요.\n\n1️⃣ 한국어 문장만 보고 영어로 떠올려보기\n   바로 탭하지 마시고 머릿속으로 먼저요! 그다음 탭해서 정답과 비교\n2️⃣ 안 떠올랐으면 <기억 안나요> 체크\n   부끄러운 게 아니라 이게 핵심이에요. 체크한 단어만 복습 큐에 담겨요\n3️⃣ 체크한 단어로 복습 시작\n   내가 못 외운 것만 골라서 빠르게 한 바퀴, 끝나면 주간 테스트로 마무리\n\n통과하시면 <잠금화면 단어장>을 드려요.\n휴대폰 잠금화면에 이번 주 표현을 걸어두시면\n하루에 몇 번씩 저절로 복습됩니다 :)\n\n아직 5일을 못 채우셨어도 괜찮아요!\n빠진 날을 채우시면 그때 바로 열립니다~']
+  ];
+  const mLast = Math.max(msg.getLastRow(), 1);
+  const titles = msg.getRange(1, 3, mLast, 1).getDisplayValues()
+    .map(function (r) { return String(r[0] || ''); });
+  rows.forEach(function (r) {
+    const idx = titles.indexOf(r[1]);
+    if (idx >= 0) {
+      msg.getRange(idx + 1, 4).setValue(r[3]);
+      msg.getRange(idx + 1, 5).setValue(r[2]);
+    } else {
+      msg.appendRow(['Ongoing', r[0], r[1], r[3], r[2]]);
+    }
+  });
+  const n = msg.getLastRow();
+  msg.getRange(1, 4, n, 1).setWrap(true).setVerticalAlignment('top');
+
+  Logger.log('약점 복습 안내 + 진짜 외우기 교정 반영 완료');
 }
