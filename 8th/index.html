@@ -1615,6 +1615,8 @@ const defaultState = () => ({
   verified: {},                   // { "d1": true }
   sentence_notes: {},             // { "d1-0": "내 한국어 메모" }
   sentences: {},                  // { "d1-0": "my sentence" }
+  sentences_first: {},            // { "d1-0": "..." } 맨 처음 제출한 원문. 한 번 쓰면 절대 덮어쓰지 않는다.
+                                  // 수료식·회고에서 "처음엔 이렇게 → 20일 뒤엔 이렇게" 를 보여주는 재료. (2026-08-13)
   ai_feedback: {},                // { "d1-0": { corrected, diff_html, why } }
   ai_daily_usage: {},             // { "d1": 1 }
   checkpoints: {},                // { "d1-record": true }
@@ -1711,6 +1713,7 @@ const PERSISTED_STATE_KEYS = [
   'verified',
   'sentence_notes',
   'sentences',
+  'sentences_first',
   'ai_feedback',
   'ai_daily_usage',
   'checkpoints',
@@ -16047,6 +16050,14 @@ function DayPage(dayN) {
         if (guardFutureDay(dayN)) return;
         if (!ta.value.trim()) { showToast('문장을 먼저 써주세요.'); return; }
         state.submitted[key] = true;
+      // 맨 처음 제출한 문장은 따로 남긴다. 이미 있으면 건드리지 않는다.
+      try {
+        if (!state.sentences_first || typeof state.sentences_first !== 'object') state.sentences_first = {};
+        if (!state.sentences_first[key]) {
+          const _first = String(state.sentences[key] || '').trim();
+          if (_first) state.sentences_first[key] = _first.slice(0, 600);
+        }
+      } catch (_) {}
         state.submitted_text[key] = ta.value;
         saveState();
         upsertCommunityPost(dayN, i)
