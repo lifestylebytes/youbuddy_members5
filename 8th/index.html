@@ -10195,13 +10195,17 @@ function HomePage() {
   // 안 보이는 사람이 "존재는 하는" 상태라는 걸 운영자만 알 수 있게. (2026-08-14 버디 요청)
   try {
     if ((state.isOperator || state.isStaff) && !state.operatorViewAsMember) {
+      const badges = el('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' } });
+      const pill = (txt, title2) => el('span', {
+        style: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 11px', borderRadius: '999px', background: 'rgba(154,139,115,0.14)', border: '1px dashed rgba(154,139,115,0.45)', fontSize: '11px', fontWeight: '700', color: 'var(--muted)' },
+        title: title2 || '',
+      }, txt);
       const hid = MEMBERS.filter((m) => m.memberHidden);
-      if (hid.length) {
-        cbWrap.appendChild(el('div', {
-          style: { display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '8px', padding: '4px 11px', borderRadius: '999px', background: 'rgba(154,139,115,0.14)', border: '1px dashed rgba(154,139,115,0.45)', fontSize: '11px', fontWeight: '700', color: 'var(--muted)' },
-          title: hid.map((m) => m.name).join(', '),
-        }, `👻 숨김 처리 ${hid.length}명 (${hid.map((m) => m.name).join(', ')}) · 멤버 화면·태그 명단에서 제외됨`));
-      }
+      if (hid.length) badges.appendChild(pill(`👻 숨김 ${hid.length}명 (${hid.map((m) => m.name).join(', ')})`, '멤버 화면·태그 명단에서 제외'));
+      // 쉬는 상태 (4일 미인증, nonparticipant_list)
+      const rest = MEMBERS.filter((m) => !m.memberHidden && isNonparticipant(m));
+      if (rest.length) badges.appendChild(pill(`💤 쉬는 상태 ${rest.length}명 (${rest.map((m) => m.name).join(', ')})`, '리마인드 태그 제외 · 1:1 케어 대상 (M7)'));
+      if (badges.children.length) cbWrap.appendChild(badges);
     }
   } catch (e) {}
   // 색 범례: 새파랑만 완전한 인증이라는 걸 멤버 모두가 알게.
@@ -30075,9 +30079,12 @@ function vsCopyTzWaiting(m, day) {
   } catch (e) { return false; }
 }
 function vsCopyBuckets(day, tier) {
-  const out = { both: [], recOnly: [], webOnly: [], tzWait: [], done: [] };
-  // memberHidden(사전 테스터 등 숨김 처리된 사람)은 단톡방에 없으니 태그 명단에서 제외. (2026-08-14 버디 확정)
+  const out = { both: [], recOnly: [], webOnly: [], tzWait: [], done: [], resting: [] };
+  // memberHidden(숨김) 은 단톡방에 없으니 제외. (2026-08-14)
+  // 쉬는 상태(4일 미인증, nonparticipant_list) 는 태그하지 않는다. 리마인드 명단에 계속 올리면
+  // 죄책감만 쌓인다. 1:1 케어 대상 (M7). 대신 resting 버킷으로 몇 명인지만 표시. (2026-08-14 버디 확정)
   paidMembers().filter((m) => !m.memberHidden && (m.tier === 'premium') === (tier === 'premium')).forEach((m) => {
+    if (isNonparticipant(m)) { out.resting.push(vsCopyMemberLabel(m)); return; }
     const set = Array.isArray(m.verifiedDays) && m.verifiedDays.length
       ? new Set(m.verifiedDays.map(Number)) : null;
     const web = m.me
@@ -30097,6 +30104,7 @@ function vsCopyText(day, tier, withIntro) {
   const b = vsCopyBuckets(day, tier);
   const tag = (arr) => arr.map((x) => '@' + x).join(' ');
   const lines = [];
+  if (b.resting.length) lines.push('💤 쉬는 상태 ' + b.resting.length + '명 · 태그 안 함 (1:1 케어 대상)');
   if (b.both.length) lines.push('❌ 웹 미인증 + 녹음 미인증 : ' + tag(b.both));
   if (b.recOnly.length) lines.push('🎤 녹음 미인증 : ' + tag(b.recOnly));
   if (b.webOnly.length) lines.push('❓ 웹 미인증 : ' + tag(b.webOnly));
