@@ -7875,7 +7875,7 @@ function HelpPage() {
   const SECTIONS = [
     ['guide', '📖', '이렇게 쓰면 돼요'],
     ['faq', '❓', '자주 묻는 것'],
-    ...((isPrem || state.isOperator || state.isStaff) ? [['qna', '🎤', '미팅 Q&A']] : []),
+    ...((isPrem || state.isOperator || state.isStaff) ? [['qna', '🎤', '8기 미팅 Q&A']] : []),
   ];
   const toc = el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '14px' } });
   toc.innerHTML = SECTIONS.map(([id, ic, t], i) =>
@@ -7908,8 +7908,8 @@ function HelpPage() {
         <span style="flex-shrink:0;width:40px;height:40px;border-radius:13px;background:${tileBg};display:grid;place-items:center;font-size:19px;">${ic}</span>
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:6px;">
-            <span style="font-size:10px;font-weight:800;letter-spacing:0.12em;color:var(--muted);">CHAPTER 0${__secN}</span>
-            ${accent ? `<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;background:linear-gradient(135deg,${accent},#A98BB8);color:#fff;font-size:9px;font-weight:800;letter-spacing:0.08em;">PREMIUM</span>` : ''}
+            <span style="font-size:10px;font-weight:800;letter-spacing:0.12em;color:${accent ? '#7B5E8C' : 'var(--muted)'};">${accent ? '✨ FROM OUR MEETINGS' : `CHAPTER 0${__secN}`}</span>
+            ${accent ? `<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;background:linear-gradient(135deg,${accent},#A98BB8);color:#fff;font-size:9px;font-weight:800;letter-spacing:0.08em;">8기 ONLY</span>` : ''}
           </div>
           <div style="margin-top:1px;font-size:18px;font-weight:800;color:${accent || 'var(--ink)'};letter-spacing:-0.02em;">${t}</div>
         </div>
@@ -8102,7 +8102,7 @@ function HelpPage() {
 
   /* ── 미팅에서 나온 질문 (프리미엄 전용) ── */
   const __seesQna = isPrem || state.isOperator || state.isStaff;
-  H('qna', '🎤', '미팅 Q&A', '미팅에서 나온 질문들인데, 다른 분들도 궁금하실 것 같아서 정리해뒀어요. 매주 쌓입니다 :)', PREM_C);
+  H('qna', '🎤', '8기 미팅 Q&A', '8기 미팅에서만 나온, 다른 데선 못 듣는 질문들이에요. 우리끼리 쌓아가는 아카이브 :)', PREM_C);
   if (!__seesQna) {
     // 아예 숨기면 "없는 것" 이 되어버린다. 질문 제목은 보여주고 답만 잠근다.
     const lock = el('div', { style: { marginTop: '10px', padding: '16px 18px', borderRadius: '16px', background: '#FBFAFF', border: '1px solid rgba(169,139,184,0.35)' } });
