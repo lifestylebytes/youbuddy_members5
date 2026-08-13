@@ -7853,7 +7853,7 @@ function HelpPage() {
   // 블로그풍 히어로 (2026-08-13 리디자인)
   const hero = el('div', { style: {
     padding: '26px 22px 24px', borderRadius: '22px',
-    background: 'linear-gradient(150deg, #26331F 0%, #3A4A2E 60%, #4A5A38 100%)',
+    background: 'linear-gradient(150deg, #1B3A57 0%, #1F4F7D 55%, #2E6FA8 100%)',
     position: 'relative', overflow: 'hidden',
   } });
   hero.innerHTML = `
@@ -7861,7 +7861,7 @@ function HelpPage() {
     <div style="position:relative;">
       <span style="display:inline-block;padding:4px 11px;border-radius:999px;background:rgba(251,231,161,0.18);color:#FBE7A1;font-size:10.5px;font-weight:800;letter-spacing:0.08em;">USER GUIDE · 8기</span>
       <div style="margin-top:10px;font-size:24px;font-weight:800;color:#FBF7F0;letter-spacing:-0.02em;line-height:1.3;">유비챌 알차게 쓰기</div>
-      <div style="margin-top:7px;font-size:13px;color:rgba(251,247,240,0.75);line-height:1.65;">필요한 것만 찾아보셔도 되고,<br>쭉 훑으면 "이런 것도 있었네" 가 몇 개 나올 거예요.</div>
+      <div style="margin-top:7px;font-size:13px;color:rgba(251,247,240,0.78);line-height:1.65;">궁금한 챕터만 눌러서 보시면 돼요~<br>쭉 훑다 보면 "오 이런 것도 있었네" 싶은 게 분명 나올 거예요 ㅎㅎ</div>
     </div>`;
   page.appendChild(hero);
 
@@ -7900,7 +7900,7 @@ function HelpPage() {
     const h = el('div', { id: 'help-' + id, style: { marginTop: '36px', scrollMarginTop: '76px' } });
     const tileBg = accent
       ? `linear-gradient(150deg,${accent},#A98BB8)`
-      : 'linear-gradient(150deg,#26331F,#4A5A38)';
+      : 'linear-gradient(150deg,#1B3A57,#2E6FA8)';
     h.innerHTML = `
       <div style="display:flex;align-items:center;gap:11px;">
         <span style="flex-shrink:0;width:40px;height:40px;border-radius:13px;background:${tileBg};display:grid;place-items:center;font-size:19px;">${ic}</span>
@@ -7949,7 +7949,7 @@ function HelpPage() {
   };
 
   /* ── 하루 흐름 ── */
-  H('flow', '⏱', '하루 흐름', '5분이면 끝나요');
+  H('flow', '⏱', '하루 흐름', '하루 5분이면 끝나요. 근데 그 5분이 어떻게 흘러가는지, 한번 볼까요?');
   const STEPS = [
     ['오늘의 표현 3개 읽기', '읽고 <b>3번 읽기 체크</b> 누르기', '앱'],
     ['내 문장 3개 제출', '표현마다 하나씩', '앱'],
@@ -7971,7 +7971,7 @@ function HelpPage() {
   card('', `<b style="color:var(--ink);">5번까지 해야 완전한 인증이에요.</b> 앱에서만 끝내면 절반만 된 거라 보드에 연한 하늘색으로 남아요.`, 'var(--orange)');
 
   /* ── 보드 색깔 ── */
-  H('color', '🎨', '보드 색깔', '색만 봐도 상태를 알 수 있어요');
+  H('color', '🎨', '보드 색깔', '연한 파랑? 진한 파랑? 저도 처음엔 헷갈렸어요 ㅎㅎ 색만 알면 보드가 한눈에 읽힙니다');
   const COLORS = [
     ['#1E5FA0', '정시 인증 + 녹음까지', '이게 완전한 인증이에요'],
     ['#A9D0EC', '앱 인증만 완료', '카톡 녹음 대기 중'],
@@ -7989,7 +7989,7 @@ function HelpPage() {
   card('', '칸을 눌러보시면 몇 시에 인증했는지도 보여요.');
 
   /* ── 내 학습 ── */
-  H('learn', '📚', '내 학습');
+  H('learn', '📚', '내 학습', '내 학습 탭에 숨어 있는 기능이 은근 많아요. 모르고 지나가면 아까운 것들만 모았어요~');
   card('표현 3개는 순서에 뜻이 있어요', `
     하루에 나오는 3개는 <b>자주 쓰는 순서</b>로 배치돼 있어요. 카드 옆 <b>빈도 점</b>이 그 표시예요.
     <div style="margin-top:9px;display:flex;flex-direction:column;gap:5px;">
@@ -8026,7 +8026,7 @@ function HelpPage() {
     <b>응시 자체가 수료 조건</b>입니다.`);
 
   /* ── 학습 꿀팁 ── */
-  H('tips', '🔥', '학습 꿀팁', '결국 반복이 전부예요');
+  H('tips', '🔥', '학습 꿀팁', '같은 10분을 써도 남는 게 달라지는 방법이에요. 결국은... 반복입니다 :)');
   const TIPS = [
     ['1', '단어 공부법',
      '오늘 나온 단어를 <b>자꾸 보시는 게</b> 좋아요. 옮겨 적으시거나 엑셀에 옮기시거나 하셔서 <b>본인의 문장을 외워줍니다.</b>'],
@@ -8050,7 +8050,7 @@ function HelpPage() {
   card('', `<b style="color:var(--ink);">단어 시험 다시보기</b> 는 인증 화면에서 <b>단어 시험 단계를 한 번 더 누르면</b> 열려요. 몇 번을 다시 풀어도 인증 상태는 그대로예요.`, 'var(--orange)');
 
   /* ── 알아두면 편한 것 ── */
-  H('tip', '⚙️', '알아두면 편한 것');
+  H('tip', '⚙️', '알아두면 편한 것', '몰라도 되는데 알면 소소하게 편해지는 것들이에요 ㅎㅎ');
   card('앱이 이상하게 열려요', `<b>카톡 안에서 열면 가끔 문제가 생겨요.</b> 주소를 복사해서 사파리나 크롬으로 열어주세요.`, '#C0392B');
   card('홈 화면에 추가하기', `
     매번 주소를 치지 않아도 돼요.<br>
@@ -8067,7 +8067,7 @@ function HelpPage() {
 
   /* ── 미팅에서 나온 질문 (프리미엄 전용) ── */
   const __seesQna = isPrem || state.isOperator || state.isStaff;
-  H('qna', '🎤', '미팅 Q&A', '8기 프리미엄 미팅에서 나온 질문 모음이에요. 매주 늘어납니다.', PREM_C);
+  H('qna', '🎤', '미팅 Q&A', '미팅에서 나온 질문들인데, 다른 분들도 궁금하실 것 같아서 정리해뒀어요. 매주 쌓입니다 :)', PREM_C);
   if (!__seesQna) {
     // 아예 숨기면 "없는 것" 이 되어버린다. 질문 제목은 보여주고 답만 잠근다.
     const lock = el('div', { style: { marginTop: '10px', padding: '16px 18px', borderRadius: '16px', background: '#FBFAFF', border: '1px solid rgba(169,139,184,0.35)' } });
@@ -8141,7 +8141,7 @@ function HelpPage() {
   }
 
   /* ── FAQ ── */
-  H('faq', '❓', '자주 묻는 것');
+  H('faq', '❓', '자주 묻는 것', '제일 많이 물어보시는 것들이에요. 여기에 없으면 부담 없이 톡 주세요~');
   const FAQ = [
     ['늦게 하면 인정이 안 되나요?', `<b>인정됩니다.</b> 늦게 하셔도 그날 1일로 그대로 들어가요. 마감이 따로 없어서 밀린 날도 나중에 채우실 수 있어요.
       <div style="margin-top:9px;padding:11px 13px;border-radius:11px;background:var(--paper);">
