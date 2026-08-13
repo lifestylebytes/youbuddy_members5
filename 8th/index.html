@@ -17415,30 +17415,33 @@ function PremiumPage() {
     <div class="kicker" style="margin-top:8px;">PERSONAL QUIZ</div>
     <div class="h3" style="margin-top:4px;">내 약점 퀴즈</div>
     <div class="t-small" style="margin-top:4px;">${pqSubcopy}</div>`;
-  // 발표 피드백 리포트가 있으면 그게 지금 볼 이유가 더 분명하니 앞자리를 준다.
+  // 발표 피드백 리포트가 이 자리(구 '내 약점 퀴즈')를 항상 차지한다.
+  // 리포트가 아직 없으면 샘플로, 있으면 본인 것으로, 운영자면 전체 목록으로 바뀐다.
+  // "프리미엄이 뭘 주는지"를 글로 설명하는 것보다 실물 한 장이 훨씬 빠르다. (2026-08-13)
   const __rep = (typeof myReport === 'function') ? myReport() : null;
-  if (__rep) {
-    const repCard = el('button', {
-      class: 'card',
-      style: { textAlign: 'left', cursor: 'pointer', border: '1px solid rgba(240,172,61,0.5)', background: 'linear-gradient(160deg,#FFF8EA,#FFF3DC)' },
-      onClick: () => {
-        if (__rep.list) { try { window.__openReportList(); } catch (e) {} return; }
-        try { window.open(__rep.url, '_blank', 'noopener'); } catch (e) {}
-      },
-    });
-    repCard.innerHTML = __rep.list
-      ? `<div style="font-size:22px;">🗂</div>
+  const repCard = el('button', {
+    class: 'card',
+    style: { textAlign: 'left', cursor: 'pointer', border: '1px solid rgba(240,172,61,0.5)', background: 'linear-gradient(160deg,#FFF8EA,#FFF3DC)' },
+    onClick: () => {
+      if (__rep && __rep.list) { try { window.__openReportList(); } catch (e) {} return; }
+      try { window.open((__rep && __rep.url) || SAMPLE_REPORT_URL, '_blank', 'noopener'); } catch (e) {}
+    },
+  });
+  repCard.innerHTML = (__rep && __rep.list)
+    ? `<div style="font-size:22px;">🗂</div>
       <div class="kicker" style="margin-top:8px;color:#A07A2A;">OPERATOR</div>
       <div class="h3" style="margin-top:4px;">프리미엄 피드백 리포트</div>
       <div class="t-small" style="margin-top:4px;">올려둔 ${__rep.count}개 전체 보기</div>`
-      : `<div style="font-size:22px;">🎤</div>
+    : (__rep
+      ? `<div style="font-size:22px;">🎤</div>
       <div class="kicker" style="margin-top:8px;color:#A07A2A;">MY FEEDBACK</div>
       <div class="h3" style="margin-top:4px;">내 발표 피드백 리포트</div>
-      <div class="t-small" style="margin-top:4px;">${escapeHtml(__rep.weekLabel || ('Week ' + __rep.week))} 발표 · 버디가 정리했어요</div>`;
-    doubleRow.appendChild(repCard);
-  } else {
-    doubleRow.appendChild(quizCard);
-  }
+      <div class="t-small" style="margin-top:4px;">${escapeHtml(__rep.weekLabel || ('Week ' + __rep.week))} 발표 · 버디가 정리했어요</div>`
+      : `<div style="font-size:22px;">🎤</div>
+      <div class="kicker" style="margin-top:8px;color:#A07A2A;">SAMPLE REPORT</div>
+      <div class="h3" style="margin-top:4px;">발표 피드백 리포트</div>
+      <div class="t-small" style="margin-top:4px;">발표하시면 이렇게 나와요 · 샘플 보기</div>`);
+  doubleRow.appendChild(repCard);
 
   const certCard = el('button', { class: 'card', style: { textAlign: 'left', cursor: 'pointer', border: 'none', background: 'var(--cream)' }, onClick: () => go('certification') });
   certCard.innerHTML = `
@@ -17450,28 +17453,10 @@ function PremiumPage() {
 
   page.appendChild(doubleRow);
 
-  // 아직 리포트를 못 받은 멤버에게 샘플을 보여준다.
-  // "프리미엄이 뭘 주는지"를 글로 설명하는 것보다 실물 한 장이 훨씬 빠르다.
-  if (!__rep) {
-    const sampleCard = el('button', {
-      class: 'card',
-      style: {
-        width: '100%', marginTop: '12px', textAlign: 'left', cursor: 'pointer',
-        border: '1px dashed rgba(240,172,61,0.65)', background: 'linear-gradient(160deg,#FFFCF4,#FFF7E9)',
-        display: 'flex', alignItems: 'center', gap: '13px',
-      },
-      onClick: () => { try { window.open(SAMPLE_REPORT_URL, '_blank', 'noopener'); } catch (e) {} },
-    });
-    sampleCard.innerHTML = `
-      <div style="flex-shrink:0;width:46px;height:46px;border-radius:14px;background:rgba(240,172,61,0.22);display:grid;place-items:center;font-size:22px;">🎤</div>
-      <div style="flex:1;min-width:0;">
-        <div class="kicker" style="color:#A07A2A;">SAMPLE REPORT</div>
-        <div class="h3" style="margin-top:3px;">발표 피드백 리포트, 이렇게 나와요</div>
-        <div class="t-small" style="margin-top:4px;line-height:1.55;">미팅에서 발표하시면 버디가 하신 말을 그대로 가져와 한 장으로 정리해드려요. 샘플 먼저 보실래요?</div>
-      </div>
-      <div style="flex-shrink:0;color:var(--orange-dark);font-size:16px;font-weight:800;">→</div>`;
-    page.appendChild(sampleCard);
-  }
+  // '내 약점 퀴즈' 는 리포트에 앞자리를 내주고 아래 전체폭으로 내려온다. (기능은 그대로)
+  quizCard.style.width = '100%';
+  quizCard.style.marginTop = '10px';
+  page.appendChild(quizCard);
 
   return page;
 }
