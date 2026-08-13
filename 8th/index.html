@@ -1656,6 +1656,7 @@ const defaultState = () => ({
   review_consent: null,             // { choice: 'public'|'private', at: ISO } 설문 후기 공개 동의 (팝업 응답, 서버 자동 동기화).
   final_test: null,                 // 파이널 테스트 결과 { score, total, at, attempts, answers, writing }, 통과 기준 없이 제출=완료.
   final_downloads: {},              // { pdf_at, notion_at } 4주 단어집 PDF / 노션 문장 다운로드 기록 (운영자 export 용).
+  grad_survey: null,                // { choice, reason, best, at } 수료 설문. PDF 는 이거 제출해야 열림. (2026-08-14)
   cohort6_popup_seen: false,        // 5/22 오후 6시 이후 1회 노출되는 7기 안내 팝업 본 상태.
   premium_presurvey_seen: false,   // 프리미엄 사전설문(Tally) 팝업 1회 노출 여부.
   cohort_complete_popup_seen: false,// PDF까지 다 받은 완주자에게 1회 노출되는 완주 축하 팝업 본 상태.
@@ -1761,6 +1762,7 @@ const PERSISTED_STATE_KEYS = [
   'daily_pulse_skipped',
   'final_test',
   'final_downloads',
+  'grad_survey',
   'cohort6_popup_seen',
   'premium_presurvey_seen',
   'vocab_map_seen',
@@ -14488,12 +14490,18 @@ window.__openFinalDownloads = function () {
         : `18일+ 인증 & 파이널 테스트 완료 시 받을 수 있어요. 현재 ${__fdVc}/20 · 파이널 미완료`);
       return;
     }
-    markDownload('pdf_at');
-    showToast('구글 드라이브에서 4주 단어집 PDF를 열어요 🧡');
-    window.open(driveUrl, '_blank', 'noopener');
-    // PDF 까지 받으면 = 완주 → 축하 팝업.
-    close();
-    setTimeout(() => { try { window.__showCohortCompletePopup(); } catch (e) {} }, 500);
+    const proceed = () => {
+      markDownload('pdf_at');
+      showToast('구글 드라이브에서 4주 단어집 PDF를 열어요 🧡');
+      window.open(driveUrl, '_blank', 'noopener');
+      // PDF 까지 받으면 = 완주 → 축하 팝업.
+      close();
+      setTimeout(() => { try { window.__showCohortCompletePopup(); } catch (e) {} }, 500);
+    };
+    // 수료 설문을 제출해야 최종 자료가 열린다. (2026-08-14 버디 확정)
+    // 7기 교훈: 후기를 따로 부탁하면 0건. 보상 직전이 응답률이 제일 높은 자리다.
+    if (state.grad_survey && state.grad_survey.at) { proceed(); return; }
+    try { window.__openGradSurvey(proceed); } catch (e) { proceed(); }
   };
   modal.querySelector('[data-fd-notion]').onclick = () => {
     markDownload('notion_at');
@@ -14502,6 +14510,70 @@ window.__openFinalDownloads = function () {
   };
 };
 
+/* ============================================================
+   수료 설문 (PDF 게이트) · 2026-08-14
+   ------------------------------------------------------------
+   단어집 PDF 받기 직전에 1회. 제출해야 다운로드가 이어진다.
+   설계는 데일리 펄스 원칙 그대로: 판단하지 않는다, "왜 안 하세요" 금지,
+   "나중에 한다면"으로 묻는다. 판매 문구 금지.
+   응답은 state.grad_survey 로 서버 동기화 (운영자는 app_state 에서 집계).
+   ============================================================ */
+window.__openGradSurvey = function (onDone) {
+  if (document.querySelector('[data-grad-survey]')) return;
+  const bd = el('div', { class: 'modal-backdrop', 'data-grad-survey': '1', style: { zIndex: '9800' } });
+  const md = el('div', { class: 'modal', style: { width: 'min(92vw, 420px)', padding: '22px 20px', borderRadius: '22px', background: '#FFFDF8', maxHeight: '86vh', overflow: 'auto' } });
+  const draft = { choice: null, reason: '', best: '' };
+  const REASON_PH = {
+    yes: '어떤 점이 계속하고 싶게 만들었어요? 한 줄이면 충분해요 :)',
+    maybe: '고민되는 지점이 뭔지 편하게 적어주세요. 일정? 비용? 방식?',
+    no: '쉬어가는 이유를 편하게 적어주세요. 서운해하지 않아요, 진짜로요 :)',
+  };
+  const paint = () => {
+    md.innerHTML = `
+      <div style="font-size:30px;">🎓</div>
+      <div class="kicker" style="margin-top:6px;color:var(--orange-dark);">마지막으로 딱 1분만!</div>
+      <div style="margin-top:4px;font-size:18px;font-weight:800;color:var(--ink);line-height:1.35;">수료 설문 쓰고 단어집 받아가세요</div>
+      <div class="t-small" style="margin-top:6px;color:var(--ink-soft);line-height:1.6;">다음 기수를 더 낫게 만드는 데 그대로 쓰여요. 답에 정답은 없습니다 :)</div>
+
+      <div style="margin-top:16px;font-size:12.5px;font-weight:800;color:var(--ink);">1. 다음 기수도 함께할 생각이 있으세요?</div>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:7px;">
+        ${[['yes', '🙌 네, 계속하고 싶어요'], ['maybe', '🤔 고민 중이에요'], ['no', '🌿 이번엔 쉬어갈래요']].map(([v, t]) =>
+          `<button data-gs-c="${v}" style="padding:11px 13px;border-radius:12px;text-align:left;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;
+             border:1.5px solid ${draft.choice === v ? 'var(--orange)' : 'var(--line)'};
+             background:${draft.choice === v ? 'rgba(240,172,61,0.14)' : '#fff'};color:var(--ink);">${t}</button>`).join('')}
+      </div>
+
+      <div style="margin-top:14px;font-size:12.5px;font-weight:800;color:var(--ink);">2. ${draft.choice === 'yes' ? '계속하고 싶은 이유가 궁금해요' : draft.choice === 'no' ? '나중에 다시 한다면, 뭐가 달라져야 할까요?' : '그 이유를 한 줄만 적어주세요'}</div>
+      <textarea data-gs-r rows="3" placeholder="${REASON_PH[draft.choice] || '위에서 하나 고르시면 질문이 바뀌어요 :)'}" style="width:100%;margin-top:7px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:#fff;font-family:inherit;font-size:13px;line-height:1.6;resize:vertical;">${escapeHtml(draft.reason)}</textarea>
+
+      <div style="margin-top:12px;font-size:12.5px;font-weight:800;color:var(--ink);">3. 20일 중 제일 좋았던 것 하나 <span style="font-weight:700;color:var(--muted);">(선택)</span></div>
+      <textarea data-gs-b rows="2" placeholder="단어? 미팅? AI 첨삭? 동료들 녹음? 뭐든요" style="width:100%;margin-top:7px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:#fff;font-family:inherit;font-size:13px;line-height:1.6;resize:vertical;">${escapeHtml(draft.best)}</textarea>
+
+      <button data-gs-go class="btn btn-primary btn-full" style="margin-top:15px;opacity:${draft.choice && draft.reason.trim() ? 1 : 0.5};">제출하고 단어집 받기 📥</button>
+      <div class="t-small" style="margin-top:8px;text-align:center;color:var(--muted);">1·2번만 필수예요 · 답은 버디만 봐요</div>`;
+    md.querySelectorAll('[data-gs-c]').forEach((b) => {
+      b.onclick = () => { draft.choice = b.getAttribute('data-gs-c'); paint(); };
+    });
+    const ta1 = md.querySelector('[data-gs-r]');
+    const ta2 = md.querySelector('[data-gs-b]');
+    ta1.oninput = () => { draft.reason = ta1.value; const go2 = md.querySelector('[data-gs-go]'); if (go2) go2.style.opacity = (draft.choice && draft.reason.trim()) ? 1 : 0.5; };
+    ta2.oninput = () => { draft.best = ta2.value; };
+    md.querySelector('[data-gs-go]').onclick = () => {
+      if (!draft.choice) { showToast('1번에서 하나만 골라주세요 :)'); return; }
+      if (!draft.reason.trim()) { showToast('2번 이유를 한 줄만 적어주세요 🧡'); return; }
+      state.grad_survey = { choice: draft.choice, reason: draft.reason.trim().slice(0, 800), best: draft.best.trim().slice(0, 800), at: new Date().toISOString() };
+      try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+      bd.remove();
+      showToast('설문 감사해요 🧡 다음 기수에 그대로 반영할게요');
+      if (typeof onDone === 'function') setTimeout(onDone, 300);
+    };
+  };
+  paint();
+  bd.appendChild(md);
+  document.body.appendChild(bd);
+};
+
+// 완주 축하 팝
 // 완주 축하 팝업, 파이널까지 끝내고 단어집 PDF 까지 받은 사람에게 1회.
 window.__showCohortCompletePopup = function () {
   if (state.cohort_complete_popup_seen) return;
