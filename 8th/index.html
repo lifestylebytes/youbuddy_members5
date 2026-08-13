@@ -7885,7 +7885,10 @@ function HelpPage() {
   toc.querySelectorAll('[data-jump]').forEach((b) => {
     b.onclick = () => {
       const t = document.getElementById('help-' + b.getAttribute('data-jump'));
-      if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (t) {
+        if (t.tagName === 'DETAILS') t.open = true;
+        t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     };
   });
   page.appendChild(toc);
@@ -7909,8 +7912,7 @@ function HelpPage() {
           <div style="margin-top:1px;font-size:18px;font-weight:800;color:${accent || 'var(--ink)'};letter-spacing:-0.02em;">${t}</div>
         </div>
       </div>
-      ${sub ? `<div style="margin-top:7px;padding-left:51px;font-size:12.5px;color:var(--muted);line-height:1.55;">${sub}</div>` : ''}
-      <div style="margin-top:12px;height:1px;background:linear-gradient(to right,var(--line),transparent);"></div>`;
+      ${sub ? `<div style="margin-top:7px;padding-left:51px;font-size:12.5px;color:var(--muted);line-height:1.55;">${sub}</div>` : ''}`;
     page.appendChild(h);
   };
   // 긴 답변은 기본으로 접어둔다. 설명서가 줄글 벽이 되면 아무도 안 읽는다. (2026-08-13)
@@ -8169,6 +8171,44 @@ function HelpPage() {
     물어보신 건 이 페이지에 계속 추가해둘게요 🧡</div>
     <a href="http://pf.kakao.com/_ExdxcGX" target="_blank" rel="noopener noreferrer" class="btn btn-full" style="margin-top:12px;text-decoration:none;justify-content:center;">고객센터로 문의하기</a>`;
   page.appendChild(foot);
+
+  /* ── 블로그형 챕터 재구성 (2026-08-13) ──
+     챕터 헤더(id=help-*) 뒤의 콘텐츠를 접히는 챕터 카드로 묶는다.
+     후처리라서 위의 콘텐츠 생성 코드는 하나도 안 건드린다.
+     기본은 전부 접힘 = 목차처럼 훑고, 누른 챕터만 아래로 펼쳐진다. */
+  try {
+    const kids = Array.from(page.children);
+    const groups = [];
+    let cur = null;
+    kids.forEach((k) => {
+      if (k.getAttribute && (k.getAttribute('data-help-foot') || k === foot)) { cur = null; return; }
+      if (k.id && k.id.indexOf('help-') === 0) { cur = { head: k, items: [] }; groups.push(cur); }
+      else if (cur) cur.items.push(k);
+    });
+    groups.forEach((g) => {
+      const isQna = g.head.id === 'help-qna';
+      const d = el('details', { id: g.head.id, style: {
+        marginTop: '12px', borderRadius: '18px', overflow: 'hidden', scrollMarginTop: '76px', position: 'relative',
+        border: isQna ? '1px solid rgba(123,94,140,0.4)' : '1px solid var(--line)',
+        background: isQna
+          ? 'linear-gradient(150deg, rgba(123,94,140,0.12), rgba(169,139,184,0.06))'
+          : '#FFFDF8',
+      } });
+      g.head.removeAttribute('id');
+      g.head.style.marginTop = '0';
+      const sm = el('summary', { style: { cursor: 'pointer', listStyle: 'none', padding: '15px 16px 11px' } });
+      sm.appendChild(g.head);
+      const arrow = el('span', { style: { position: 'absolute', top: '19px', right: '15px', fontSize: '12px', fontWeight: '800', color: isQna ? '#7B5E8C' : 'var(--muted)' } }, '▾');
+      sm.appendChild(arrow);
+      d.appendChild(sm);
+      const body = el('div', { style: { padding: '0 16px 18px' } });
+      g.items.forEach((it) => body.appendChild(it));
+      d.appendChild(body);
+      d.addEventListener('toggle', () => { arrow.textContent = d.open ? '▴' : '▾'; });
+      page.insertBefore(d, foot);
+    });
+  } catch (e) {}
+
   return page;
 }
 
