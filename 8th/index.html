@@ -7861,7 +7861,7 @@ function HelpPage() {
     ['learn', '📚', '내 학습'],
     ['tips', '🔥', '학습 꿀팁'],
     ['tip', '⚙️', '알아두면 편한 것'],
-    ...((isPrem || state.isOperator || state.isStaff) ? [['qna', '🎤', '미팅 Q&A']] : []),
+    ['qna', '🎤', '미팅 Q&A'],
     ['faq', '❓', '자주 묻는 것'],
   ];
   const toc = el('div', { style: { display: 'flex', gap: '7px', flexWrap: 'wrap', marginTop: '16px' } });
@@ -7875,11 +7875,13 @@ function HelpPage() {
   });
   page.appendChild(toc);
 
-  const H = (id, ic, t, sub) => {
+  const PREM_C = '#7B5E8C';   // 프리미엄 보라. 앱 전체에서 프리미엄 표시에 쓰는 색.
+  const H = (id, ic, t, sub, accent) => {
     const h = el('div', { id: 'help-' + id, style: { marginTop: '30px', scrollMarginTop: '76px' } });
-    h.innerHTML = `<div style="display:flex;align-items:center;gap:8px;">
+    h.innerHTML = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="font-size:19px;">${ic}</span>
-        <span style="font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;">${t}</span>
+        <span style="font-size:17px;font-weight:800;color:${accent || 'var(--ink)'};letter-spacing:-0.02em;">${t}</span>
+        ${accent ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:linear-gradient(135deg,${accent},#A98BB8);color:#fff;font-size:9.5px;font-weight:800;letter-spacing:0.08em;">PREMIUM</span>` : ''}
       </div>${sub ? `<div style="margin-top:5px;font-size:12.5px;color:var(--muted);">${sub}</div>` : ''}`;
     page.appendChild(h);
   };
@@ -8034,8 +8036,26 @@ function HelpPage() {
 
 
   /* ── 미팅에서 나온 질문 (프리미엄 전용) ── */
-  if (isPrem || state.isOperator || state.isStaff) {
-  H('qna', '🎤', '미팅 Q&A', '8기 프리미엄 미팅에서 나온 질문 모음이에요. 매주 늘어납니다.');
+  const __seesQna = isPrem || state.isOperator || state.isStaff;
+  H('qna', '🎤', '미팅 Q&A', '8기 프리미엄 미팅에서 나온 질문 모음이에요. 매주 늘어납니다.', PREM_C);
+  if (!__seesQna) {
+    // 아예 숨기면 "없는 것" 이 되어버린다. 질문 제목은 보여주고 답만 잠근다.
+    const lock = el('div', { style: { marginTop: '10px', padding: '16px 18px', borderRadius: '16px', background: '#FBFAFF', border: '1px solid rgba(169,139,184,0.35)' } });
+    lock.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;background:linear-gradient(135deg,${PREM_C},#A98BB8);color:#fff;font-size:10px;font-weight:800;letter-spacing:0.08em;">PREMIUM</span>
+        <span style="font-size:14px;font-weight:800;color:var(--ink);">프리미엄 미팅에서 나온 질문들</span>
+      </div>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">
+        ${['대면에서 단어가 생각 안 날 때는요?', '세미콜론 · 하이픈 · 긴 줄표는 언제 쓰나요?', '구동사 책부터 해도 될까요?', '발표는 격식체가 좋을까요, 평소 쓰던 게 좋을까요?']
+          .map((q) => `<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:12px;background:#fff;border:1px solid var(--line-soft,#EFEAE3);">
+            <span style="flex-shrink:0;font-size:12px;">🔒</span>
+            <span style="flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--ink-soft);">${q}</span></div>`).join('')}
+      </div>
+      <div class="t-small" style="margin-top:11px;color:var(--muted);line-height:1.6;">매주 목요일 프리미엄 미팅에서 나온 질문을 정리해서 여기에 쌓아둬요. 답변은 프리미엄 멤버에게 열려 있습니다.</div>`;
+    page.appendChild(lock);
+  }
+  if (__seesQna) {
   foldCard('대면에서 단어가 생각 안 날 때는요?', `
     단어를 모르는 게 문제가 아니라 <b>멈추는 게</b> 문제예요. 원어민도 매일 단어가 안 떠오릅니다. 다만 안 멈출 뿐이에요.<br><br>
     <b>1) 시간 벌기</b> (2초만 벌면 대부분 떠올라요)<br>
@@ -8050,7 +8070,7 @@ function HelpPage() {
       근데 솔직하게 말씀드리면, 이건 <b>상대 말을 알아듣는</b> 데 쓰는 거예요.
       해외 발음이 다양해서 놓치는 분들껜 진짜 도움이 됩니다.<br>
       다만 <b>내 입에서 단어가 안 나오는 건</b> 안경이 못 해줘요. 그건 여전히 위 문장들이 답이에요 :)
-    </div>`);
+    </div>`, PREM_C);
   foldCard('세미콜론 · 하이픈 · 긴 줄표는 언제 쓰나요?', `
     실무에선 <b>하이픈만 정확히</b> 쓰시면 충분해요.<br><br>
     <b>하이픈 (-)</b> 단어를 붙여 형용사로 만들 때<br>
@@ -8066,7 +8086,7 @@ function HelpPage() {
       요즘 AI가 이걸 너무 많이 써요. 그래서 긴 줄표가 많은 글은 읽는 사람이 <b>"이거 AI가 썼나?"</b> 하고 먼저 의심하게 됐어요.<br>
       공들여 쓴 메일이 그렇게 읽히면 억울하잖아요. 저는 그냥 <b>쉼표나 괄호</b>로 처리합니다 :)
     </div><br>
-    <b>헷갈리면 마침표와 콤마로 다 처리하세요.</b> 문장부호로 실력이 평가되는 일은 거의 없어요.`);
+    <b>헷갈리면 마침표와 콤마로 다 처리하세요.</b> 문장부호로 실력이 평가되는 일은 거의 없어요.`, PREM_C);
   foldCard('구동사 책부터 해도 될까요?', `
     방향은 아주 좋아요. 회의에서 체감 난이도를 제일 많이 낮춰주는 게 구동사거든요.
     원어민이 회의에서 쓰는 건 어려운 단어가 아니라 구동사예요. (follow up, loop in, push back, roll out, sort out)<br><br>
@@ -8077,7 +8097,7 @@ function HelpPage() {
     2. 책에서 그 장면에 나오는 구동사만 뽑기<br>
     3. 뽑은 걸로 내 문장 만들어 녹음<br><br>
     그리고 구동사는 뜻을 외우면 안 써먹게 돼요. <b>언제 꺼내는 말인지</b>로 외우셔야 입에서 나옵니다.<br>
-    <span style="color:var(--muted);">📌 발표나 미팅이 한 달 안에 있으시면, 책은 그 뒤로 미루고 그 준비에 시간을 쓰시는 게 낫습니다.</span>`);
+    <span style="color:var(--muted);">📌 발표나 미팅이 한 달 안에 있으시면, 책은 그 뒤로 미루고 그 준비에 시간을 쓰시는 게 낫습니다.</span>`, PREM_C);
   foldCard('발표는 격식체가 좋을까요, 평소 쓰던 게 좋을까요?', `
     정답은 중간이에요. 기억하실 건 하나입니다.<br>
     <b style="color:var(--orange-dark);">문장 구조는 평소처럼 단순하게, 단어는 격식 있게.</b><br><br>
@@ -8087,7 +8107,7 @@ function HelpPage() {
     ✅ <b>문장은 짧게</b> 관계대명사가 두 번 겹치면 거기서 꼬여요<br><br>
     팁 하나 더 드리면, <b>오프닝과 클로징 두 문장만</b> 격식 있는 문장으로 정해두세요.<br>
     <span style="font-family:var(--font-mono);font-size:12.5px;">"Today I'd like to walk you through ___."<br>"That's all from me. Happy to take any questions."</span><br><br>
-    시작과 끝이 단단하면 중간이 좀 흔들려도 전체가 프로처럼 들려요.`);
+    시작과 끝이 단단하면 중간이 좀 흔들려도 전체가 프로처럼 들려요.`, PREM_C);
   }
 
   /* ── FAQ ── */
