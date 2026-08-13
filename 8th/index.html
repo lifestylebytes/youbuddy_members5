@@ -8292,6 +8292,21 @@ function HelpPage() {
         });
         art.appendChild(rel);
       }
+      // 글쓴이 카드 (블로그 감성의 핵심 = 사람이 보이는 것. 2026-08-14)
+      // COHORT-SLOT(manual): 소개 문구는 버디가 직접 다듬기.
+      const author = el('div', { style: { marginTop: '20px', padding: '15px 16px', borderRadius: '14px', background: 'linear-gradient(150deg,#FFF8EA,#FFF3DC)', border: '1px solid rgba(240,172,61,0.45)', display: 'flex', gap: '13px', alignItems: 'flex-start' } });
+      author.innerHTML = `
+        <span style="flex-shrink:0;width:46px;height:46px;border-radius:50%;background:linear-gradient(150deg,#1B3A57,#2E6FA8);display:grid;place-items:center;font-size:21px;">🧡</span>
+        <span style="flex:1;min-width:0;">
+          <span style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:13.5px;font-weight:800;color:var(--ink);">유버디</span>
+            <span style="padding:2px 7px;border-radius:999px;background:rgba(240,172,61,0.25);color:#A07A2A;font-size:9px;font-weight:800;letter-spacing:0.06em;">글쓴이</span>
+          </span>
+          <span style="display:block;margin-top:4px;font-size:12px;line-height:1.65;color:var(--ink-soft);">일하는 사람들의 비즈니스 영어 챌린지, 유비챌을 만들고 운영해요.<br>여러분이 회의에서 첫 마디를 뱉는 순간을 제일 좋아합니다 :)</span>
+          <a href="http://pf.kakao.com/_ExdxcGX/chat" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:7px;font-size:11.5px;font-weight:800;color:#2E6FA8;text-decoration:underline;text-underline-offset:3px;">궁금한 건 1:1로 물어보기 →</a>
+        </span>`;
+      art.appendChild(author);
+
       // 나무위키식 하단 분류 태그
       const catFoot = el('div', { style: { marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--line)', fontSize: '11.5px', color: 'var(--muted)' } });
       catFoot.innerHTML = `분류: <span style="color:#2E6FA8;text-decoration:underline;text-underline-offset:3px;cursor:pointer;" data-catlink>앱 사용 설명서</span> · <span style="color:${isQ ? '#7B5E8C' : '#2E6FA8'};text-decoration:underline;text-underline-offset:3px;cursor:pointer;" data-catlink2>${escapeHtml(found.cat)}</span>`;
