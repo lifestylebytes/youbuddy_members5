@@ -31122,11 +31122,15 @@ window.__deckSaveWrap = async () => {
   if (!hasSupabase()) { showToast('회의록에 저장했어요 (서버 연결 없음)'); return; }
   showToast('멤버 목표에 추가 중...');
   try {
+    let saved = 0;
     for (const e of entries) {
-      await supabaseRpc('append_member_goal', { p_cohort: CHALLENGE.cohort, p_member_name: e.name, p_text: e.text });
+      const key = __memberKeyByName(e.name);
+      if (!key) continue;
+      await supabaseRpc('append_member_goal', { p_cohort: CHALLENGE.cohort, p_member_key: key, p_text: e.text });
+      saved++;
     }
     window.__deckWrapDraft = {};
-    showToast('저장 완료! 멤버 목표에 추가됐어요 ✅');
+    showToast(saved + '명 저장 완료! 멤버 목표에 추가됐어요 ✅');
     render();
   } catch (e) { showToast('저장 실패: ' + ((e && e.message) || e)); }
 };
