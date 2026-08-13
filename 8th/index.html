@@ -1001,6 +1001,16 @@ body.modal-open { overflow: hidden; touch-action: none; }
 
 <!-- Supabase config (publishable key, safe in frontend; protected by RLS) -->
 <script>
+/* 원격 진단용 (2026-08-14): 주소 뒤에 ?debug 붙이면 화면 안에 개발자 콘솔이 뜬다.
+   문제 재현 후 콘솔 스크린샷을 받으면 어떤 기기에서든 원인 추적 가능. */
+if (location.search.indexOf('debug') >= 0) {
+  var __er = document.createElement('script');
+  __er.src = 'https://cdnjs.cloudflare.com/ajax/libs/eruda/3.4.1/eruda.min.js';
+  __er.onload = function () { try { eruda.init(); } catch (e) {} };
+  document.head.appendChild(__er);
+}
+</script>
+<script>
   window.YB_SUPABASE_URL = 'https://qaasxvatmribkgtatine.supabase.co';
   window.YB_SUPABASE_ANON_KEY = 'sb_publishable_XNd9sxTnMsuNmdT1JSXtdw_wMj0Ma9R';
   /* PWA 설정: VAPID 공개키 (push 구독용) */
