@@ -23302,10 +23302,29 @@ function MemberCardModal(memberRef) {
     });
     let statsHtml = '';
     if (hasGoal) {
+      // 🎯 주차 과제는 목표와 분리해서 보여준다. 주차별 줄이 따로 쌓여야
+      // "Week 1 → Week 2 → ..." 변화가 보인다. (2026-08-14)
+      const __gs = splitGoalAndTasks(member.goal);
+      const goalHtml = __gs.goals.length
+        ? __gs.goals.map((g) => `<div style="margin-top:8px;font-size:15px;line-height:1.45;font-weight:700;color:var(--ink);word-break:keep-all;">${escapeHtml(g)}</div>`).join('')
+        : '';
+      const taskHtml = __gs.tasks.length
+        ? `<div style="margin-top:${__gs.goals.length ? '11px' : '8px'};padding-top:${__gs.goals.length ? '10px' : '0'};${__gs.goals.length ? 'border-top:1px dashed rgba(240,172,61,0.45);' : ''}">`
+          + __gs.tasks.map((t) => {
+              const m2 = t.match(/^🎯\s*(Week\s*\d+)\s*과제\s*[·:]?\s*(.*)$/i);
+              const wk = m2 ? m2[1].toUpperCase() : '과제';
+              const body = m2 ? m2[2] : t.replace(/^🎯\s*/, '');
+              return `<div style="margin-top:6px;">
+                <span style="display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(240,172,61,0.2);color:#A07A2A;font-size:9.5px;font-weight:800;letter-spacing:0.06em;">🎯 ${escapeHtml(wk)}</span>
+                <div style="margin-top:4px;font-size:13px;line-height:1.55;font-weight:700;color:var(--ink);word-break:keep-all;">${escapeHtml(body)}</div>
+              </div>`;
+            }).join('')
+          + `</div>`
+        : '';
       statsHtml += `
         <div style="padding:14px;border-radius:18px;background:var(--paper);">
           <div class="kicker" style="color:var(--muted);">${member.me ? '내 챌린지 목표' : '이번 목표'}</div>
-          <div style="margin-top:8px;font-size:15px;line-height:1.45;font-weight:700;color:var(--ink);word-break:keep-all;">${escapeHtml(member.goal)}</div>
+          ${goalHtml}${taskHtml}
         </div>`;
     }
     if (hasPhrase) {
