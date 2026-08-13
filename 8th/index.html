@@ -5906,7 +5906,13 @@ async function refreshRemoteStateAndCommunity(opts = {}) {
     || !!document.querySelector('[data-consent-modal]') // 동의 모달
     || (typeof showRateHistory !== 'undefined' && showRateHistory) // 인증률 추이 모달
   );
-  if (changed && !interactiveModalOpen) requestRender();
+  // 읽기 전용 페이지에서는 백그라운드 재렌더를 건너뛴다.
+  // 서버 데이터를 하나도 안 쓰는 페이지인데 15초마다 다시 그리면
+  // 펼쳐둔 아코디언이 닫히고 스크롤이 튄다. 읽는 중에 글이 사라지는 것처럼 보임. (2026-08-13 신고)
+  // 캐시는 이미 메모리에 반영됐으니, 페이지를 벗어나면 최신 데이터로 그려진다.
+  const READ_ONLY_PAGES = ['help', 'weeks', 'quiz', 'final-report', 'certification'];
+  const onReadingPage = READ_ONLY_PAGES.indexOf(currentPage) >= 0;
+  if (changed && !interactiveModalOpen && !onReadingPage) requestRender();
   return changed;
 }
 
@@ -6253,11 +6259,35 @@ function installTypingBlurRerender(target) {
 // render() 를 N번 trigger 하는 패턴이 흔함, 다 합쳐서 1번만 수행하도록 rAF 기반 코얼리스.
 // 사용자 인터랙션 (클릭/입력) 은 그대로 동기 render() 호출. 백그라운드만 requestRender().
 let __renderRafId = 0;
+// 재렌더 때 펼쳐둔 아코디언(<details>)과 스크롤 위치를 살린다.
+// summary 첫 줄 텍스트를 키로 쓴다 (DOM 이 통째로 새로 만들어지므로 노드 참조는 못 씀).
+function __snapshotOpenFolds() {
+  try {
+    const open = [];
+    document.querySelectorAll('details[open] > summary').forEach((sm) => {
+      const t = (sm.textContent || '').trim().slice(0, 60);
+      if (t) open.push(t);
+    });
+    return { open, y: window.scrollY || 0 };
+  } catch (e) { return null; }
+}
+function __restoreOpenFolds(snap) {
+  if (!snap || !snap.open || !snap.open.length) return;
+  try {
+    document.querySelectorAll('details > summary').forEach((sm) => {
+      const t = (sm.textContent || '').trim().slice(0, 60);
+      if (t && snap.open.indexOf(t) >= 0) sm.parentElement.open = true;
+    });
+    if (snap.y > 0) window.scrollTo(0, snap.y);
+  } catch (e) {}
+}
 function requestRender() {
   if (__renderRafId) return;
+  const __snap = __snapshotOpenFolds();
   __renderRafId = requestAnimationFrame(() => {
     __renderRafId = 0;
     try { render(); } catch (e) {}
+    try { __restoreOpenFolds(__snap); } catch (e) {}
   });
 }
 
