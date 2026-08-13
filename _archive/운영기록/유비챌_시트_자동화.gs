@@ -563,6 +563,16 @@ function applyTodayEdits() {
     }
   });
 
+  // 1-2) 슬랙 표기 제거 (슬랙 안 씀, 2026-08-13)
+  let cleaned = 0;
+  tasks.forEach(function (r, i) {
+    const t = String(r[0] || '');
+    if (t.indexOf('슬랙') >= 0) {
+      chk.getRange(6 + i, 6).setValue(t.replace(/슬랙\s*#?\d*\s*/g, '').trim());
+      cleaned++;
+    }
+  });
+
   // 2) 원고 교체
   const msg = ss.getSheetByName(MSG_SHEET);
   const mLast = msg.getLastRow();
@@ -576,5 +586,5 @@ function applyTodayEdits() {
     }
   }
 
-  Logger.log('시각 변경 ' + moved + '건 · 원고 교체 ' + replaced + '건');
+  Logger.log('시각 변경 ' + moved + '건 · 슬랙 표기 제거 ' + cleaned + '건 · 원고 교체 ' + replaced + '건');
 }
