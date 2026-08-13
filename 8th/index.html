@@ -7850,10 +7850,20 @@ function HelpPage() {
   const page = el('div', { class: 'page' });
   const isPrem = state.tier === 'premium';
 
-  page.appendChild(el('div', { class: 'kicker' }, '앱 사용 설명서'));
-  page.appendChild(el('h1', { class: 'h1', style: { marginTop: '4px' } }, '유비챌 알차게 쓰기'));
-  page.appendChild(el('p', { class: 'sub', style: { marginTop: '6px' } },
-    '필요한 것만 찾아보셔도 되고, 한 번 쭉 훑으시면 "이런 것도 있었네" 하는 게 몇 개 나올 거예요.'));
+  // 블로그풍 히어로 (2026-08-13 리디자인)
+  const hero = el('div', { style: {
+    padding: '26px 22px 24px', borderRadius: '22px',
+    background: 'linear-gradient(150deg, #26331F 0%, #3A4A2E 60%, #4A5A38 100%)',
+    position: 'relative', overflow: 'hidden',
+  } });
+  hero.innerHTML = `
+    <div style="position:absolute;top:-30px;right:-20px;font-size:110px;opacity:0.12;transform:rotate(12deg);">📖</div>
+    <div style="position:relative;">
+      <span style="display:inline-block;padding:4px 11px;border-radius:999px;background:rgba(251,231,161,0.18);color:#FBE7A1;font-size:10.5px;font-weight:800;letter-spacing:0.08em;">USER GUIDE · 8기</span>
+      <div style="margin-top:10px;font-size:24px;font-weight:800;color:#FBF7F0;letter-spacing:-0.02em;line-height:1.3;">유비챌 알차게 쓰기</div>
+      <div style="margin-top:7px;font-size:13px;color:rgba(251,247,240,0.75);line-height:1.65;">필요한 것만 찾아보셔도 되고,<br>쭉 훑으면 "이런 것도 있었네" 가 몇 개 나올 거예요.</div>
+    </div>`;
+  page.appendChild(hero);
 
   // 목차, 탭하면 해당 섹션으로 스크롤
   const SECTIONS = [
@@ -7865,9 +7875,13 @@ function HelpPage() {
     ['qna', '🎤', '미팅 Q&A'],
     ['faq', '❓', '자주 묻는 것'],
   ];
-  const toc = el('div', { style: { display: 'flex', gap: '7px', flexWrap: 'wrap', marginTop: '16px' } });
-  toc.innerHTML = SECTIONS.map(([id, ic, t]) =>
-    `<button data-jump="${id}" style="padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer;">${ic} ${t}</button>`).join('');
+  const toc = el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '14px' } });
+  toc.innerHTML = SECTIONS.map(([id, ic, t], i) =>
+    `<button data-jump="${id}" style="display:flex;align-items:center;gap:9px;padding:12px 13px;border-radius:14px;border:1px solid var(--line);background:#fff;color:var(--ink);font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;text-align:left;">
+       <span style="flex-shrink:0;width:30px;height:30px;border-radius:9px;background:var(--paper2,#F7F4EE);display:grid;place-items:center;font-size:15px;">${ic}</span>
+       <span style="flex:1;min-width:0;">${t}</span>
+       <span style="flex-shrink:0;font-size:10px;color:var(--muted);font-weight:800;">0${i + 1}</span>
+     </button>`).join('');
   toc.querySelectorAll('[data-jump]').forEach((b) => {
     b.onclick = () => {
       const t = document.getElementById('help-' + b.getAttribute('data-jump'));
@@ -7877,13 +7891,26 @@ function HelpPage() {
   page.appendChild(toc);
 
   const PREM_C = '#7B5E8C';   // 프리미엄 보라. 앱 전체에서 프리미엄 표시에 쓰는 색.
+  let __secN = 0;
   const H = (id, ic, t, sub, accent) => {
-    const h = el('div', { id: 'help-' + id, style: { marginTop: '30px', scrollMarginTop: '76px' } });
-    h.innerHTML = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="font-size:19px;">${ic}</span>
-        <span style="font-size:17px;font-weight:800;color:${accent || 'var(--ink)'};letter-spacing:-0.02em;">${t}</span>
-        ${accent ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:linear-gradient(135deg,${accent},#A98BB8);color:#fff;font-size:9.5px;font-weight:800;letter-spacing:0.08em;">PREMIUM</span>` : ''}
-      </div>${sub ? `<div style="margin-top:5px;font-size:12.5px;color:var(--muted);">${sub}</div>` : ''}`;
+    __secN += 1;
+    const h = el('div', { id: 'help-' + id, style: { marginTop: '36px', scrollMarginTop: '76px' } });
+    const tileBg = accent
+      ? `linear-gradient(150deg,${accent},#A98BB8)`
+      : 'linear-gradient(150deg,#26331F,#4A5A38)';
+    h.innerHTML = `
+      <div style="display:flex;align-items:center;gap:11px;">
+        <span style="flex-shrink:0;width:40px;height:40px;border-radius:13px;background:${tileBg};display:grid;place-items:center;font-size:19px;">${ic}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:10px;font-weight:800;letter-spacing:0.12em;color:var(--muted);">CHAPTER 0${__secN}</span>
+            ${accent ? `<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;background:linear-gradient(135deg,${accent},#A98BB8);color:#fff;font-size:9px;font-weight:800;letter-spacing:0.08em;">PREMIUM</span>` : ''}
+          </div>
+          <div style="margin-top:1px;font-size:18px;font-weight:800;color:${accent || 'var(--ink)'};letter-spacing:-0.02em;">${t}</div>
+        </div>
+      </div>
+      ${sub ? `<div style="margin-top:7px;padding-left:51px;font-size:12.5px;color:var(--muted);line-height:1.55;">${sub}</div>` : ''}
+      <div style="margin-top:12px;height:1px;background:linear-gradient(to right,var(--line),transparent);"></div>`;
     page.appendChild(h);
   };
   // 긴 답변은 기본으로 접어둔다. 설명서가 줄글 벽이 되면 아무도 안 읽는다. (2026-08-13)
