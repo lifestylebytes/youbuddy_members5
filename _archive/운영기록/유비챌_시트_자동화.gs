@@ -590,7 +590,6 @@ function addMeetingPreviewRows() {
     const r = endRow[d];
     if (!r) return;
     sh.insertRowAfter(r);
-    sh.getRange(r + 1, 5).setValue('버디');   // 담당은 수식이 아니라 값이면 여기서 채워짐
     sh.getRange(r + 1, 6).setValue(TASK);
   });
 
@@ -652,7 +651,6 @@ function addWeaknessReviewRow() {
     }
     if (!endRow) throw new Error('Day 6 을 못 찾았어요');
     sh.insertRowAfter(endRow);
-    sh.getRange(endRow + 1, 5).setValue('버디');
     sh.getRange(endRow + 1, 6).setValue(TASK);
     fixChecklistTimes();
   }
@@ -757,8 +755,27 @@ function sortChecklistByTime() {
 // 시각 수식 갱신 → 시간순 정렬 → 색 다시 칠하기. 이거 하나만 돌리면 됩니다.
 function refreshChecklist() {
   fixChecklistTimes();
+  fixChecklistOwners();
   SpreadsheetApp.flush();
   sortChecklistByTime();
   try { paintChecklist(); } catch (e) {}
   Logger.log('체크리스트 정리 완료');
+}
+
+/* ============================================================
+   담당(E열) 배열 수식 복구 (2026-08-13)
+   ------------------------------------------------------------
+   E6 한 칸에 걸린 MAP 수식이 E열 전체를 만든다.
+   중간 셀에 값을 쓰면 통째로 #REF! 가 되니 절대 직접 입력하지 말 것.
+   ============================================================ */
+
+const OWNER_FORMULA = '=MAP($F6:$F200,LAMBDA(t,IF(t="","",IF(REGEXMATCH(t,"모닝 공지|인증률|녹음 확인|미인증 명단|1:1|미완료자 리마인드|미팅 전 할 일|발표자|미응시자|턱걸이|쉬는 상태"),"매니저","버디"))))';
+
+function fixChecklistOwners() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CHECK_SHEET);
+  const last = Math.max(sh.getLastRow(), 7);
+  sh.getRange(6, 5, last - 5, 1).clearContent();
+  SpreadsheetApp.flush();
+  sh.getRange('E6').setFormula(OWNER_FORMULA);
+  Logger.log('담당 수식 복구 완료');
 }
