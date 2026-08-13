@@ -1008,6 +1008,42 @@ if (location.search.indexOf('debug') >= 0) {
   __er.src = 'https://cdnjs.cloudflare.com/ajax/libs/eruda/3.4.1/eruda.min.js';
   __er.onload = function () { try { eruda.init(); } catch (e) {} };
   document.head.appendChild(__er);
+
+  /* 계기판 HUD: 스크린샷 한 장으로 상태 전체가 보이게 (2026-08-14) */
+  (function () {
+    var errs = [];
+    window.addEventListener('error', function (e) { if (errs.length < 3) errs.push(String(e.message).slice(0, 60)); });
+    var hb = 0; setInterval(function () { hb++; }, 100);
+    var renders = 0, wheels = 0, lastWheelY = -1, stuckWheels = 0;
+    window.addEventListener('wheel', function () {
+      wheels++;
+      var y0 = window.scrollY;
+      setTimeout(function () { if (window.scrollY === y0) stuckWheels++; else stuckWheels = 0; }, 120);
+    }, { passive: true, capture: true });
+    document.addEventListener('DOMContentLoaded', function () {
+      try {
+        var root = document.getElementById('root');
+        if (root) new MutationObserver(function () { renders++; }).observe(root, { childList: true });
+      } catch (e) {}
+    });
+    var hud = document.createElement('div');
+    hud.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:2147483647;background:rgba(0,0,0,0.82);color:#7CFC9A;font:11px/1.6 monospace;padding:8px 10px;border-radius:8px;pointer-events:none;white-space:pre;';
+    var t0 = Date.now();
+    setInterval(function () {
+      var secs = (Date.now() - t0) / 1000;
+      var busy = Math.max(0, Math.round(100 - (hb / (secs * 10)) * 100));
+      var fixedN = document.querySelectorAll('body > div[style*="fixed"]').length;
+      hud.textContent =
+        'DIAG v3 · ' + Math.round(secs) + 's\n'
+        + '메인스레드 점유 ' + busy + '%\n'
+        + '리렌더 ' + renders + '회 · 오버레이 ' + fixedN + '개\n'
+        + '휠 ' + wheels + '회 · 연속막힘 ' + stuckWheels + '\n'
+        + 'scrollY ' + Math.round(window.scrollY) + ' / ' + Math.round(document.body.scrollHeight - innerHeight) + '\n'
+        + 'overflow html:' + getComputedStyle(document.documentElement).overflowY + ' body:' + getComputedStyle(document.body).overflowY + '\n'
+        + (errs.length ? ('ERR: ' + errs.join(' | ')) : 'ERR 없음');
+      if (!hud.parentNode && document.body) document.body.appendChild(hud);
+    }, 500);
+  })();
 }
 </script>
 <script>
