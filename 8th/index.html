@@ -30508,46 +30508,126 @@ function __ptGuideHtml() {
 
 const WEEK1_DECK = [
   { section: '오프닝', kicker: 'WEEK 1 · 60분', title: '오늘 순서 한눈에',
-    html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">8기 프리미엄 버디</b> · 첫 미팅이라 서로 소개부터 가볍게.</div>'
+    html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">8기 프리미엄 버디</b> · 오늘은 오리엔테이션이라 <b style="color:var(--ink);">발표 없어요.</b></div>'
       + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
-      + ['캐치업 · 자기소개 + 이번 기수 목표 한 줄 (영어로!)', '문장 라운드 · 가져온 문장, 어떤 상황인지 설명하며 소리내기 (오늘의 메인!)', '단어 리뷰 · Day 1~4 표현 12개 + 랜덤 문장 만들기', '마무리 · 막힌 표현 정리 + 다음 주 예고'].map((t, i) =>
+      + ['버디 소개 · 우리가 왜 여기 모였는지', '4주 동안 뭘 기대해도 되는지 · 미팅과 톡방 쓰는 법', '제가 도와드릴 수 있는 것', '자기소개 4문장 + 이번 4주 목표 정하기', '앞으로 미팅은 이렇게 굴러가요 (+ 요일 투표)', '마무리 · 오늘 딱 하나만 들고 나가기'].map((t, i) =>
           '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
       + '</div>'
-      + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:13.5px;color:var(--ink);">🎯 목표: "외운 표현을 실제로 입 밖으로 뱉어보기"</div>' },
-  { section: '캐치업·골세팅', kicker: '1 · 캐치업', title: '캐치업 & 4주 개인 목표 잡기', goalCapture: true,
-    checks: ['자기소개 + 근황 한마디씩', '이번 기수에 꼭 갖고 싶은 표현·스킬 한 줄씩', '오늘 흐름 안내: 문장 라운드 → 단어 리뷰 → 마무리'],
-    html: '<div style="margin-top:6px;padding:14px 16px;border-radius:14px;background:#EAF2FA;border:1px solid rgba(46,111,168,0.25);">'
-      // COHORT-SLOT(manual): 4주 로드맵 문구, 기수 테마 바뀌면 아래 3줄 수정.
+      + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎯 오늘 목표: <b>서로를 알고, 각자 4주 목표를 문장으로 확정하기</b><br><span class="t-small" style="color:var(--ink-soft);">여기선 틀리는 게 일이에요. 즉석 지목 안 하고, 순서 미리 알려드립니다.</span></div>' },
+
+  { section: '버디 소개', kicker: '1 · 인사', title: 'Nice to e-meet you!',
+    script: '"안녕하세요, 반갑습니다! This is your 버디입니다. 여러분 다 외국계에 계신 것 같아요~ 오늘은 제 소개부터 짧게 드릴게요."',
+    html: '<div style="display:flex;flex-direction:column;gap:9px;">'
+      + ['🙋 안녕하세요 반갑습니다! This is your 버디입니다', '🏢 여러분들도 다 외국계에 계신 것 같아요', '⏳ 영어를 잘하는 것도 중요하지만, 시간 없는 우리는 <b>전략적으로</b> 하는 게 더 중요해요'].map((t) =>
+          '<div style="padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);font-size:14px;font-weight:700;color:var(--ink);line-height:1.6;">' + t + '</div>').join('')
+      + '</div>'
+      + '<div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:#EAF2FA;border:1px solid rgba(46,111,168,0.25);">'
+      + '<div style="font-size:12px;font-weight:800;color:#1F4F7D;">💡 비즈니스 영어가 뭘까요?</div>'
+      + '<div style="margin-top:8px;font-size:14px;line-height:1.9;color:var(--ink);">= <b>일이 되게끔 하는 영어</b><br>= 일은 주관적인 것, 그러므로 <b style="color:#1F4F7D;">자신에게 맞는 전략</b>이 중요합니다</div></div>' },
+
+  { section: '4주 기대치', kicker: '2 · 4주 동안', title: '솔직히, 4주 만에 완벽한 변신은 어려워요',
+    script: '"솔직하게 말씀드릴게요. 4주 안에 완벽히 변신하는 건 어렵습니다. 대신 저는 여러분이 어떻게 전략적으로 공부하실지를 알려드려요."',
+    html: '<div style="padding:14px 16px;border-radius:14px;background:#26331F;color:#ECEFE3;">'
+      + '<div style="font-size:11px;letter-spacing:0.06em;color:#FBE7A1;font-weight:800;">HOWEVER!</div>'
+      + '<div style="margin-top:8px;font-size:14.5px;font-weight:800;line-height:1.7;">저는 여러분이 <span style="color:#FBE7A1;">어떻게 전략적으로 공부하실지</span>를 알려드리고 있어요.</div></div>'
+      + '<div style="margin-top:14px;font-size:12px;font-weight:800;color:#1F4F7D;">📌 이 두 곳을 이렇게 써주세요</div>'
+      + '<div style="margin-top:8px;display:flex;flex-direction:column;gap:9px;">'
+      + [['🎥', '이 미팅', '배우는 자리가 아니라 <b>입 밖으로 내보는 자리</b>예요. 제가 가르치는 게 아니라, 여러분이 말할 환경을 만듭니다. 틀린 채로 말해도 아무도 안 놀라요.'],
+         ['💬', '단톡방', '녹음을 올리는 곳이자 <b>질문·플래깅을 아무 때나 던지는 곳</b>이에요. "이거 이상한데?" "이런 게 있으면 좋겠다" 전부 환영입니다.'],
+         ['📱', '앱', '단어·AI 첨삭·꿀팁은 앱이 담당해요. 미팅은 그걸 <b>써먹는</b> 자리고요.']].map(function (x) {
+          return '<div style="display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);">'
+            + '<span style="flex-shrink:0;width:38px;height:38px;border-radius:11px;background:#EAF2FA;display:inline-flex;align-items:center;justify-content:center;font-size:20px;">' + x[0] + '</span>'
+            + '<div style="min-width:0;"><div style="font-size:14px;font-weight:800;color:var(--ink);">' + x[1] + '</div>'
+            + '<div class="t-small" style="margin-top:3px;color:var(--ink-soft);line-height:1.65;">' + x[2] + '</div></div></div>'; }).join('')
+      + '</div>'
+      + '<div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:#EAF2FA;border:1px solid rgba(46,111,168,0.25);">'
       + '<div style="font-size:12px;font-weight:800;color:#1F4F7D;">✨ 4주 특별 강의 로드맵 (미리 기대 심기)</div>'
       + '<div style="margin-top:8px;font-size:13.5px;line-height:1.8;color:var(--ink);">2주차 · 논쟁의 기술 (steelman, 회의를 지배하는 말들)<br>3주차 · 위기 커뮤니케이션 (급한 불 끄는 영어)<br>4주차 · 전체 어휘 랩업 + 단어 빙고</div></div>' },
-  { section: '문장 라운드', kicker: '2 · 문장 라운드', title: '내가 가져온 문장 · 소리내어 말하기', preSubmit: true,
-    checks: ['어떤 상황에서 왜 이렇게 썼는지 설명 → 문장 소리내어 읽기 (업무 용어를 입 밖에!)', '끝나면 옆사람에게 자연스럽게 토스 · 버디는 마이크만'],
-    script: '"각자 가져온 문장 얘기해볼게요. 어떤 상황에서 왜 이렇게 썼는지 설명하고, 문장을 소리내어 읽어주세요. 끝나면 다음 분에게 토스~"' },
-  { section: '단어 리뷰', kicker: '3 · 회의 시뮬', title: '회의에서 답을 해보아요!',
-    html: (() => {
-      const step = (emo, t, sub) => '<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);">'
+
+  { section: '도와드릴 것', kicker: '3 · 제 역할', title: '제가 도와드릴 수 있는 건 이거예요',
+    script: '"여러분 중엔 이미 본인만의 커리큘럼이 있는 분도, 아직 없는 분도 계실 거예요. 둘 다 괜찮습니다. 각각 이렇게 도와드려요."',
+    html: '<div style="display:flex;flex-direction:column;gap:12px;">'
+      + '<div style="padding:14px 16px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.22);">'
+      + '<div style="font-size:14.5px;font-weight:800;color:#1F4F7D;">1️⃣ 본인만의 커리큘럼이 있다</div>'
+      + '<div style="margin-top:6px;font-size:13.5px;color:var(--ink);line-height:1.75;">→ 그 일정에 맞춰 <b>전략적으로 도와드립니다.</b></div>'
+      + '<div style="margin-top:10px;padding:11px 13px;border-radius:12px;background:#EAF2FA;font-size:12.5px;color:var(--ink-soft);line-height:1.75;">📎 지난 7기 T님은 10월에 중요한 발표가 있으셨어요. 그 날짜에 맞춰 Q&amp;A를 연습하셨고, 유비챌로 매일 답변을 녹음해서 올리셨습니다.</div></div>'
+      + '<div style="padding:14px 16px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.22);">'
+      + '<div style="font-size:14.5px;font-weight:800;color:#1F4F7D;">2️⃣ 아직 없다 · 괜찮아요</div>'
+      + '<div style="margin-top:8px;font-size:13.5px;color:var(--ink);line-height:1.85;">· 지금 뭐가 우선순위인지<br>· 어떤 상황이 가장 두려운지<br>이걸 같이 얘기하면서 방향을 잡고, <b>매주 1회 연습할 환경</b>을 만들어드려요.</div></div>'
+      + '</div>'
+      + '<div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:#26331F;color:#ECEFE3;">'
+      + '<div style="font-size:14.5px;font-weight:800;line-height:1.7;">혼자 하면 "내가 잘 할 수 있을까?" 고민하는 데 시간을 씁니다.<br><span style="color:#FBE7A1;">저는 그냥 할 수 있는 환경을 세팅해 드려요.</span></div></div>' },
+
+  { section: '자기소개·골세팅', kicker: '4 · 자기소개', title: '드디어! 8기 자기소개 (4문장)', goalCapture: true,
+    checks: ['자기소개 4문장 (템플릿대로, 영어로!)', '이번 4주 목표를 한 줄로 확정', '발언 순서 미리 안내 (즉석 지목 없음)'],
+    script: '"이제 서로를 알아야 제가 도와드릴 수 있겠죠? 길게 안 해요, 딱 네 문장입니다. 이 소개로 앞으로 함께할 동료의 분야랑 리스닝 카테고리까지 같이 예측할 수 있어요."',
+    html: '<div style="padding:14px 16px;border-radius:14px;background:#EAF2FA;border:1px solid rgba(46,111,168,0.25);">'
+      + '<div style="font-size:12px;font-weight:800;color:#1F4F7D;">🗣️ 자기소개 4문장 템플릿</div>'
+      + '<div style="margin-top:9px;font-family:var(--font-mono);font-size:13.5px;line-height:2;color:var(--ink);">'
+      + '1. I&rsquo;m currently working/studying in ___.<br>'
+      + '2. I usually use English when ___.<br>'
+      + '3. The hardest part for me is ___.<br>'
+      + '4. During this challenge, I want to practice ___.</div></div>'
+      + '<div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);">'
+      + '<div style="font-size:12px;font-weight:800;color:var(--orange-dark);">🎯 목표는 아주 구체적으로</div>'
+      + '<div style="margin-top:8px;font-size:13.5px;line-height:1.9;color:var(--ink);">❌ "영어를 잘하고 싶다"<br>⭕ "9월 미팅에서 아젠다를 영어로 열고, 이해 안 된 부분을 다시 확인하고, 내 의견을 한 번 말한다"</div>'
+      + '<div class="t-small" style="margin-top:8px;color:var(--ink-soft);line-height:1.6;">구체적이어야 4주 뒤에 됐는지 안 됐는지를 셀 수 있어요. 아래 칸에 각자 말한 목표를 받아적어 주세요.</div></div>' },
+
+  { section: '미팅 운영', kicker: '5 · 앞으로', title: '앞으로 미팅은 이렇게 굴러가요',
+    script: '"오늘은 OT라 발표가 없었지만, 다음 주부터는 이 흐름으로 갑니다. 60분 안에 다 들어가요~"',
+    html: '<div style="display:flex;flex-direction:column;gap:9px;">'
+      + [['⏱️', '5분 캐치업', '지난 한 주 어땠는지, 막힌 순간 하나씩'],
+         ['🔁', '주간 단어 복습', '그 주 표현으로 회의 시뮬 (바로 다음 장에서 맛보기!)'],
+         ['🎤', '1명 발표 · 7분 + 피드백 3분', '가장 급한 분부터 먼저. 발표하신 분은 개인 피드백 리포트를 따로 드려요'],
+         ['📝', '마무리', '안 들렸던 단어 정리 → 다음 주 꿀팁으로 만들어 옴']].map(function (x, i) {
+          return '<div style="display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);">'
+            + '<span style="flex-shrink:0;width:38px;height:38px;border-radius:11px;background:#EAF2FA;display:inline-flex;align-items:center;justify-content:center;font-size:20px;">' + x[0] + '</span>'
+            + '<div style="min-width:0;"><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + (i + 1) + '. ' + x[1] + '</div>'
+            + '<div class="t-small" style="margin-top:3px;color:var(--ink-soft);line-height:1.65;">' + x[2] + '</div></div></div>'; }).join('')
+      + '</div>'
+      + '<div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.28);">'
+      + '<div style="font-size:12px;font-weight:800;color:var(--orange-dark);">🗳️ 하나만 여쭤볼게요 (지금 손들기 투표!)</div>'
+      + '<div style="margin-top:8px;font-size:14px;line-height:1.8;color:var(--ink);">미팅을 <b>수요일</b>로 옮겨볼까 하는데 어떠세요?<br>다음 주부터 / 다다음 주부터 / 목요일 유지 · 셋 중에 골라주세요!</div>'
+      + '<div class="t-small" style="margin-top:8px;color:var(--ink-soft);">과반으로 정하고, 정해지면 오늘 안에 톡방에 공지드릴게요.</div></div>' },
+
+  { section: '단어 리뷰 맛보기', kicker: '5-1 · 맛보기', title: '주간 단어 복습, 이런 식이에요',
+    html: (function () {
+      var step = function (emo, t, sub) { return '<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);">'
         + '<span style="flex-shrink:0;width:42px;height:42px;border-radius:12px;background:#EAF2FA;display:inline-flex;align-items:center;justify-content:center;font-size:22px;">' + emo + '</span>'
-        + '<div><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div><div class="t-small" style="margin-top:1px;color:var(--ink-soft);">' + sub + '</div></div></div>';
-      const arrow = '<div style="text-align:center;color:#9DBCA9;font-size:15px;line-height:1;margin:1px 0;">↓</div>';
+        + '<div><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div><div class="t-small" style="margin-top:1px;color:var(--ink-soft);">' + sub + '</div></div></div>'; };
+      var arrow = '<div style="text-align:center;color:#9DBCA9;font-size:15px;line-height:1;margin:1px 0;">↓</div>';
       return '<div style="display:flex;flex-direction:column;">'
         + step('🏢', '상황 듣기', '리얼한 회의 장면 한 줄 (한국어)') + arrow
         + step('🗣️', '상대방의 한 마디', '회의에서 누가 나에게 말을 건네요') + arrow
         + step('💬', '내가 대답하기', '첫 글자 힌트를 보고 문장 전체를 소리내어!') + arrow
         + step('💡', '표현 공개', '같이 확인하고 한 번 더 따라 말하기')
         + '</div>'
-        + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎯 방금 나눈 각자의 장면에서 이어가요. <b>상황은 달라도 회의 반사신경은 같다!</b> 문장을 새로 만드는 게 아니라 회의에서 <b>대답</b>하는 거예요. 막히면 "pass"~ 표시해두고 넘어가요.</div>';
+        + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎯 문장을 새로 만드는 게 아니라 회의에서 <b>대답</b>하는 거예요. <b>상황은 달라도 회의 반사신경은 같다!</b> 막히면 "pass" 하고 넘어가요.</div>';
     })() },
-  { section: '단어 리뷰', kicker: '3 · 회의 시뮬 12문항', title: '회의에서 답을 해보아요!', meetingSim: true,
-    script: '"상황 듣고, 상대방 말 듣고, 본인이 대답해주세요. 표현은 첫 글자만 보여드릴게요~ 문장 전체로 크게!"' },
+  { section: '단어 리뷰 맛보기', kicker: '5-1 · 회의 시뮬', title: '한번 해볼까요?', meetingSim: true,
+    script: '"상황 듣고, 상대방 말 듣고, 본인이 대답해주세요. 표현은 첫 글자만 보여드릴게요~ 문장 전체로 크게! 시간 없으면 3~4문항만 맛보기로 갑니다."' },
 
-  { section: 'PT 준비법', kicker: '4 · PT 준비법', title: '내 PT, 이렇게 준비해요',
-    script: '"Week 2~4 중 한 주, 본인 업무로 7분 발표를 해요. 잘하는 자리가 아니라 내 업무를 영어로 길게 말해보는 자리예요~ 준비는 이 다섯 단계면 끝!"',
+  { section: 'PT 준비법', kicker: '6 · PT 준비법', title: '내 발표, 이렇게 준비해요',
+    script: '"Week 2~4 중 한 주, 본인 업무로 7분 발표를 해요. 잘하는 자리가 아니라 내 업무를 영어로 길게 말해보는 자리예요~ 데드라인이 급하신 분부터 먼저 가시면 좋아요. 준비는 이 다섯 단계면 끝!"',
     html: __ptGuideHtml() },
-  { section: '다음주 예고', kicker: '다음 주', title: 'Week 2 · 논쟁의 기술',
-    html: '<div style="padding:14px 16px;border-radius:14px;background:#26331F;color:#ECEFE3;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
-      + '<div style="font-size:11px;letter-spacing:0.06em;color:#FBE7A1;font-weight:800;">WEEK 2 · 🛡️ The Art of the Argument</div>'
-      + '<div style="margin-top:8px;font-size:12.5px;color:#ECEFE3;line-height:1.85;">① 롤플레잉 40분 → ② PT 발표 4명 (7분+3분) → ③ 질의응답</div>'
-      + '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.25);font-size:11.5px;color:#C9D6C0;line-height:1.7;">🍬 맛보기: "Let me steelman their case." · "Quick poll?" · "Can we double-click on that?"</div></div>' },
+
+  { section: '마무리', kicker: '마무리', title: '오늘 딱 하나만 들고 나가기',
+    script: '"오늘 정말 고생 많으셨어요. 마지막으로 한 명씩, 오늘 정한 이번 주 목표를 한 문장으로만 말하고 마칠게요!"',
+    html: '<div style="padding:14px 16px;border-radius:14px;background:#26331F;color:#ECEFE3;">'
+      + '<div style="font-size:11px;letter-spacing:0.06em;color:#FBE7A1;font-weight:800;">오늘의 한 줄</div>'
+      + '<div style="margin-top:8px;font-size:15px;font-weight:800;line-height:1.75;">4주 뒤에 여러분은 <span style="color:#FBE7A1;">"내 업무 영어 대본"</span> 을 한 부 갖고 나가게 돼요.<br>오늘 그 첫 문장을 정하신 겁니다.</div></div>'
+      + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:9px;">'
+      + ['🔁 한 명씩 · 이번 주 목표 한 문장 말하고 마치기', '📝 오늘 안 들렸던 단어 있으면 톡방에 남겨주세요 (다음 주 꿀팁으로 만들어 옵니다)', '🗓️ 요일 투표 결과는 오늘 안에 톡방 공지'].map(function (t) {
+          return '<div style="padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);font-size:14px;font-weight:700;color:var(--ink);line-height:1.6;">' + t + '</div>'; }).join('')
+      + '</div>'
+      + '<div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:#EAF2FA;border:1px solid rgba(46,111,168,0.25);">'
+      + '<div style="font-size:11px;letter-spacing:0.06em;color:#1F4F7D;font-weight:800;">WEEK 2 · 🛡️ The Art of the Argument</div>'
+      + '<div style="margin-top:8px;font-size:13px;color:var(--ink);line-height:1.85;">① 캐치업 → ② 논쟁의 기술 롤플레잉 → ③ 발표 + 피드백</div>'
+      + '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(46,111,168,0.25);font-size:12.5px;color:var(--ink-soft);line-height:1.7;">🍬 맛보기: "Let me steelman their case." · "Quick poll?" · "Can we double-click on that?"</div></div>' },
+
+  { section: '시간 남으면', kicker: '+α', title: '시간 남으면 · 문장 라운드', preSubmit: true,
+    checks: ['각자 앱에 쓴 문장 하나를 소리내어 읽기', '"여기가 확신 없었다" 한 마디만 덧붙이기', '피드백은 동료들의 "나라면 이렇게" 버전으로'],
+    script: '"시간이 남으면 가볍게 해볼게요. 각자 앱에 쓰신 문장 하나만 소리내어 읽고, 어디가 확신 없었는지 한 마디만 붙여주세요~"' },
 ];
 
 // Week 2 상황 롤플레잉 (논쟁의 기술)
