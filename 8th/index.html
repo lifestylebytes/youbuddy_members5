@@ -8269,20 +8269,35 @@ function HelpPage() {
         <div style="margin-top:10px;font-size:21px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;line-height:1.4;">${escapeHtml(found.title)}</div>
         <div style="margin-top:6px;font-size:11.5px;color:var(--muted);">유비챌 8기 · 앱 사용 설명서</div>`;
       art.appendChild(headBox);
+      // 나무위키식 개요 안내 박스 (2026-08-14). 드립은 카테고리별로 다르게.
+      const notice = el('div', { style: { marginTop: '14px', padding: '11px 14px', borderRadius: '10px', background: 'var(--paper2,#FAF8F3)', border: '1px solid var(--line)', fontSize: '12px', lineHeight: '1.7', color: 'var(--ink-soft)' } });
+      const noticeTxt = isQ
+        ? `이 문서는 <b>8기 프리미엄 미팅에서 실제로 나온 질문</b>을 다룬다. <span style="text-decoration:line-through;opacity:0.6;">질문한 사람이 누군지는 버디만 안다</span> 매주 목요일마다 늘어난다.`
+        : (found.catId === 'help-faq'
+          ? `이 문서는 유비챌에서 <b>제일 많이 들어오는 질문</b>을 다룬다. <span style="text-decoration:line-through;opacity:0.6;">읽고 나면 물어볼 게 없어져서 곤란하다</span>`
+          : `이 문서는 유비챌 8기 <b>공식 설명서</b>의 일부다. <span style="text-decoration:line-through;opacity:0.6;">공식인지는 아무도 검증한 적 없다</span> 안 읽어도 챌린지는 굴러가지만 읽으면 확실히 편해진다.`);
+      notice.innerHTML = `📄 ${noticeTxt}`;
+      art.appendChild(notice);
       const bodyWrap = el('div', { style: { marginTop: '16px' } });
       found.nodes.forEach((n) => { n.style.marginTop = n.style.marginTop || '12px'; n.style.padding = n.style.padding || '0'; bodyWrap.appendChild(n); });
       art.appendChild(bodyWrap);
       const others = posts.filter((p) => p.catId === found.catId && p.title !== found.title).slice(0, 3);
       if (others.length) {
-        const rel = el('div', { style: { marginTop: '28px', paddingTop: '16px', borderTop: '1px solid var(--line)' } });
-        rel.innerHTML = '<div style="font-size:12px;font-weight:800;color:var(--muted);letter-spacing:0.05em;">이 카테고리의 다른 글</div>';
+        // 나무위키식 관련 문서: 파란 링크
+        const rel = el('div', { style: { marginTop: '28px', padding: '13px 16px', borderRadius: '10px', background: 'var(--paper2,#FAF8F3)', border: '1px solid var(--line)' } });
+        rel.innerHTML = '<div style="font-size:12px;font-weight:800;color:var(--ink);">📎 관련 문서</div>';
         others.forEach((p) => {
-          const r = el('button', { style: { display: 'flex', alignItems: 'center', gap: '9px', width: '100%', textAlign: 'left', padding: '11px 4px', background: 'none', border: 'none', borderBottom: '1px solid var(--line-soft)', fontFamily: 'inherit', cursor: 'pointer' }, onClick: () => { window.__helpPostId = p.title; render(); window.scrollTo(0, 0); } });
-          r.innerHTML = `<span style="font-size:14px;">${p.emoji}</span><span style="flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--ink);">${escapeHtml(p.title)}</span><span style="color:var(--muted);font-size:12px;">›</span>`;
+          const r = el('button', { style: { display: 'block', width: '100%', textAlign: 'left', padding: '5px 0 0', background: 'none', border: 'none', fontFamily: 'inherit', cursor: 'pointer', fontSize: '13px', fontWeight: '700', color: '#2E6FA8', textDecoration: 'underline', textUnderlineOffset: '3px' }, onClick: () => { window.__helpPostId = p.title; render(); window.scrollTo(0, 0); } }, p.title);
           rel.appendChild(r);
         });
         art.appendChild(rel);
       }
+      // 나무위키식 하단 분류 태그
+      const catFoot = el('div', { style: { marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--line)', fontSize: '11.5px', color: 'var(--muted)' } });
+      catFoot.innerHTML = `분류: <span style="color:#2E6FA8;text-decoration:underline;text-underline-offset:3px;cursor:pointer;" data-catlink>앱 사용 설명서</span> · <span style="color:${isQ ? '#7B5E8C' : '#2E6FA8'};text-decoration:underline;text-underline-offset:3px;cursor:pointer;" data-catlink2>${escapeHtml(found.cat)}</span>`;
+      catFoot.querySelector('[data-catlink]').onclick = () => { window.__helpPostId = null; window.__helpCat = '전체'; render(); window.scrollTo(0, 0); };
+      catFoot.querySelector('[data-catlink2]').onclick = () => { window.__helpPostId = null; window.__helpCat = found.cat; render(); window.scrollTo(0, 0); };
+      art.appendChild(catFoot);
       art.appendChild(el('button', { class: 'btn btn-ghost btn-full', style: { marginTop: '18px' }, onClick: () => { window.__helpPostId = null; render(); window.scrollTo(0, 0); } }, '← 전체 글 목록'));
       return art;
     }
