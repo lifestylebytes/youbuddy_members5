@@ -8361,10 +8361,10 @@ function HelpPage() {
       // 나무위키식 개요 안내 박스 (2026-08-14). 드립은 카테고리별로 다르게.
       const notice = el('div', { style: { marginTop: '14px', padding: '11px 14px', borderRadius: '10px', background: 'var(--paper2,#FAF8F3)', border: '1px solid var(--line)', fontSize: '12px', lineHeight: '1.7', color: 'var(--ink-soft)' } });
       const noticeTxt = isQ
-        ? `이 문서는 <b>8기 프리미엄 미팅에서 실제로 나온 질문</b>을 다룬다. <span style="text-decoration:line-through;opacity:0.6;">질문한 사람이 누군지는 버디만 안다</span> 매주 목요일마다 늘어난다.`
+        ? `이 문서는 <b>8기 프리미엄 미팅에서 실제로 나온 질문</b>을 다룹니다. <span style="text-decoration:line-through;opacity:0.6;">질문한 사람이 누군지는 버디만 알아요</span> 매주 목요일마다 늘어나요.`
         : (found.catId === 'help-faq'
-          ? `이 문서는 유비챌에서 <b>제일 많이 들어오는 질문</b>을 다룬다. <span style="text-decoration:line-through;opacity:0.6;">읽고 나면 물어볼 게 없어져서 곤란하다</span>`
-          : `이 문서는 유비챌 8기 <b>공식 설명서</b>의 일부다. <span style="text-decoration:line-through;opacity:0.6;">공식인지는 아무도 검증한 적 없다</span> 안 읽어도 챌린지는 굴러가지만 읽으면 확실히 편해진다.`);
+          ? `이 문서는 유비챌에서 <b>제일 많이 들어오는 질문</b>을 다룹니다. <span style="text-decoration:line-through;opacity:0.6;">읽고 나면 물어볼 게 없어져서 곤란해요</span>`
+          : `이 문서는 유비챌 8기 <b>공식 설명서</b>의 일부입니다. <span style="text-decoration:line-through;opacity:0.6;">공식인지는 아무도 검증한 적 없어요</span> 안 읽어도 챌린지는 굴러가지만 읽으면 확실히 편해요.`);
       notice.innerHTML = `📄 ${noticeTxt}`;
       art.appendChild(notice);
       const bodyWrap = el('div', { style: { marginTop: '16px' } });
@@ -8392,7 +8392,7 @@ function HelpPage() {
             <span style="padding:2px 7px;border-radius:999px;background:rgba(240,172,61,0.25);color:#A07A2A;font-size:9px;font-weight:800;letter-spacing:0.06em;">글쓴이</span>
           </span>
           <span style="display:block;margin-top:4px;font-size:12px;line-height:1.65;color:var(--ink-soft);">일하는 사람들의 비즈니스 영어 챌린지, 유비챌을 만들고 운영해요.<br>여러분이 회의에서 첫 마디를 뱉는 순간을 제일 좋아합니다 :)</span>
-          <a href="http://pf.kakao.com/_ExdxcGX/chat" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:7px;font-size:11.5px;font-weight:800;color:#2E6FA8;text-decoration:underline;text-underline-offset:3px;">궁금한 건 1:1로 물어보기 →</a>
+          <a href="https://pf.kakao.com/_ExdxcGX" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:7px;font-size:11.5px;font-weight:800;color:#2E6FA8;text-decoration:underline;text-underline-offset:3px;">궁금한 건 1:1로 물어보기 →</a>
         </span>`;
       art.appendChild(author);
 
