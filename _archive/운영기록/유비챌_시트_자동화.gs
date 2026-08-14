@@ -432,7 +432,7 @@ const OPS_MSGS = [
   ['day 05', '(주말·일) 주간 마무리 리마인드', '양 톡방 · 일 19:00 · 매니저', '여러분 주말 잘 마무리하고 계신가요? :)\n\n아직 이번 주 <진짜 외우기> 안 풀어주신 분들은\n복습 차원에서 꼭 풀어봐주세요~ @all\n\n밀린 인증 채우기도 오늘까지가 딱 좋아요!\n내일부터 새로운 한 주, 가볍게 시작해봐요 😊\n\n보내주신 피드백 잘 보고 있습니다 :)\n적용할 수 있는 건 바로바로 반영할게요~'],
 
   ['day 05', '주간 테스트 오픈 안내', '양 톡방 · Day 5/10/15 08:00 · 버디 · 8/14 실발송본', '이번 주 5일을 다 채우신 분들은 <진짜 외우기>가 열렸어요! 🎁\n앱 [내 학습]에서 이번 주 카드를 눌러보시면 보입니다.\n3단계인데, 10분이면 끝나요.\n1️⃣ 한국어 문장만 보고 영어로 떠올려보기\n   바로 탭하지 마시고 머릿속으로 먼저요! 그다음 탭해서 정답과 비교\n2️⃣ 안 떠올랐으면 <기억 안나요> 체크\n   부끄러운 게 아니라 이게 핵심이에요. 체크한 단어만 복습 큐에 담겨요\n3️⃣ 체크한 단어로 복습 시작\n   내가 못 외운 것만 골라서 빠르게 한 바퀴, 끝나면 주간 테스트로 마무리\n통과하시면 <잠금화면 단어장>을 드려요.\n휴대폰 잠금화면에 이번 주 표현을 걸어두시면\n하루에 몇 번씩 저절로 복습됩니다 :)\n아직 5일을 못 채우셨어도 괜찮아요!\n빠진 날을 채우시면 그때 바로 열립니다~\n\n첫 주 마지막 날이에요! 🎉\n솔직히 첫 주가 제일 어색하고 손에 안 붙는 구간인데,\n여기까지 오신 것만으로 이미 절반은 습관이 잡히신 거예요.\n· 보상 안내\n1. 18일 이상 정시 인증 + 파이널 테스트 응시 : 1일1비 한달 무료권 + 8기 단어 pdf\n2. 18일 이상 지각포함 인증 + 파이널 테스트 응시 : 8기 단어 pdf\n· 평일만 진행돼요. 주말은 쉬어갑니다.\n- 8/10 (월) 시작 ~ 9/4 (금) 마무리\n- 8월 17일 (월요일 대체공휴일)은 정상 학습해주셔야 합니다.'],
-  ['day 05', '미팅 다음날 통합 공지 (프리미엄)', '프리미엄 · 금 08:00 · 버디', '그리고 프리미엄 여러분께는 어제 미팅 후속으로 몇 가지 더요!\n\n━━━━━━━━━━\n\n📹 Week {N} 미팅 녹화본\n{드라이브 링크}\n\n못 오신 분들은 이걸로 보시면 돼요.\n앱 회의록 페이지의 [📑 미팅 슬라이드 보기]로 자료도 같이 보시면 좋아요.\n\n━━━━━━━━━━\n\n🎯 어제 정한 이번 주 과제, 앱에 넣어뒀어요\n\n앱 홈 <내 목표> 아래에 각자 정하신 게 붙어 있어요.\n따로 시간 내서 하는 게 아니라, 매일 인증 3문장을\n그 방향으로 쓰시면 그게 과제입니다 :)\n\n미팅 못 오신 분들은 톡 주시면 과제 같이 정해드릴게요~\n\n━━━━━━━━━━\n\n📖 어제 나온 질문들, 설명서에 정리해뒀어요\n\nhttps://youbuddy.co.kr/8th/#help\n목차에서 [🎤 8기 미팅 Q&A] 누르시면 바로 가요.\n미팅에서만 나오는 우리끼리의 아카이브입니다 🧡\n\n━━━━━━━━━━\n\n🎤 발표 예약 열려있어요\n\n프리미엄 탭 > 이번 주 미팅 카드 > [발표 자리 잡기]\n데드라인 급하신 분부터 먼저 가시는 걸 추천드려요!'],
+  ['day 05', '미팅 다음날 통합 공지 (프리미엄)', '프리미엄 · 금 08:00 · 버디 · 8/14 실발송 검증본', '그리고 프리미엄 여러분께는 어제 미팅 후속으로 몇 가지 더요!\n━━━━━━━━━━\n📹 Week {N} 미팅 녹화본\n{드라이브 링크}\n못 오신 분들은 이걸로 보시면 돼요.\n앱 회의록 페이지의 [📑 미팅 슬라이드 보기]로 자료도 같이 보시면 좋아요.\n━━━━━━━━━━\n🎯 어제 정한 이번 주 과제, 앱에 넣어뒀어요\n앱 홈 <내 목표> 아래에 각자 정하신 게 붙어 있어요.\n따로 시간 내서 하는 게 아니라, 매일 인증 3문장을\n그 방향으로 쓰시면 그게 과제입니다 :)\n{못 오신 분 이름}님은 어제 못 오셨으니\n톡 주시면 과제 같이 정해드릴게요~\n━━━━━━━━━━\n📖 어제 나온 질문들, 설명서에 정리해뒀어요\nhttps://youbuddy.co.kr/8th/#help\n목차에서 [🎤 8기 미팅 Q&A] 누르시면 바로 가요.\n{이번 주 질문 주제 나열}까지... 새 질문 들어있어요.\n8기 미팅에서만 나오는 우리끼리의 아카이브입니다 🧡\n━━━━━━━━━━\n🎤 발표 예약 열려있어요\n프리미엄 탭 > 이번 주 미팅 카드 > [발표 자리 잡기]\n데드라인 급하신 분부터 먼저 가시는 걸 추천드려요!'],
 
 ];
 
@@ -481,7 +481,7 @@ const LINK_MAP = [
   ['빈도 안내',               '빈도 안내 + 초급자 안심'],
   ['미팅 알림',               '당일 미팅 알림 + 참여자 조사'],
   ['미팅 전 할 일',           '미팅 전 할 일 리마인드'],
-  ['녹화본',                  '미팅 녹화본 공지 (매주 금)'],
+  ['녹화본',                  '미팅 다음날 통합 공지 (프리미엄)'],
   ['주간 테스트 1',           '주간 테스트 오픈 안내'],
   ['첫 주 마무리',            '첫 주 마무리 격려'],
   ['2주차 오프닝',            '2주차 오프닝 + 모닝 밋업 안내'],
@@ -597,7 +597,7 @@ function linkChecklistMessages() {
       규칙을 바꾸려면 반드시 6행 수식을 다시 쓸 것.
    ============================================================ */
 
-const TIME_FORMULA = '=MAP($F6:$F200,LAMBDA(t,IF(t="","",IFS(REGEXMATCH(t,"모닝 공지"),"06:00",REGEXMATCH(t,"인증률"),"07:00",REGEXMATCH(t,"한 스푼 더"),"19:00",REGEXMATCH(t,"녹음 확인"),"20:30",REGEXMATCH(t,"미인증 명단|미팅 진행"),"21:00",REGEXMATCH(t,"1:1 케어|쉬는 상태"),"21:30",REGEXMATCH(t,"녹화본"),"22:00",REGEXMATCH(t,"주말·토"),"토 14:00",REGEXMATCH(t,"주말·일"),"일 19:00",REGEXMATCH(t,"가이드 투어|집계 쿼리|피드백 리포트 작성"),"그날 중",TRUE,"08:00"))))';
+const TIME_FORMULA = '=MAP($F6:$F200,LAMBDA(t,IF(t="","",IFS(REGEXMATCH(t,"모닝 공지"),"06:00",REGEXMATCH(t,"인증률"),"07:00",REGEXMATCH(t,"한 스푼 더"),"19:00",REGEXMATCH(t,"녹음 확인"),"20:30",REGEXMATCH(t,"미인증 명단|미팅 진행"),"21:00",REGEXMATCH(t,"1:1 케어|쉬는 상태"),"21:30",REGEXMATCH(t,"녹화본"),"22:00",REGEXMATCH(t,"주말·토"),"토 14:00",REGEXMATCH(t,"주말·일"),"일 19:00",REGEXMATCH(t,"가이드 투어|집계 쿼리|피드백 리포트 작성|Q&A 등록"),"그날 중",TRUE,"08:00"))))';
 
 // 시각(D열) 배열 수식 복구 + 아침 발송 규칙 반영
 function fixChecklistTimes() {
@@ -839,13 +839,33 @@ function fixChecklistOwners() {
 
 function addRecordingNoticeRows() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CHECK_SHEET);
-  const TASK = '미팅 녹화본 공지 · 드라이브 링크 넣어서 (프리미엄)';
+  const TASK = '미팅 다음날 통합 공지 발송 · 녹화본 링크 넣어서 (프리미엄)';
+  const TASK_QNA = '미팅에서 나온 질문 → 설명서 Q&A 등록 (Claude에게 질문 전달)';
+  const OLD_TASK = '미팅 녹화본 공지 · 드라이브 링크 넣어서 (프리미엄)';
   const targets = [5, 10, 15, 20];
 
   const last = sh.getLastRow();
   const tasks = sh.getRange(6, 6, last - 5, 1).getDisplayValues()
     .map(function (r) { return String(r[0] || ''); });
-  if (tasks.indexOf(TASK) >= 0) { Logger.log('이미 있어요.'); return; }
+  // 예전 이름으로 이미 넣었으면 새 이름으로 갈아끼움
+  tasks.forEach(function (t, i) {
+    if (t === OLD_TASK) sh.getRange(6 + i, 6).setValue(TASK);
+  });
+  if (tasks.indexOf(TASK) >= 0 || tasks.indexOf(OLD_TASK) >= 0) {
+    // 통합 공지 행은 있음. Q&A 행만 없으면 각 통합 공지 행 뒤에 추가
+    if (tasks.indexOf(TASK_QNA) < 0) {
+      for (let i = tasks.length - 1; i >= 0; i--) {
+        if (tasks[i] === TASK || tasks[i] === OLD_TASK) {
+          sh.insertRowAfter(6 + i);
+          sh.getRange(7 + i, 6).setValue(TASK_QNA);
+        }
+      }
+      refreshChecklist();
+      Logger.log('Q&A 등록 행 추가 완료');
+      return;
+    }
+    Logger.log('이미 있어요.'); return;
+  }
 
   const days = sh.getRange(6, 1, last - 5, 1).getDisplayValues();
   let cur = 0;
@@ -859,12 +879,13 @@ function addRecordingNoticeRows() {
   targets.sort(function (a, b) { return b - a; }).forEach(function (d) {
     const r = endRow[d];
     if (!r) return;
-    sh.insertRowAfter(r);
+    sh.insertRowsAfter(r, 2);
     sh.getRange(r + 1, 6).setValue(TASK);
+    sh.getRange(r + 2, 6).setValue(TASK_QNA);
   });
 
   refreshChecklist();
-  Logger.log('녹화본 공지 행 4개 추가 완료');
+  Logger.log('통합 공지 + Q&A 등록 행 추가 완료 (금요일 4회)');
 }
 
 /* ============================================================
