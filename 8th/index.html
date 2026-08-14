@@ -5003,13 +5003,35 @@ const hasSupabase = () => !!(SUPABASE_URL && SUPABASE_ANON_KEY);
 // HARDCODED_LOW_RANK, 운영자 요청으로 코드에 박아둔 저참여 멤버. nonparticipant_list 와 동일하게 맨 아래로.
 const HARDCODED_LOW_RANK = []; // 7기: 해당자 없음
 function _normNameKey(s) { return String(s || '').trim().toLowerCase(); }
+// 자동 쉬는 상태 판정: 최근 4일(오늘 제외) 연속 미인증이면 쉬는 상태. (2026-08-14 버디 확정)
+// 늦참으로 그 구간을 채우면 다음 렌더에서 자동으로 풀린다. 수동 목록 관리 불필요.
+// 데이터(verifiedDays)가 아직 안 온 멤버는 판정하지 않는다 (억울한 오판 방지).
+function isAutoResting(member) {
+  try {
+    if (!member || member.isOperator || member.isStaff || member.memberHidden) return false;
+    const cDay = Number(state.currentDay) || 0;
+    if (cDay < 5) return false; // 첫 4일간은 판정 자체가 불가
+    const win = [cDay - 1, cDay - 2, cDay - 3, cDay - 4];
+    let set = null;
+    if (member.me) {
+      set = new Set(Object.keys(state.verified || {}).filter((k) => state.verified[k]).map((k) => Number(String(k).replace('d', ''))));
+    } else if (Array.isArray(member.verifiedDays)) {
+      set = new Set(member.verifiedDays.map(Number));
+    } else {
+      return false; // 서버 요약이 아직 안 옴
+    }
+    return win.every((d) => !set.has(d));
+  } catch (e) { return false; }
+}
 function isNonparticipant(member) {
   if (!member) return false;
+  // 0) 자동 판정 (4일 연속 미인증)
+  if (isAutoResting(member)) return true;
   const candidates = [member.name, member.member_name, member.englishName, member.english_name]
     .filter(Boolean).map(_normNameKey);
   // 1) 하드코딩된 저참여 리스트
   if (HARDCODED_LOW_RANK.map(_normNameKey).some((c) => candidates.includes(c))) return true;
-  // 2) 운영자 nonparticipant_list (state)
+  // 2) 운영자 수동 목록 (자동 판정과 무관하게 강제 지정하고 싶을 때만)
   const list = (state.nonparticipant_list || []).map(_normNameKey);
   if (!list.length) return false;
   return candidates.some((c) => list.includes(c));
@@ -10222,7 +10244,7 @@ function HomePage() {
       if (hid.length) badges.appendChild(pill(`👻 숨김 ${hid.length}명 (${hid.map((m) => m.name).join(', ')})`, '멤버 화면·태그 명단에서 제외'));
       // 쉬는 상태 (4일 미인증, nonparticipant_list)
       const rest = MEMBERS.filter((m) => !m.memberHidden && isNonparticipant(m));
-      if (rest.length) badges.appendChild(pill(`💤 쉬는 상태 ${rest.length}명 (${rest.map((m) => m.name).join(', ')})`, '리마인드 태그 제외 · 1:1 케어 대상 (M7)'));
+      if (rest.length) badges.appendChild(pill(`💤 쉬는 상태 ${rest.length}명 (${rest.map((m) => m.name).join(', ')})`, '최근 4일 연속 미인증 자동 판정 · 리마인드 태그 제외 · 1:1 케어 대상 (M7) · 늦참으로 채우면 자동 해제'));
       if (badges.children.length) cbWrap.appendChild(badges);
     }
   } catch (e) {}
