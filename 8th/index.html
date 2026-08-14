@@ -7963,7 +7963,7 @@ function HelpPage() {
   const SECTIONS = [
     ['guide', '📖', '이렇게 쓰면 돼요'],
     ['faq', '❓', '자주 묻는 것'],
-    ...((isPrem || state.isOperator || state.isStaff) ? [['qna', '🎤', '8기 미팅 Q&A']] : []),
+    ...(seesPremiumNow() ? [['qna', '🎤', '8기 미팅 Q&A']] : []),
   ];
   const toc = el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '14px' } });
   toc.innerHTML = SECTIONS.map(([id, ic, t], i) =>
@@ -8200,7 +8200,8 @@ function HelpPage() {
   page.appendChild(faqWrap);
 
   /* ── 미팅에서 나온 질문 (프리미엄 전용) ── */
-  const __seesQna = isPrem || state.isOperator || state.isStaff;
+  // seesPremiumNow(): 운영자가 '멤버 뷰 + 베이직'을 켜면 진짜 베이직처럼 잠긴다. (2026-08-14)
+  const __seesQna = seesPremiumNow();
   H('qna', '🎤', '8기 미팅 Q&A', '8기 미팅에서만 나온, 다른 데선 못 듣는 질문들이에요. 우리끼리 쌓아가는 아카이브 :)', PREM_C);
   if (__seesQna) __postList(PREM_C);
   if (!__seesQna) {
