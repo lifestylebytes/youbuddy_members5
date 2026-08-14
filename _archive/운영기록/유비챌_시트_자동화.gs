@@ -41,6 +41,7 @@ function 한번에_실행() {
   step('약점 복습(Day6) 안내', function () { addWeaknessReviewRow(); });
   step('금요일 녹화본 공지 행', function () { addRecordingNoticeRows(); });
   step('주말(토·일) 행', function () { addWeekendRows(); });
+  step('미팅 후속 시각 재배치', function () { fixMeetingFollowupTiming(); });
   step('체크리스트 메시지 링크', function () { linkChecklistMessages(); });
   step('시각·담당·정렬·색·병합 정리', function () { refreshChecklist(); });
   step('매일 07시 인증률 트리거', function () { setupTrigger(); });
@@ -597,7 +598,7 @@ function linkChecklistMessages() {
       규칙을 바꾸려면 반드시 6행 수식을 다시 쓸 것.
    ============================================================ */
 
-const TIME_FORMULA = '=MAP($F6:$F200,LAMBDA(t,IF(t="","",IFS(REGEXMATCH(t,"모닝 공지"),"06:00",REGEXMATCH(t,"인증률"),"07:00",REGEXMATCH(t,"한 스푼 더"),"19:00",REGEXMATCH(t,"녹음 확인"),"20:30",REGEXMATCH(t,"미인증 명단|미팅 진행"),"21:00",REGEXMATCH(t,"1:1 케어|쉬는 상태"),"21:30",REGEXMATCH(t,"녹화본"),"22:00",REGEXMATCH(t,"주말·토"),"토 14:00",REGEXMATCH(t,"주말·일"),"일 19:00",REGEXMATCH(t,"가이드 투어|집계 쿼리|피드백 리포트 작성|Q&A 등록"),"그날 중",TRUE,"08:00"))))';
+const TIME_FORMULA = '=MAP($F6:$F200,LAMBDA(t,IF(t="","",IFS(REGEXMATCH(t,"모닝 공지"),"06:00",REGEXMATCH(t,"인증률"),"07:00",REGEXMATCH(t,"한 스푼 더"),"19:00",REGEXMATCH(t,"녹음 확인"),"20:30",REGEXMATCH(t,"미인증 명단|미팅 진행"),"21:00",REGEXMATCH(t,"1:1 케어|쉬는 상태"),"21:30",REGEXMATCH(t,"녹화본"),"22:00",REGEXMATCH(t,"주말·토"),"토 14:00",REGEXMATCH(t,"주말·일"),"일 19:00",REGEXMATCH(t,"Q&A 등록"),"22:00",REGEXMATCH(t,"가이드 투어|집계 쿼리|피드백 리포트 작성"),"그날 중",TRUE,"08:00"))))';
 
 // 시각(D열) 배열 수식 복구 + 아침 발송 규칙 반영
 function fixChecklistTimes() {
@@ -1036,4 +1037,69 @@ function formatDayBlocks() {
     sh.getRange(r0 + len - 1, 1, 1, 11).setBorder(null, null, true, null, null, null, '#3D3527', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   }
   Logger.log('Day 블록 ' + (starts.length - 1) + '개 병합·구분선 정리 완료');
+}
+
+/* ============================================================
+   미팅 후속 작업 시각 재배치 (2026-08-14 버디 확정)
+   ------------------------------------------------------------
+   · 질문 → 설명서 Q&A 등록: 미팅 "직후" (목요일 밤 22:00). 기억이 생생할 때.
+   · 녹화본 링크 입력 + 도착 팝업: "다음날 아침". 녹화 처리가 밤새 끝나므로.
+   · 통합 공지 발송: 다음날 08:00 (이미 기본값).
+   기존에 다른 자리에 있던 행은 지우고 맞는 Day 블록에 다시 넣는다.
+   ============================================================ */
+
+function fixMeetingFollowupTiming() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CHECK_SHEET);
+  const T_QNA = '미팅에서 나온 질문 → 설명서 Q&A 등록 (Claude에게 질문 전달)';
+  const T_REC_OLD = '미팅 직후 녹화본 링크 입력 + 도착 팝업';
+  const T_REC_NEW = '녹화본 앱 등록 · 드라이브 링크 입력 + 도착 팝업 (Claude에게 링크 전달)';
+  const MEET_DAYS = [4, 9, 14, 19];   // 목요일 (미팅 당일)
+  const NEXT_DAYS = [5, 10, 15, 20];  // 금요일 (다음날)
+
+  // 블록 지도를 만든다
+  const scan = function () {
+    const last = sh.getLastRow();
+    const days = sh.getRange(6, 1, last - 5, 1).getDisplayValues();
+    const tasks = sh.getRange(6, 6, last - 5, 1).getDisplayValues();
+    let cur = 0;
+    const rows = [];
+    for (let i = 0; i < days.length; i++) {
+      const m = String(days[i][0] || '').match(/Day\s*(\d+)/i);
+      if (m) cur = Number(m[1]);
+      rows.push({ row: 6 + i, day: cur, task: String(tasks[i][0] || '') });
+    }
+    return rows;
+  };
+
+  // 1) 잘못된 자리의 행 삭제 (아래에서 위로)
+  let rows = scan();
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const r = rows[i];
+    const qnaWrongPlace = (r.task === T_QNA && MEET_DAYS.indexOf(r.day) < 0);
+    const recWrongName = (r.task === T_REC_OLD);
+    const recNewWrongPlace = (r.task === T_REC_NEW && NEXT_DAYS.indexOf(r.day) < 0);
+    if (qnaWrongPlace || recWrongName || recNewWrongPlace) sh.deleteRow(r.row);
+  }
+
+  // 2) 맞는 자리에 삽입 (없으면)
+  rows = scan();
+  const endOf = {};
+  rows.forEach(function (r) { if (r.day) endOf[r.day] = r.row; });
+  const hasIn = function (day, task) {
+    return rows.some(function (r) { return r.day === day && r.task === task; });
+  };
+  // 아래 Day 부터 넣어야 행번호가 안 밀린다
+  [].concat(MEET_DAYS, NEXT_DAYS).sort(function (a, b) { return b - a; }).forEach(function (d) {
+    if (MEET_DAYS.indexOf(d) >= 0 && !hasIn(d, T_QNA) && endOf[d]) {
+      sh.insertRowAfter(endOf[d]);
+      sh.getRange(endOf[d] + 1, 6).setValue(T_QNA);
+    }
+    if (NEXT_DAYS.indexOf(d) >= 0 && !hasIn(d, T_REC_NEW) && endOf[d]) {
+      sh.insertRowAfter(endOf[d]);
+      sh.getRange(endOf[d] + 1, 6).setValue(T_REC_NEW);
+    }
+  });
+
+  refreshChecklist();
+  Logger.log('미팅 후속 시각 재배치 완료 (Q&A=목 밤 · 녹화본 등록·공지=금 아침)');
 }
