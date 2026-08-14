@@ -5671,7 +5671,9 @@ function applyRemoteMemberSummaries(rows = []) {
     const nextDays = rawDays.map((d) => Number(d)).filter((d) => d >= 1 && d <= 20);
     const prevDaysKey = JSON.stringify((member.verifiedDays || []).slice().sort((a, b) => a - b));
     const nextDaysKey = JSON.stringify(nextDays.slice().sort((a, b) => a - b));
-    if (prevDaysKey !== nextDaysKey) {
+    // ⚠️ 0일 멤버 함정: prev도 next도 "[]" 라 여기서 스킵되면 verifiedDays 가 영영 undefined 로 남고,
+    // isAutoResting 이 "데이터 없음, 보류"로 빠져 쉬는 멤버가 인증상태복사에 계속 태그된다. (2026-08-14 매니저 리포트)
+    if (!Array.isArray(member.verifiedDays) || prevDaysKey !== nextDaysKey) {
       member.verifiedDays = nextDays;
       changed = true;
     }
@@ -25640,7 +25642,7 @@ function OpsDashboardPage() {
     // 운영팀은 한글 본명과 영어 닉네임 둘 다로 걸러야 함 (member_name 만 보면 Lehn·Rice 가 샌다).
     const STAFF = new Set(['유버디', 'Lehn', 'Rice']);
     const isStaffRow = (m) => STAFF.has(m.member_name) || STAFF.has((m.english_name || '').trim());
-    const mem = (sums || []).filter((m) => !isStaffRow(m));
+    const mem = (sums || []).filter((m) => !isStaffRow(m) && !String(m.member_name || '').startsWith('__'));
     const rows = ((full && full.member_state) || []);
     const stMap = {}; rows.forEach((r) => { stMap[r.member_name] = r.app_state || {}; });
     const nm = (m) => (m.english_name || '').trim() || m.member_name;
