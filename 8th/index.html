@@ -1325,7 +1325,7 @@ const CHALLENGE = {
         recap: '',
         pptUrl: '',
         // 미팅 다시보기 (Google Drive 공유 링크). 멤버 권한 필요할 수 있음.
-        recordingUrl: '', // 미팅 후 Google Drive 공유 링크 채우기
+        recordingUrl: 'https://drive.google.com/file/d/1qnwDUDYWBERbDoiRqvAUXOH3Ul6e_JaF/view?usp=sharing', // Week 1 녹화본 (2026-08-14)
         scenario: {
           setting: '첫 주는 오리엔테이션 및 자기소개가 있습니다',
           premise: '챌린지 흐름과 유버디에 대해 소개하고, 멤버들이 서로 가볍게 알아가는 시간이에요. PT 진행 방식과 다음 주부터 시작할 롤플레이도 미리 안내드릴게요. 궁금한 거 편하게 물어보는 자리니까 부담 없이 와주세요.',
@@ -9572,7 +9572,25 @@ function HomePage() {
     }
   } catch (e) {}
 
-  // (미팅 녹화본 자동 팝업은 끔. 다시보기는 미팅 노트 페이지의 '다시보기' 카드로만 안내.)
+  // 미팅 녹화본 도착 팝업 재활성화 (2026-08-14 버디 요청).
+  // recordingUrl 이 채워진 미팅마다 프리미엄 멤버에게 1회. X 누르면 다시 안 뜸.
+  // ✅ 팝업 3종 세트 확인: 트리거(여기) · 컴포넌트(RecordingPopupModal) · 마운트(가드+stale 제거, 6664행)
+  try {
+    window.__recPopupTriggeredSession = window.__recPopupTriggeredSession || {};
+    if (state.tier === 'premium' && !showRecordingPopup && !anyPopupOpen() && guidedTourStep === null && challengeStarted()) {
+      const mtgs = (CHALLENGE.premium && CHALLENGE.premium.weekly_meetings) || [];
+      const seen = state.recording_popup_seen || {};
+      const target = mtgs.find((m) => m && m.recordingUrl && !seen['m' + m.n] && !window.__recPopupTriggeredSession['m' + m.n]);
+      if (target) {
+        window.__recPopupTriggeredSession['m' + target.n] = true; // 세션 가드 즉시 세움 (아침 무한 재등장 사고 교훈)
+        setTimeout(() => {
+          if (showRecordingPopup || anyPopupOpen() || guidedTourStep !== null) return;
+          showRecordingPopup = target;
+          render();
+        }, 800);
+      }
+    }
+  } catch (e) {}
 
   const page = el('div', { class: 'page' });
   page.appendChild(TopBar());
