@@ -19414,7 +19414,7 @@ function MeetingNotesPage(meetingId) {
     : (meta.n === 3 && typeof WEEK3_DECK !== 'undefined') ? WEEK3_DECK
     : (meta.n === 4 && typeof WEEK4_DECK !== 'undefined') ? WEEK4_DECK : null;
   if (__deckForMeeting && (state.isOperator || state.isStaff || state.tier === 'premium')) {
-    const __opBtn = !!(state.isOperator || state.isStaff);
+    const __opBtn = !!((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
     const deckBtn = el('button', { class: 'btn btn-primary btn-full btn-lg', style: { marginBottom: '14px' }, onClick: () => { window.__currentMeetingId = meetingId; window.__deckIdx = 0; if (typeof __deckHydrate === 'function') __deckHydrate(); go('meeting-deck'); } });
     deckBtn.innerHTML = __opBtn
       ? `🎤 발표 모드 시작 (운영자) · 슬라이드 ${__deckForMeeting.length}장 ${Icon('arrowRight', 16)}`
@@ -32008,7 +32008,8 @@ window.__deckSaveGoals = async () => {
 function MeetingDeckPage() {
   // 프리미엄 멤버도 슬라이드를 볼 수 있다 (2026-08-14). 받아적기·저장 같은
   // 운영 도구는 아래에서 __deckIsOp 로 운영자에게만 보여준다.
-  const __deckIsOp = !!(state.isOperator || state.isStaff);
+  // '멤버 뷰' 토글 존중: 운영자가 멤버 화면을 확인할 때는 운영 도구도 같이 숨긴다. (2026-08-14)
+  const __deckIsOp = !!((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
   if (!__deckIsOp && state.tier !== 'premium') {
     const p = el('div', { class: 'page' });
     p.appendChild(el('div', { class: 't-body', style: { padding: '40px 20px', textAlign: 'center' } }, '프리미엄 미팅 자료예요.'));
