@@ -41,6 +41,7 @@ function 한번에_실행() {
   step('약점 복습(Day6) 안내', function () { addWeaknessReviewRow(); });
   step('금요일 녹화본 공지 행', function () { addRecordingNoticeRows(); });
   step('주말(토·일) 행', function () { addWeekendRows(); });
+  step('모닝밋업 행 (Day 6 안내 + 7~15 진행)', function () { addMorningMeetupRows(); });
   step('미팅 후속 시각 재배치', function () { fixMeetingFollowupTiming(); });
   step('체크리스트 메시지 링크', function () { linkChecklistMessages(); });
   step('시각·담당·정렬·색·병합 정리', function () { refreshChecklist(); });
@@ -435,6 +436,8 @@ const OPS_MSGS = [
   ['day 05', '주간 테스트 오픈 안내', '양 톡방 · Day 5/10/15 08:00 · 버디 · 8/14 실발송본', '이번 주 5일을 다 채우신 분들은 <진짜 외우기>가 열렸어요! 🎁\n앱 [내 학습]에서 이번 주 카드를 눌러보시면 보입니다.\n3단계인데, 10분이면 끝나요.\n1️⃣ 한국어 문장만 보고 영어로 떠올려보기\n   바로 탭하지 마시고 머릿속으로 먼저요! 그다음 탭해서 정답과 비교\n2️⃣ 안 떠올랐으면 <기억 안나요> 체크\n   부끄러운 게 아니라 이게 핵심이에요. 체크한 단어만 복습 큐에 담겨요\n3️⃣ 체크한 단어로 복습 시작\n   내가 못 외운 것만 골라서 빠르게 한 바퀴, 끝나면 주간 테스트로 마무리\n통과하시면 <잠금화면 단어장>을 드려요.\n휴대폰 잠금화면에 이번 주 표현을 걸어두시면\n하루에 몇 번씩 저절로 복습됩니다 :)\n아직 5일을 못 채우셨어도 괜찮아요!\n빠진 날을 채우시면 그때 바로 열립니다~\n\n첫 주 마지막 날이에요! 🎉\n솔직히 첫 주가 제일 어색하고 손에 안 붙는 구간인데,\n여기까지 오신 것만으로 이미 절반은 습관이 잡히신 거예요.\n· 보상 안내\n1. 18일 이상 정시 인증 + 파이널 테스트 응시 : 1일1비 한달 무료권 + 8기 단어 pdf\n2. 18일 이상 지각포함 인증 + 파이널 테스트 응시 : 8기 단어 pdf\n· 평일만 진행돼요. 주말은 쉬어갑니다.\n- 8/10 (월) 시작 ~ 9/4 (금) 마무리\n- 8월 17일 (월요일 대체공휴일)은 정상 학습해주셔야 합니다.'],
   ['day 05', '미팅 다음날 통합 공지 (프리미엄)', '프리미엄 · 금 08:00 · 버디 · 8/14 실발송 검증본', '그리고 프리미엄 여러분께는 어제 미팅 후속으로 몇 가지 더요!\n━━━━━━━━━━\n📹 Week {N} 미팅 녹화본\n{드라이브 링크}\n못 오신 분들은 이걸로 보시면 돼요.\n앱 회의록 페이지의 [📑 미팅 슬라이드 보기]로 자료도 같이 보시면 좋아요.\n━━━━━━━━━━\n🎯 어제 정한 이번 주 과제, 앱에 넣어뒀어요\n앱 홈 <내 목표> 아래에 각자 정하신 게 붙어 있어요.\n따로 시간 내서 하는 게 아니라, 매일 인증 3문장을\n그 방향으로 쓰시면 그게 과제입니다 :)\n{못 오신 분 이름}님은 어제 못 오셨으니\n톡 주시면 과제 같이 정해드릴게요~\n━━━━━━━━━━\n📖 어제 나온 질문들, 설명서에 정리해뒀어요\nhttps://youbuddy.co.kr/8th/#help\n목차에서 [🎤 8기 미팅 Q&A] 누르시면 바로 가요.\n{이번 주 질문 주제 나열}까지... 새 질문 들어있어요.\n8기 미팅에서만 나오는 우리끼리의 아카이브입니다 🧡\n━━━━━━━━━━\n🎤 발표 예약 열려있어요\n프리미엄 탭 > 이번 주 미팅 카드 > [발표 자리 잡기]\n데드라인 급하신 분부터 먼저 가시는 걸 추천드려요!'],
 
+  ['day 06', '모닝밋업 안내 (확정본)', '양 톡방 · Day 6 · 버디 · 8/16 확정', '<모닝밋업 안내>\n화요일(8/18)부터 평일 아침 7시, 모닝밋업을 시작해요 :)\n같이 접속해서 각자 그날의 인증을 그 자리에서 끝내는 시간이에요.\n(강의 아니에요~ 조용히 같이 하는 거라 카메라 부담 없으셔도 됩니다 ㅎㅎ)\n그리고 오늘부터 홈 화면에 새로 생긴 게 하나 있는데요... 바로.. ☀️ 얼리버드 스탬프!\n아침 8시 전에 인증하면 해 스탬프가 자동으로 찍혀요.\n2주 동안 5개 모으면 수료식에서 <얼리버드 어워드>로 호명해드립니다 :)\n(모닝밋업에서 같이 인증 끝내면... 스탬프는 저절로 쌓여요 ㅎㅎ)\n참여 방법은 간단해요. 아침 7시에 아래 링크로 들어오시면 끝!\n{미팅 링크}\n아침형 인간 아니어도 괜찮아요. 오는 날만 오셔도 됩니다 :)'],
+
   ['day 05', '과제 하는 법 안내 (프리미엄)', '프리미엄 · 미팅 다음날 · 버디', '과제, 이렇게 하시면 돼요! 📝\n\n어제 각자 정한 과제 (앱 홈 🎯 이번 주 과제에 있어요),\n방법은 다 똑같이 3단계예요.\n\n1️⃣ 초안(draft) 쓰기\n완벽하지 않아도 돼요. 일단 영어로 쭉 써보는 게 초안이에요.\n막히는 부분은 한국어로 섞어 써도 됩니다.\n\n2️⃣ 이 방에 초안 올리기\n쓴 초안을 텍스트로 이 방에 올려주세요.\n올리는 순간 과제 절반은 끝난 거예요 :)\n\n3️⃣ 소리 내어 읽고 녹음 올리기\n초안을 입에 붙을 때까지 몇 번 읽어보고,\n녹음해서 이 방에 올려주세요.\n매일 하는 인증 녹음이랑 같이 하셔도 돼요!\n\n📌 올려주신 초안·녹음은 제가 쭉 보고 있다가\n다음 주 미팅에서 모아서 피드백드립니다.\n그러니 잘된 것만 올리지 마시고, 막힌 채로 올려주세요.\n그게 미팅에서 다룰 재료가 됩니다 🧡\n\n잘하는 자리가 아니라 해보는 자리예요.\n오늘 초안 한 줄이라도 올라오면 그게 시작입니다!'],
 
 ];
@@ -600,7 +603,7 @@ function linkChecklistMessages() {
       규칙을 바꾸려면 반드시 6행 수식을 다시 쓸 것.
    ============================================================ */
 
-const TIME_FORMULA = '=MAP($F6:$F200,LAMBDA(t,IF(t="","",IFS(REGEXMATCH(t,"모닝 공지"),"06:00",REGEXMATCH(t,"인증률"),"07:00",REGEXMATCH(t,"한 스푼 더"),"19:00",REGEXMATCH(t,"녹음 확인"),"20:30",REGEXMATCH(t,"미인증 명단|미팅 진행"),"21:00",REGEXMATCH(t,"1:1 케어|쉬는 상태"),"21:30",REGEXMATCH(t,"녹화본"),"22:00",REGEXMATCH(t,"주말·토"),"토 14:00",REGEXMATCH(t,"주말·일"),"일 19:00",REGEXMATCH(t,"Q&A 등록"),"22:00",REGEXMATCH(t,"가이드 투어|집계 쿼리|피드백 리포트 작성"),"그날 중",TRUE,"08:00"))))';
+const TIME_FORMULA = '=MAP($F6:$F200,LAMBDA(t,IF(t="","",IFS(REGEXMATCH(t,"모닝 공지"),"06:00",REGEXMATCH(t,"인증률"),"07:00",REGEXMATCH(t,"한 스푼 더"),"19:00",REGEXMATCH(t,"녹음 확인"),"20:30",REGEXMATCH(t,"미인증 명단|미팅 진행"),"21:00",REGEXMATCH(t,"1:1 케어|쉬는 상태"),"21:30",REGEXMATCH(t,"녹화본"),"22:00",REGEXMATCH(t,"주말·토"),"토 14:00",REGEXMATCH(t,"주말·일"),"일 19:00",REGEXMATCH(t,"Q&A 등록"),"22:00",REGEXMATCH(t,"모닝밋업 진행"),"07:00",REGEXMATCH(t,"가이드 투어|집계 쿼리|피드백 리포트 작성"),"그날 중",TRUE,"08:00"))))';
 
 // 시각(D열) 배열 수식 복구 + 아침 발송 규칙 반영
 function fixChecklistTimes() {
@@ -994,6 +997,42 @@ function addWeekendRows() {
 
   refreshChecklist();
   Logger.log('주말 행 6개 추가 완료 (Day 5/10/15 × 토·일)');
+}
+
+// 모닝밋업 행 추가 (2026-08-16 확정: 화 8/18 = Day 7 부터 평일 아침 7시, Day 15 까지)
+function addMorningMeetupRows() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CHECK_SHEET);
+  const T_NOTICE = '모닝밋업 안내 발송 (☀️ 얼리버드 스탬프 소개, 미트 링크 첨부)';
+  const T_RUN = '모닝밋업 진행 (미트 열기 · 얼리버드 스탬프는 앱이 자동 집계)';
+
+  const last = sh.getLastRow();
+  const tasks = sh.getRange(6, 6, last - 5, 1).getDisplayValues()
+    .map(function (r) { return String(r[0] || ''); });
+  if (tasks.indexOf(T_NOTICE) >= 0) { Logger.log('이미 있어요.'); return; }
+
+  const days = sh.getRange(6, 1, last - 5, 1).getDisplayValues();
+  let cur = 0;
+  const endRow = {};
+  for (let i = 0; i < days.length; i++) {
+    const m2 = String(days[i][0] || '').match(/Day\s*(\d+)/i);
+    if (m2) cur = Number(m2[1]);
+    if (cur) endRow[cur] = 6 + i;
+  }
+
+  // 아래쪽 Day 부터 넣어야 행 번호가 안 밀린다
+  for (let d = 15; d >= 7; d--) {
+    const r = endRow[d];
+    if (!r) continue;
+    sh.insertRowsAfter(r, 1);
+    sh.getRange(r + 1, 6).setValue(T_RUN);
+  }
+  if (endRow[6]) {
+    sh.insertRowsAfter(endRow[6], 1);
+    sh.getRange(endRow[6] + 1, 6).setValue(T_NOTICE);
+  }
+
+  refreshChecklist();
+  Logger.log('모닝밋업 행 추가 완료 (Day 6 안내 + Day 7~15 진행 9개)');
 }
 
 /* ============================================================
