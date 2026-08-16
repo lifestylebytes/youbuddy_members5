@@ -10101,6 +10101,49 @@ function HomePage() {
     }
   } catch (e) {}
 
+  /* ── ☀️ 얼리버드 스탬프 (2026-08-16 신설) ──────────────────────────
+     모닝밋업(화 8/18~, 평일 아침 7시) 2주 리텐션 장치. Day 7~15 에 아침 8시 전
+     인증하면 해 스탬프. 5개 이상이면 수료식 얼리버드 어워드 호명 (추가 혜택,
+     수료 기준과 무관. 기수 중 기준 변경 금지 원칙 준수). verified_time 기반 자동. */
+  try {
+    const EB_FROM = 7, EB_TO = 15, EB_GOAL = 5;
+    const _cd = Number(state.currentDay) || 0;
+    if (_cd >= 6 && _cd <= EB_TO + 2 && (!state.isOperator || state.operatorViewAsMember)) {
+      const _stamp = (d) => {
+        if (!(state.verified && state.verified['d' + d])) return false;
+        const t = (state.verified_time || {})['d' + d] || '';
+        return /^\d{2}:\d{2}$/.test(t) && t < '08:00';
+      };
+      let _n = 0; for (let d = EB_FROM; d <= EB_TO; d++) if (_stamp(d)) _n++;
+      const _cells = [];
+      for (let d = EB_FROM; d <= EB_TO; d++) {
+        const got = _stamp(d);
+        const isToday = d === _cd;
+        const future = d > _cd;
+        _cells.push('<div style="width:30px;height:30px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:' + (got ? '16px' : '11px') + ';'
+          + 'background:' + (got ? 'linear-gradient(135deg,#FFE9B0,#FFD873)' : '#F4F0E6') + ';'
+          + (isToday ? 'box-shadow:0 0 0 2px #E8B23A;' : '')
+          + 'color:' + (future ? '#C9C2B2' : '#A07A2A') + ';font-weight:800;">'
+          + (got ? '☀️' : String(d - EB_FROM + 1)) + '</div>');
+      }
+      const eb = el('div', { class: 'card', style: { marginTop: '12px', padding: '15px 17px', background: 'linear-gradient(150deg,#FFFDF4,#FFF6E0)', border: '1px solid rgba(232,178,58,0.45)' } });
+      eb.innerHTML =
+        '<div style="display:flex;align-items:center;gap:7px;">'
+        + '<span style="font-size:15px;">☀️</span>'
+        + '<span style="font-size:13.5px;font-weight:800;color:var(--ink);">얼리버드 스탬프</span>'
+        + '<span style="margin-left:auto;font-size:12px;font-weight:800;color:#A07A2A;">' + _n + ' / ' + (EB_TO - EB_FROM + 1) + '</span></div>'
+        + '<div style="margin-top:9px;display:flex;gap:6px;flex-wrap:wrap;">' + _cells.join('') + '</div>'
+        + '<div class="t-small" style="margin-top:9px;color:var(--muted);line-height:1.55;">'
+        + (_cd < EB_FROM
+          ? '화요일(8/18)부터 아침 8시 전에 인증하면 해가 찍혀요. 아침 7시 모닝밋업에서 같이 하면 자동으로 찍힙니다 :)'
+          : (_n >= EB_GOAL
+            ? '이미 ' + EB_GOAL + '개 넘었어요! 수료식에서 ☀️ 얼리버드 어워드로 호명해드려요 :)'
+            : '아침 8시 전 인증이면 자동으로 찍혀요. ' + EB_GOAL + '개 모으면 수료식에서 ☀️ 얼리버드 어워드로 호명!'))
+        + '</div>';
+      page.appendChild(eb);
+    }
+  } catch (e) {}
+
   /* ── 미팅 한 줄 (8기 신설) ────────────────────────────────────────────
      프리미엄: 다음 미팅 D-day 리마인드 (미팅 없는 날에도 "내 트랙" 감각 유지)
      베이직: 미팅이라는 게 있다는 정보성 한 줄 (조르지 않음, 가격·구매 문구 금지) */
