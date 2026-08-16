@@ -6388,7 +6388,10 @@ function renderOperatorQuickToggle() {
   // 기본은 접힘. 멤버 뷰 미리보기 중일 땐 원상복구를 못 잊게 강제로 펼친다. (2026-08-16)
   let folded = true;
   try { folded = localStorage.getItem('yb8_op_toggle_open') !== '1'; } catch (e) {}
-  const previewing = asMember || !!state.tierOverride;
+  // 오버라이드가 실제 티어와 같으면 미리보기가 아니다 (프리 멤버가 '프리' 칩을
+  // 눌러둔 채로 남은 상태). 이 경우까지 강제 펼침하면 접기가 영영 안 보인다.
+  const baseTier = state.tier === 'premium' ? 'premium' : 'basic';
+  const previewing = asMember || (!!state.tierOverride && state.tierOverride !== baseTier);
   if (previewing) folded = false;
   const box = old || el('div', { id: 'opQuickToggle' });
   box.setAttribute('style', [
