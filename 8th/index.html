@@ -5954,7 +5954,11 @@ async function refreshRemoteStateAndCommunity(opts = {}) {
     // Only force-fetch + re-render if the user is actively on a community-aware page.
     // This prevents the app from flashing every 15 seconds on Home/Profile/etc.
     const isOnCommunityPage = currentPage === 'community' || currentPage === 'day';
-    if (force || isOnCommunityPage) {
+    // 커뮤니티 피드 주기 폴링 OFF (2026-08-16 버디 확정, 에그레스 절감):
+    // 15초 루프에서는 피드를 더 이상 안 받는다. 대신 페이지 진입·글/댓글 작성 직후·
+    // 탭 복귀(force) 때만 받는다. 페이지에 머무는 동안엔 requestCommunityPosts 의
+    // 60초 캐시가 인터랙션 시점에 알아서 갱신한다.
+    if (force && isOnCommunityPage) {
       const before = communityFeedCache[dayToRefresh]?.rows || [];
       const beforeJson = JSON.stringify(before.map((p) => p.id + ':' + (p.updated_at || '') + ':' + (p.likes_count || 0)));
       // force(포커스·가시성 복귀) 일 때만 강제로 받고, 주기 폴링은 PEER_CACHE_MS 캐시를 탄다.
