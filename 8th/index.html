@@ -11953,10 +11953,12 @@ function computeQuizSplit(question) {
         const m = promptText.match(inflectRe);
         if (m) {
           const idx = m.index;
+          const spanAnswer = m[0].trim().toLowerCase() !== answer.toLowerCase() ? m[0].trim() : undefined;
           return {
             mode: '1blank',
             parts: [promptText.slice(0, idx), promptText.slice(idx + m[0].length)],
             answer,
+            ...(spanAnswer ? { spanAnswer } : {}),
           };
         }
       }
