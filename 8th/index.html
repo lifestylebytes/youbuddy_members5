@@ -9626,8 +9626,7 @@ function HomePage() {
     /* ── 모닝밋업 시작 안내 팝업 (2026-08-16 버디 요청) ────────────────
        Day 5~7 사이 계정당 1회. 화 8/18 아침 7시 시작 + 얼리버드 스탬프 소개. */
     try {
-      if (!anyPopupOpen() && guidedTourStep === null
-          && !(state.isOperator && !state.operatorViewAsMember) && !state.isStaff) {
+      if (!anyPopupOpen() && guidedTourStep === null) {
         const _cdMI = Number(state.currentDay) || 0;
         if (_cdMI >= 5 && _cdMI <= 7 && !state.meetup_intro_seen && !window.__meetupIntroSession) {
           window.__meetupIntroSession = true; // 세션가드 즉시 설정
