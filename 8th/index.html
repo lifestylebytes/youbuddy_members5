@@ -12149,7 +12149,17 @@ function isQuizAnswerCorrect(question, ui) {
   const typed = ui.value || '';
   // spanAnswer = 예문에 실제로 쓰인 형태 (사전형과 다를 때). 둘 중 하나만 맞아도 정답.
   if (split.spanAnswer && quizAnswerMatches(typed, split.spanAnswer)) return true;
-  return quizAnswerMatches(typed, question.en);
+  if (quizAnswerMatches(typed, question.en)) return true;
+  // be 동사로 시작하는 관용구는 be/been/was 등을 빼고 쳐도 정답.
+  // ("Be in the trenches" 에 "in the trenches" 입력 거부 사고, 2026-08-18)
+  const _stripBe = (t) => String(t || '').replace(/^(?:be|been|being|is|are|was|were|am)\s+/i, '');
+  const _enCore = _stripBe(question.en);
+  if (_enCore !== String(question.en) && quizAnswerMatches(typed, _enCore)) return true;
+  if (split.spanAnswer) {
+    const _spanCore = _stripBe(split.spanAnswer);
+    if (_spanCore !== String(split.spanAnswer) && quizAnswerMatches(typed, _spanCore)) return true;
+  }
+  return false;
 }
 
 function VerifyPage(dayN) {
@@ -30307,11 +30317,14 @@ function vsCopyTzWaiting(m, day) {
   } catch (e) { return false; }
 }
 function vsCopyBuckets(day, tier) {
-  const out = { both: [], recOnly: [], webOnly: [], tzWait: [], done: [], resting: [] };
+  const out = { both: [], recOnly: [], webOnly: [], tzWait: [], done: [], resting: [], unstarted: [] };
   // memberHidden(숨김) 은 단톡방에 없으니 제외. (2026-08-14)
   // 쉬는 상태(4일 미인증, nonparticipant_list) 는 태그하지 않는다. 리마인드 명단에 계속 올리면
   // 죄책감만 쌓인다. 1:1 케어 대상 (M7). 대신 resting 버킷으로 몇 명인지만 표시. (2026-08-14 버디 확정)
   paidMembers().filter((m) => !m.memberHidden && (m.tier === 'premium') === (tier === 'premium')).forEach((m) => {
+    // 온보딩을 아직 안 한 멤버(서버 row 없음)는 리마인드 태그 대상이 아니다.
+    // (Steve 님이 매일 미인증 명단에 태그되던 사고, 2026-08-18. 1:1 온보딩 케어로.)
+    if (!m.me && !m.registered) { out.unstarted.push(vsCopyMemberLabel(m)); return; }
     if (isNonparticipant(m)) { out.resting.push(vsCopyMemberLabel(m)); return; }
     const set = Array.isArray(m.verifiedDays) && m.verifiedDays.length
       ? new Set(m.verifiedDays.map(Number)) : null;
@@ -30333,6 +30346,7 @@ function vsCopyText(day, tier, withIntro) {
   const tag = (arr) => arr.map((x) => '@' + x).join(' ');
   const lines = [];
   if (b.resting.length) lines.push('💤 쉬는 상태 ' + b.resting.length + '명 · 태그 안 함 (1:1 케어 대상)');
+  if (b.unstarted.length) lines.push('👋 미시작 ' + b.unstarted.length + '명 · 태그 안 함 (온보딩 1:1 케어 대상)');
   if (b.both.length) lines.push('❌ 웹 미인증 + 녹음 미인증 : ' + tag(b.both));
   if (b.recOnly.length) lines.push('🎤 녹음 미인증 : ' + tag(b.recOnly));
   if (b.webOnly.length) lines.push('❓ 웹 미인증 : ' + tag(b.webOnly));
