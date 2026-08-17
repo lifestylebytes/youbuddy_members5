@@ -7710,7 +7710,43 @@ function getNotifications() {
     });
   } catch (_) {}
 
-  // 3. (확장 포인트) 향후 공지·이벤트 추가, 코드에서 list.push 만 하면 자동 노출.
+  // 3. 모닝밋업 + 얼리버드 스탬프 (2026-08-16). 팝업은 1회지만 알림엔 밋업 기간 내내
+  //    남겨서 미트 링크를 언제든 다시 찾을 수 있게. (팝업만 있으면 링크 분실)
+  try {
+    const _cdN = Number(state.currentDay) || 0;
+    if (_cdN >= 5 && _cdN <= 15) {
+      list.push({
+        id: 'morning-meetup-8th',
+        icon: '🌅',
+        color: '#E8940A',
+        title: '모닝밋업 · 평일 아침 7시 (8/18 화~)',
+        body: '같이 접속해서 그날 인증을 그 자리에서 끝내는 시간. 채팅방에 50분 할 일 적기만 하면 돼요. 아침 8시 전 인증이면 ☀️ 얼리버드 스탬프 자동 적립, 5개면 수료식 어워드 호명!',
+        createdAt: '2026-08-17T07:00:00',
+        cta: { label: '미트 입장하기 →', kind: 'url', url: 'https://meet.google.com/tgb-erax-bey' },
+      });
+    }
+  } catch (_) {}
+
+  // 3-b. 이번 주 과제 (프리미엄, 과제 등록돼 있는 동안 상시)
+  try {
+    if (state.tier === 'premium') {
+      const _tks = splitGoalAndTasks(state.goal).tasks;
+      if (_tks.length) {
+        const _last = _tks[_tks.length - 1];
+        list.push({
+          id: 'week-task-' + _tks.length,
+          icon: '🎯',
+          color: '#A07A2A',
+          title: '이번 주 과제가 등록돼 있어요',
+          body: _last.replace(/^🎯\s*/, '').slice(0, 80),
+          createdAt: '2026-08-14T08:00:00',
+          cta: { label: '홈에서 보기 →', kind: 'go', target: 'home' },
+        });
+      }
+    }
+  } catch (_) {}
+
+  // 4. (확장 포인트) 향후 공지·이벤트 추가, 코드에서 list.push 만 하면 자동 노출.
 
   // 최신순 정렬
   return list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
