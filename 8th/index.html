@@ -3839,7 +3839,14 @@ const NAME_MAX = 8;
 function displayName(member) {
   if (!member) return '';
   const eng = member.me ? (state.englishName || '').trim() : (member.englishName || '').trim();
-  const raw = eng || member.name || '';
+  let raw = eng || member.name || '';
+  // 실명 보호 (2026-08-17): 영어 닉네임이 아직 없는 남의 이름은 가운데를 가린다 (김태형 → 김*형).
+  // 서버 동기화 전 첫 화면 깜빡임 + 닉네임 미설정 멤버의 실명 노출 방지.
+  // 운영자·스태프 본연의 화면(멤버 뷰 아님)에서는 실명 그대로 (운영에 필요).
+  const _opsView = (state.isOperator || state.isStaff) && !state.operatorViewAsMember;
+  if (!eng && !member.me && !_opsView && /^[가-힣]{2,5}$/.test(raw)) {
+    raw = raw.length <= 2 ? raw[0] + '*' : raw[0] + '*'.repeat(raw.length - 2) + raw[raw.length - 1];
+  }
   if (!raw) return '';
   if (raw.length <= NAME_MAX) return raw;
   return raw.slice(0, NAME_MAX - 1) + '…';
