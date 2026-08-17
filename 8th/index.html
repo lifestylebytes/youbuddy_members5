@@ -10248,15 +10248,18 @@ function HomePage() {
       };
       let _n = 0; for (let d = EB_FROM; d <= EB_TO; d++) if (_stamp(d)) _n++;
       const _cells = [];
+      const _wd = ['일', '월', '화', '수', '목', '금', '토'];
       for (let d = EB_FROM; d <= EB_TO; d++) {
         const got = _stamp(d);
         const isToday = d === _cd;
         const future = d > _cd;
+        let _lbl = '';
+        try { _lbl = _wd[dayDate(d).getDay()]; } catch (e) { _lbl = String(d - EB_FROM + 1); }
         _cells.push('<div style="width:100%;aspect-ratio:1/1;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:' + (got ? '14px' : '10.5px') + ';'
           + 'background:' + (got ? 'linear-gradient(135deg,#FFE9B0,#FFD873)' : '#F4F0E6') + ';'
           + (isToday ? 'box-shadow:0 0 0 2px #E8B23A;' : '')
           + 'color:' + (future ? '#C9C2B2' : '#A07A2A') + ';font-weight:800;">'
-          + (got ? '☀️' : String(d - EB_FROM + 1)) + '</div>');
+          + (got ? '☀️' : _lbl) + '</div>');
       }
       const eb = el('div', { class: 'card', style: { marginTop: '12px', padding: '15px 17px', background: 'linear-gradient(150deg,#FFFDF4,#FFF6E0)', border: '1px solid rgba(232,178,58,0.45)' } });
       eb.innerHTML =
