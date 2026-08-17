@@ -1726,6 +1726,7 @@ const defaultState = () => ({
   week_task_popup_seen: {},         // { "WEEK 1": true } 미팅 과제 등록 알림 팝업 본 상태 (주차별 1회).
   bingo_intro_seen: {},             // { "1": true, "2": true } 주간 테스트 첫 진입 온보딩 팝업 본 상태. 주차별 1회.
   week_test_nudge_seen: {},         // { "1": true } 주간 테스트 넛지 팝업 본 상태. 주차별 1회.
+  meetup_intro_seen: false,         // 모닝밋업 시작 안내 팝업 본 상태 (계정당 1회).
   week_review_intro_seen: false,    // 진짜 외우기(week-review) 첫 진입 온보딩 팝업 본 상태 (전체 1회).
   prereview_seen: {},               // { "day2": true } 매일 학습 전 "어제 단어 복습" 팝업 본 상태, Day N 진입 시 1회 노출.
   notifications_read: {},           // { "recording-m1": true, "weekly-quiz-v1": true } 종 인박스에서 읽음 처리한 알림.
@@ -1821,6 +1822,7 @@ const PERSISTED_STATE_KEYS = [
   'review_unlock_seen',
   'week_task_popup_seen',      // { "Week 1": true } 주차 과제 등록 알림 팝업 본 상태.
   'week_test_nudge_seen',      // { "1": true } 주간 테스트 넛지 팝업 본 상태.
+  'meetup_intro_seen',         // 모닝밋업 시작 안내 팝업 본 상태.
   'bingo_intro_seen',
   'week_review_intro_seen',
   'spaced_repeat_seen',
@@ -3186,6 +3188,7 @@ let showBingoIntroPopup = null; // weekN. 주간 테스트 첫 진입 시 5단�
 let showFunFactPopup = null; // 홈 진입 시 하루 1회 '오늘의 한 입' (날짜별 고정). true 면 노출.
 let showHelpHintPopup = false; // '?' 설명서 안내, 계정당 1회만.
 let showWeekTestNudgePopup = null; // weekN. 주간 테스트를 아직 안 본 멤버 넛지 (주차별 1회).
+let showMeetupIntroPopup = false; // 모닝밋업 시작 안내 팝업 (계정당 1회, Day 5~7 노출).
 let showMeetingPrepPopup = null; // meetingId. 프리미엄 미팅 D-1~당일, 사전 준비(목표+문장) 안 한 멤버에게 하루 1회.
 let showVocabMapPopup = false;
 // 운영 스위치: 어휘 영역 지도 '자동 팝업' on/off. false 면 Day 17+ 라도 스스로 안 뜸.
@@ -3220,7 +3223,7 @@ function anyPopupOpen() {
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
     || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup || showWeekTaskPopup
     || showFunFactPopup || showDonePopup || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup || showWeekReviewIntro
-    || showDailyPulse || showPremiumIntake || showHelpHintPopup || showWeekTestNudgePopup);
+    || showDailyPulse || showPremiumIntake || showHelpHintPopup || showWeekTestNudgePopup || showMeetupIntroPopup);
 }
 
 function go(page, opts={}) {
@@ -6827,6 +6830,14 @@ function render() {
       const staleWTN = document.querySelector('[data-week-test-nudge-popup]');
       if (staleWTN) staleWTN.remove();
     }
+    if (showMeetupIntroPopup) {
+      if (!document.querySelector('[data-meetup-intro-popup]')) {
+        document.body.appendChild(MeetupIntroPopupModal());
+      }
+    } else {
+      const staleMI = document.querySelector('[data-meetup-intro-popup]');
+      if (staleMI) staleMI.remove();
+    }
     if (showBingoIntroPopup) {
       // 스텝이 바뀔 때마다 다시 그려야 하므로 항상 제거 후 재생성
       const stale = document.querySelector('[data-bingo-intro-popup]');
@@ -9612,6 +9623,20 @@ function HomePage() {
   // 🎯 미팅 과제 등록 알림 (프리미엄, 주차별 1회). 미팅에서 받아적은 과제가
   // 서버에 붙은 다음 접속 때 팝업으로 알려준다. 안 알려주면 홈 카드를 그냥 지나친다. (2026-08-14)
   try {
+    /* ── 모닝밋업 시작 안내 팝업 (2026-08-16 버디 요청) ────────────────
+       Day 5~7 사이 계정당 1회. 화 8/18 아침 7시 시작 + 얼리버드 스탬프 소개. */
+    try {
+      if (!anyPopupOpen() && guidedTourStep === null
+          && !(state.isOperator && !state.operatorViewAsMember) && !state.isStaff) {
+        const _cdMI = Number(state.currentDay) || 0;
+        if (_cdMI >= 5 && _cdMI <= 7 && !state.meetup_intro_seen && !window.__meetupIntroSession) {
+          window.__meetupIntroSession = true; // 세션가드 즉시 설정
+          setTimeout(() => {
+            if (!anyPopupOpen() && guidedTourStep === null) { showMeetupIntroPopup = true; render(); }
+          }, 800);
+        }
+      }
+    } catch (e) {}
     /* ── 주간 테스트 넛지 (2026-08-16 버디 요청) ──────────────────────
        그 주 인증을 다 채워 시험이 열렸는데 아직 안 본 멤버에게 주차별 1회.
        안 채운 멤버에게는 안 띄운다 (잠긴 시험으로 보내면 죄책감만).
@@ -10165,7 +10190,7 @@ function HomePage() {
   try {
     const EB_FROM = 6, EB_TO = 15, EB_GOAL = 5; // 월(8/17)부터 시작 (2026-08-16 버디: 내일부터)
     const _cd = Number(state.currentDay) || 0;
-    if (_cd >= 6 && _cd <= EB_TO + 2 && (!state.isOperator || state.operatorViewAsMember)) {
+    if (_cd >= 5 && _cd <= EB_TO + 2 && (!state.isOperator || state.operatorViewAsMember)) {
       const _stamp = (d) => {
         if (!(state.verified && state.verified['d' + d])) return false;
         const t = (state.verified_time || {})['d' + d] || '';
@@ -30970,6 +30995,24 @@ function BingoIntroPopupModal() {
 
 window.__closeReviewUnlock = () => { state.review_unlock_seen = true; saveState(); showReviewUnlockPopup = false; render(); };
 window.__goReviewFromUnlock = () => { state.review_unlock_seen = true; saveState(); showReviewUnlockPopup = false; go('my-review'); };
+window.__closeMeetupIntro = () => {
+  try { state.meetup_intro_seen = true; saveState(); } catch (e) {}
+  showMeetupIntroPopup = false; render();
+};
+function MeetupIntroPopupModal() {
+  const wrap = el('div', { 'data-meetup-intro-popup': '1', style: { position: 'fixed', inset: '0', zIndex: '9700', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' } });
+  wrap.appendChild(el('div', { style: { position: 'absolute', inset: '0', background: 'rgba(30,26,18,0.55)', backdropFilter: 'blur(3px)' }, onClick: () => window.__closeMeetupIntro() }));
+  const card = el('div', { style: { position: 'relative', width: '100%', maxWidth: '400px', background: '#FFFDF8', borderRadius: '22px', padding: '26px 22px 22px', boxShadow: '0 18px 50px rgba(0,0,0,0.28)', textAlign: 'center' } });
+  card.innerHTML = '<button onclick="window.__closeMeetupIntro()" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);font-size:13px;cursor:pointer;">✕</button>'
+    + '<div style="font-size:40px;">🌅</div>'
+    + '<div style="margin-top:10px;font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">아침 7시, 모닝밋업이 시작돼요!</div>'
+    + '<div style="margin-top:9px;font-size:13.5px;line-height:1.7;color:var(--ink-soft);">화요일(8/18)부터 평일 아침 7시,<br>구글 미트에서 만나요.<br>같이 접속해서 그날 인증을 그 자리에서 끝내는 시간이에요.<br>(조용히 같이 하는 거라 카메라 안 켜셔도 됩니다 :)</div>'
+    + '<div style="margin-top:12px;padding:11px 13px;border-radius:13px;background:linear-gradient(150deg,#FFFDF4,#FFF6E0);border:1px solid rgba(232,178,58,0.45);font-size:12.5px;line-height:1.65;color:#7A5B1E;text-align:left;">☀️ <b>얼리버드 스탬프</b><br>아침 8시 전에 인증하면 홈 화면에 해가 자동으로 찍혀요.<br>5개 모으면 수료식에서 <b>얼리버드 어워드</b>로 호명!</div>'
+    + '<a href="https://meet.google.com/tgb-erax-bey" target="_blank" rel="noopener noreferrer" style="display:block;margin-top:10px;font-size:12px;font-weight:800;color:#2E6FA8;text-decoration:underline;text-underline-offset:3px;">미트 링크 미리 열어보기 →</a>'
+    + '<button onclick="window.__closeMeetupIntro()" class="btn btn-primary" style="width:100%;margin-top:14px;padding:13px;font-size:14px;">아침에 만나요 :)</button>';
+  wrap.appendChild(card);
+  return wrap;
+}
 window.__closeWeekTestNudge = () => {
   try {
     const seen = (state.week_test_nudge_seen && typeof state.week_test_nudge_seen === 'object') ? state.week_test_nudge_seen : {};
