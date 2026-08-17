@@ -3181,7 +3181,7 @@ let showSurveyFillModal = null;
 let showMiniWeekSurvey = null;
 // weekN, 단어 시험 입구에서 띄우는 3문항 미니 설문
 let showWeekWrapupPopup = null; // weekN, 매주 금요일 (Day 5/10/15/20) 자동 노출. "지금 풀러가기 / 주말에 보기"
-let showBestPopup = null; // 이번주 베스트(만점자+최초완주) 팝업 데이터. 현재 운영자 미리보기 전용.
+let showBestPopup = null; // 이번주 베스트(만점자+최초완주) 팝업 데이터. 주가 끝난 다음 날부터 전 멤버 1회.
 let showReviewUnlockPopup = false;
 let showWeekTaskPopup = null; // { wk: 'WEEK 1', tasks: [...] } 미팅 과제 등록 다음날 알림 팝업. // Week 2(Day 6) 진입 시 '내 약점 복습' 기능 해제 온보딩 팝업.
 let showBingoIntroPopup = null; // weekN. 주간 테스트 첫 진입 시 5단계 온보딩 팝업.
@@ -6838,6 +6838,14 @@ function render() {
       const staleMI = document.querySelector('[data-meetup-intro-popup]');
       if (staleMI) staleMI.remove();
     }
+    if (showBestPopup) {
+      if (!document.querySelector('[data-best-popup]')) {
+        document.body.appendChild(BestPopupModal());
+      }
+    } else {
+      const staleBP = document.querySelector('[data-best-popup]');
+      if (staleBP) staleBP.remove();
+    }
     if (showBingoIntroPopup) {
       // 스텝이 바뀔 때마다 다시 그려야 하므로 항상 제거 후 재생성
       const stale = document.querySelector('[data-bingo-intro-popup]');
@@ -7722,7 +7730,7 @@ function getNotifications() {
         title: '모닝밋업 · 평일 아침 7시 (8/18 화~)',
         body: '같이 접속해서 그날 인증을 그 자리에서 끝내는 시간. 채팅방에 50분 할 일 적기만 하면 돼요. 아침 8시 전 인증이면 ☀️ 얼리버드 스탬프 자동 적립, 5개면 수료식 어워드 호명!',
         createdAt: '2026-08-17T07:00:00',
-        cta: { label: '미트 입장하기 →', kind: 'url', url: 'https://meet.google.com/tgb-erax-bey' },
+        cta: { label: '밋업 바로가기 →', kind: 'url', url: 'https://meet.google.com/tgb-erax-bey' },
       });
     }
   } catch (_) {}
@@ -30861,6 +30869,33 @@ window.__previewDailyPulse = (dayOverride) => {
   render();
 };
 
+function BestPopupModal() {
+  const d = showBestPopup || {};
+  const chips = (arr, bg, fg) => (arr || []).map((n) =>
+    '<span style="display:inline-block;margin:3px 3px 0 0;padding:4px 11px;border-radius:999px;background:' + bg + ';color:' + fg + ';font-size:12.5px;font-weight:800;">' + escapeHtml(String(n)) + '</span>').join('');
+  const sec = (emoji, title, sub, arr, bg, fg) => !(arr && arr.length) ? '' :
+    '<div style="margin-top:13px;text-align:left;">'
+    + '<div style="font-size:12.5px;font-weight:800;color:var(--ink);">' + emoji + ' ' + title + ' <span style="font-weight:700;color:var(--muted);font-size:11px;">' + sub + '</span></div>'
+    + '<div style="margin-top:2px;">' + chips(arr, bg, fg) + '</div></div>';
+  const wrap = el('div', { 'data-best-popup': '1', style: { position: 'fixed', inset: '0', zIndex: '9700', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' } });
+  wrap.appendChild(el('div', { style: { position: 'absolute', inset: '0', background: 'rgba(30,26,18,0.55)', backdropFilter: 'blur(3px)' }, onClick: () => window.__closeBestPopup() }));
+  const card = el('div', { style: { position: 'relative', width: '100%', maxWidth: '400px', maxHeight: '80vh', overflowY: 'auto', background: '#FFFDF8', borderRadius: '22px', padding: '26px 22px 22px', boxShadow: '0 18px 50px rgba(0,0,0,0.28)', textAlign: 'center' } });
+  const hasAny = (d.masters && d.masters.length) || (d.nears && d.nears.length) || (d.finishers && d.finishers.length);
+  card.innerHTML = '<button onclick="window.__closeBestPopup()" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);font-size:13px;cursor:pointer;">✕</button>'
+    + (d.preview ? '<div style="position:absolute;top:14px;left:14px;font-size:9.5px;font-weight:800;background:#1F4F7D;color:#fff;padding:2px 8px;border-radius:999px;">운영자 미리보기</div>' : '')
+    + '<div style="font-size:40px;">🏆</div>'
+    + '<div style="margin-top:8px;font-size:17px;font-weight:800;color:var(--ink);">Week ' + (d.weekN || 1) + ' 베스트 발표!</div>'
+    + (hasAny
+      ? ('<div style="margin-top:5px;font-size:12.5px;color:var(--ink-soft);">지난주를 빛낸 버디님들이에요 :)</div>'
+        + sec('🥇', '단어시험 만점 마스터', '힌트·오답 없이 전부 통과', d.masters, 'linear-gradient(135deg,#FFE9B0,#FFD873)', '#7A5B1E')
+        + sec('🔥', '거의 만점', '정답률 80% 이상', d.nears, 'rgba(46,111,168,0.10)', '#1F4F7D')
+        + sec('✅', '5일 완주', '지난주 인증 전부 완료', d.finishers, 'rgba(31,77,56,0.10)', '#1F4D38'))
+      : '<div style="margin-top:9px;font-size:13px;color:var(--ink-soft);line-height:1.7;">집계 데이터가 아직 모이는 중이에요.<br>다음 주에 만나요 :)</div>')
+    + '<div style="margin-top:12px;font-size:11.5px;color:var(--muted);">이름이 없어도 괜찮아요. 이번 주가 진짜 시작이에요 :)</div>'
+    + '<button onclick="window.__closeBestPopup()" class="btn btn-primary" style="width:100%;margin-top:12px;padding:13px;font-size:14px;">이번 주는 나도 🔥</button>';
+  wrap.appendChild(card);
+  return wrap;
+}
 window.__closeBestPopup = () => { showBestPopup = null; render(); };
 // 베스트 팝업 데이터 계산 (미리보기·멤버 자동 노출 공용). 그 주차 단어·그 주차 날짜만 집계.
 async function __computeBestPopupData(weekOverride) {
