@@ -10163,7 +10163,7 @@ function HomePage() {
      인증하면 해 스탬프. 5개 이상이면 수료식 얼리버드 어워드 호명 (추가 혜택,
      수료 기준과 무관. 기수 중 기준 변경 금지 원칙 준수). verified_time 기반 자동. */
   try {
-    const EB_FROM = 7, EB_TO = 15, EB_GOAL = 5;
+    const EB_FROM = 6, EB_TO = 15, EB_GOAL = 5; // 월(8/17)부터 시작 (2026-08-16 버디: 내일부터)
     const _cd = Number(state.currentDay) || 0;
     if (_cd >= 6 && _cd <= EB_TO + 2 && (!state.isOperator || state.operatorViewAsMember)) {
       const _stamp = (d) => {
@@ -10192,7 +10192,7 @@ function HomePage() {
         + '<div style="margin-top:9px;display:flex;gap:6px;flex-wrap:wrap;">' + _cells.join('') + '</div>'
         + '<div class="t-small" style="margin-top:9px;color:var(--muted);line-height:1.55;">'
         + (_cd < EB_FROM
-          ? '화요일(8/18)부터 아침 8시 전에 인증하면 해가 찍혀요. 아침 7시 모닝밋업에서 같이 하면 자동으로 찍힙니다 :)'
+          ? '아침 8시 전에 인증하면 해가 찍혀요. 아침 7시 모닝밋업에서 같이 하면 자동으로 찍힙니다 :)'
           : (_n >= EB_GOAL
             ? '이미 ' + EB_GOAL + '개 넘었어요! 수료식에서 ☀️ 얼리버드 어워드로 호명해드려요 :)'
             : '아침 8시 전 인증이면 자동으로 찍혀요. ' + EB_GOAL + '개 모으면 수료식에서 ☀️ 얼리버드 어워드로 호명!'))
