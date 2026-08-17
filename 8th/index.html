@@ -10177,7 +10177,7 @@ function HomePage() {
         const got = _stamp(d);
         const isToday = d === _cd;
         const future = d > _cd;
-        _cells.push('<div style="width:30px;height:30px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:' + (got ? '16px' : '11px') + ';'
+        _cells.push('<div style="width:100%;aspect-ratio:1/1;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:' + (got ? '14px' : '10.5px') + ';'
           + 'background:' + (got ? 'linear-gradient(135deg,#FFE9B0,#FFD873)' : '#F4F0E6') + ';'
           + (isToday ? 'box-shadow:0 0 0 2px #E8B23A;' : '')
           + 'color:' + (future ? '#C9C2B2' : '#A07A2A') + ';font-weight:800;">'
@@ -10189,7 +10189,7 @@ function HomePage() {
         + '<span style="font-size:15px;">☀️</span>'
         + '<span style="font-size:13.5px;font-weight:800;color:var(--ink);">얼리버드 스탬프</span>'
         + '<span style="margin-left:auto;font-size:12px;font-weight:800;color:#A07A2A;">' + _n + ' / ' + (EB_TO - EB_FROM + 1) + '</span></div>'
-        + '<div style="margin-top:9px;display:flex;gap:6px;flex-wrap:wrap;">' + _cells.join('') + '</div>'
+        + '<div style="margin-top:9px;display:grid;grid-template-columns:repeat(' + (EB_TO - EB_FROM + 1) + ',1fr);gap:5px;">' + _cells.join('') + '</div>'
         + '<div class="t-small" style="margin-top:9px;color:var(--muted);line-height:1.55;">'
         + (_cd < EB_FROM
           ? '아침 8시 전에 인증하면 해가 찍혀요. 아침 7시 모닝밋업에서 같이 하면 자동으로 찍힙니다 :)'
