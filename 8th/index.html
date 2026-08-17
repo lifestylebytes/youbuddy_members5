@@ -6443,7 +6443,7 @@ function renderOperatorQuickToggle() {
       else if (a === 'view-member') state.operatorViewAsMember = true;
       else if (a === 'tier-premium') state.tierOverride = 'premium';
       else if (a === 'tier-basic') state.tierOverride = 'basic';
-      try { cacheState(); } catch (e) {}
+      try { saveState({ immediate: true }); } catch (e) {}
       window.__cbCachedFingerprint = null;
       try {
         showToast(a === 'view-member' ? '👀 멤버 화면으로 보는 중'
@@ -10877,7 +10877,7 @@ function Checkboard() {
     const memberTz = (memberTimezoneText(m) || '').trim();
     const showTz = memberTz && memberTz !== '+0h';
     // 운영자/스태프 view, 영어 닉네임 옆에 작은 한글 이름 inline 노출 (멤버 매핑 빠르게)
-    const isOpView = (state.isOperator || state.isStaff) && !m.me;
+    const isOpView = (state.isOperator || state.isStaff) && !state.operatorViewAsMember && !m.me;
     const krShadow = isOpView
       && m.name && m.englishName && m.englishName.trim()
       && m.name.trim() !== m.englishName.trim()
