@@ -10190,7 +10190,7 @@ function HomePage() {
   try {
     const EB_FROM = 6, EB_TO = 15, EB_GOAL = 5; // 월(8/17)부터 시작 (2026-08-16 버디: 내일부터)
     const _cd = Number(state.currentDay) || 0;
-    if (_cd >= 5 && _cd <= EB_TO + 2 && (!state.isOperator || state.operatorViewAsMember)) {
+    if (_cd >= 5 && _cd <= EB_TO + 2) {
       const _stamp = (d) => {
         if (!(state.verified && state.verified['d' + d])) return false;
         const t = (state.verified_time || {})['d' + d] || '';
@@ -10214,7 +10214,7 @@ function HomePage() {
         + '<span style="font-size:15px;">☀️</span>'
         + '<span style="font-size:13.5px;font-weight:800;color:var(--ink);">얼리버드 스탬프</span>'
         + '<span style="margin-left:auto;font-size:12px;font-weight:800;color:#A07A2A;">' + _n + ' / ' + (EB_TO - EB_FROM + 1) + '</span></div>'
-        + '<div style="margin-top:9px;display:grid;grid-template-columns:repeat(' + (EB_TO - EB_FROM + 1) + ',1fr);gap:5px;">' + _cells.join('') + '</div>'
+        + '<div style="margin-top:9px;display:grid;grid-template-columns:repeat(' + (EB_TO - EB_FROM + 1) + ',minmax(0,30px));justify-content:space-between;gap:5px;">' + _cells.join('') + '</div>'
         + '<div class="t-small" style="margin-top:9px;color:var(--muted);line-height:1.55;">'
         + (_cd < EB_FROM
           ? '아침 8시 전에 인증하면 해가 찍혀요. 아침 7시 모닝밋업에서 같이 하면 자동으로 찍힙니다 :)'
