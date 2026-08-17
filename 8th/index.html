@@ -31006,10 +31006,11 @@ function MeetupIntroPopupModal() {
   card.innerHTML = '<button onclick="window.__closeMeetupIntro()" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);font-size:13px;cursor:pointer;">✕</button>'
     + '<div style="font-size:40px;">🌅</div>'
     + '<div style="margin-top:10px;font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">아침 7시, 모닝밋업이 시작돼요!</div>'
-    + '<div style="margin-top:9px;font-size:13.5px;line-height:1.7;color:var(--ink-soft);">화요일(8/18)부터 평일 아침 7시,<br>구글 미트에서 만나요.<br>같이 접속해서 그날 인증을 그 자리에서 끝내는 시간이에요.<br>(조용히 같이 하는 거라 카메라 안 켜셔도 됩니다 :)</div>'
-    + '<div style="margin-top:12px;padding:11px 13px;border-radius:13px;background:linear-gradient(150deg,#FFFDF4,#FFF6E0);border:1px solid rgba(232,178,58,0.45);font-size:12.5px;line-height:1.65;color:#7A5B1E;text-align:left;">☀️ <b>얼리버드 스탬프</b><br>아침 8시 전에 인증하면 홈 화면에 해가 자동으로 찍혀요.<br>5개 모으면 수료식에서 <b>얼리버드 어워드</b>로 호명!</div>'
+    + '<div style="margin-top:9px;font-size:13.5px;line-height:1.7;color:var(--ink-soft);">화요일(8/18)부터 평일 아침 7시, 구글 미트에서 만나요.<br>같이 접속해서 그날 인증을 그 자리에서 끝내는 시간이에요.<br>(조용히 같이 하는 거라 카메라는 안 켜셔도 됩니다 :)<br><br>해주실 건 단 하나!<br><b>채팅방에 오늘 50분 동안 할 일 적기</b></div>'
+    + '<div style="margin-top:12px;padding:11px 13px;border-radius:13px;background:linear-gradient(150deg,#FFFDF4,#FFF6E0);border:1px solid rgba(232,178,58,0.45);font-size:12.5px;line-height:1.65;color:#7A5B1E;text-align:left;">☀️ <b>얼리버드 스탬프</b><br>아침 8시 전에 인증하면 홈 화면에 해가 자동으로 찍혀요.<br>밋업에서 같이 끝내면 저절로 쌓이고, 못 오신 날도 8시 전에만 인증하면 똑같이 찍혀요.<br>2주 동안 5개 모으면 수료식에서 <b>얼리버드 어워드</b>로 호명!</div>'
     + '<a href="https://meet.google.com/tgb-erax-bey" target="_blank" rel="noopener noreferrer" style="display:block;margin-top:10px;font-size:12px;font-weight:800;color:#2E6FA8;text-decoration:underline;text-underline-offset:3px;">미트 링크 미리 열어보기 →</a>'
-    + '<button onclick="window.__closeMeetupIntro()" class="btn btn-primary" style="width:100%;margin-top:14px;padding:13px;font-size:14px;">아침에 만나요 :)</button>';
+    + '<div style="margin-top:9px;font-size:11.5px;color:var(--muted);">아침형 인간 아니어도 괜찮아요. 오는 날만 오셔도 됩니다 :)</div>'
+    + '<button onclick="window.__closeMeetupIntro()" class="btn btn-primary" style="width:100%;margin-top:12px;padding:13px;font-size:14px;">아침에 만나요 :)</button>';
   wrap.appendChild(card);
   return wrap;
 }
