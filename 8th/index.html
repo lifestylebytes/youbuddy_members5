@@ -11555,6 +11555,31 @@ function blankPatternFor(answer='') {
 
 // 첫 글자 힌트 마스크, "hit out" → "h__ o__", "go with" → "g_ w___"
 // 알파벳이 아닌 구두점/숫자/하이픈은 그대로 보여줘요 (시각적 단서).
+/* 장면 힌트 (2026-08-19 버디 요청): 단어의 '이럴 때 써요' 첫 두 문장을 힌트로 재활용.
+   정답 유출 방지를 위해 영어 표현 토큰은 ◻ 로 가린다. 룩비하인드 금지 (구형 iOS 파스 에러). */
+function sceneHintFor(en) {
+  try {
+    if (!window.__nuanceByEn) {
+      const m = {};
+      (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((dd) => (dd.words || []).forEach((w) => {
+        if (w.en && w.nuance) m[String(w.en).toLowerCase()] = w.nuance;
+      })));
+      window.__nuanceByEn = m;
+    }
+    let nz = window.__nuanceByEn[String(en || '').toLowerCase()] || '';
+    if (!nz) return '';
+    const sents = nz.match(/[^.!?]+[.!?]?/g) || [nz];
+    nz = sents.slice(0, 2).join('').trim();
+    const toks = String(en).split(/\s+/).filter((t) => t.replace(/[^A-Za-z]/g, '').length >= 3);
+    toks.push(String(en));
+    toks.sort((a, b) => b.length - a.length).forEach((t) => {
+      const esc = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      nz = nz.replace(new RegExp(esc, 'gi'), '◻');
+    });
+    nz = nz.replace(/["'“”]\s*◻+\s*["'“”]?/g, '◻').replace(/◻(\s*◻)+/g, '◻');
+    return nz;
+  } catch (e) { return ''; }
+}
 function buildVerifyHintMask(answer='') {
   return String(answer)
     .split(/(\s+)/) // 공백을 유지한 토큰
@@ -12365,7 +12390,7 @@ function VerifyPage(dayN) {
                   ? `<div class="t-small" style="margin-top:4px;color:#8D8AA6;">사전형 · ${escapeHtml(currentQuestion.en)}</div>` : ''}
                 <div class="t-small" style="margin-top:6px;color:#6C6A86;">${escapeHtml(currentQuestion.kr || '')}</div>
               </div>
-            ` : (ui.reveal ? `<div style="margin-top:14px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);">${escapeHtml(buildVerifyHintMask(split.spanAnswer || currentQuestion.en))}</div>` : '')}
+            ` : (ui.reveal ? (() => { const __sh = sceneHintFor(currentQuestion.en); return (__sh ? `<div style="margin-top:14px;padding:12px 14px;border-radius:13px;background:#FFF8E1;border:1px solid rgba(255,193,7,0.35);text-align:left;font-size:12.5px;line-height:1.7;color:#7A5800;">💡 ${escapeHtml(__sh)}</div>` : '') + `<div style="margin-top:12px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);">${escapeHtml(buildVerifyHintMask(split.spanAnswer || currentQuestion.en))}</div>`; })() : '')}
             <div style="display:flex;gap:8px;margin-top:18px;">
               ${!ui.revealAnswer ? `<button class="btn btn-primary" style="flex:1.6;justify-content:center;" onclick="window.__submitVerifyQuizAnswer(${dayN})">${ui.idx === questions.length - 1 ? '제출하고 채점 →' : '제출 · 다음 →'}</button>` : ''}
               <button class="btn btn-ghost" style="flex:1;justify-content:center;background:#4F4438;color:#fff;border:none;" onclick="window.__advanceVerifyQuiz(${dayN}, true)">${ui.revealAnswer ? (ui.idx === questions.length - 1 ? '확인했어요 · 제출' : '확인했어요 · 다음 문제') : (ui.idx === questions.length - 1 ? '모르겠어요 · 제출' : 'Skip')}</button>
@@ -13086,7 +13111,7 @@ function WeekReviewPage(weekN) {
             <div class="t-small mono" style="color:var(--orange-dark);letter-spacing:0.08em;">정답</div>
             <div style="margin-top:6px;font-size:22px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em;">${escapeHtml(currentQuestion.en)}</div>
           </div>
-        ` : (ui.reveal ? `<div style="margin-top:14px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);">${escapeHtml(buildVerifyHintMask(split.spanAnswer || currentQuestion.en))}</div>` : '')}
+        ` : (ui.reveal ? (() => { const __sh = sceneHintFor(currentQuestion.en); return (__sh ? `<div style="margin-top:14px;padding:12px 14px;border-radius:13px;background:#FFF8E1;border:1px solid rgba(255,193,7,0.35);text-align:left;font-size:12.5px;line-height:1.7;color:#7A5800;">💡 ${escapeHtml(__sh)}</div>` : '') + `<div style="margin-top:12px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);">${escapeHtml(buildVerifyHintMask(split.spanAnswer || currentQuestion.en))}</div>`; })() : '')}
         <div style="display:flex;gap:8px;margin-top:18px;">
           <button class="btn btn-ghost" style="flex:1;justify-content:center;background:#4F4438;color:#fff;border:none;" onclick="window.__advanceWeekReview(${weekN}, ${stage}, true)">${ui.revealAnswer ? (ui.idx === questions.length - 1 ? '결과 보기' : '확인했어요 · 다음') : (ui.idx === questions.length - 1 ? '모르겠어요 · 결과' : 'Skip')}</button>
         </div>
@@ -30170,7 +30195,7 @@ function MyReviewPage() {
           <div style="margin-top:6px;font-size:22px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em;line-height:1.3;">${escapeHtml(cur.en)}</div>
           <div class="t-small" style="margin-top:6px;color:#6C6A86;">${escapeHtml(cur.kr || '')}</div>
         </div>
-      ` : (ui.reveal ? `<div style="margin-top:14px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);">${escapeHtml(buildVerifyHintMask(cur.en))}</div>` : '')}
+      ` : (ui.reveal ? (() => { const __sh = sceneHintFor(cur.en); return (__sh ? `<div style="margin-top:14px;padding:12px 14px;border-radius:13px;background:#FFF8E1;border:1px solid rgba(255,193,7,0.35);text-align:left;font-size:12.5px;line-height:1.7;color:#7A5800;">💡 ${escapeHtml(__sh)}</div>` : '') + `<div style="margin-top:12px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);">${escapeHtml(buildVerifyHintMask(cur.en))}</div>`; })() : '')}
       <div style="display:flex;gap:8px;margin-top:18px;">
         ${!ui.revealAnswer ? `<button class="btn btn-primary" style="flex:1.6;justify-content:center;" onclick="window.__submitReview()">${ui.idx === ui.list.length - 1 ? '제출하고 채점 →' : '제출 · 다음 →'}</button>` : ''}
         <button class="btn btn-ghost" style="flex:1;justify-content:center;background:#4F4438;color:#fff;border:none;" onclick="window.__advanceReview(true)">${ui.revealAnswer ? (ui.idx === ui.list.length - 1 ? '확인했어요 · 채점' : '확인했어요 · 다음 문제') : (ui.idx === ui.list.length - 1 ? '모르겠어요' : 'Skip')}</button>
@@ -31823,7 +31848,7 @@ const WEEK2_WARMUP = [
 ];
 // COHORT-SLOT(manual): Week 2 회의 시뮬. WEEK2_WARMUP 과 같은 순서 (패스 인덱스 호환).
 const WEEK2_SIM = [
-  // 8기 Week 2 (Numbers Talk · Day 6~10) 단어 15개 기반. (2026-08-19 교체, 구버전은 7기 논쟁의 기술)
+  // 출제 범위 = Day 1~9 (미팅 시점까지 배운 단어만. Day 10은 미팅 다음날이라 제외 + W1 복습 3문항). 2026-08-19
   { ko: '설명이 길어졌고, 상대는 결론만 궁금해함', cue: "So... what's the takeaway here?", pre: 'The ', ans: 'bottom line', post: " is we're shipping two weeks late." },
   { ko: '임팩트가 크다고만 하면 안 믿어줌, 숫자로 말해야 함', cue: 'How big is the impact, roughly?', pre: 'Let me ', ans: 'put a number on it', post: ': about 12 percent of weekly users.' },
   { ko: '미팅 못 온 동료가 한 줄 요약을 부탁함', cue: 'I missed the meeting. What happened?', pre: '', ans: 'In a nutshell', post: ', we are pivoting to the enterprise plan.' },
@@ -31836,9 +31861,9 @@ const WEEK2_SIM = [
   { ko: '출시 3일째인데 벌써 성패를 물어봄', cue: 'Is the new feature working?', pre: "It's ", ans: 'too early to tell', post: ', but early signals look good.' },
   { ko: '매출은 아직 그대로, 먼저 움직이는 신호를 봐야 함', cue: 'Sales look flat this month.', pre: 'Watch signups instead. They are a ', ans: 'leading indicator', post: ' for next quarter.' },
   { ko: '아직 확정 안 된 큰 딜을 계획에 넣자고 함', cue: 'Can we include the big deal in the forecast?', pre: "I wouldn't ", ans: 'bank on', post: ' it closing this quarter.' },
-  { ko: '런칭 날짜가 확정이냐는 질문, 아직 바뀔 수 있음', cue: 'Is the launch date final?', pre: "It's ", ans: 'not set in stone', post: ' yet. We confirm this Friday.' },
-  { ko: '예산 승인이 났는지 물어보는데 아직 결론이 안 남', cue: 'Did they approve the budget?', pre: 'Still ', ans: 'up in the air', post: ". We'll know after the board meeting." },
-  { ko: '한 공급사에 다 걸긴 불안함, 분산하자고 제안', cue: 'Should we go all in with vendor A?', pre: "Let's ", ans: 'hedge our bets', post: ' and keep vendor B warm.' },
+  { ko: '(W1 복습) 상사가 프로젝트 진행 상황을 물어봄', cue: 'Can you update me on the project?', pre: "Here's ", ans: 'where things stand', post: ': design is done, dev starts Monday.' },
+  { ko: '(W1 복습) 새 팀원이 합류해서 그간 맥락을 알려줘야 함', cue: 'I just joined. What did I miss?', pre: 'Let me ', ans: 'bring you up to speed', post: ' on the project.' },
+  { ko: '(W1 복습) 문제 정리는 끝났고, 이제 실행 계획을 제시함', cue: 'So how do we tackle this?', pre: "Here's our ", ans: 'plan of attack', post: ' for the next two weeks.' },
 ];
 const WEEK2_ROLEPLAY_SLIDES = WEEK2_HUMOR_GROUPS.map((g, i) => ({
   section: '표현 롤플레잉', kicker: '1 · 롤플레잉 ' + (i + 1) + ' / ' + WEEK2_HUMOR_GROUPS.length, title: g.sit,
@@ -31869,14 +31894,18 @@ const WEEK2_DECK = [
   { section: '오프닝', kicker: 'WEEK 2 · 60분', title: '오늘 순서 한눈에',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">8기 프리미엄 버디</b></div>'
       + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
-      + ['위기 대응 롤플레잉 (❌ 패닉 → ✅ 프로)', 'PT 발표 + 질의응답', '회의 시뮬 · Week 2 단어 15개 (Day 6~10)'].map((t, i) =>
+      + ['위기 대응 롤플레잉 (❌ 패닉 → ✅ 프로)', '회의 시뮬 · 단어 복습 15문항 (Day 1~9)', 'PT 발표 + 질의응답'].map((t, i) =>
           '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
       + '</div>'
       + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:13.5px;color:var(--ink);">🎯 목표: 급한 불 앞에서 패닉 대신 프로의 언어. 침착하게 정리하는 말을 입에 붙이기</div>' },
   ...WEEK2_CRISIS_SLIDES,
-  { section: '복습', kicker: '2 · 회의 시뮬 15문항', title: '회의에서 답을 해보아요!', meetingSim: true, sim: WEEK2_SIM,
-    script: '"이번 주 15개도 회의처럼! 상황 듣고, 상대방 말 듣고, 첫 글자 힌트 보고 문장 전체로 대답해주세요~"' },
-  { section: '마무리', kicker: '3 · 마무리', title: '마무리 체크', goalCapture: true,
+  { section: '복습', kicker: '2 · 회의 시뮬 15문항 (Day 1~9)', title: '회의에서 답을 해보아요!', meetingSim: true, sim: WEEK2_SIM,
+    script: '"지금까지 배운 단어로 회의처럼! 상황 듣고, 상대방 말 듣고, 첫 글자 힌트 보고 문장 전체로 대답해주세요~"' },
+  { section: '발표', kicker: '3 · PT 발표', title: '🎤 오늘의 발표',
+    html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">발표 7분 + 피드백 3분씩 진행해요.</div>'
+      + '<div style="margin-top:12px;padding:13px 15px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);font-size:13.5px;color:var(--ink);line-height:1.8;"><b>듣는 버디님들의 역할</b><br>· 끝나면 "나라면 이렇게" 한 마디씩 (피드백은 동료가!)<br>· 안 들렸던 단어는 미팅 노트에 적어두기 (다음 주 2분 꿀팁이 됩니다)</div>'
+      + '<div style="margin-top:10px;padding:11px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;">🧡 여기선 틀리는 게 일이에요. 구체적 칭찬은 무제한!</div>' },
+  { section: '마무리', kicker: '4 · 마무리', title: '마무리 체크', goalCapture: true,
     checks: ['오늘 표현 중 본인이 실제로 쓸 것 1개 정하기', '과제: 이번 주 회의에서 한 번 실제로 써보기'],
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래를 체크하며 마무리하고, 다음 주 목표를 받아적어요.</div>' },
   { section: '다음주 예고', kicker: '다음 주', title: 'Week 3 · 스몰톡',
