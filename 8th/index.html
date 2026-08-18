@@ -19611,7 +19611,11 @@ function MeetingNotesPage(meetingId) {
     : (meta.n === 2 && typeof WEEK2_DECK !== 'undefined') ? WEEK2_DECK
     : (meta.n === 3 && typeof WEEK3_DECK !== 'undefined') ? WEEK3_DECK
     : (meta.n === 4 && typeof WEEK4_DECK !== 'undefined') ? WEEK4_DECK : null;
-  if (__deckForMeeting && (state.isOperator || state.isStaff || state.tier === 'premium')) {
+  // 미래 주차 슬라이드는 멤버에게 잠금 (7기 콘텐츠 잔재 노출 방지 + 스포 방지, 2026-08-18).
+  // 멤버는 미팅 당일부터, 운영자·스태프(멤버 뷰 아님)는 항상.
+  const __deckOpsAlways = (state.isOperator || state.isStaff) && !state.operatorViewAsMember;
+  const __deckOpenForMembers = meta.date <= todayStr();
+  if (__deckForMeeting && (__deckOpsAlways || (state.tier === 'premium' && __deckOpenForMembers))) {
     const __opBtn = !!((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
     const deckBtn = el('button', { class: 'btn btn-primary btn-full btn-lg', style: { marginBottom: '14px' }, onClick: () => { window.__currentMeetingId = meetingId; window.__deckIdx = 0; if (typeof __deckHydrate === 'function') __deckHydrate(); go('meeting-deck'); } });
     deckBtn.innerHTML = __opBtn
