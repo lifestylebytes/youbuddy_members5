@@ -20006,38 +20006,8 @@ function MeetingNotesPage(meetingId) {
     }
   }
 
-  // 🎬 미팅 진행 화면 바로가기, Week 3 부터 도입.
-  //    클릭하면 화면 공유용 deck 이 새 탭으로 열림. Gaby 가 Zoom 공유.
-  //    Week 4 부터는 데이터 추가 후 활성화.
-  if (meta.n === 3) {
-    const liveCard = el('a', {
-      href: '#', // COHORT-SLOT(manual): 8기 W3 라이브 페이지 만들면 교체
-      target: '_blank',
-      rel: 'noopener noreferrer',
-      style: {
-        display: 'block', margin: '12px 0 0', padding: '18px 20px',
-        borderRadius: '20px',
-        background: 'linear-gradient(135deg, #1F1630 0%, #3A2A52 100%)',
-        color: '#fff',
-        textDecoration: 'none', cursor: 'pointer',
-        boxShadow: '0 12px 30px -10px rgba(31,22,48,0.45)',
-      },
-    });
-    liveCard.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">
-        <div style="min-width:0;">
-          <div style="font-size:11px;letter-spacing:0.14em;font-weight:800;color:#FCE8B2;">📺 미팅 진행 화면</div>
-          <div style="margin-top:6px;font-size:18px;font-weight:800;letter-spacing:-0.015em;line-height:1.3;">미팅은 이렇게 진행돼요</div>
-          <div style="margin-top:5px;font-size:12.5px;color:rgba(255,255,255,0.78);line-height:1.5;">
-            스몰토크부터 실무 상황까지, 상황 롤플레이 + Day 1~15 단어 전체<br/>
-            진행자가 화면 공유하면, 보면서 자유롭게 발화하면 돼요.
-          </div>
-        </div>
-        <div style="font-size:14px;font-weight:800;color:#FCE8B2;flex-shrink:0;white-space:nowrap;">화면 열기 →</div>
-      </div>
-    `;
-    page.appendChild(liveCard);
-  }
+  // (제거됨 2026-08-19) 미팅 진행 화면 카드: href '#' 미완성 기능. 발표 모드가 대체.
+
 
 // (미팅 다시보기 CTA 는 hero 직후로 이동, Week 1 조기 return 보다 앞이어야 모든 주차에서 보임)
 
@@ -20072,8 +20042,8 @@ function MeetingNotesPage(meetingId) {
   // (Sync bar 제거, 상단 "💾 저장" 버튼으로 통합. 자동 저장은 입력할 때마다 뒤에서 돌아감.)
 
   // Segmented control, Timeline vs AI assist
-  // Week 3 은 적을 노트가 없어서(배너만) 탭 자체를 숨김. 항상 timeline 뷰.
-  if (meta.n !== 3) {
+  // Week 2·3 은 회의록·AI 탭 숨김 (2026-08-19 버디 확정). 항상 timeline 뷰.
+  if (meta.n !== 2 && meta.n !== 3) {
     const seg = el('div', { class: 'mn-seg' });
     const tabs = [
       { k: 'timeline', label: '📋 회의록' },
@@ -21118,8 +21088,8 @@ function MeetingNotesPage(meetingId) {
       wrap.appendChild(row);
     }
 
-    // ---- Meta footer ---- (Week 3 은 기록할 칸이 없어서 안내문도 생략)
-    if (meta.n !== 3) {
+    // ---- Meta footer ---- (Week 2·3 은 기록할 칸이 없어서 안내문도 생략)
+    if (meta.n !== 2 && meta.n !== 3) {
       const metaFooter = el('div', {
         style: {
           marginTop: '12px',
@@ -21232,8 +21202,8 @@ function MeetingNotesPage(meetingId) {
   }
 
   // Action row, 내보내기 섹션. "여기 적은 노트를 Notion 에 옮기기" 목적을 위로 표시.
-  // Week 3 은 노트 입력칸 자체가 없어서(배너만) 내보낼 게 없음 → 섹션 통째로 생략.
-  if (meta.n !== 3) {
+  // Week 2·3 은 노트 입력칸 자체가 없어서 내보낼 게 없음 → 섹션 통째로 생략.
+  if (meta.n !== 2 && meta.n !== 3) {
   const exportSection = el('div', { style: { marginTop: '24px' } });
   exportSection.appendChild(el('div', {
     style: {
@@ -31977,7 +31947,19 @@ const CUSHION_PHRASES = [
     { en: 'Pre-mortem', kr: '망했다 치고 미리 원인을 점검하는 회의' },
   ] },
 ];
-const WEEK3_WARMUP = CUSHION_PHRASES.flatMap((g) => g.items.map((it) => ({ kr: it.kr, en: it.en })));
+// 8기 단어 자동 추출 헬퍼 (2026-08-19): 덱 단어를 하드코딩하지 않는다. 9기 재발 방지.
+function __cohortWords(fromDay, toDay) {
+  const out = [];
+  try {
+    (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((dd) => {
+      if (dd.day < fromDay || dd.day > toDay) return;
+      (dd.words || []).forEach((w) => out.push({ en: w.en, kr: w.def, def: w.def, day: dd.day }));
+    }));
+  } catch (e) {}
+  return out;
+}
+const WEEK3_WARMUP = __cohortWords(11, 15).map((w) => ({ kr: w.kr, en: w.en }));
+const WEEK4_WARMUP = __cohortWords(1, 20).map((w) => ({ kr: w.kr, en: w.en }));
 const CUSHION_DRILLS = [
   { cat: '① 긴급 상황 열기', emoji: '🚨',
     how: '운영자가 ❌ 패닉 문장을 던지면, 그 자리에서 침착한 프로 버전으로 바꿔 말하기. 막히면 ✅ 열어 확인 후 한 번 더.',
@@ -32053,173 +32035,108 @@ const CUSHION_DRILL_SLIDES = CUSHION_DRILLS.map((g, i) => ({
   section: '위기 변환 드릴', kicker: '2 · 드릴 ' + (i + 1) + ' / ' + CUSHION_DRILLS.length, title: g.emoji + ' ' + g.cat,
   cushionDrill: g, bank: (CUSHION_PHRASES[i] && CUSHION_PHRASES[i].items) || [],
 }));
+const WEEK3_SIM = [
+  // 출제 범위 = Day 1~14 (W3 미팅 시점까지 배운 단어. Day 15 는 미팅 다음날). 2026-08-19
+  { ko: '내 선에서 해결이 안 되는 이슈, 윗선으로 올려야 함', cue: "We've been stuck on this for two days.", pre: "Let's ", ans: 'escalate', post: ' it to the steering committee.' },
+  { ko: '이대로면 런칭 날짜를 못 지킬 것 같다고 알림', cue: 'How is the timeline looking?', pre: 'The launch date is ', ans: 'at risk', post: '. We need one more engineer.' },
+  { ko: '다들 모르고 있는 문제를 회의에서 꺼내야 함', cue: 'Anything else before we wrap up?', pre: 'I want to ', ans: 'surface an issue', post: ' with the vendor contract.' },
+  { ko: '플랜 A가 실패할 때를 대비한 대안을 말함', cue: 'What if the API integration fails?', pre: 'Our ', ans: 'fallback', post: ' is the manual upload flow.' },
+  { ko: '일정이 조금씩 밀리고 있다고 보고함', cue: 'Are we still on track?', pre: "We're seeing some ", ans: 'slippage', post: ' in the QA phase.' },
+  { ko: '문제가 커지기 전에 미리 막자고 제안', cue: 'The client seems unhappy with the delay.', pre: "Let's call them today and ", ans: 'head it off', post: ' before it becomes a complaint.' },
+  { ko: '이 일정으론 안 되니 범위를 줄이자고 제안', cue: "We can't hit the date with this scope.", pre: "Let's ", ans: 'scale back', post: ' the first release to core features.' },
+  { ko: '방향이 어긋났음을 인정하고 바로잡자고 함', cue: 'The numbers are worse than we expected.', pre: "It's not too late to ", ans: 'course-correct', post: '.' },
+  { ko: '예산을 가장자리부터 조금씩 깎아야 함', cue: 'Finance wants a 10 percent cut.', pre: "We'll have to ", ans: 'pare back', post: ' the marketing budget.' },
+  { ko: '나쁜 소식을 숨기지 말고 먼저 말하자고 함', cue: 'Should we mention the bug to the client?', pre: "Let's ", ans: 'be upfront', post: ' about it. They will find out anyway.' },
+  { ko: '다들 의견을 아끼는 분위기, 솔직함을 요청', cue: 'Does everyone agree with this plan?', pre: "Don't ", ans: 'hold back', post: '. I want honest opinions.' },
+  { ko: '내 실수를 인정하고 수습안을 제시함', cue: 'Who sent the wrong file to the client?', pre: 'That was me. I ', ans: 'own up to', post: ' the mistake, and here is the fix.' },
+  { ko: '(W2 복습) 긴 회의 끝, 결론만 정리함', cue: "So what's the conclusion?", pre: 'The ', ans: 'bottom line', post: ': we ship on the 15th.' },
+  { ko: '(W2 복습) 수정 배포 이틀째, 벌써 성패를 물어봄', cue: 'Is the fix working?', pre: "It's ", ans: 'too early to tell', post: '. Give it two more days.' },
+  { ko: '(W1 복습) 데모 준비가 다 됐는지 확인받음', cue: 'Are we ready for the demo?', pre: "Everything is set. We're ", ans: 'good to go', post: '.' },
+];
+const WEEK3_SMALLTALK = [
+  { emoji: '☕', sit: '월요일 아침, 회의 시작 전 2분',
+    how: '짝 지어 질문 → 1-1-1 공식으로 답 → 되묻기까지가 한 세트. 역할 바꿔 두 바퀴.',
+    tip: '공식은 1-1-1: 한 마디 답 + 디테일 하나 + 되묻기. "Good."에서 끝나면 대화가 죽어요.',
+    lines: [
+      { en: 'Pretty good! I finally tried that new place near my office. How was yours?', kr: '좋았어요! 회사 근처 새로 생긴 데 드디어 가봤어요. 주말 어떠셨어요?' },
+      { en: 'Nothing special, just recharging. Any fun plans this week?', kr: '별거 없이 충전했어요. 이번 주 재밌는 계획 있어요?' },
+      { en: 'Busy weekend actually. My kid had a soccer game. How about you?', kr: '바빴어요, 애 축구 시합이 있어서요. 그쪽은요?' },
+    ] },
+  { emoji: '🛗', sit: '엘리베이터·복도에서 마주쳤을 때',
+    how: '10초 안에 끝나는 대화. 근황 한 마디 + 가벼운 칭찬이나 제안 하나.',
+    tip: '깊게 갈 필요 없어요. 짧게 주고받고 웃으며 헤어지는 게 성공이에요.',
+    lines: [
+      { en: "Hey! How's the project going? / Busy but good. We just wrapped the design phase.", kr: '프로젝트 어때요? / 바쁜데 좋아요. 디자인 단계 막 끝냈어요.' },
+      { en: 'I heard your team shipped last week. Congrats!', kr: '지난주에 팀 출시했다면서요. 축하해요!' },
+      { en: "Let's grab coffee sometime this week.", kr: '이번 주에 커피 한잔해요.' },
+    ] },
+  { emoji: '💻', sit: '화상회의, 본론 전 어색한 30초',
+    how: '한 명이 스몰톡 열기 → 상대가 받기 → 아무나 전환 멘트로 본론 진입.',
+    tip: '날씨·시차는 만만한 소재. 그리고 전환 멘트 하나면 어색함이 끝나요.',
+    lines: [
+      { en: "Is it still crazy hot in Seoul? / 34 degrees today. I basically live in the AC. How's your side?", kr: '서울 아직 더워요? / 오늘 34도예요. 에어컨 밑에서 살아요. 그쪽은요?' },
+      { en: 'Your background looks nice. Is that your office?', kr: '배경 좋네요. 사무실이에요?' },
+      { en: 'Anyway, shall we dive in?', kr: '자, 그럼 시작할까요? (전환 멘트)' },
+    ] },
+  { emoji: '🤝', sit: '처음 만난 외부 미팅·컨퍼런스',
+    how: '자기소개 한 줄 준비 → 상대에게 질문 → 마무리 인사까지 한 세트로 연습.',
+    tip: '자기소개는 이름 + 하는 일 한 줄이면 충분해요. 그다음은 질문이 대화를 끌어줘요.',
+    lines: [
+      { en: 'First time at this event? What brings you here?', kr: '이 행사 처음이세요? 어떻게 오셨어요?' },
+      { en: "I'm Buddy. I work on APAC partnerships at a tech company.", kr: '버디예요. 테크 회사에서 APAC 파트너십을 맡고 있어요.' },
+      { en: "It was great talking. Let's stay in touch.", kr: '얘기 즐거웠어요. 연락하고 지내요.' },
+    ] },
+];
+const WEEK3_SMALLTALK_SLIDES = WEEK3_SMALLTALK.map((g, i) => ({
+  section: '스몰톡 롤플레잉', kicker: '1 · 상황 ' + (i + 1) + ' / ' + WEEK3_SMALLTALK.length, title: g.emoji + ' ' + g.sit,
+  html: '<div style="padding:11px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;"><b>👥 진행</b><br>' + escapeHtml(g.how) + '</div>'
+    + g.lines.map((it) =>
+      '<div style="margin-top:10px;padding:12px 14px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);">'
+      + '<div style="font-size:14px;font-weight:800;color:var(--ink);line-height:1.6;">' + escapeHtml(it.en) + '</div>'
+      + '<div style="margin-top:4px;font-size:12px;color:var(--ink-soft);line-height:1.5;">' + escapeHtml(it.kr) + '</div>'
+      + '</div>').join('')
+    + '<div style="margin-top:10px;padding:11px 13px;border-radius:12px;background:#EAF2FA;border:1px solid rgba(46,111,168,0.25);font-size:12.5px;color:#1F4F7D;line-height:1.6;">💡 ' + escapeHtml(g.tip) + '</div>',
+  bank: [],
+  bankKey: 'w3st' + i,
+}));
 const WEEK3_DECK = [
   { section: '오프닝', kicker: 'WEEK 3 · 60분', title: '오늘 순서 한눈에',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">8기 프리미엄 버디</b></div>'
-    + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
-    + ['위기 표현 20선 훑기', '❌→✅ 변환 드릴 (오늘의 핵심)', '내 상황 짝 연습 (롤플레잉)', 'Week 3 단어 복습'].map((t, i) =>
-        '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
-    + '</div>'
-    + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎯 목표: 패닉 상황에서 <b>침착한 프로의 문장</b>이 반사적으로 나오게.</div>' },
-  { section: '표현 보기', kicker: '1 · 위기 표현 20선', title: '위기 표현 20선 · 4개 서랍',
-    html: (() => {
-      const card = (g) => '<div style="margin-top:13px;padding-top:11px;border-top:1px dashed rgba(255,255,255,0.18);">'
-        + '<div style="font-size:12.5px;font-weight:800;color:#9FE1CB;">' + escapeHtml(g.cat) + '</div>'
-        + g.items.map((it) => '<div style="margin-top:6px;"><span style="font-size:13.5px;font-weight:800;color:#fff;font-family:var(--font-mono);">' + escapeHtml(it.en) + '</span><span style="font-size:11px;color:#C9D6C0;margin-left:7px;">' + escapeHtml(it.kr) + '</span></div>').join('') + '</div>';
-      return '<div style="background:#26331F;border-radius:18px;padding:18px;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
-        + '<div style="font-size:11px;letter-spacing:0.1em;color:#FBE7A1;font-weight:800;">📋 오늘의 칠판 · 위기의 언어</div>'
-        + CUSHION_PHRASES.map(card).join('')
-        + '</div>'
-        + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">다 외우지 말고 <b>본인이 약한 서랍 1~2개</b>만 골라 입에 붙이면 충분해요.</div>';
-    })() },
-  { section: '위기 변환 드릴', kicker: '2 · 진행 방식', title: '❌→✅ 이렇게 굴려요',
-    html: (() => {
-      const step = (emo, t, sub) => '<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:14px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);">'
-        + '<span style="flex-shrink:0;width:42px;height:42px;border-radius:12px;background:#EAF2FA;display:inline-flex;align-items:center;justify-content:center;font-size:22px;">' + emo + '</span>'
-        + '<div><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div><div class="t-small" style="margin-top:1px;color:var(--ink-soft);">' + sub + '</div></div></div>';
-      const arrow = '<div style="text-align:center;color:#9DBCA9;font-size:15px;line-height:1;margin:1px 0;">↓</div>';
-      return '<div style="display:flex;flex-direction:column;">'
-        + step('💣', '운영자가 패닉 폭탄 ❌', '"Everything is broken!!" 같은 문장을 툭 던져요') + arrow
-        + step('🗣️', '침착한 프로 버전으로', '머릿속 말고 소리 내서, 번갈아') + arrow
-        + step('👀', '✅ 모범답안 열기', '비교하고 한 번 더 따라 말하기') + arrow
-        + step('🙋', '내 상황으로 한 문장', '본인 회사의 실제 위기 장면으로 응용')
-        + '</div>'
-        + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎮 게임처럼: 패닉 폭탄에 <b>누가 먼저 침착하게</b> 받아치나. 정답은 토글로 가려뒀어요.</div>';
-    })() },
-  ...CUSHION_DRILL_SLIDES,
-  { section: '짝 연습', kicker: '3 · 내 상황', title: '내 회사의 위기 장면으로',
-    html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">각자 <b>실제 겪은 (또는 겪을 법한) 위기 장면</b> 하나를 골라, 오늘 표현으로 소리 내어 말해봐요.</div>'
-    + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:9px;">'
-    + '<div style="padding:12px 14px;border-radius:13px;background:#FBEEEC;border:1px solid rgba(214,69,69,0.2);"><b style="color:#C0392B;">1단계</b> 그때 실제로 나왔던 (패닉) 문장 그대로 말해보기</div>'
-    + '<div style="padding:12px 14px;border-radius:13px;background:#EAF3DE;border:1px solid rgba(107,142,78,0.28);"><b style="color:#3B6D11;">2단계</b> 칠판 서랍에서 표현 골라 프로 버전으로 다시 말하기</div>'
-    + '</div>'
-    + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;font-size:12.5px;color:var(--ink);line-height:1.6;">🔁 운영자: 잘된 것 먼저 칭찬 → 팁 1개만.</div>' },
-  { section: '복습', kicker: '4 · 복습', title: '위기 표현 20선 빠른 한 바퀴', worksheet: true,
-    html: '<div style="font-size:13px;color:var(--ink-soft);line-height:1.6;">한국어 힌트 보고 영어 표현 바로. 막히면 🔖 표시.</div>' },
-  { section: '마무리', kicker: '5 · 마무리', title: '마무리 체크', wrapGoals: true,
-    checks: ['오늘 표현 중 실제로 쓸 것 1개 정하기', '과제: 이번 주 슬랙·회의에서 그 표현 한 번 쓰기'],
+      + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
+      + ['스몰톡 롤플레잉 (본론 전 2분 정복)', '회의 시뮬 · 단어 복습 15문항 (Day 1~14)', 'PT 발표 + 질의응답'].map((t, i) =>
+          '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
+      + '</div>'
+      + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:13.5px;color:var(--ink);">🎯 목표: 본론 전 2분이 편해지면 회의 전체가 편해져요.</div>' },
+  ...WEEK3_SMALLTALK_SLIDES,
+  { section: '복습', kicker: '2 · 회의 시뮬 15문항 (Day 1~14)', title: '회의에서 답을 해보아요!', meetingSim: true, sim: WEEK3_SIM,
+    script: '"이번 주 단어로 회의처럼! 상황 듣고, 상대방 말 듣고, 첫 글자 힌트 보고 문장 전체로 대답해주세요~"' },
+  { section: '발표', kicker: '3 · PT 발표', title: '🎤 오늘의 발표',
+    html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">발표 7분 + 피드백 3분씩 진행해요.</div>'
+      + '<div style="margin-top:12px;padding:13px 15px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);font-size:13.5px;color:var(--ink);line-height:1.8;"><b>듣는 버디님들의 역할</b><br>· 끝나면 "나라면 이렇게" 한 마디씩 (피드백은 동료가!)<br>· 안 들렸던 단어는 미팅 노트에 적어두기</div>'
+      + '<div style="margin-top:10px;padding:11px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;">🧡 여기선 틀리는 게 일이에요. 구체적 칭찬은 무제한!</div>' },
+  { section: '마무리', kicker: '4 · 마무리', title: '마무리 체크', goalCapture: true,
+    checks: ['오늘 스몰톡 문장 중 실제로 쓸 것 1개 정하기', '과제: 이번 주에 스몰톡 한 번 실제로 걸어보기'],
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래를 체크하며 마무리하고, 다음 주 목표를 받아적어요.</div>' },
-  { section: '다음주 예고', kicker: '다음 주 · 마지막', title: 'Week 4 · 전체 어휘 랩업',
+  { section: '다음주 예고', kicker: '다음 주', title: 'Week 4 · 마지막 미팅',
     html: '<div style="background:#22301B;border-radius:18px;padding:18px;color:#ECEFE3;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
-    + '<div style="font-size:11px;letter-spacing:0.06em;color:#FBE7A1;font-weight:800;">WEEK 4 · 🎁 Own Your Career + 4주 총정리</div>'
-    + '<div style="margin-top:8px;font-size:12.5px;color:#ECEFE3;line-height:1.85;">① 4주 표현 랩업 → ② 단어 빙고 → ③ 종합 롤플레잉 → ④ 수료 마무리</div>'
-    + '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.25);font-size:11.5px;color:#C9D6C0;line-height:1.7;">🍬 맛보기: "What\'s our moat?" · "That\'s a force multiplier." · "How much runway do we have?"</div></div>' },
+      + '<div style="font-size:11px;letter-spacing:0.06em;color:#FBE7A1;font-weight:800;">WEEK 4 · 🎓 Make It Count</div>'
+      + '<div style="margin-top:8px;font-size:12.5px;color:#ECEFE3;line-height:1.85;">4주 단어 60개 총정리 + 단어 빙고 + 수료 마무리까지. 마지막 주도 같이 달려요!</div>'
+      + '</div>' },
 ];
 
-const WEEK4_WARMUP = [
-  { kr: "흔들리지 않는 최우선 기준·방향", en: "True north" },
-  { kr: "성공 확률은 낮지만 게임을 바꾸는 초대형 도전", en: "Moonshot" },
-  { kr: "중요한 걸 초반에 몰아넣다", en: "Front-load" },
-  { kr: "기본급+보너스+주식을 합친 총 보상", en: "Total comp" },
-  { kr: "이 직무·연차가 시장에서 받는 수준", en: "Market rate" },
-  { kr: "제시안에 맞서 내는 역제안", en: "Counteroffer" },
-  { kr: "사람을 논의·메일에 끼워주다, 공유해주다", en: "Loop in" },
-  { kr: "방향과 내용을 서로 맞추다", en: "Align on" },
-  { kr: "회의 밖에서 따로 얘기하다", en: "Take it offline" },
-  { kr: "내 일처럼 끝까지 책임지고 맡다", en: "Take ownership" },
-  { kr: "앞장서서 이끌다, 주도하다", en: "Spearhead" },
-  { kr: "쌓아온 실적, 증명된 이력", en: "Track record" },
-  { kr: "퇴사 의사를 공식 통보하다", en: "Give notice" },
-  { kr: "퇴직 시 받는 위로금과 조건 일체", en: "Severance package" },
-  { kr: "업무 인수인계", en: "Handover" },
-];
-const WEEK4_RECAP = [
-  { label: "Week 1 · Reading the Field (Day 1~5)", items: [
-    { en: "Read between the lines", def: "행간을 읽다, 말하지 않은 진의를 파악하다" },
-    { en: "Put out feelers", def: "본격 제안 전에 슬쩍 떠보다, 분위기를 파악하다" },
-    { en: "Get a clear read on", def: "상황·사람의 의중을 정확히 파악하다" },
-    { en: "Float an idea", def: "아이디어를 슬쩍 띄워 반응을 보다" },
-    { en: "Backchannel", def: "공식 라인 밖 비공식 채널로 조율하다" },
-    { en: "Soft commit", def: "확답이 아닌 조건부 약속" },
-    { en: "As presented", def: "제시된 그대로 (더 파보지 않고)" },
-    { en: "Red herring", def: "논점을 흐리는 미끼, 헛다리" },
-    { en: "Wake-up call", def: "정신이 번쩍 들게 하는 경고 신호" },
-    { en: "With a caveat", def: "단서를 달자면" },
-    { en: "On the back burner", def: "우선순위에서 잠시 밀어둔 (중단은 아님)" },
-    { en: "Build in slack", def: "일정·계획에 여유분을 미리 심어두다" },
-    { en: "Underway", def: "이미 시작되어 진행 중인" },
-    { en: "Have the cycles", def: "그 일을 처리할 여력이 있다" },
-    { en: "Triaging", def: "급한 순서대로 분류·처치하다" },
-  ] },
-  { label: "Week 2 · The Art of the Argument (Day 6~10)", items: [
-    { en: "Hive mind", def: "집단지성 (에 물어보기)" },
-    { en: "Quick poll", def: "간단 투표로 팀 의견을 빠르게 모으기" },
-    { en: "Table it", def: "안건을 일단 미뤄두다 (나중에 다시)" },
-    { en: "Steelman", def: "상대 주장의 최강 버전을 세우고 반박하다" },
-    { en: "Poke holes in", def: "허점을 일부러 찾아 찔러보다" },
-    { en: "Double-click on", def: "그 지점을 더 깊이 파고들다" },
-    { en: "Bikeshedding", def: "사소한 것에 과몰입해 논쟁하다" },
-    { en: "Boil the ocean", def: "다 하려다 아무것도 못 하다" },
-    { en: "Go down the rabbit hole", def: "한 주제에 한없이 빠져들다" },
-    { en: "Sunk cost", def: "이미 쓴 비용에 발목 잡히기 (매몰비용)" },
-    { en: "Analysis paralysis", def: "분석만 하다 결정을 못 내리는 상태" },
-    { en: "Rubber-stamp", def: "검토 없이 형식적으로 승인만 하다" },
-    { en: "Pressure-test", def: "가정을 일부러 세게 두드려 검증하다" },
-    { en: "Pre-mortem", def: "'망했다 치고' 미리 원인을 점검하는 회의" },
-    { en: "Get ahead of", def: "문제가 커지기 전에 선수 치다" },
-  ] },
-  { label: "Week 3 · In the Trenches (Day 11~15)", items: [
-    { en: "Fire drill", def: "갑자기 다 내려놓고 매달리게 만드는 긴급 소동" },
-    { en: "Hop on a call", def: "급히 통화·화상회의로 모이다" },
-    { en: "Client-facing", def: "고객·클라이언트를 직접 상대하는" },
-    { en: "Stalled out", def: "(일이) 완전히 멈춰 서다" },
-    { en: "Single point of failure", def: "하나 무너지면 전체가 무너지는 지점" },
-    { en: "Critical path", def: "전체 일정을 좌우하는 핵심 경로" },
-    { en: "Long pole in the tent", def: "일정에서 가장 오래 걸리는 결정적 작업" },
-    { en: "Requirements creep", def: "요구사항이 야금야금 불어나다" },
-    { en: "Slow-walk", def: "일부러 뭉개며 지연시키다" },
-    { en: "Throw someone under the bus", def: "남에게 책임을 뒤집어씌우다" },
-    { en: "Paper over", def: "문제를 해결하지 않고 대충 덮다" },
-    { en: "Nitpick", def: "사소한 걸 꼬치꼬치 지적하다" },
-    { en: "Pull the plug", def: "(하던 프로젝트를) 접다" },
-    { en: "Skin in the game", def: "본인도 리스크를 짊어진 상태" },
-    { en: "Scramble", def: "허둥지둥 총동원해 수습하다" },
-  ] },
-  { label: "Week 4 · Own Your Career (Day 16~20)", items: [
-    { en: "True north", def: "흔들리지 않는 최우선 기준·방향" },
-    { en: "Moonshot", def: "성공 확률은 낮지만 게임을 바꾸는 초대형 도전" },
-    { en: "Front-load", def: "중요한 걸 초반에 몰아넣다" },
-    { en: "Total comp", def: "기본급+보너스+주식을 합친 총 보상" },
-    { en: "Market rate", def: "이 직무·연차가 시장에서 받는 수준" },
-    { en: "Counteroffer", def: "제시안에 맞서 내는 역제안" },
-    { en: "Loop in", def: "사람을 논의·메일에 끼워주다, 공유해주다" },
-    { en: "Align on", def: "방향과 내용을 서로 맞추다" },
-    { en: "Take it offline", def: "회의 밖에서 따로 얘기하다" },
-    { en: "Take ownership", def: "내 일처럼 끝까지 책임지고 맡다" },
-    { en: "Spearhead", def: "앞장서서 이끌다, 주도하다" },
-    { en: "Track record", def: "쌓아온 실적, 증명된 이력" },
-    { en: "Give notice", def: "퇴사 의사를 공식 통보하다" },
-    { en: "Severance package", def: "퇴직 시 받는 위로금과 조건 일체" },
-    { en: "Handover", def: "업무 인수인계" },
-  ] },
-];
-const BINGO_WORDS = [
-  { en: "Put out feelers", def: "본격 제안 전에 슬쩍 떠보다, 분위기를 파악하다" },
-  { en: "Float an idea", def: "아이디어를 슬쩍 띄워 반응을 보다" },
-  { en: "Backchannel", def: "공식 라인 밖 비공식 채널로 조율하다" },
-  { en: "Red herring", def: "논점을 흐리는 미끼, 헛다리" },
-  { en: "Wake-up call", def: "정신이 번쩍 들게 하는 경고 신호" },
-  { en: "Triaging", def: "급한 순서대로 분류·처치하다" },
-  { en: "Quick poll", def: "간단 투표로 팀 의견을 빠르게 모으기" },
-  { en: "Table it", def: "안건을 일단 미뤄두다 (나중에 다시)" },
-  { en: "Steelman", def: "상대 주장의 최강 버전을 세우고 반박하다" },
-  { en: "Poke holes in", def: "허점을 일부러 찾아 찔러보다" },
-  { en: "Bikeshedding", def: "사소한 것에 과몰입해 논쟁하다" },
-  { en: "Sunk cost", def: "이미 쓴 비용에 발목 잡히기 (매몰비용)" },
-  { en: "Pre-mortem", def: "'망했다 치고' 미리 원인을 점검하는 회의" },
-  { en: "Fire drill", def: "갑자기 다 내려놓고 매달리게 만드는 긴급 소동" },
-  { en: "Hop on a call", def: "급히 통화·화상회의로 모이다" },
-  { en: "Client-facing", def: "고객·클라이언트를 직접 상대하는" },
-  { en: "Critical path", def: "전체 일정을 좌우하는 핵심 경로" },
-  { en: "Slow-walk", def: "일부러 뭉개며 지연시키다" },
-  { en: "Pull the plug", def: "(하던 프로젝트를) 접다" },
-  { en: "Moonshot", def: "성공 확률은 낮지만 게임을 바꾸는 초대형 도전" },
-  { en: "Total comp", def: "기본급+보너스+주식을 합친 총 보상" },
-  { en: "Loop in", def: "사람을 논의·메일에 끼워주다, 공유해주다" },
-  { en: "Take ownership", def: "내 일처럼 끝까지 책임지고 맡다" },
-  { en: "Track record", def: "쌓아온 실적, 증명된 이력" },
-  { en: "Handover", def: "업무 인수인계" },
-];
+// (구 7기 WEEK4_WARMUP 하드코딩 제거: __cohortWords(1,20) 파생으로 대체)
+
+const WEEK4_RECAP = (CHALLENGE.weeks || []).map((wk) => {
+  const days = wk.days || [];
+  const d0 = days.length ? days[0].day : 0, d1 = days.length ? days[days.length - 1].day : 0;
+  return { label: 'Week ' + wk.n + ' · ' + (wk.title || '') + ' (Day ' + d0 + '~' + d1 + ')',
+    items: days.flatMap((dd) => (dd.words || []).map((w) => ({ en: w.en, def: w.def }))) };
+});
+const BINGO_WORDS = (CHALLENGE.weeks || []).flatMap((wk) =>
+  (wk.days || []).slice(0, 4).map((dd) => {
+    const w = (dd.words || [])[0] || {};
+    return { en: w.en || '', def: w.def || '' };
+  })).filter((w) => w.en);
 const WEEK4_DECK = [
   { section: '오프닝', kicker: 'WEEK 4 · 마지막 · 60분', title: '4주 총정리, 오늘 순서',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">8기 프리미엄 버디</b> · 마지막 주, 축하하는 자리예요.</div>'
@@ -32247,7 +32164,7 @@ const WEEK4_DECK = [
   { section: '종합 롤플레잉', kicker: '3 · 종합 롤플레잉', title: '한 프로젝트에 4주 단어 녹이기',
     html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">가상의 <b>신규 프로젝트</b>를 다 같이 굴려요. 간 보기 → 논쟁 → 위기 → 전략 결정 흐름을 타면 4주 표현이 자연스럽게 다 나와요.</div>'
     + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">'
-    + [['🟢 분위기 파악', 'read between the lines · put out feelers · float an idea · soft commit'], ['🟡 논쟁', 'steelman · quick poll · double-click on · sunk cost'], ['🔴 위기', 'fire drill · hop on a call · get ahead of · critical path'], ['🟣 커리어', 'total comp · take ownership · track record · handover']].map((r) =>
+    + [['🟢 존재감 심기 (W1)', 'keep you posted · circle up · where things stand · plan of attack'], ['🟡 숫자로 말하기 (W2)', 'bottom line · benchmark · give or take · too early to tell'], ['🔴 문제 정면 돌파 (W3)', 'escalate · at risk · course-correct · be upfront'], ['🟣 성과 어필 (W4)', 'step up · make the case for · give credit to · stretched thin']].map((r) =>
         '<div style="padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);"><div style="font-size:13px;font-weight:800;color:var(--ink);">' + r[0] + '</div><div style="margin-top:2px;font-size:11.5px;font-family:var(--font-mono);color:var(--orange-dark);">' + r[1] + '</div></div>').join('')
     + '</div>'
     + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;font-size:12.5px;color:var(--ink);line-height:1.6;">🔁 운영자: 흐름 막히면 칠판 표현으로 힌트. 표현 쓸 때마다 빙고판 같이 마크.</div>' },
