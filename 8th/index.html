@@ -21002,7 +21002,8 @@ function MeetingNotesPage(meetingId) {
         body: `<span style="color:var(--ink);">각자 맡은 역할로 비즈니스 상황을 실제처럼 재현. 대사 외우지 말고, 상황에 반응하세요.</span>`,
         briefing: roleplayBrief,
         placeholder: '예) 내가 맡은 역할: Product Lead\n내가 놓친 reframe 포인트: ...\n상대방이 쓴 괜찮은 표현: ...\n다음엔 이렇게 해볼 것: ...',
-        ...(meta.n === 3 ? { bannerOnly: true, bannerText: '📚 Day11~14 단어 복습 후 만나요!' } : {}),
+        ...(meta.n === 3 ? { bannerOnly: true, bannerText: '📚 Day11~14 단어 복습 후 만나요!' }
+          : meta.n === 2 ? { bannerOnly: true, bannerText: '📚 Day6~9 단어 복습 후 만나요!' } : {}),
       }));
     }
 
@@ -21012,7 +21013,7 @@ function MeetingNotesPage(meetingId) {
     // 칩으로 표시해두고, 본문에 자연스럽게 "[1] 박지혜" 같이 구획 지어 적게.
     // Week 3 은 위 롤플레이 행이 이미 안내 배너 한 줄로 대체됐으므로, 같은 배너가
     // 두 번 반복되지 않도록 이 행은 통째로 생략.
-    if (!meta.noPresenter && meta.n !== 3) {
+    if (!meta.noPresenter && meta.n !== 2 && meta.n !== 3) {
       const presenterPills = el('div', {
         style: { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '2px' }
       });
