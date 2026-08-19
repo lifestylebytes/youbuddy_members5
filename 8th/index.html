@@ -31992,11 +31992,45 @@ const CUSHION_DRILLS = [
     ] },
 ];
 
-// Week 2 위기 대응 롤플레잉: CUSHION_DRILLS (❌ 패닉 → ✅ 프로 변환 드릴) 를 슬라이드로.
-// W1 로드맵에서 멤버에게 약속한 "2주차 = 위기 대응" 이행. (2026-08-19)
-const WEEK2_CRISIS_SLIDES = CUSHION_DRILLS.map((g, i) => ({
-  section: '위기 대응 롤플레잉', kicker: '1 · 드릴 ' + (i + 1) + ' / ' + CUSHION_DRILLS.length, title: g.emoji + ' ' + g.cat.replace(/^[①②③④]\s*/, ''),
-  html: '<div style="padding:11px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;"><b>👥 진행</b><br>' + escapeHtml(g.how) + '</div>'
+// Week 2 위기 대응 롤플레잉 (2026-08-19 v2): 전부 8기 Day 1~9 단어.
+// 구체적 상황 + 빈칸 템플릿 구조: 상상에 맡기지 않고 템플릿 빈칸만 채워 말하게 한다.
+const WEEK2_CRISIS_DRILLS = [
+  { emoji: '🔥', cat: '장애 터진 직후, 첫 보고',
+    scene: '금요일 오후 4시, 배포 직후 결제 오류가 터졌어요. 상사가 헐레벌떡 들어와 소리칩니다.',
+    bad: "What's going on?! Is everything down??",
+    tmpl: "Here's where things stand: [뭐가 안 되는지]. [누구] is on it. I'll keep you posted every [간격].",
+    good: "Here's where things stand: payments are failing for about 10 percent of users, give or take. Jin is on it. I'll keep you posted every 30 minutes.",
+    chips: ['Where things stand', 'Give or take', 'Keep you posted'] },
+  { emoji: '📉', cat: '숫자를 물어보는데 아직 모를 때',
+    scene: '10분 뒤, 이번엔 영향 범위를 물어봐요. 정확한 숫자는 아직 아무도 몰라요.',
+    bad: 'How bad is it?? Give me exact numbers NOW.',
+    tmpl: "It's too early to tell, but back-of-the-envelope, [대략 숫자], give or take. I'll put a number on it by [시간].",
+    good: "It's too early to tell, but back-of-the-envelope, around 200 orders were affected, give or take. I'll put a number on it by 6 PM.",
+    chips: ['Too early to tell', 'Back-of-the-envelope', 'Put a number on it'] },
+  { emoji: '🧑‍🤝‍🧑', cat: '지원 인력 합류, 30초 브리핑',
+    scene: '옆 팀에서 한 명이 도우러 왔어요. 30초 안에 상황을 공유하고 역할을 나눠야 해요.',
+    bad: 'Just... do something! Help!',
+    tmpl: 'Let me bring you up to speed: [한 줄 요약]. In a nutshell, [원인]. Our plan of attack: you take [A], I take [B].',
+    good: 'Let me bring you up to speed: checkout fails after the update. In a nutshell, the new module broke payments. Our plan of attack: you handle refunds, I handle the fix.',
+    chips: ['Bring you up to speed', 'In a nutshell', 'Plan of attack'] },
+  { emoji: '✅', cat: '수습 끝, 마무리 보고',
+    scene: '두 시간 뒤 복구 완료. 마무리 보고를 잘해야 오늘의 점수를 따요.',
+    bad: "It's fixed. (끝. 아무 설명 없음)",
+    tmpl: "Bottom line: [결과 + 피해 규모]. We're good to go. I'll circle up with the team [언제] so this doesn't happen again.",
+    good: "Bottom line: payments are back and we lost about 40 orders, give or take. We're good to go. I'll circle up with the team Monday to prevent a repeat.",
+    chips: ['Bottom line', 'Good to go', 'Circle up'] },
+];
+const WEEK2_CRISIS_SLIDES = WEEK2_CRISIS_DRILLS.map((g, i) => ({
+  section: '위기 대응 롤플레잉', kicker: '1 · 상황 ' + (i + 1) + ' / ' + WEEK2_CRISIS_DRILLS.length, title: g.emoji + ' ' + g.cat,
+  html: '<div style="padding:12px 14px;border-radius:13px;background:#EAF2FA;border:1px solid rgba(46,111,168,0.3);font-size:13px;color:#1F4F7D;line-height:1.65;"><b>🎬 상황</b><br>' + escapeHtml(g.scene) + '</div>'
+    + '<div style="margin-top:10px;padding:12px 14px;border-radius:13px;background:#FBEEEC;border:1px solid rgba(214,69,69,0.25);"><div style="font-size:11px;font-weight:800;color:#C0392B;">❌ 상대가 이렇게 던져요</div><div style="margin-top:4px;font-size:14px;font-weight:800;color:#7A2020;line-height:1.55;">' + escapeHtml(g.bad) + '</div></div>'
+    + '<div style="margin-top:10px;padding:12px 14px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.2);"><div style="font-size:11px;font-weight:800;color:#1F4F7D;">🧩 템플릿 · 빈칸만 채워 말하세요</div><div style="margin-top:5px;font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.7;font-family:var(--font-mono);">' + escapeHtml(g.tmpl) + '</div></div>'
+    + '<div style="margin-top:10px;padding:12px 14px;border-radius:13px;background:#EAF3DE;border:1px solid rgba(107,142,78,0.3);"><div style="font-size:11px;font-weight:800;color:#3B6D11;">✅ 예시 답</div><div style="margin-top:4px;font-size:13.5px;font-weight:700;color:#274D0B;line-height:1.65;">' + escapeHtml(g.good) + '</div></div>'
+    + '<div style="margin-top:8px;">' + g.chips.map((c) => '<span style="display:inline-block;margin:3px 3px 0 0;padding:3px 10px;border-radius:999px;background:rgba(46,111,168,0.10);color:#1F4F7D;font-size:11px;font-weight:800;">' + escapeHtml(c) + '</span>').join('') + '</div>'
+    + '<div style="margin-top:9px;padding:10px 13px;border-radius:12px;background:#FFF7EC;font-size:12px;color:var(--ink);line-height:1.6;">👥 진행: 운영자가 ❌를 연기 → 한 명씩 템플릿 빈칸을 <b>본인 회사 상황</b>으로 채워 소리내기 → ✅와 비교 후 한 번 더.</div>',
+  bank: [],
+  bankKey: 'w2crisis' + i,
+}));border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;"><b>👥 진행</b><br>' + escapeHtml(g.how) + '</div>'
     + g.items.map((it) =>
       '<div style="margin-top:10px;padding:12px 14px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);">'
       + '<div style="font-size:13px;color:#A32D2D;line-height:1.55;">❌ ' + escapeHtml(it.bad) + '</div>'
