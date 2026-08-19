@@ -35,6 +35,7 @@ function 한번에_실행() {
     if (ss.getSheetByName(MORNING_SHEET)) return 'skip';
     splitMorningSheet();
   });
+  step('한 스푼 더 원고 갱신', function () { fillOneSpoon(); });
   step('메시지 원고 채우기/갱신', function () { fillOpsMessages(); });
   step('미팅 예고 행 정리 (이름·중복)', function () { renameMeetingPreviewTask(); });
   step('미팅 예고(D-1) 행', function () { addMeetingPreviewRows(); });
