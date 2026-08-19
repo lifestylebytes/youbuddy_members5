@@ -36,8 +36,8 @@ function 한번에_실행() {
     splitMorningSheet();
   });
   step('메시지 원고 채우기/갱신', function () { fillOpsMessages(); });
+  step('미팅 예고 행 정리 (이름·중복)', function () { renameMeetingPreviewTask(); });
   step('미팅 예고(D-1) 행', function () { addMeetingPreviewRows(); });
-  step('미팅 예고 행 제목 통합', function () { renameMeetingPreviewTask(); });
   step('미팅 예고 원고', function () { addMeetingPreviewMessage(); });
   step('약점 복습(Day6) 안내', function () { addWeaknessReviewRow(); });
   step('금요일 녹화본 공지 행', function () { addRecordingNoticeRows(); });
@@ -487,6 +487,7 @@ function fillOpsMessages() {
 
 // [할 일에 들어 있는 말, '주요 메시지' 시트의 제목]
 const LINK_MAP = [
+  ['미팅 예고',               '미팅 전날 통합 예고 (프리미엄)'],
   ['이전 기수 경험자',        '이전 기수 경험자 개인 과제 안내'],
   ['빈도 안내',               '빈도 안내 + 초급자 안심'],
   ['미팅 알림',               '당일 미팅 알림 + 참여자 조사'],
@@ -622,7 +623,7 @@ function fixChecklistTimes() {
 // 미팅 하루 전 예고 행 추가 (Day 3 / 8 / 13 / 18 끝에)
 function addMeetingPreviewRows() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CHECK_SHEET);
-  const TASK = '다음날 미팅 예고 + 과제·발표자료 리마인드 (통합 메시지)';
+  const TASK = '다음날 미팅 예고 발송 (과제 진행·PT 자료 요청 포함)';
   const targets = [3, 8, 13, 18];
 
   // 이미 있으면 건너뛴다
@@ -756,20 +757,33 @@ function addWeaknessReviewRow() {
      22:00 미팅 녹화본 링크 입력
    ============================================================ */
 
-// 미팅 예고 행 제목 마이그레이션 (2026-08-19: 과제·발표자료 리마인드를 예고에 통합)
+// 미팅 예고 행 마이그레이션 + 중복 제거 (2026-08-19)
+// ⚠️ addMeetingPreviewRows 보다 반드시 먼저 실행 (이름 바꾸기 전에 추가하면 중복 생김. 8/19 실사고)
 function renameMeetingPreviewTask() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CHECK_SHEET);
-  const OLD = '다음날 미팅 예고 + 참여자 조사';
-  const NEW = '다음날 미팅 예고 + 과제·발표자료 리마인드 (통합 메시지)';
+  const OLDS = ['다음날 미팅 예고 + 참여자 조사', '다음날 미팅 예고 + 과제·발표자료 리마인드 (통합 메시지)'];
+  const NEW = '다음날 미팅 예고 발송 (과제 진행·PT 자료 요청 포함)';
   const last = sh.getLastRow();
   const rng = sh.getRange(6, 6, last - 5, 1);
   const vals = rng.getValues();
-  let n = 0;
+  let renamed = 0;
   for (let i = 0; i < vals.length; i++) {
-    if (String(vals[i][0]).trim() === OLD) { vals[i][0] = NEW; n++; }
+    if (OLDS.indexOf(String(vals[i][0]).trim()) >= 0) { vals[i][0] = NEW; renamed++; }
   }
-  if (n) rng.setValues(vals);
-  Logger.log('미팅 예고 행 ' + n + '개 이름 변경');
+  if (renamed) rng.setValues(vals);
+  // 같은 Day 블록 안에 NEW 가 2개 이상이면 아래 것부터 삭제
+  const days = sh.getRange(6, 1, sh.getLastRow() - 5, 1).getDisplayValues();
+  const tasks = sh.getRange(6, 6, sh.getLastRow() - 5, 1).getDisplayValues();
+  let curDay = 0; const seen = {}; const del = [];
+  for (let i = 0; i < tasks.length; i++) {
+    const dm = String(days[i][0] || '').match(/Day\s*(\d+)/i);
+    if (dm) curDay = Number(dm[1]);
+    if (String(tasks[i][0]).trim() === NEW) {
+      if (seen[curDay]) del.push(6 + i); else seen[curDay] = true;
+    }
+  }
+  del.reverse().forEach(function (r) { sh.deleteRow(r); });
+  Logger.log('이름 변경 ' + renamed + '건 · 중복 삭제 ' + del.length + '건');
 }
 
 function sortChecklistByTime() {
