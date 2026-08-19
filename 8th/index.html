@@ -32435,7 +32435,18 @@ function MeetingDeckPage() {
       // 이름을 placeholder 로만 두면 타이핑 시작하는 순간 누구 칸인지 사라진다.
       // Week 4 칸처럼 이름표를 위에 따로 세워둔다. (2026-08-13)
       roster.forEach((m, i) => {
+        // 지난주 과제 불러오기 (2026-08-19 버디 요청): 서버 동기화된 멤버 goal 에서
+        // 마지막 🎯 과제 줄을 회색으로 보여줘, 이어지는 과제를 짜기 쉽게.
+        let prevTask = '';
+        try {
+          const mm = (typeof MEMBERS !== 'undefined' ? MEMBERS : []).find((x) => x.name === m.name);
+          const tk = mm && mm.goal ? splitGoalAndTasks(mm.goal).tasks : [];
+          if (tk.length) prevTask = tk[tk.length - 1].replace(/^🎯\s*/, '');
+        } catch (e) {}
         body += '<div style="font-size:12px;font-weight:800;color:#1F4F7D;margin:' + (i ? '10px' : '2px') + ' 0 3px;">' + escapeHtml(__rosterDisplayName(m)) + ' 님</div>'
+          + (prevTask
+            ? '<div style="margin:0 0 4px;padding:6px 10px;border-radius:9px;background:rgba(154,139,115,0.08);font-size:11.5px;color:var(--ink-soft);line-height:1.5;">↩︎ 지난주: ' + escapeHtml(prevTask) + '</div>'
+            : '<div style="margin:0 0 4px;font-size:11px;color:var(--muted);">↩︎ 지난주 과제 없음 (불참·미지정)</div>')
           + '<input id="__deckGoal_' + m.id + '" class="input" placeholder="목표·상황 한 줄" value="' + escapeHtml(dr[m.id] || '') + '" oninput="(window.__deckGoalDraft=window.__deckGoalDraft||{})[\'' + m.id + '\']=this.value" />';
       });
       body += '<button class="btn btn-primary btn-full" style="margin-top:10px;" onclick="window.__deckSaveGoals()">💾 저장 · 멤버 목표에 추가</button>';
