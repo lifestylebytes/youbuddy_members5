@@ -8434,7 +8434,7 @@ function HelpPage() {
         <span style="font-size:14px;font-weight:800;color:var(--ink);">프리미엄 미팅에서 나온 질문들</span>
       </div>
       <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">
-        ${['대면에서 단어가 생각 안 날 때는요?', '세미콜론 · 하이픈 · 긴 줄표는 언제 쓰나요?', '구동사 책부터 해도 될까요?', '발표는 격식체가 좋을까요, 평소 쓰던 게 좋을까요?']
+        ${['대면에서 단어가 생각 안 날 때는요?', '세미콜론 · 하이픈 · 긴 줄표는 언제 쓰나요?', '구동사 책부터 해도 될까요?', '발표는 격식체가 좋을까요, 평소 쓰던 게 좋을까요?', '발표 Q&A에서 모르는 질문이 쏟아지면요?']
           .map((q) => `<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:12px;background:#fff;border:1px solid var(--line-soft,#EFEAE3);">
             <span style="flex-shrink:0;font-size:12px;">🔒</span>
             <span style="flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--ink-soft);">${q}</span></div>`).join('')}
@@ -8506,6 +8506,28 @@ function HelpPage() {
     <span style="font-family:var(--font-mono);font-size:12.5px;">"No concerns on my end."<br>"All good on my side!"<br>"Looks good to me." (자료·문서 확인 후, 줄여서 LGTM)</span><br>
     <span style="color:var(--muted);">on my end / on my side 를 붙이면 "내 쪽에서는" 이라는 뉘앙스가 살아서 회의 마무리에 딱이에요.</span><br><br>
     이 중에 <b>두어 개만 골라 돌려쓰셔도</b> "OK" 만 하던 때보다 훨씬 대화에 참여하는 느낌이 납니다 :)`, PREM_C);
+  foldCard('발표 Q&A에서 모르는 질문이 쏟아지면요?', `
+    논문 발표든 사내 보고든 제일 무서운 게 질의응답이죠. 모르는 질문마다 "그건 향후 연구 과제입니다"만 반복할 순 없으니까요.<br>
+    핵심은 <b>답을 아는 척하는 게 아니라, 모르는 걸 프로답게 처리하는 것</b>이에요. 미팅에서 같이 정리한 방법이에요.<br><br>
+    <b>1) 나만의 Q&A 표현 라이브러리 만들기</b><br>
+    질문을 성격별로 미리 나눠두세요. ① 내가 정말 모르는 것 ② 내 연구·업무 범위 밖인 것 ③ 수치가 아직 없는 것.
+    각 칸에 쓸 문장을 하나씩만 정해두면, 당황해도 카드가 손에 잡혀요.<br><br>
+    <b>2) 먼저 시간을 번다 (질문 되짚기)</b><br>
+    <span style="font-family:var(--font-mono);font-size:12.5px;">"Just to make sure I understood the question correctly, you're asking about ___?"<br>"So your question is whether ___. Is that right?"</span><br>
+    <span style="color:var(--muted);">되짚는 동안 머릿속이 정리돼요. 게다가 성의 있어 보입니다.</span><br><br>
+    <b>3) 수치가 없을 때</b><br>
+    <span style="font-family:var(--font-mono);font-size:12.5px;">"I don't have the exact figure on hand, but ballpark, it's around ___."<br>"Let me take that offline and get back to you with the numbers."</span><br><br>
+    <b>4) 내 범위 밖일 때</b> (케이시님 팁)<br>
+    <span style="font-family:var(--font-mono);font-size:12.5px;">"That's a really interesting question, but it's out of scope for this study.<br>Happy to look into it and share what I find."</span><br>
+    <span style="color:var(--muted);">범위 밖이라고 선을 긋는 건 회피가 아니라 연구 설계를 안다는 신호예요.</span><br><br>
+    <b>5) 아는 만큼 답하고 나머지는 약속</b><br>
+    <span style="font-family:var(--font-mono);font-size:12.5px;">"Here's what I can say from my data... For the rest, let me deep dive and follow up."</span><br>
+    <span style="color:var(--muted);">부분 답변 + 후속 약속이 "모릅니다"보다 훨씬 전문가답게 들려요.</span><br>
+    <div style="margin-top:11px;padding:11px 13px;border-radius:11px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);">
+      <b style="color:var(--orange-dark);">🧡 기억할 것 하나</b><br>
+      질의응답에서 평가받는 건 <b>모든 답을 아는지</b>가 아니라 <b>모르는 걸 어떻게 다루는지</b>예요.
+      위 문장 중 두세 개만 입에 붙여두시면 그 자리가 훨씬 편해집니다.
+    </div>`, PREM_C);
   }
 
 
