@@ -16694,7 +16694,7 @@ function DayPage(dayN) {
         </div>
         <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;">
           <button class="icon-btn" style="width:32px;height:32px;border-radius:10px;background:var(--orange-ghost);border:1px solid var(--orange-soft);color:var(--orange-dark);" onclick="window.__speakExample(${dayN}, ${i})" title="예문 듣기">${Icon('volume', 14)}</button>
-          <button class="icon-btn" data-ex-key="${escAttr(`d${dayN}-${i}`)}" style="width:32px;height:32px;border-radius:10px;background:${state.saved_examples?.[`d${dayN}-${i}`] ? 'var(--orange)' : 'transparent'};border:1px solid var(--orange-soft);color:${state.saved_examples?.[`d${dayN}-${i}`] ? '#fff' : 'var(--orange-dark)'};" onclick="window.__toggleExampleSave(this.getAttribute('data-ex-key'))" title="${state.saved_examples?.[`d${dayN}-${i}`] ? '단어장에서 빼기' : '예문을 단어장에 저장'}">${Icon(state.saved_examples?.[`d${dayN}-${i}`] ? 'bookmarkFill' : 'bookmark', 14)}</button>
+          <button class="icon-btn" data-ex-key="d${dayN}-${i}" style="width:32px;height:32px;border-radius:10px;background:${state.saved_examples?.[`d${dayN}-${i}`] ? 'var(--orange)' : 'transparent'};border:1px solid var(--orange-soft);color:${state.saved_examples?.[`d${dayN}-${i}`] ? '#fff' : 'var(--orange-dark)'};" onclick="window.__toggleExampleSave(this.getAttribute('data-ex-key'))" title="${state.saved_examples?.[`d${dayN}-${i}`] ? '단어장에서 빼기' : '예문을 단어장에 저장'}">${Icon(state.saved_examples?.[`d${dayN}-${i}`] ? 'bookmarkFill' : 'bookmark', 14)}</button>
         </div>
       </div>`;
     card.appendChild(exampleEl);
