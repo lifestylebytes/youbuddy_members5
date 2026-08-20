@@ -19581,10 +19581,11 @@ function MeetingNotesPage(meetingId) {
     page.appendChild(back);
     return page;
   }
-  // Week 2~4 는 콘텐츠 확정 전이라 멤버에겐 잠금. 운영자/스태프만 미리보기.
-  // 열 준비 되면 이 가드만 지우면 됨 (또는 주차별로 숫자 낮추기).
-  const __MEETING_OPEN_MAX_WEEK = 1;
-  if (Number(meta.n) > __MEETING_OPEN_MAX_WEEK && !(state.isOperator || state.isStaff)) {
+  // 미래 주차 미팅 페이지는 멤버에게 잠금, 그 주가 되면 자동 개방. (2026-08-20 자동화)
+  // ⚠️ 예전엔 __MEETING_OPEN_MAX_WEEK = 1 하드코딩이라 W2 미팅 당일에 멤버 전원이
+  // 잠금 화면을 봤다 (미팅 중 실사고). 수동 숫자는 반드시 잊힌다. 날짜로 계산할 것.
+  const __curWeekNum = Math.max(1, Math.ceil((Number(state.currentDay) || 1) / 5));
+  if (Number(meta.n) > __curWeekNum && !(state.isOperator || state.isStaff)) {
     const lockCard = el('div', { class: 'card card-flat', style: { marginTop: '40px', textAlign: 'center', padding: '36px 24px' } });
     lockCard.innerHTML = `
       <div style="font-size:40px;line-height:1;">🌱</div>
