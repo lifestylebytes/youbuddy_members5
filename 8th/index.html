@@ -1676,6 +1676,7 @@ const defaultState = () => ({
   personal_quiz_done: false,      // 개인 퀴즈를 한 번이라도 제출했는지 (수료 인증 체크용, 다시풀기/리셋해도 유지).
   bookmarks: {},                  // { "d1-0": true }
   saved_syns: {},                 // { "d1-0::Pave the way": true } 유의어 북마크
+  saved_examples: {},             // { "d1-0": true } 예문 저장 (2026-08-20)
   community_likes: {},            // { "p1": true }
   community_bookmarks: {},        // { "p1": true }
   community_comments: {},         // { "post-id": [{ text, author, createdAt }] }
@@ -1777,6 +1778,7 @@ const PERSISTED_STATE_KEYS = [
   'personal_quiz_done',
   'bookmarks',
   'saved_syns',
+  'saved_examples',
   'community_likes',
   'community_bookmarks',
   'community_comments',
@@ -5002,7 +5004,127 @@ function synonymNuance(word, syn) {
 // 유의어 예시 문장 + 분위기, Day 1~9 메인 27개에 대한 syn 들. {en, mood} 형태.
 // mood 는 emoji + 한 줄로 "이 표현 쓸 때의 분위기/톤" 캡쳐.
 const SYN_EXAMPLES = {
-  // 7기: 유의어 개별 예문은 추후 채움. 없으면 본 표현 예문을 치환해 보여주는 fallback 이 동작.
+  // 8기 유의어 예문 120개 (2026-08-20 작성). 키: '메인표현::유의어'
+  'Keep someone posted::Keep you in the loop': { en: 'I\'ll keep you in the loop as things move forward.', kr: '진행되는 대로 계속 공유드릴게요.' },
+  'Keep someone posted::Give a heads-up': { en: 'I\'ll give you a heads-up before we send it to the client.', kr: '클라이언트에 보내기 전에 미리 알려드릴게요.' },
+  'Circle up::Regroup': { en: 'Let\'s regroup after lunch and decide then.', kr: '점심 먹고 다시 모여서 그때 정하죠.' },
+  'Circle up::Touch base': { en: 'Can we touch base for ten minutes tomorrow morning?', kr: '내일 아침에 10분만 짧게 얘기할 수 있을까요?' },
+  'Drop someone a line::Shoot me a message': { en: 'Shoot me a message if the numbers change.', kr: '숫자 바뀌면 톡 하나 주세요.' },
+  'Drop someone a line::Give me a shout': { en: 'Give me a shout if you need another pair of eyes.', kr: '한 번 더 봐줄 사람 필요하면 불러주세요.' },
+  'Drive::Own it end to end': { en: 'She\'ll own the migration end to end this quarter.', kr: '이번 분기 마이그레이션은 그분이 끝까지 책임지고 맡아요.' },
+  'Drive::Lead the charge': { en: 'Who wants to lead the charge on the new pricing?', kr: '새 가격 정책, 누가 앞장서서 이끌어볼래요?' },
+  'Free rein::Free hand': { en: 'They gave the design team a free hand on the layout.', kr: '레이아웃은 디자인팀에 전권을 줬어요.' },
+  'Free rein::Leave it up to me': { en: 'If you leave it up to me, I\'d start with the pilot.', kr: '저한테 맡겨주시면 파일럿부터 시작하겠습니다.' },
+  'Roll your sleeves up::Get hands-on': { en: 'I\'d rather get hands-on than manage from a distance.', kr: '멀리서 관리하는 것보다 직접 뛰어드는 게 나아요.' },
+  'Roll your sleeves up::Dig in myself': { en: 'If nobody has time, I\'ll dig in myself tonight.', kr: '다들 시간 없으면 오늘 밤에 제가 직접 파볼게요.' },
+  'Wear many hats::Juggle several roles': { en: 'At a startup you juggle several roles every single day.', kr: '스타트업에선 매일 여러 역할을 동시에 굴려요.' },
+  'Wear many hats::Cover a lot of ground': { en: 'Our team is small, so we cover a lot of ground.', kr: '팀이 작아서 저희가 이것저것 다 커버해요.' },
+  'Legwork::Groundwork': { en: 'The groundwork is done, so the pitch should be easy.', kr: '밑작업은 끝나서 발표는 수월할 거예요.' },
+  'Legwork::The prep work': { en: 'Most of the prep work happened before the meeting.', kr: '준비 작업 대부분은 회의 전에 끝냈어요.' },
+  'Boots on the ground::Someone on site': { en: 'We need someone on site to confirm the damage.', kr: '피해 확인하려면 현장에 사람이 가 있어야 해요.' },
+  'Boots on the ground::Feet on the ground': { en: 'Let\'s get feet on the ground before we promise a date.', kr: '날짜 약속하기 전에 현장부터 확인하죠.' },
+  'Bring someone up to speed::Fill you in': { en: 'Let me fill you in on what happened while you were out.', kr: '자리 비운 사이에 있었던 일 정리해서 알려드릴게요.' },
+  'Bring someone up to speed::Catch you up': { en: 'Give me two minutes to catch you up before the call.', kr: '콜 시작 전에 2분만 상황 공유할게요.' },
+  'Learn the ropes::Get the hang of it': { en: 'Give her a week and she\'ll get the hang of it.', kr: '일주일만 주면 금방 감 잡으실 거예요.' },
+  'Learn the ropes::Find your footing': { en: 'It takes a month to find your footing in a new team.', kr: '새 팀에서 자리 잡는 데 한 달은 걸려요.' },
+  'Be in the trenches::In the thick of it': { en: 'We\'re in the thick of it right now, so let\'s talk Friday.', kr: '지금 한창 정신없어서, 금요일에 얘기하시죠.' },
+  'Be in the trenches::Down in the weeds with us': { en: 'He was down in the weeds with us until midnight.', kr: '그분도 자정까지 저희랑 같이 붙어 있었어요.' },
+  'Where things stand::Where we\'re at': { en: 'Here\'s where we\'re at: design done, dev starts Monday.', kr: '현재 상황은 이래요. 디자인 끝났고 개발은 월요일 시작이에요.' },
+  'Where things stand::Current status': { en: 'Can you send me the current status by end of day?', kr: '오늘 안에 현재 상황 정리해서 보내줄 수 있어요?' },
+  'Good to go::All set': { en: 'Slides are done, so we\'re all set for tomorrow.', kr: '슬라이드 다 됐고, 내일 준비 끝났어요.' },
+  'Good to go::Clear to proceed': { en: 'Legal signed off, so we\'re clear to proceed.', kr: '법무 승인 났으니 진행해도 됩니다.' },
+  'Plan of attack::Game plan': { en: 'What\'s our game plan for the client visit?', kr: '클라이언트 방문 때 우리 작전이 뭐죠?' },
+  'Plan of attack::How we\'ll tackle this': { en: 'Here\'s how we\'ll tackle this over the next two weeks.', kr: '앞으로 2주 동안 이렇게 풀어가려고 합니다.' },
+  'Bottom line::Long story short': { en: 'Long story short, we\'re launching a week late.', kr: '짧게 말하면, 출시가 일주일 밀렸어요.' },
+  'Bottom line::The short version is': { en: 'The short version is we lost one supplier but found two.', kr: '요약하면 공급사 하나 잃고 둘 구했어요.' },
+  'Put a number on it::Quantify it': { en: 'Can you quantify it? Rough numbers are fine.', kr: '수치로 말해줄 수 있어요? 대략이라도 괜찮아요.' },
+  'Put a number on it::Give me a figure': { en: 'Just give me a figure I can take to the board.', kr: '이사회에 가져갈 숫자 하나만 주세요.' },
+  'In a nutshell::To sum it up': { en: 'To sum it up, the pilot worked and we\'re scaling it.', kr: '정리하면 파일럿 성공했고 확대합니다.' },
+  'In a nutshell::The gist is': { en: 'The gist is they want a discount before signing.', kr: '요지는 계약 전에 할인을 원한다는 거예요.' },
+  'Year over year::Compared to last year': { en: 'Compared to last year, support tickets dropped by half.', kr: '작년 대비 문의가 절반으로 줄었어요.' },
+  'Year over year::On an annual basis': { en: 'On an annual basis, that\'s about 200 million won saved.', kr: '연 단위로 보면 2억 정도 아끼는 셈이에요.' },
+  'Benchmark::Compare against': { en: 'Let\'s compare against the top three players first.', kr: '일단 상위 3개사와 비교해보죠.' },
+  'Benchmark::Stack it up': { en: 'Stack it up against last quarter and see what changed.', kr: '지난 분기랑 나란히 놓고 뭐가 바뀌었는지 보죠.' },
+  'Stack up against::Compare to': { en: 'How does our pricing compare to theirs?', kr: '우리 가격이 저쪽이랑 비교하면 어때요?' },
+  'Stack up against::Measure up against': { en: 'We measure up against them on speed, not on price.', kr: '속도로는 그쪽과 견줄 만한데 가격은 아니에요.' },
+  'Give or take::Roughly': { en: 'Roughly 2,000 signups this week, maybe a few more.', kr: '이번 주 가입이 대략 2천 건, 조금 더 될 수도요.' },
+  'Give or take::Or thereabouts': { en: 'It\'ll take three weeks, or thereabouts.', kr: '3주 정도, 그 언저리 걸릴 거예요.' },
+  'Rule of thumb::General guideline': { en: 'As a general guideline, keep the deck under ten slides.', kr: '일반적인 기준으로는 덱을 10장 이내로 하세요.' },
+  'Rule of thumb::Ballpark rule': { en: 'My ballpark rule is double whatever the vendor promises.', kr: '제 경험칙은 업체가 말한 기간의 두 배로 잡는 거예요.' },
+  'Back-of-the-envelope::Rough math': { en: 'Rough math says we break even in eight months.', kr: '대충 계산하면 8개월이면 본전이에요.' },
+  'Back-of-the-envelope::Quick estimate': { en: 'Here\'s a quick estimate. I\'ll confirm the details later.', kr: '일단 대략 잡은 수치고, 자세한 건 나중에 확정할게요.' },
+  'Too early to tell::Still early days': { en: 'It\'s still early days, but the feedback looks good.', kr: '아직 초반이긴 한데 반응은 좋아 보여요.' },
+  'Too early to tell::Jury\'s still out': { en: 'The jury\'s still out on whether the redesign helped.', kr: '리디자인이 효과가 있었는지는 아직 의견이 갈려요.' },
+  'Leading indicator::Early signal': { en: 'Signups are an early signal that the campaign is landing.', kr: '가입 수는 캠페인이 먹히고 있다는 초기 신호예요.' },
+  'Leading indicator::Predictive metric': { en: 'We track demo requests as our predictive metric.', kr: '데모 요청 수를 예측 지표로 보고 있어요.' },
+  'Bank on::Count on': { en: 'Don\'t count on the budget until it\'s approved.', kr: '승인 나기 전엔 예산을 믿고 계획하지 마세요.' },
+  'Bank on::Take it as a given': { en: 'Let\'s not take the renewal as a given this year.', kr: '올해는 재계약을 당연하게 여기지 맙시다.' },
+  'Not set in stone::Still flexible': { en: 'The date is still flexible if you need more time.', kr: '시간이 더 필요하면 날짜는 아직 조정 가능해요.' },
+  'Not set in stone::Nothing\'s final yet': { en: 'Nothing\'s final yet, so speak up if you disagree.', kr: '아직 확정된 건 없으니 이견 있으면 말씀하세요.' },
+  'Up in the air::Still undecided': { en: 'The venue is still undecided as of this morning.', kr: '오늘 아침 기준으로 장소는 아직 미정이에요.' },
+  'Up in the air::Nothing confirmed': { en: 'Nothing confirmed yet. I\'ll update you Friday.', kr: '아직 확정된 게 없어요. 금요일에 다시 알려드릴게요.' },
+  'Hedge your bets::Keep options open': { en: 'Let\'s keep our options open until the pilot ends.', kr: '파일럿 끝날 때까지 선택지를 열어두죠.' },
+  'Hedge your bets::Have a plan B ready': { en: 'Have a plan B ready in case the vendor pulls out.', kr: '업체가 빠질 수도 있으니 플랜 B 준비해두세요.' },
+  'Escalate::Take it up a level': { en: 'If they don\'t reply today, we take it up a level.', kr: '오늘 답 없으면 윗선으로 올립시다.' },
+  'Escalate::Bring in leadership': { en: 'This is the point where we bring in leadership.', kr: '여기서부터는 리더십을 끌어들여야 해요.' },
+  'At risk::In jeopardy': { en: 'The whole launch is in jeopardy without that approval.', kr: '그 승인 없으면 출시 전체가 위태로워요.' },
+  'At risk::Might slip': { en: 'The QA phase might slip by a few days.', kr: 'QA 단계가 며칠 밀릴 수도 있어요.' },
+  'Surface an issue::Put it on the table': { en: 'Let me put it on the table before we vote.', kr: '투표 전에 이 문제를 꺼내놓을게요.' },
+  'Surface an issue::Look into it': { en: 'I\'ll look into it and report back tomorrow.', kr: '제가 살펴보고 내일 보고드릴게요.' },
+  'Fallback::Backup option': { en: 'Our backup option is the manual upload flow.', kr: '대안은 수동 업로드 방식이에요.' },
+  'Fallback::Plan B': { en: 'Plan B is to postpone the feature, not the launch.', kr: '플랜 B는 출시가 아니라 기능을 미루는 거예요.' },
+  'Slippage::Schedule drift': { en: 'We\'re seeing schedule drift in two workstreams.', kr: '두 갈래 작업에서 일정이 조금씩 밀리고 있어요.' },
+  'Slippage::Days lost': { en: 'That\'s four days lost we can\'t get back.', kr: '그건 되돌릴 수 없는 나흘 손실이에요.' },
+  'Head something off::Get ahead of it': { en: 'Let\'s call the client and get ahead of it.', kr: '클라이언트한테 먼저 연락해서 선수 치죠.' },
+  'Head something off::Nip it in the bud': { en: 'Better to nip it in the bud than fix it later.', kr: '나중에 수습하느니 지금 싹을 자르는 게 나아요.' },
+  'Scale back::Narrow the scope': { en: 'Let\'s narrow the scope to the core features.', kr: '핵심 기능으로 범위를 좁히죠.' },
+  'Scale back::Do less, better': { en: 'I\'d rather do less, better, than ship everything half-done.', kr: '다 어정쩡하게 내느니 적게 잘하는 쪽이 나아요.' },
+  'Course-correct::Adjust as we go': { en: 'We\'ll launch small and adjust as we go.', kr: '작게 시작해서 가면서 조정할 거예요.' },
+  'Course-correct::Change tack': { en: 'The data says it\'s time to change tack.', kr: '데이터를 보면 방향을 틀 때가 됐어요.' },
+  'Pare back::Trim it down': { en: 'Can you trim it down to five slides?', kr: '5장으로 줄여줄 수 있어요?' },
+  'Pare back::Strip it back': { en: 'Let\'s strip it back to what the client actually asked for.', kr: '클라이언트가 실제로 요청한 것만 남기고 덜어냅시다.' },
+  'Be upfront::Be straight with you': { en: 'I\'ll be straight with you. We won\'t hit the date.', kr: '솔직히 말씀드릴게요. 그 날짜는 못 맞춥니다.' },
+  'Be upfront::Lay it out honestly': { en: 'Let\'s lay it out honestly and propose a fix.', kr: '솔직하게 다 밝히고 해결안을 제안하죠.' },
+  'Hold back::Sugarcoat it': { en: 'Don\'t sugarcoat it. I\'d rather hear the real number.', kr: '돌려 말하지 마세요. 실제 숫자가 듣고 싶어요.' },
+  'Hold back::Keep it to yourself': { en: 'If you have concerns, don\'t keep it to yourself.', kr: '걱정되는 게 있으면 혼자 담아두지 마세요.' },
+  'Own up to::Take responsibility for': { en: 'I take responsibility for the missed deadline.', kr: '마감을 놓친 건 제 책임입니다.' },
+  'Own up to::Admit it outright': { en: 'It\'s better to admit it outright than let them find out.', kr: '저쪽이 알게 되는 것보다 먼저 인정하는 게 나아요.' },
+  'Cost of inaction::Do-nothing cost': { en: 'The do-nothing cost is higher than the fix.', kr: '가만히 두는 비용이 고치는 비용보다 커요.' },
+  'Cost of inaction::What it costs to wait': { en: 'Let me show you what it costs to wait one more quarter.', kr: '한 분기 더 기다리면 얼마가 드는지 보여드릴게요.' },
+  'Fall short::Miss the mark': { en: 'We missed the mark on adoption, but retention held.', kr: '사용률은 목표에 못 미쳤지만 유지율은 지켰어요.' },
+  'Fall short::Come up short': { en: 'We came up short by about 8 percent this quarter.', kr: '이번 분기 8퍼센트 정도 모자랐어요.' },
+  'Sweep it under the rug::Brush it aside': { en: 'We can\'t just brush it aside and hope it goes away.', kr: '그냥 넘기고 없어지길 바랄 수는 없어요.' },
+  'Sweep it under the rug::Bury it': { en: 'Burying it now means a bigger problem in Q4.', kr: '지금 덮으면 4분기에 더 큰 문제가 돼요.' },
+  'Step up::Take it on': { en: 'Nobody had time, so she took it on herself.', kr: '다들 시간이 없어서 그분이 직접 맡았어요.' },
+  'Step up::Fill the gap': { en: 'I can fill the gap until we hire someone.', kr: '채용될 때까지는 제가 그 자리를 메울 수 있어요.' },
+  'Make the case for::Build the argument for': { en: 'Let\'s build the argument for more headcount with data.', kr: '인원 충원 근거를 데이터로 쌓아봅시다.' },
+  'Make the case for::Push for it with data': { en: 'If you push for it with data, they\'ll listen.', kr: '데이터를 들고 밀어붙이면 들어줄 거예요.' },
+  'Punch above your weight::Outperform our size': { en: 'A team of six, and we outperform our size every quarter.', kr: '여섯 명인데 매 분기 규모 이상을 해내고 있어요.' },
+  'Punch above your weight::Do more with less': { en: 'We\'ve learned to do more with less this year.', kr: '올해는 적은 자원으로 더 해내는 법을 배웠어요.' },
+  'Give credit to::Hats off to': { en: 'Hats off to Jin. She caught the bug before launch.', kr: '진님 덕분이에요. 출시 전에 버그를 잡아냈어요.' },
+  'Give credit to::That was their win': { en: 'That was their win, not mine. I just reviewed it.', kr: '그건 제 공이 아니라 그쪽 성과예요. 저는 검토만 했어요.' },
+  'Shout-out::Kudos to': { en: 'Kudos to the design team for the fast turnaround.', kr: '빠르게 처리해준 디자인팀에 박수 보냅니다.' },
+  'Shout-out::Big thanks to': { en: 'Big thanks to everyone who stayed late last night.', kr: '어젯밤 늦게까지 남아준 모든 분께 감사드려요.' },
+  'Sing someone\'s praises::Speak highly of': { en: 'The client spoke highly of your onboarding docs.', kr: '클라이언트가 온보딩 문서를 아주 좋게 말하더라고요.' },
+  'Sing someone\'s praises::Talk them up': { en: 'I\'ll talk you up when the director asks.', kr: '디렉터가 물어보면 좋게 말씀드릴게요.' },
+  'Growth area::Development area': { en: 'Presenting to executives is my development area this year.', kr: '임원 대상 발표가 올해 제 성장 과제예요.' },
+  'Growth area::Something I\'m working on': { en: 'Delegating is something I\'m working on.', kr: '위임하는 건 제가 지금 노력하고 있는 부분이에요.' },
+  'Calibrate::Level the ratings': { en: 'We meet in December to level the ratings across teams.', kr: '12월에 모여서 팀 간 평가 기준을 맞춰요.' },
+  'Calibrate::Align on standards': { en: 'Let\'s align on standards before we score anyone.', kr: '점수 매기기 전에 기준부터 맞추죠.' },
+  'Toot your own horn::Blow your own trumpet': { en: 'Nobody likes to blow their own trumpet, but results matter.', kr: '자기 자랑 좋아하는 사람은 없지만, 성과는 알려야죠.' },
+  'Toot your own horn::Speak up for yourself': { en: 'In review season, you have to speak up for yourself.', kr: '평가 시즌엔 본인 성과를 본인이 말해야 해요.' },
+  'Stretch assignment::A step-up project': { en: 'This is a step-up project. It\'ll be hard, but good for you.', kr: '이건 한 단계 위 프로젝트예요. 힘들지만 도움이 될 거예요.' },
+  'Stretch assignment::Something that pushes me': { en: 'I\'m looking for something that pushes me next quarter.', kr: '다음 분기엔 저를 좀 밀어붙이는 일을 맡고 싶어요.' },
+  'Sponsor::Advocate for you': { en: 'A good manager will advocate for you when you\'re not in the room.', kr: '좋은 상사는 본인이 없는 자리에서 대신 밀어줘요.' },
+  'Sponsor::Someone in your corner': { en: 'Everyone needs someone in your corner at promotion time.', kr: '승진 시즌엔 내 편이 되어줄 사람이 꼭 필요해요.' },
+  'Stretched thin::Spread too thin': { en: 'The team is spread too thin across four projects.', kr: '팀이 네 개 프로젝트에 너무 얇게 퍼져 있어요.' },
+  'Stretched thin::Maxed out right now': { en: 'I\'m maxed out right now. Can it wait until Monday?', kr: '지금은 여력이 없어요. 월요일까지 미룰 수 있을까요?' },
+  'Offboarding::Transition process': { en: 'The transition process takes about two weeks.', kr: '인수인계 과정은 2주 정도 걸려요.' },
+  'Offboarding::Wrapping up your handover': { en: 'How\'s wrapping up your handover going?', kr: '인수인계 마무리는 잘 되어가요?' },
+  'An asset to::A huge plus for': { en: 'Her Japanese is a huge plus for the APAC team.', kr: '그분 일본어 실력은 APAC 팀에 큰 강점이에요.' },
+  'An asset to::Valuable addition to': { en: 'He\'d be a valuable addition to any product team.', kr: '어느 프로덕트 팀에 가도 귀한 인재일 거예요.' },
+  'Smooth sailing::Plain sailing': { en: 'After the migration, it\'s been plain sailing.', kr: '마이그레이션 끝나고는 순조롭게 흘러가고 있어요.' },
+  'Smooth sailing::No bumps since': { en: 'We fixed the payment bug and no bumps since.', kr: '결제 버그 고친 뒤로는 별 탈 없어요.' },
 };
 
 function synonymExample(word, syn) {
@@ -16548,7 +16670,10 @@ function DayPage(dayN) {
           <div>${exEnMarked}</div>
           <span class="translate" style="margin-top:6px;font-size:13px;display:block;">${escapeHtml(w.ex_kr)}</span>
         </div>
-        <button class="icon-btn" style="flex-shrink:0;width:32px;height:32px;border-radius:10px;background:var(--orange-ghost);border:1px solid var(--orange-soft);color:var(--orange-dark);" onclick="window.__speakExample(${dayN}, ${i})" title="예문 듣기">${Icon('volume', 14)}</button>
+        <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px;">
+          <button class="icon-btn" style="width:32px;height:32px;border-radius:10px;background:var(--orange-ghost);border:1px solid var(--orange-soft);color:var(--orange-dark);" onclick="window.__speakExample(${dayN}, ${i})" title="예문 듣기">${Icon('volume', 14)}</button>
+          <button class="icon-btn" data-ex-key="${escAttr(`d${dayN}-${i}`)}" style="width:32px;height:32px;border-radius:10px;background:${state.saved_examples?.[`d${dayN}-${i}`] ? 'var(--orange)' : 'transparent'};border:1px solid var(--orange-soft);color:${state.saved_examples?.[`d${dayN}-${i}`] ? '#fff' : 'var(--orange-dark)'};" onclick="window.__toggleExampleSave(this.getAttribute('data-ex-key'))" title="${state.saved_examples?.[`d${dayN}-${i}`] ? '단어장에서 빼기' : '예문을 단어장에 저장'}">${Icon(state.saved_examples?.[`d${dayN}-${i}`] ? 'bookmarkFill' : 'bookmark', 14)}</button>
+        </div>
       </div>`;
     card.appendChild(exampleEl);
 
@@ -28476,6 +28601,27 @@ window.__openMemberCard = (memberRef) => {
 window.__closeMemberCard = () => {
   activeMemberCard = null;
   render();
+};
+window.__toggleExampleSave = (key) => {
+  try {
+    const m = String(key || '').match(/^d(\d+)-(\d+)$/);
+    if (!m) return;
+    const d = getDay(Number(m[1]));
+    const w = d && d.words ? d.words[Number(m[2])] : null;
+    if (!w) return;
+    state.saved_examples = state.saved_examples || {};
+    const on = !state.saved_examples[key];
+    if (on) {
+      state.saved_examples[key] = true;
+      addToVocabBank({ word: w.en, note: (w.ex_en || '') + (w.ex_kr ? '\n' + w.ex_kr : ''), source: 'example', sourceKey: key });
+    } else {
+      delete state.saved_examples[key];
+      removeFromVocabBank({ word: w.en, sourceKey: key });
+    }
+    saveState();
+    showToast(on ? '🔖 예문을 단어장에 저장했어요.' : '단어장에서 빼놨어요.');
+    render();
+  } catch (e) {}
 };
 window.__toggleSynBookmark = (key) => {
   state.saved_syns = state.saved_syns || {};
