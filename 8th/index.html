@@ -16799,8 +16799,13 @@ function DayPage(dayN) {
               <div style="margin-top:4px;font-size:13.5px;color:var(--ink);font-weight:700;line-height:1.5;">${escapeHtml(synonymMeaning(s))}</div>
               ${ex && ex.en ? `
                 <div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:#FFF7EB;border:1px solid rgba(46,111,168,0.18);">
-                  <div style="font-size:14px;line-height:1.55;color:var(--ink);word-break:keep-all;">${highlightSynInSentence(ex.en, s)}${speakBtnHtml(ex.en, 13)}</div>
-                  ${ex.kr ? `<div style="margin-top:6px;font-size:12.5px;line-height:1.55;color:var(--ink-soft);word-break:keep-all;">${escapeHtml(ex.kr)}</div>` : ''}
+                  <div style="display:flex;align-items:flex-start;gap:8px;">
+                    <div style="flex:1;min-width:0;">
+                      <div style="font-size:14px;line-height:1.55;color:var(--ink);word-break:keep-all;">${highlightSynInSentence(ex.en, s)}${speakBtnHtml(ex.en, 13)}</div>
+                      ${ex.kr ? `<div style="margin-top:6px;font-size:12.5px;line-height:1.55;color:var(--ink-soft);word-break:keep-all;">${escapeHtml(ex.kr)}</div>` : ''}
+                    </div>
+                    <button onclick="window.__toggleExampleSave(this.getAttribute('data-ex-key'))" data-ex-key="${escapeHtml(synKey)}" title="${state.saved_examples?.[synKey] ? '예문 저장 해제' : '이 예문을 단어장에 저장'}" style="flex-shrink:0;background:transparent;border:none;color:var(--orange);width:28px;height:28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;">${Icon(state.saved_examples?.[synKey] ? 'bookmarkFill' : 'bookmark', 13)}</button>
+                  </div>
                 </div>
               ` : ''}
               ${ex && ex.mood ? `
@@ -22254,6 +22259,21 @@ function ProfilePage() {
       });
     });
   });
+  // 저장한 예문 (2026-08-21): 데일리 예문 = state.saved_examples['d1-0'],
+  // 유의어 예문 = state.saved_examples['d1-0::Syn'] 형식.
+  const exampleEntries = [];
+  CHALLENGE.weeks.forEach((w) => w.days.forEach((dy) => dy.words.forEach((word, idx) => {
+    const key = `d${dy.day}-${idx}`;
+    if (state.saved_examples?.[key] && word.ex_en) {
+      exampleEntries.push({ key, day: dy.day, weekN: w.n, label: word.en, en: word.ex_en, kr: word.ex_kr || '' });
+    }
+    (word.syn || []).forEach((syn) => {
+      const sk = `${key}::${syn}`;
+      if (!state.saved_examples?.[sk]) return;
+      const ex = (typeof synonymExample === 'function') ? synonymExample(word, syn) : null;
+      if (ex && ex.en) exampleEntries.push({ key: sk, day: dy.day, weekN: w.n, label: syn, en: ex.en, kr: ex.kr || '' });
+    });
+  })));
   const savedCommunityPosts = Array.from(new Map(
     [
       ...Object.values(communityFeedCache).flatMap((entry) => entry?.rows || []).map((post) => ({
@@ -22272,7 +22292,7 @@ function ProfilePage() {
       .filter((post) => state.community_bookmarks?.[post.id])
       .map((post) => [post.id, post])
   ).values());
-  const totalSaved = bookmarkedEntries.length + synonymEntries.length + savedCommunityPosts.length;
+  const totalSaved = bookmarkedEntries.length + synonymEntries.length + savedCommunityPosts.length + exampleEntries.length;
   const tab = state.savedTab || 'all';
   const bookmarkCard = el('div', { class: 'card', style: { marginTop: '18px', padding: '18px' } });
   const bookHead = el('div', { class: 'row-between' });
@@ -22289,7 +22309,8 @@ function ProfilePage() {
     { key: 'all',   label: '전체',  count: totalSaved },
     { key: 'word',  label: '단어',  count: bookmarkedEntries.length },
     { key: 'syn',   label: '유의어', count: synonymEntries.length },
-    { key: 'post',  label: '예문',  count: savedCommunityPosts.length },
+    { key: 'ex',    label: '예문',  count: exampleEntries.length },
+    { key: 'post',  label: '동료 문장', count: savedCommunityPosts.length },
   ];
   const tabBar = el('div', { style: { display: 'flex', gap: '6px', marginTop: '12px', flexWrap: 'wrap' } });
   tabs.forEach((t) => {
@@ -22320,10 +22341,11 @@ function ProfilePage() {
     const showWords = tab === 'all' || tab === 'word';
     const showSyns = tab === 'all' || tab === 'syn';
     const showPosts = tab === 'all' || tab === 'post';
+    const showEx = tab === 'all' || tab === 'ex';
 
     // 섹션별 페이지네이션, 기본 10개씩만 보여주고, "더 보기" 누르면 전체 펼침.
     // 섹션 펼침 상태는 window 변수에 보관 (state 안 건드림).
-    window.__savedExpanded = window.__savedExpanded || { word: false, syn: false, post: false };
+    window.__savedExpanded = window.__savedExpanded || { word: false, syn: false, post: false, ex: false };
     const SAVED_PAGE_SIZE = 10;
     const sliceFor = (key, arr) => {
       if (window.__savedExpanded[key]) return arr;
@@ -22396,6 +22418,31 @@ function ProfilePage() {
       });
       const moreSynBtn = makeMoreBtn('syn', synonymEntries.length, sliceFor('syn', synonymEntries).length);
       if (moreSynBtn) list.appendChild(moreSynBtn);
+    }
+
+    if (showEx && exampleEntries.length) {
+      if (tab === 'all') list.appendChild(el('div', { class: 'kicker', style: { color: 'var(--muted)', marginTop: '6px' } }, `예문 · ${exampleEntries.length}`));
+      sliceFor('ex', exampleEntries).forEach(({ key, day, weekN, label, en, kr }) => {
+        const row = el('div', {
+          style: {
+            display: 'flex', alignItems: 'flex-start', gap: '12px',
+            padding: '11px 13px', borderRadius: '14px', background: 'rgba(245,239,228,0.55)',
+            border: '1px solid rgba(46,111,168,0.14)', cursor: 'pointer',
+          },
+          onClick: () => go('day', { week: weekN, day }),
+        });
+        row.innerHTML = `
+          <span class="mono" style="font-size:10px;color:var(--muted);min-width:30px;padding-top:3px;">D${day}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:10px;font-weight:800;color:var(--orange-dark);font-family:var(--font-mono);">${escapeHtml(label)}</div>
+            <div style="margin-top:3px;font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.5;">${escapeHtml(en)}</div>
+            ${kr ? `<div class="t-small" style="margin-top:2px;font-size:11.5px;color:var(--ink-soft);line-height:1.45;">${escapeHtml(kr)}</div>` : ''}
+          </div>
+          <button class="icon-btn" style="flex-shrink:0;width:30px;height:30px;border-radius:10px;background:transparent;border:none;color:var(--orange);" onclick="event.stopPropagation(); window.__toggleExampleSave(this.getAttribute('data-ex-key'))" data-ex-key="${escapeHtml(key)}">${Icon('bookmarkFill', 13)}</button>`;
+        list.appendChild(row);
+      });
+      const moreExBtn = makeMoreBtn('ex', exampleEntries.length, sliceFor('ex', exampleEntries).length);
+      if (moreExBtn) list.appendChild(moreExBtn);
     }
 
     if (showPosts && savedCommunityPosts.length) {
@@ -28626,19 +28673,26 @@ window.__closeMemberCard = () => {
 };
 window.__toggleExampleSave = (key) => {
   try {
-    const m = String(key || '').match(/^d(\d+)-(\d+)$/);
+    const [base, synName] = String(key || '').split('::');
+    const m = String(base || '').match(/^d(\d+)-(\d+)$/);
     if (!m) return;
     const d = getDay(Number(m[1]));
     const w = d && d.words ? d.words[Number(m[2])] : null;
     if (!w) return;
+    let label = w.en, exEn = w.ex_en || '', exKr = w.ex_kr || '';
+    if (synName) {
+      const ex = (typeof synonymExample === 'function') ? synonymExample(w, synName) : null;
+      if (!ex || !ex.en) return;
+      label = synName; exEn = ex.en; exKr = ex.kr || '';
+    }
     state.saved_examples = state.saved_examples || {};
     const on = !state.saved_examples[key];
     if (on) {
       state.saved_examples[key] = true;
-      addToVocabBank({ word: w.en, note: (w.ex_en || '') + (w.ex_kr ? '\n' + w.ex_kr : ''), source: 'example', sourceKey: key });
+      addToVocabBank({ word: label, note: exEn + (exKr ? '\n' + exKr : ''), source: 'example', sourceKey: key });
     } else {
       delete state.saved_examples[key];
-      removeFromVocabBank({ word: w.en, sourceKey: key });
+      removeFromVocabBank({ word: label, sourceKey: key });
     }
     saveState();
     showToast(on ? '🔖 예문을 단어장에 저장했어요.' : '단어장에서 빼놨어요.');
