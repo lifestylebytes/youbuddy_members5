@@ -11645,6 +11645,31 @@ function _ensureVocabStat(en) {
   state.vocab_stats[key] = entry;
   return entry;
 }
+/* 약점 추천 배지 (2026-08-21 버디 요청): 지금까지 이 표현을 몇 번 틀렸는지 보고
+   "기억 안나요"를 어디에 눌러야 할지 스스로 고르게 돕는다. vocab_stats 기반. */
+function vocabWeaknessInfo(en) {
+  try {
+    const st = (state.vocab_stats || {})[String(en || '').toLowerCase().trim()];
+    if (!st) return null;
+    const wrong = Number(st.w || 0) + Number(st.h || 0) + Number(st.s || 0); // 오답 + 힌트 + 스킵
+    const correct = Number(st.c || 0);
+    if (!wrong) return null;
+    const firstMissed = st.firstResult && st.firstResult !== 'correct';
+    return { wrong, correct, firstMissed, total: wrong + correct };
+  } catch (e) { return null; }
+}
+function vocabWeaknessBadge(en) {
+  const info = vocabWeaknessInfo(en);
+  if (!info) return '';
+  const strong = info.wrong >= 3;
+  const mid = info.wrong === 2;
+  const bg = strong ? '#FBEEEC' : (mid ? '#FFF4E3' : 'rgba(46,111,168,0.08)');
+  const fg = strong ? '#A32D2D' : (mid ? '#8A5A12' : '#1F4F7D');
+  const icon = strong ? '🔥' : (mid ? '⚠️' : '📌');
+  const label = strong ? '자주 틀려요' : (mid ? '한 번 더' : '체크했던 단어');
+  return '<span title="지금까지 오답·힌트·스킵 ' + info.wrong + '회" style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:999px;background:' + bg + ';color:' + fg + ';font-size:10px;font-weight:800;white-space:nowrap;">'
+    + icon + ' 오답 ' + info.wrong + '회 · ' + label + '</span>';
+}
 function recordVocabAttempt(en, correct) {
   try {
     const entry = _ensureVocabStat(en);
@@ -13862,6 +13887,34 @@ function renderBingoMode(page, weekN, week, isPremium) {
   `;
   page.appendChild(intro);
 
+  /* ─ 약점 추천 요약 (2026-08-21): 지금까지 자주 틀린 표현을 위에서 먼저 알려줘
+     "어디에 기억 안나요를 눌러야 하지" 고민을 없앤다. vocab_stats 기반, 없으면 표시 안 함. */
+  try {
+    const _cands = [];
+    (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((dd) => (dd.words || []).forEach((w) => {
+      if (Number(wk.n) > Number(weekN)) return;
+      const info = vocabWeaknessInfo(w.en);
+      if (info && info.wrong >= 2) _cands.push({ en: w.en, kr: w.def, day: dd.day, wrong: info.wrong });
+    })));
+    _cands.sort((a, b) => b.wrong - a.wrong || a.day - b.day);
+    if (_cands.length) {
+      const top = _cands.slice(0, 5);
+      const rec = el('div', { style: { padding: '15px 17px', borderRadius: '18px', background: '#FFFBF8', border: '1px solid rgba(163,45,45,0.28)', marginBottom: '16px' } });
+      rec.innerHTML = '<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">'
+        + '<span style="font-size:14px;">🎯</span>'
+        + '<span style="font-size:13.5px;font-weight:800;color:var(--ink);">이 표현들부터 체크해보세요</span>'
+        + '<span style="font-size:11px;color:var(--muted);font-weight:600;">지금까지 자주 놓친 것들이에요</span></div>'
+        + '<div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">'
+        + top.map((c) => '<div style="display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:11px;background:#fff;border:1px solid rgba(231,221,200,0.9);">'
+            + '<span style="font-size:9.5px;font-weight:800;color:var(--muted);min-width:34px;">DAY ' + c.day + '</span>'
+            + '<span style="flex:1;min-width:0;font-size:13px;font-weight:800;color:var(--orange-dark);">' + escapeHtml(c.en) + '</span>'
+            + '<span style="font-size:11px;color:var(--ink-soft);font-weight:600;white-space:nowrap;">오답 ' + c.wrong + '회</span></div>').join('')
+        + '</div>'
+        + '<div class="t-small" style="margin-top:9px;color:var(--muted);line-height:1.55;">아래 카드에서 이 표현들이 보이면 <b>기억 안나요</b>를 눌러 복습 큐에 담아보세요.</div>';
+      page.appendChild(rec);
+    }
+  } catch (e) {}
+
   // ─ 본인 문장 recap, 한국어 먼저 → 탭으로 영어 reveal.
   // 진짜 학습 효과: KO 만 보고 머릿속에서 EN 떠올려보고 → 정답 비교 (active recall).
   window.__bingoSentenceReveal = window.__bingoSentenceReveal || {};
@@ -13900,16 +13953,18 @@ function renderBingoMode(page, weekN, week, isPremium) {
           padding: '14px 16px',
           marginBottom: '8px',
           borderRadius: '14px',
-          background: isMarked ? 'rgba(46,111,168,0.08)' : '#FBF7F0',
-          border: '1px solid ' + (isMarked ? 'rgba(46,111,168,0.45)' : 'rgba(231,221,200,0.9)'),
+          background: isMarked ? 'rgba(46,111,168,0.08)' : ((vocabWeaknessInfo(s.en) || {}).wrong >= 3 ? '#FFFBF8' : '#FBF7F0'),
+          border: '1px solid ' + (isMarked ? 'rgba(46,111,168,0.45)' : ((vocabWeaknessInfo(s.en) || {}).wrong >= 3 ? 'rgba(163,45,45,0.35)' : 'rgba(231,221,200,0.9)')),
           transition: 'all 0.18s ease',
         },
       });
       // 어떤 단어인지 보여주는 작은 태그, 본인이 KR/EN 둘 다 안 쓴 단어도 어떤 거였는지 인지 가능.
-      const wordTag = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+      const __wk = vocabWeaknessInfo(s.en);
+      const wordTag = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
         <span style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;color:var(--muted);background:rgba(255,255,255,0.6);padding:3px 7px;border-radius:99px;">DAY ${s.day}</span>
         <span style="font-size:12px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.005em;">${escapeHtml(s.en)}</span>
         ${s.kr ? `<span style="font-size:11px;color:var(--muted);font-weight:500;">· ${escapeHtml(s.kr)}</span>` : ''}
+        ${vocabWeaknessBadge(s.en)}
       </div>`;
 
       card.innerHTML = `
