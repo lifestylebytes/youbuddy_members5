@@ -591,9 +591,13 @@ function linkChecklistMessages() {
         '=HYPERLINK("#gid=' + gid + '&range=' + cell + '","' + label + '")'
       );
       done++;
-    } else if (!/미팅 진행|가이드 투어|녹음 확인|집계 쿼리/.test(task)) {
-      miss.push(row + '행 · ' + task);
+    } else {
+      // 원고가 없는 행(미팅 진행 등)도 반드시 지운다. 예전엔 건너뛰어서
+      // 옛 링크가 몇 번을 재실행해도 그대로 남는 사고가 있었다. (2026-08-20)
       chk.getRange(row, 8).clearContent();
+      if (!/미팅 진행|가이드 투어|녹음 확인|집계 쿼리|녹화본 링크 입력|미트 열기/.test(task)) {
+        miss.push(row + '행 · ' + task);
+      }
     }
   }
 
