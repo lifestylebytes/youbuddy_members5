@@ -1373,8 +1373,8 @@ const CHALLENGE = {
         n: 2,
         date: '2026-08-20',
         signupCloseDate: '2026-08-19',
-        title: 'Week 2, The art of the argument',
-        desc: '상황 롤플레잉 (논쟁의 기술) + PT 발표 + Week 1~2 단어 복습',
+        title: 'Week 2, Crisis Response',
+        desc: '위기 대응 롤플레잉 + PT 발표 + Day 1~9 단어 복습',
         status: 'upcoming',
         zoom: 'Google Meet',
         meetUrl: 'https://meet.google.com/sff-fgce-npj', // 매주 목 21:00 공용 Meet 링크
@@ -1384,9 +1384,10 @@ const CHALLENGE = {
         pptUrl: '',
         roleplay: { duration: 40 },
         mustUseVocab: [
-          'Quick poll', 'Table it', 'Steelman',
-          'Poke holes in', 'Double-click on', 'Bikeshedding',
-          'Boil the ocean', 'Go down the rabbit hole', 'Sunk cost', 'Pressure-test',
+          'Where things stand', 'Keep you posted', 'Give or take',
+          'Too early to tell', 'Put a number on it', 'Back-of-the-envelope',
+          'Bring you up to speed', 'In a nutshell', 'Plan of attack',
+          'Bottom line', 'Good to go', 'Circle up',
         ],
         presenterPrompt: '본인 업무 상황 한 가지를 10분 발표로. 논쟁·설득 장면을 하나 넣고 Day 6~10 단어 (steelman / quick poll / double-click on 등) 3개 이상 자연스럽게 녹이기. Q&A 에서 단어 echo back 대비.',
         qaPrompts: [
@@ -20043,8 +20044,9 @@ function MeetingNotesPage(meetingId) {
   // (Sync bar 제거, 상단 "💾 저장" 버튼으로 통합. 자동 저장은 입력할 때마다 뒤에서 돌아감.)
 
   // Segmented control, Timeline vs AI assist
-  // Week 2·3 은 회의록·AI 탭 숨김 (2026-08-19 버디 확정). 항상 timeline 뷰.
-  if (meta.n !== 2 && meta.n !== 3) {
+  // Week 3 은 적을 노트가 없어서(배너만) 탭 자체를 숨김. 항상 timeline 뷰.
+  // (W2 도 숨겼다가 멤버 목표·노트 공간이 사라져 미팅 중 복구. 2026-08-20)
+  if (meta.n !== 3) {
     const seg = el('div', { class: 'mn-seg' });
     const tabs = [
       { k: 'timeline', label: '📋 회의록' },
@@ -21003,8 +21005,7 @@ function MeetingNotesPage(meetingId) {
         body: `<span style="color:var(--ink);">각자 맡은 역할로 비즈니스 상황을 실제처럼 재현. 대사 외우지 말고, 상황에 반응하세요.</span>`,
         briefing: roleplayBrief,
         placeholder: '예) 내가 맡은 역할: Product Lead\n내가 놓친 reframe 포인트: ...\n상대방이 쓴 괜찮은 표현: ...\n다음엔 이렇게 해볼 것: ...',
-        ...(meta.n === 3 ? { bannerOnly: true, bannerText: '📚 Day11~14 단어 복습 후 만나요!' }
-          : meta.n === 2 ? { bannerOnly: true, bannerText: '📚 Day6~9 단어 복습 후 만나요!' } : {}),
+        ...(meta.n === 3 ? { bannerOnly: true, bannerText: '📚 Day11~14 단어 복습 후 만나요!' } : {}),
       }));
     }
 
@@ -21014,7 +21015,7 @@ function MeetingNotesPage(meetingId) {
     // 칩으로 표시해두고, 본문에 자연스럽게 "[1] 박지혜" 같이 구획 지어 적게.
     // Week 3 은 위 롤플레이 행이 이미 안내 배너 한 줄로 대체됐으므로, 같은 배너가
     // 두 번 반복되지 않도록 이 행은 통째로 생략.
-    if (!meta.noPresenter && meta.n !== 2 && meta.n !== 3) {
+    if (!meta.noPresenter && meta.n !== 3) {
       const presenterPills = el('div', {
         style: { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '2px' }
       });
@@ -21090,8 +21091,8 @@ function MeetingNotesPage(meetingId) {
       wrap.appendChild(row);
     }
 
-    // ---- Meta footer ---- (Week 2·3 은 기록할 칸이 없어서 안내문도 생략)
-    if (meta.n !== 2 && meta.n !== 3) {
+    // ---- Meta footer ---- (Week 3 은 기록할 칸이 없어서 안내문도 생략)
+    if (meta.n !== 3) {
       const metaFooter = el('div', {
         style: {
           marginTop: '12px',
@@ -21204,8 +21205,8 @@ function MeetingNotesPage(meetingId) {
   }
 
   // Action row, 내보내기 섹션. "여기 적은 노트를 Notion 에 옮기기" 목적을 위로 표시.
-  // Week 2·3 은 노트 입력칸 자체가 없어서 내보낼 게 없음 → 섹션 통째로 생략.
-  if (meta.n !== 2 && meta.n !== 3) {
+  // Week 3 은 노트 입력칸 자체가 없어서(배너만) 내보낼 게 없음 → 섹션 통째로 생략.
+  if (meta.n !== 3) {
   const exportSection = el('div', { style: { marginTop: '24px' } });
   exportSection.appendChild(el('div', {
     style: {
