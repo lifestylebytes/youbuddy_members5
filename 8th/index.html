@@ -9690,7 +9690,10 @@ function HomePage() {
         && !window.__bestPopupArmed && guidedTourStep === null && !anyPopupOpen()) {
       window.__bestPopupArmed = true;
       setTimeout(async () => {
-        if (guidedTourStep !== null || anyPopupOpen() || (state.best_popup_seen || {})[String(__bW)]) return;
+        // 다른 팝업이 떠 있어서 못 열었으면 armed 를 풀어 다음 렌더에서 다시 시도한다.
+        // (예전엔 여기서 그냥 return 해서, 아침에 다른 팝업과 겹치면 그 세션 내내 못 떴다. 2026-08-24)
+        if (guidedTourStep !== null || anyPopupOpen()) { window.__bestPopupArmed = false; return; }
+        if ((state.best_popup_seen || {})[String(__bW)]) return;
         try {
           const data = await __computeBestPopupData();
           state.best_popup_seen = state.best_popup_seen || {};
