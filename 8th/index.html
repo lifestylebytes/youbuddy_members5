@@ -7007,7 +7007,7 @@ function render() {
     }
     if (showBestPopup) {
       if (!document.querySelector('[data-best-popup]')) {
-        document.body.appendChild(BestPopupModal());
+        document.body.appendChild(BestPopupModal(showBestPopup));
       }
     } else {
       const staleBP = document.querySelector('[data-best-popup]');
@@ -31328,33 +31328,6 @@ window.__previewDailyPulse = (dayOverride) => {
   render();
 };
 
-function BestPopupModal() {
-  const d = showBestPopup || {};
-  const chips = (arr, bg, fg) => (arr || []).map((n) =>
-    '<span style="display:inline-block;margin:3px 3px 0 0;padding:4px 11px;border-radius:999px;background:' + bg + ';color:' + fg + ';font-size:12.5px;font-weight:800;">' + escapeHtml(String(n)) + '</span>').join('');
-  const sec = (emoji, title, sub, arr, bg, fg) => !(arr && arr.length) ? '' :
-    '<div style="margin-top:13px;text-align:left;">'
-    + '<div style="font-size:12.5px;font-weight:800;color:var(--ink);">' + emoji + ' ' + title + ' <span style="font-weight:700;color:var(--muted);font-size:11px;">' + sub + '</span></div>'
-    + '<div style="margin-top:2px;">' + chips(arr, bg, fg) + '</div></div>';
-  const wrap = el('div', { 'data-best-popup': '1', style: { position: 'fixed', inset: '0', zIndex: '9700', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' } });
-  wrap.appendChild(el('div', { style: { position: 'absolute', inset: '0', background: 'rgba(30,26,18,0.55)', backdropFilter: 'blur(3px)' }, onClick: () => window.__closeBestPopup() }));
-  const card = el('div', { style: { position: 'relative', width: '100%', maxWidth: '400px', maxHeight: '80vh', overflowY: 'auto', background: '#FFFDF8', borderRadius: '22px', padding: '26px 22px 22px', boxShadow: '0 18px 50px rgba(0,0,0,0.28)', textAlign: 'center' } });
-  const hasAny = (d.masters && d.masters.length) || (d.nears && d.nears.length) || (d.finishers && d.finishers.length);
-  card.innerHTML = '<button onclick="window.__closeBestPopup()" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);font-size:13px;cursor:pointer;">✕</button>'
-    + (d.preview ? '<div style="position:absolute;top:14px;left:14px;font-size:9.5px;font-weight:800;background:#1F4F7D;color:#fff;padding:2px 8px;border-radius:999px;">운영자 미리보기</div>' : '')
-    + '<div style="font-size:40px;">🏆</div>'
-    + '<div style="margin-top:8px;font-size:17px;font-weight:800;color:var(--ink);">Week ' + (d.weekN || 1) + ' 베스트 발표!</div>'
-    + (hasAny
-      ? ('<div style="margin-top:5px;font-size:12.5px;color:var(--ink-soft);">지난주를 빛낸 버디님들이에요 :)</div>'
-        + sec('🥇', '단어시험 만점 마스터', '힌트·오답 없이 전부 통과', d.masters, 'linear-gradient(135deg,#FFE9B0,#FFD873)', '#7A5B1E')
-        + sec('🔥', '거의 만점', '정답률 80% 이상', d.nears, 'rgba(46,111,168,0.10)', '#1F4F7D')
-        + sec('✅', '5일 완주', '지난주 인증 전부 완료', d.finishers, 'rgba(31,77,56,0.10)', '#1F4D38'))
-      : '<div style="margin-top:9px;font-size:13px;color:var(--ink-soft);line-height:1.7;">집계 데이터가 아직 모이는 중이에요.<br>다음 주에 만나요 :)</div>')
-    + '<div style="margin-top:12px;font-size:11.5px;color:var(--muted);">이름이 없어도 괜찮아요. 이번 주가 진짜 시작이에요 :)</div>'
-    + '<button onclick="window.__closeBestPopup()" class="btn btn-primary" style="width:100%;margin-top:12px;padding:13px;font-size:14px;">이번 주는 나도 🔥</button>';
-  wrap.appendChild(card);
-  return wrap;
-}
 window.__closeBestPopup = () => { showBestPopup = null; render(); };
 // 베스트 팝업 데이터 계산 (미리보기·멤버 자동 노출 공용). 그 주차 단어·그 주차 날짜만 집계.
 async function __computeBestPopupData(weekOverride) {
