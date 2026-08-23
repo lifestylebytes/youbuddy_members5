@@ -2214,15 +2214,22 @@ function buildLocalCorrection(word, sentence) {
 // so the UI never hard-breaks.
 async function callAiReviewEdgeFunction(payload) {
   if (!hasSupabase()) throw new Error('no supabase');
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-review`, {
-    method: 'POST',
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+  // 25초 타임아웃 (모바일 네트워크가 끊겨도 영원히 매달리지 않게). 2026-08-22
+  const __ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  const __to = __ctrl ? setTimeout(() => { try { __ctrl.abort(); } catch (_) {} }, 25000) : null;
+  let res;
+  try {
+    res = await fetch(`${SUPABASE_URL}/functions/v1/ai-review`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: __ctrl ? __ctrl.signal : undefined,
+    });
+  } finally { if (__to) clearTimeout(__to); }
   if (!res.ok) {
     const errText = await res.text().catch(() => '');
     throw new Error(`ai-review ${res.status}: ${errText.slice(0, 200)}`);
@@ -2710,15 +2717,45 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
     return out;
   } catch (e) {
     console.warn('[ai-review] sentence fallback:', e);
+    const msg = String((e && e.message) || e || '');
+    // 폴백 사유를 화면에 알려줄 수 있게 저장 (네트워크·타임아웃·서버 오류 구분). 2026-08-22
+    let reason = '연결이 잠깐 끊겼어요';
+    if (/abort/i.test(msg)) reason = '응답이 너무 오래 걸렸어요';
+    else if (/ai-review 4\d\d/.test(msg)) reason = '요청 형식 문제예요 (버디에게 알려주세요)';
+    else if (/ai-review 5\d\d|529|overload/i.test(msg)) reason = 'AI 서버가 잠시 붐볐어요';
+    else if (/Failed to fetch|NetworkError|no supabase/i.test(msg)) reason = '인터넷 연결을 확인해주세요';
     const local = buildLocalCorrection(word, sentence);
     return {
       ...local,
       diff_html: buildWordDiffHtml(sentence, local.corrected),
       originalInput: sentence,
       isFallback: true,
+      fallbackReason: reason,
+      fallbackDetail: msg.slice(0, 120),
     };
   }
 }
+
+/* 폴백 결과에서 "다시 받기" (2026-08-22): 저장된 원문 그대로 AI 첨삭을 재요청. */
+window.__retryAiReview = async (dayN, i) => {
+  try {
+    const d = getDay(Number(dayN));
+    const w = d && d.words ? d.words[Number(i)] : null;
+    if (!w) return;
+    const key = `d${dayN}-${i}`;
+    const prev = (state.ai_feedback || {})[key] || {};
+    const sentence = prev.originalInput || (state.sentences || {})[key] || '';
+    if (!sentence) { showToast('다시 받을 문장이 없어요'); return; }
+    showToast('AI 첨삭을 다시 받는 중이에요...');
+    const koreanCtx = ((state.sentence_notes || {})[key] || '').trim();
+    const result = await requestSentenceCorrection(w, sentence, koreanCtx);
+    state.ai_feedback[key] = result;
+    saveState();
+    render();
+    if (result && result.isFallback) showToast('아직 연결이 불안정해요. 잠시 후 한 번 더 눌러주세요.');
+    else showToast('✨ AI 첨삭을 받았어요!');
+  } catch (e) { showToast('다시 시도해주세요'); }
+};
 
 // === 코칭 fallback, 같은 문장 재제출 + AI 가 또 사소한 swap 만 던질 때.
 // 단계별로 다른 톤의 코칭 메시지를 보냄. 매번 같은 거 아니라 시나리오를 바꿔서.
@@ -17300,7 +17337,9 @@ function DayPage(dayN) {
         // local fallback 인데 diff 가 없는 경우, 진짜 자연스러운 게 아니라 폴백이 같은 문장 돌려준 것일 수 있음.
         bodyHtml = `
           <div style="font-size:13px;margin:8px 0;line-height:1.55;color:var(--orange-dark);background:rgba(46,111,168,0.06);padding:10px 14px;border-radius:12px;border:1px solid rgba(46,111,168,0.18);">
-            ⚙️ 로컬 폴백 모드로 검토했어요. 정확한 AI 리뷰는 잠시 후 다시 시도해주세요.
+            ⚙️ AI 첨삭을 못 받아서 간단 검토만 했어요.<br>
+            <b>${escapeHtml(fb.fallbackReason || '연결이 잠깐 끊겼어요')}</b> · 아래 버튼으로 다시 받아보세요.
+            <button onclick="window.__retryAiReview && window.__retryAiReview(${dayN}, ${i})" style="display:block;width:100%;margin-top:9px;padding:9px;border-radius:10px;border:1px solid var(--orange-soft);background:#fff;color:var(--orange-dark);font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit;">🔄 AI 첨삭 다시 받기</button>
           </div>
           <div class="t-small" style="color:var(--ink-soft);line-height:1.55;">${escapeHtml(fb.why || '')}</div>`;
       } else {
@@ -26932,47 +26971,7 @@ function SpacedRepeatPopupModal() {
     render();
   };
 
-  const speakWord = (text) => {
-    try {
-      if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') return;
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-US';
-      u.rate = 0.92;
-      u.pitch = 1.05;
-      if (typeof pickFemaleEnVoice === 'function') {
-        try { u.voice = pickFemaleEnVoice(); } catch (_) {}
-      }
-      window.speechSynthesis.speak(u);
-    } catch (_) {}
-  };
-  // 모든 단어 + 예문 차례로 재생 (단어 → 1초 → 예문 → 다음 단어 ...)
-  const playAll = () => {
-    let i = 0;
-    const items = [];
-    (ctx.words || []).forEach((w) => {
-      if (w.en) items.push(w.en);
-      if (w.ex_en) items.push(w.ex_en);
-    });
-    const next = () => {
-      if (i >= items.length) return;
-      const text = items[i++];
-      try {
-        if (!('speechSynthesis' in window)) return;
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = 'en-US';
-        u.rate = 0.92;
-        u.pitch = 1.05;
-        if (typeof pickFemaleEnVoice === 'function') {
-          try { u.voice = pickFemaleEnVoice(); } catch (_) {}
-        }
-        u.onend = () => setTimeout(next, 250);
-        window.speechSynthesis.speak(u);
-      } catch (_) {}
-    };
-    next();
-  };
+  const speakWord = (text) => { try { speakEnglish(text); } catch (e) {} };
 
   const backdrop = el('div', {
     class: 'modal-backdrop',
@@ -27178,20 +27177,7 @@ function PreReviewPopupModal() {
     render();
   };
 
-  const speakWord = (text) => {
-    try {
-      if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') return;
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-US';
-      u.rate = 0.92;
-      u.pitch = 1.05;
-      if (typeof pickFemaleEnVoice === 'function') {
-        try { u.voice = pickFemaleEnVoice(); } catch (_) {}
-      }
-      window.speechSynthesis.speak(u);
-    } catch (_) {}
-  };
+  const speakWord = (text) => { try { speakEnglish(text); } catch (e) {} };
   const playAll = () => {
     let i = 0;
     const items = [];
@@ -29111,6 +29097,29 @@ function playAiVoiceOrFallback(file, fallbackText) {
     a.play().catch(() => { __browserSpeak(fallbackText); });
   } catch (e) { __browserSpeak(fallbackText); }
 }
+/* 텍스트만 알아도 mp3 를 찾아 재생 (2026-08-22).
+   워밍업·복습 팝업처럼 day/idx 를 안 넘기는 곳에서 기계 음성이 나오던 문제 해결.
+   CHALLENGE 를 한 번 훑어 "문장 → 파일명" 사전을 만들고 캐시한다. */
+function __ttsFileForText(text) {
+  try {
+    const norm = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9']+/g, ' ').trim();
+    if (!window.__ttsIndex) {
+      const idx = {};
+      (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((dd) => (dd.words || []).forEach((w, i) => {
+        if (w.en) idx[norm(w.en)] = `d${dd.day}-${i}-en.mp3`;
+        if (w.ex_en) idx[norm(w.ex_en)] = `d${dd.day}-${i}-ex.mp3`;
+      })));
+      window.__ttsIndex = idx;
+    }
+    return window.__ttsIndex[norm(text)] || null;
+  } catch (e) { return null; }
+}
+function speakEnglish(text) {
+  const file = __ttsFileForText(text);
+  if (file) { playAiVoiceOrFallback(file, text); return; }
+  __browserSpeak(text);
+}
+window.speakEnglish = speakEnglish;
 function __browserSpeak(text) {
   try {
     if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
