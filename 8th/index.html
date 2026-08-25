@@ -12268,7 +12268,29 @@ function computeQuizSplit(question) {
         const m = promptText.match(inflectRe);
         if (m) {
           const idx = m.index;
-          const spanAnswer = m[0].trim().toLowerCase() !== answer.toLowerCase() ? m[0].trim() : undefined;
+          const matched = m[0].trim();
+          /* 분리형 구동사 (pare back → "pared the deck back") 는 사이에 낀 목적어까지
+             정답에 넣으면 안 된다. 2빈칸으로 쪼개서 목적어는 문장에 그대로 남긴다.
+             (8기 Day 13 "Pare back" 정답이 "pared the deck back" 으로 나온 사고, 2026-08-24) */
+          const aTok = answer.split(/\s+/);
+          const mTok = matched.split(/\s+/);
+          if (aTok.length === 2 && mTok.length > 2) {
+            const head = mTok[0];                       // pared
+            const tail = mTok[mTok.length - 1];         // back
+            const middle = mTok.slice(1, -1).join(' '); // the deck
+            const headStart = idx;
+            const tailStart = idx + matched.length - tail.length;
+            return {
+              mode: '2blank',
+              before: promptText.slice(0, headStart),
+              middle: middle,
+              after: promptText.slice(tailStart + tail.length),
+              prefixAnswer: head,
+              suffixAnswer: tail,
+              answer,
+            };
+          }
+          const spanAnswer = matched.toLowerCase() !== answer.toLowerCase() ? matched : undefined;
           return {
             mode: '1blank',
             parts: [promptText.slice(0, idx), promptText.slice(idx + m[0].length)],
