@@ -441,6 +441,7 @@ serve(async (req) => {
         diff_html: buildDiffHtml(text, clean),
         why: '방금 다듬어드린 문장 그대로예요. 이게 최종 확정 문장이에요 ✓ 자신있게 쓰시면 됩니다!',
         verdict: 'correct',
+        natural: { sentence: '', reason: '' },
       });
     }
     // === 리플레이 가드: 같은 '원문'을 다시 보낸 경우, 이전에 준 교정을 글자 그대로 재현.
@@ -455,6 +456,7 @@ serve(async (req) => {
         diff_html: buildDiffHtml(text, replayHit.corrected),
         why: '아까와 같은 문장이라 제안도 같아요. 이 문장으로 바꿔보시고, 그대로 붙여넣어 제출하면 확정돼요!',
         verdict: 'fixed',
+        natural: { sentence: '', reason: '' },
       });
     }
 
@@ -555,6 +557,12 @@ serve(async (req) => {
         grammar: String(parsed?.feedback?.grammar || '').slice(0, 200),
         vocab: String(parsed?.feedback?.vocab || '').slice(0, 200),
         nuance: String(parsed?.feedback?.nuance || '').slice(0, 200),
+      },
+      // ✨ 자연스러움 제안 (2026-08-26). corrected 와 분리된 층.
+      // ⚠️ 이 줄이 빠져 있어서 모델이 만들어 보낸 natural 이 서버에서 통째로 버려졌었다.
+      natural: {
+        sentence: String(parsed?.natural?.sentence || '').slice(0, 400),
+        reason: String(parsed?.natural?.reason || '').slice(0, 300),
       },
       // 프리미엄 전용 심화 설명 (왜 고쳤는지). 베이직 요청이면 빈 문자열로 온다.
       deep: isPremium ? String(parsed?.deep || '').slice(0, 400) : '',
