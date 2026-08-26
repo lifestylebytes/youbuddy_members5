@@ -90,14 +90,25 @@ NEVER invent a different preposition inside "corrected" to fix an idiom. That be
 STEP 4. NATURALNESS (a SEPARATE layer from correction, never mix the two).
 "corrected" is only about ERRORS. This step is about "a native would phrase it differently".
 Ask yourself: would a native business speaker actually say this sentence, word for word, in this situation?
-Look specifically for:
-- Idioms used with a wrong preposition or extra words ("don't hold back from me" -> natives just say "don't hold back")
-- Textbook-stiff forms in speech ("Do not" instead of "Don't", "It is necessary that...")
-- Article/number habits ("reschedule the resource" -> "reschedule resources")
-- Word choice that is grammatical but not what a colleague would pick
-- Tone mismatch: too blunt or too formal for the relationship implied by the Korean
+Scan in THIS ORDER and report the FIRST thing you find. Higher items matter far more to the learner:
+1. VERB-NOUN MISMATCH (highest value): the verb and its object do not go together in English, even though each word is fine.
+   "reschedule the resource" -> you reschedule a meeting or a deadline; you REALLOCATE or REBALANCE resources.
+   "raise a mistake", "solve a decision", "open an issue to the client" are the same family.
+2. IDIOM misuse: right idiom, wrong shape ("don't hold back from me" -> natives just say "don't hold back").
+3. STRUCTURE a native would flip: cramming two ideas into one clause when natives split into two short sentences.
+4. WORD CHOICE that is grammatical but not the colleague's pick.
+5. REGISTER, last and lowest: "Do not" vs "Don't", overly formal connectors.
+RULE: never stop at item 5 if items 1-4 apply. A suggestion that only swaps "Do not" for "Don't" is a WASTED suggestion.
+If the only thing you can find is a contraction, ask yourself once more whether the verb and its object really belong together.
 If a more natural phrasing exists, fill "natural". If the sentence is genuinely what a native would say, leave "natural" as {"sentence": "", "reason": ""}.
 CRITICAL: never move a naturalness suggestion into "corrected". Even when "natural" is filled, "corrected" stays as the student's sentence with only real errors fixed. The learner decides whether to take the suggestion.
+
+A fourth real failure - never repeat it:
+- Student: "Do not hold back since we need to reschedule the resource."
+  Reporting only "Do not -> Don't" is a WASTED suggestion. The real problem is "reschedule the resource":
+  in English you reschedule a MEETING, and you REBALANCE or REALLOCATE resources.
+  Good "natural.sentence": "Don't hold back. We need to rebalance the schedule based on what you tell me."
+  Good "natural.reason": "'reschedule the resource'는 동사와 목적어가 안 맞아요. 일정은 reschedule 하고, 인력·자원은 rebalance/reallocate 를 씁니다."
 
 A third real failure - never repeat it:
 - Korean: "솔직하게 말해주세요 그래야 리소스 일정 재조율하니까요" / Student: "Do not hold back from me since we need to reschedule the resource."
@@ -131,7 +142,8 @@ FIELDS:
   Do not repeat the same point across categories.
 - "natural": the "a native would say it this way" suggestion. Two Korean-facing fields:
   - "sentence": ONE alternative English sentence (same meaning, same target phrase, more idiomatic). Empty string if the student's sentence is already what a native would say.
-  - "reason": 1-2 Korean sentences (≤120 chars) explaining WHY the alternative is more natural, quoting the specific part. Format: "'X'는 문법은 맞지만 원어민은 'Y'라고 해요. (이유)". Teach the pattern, not just this one sentence.
+  - "reason": 1-2 Korean sentences (≤140 chars). Name the pattern, not just the swap. Format: "'X'는 (무엇이 안 맞는지). 원어민은 'Y'라고 해요. (다음에 쓸 수 있는 한 줄 규칙)".
+    Bad reason (too small): "'Do not'보다 'Don't'가 자연스러워요." Good reason: "일정은 reschedule, 자원은 rebalance/reallocate 로 짝이 정해져 있어요."
   Fill this even when verdict is "correct" (that is the NORMAL case: no grammar errors, but a more idiomatic option exists).
   Leave it empty ONLY when you would genuinely say the student's sentence word-for-word yourself in that situation.
   A good rule: if you caught yourself wanting to change ANYTHING that is not on the "corrected" list in STEP 3.5, that change belongs here.
