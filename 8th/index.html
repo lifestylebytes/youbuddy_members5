@@ -32434,48 +32434,68 @@ const WEEK3_SIM = [
   { ko: '(W1 복습) 데모 준비가 다 됐는지 확인받음', cue: 'Are we ready for the demo?', pre: "Everything is set. We're ", ans: 'good to go', post: '.' },
 ];
 const WEEK3_SMALLTALK = [
+  // 2026-08-26 개편: 멤버들이 "상상"을 어려워함. 지어내지 말고 본인 실제 지난주로 채우게.
+  // 구조: 🎬 상황 → 🗣️ 상대 대사 → 🧩 빈칸 템플릿 → ✅ 예시 → 이유
   { emoji: '☕', sit: '월요일 아침, 회의 시작 전 2분',
-    how: '짝 지어 질문 → 1-1-1 공식으로 답 → 되묻기까지가 한 세트. 역할 바꿔 두 바퀴.',
-    tip: '공식은 1-1-1: 한 마디 답 + 디테일 하나 + 되묻기. "Good."에서 끝나면 대화가 죽어요.',
+    scene: '월요일 9시 55분. 회의는 10시. 다들 접속했는데 아직 시작 전이에요. 상대가 웃으며 묻습니다.',
+    ask: 'How was your weekend?',
+    tmpl: '[좋았다/그냥 그랬다] + [실제로 한 일 하나] + [되묻기]',
+    good: "Pretty good! I finally tried that ramen place near my office. How about you?",
+    why: '"Good." 한 마디로 끝나면 대화가 죽어요. 디테일 하나만 붙이면 상대가 이어받을 거리가 생깁니다.',
+    how: '지난 주말에 실제로 한 일을 하나 떠올리세요. 특별할 필요 없어요. 밥, 청소, 넷플릭스 다 됩니다.',
     lines: [
-      { en: 'Pretty good! I finally tried that new place near my office. How was yours?', kr: '좋았어요! 회사 근처 새로 생긴 데 드디어 가봤어요. 주말 어떠셨어요?' },
-      { en: 'Nothing special, just recharging. Any fun plans this week?', kr: '별거 없이 충전했어요. 이번 주 재밌는 계획 있어요?' },
-      { en: 'Busy weekend actually. My kid had a soccer game. How about you?', kr: '바빴어요, 애 축구 시합이 있어서요. 그쪽은요?' },
+      { en: 'Pretty good! I finally tried that ramen place near my office. How about you?', kr: '좋았어요! 회사 근처 라멘집 드디어 가봤어요. 그쪽은요?' },
+      { en: 'Nothing special, just recharging at home. Any plans this week?', kr: '별거 없이 집에서 충전했어요. 이번 주 계획 있어요?' },
+      { en: 'Busy one, actually. My kid had a soccer game. How was yours?', kr: '바빴어요, 애 축구 시합이 있어서요. 주말 어떠셨어요?' },
     ] },
-  { emoji: '🛗', sit: '엘리베이터·복도에서 마주쳤을 때',
-    how: '10초 안에 끝나는 대화. 근황 한 마디 + 가벼운 칭찬이나 제안 하나.',
-    tip: '깊게 갈 필요 없어요. 짧게 주고받고 웃으며 헤어지는 게 성공이에요.',
+  { emoji: '🛗', sit: '복도·엘리베이터에서 마주쳤을 때',
+    scene: '엘리베이터 문이 열리고 옆 팀 사람과 단둘이 됐어요. 내릴 때까지 15초.',
+    ask: "Hey! How's it going?",
+    tmpl: '[한 단어 답] + [지금 하는 일 한 조각] + [가벼운 마무리]',
+    good: "Busy but good. We just wrapped up the design phase. Almost there!",
+    why: '여기선 깊이 갈 필요가 없어요. 15초 안에 웃으며 헤어지면 성공입니다.',
+    how: '지금 하고 있는 프로젝트를 한 조각만 꺼내세요. 진척도 한 마디면 충분해요.',
     lines: [
-      { en: "Hey! How's the project going? / Busy but good. We just wrapped the design phase.", kr: '프로젝트 어때요? / 바쁜데 좋아요. 디자인 단계 막 끝냈어요.' },
-      { en: 'I heard your team shipped last week. Congrats!', kr: '지난주에 팀 출시했다면서요. 축하해요!' },
-      { en: "Let's grab coffee sometime this week.", kr: '이번 주에 커피 한잔해요.' },
+      { en: "Busy but good. We just wrapped up the design phase. Almost there!", kr: '바쁜데 좋아요. 디자인 단계 막 끝냈어요. 거의 다 왔네요!' },
+      { en: "Same as always! Big deadline this Friday, so wish me luck.", kr: '늘 똑같죠! 금요일 마감이라 응원해주세요.' },
+      { en: "Good! I heard your team shipped last week. Congrats!", kr: '좋아요! 지난주에 팀 출시했다면서요, 축하해요!' },
     ] },
   { emoji: '💻', sit: '화상회의, 본론 전 어색한 30초',
-    how: '한 명이 스몰톡 열기 → 상대가 받기 → 아무나 전환 멘트로 본론 진입.',
-    tip: '날씨·시차는 만만한 소재. 그리고 전환 멘트 하나면 어색함이 끝나요.',
+    scene: '9시 미팅인데 한 명이 아직 안 들어왔어요. 화면엔 나와 해외 동료 둘뿐, 침묵이 흐릅니다.',
+    ask: '(아무도 말 안 하는 30초)',
+    tmpl: '[날씨/시차 한 마디] + [상대에게 되묻기] ... 사람 다 오면 → [전환 멘트]',
+    good: "It's still crazy hot in Seoul, 34 degrees today. How's the weather on your side? ... Anyway, shall we dive in?",
+    why: '날씨와 시차는 세계 공용 안전 주제예요. 그리고 "Anyway, shall we dive in?" 하나면 어색함이 끝납니다.',
+    how: '오늘 서울 날씨, 지금 시각. 이미 알고 있는 정보라 지어낼 게 없어요.',
     lines: [
-      { en: "Is it still crazy hot in Seoul? / 34 degrees today. I basically live in the AC. How's your side?", kr: '서울 아직 더워요? / 오늘 34도예요. 에어컨 밑에서 살아요. 그쪽은요?' },
-      { en: 'Your background looks nice. Is that your office?', kr: '배경 좋네요. 사무실이에요?' },
-      { en: 'Anyway, shall we dive in?', kr: '자, 그럼 시작할까요? (전환 멘트)' },
+      { en: "It's still crazy hot in Seoul, 34 degrees today. How's the weather on your side?", kr: '서울은 아직 엄청 더워요, 오늘 34도예요. 그쪽 날씨는 어때요?' },
+      { en: 'Is it still early morning for you? Thanks for making the time.', kr: '그쪽은 아직 이른 아침이죠? 시간 내주셔서 감사해요.' },
+      { en: 'Anyway, shall we dive in? (전환 멘트)', kr: '자, 그럼 시작할까요?' },
     ] },
   { emoji: '🤝', sit: '처음 만난 외부 미팅·컨퍼런스',
-    how: '자기소개 한 줄 준비 → 상대에게 질문 → 마무리 인사까지 한 세트로 연습.',
-    tip: '자기소개는 이름 + 하는 일 한 줄이면 충분해요. 그다음은 질문이 대화를 끌어줘요.',
+    scene: '행사장에서 명함을 주고받았어요. 상대가 웃으며 나를 봅니다.',
+    ask: 'So, what do you do?',
+    tmpl: '[이름] + [회사에서 하는 일 한 줄] + [상대에게 질문]',
+    good: "I'm Buddy. I handle APAC partnerships at a beauty company. What brings you here?",
+    why: '자기소개는 두 가지면 끝이에요. 이름과 하는 일. 길어지면 오히려 안 들려요.',
+    how: '이건 미리 만들어두면 평생 씁니다. 오늘 만든 한 줄을 명함처럼 들고 다니세요.',
     lines: [
-      { en: 'First time at this event? What brings you here?', kr: '이 행사 처음이세요? 어떻게 오셨어요?' },
-      { en: "I'm Buddy. I work on APAC partnerships at a tech company.", kr: '버디예요. 테크 회사에서 APAC 파트너십을 맡고 있어요.' },
+      { en: "I'm Buddy. I handle APAC partnerships at a beauty company. What brings you here?", kr: '버디예요. 뷰티 회사에서 APAC 파트너십 맡고 있어요. 어떻게 오셨어요?' },
+      { en: 'First time at this event? What made you come?', kr: '이 행사 처음이세요? 어떻게 오시게 됐어요?' },
       { en: "It was great talking. Let's stay in touch.", kr: '얘기 즐거웠어요. 연락하고 지내요.' },
     ] },
 ];
 const WEEK3_SMALLTALK_SLIDES = WEEK3_SMALLTALK.map((g, i) => ({
-  section: '스몰톡 시뮬레이션', kicker: '2 · 상황 ' + (i + 1) + ' / ' + WEEK3_SMALLTALK.length + ' · 1:1 페어', title: g.emoji + ' ' + g.sit,
-  html: '<div style="padding:11px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;"><b>👥 진행</b><br>' + escapeHtml(g.how) + '</div>'
-    + g.lines.map((it) =>
-      '<div style="margin-top:10px;padding:12px 14px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);">'
-      + '<div style="font-size:14px;font-weight:800;color:var(--ink);line-height:1.6;">' + escapeHtml(it.en) + '</div>'
-      + '<div style="margin-top:4px;font-size:12px;color:var(--ink-soft);line-height:1.5;">' + escapeHtml(it.kr) + '</div>'
-      + '</div>').join('')
-    + '<div style="margin-top:10px;padding:11px 13px;border-radius:12px;background:#EAF2FA;border:1px solid rgba(46,111,168,0.25);font-size:12.5px;color:#1F4F7D;line-height:1.6;">💡 ' + escapeHtml(g.tip) + '</div>',
+  section: '스몰톡 시뮬레이션', kicker: '2 · 상황 ' + (i + 1) + ' / ' + WEEK3_SMALLTALK.length + ' · 1:1 페어',
+  title: g.emoji + ' ' + g.sit,
+  html: '<div style="padding:12px 14px;border-radius:13px;background:#EAF2FA;border:1px solid rgba(46,111,168,0.3);font-size:13px;color:#1F4F7D;line-height:1.65;"><b>🎬 상황</b><br>' + escapeHtml(g.scene) + '</div>'
+    + '<div style="margin-top:10px;padding:12px 14px;border-radius:13px;background:#FBEEEC;border:1px solid rgba(214,69,69,0.25);"><div style="font-size:11px;font-weight:800;color:#C0392B;">🗣️ 상대가 이렇게 물어요</div><div style="margin-top:4px;font-size:14.5px;font-weight:800;color:#7A2020;line-height:1.55;">' + escapeHtml(g.ask) + '</div></div>'
+    + '<div style="margin-top:10px;padding:12px 14px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.2);"><div style="font-size:11px;font-weight:800;color:#1F4F7D;">🧩 이 순서로 말하면 돼요</div><div style="margin-top:5px;font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.7;font-family:var(--font-mono);">' + escapeHtml(g.tmpl) + '</div><div style="margin-top:6px;font-size:12px;color:var(--ink-soft);line-height:1.55;">💡 ' + escapeHtml(g.how) + '</div></div>'
+    + '<div style="margin-top:10px;padding:12px 14px;border-radius:13px;background:#EAF3DE;border:1px solid rgba(107,142,78,0.3);"><div style="font-size:11px;font-weight:800;color:#3B6D11;">✅ 예시</div><div style="margin-top:4px;font-size:13.5px;font-weight:700;color:#274D0B;line-height:1.65;">' + escapeHtml(g.good) + '</div></div>'
+    + '<div style="margin-top:8px;padding:10px 13px;border-radius:12px;background:#FFF7EC;font-size:12px;color:var(--ink);line-height:1.6;">' + escapeHtml(g.why) + '</div>'
+    + '<details style="margin-top:9px;"><summary style="cursor:pointer;font-size:12px;font-weight:800;color:var(--orange-dark);">다른 답변 3개 보기</summary>'
+    + g.lines.map((it) => '<div style="margin-top:7px;padding:9px 12px;border-radius:11px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.14);"><div style="font-size:13px;color:var(--ink);line-height:1.55;">' + escapeHtml(it.en) + '</div><div style="margin-top:3px;font-size:11.5px;color:var(--ink-soft);">' + escapeHtml(it.kr) + '</div></div>').join('')
+    + '</details>',
   bank: [],
   bankKey: 'w3st' + i,
 }));
@@ -32497,6 +32517,16 @@ const WEEK3_DECK = [
           return '<div style="padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);"><div style="font-size:13.5px;font-weight:800;color:var(--ink);">' + r[0] + '</div><div style="margin-top:2px;font-size:12px;color:var(--ink-soft);line-height:1.5;">' + r[1] + '</div></div>'; }).join('')
       + '</div>'
       + '<div style="margin-top:11px;padding:11px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;">🎤 오늘 이어서 발표: <b>Yeajoon</b> → <b>Julia(옥은정)</b> 님</div>' },
+  { section: '스몰톡 시뮬레이션', kicker: '2 · 먼저 알아둘 것', title: '💡 스몰톡은 즉흥이 아니에요',
+    html: '<div style="font-size:14px;color:var(--ink);line-height:1.75;">스몰톡이 어려운 건 영어 실력 때문이 아니에요.<br><b>매번 새로 지어내려고 해서</b> 어려운 거예요.</div>'
+      + '<div style="margin-top:12px;padding:13px 15px;border-radius:14px;background:#EAF3DE;border:1px solid rgba(107,142,78,0.3);font-size:13.5px;color:#274D0B;line-height:1.7;">원어민도 <b>준비된 답 2~3개를 평생 돌려씁니다.</b><br>"주말 어땠어?"에 매번 새 얘기를 만들지 않아요.</div>'
+      + '<div style="margin-top:12px;font-size:13.5px;color:var(--ink);line-height:1.7;">그래서 오늘은 대화를 잘하는 연습이 아니라,<br><b>내 답변 재고를 만드는 시간</b>이에요.</div>'
+      + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">'
+      + [['상상하지 마세요', '지난주에 실제로 한 일, 지금 하는 프로젝트, 오늘 날씨. 이미 다 알고 있는 것들로만'],
+         ['잘할 필요 없어요', '목표는 재밌는 대화가 아니라 어색한 침묵을 넘기는 것'],
+         ['한 번 만들면 계속 씁니다', '오늘 만든 문장은 다음 주에도, 내년에도 그대로 쓸 수 있어요']].map(function (r) {
+          return '<div style="padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);"><div style="font-size:13.5px;font-weight:800;color:var(--ink);">' + r[0] + '</div><div style="margin-top:2px;font-size:12px;color:var(--ink-soft);line-height:1.5;">' + r[1] + '</div></div>'; }).join('')
+      + '</div>' },
   ...WEEK3_SMALLTALK_SLIDES,
   { section: '어휘 퀴즈', kicker: '3 · 어휘 퀴즈 15문항 (Day 1~14)', title: '회의에서 답을 해보아요!', meetingSim: true, sim: WEEK3_SIM,
     script: '"이번 주 단어로 회의처럼! 상황 듣고, 상대방 말 듣고, 첫 글자 힌트 보고 문장 전체로 대답해주세요~"' },
