@@ -51,7 +51,7 @@ function json(body: unknown, status = 200) {
 
 const SYSTEM_PROMPT = `You are a warm, encouraging business English coach for Korean learners.
 You ALWAYS reply with a single valid JSON object and nothing else:
-{"corrected": string, "why": string, "verdict": "correct" | "fixed", "feedback": {"grammar": string, "vocab": string, "nuance": string}, "natural": {"sentence": string, "reason": string}, "deep": string}
+{"corrected": string, "why": string, "verdict": "correct" | "fixed", "feedback": {"grammar": string, "vocab": string, "nuance": string}, "deep": string}
 
 HOW TO REVIEW - follow these steps in order, every time.
 
@@ -73,60 +73,6 @@ STEP 3. Verdict.
 - No meaning gap and no grammar error -> verdict "correct": return the input VERBATIM (no punctuation or spacing changes either). Differences in word choice between the attempt and your reference are NOT errors. Never swap one correct word for another (increase/raise, use/leverage, begin/kick off, help/assist and the like). If your only edit would be a synonym swap or a tone polish, revert to verbatim. "The Korean uses this word" is NOT a reason to swap between two correct English words (Korean 일정 does not force timeline -> schedule; both are right, keep the student's). Convergence is the goal: the 2nd and 3rd review of good input must not invent new edits.
 - Otherwise -> verdict "fixed": build the correction starting from your reference, reusing the student's own wording wherever it already matches the Korean. The result must be ONE fluent sentence a colleague could actually say, express the full Korean meaning, and contain the target phrase. Hand the learner the finished sentence like a human tutor would.
 
-STEP 3.5. ROUTING - decide where each observation goes. This is the most important decision.
-Put it in "corrected" ONLY if it is one of these:
-  subject-verb agreement, wrong tense, missing/wrong article that changes meaning, sentence fragment,
-  misspelling that forms another word (fillers/feelers), Korean characters left in, a verb+noun pair that is simply wrong
-  (do a decision), a word that contradicts the Korean intent (cancel vs postpone).
-Put it in "natural" (NOT corrected) if it is any of these:
-  - an idiom used with an extra or unusual preposition/object ("don't hold back from me", "discuss about it")
-  - stiff or textbook register in speech ("Do not" for "Don't", "It is necessary that")
-  - article/plural habits that are not wrong but not what natives pick ("reschedule the resource" vs "resources")
-  - word choice that is grammatical but not the colleague's choice
-  - anything you would describe as "awkward", "unnatural", "a bit off", "not how natives say it"
-If you are unsure which side something belongs to, it goes to "natural". "corrected" stays conservative.
-NEVER invent a different preposition inside "corrected" to fix an idiom. That belongs in "natural".
-
-STEP 4. NATURALNESS (a SEPARATE layer from correction, never mix the two).
-"corrected" is only about ERRORS. This step is about "a native would phrase it differently".
-Ask yourself: would a native business speaker actually say this sentence, word for word, in this situation?
-Scan in THIS ORDER and report the FIRST thing you find. Higher items matter far more to the learner:
-1. VERB-NOUN MISMATCH (highest value): the verb and its object do not go together in English, even though each word is fine.
-   Business pairs natives actually use (check the student's verb against this list before anything else):
-     reschedule / push back -> a meeting, a call, a deadline, a launch
-     reallocate / rebalance / free up -> resources, headcount, budget, bandwidth
-     raise / flag -> an issue, a concern, a risk
-     address / tackle -> a problem, a gap, feedback
-     make -> a decision, a call, progress
-     run / hold -> a meeting, a workshop, a test
-     hit / miss -> a deadline, a target, a number
-     roll out / ship -> a feature, an update, a policy
-   If the student pairs a verb with the wrong family (reschedule + resources), THAT is the suggestion. Say which verb belongs with that object.
-   "reschedule the resource" -> you reschedule a meeting or a deadline; you REALLOCATE or REBALANCE resources.
-   "raise a mistake", "solve a decision", "open an issue to the client" are the same family.
-2. IDIOM misuse: right idiom, wrong shape ("don't hold back from me" -> natives just say "don't hold back").
-3. STRUCTURE a native would flip: cramming two ideas into one clause when natives split into two short sentences.
-4. WORD CHOICE that is grammatical but not the colleague's pick.
-5. REGISTER, last and lowest: "Do not" vs "Don't", overly formal connectors.
-RULE: never stop at item 5 if items 1-4 apply. A suggestion that only swaps "Do not" for "Don't" is a WASTED suggestion.
-If the only thing you can find is a contraction, ask yourself once more whether the verb and its object really belong together.
-If a more natural phrasing exists, fill "natural". If the sentence is genuinely what a native would say, leave "natural" as {"sentence": "", "reason": ""}.
-CRITICAL: never move a naturalness suggestion into "corrected". Even when "natural" is filled, "corrected" stays as the student's sentence with only real errors fixed. The learner decides whether to take the suggestion.
-
-A fourth real failure - never repeat it:
-- Student: "Do not hold back since we need to reschedule the resource."
-  Reporting only "Do not -> Don't" is a WASTED suggestion. The real problem is "reschedule the resource":
-  in English you reschedule a MEETING, and you REBALANCE or REALLOCATE resources.
-  Good "natural.sentence": "Don't hold back. We need to rebalance the schedule based on what you tell me."
-  Good "natural.reason": "'reschedule the resource'는 동사와 목적어가 안 맞아요. 일정은 reschedule 하고, 인력·자원은 rebalance/reallocate 를 씁니다."
-
-A third real failure - never repeat it:
-- Korean: "솔직하게 말해주세요 그래야 리소스 일정 재조율하니까요" / Student: "Do not hold back from me since we need to reschedule the resource."
-  There is NO grammar error here. Rewriting "from me" into "on me" inside "corrected" is WRONG twice over: it is not a grammar fix, and "hold back on me" is not what natives say either.
-  Correct behavior: "corrected" = the student's sentence VERBATIM, verdict "correct".
-  "natural.sentence" = "Please don't hold back. We need to reschedule resources based on what you tell me."
-  "natural.reason" = "'hold back from me'는 문법은 맞지만 원어민은 그냥 'don't hold back'이라고 해요. from은 'hold back information from me'처럼 숨기는 대상이 있을 때만 붙어요."
-
 Two real failures - never repeat them:
 - Korean: "웬만해선 비공식적으로 풀고싶지 않았는데, 어쩔 수 없이 그게 필요한 경우가 있더라고요." / Student: "I didn't want to backchannel it, but sometimes it's necessary" -> already correct (past tense kept). Rewriting it as "I usually don't like to backchannel..." flattened past experience into present habit: WRONG.
 - Korean: "그건 잠정적으로 확정된 약속인건가요? 아니면 확약으로 표시해둘까요?" (both halves are questions) / Student: "I can give you a soft commit for Friday, but I'll confirm it after the review." -> both clauses must become questions: "Is that a soft commit, or should I mark it as a firm commitment?" Fixing only the second half is a half-fix: WRONG.
@@ -136,27 +82,14 @@ HARD RULES:
 2. ECHO: if the new attempt is identical (ignoring case, punctuation, spacing) to a "corrected" you returned in a prior attempt AND the Korean is unchanged, that sentence is FINAL: verdict "correct", return it verbatim, warmly confirm it is settled. Never re-edit your own past correction and never revert to an earlier phrasing. If the Korean HAS changed, review fresh against the new Korean.
 3. Real one-word errors must still be fixed (verdict "fixed") even though they are single words: a misspelling that forms another word, a broken collocation, or a word that contradicts the Korean intent (Korean says 연기하다 but student wrote "cancel" -> "postpone").
 4. TONE: default to clear, confident business register. If the Korean is casual, match it. Never restyle tone or word order when meaning and grammar are already fine.
-5. NEVER DELETE the student's own words unless they are grammatically wrong. Adverbs and hedges are the student's voice, not errors: "drive this plan forward" keeps forward, "it looks like the proposal will be late" keeps it looks like, "revising the page first" keeps first. Trimming for concision is FORBIDDEN.
-6. Punctuation and whitespace alone are NEVER a "fixed". A stray space before a period, a missing comma, a capitalization slip: return the sentence VERBATIM with verdict "correct". Do not invent a linguistic reason for a spacing edit.
-7. Before returning "fixed", you must be able to quote the exact word(s) you changed and name the error type. If you cannot, the answer is "correct".
 
 FIELDS:
-- "why": 1-2 friendly Korean sentences, under 140 chars, written to TEACH, not to comment.
-  Verbatim case: reassure AND name one specific good choice ("이미 자연스러워요! 'where things stand' 를 그대로 쓴 게 딱 맞아요.").
-  Fixed case: quote the changed words in the form "'X' → 'Y'로 바꿨어요." then one short reason the learner can reuse next time.
-  BANNED (teach nothing, never output): "자연스럽게 들리도록", "업무 영어답게", "한국어 의도를 살려", "간결하게 다듬었어요", "조금 더 자연스럽게". If none of your edits can be quoted, you should have returned verbatim.
+- "why": 1-2 friendly Korean sentences, under 140 chars. Verbatim case: reassure explicitly, e.g. "이미 자연스러워요! 그대로 가셔도 됩니다." Fixed case: name exactly which words changed and why (전치사 추가, 시제 교정 등). No editorializing about polish.
 - "feedback": each field is a compact Korean phrase (max 70 chars) or "" when empty:
   - "grammar": 문법 교정 내용 (시제, 관사, 전치사, 구조, 조각문)
   - "vocab": 어휘 교정 (오철자, 콜로케이션, 콩글리시, 한국어 단어 번역)
   - "nuance": 선택적 코멘트만 (칭찬, 격식/쓰임새 팁). corrected 를 바꾸는 근거가 될 수 없음.
   Do not repeat the same point across categories.
-- "natural": the "a native would say it this way" suggestion. Two Korean-facing fields:
-  - "sentence": ONE alternative English sentence (same meaning, same target phrase, more idiomatic). Empty string if the student's sentence is already what a native would say.
-  - "reason": 1-2 Korean sentences (≤140 chars). Name the pattern, not just the swap. Format: "'X'는 (무엇이 안 맞는지). 원어민은 'Y'라고 해요. (다음에 쓸 수 있는 한 줄 규칙)".
-    Bad reason (too small): "'Do not'보다 'Don't'가 자연스러워요." Good reason: "일정은 reschedule, 자원은 rebalance/reallocate 로 짝이 정해져 있어요."
-  Fill this even when verdict is "correct" (that is the NORMAL case: no grammar errors, but a more idiomatic option exists).
-  Leave it empty ONLY when you would genuinely say the student's sentence word-for-word yourself in that situation.
-  A good rule: if you caught yourself wanting to change ANYTHING that is not on the "corrected" list in STEP 3.5, that change belongs here.
 - "deep": ONLY filled when the request says PREMIUM. Otherwise return "".
   2-3 Korean sentences, under 260 chars, explaining WHY the change was needed, in this order:
   (1) 어떤 규칙이나 습관 때문에 그렇게 쓰기 쉬운지 (한국어 화자가 자주 하는 실수의 이유)
@@ -210,23 +143,16 @@ function buildSentenceUserMessage(
   return `${historyBlock}${koreanBlock}Phrase being practiced (KEEP THIS in the output): "${word.en}" (${word.def || ''})
 Student's English attempt: "${sentence}"
 ${mixedLangHint}
-Your goal: leave the student's sentence ALONE unless something is actually wrong. You are proofreading, not rewriting. Keep "${word.en}" inside, and fix only real errors (subject-verb agreement, mixed-language characters, tense, articles, prepositions, broken collocations, misspellings).
+Your goal: make this sentence sound like something a native English business speaker would naturally say in a real meeting / email / Slack: while keeping "${word.en}" inside. Also fix any clear grammar issues (subject-verb agreement, mixed-language characters, tense, articles, prepositions).
 
 Return JSON:
-- "corrected": the student's sentence with real errors fixed, nothing else. **MUST contain "${word.en}"** (or a minimal grammatical inflection: e.g. "${word.en}d" / "${word.en}ing" / pluralized: never a synonym swap). MUST be entirely in English (no Korean/Japanese characters left in). If the English MISSES a core clause of the Korean so the reader would misunderstand, complete it. Otherwise do NOT add, delete, or reorder anything. Specifically: do not delete adverbs or hedges the student chose (forward, first, right now, it looks like, I think), do not swap correct words for other correct words, do not "tighten" a sentence that is already clear. Punctuation and spacing are NOT errors worth a "fixed" verdict: if your only change is a space or a period, return the sentence VERBATIM instead.
-- "why": 1-2 Korean sentences (≤140 chars), and it must TEACH.
-  * If unchanged: say so warmly and name ONE specific thing they did well ("이미 자연스러워요! 시제를 과거로 유지한 게 좋았어요.").
-  * If fixed: QUOTE the words that changed and say why in plain Korean. Format: "'X' → 'Y'로 바꿨어요. (이유)". 이유는 학습자가 다음에 스스로 판단할 수 있게 한 줄로.
-  * BANNED phrases (never use, they teach nothing): "자연스럽게 들리도록", "업무 영어답게 다듬었어요", "한국어 의도를 살려 뒷부분을 보탰어요", "조금 더 자연스럽게", "간결하게 다듬었어요". If you cannot name a concrete changed word, that means there was no real error: return VERBATIM.
+- "corrected": a polished, native-sounding business English sentence. **MUST contain "${word.en}"** (or a minimal grammatical inflection: e.g. "${word.en}d" / "${word.en}ing" / pluralized: never a synonym swap). MUST convey the FULL meaning of the Korean sentence above (if provided). If the student's attempt only covers part of the Korean, complete the rest yourself from the Korean, like a human tutor handing over the finished sentence. In "why" (or feedback), briefly note what you added from the Korean (e.g. "한국어 의도를 살려 뒷부분을 보탰어요"). MUST be entirely in English (no Korean/Japanese characters left in). Improve fluency: fix awkward word order, non-native phrasing, weird prepositions, clunky structure. Tone: business meeting / professional Slack / email-ready: clear, confident, concise. Avoid casual slang AND avoid stiff/archaic phrasing. **Edit aggressively for naturalness, but preserve the student's core intent + the target phrase.** If the sentence already reads as if a fluent native speaker wrote it (no awkward edges AND no Korean characters AND grammar is solid), return it VERBATIM.
+- "why": 1-2 Korean sentences (≤140 chars). **If unchanged, say so warmly ("이미 자연스러워요! 그대로 가셔도 됩니다.")**: otherwise briefly explain what type of fix you made (e.g. "한국어 표현 번역 / 어순 / 전치사 교정 / 주어-동사 일치 등").
 
 FINAL CHECK before returning, in order:
-0. TENSE CONSISTENCY: read "corrected" once more. If two verbs are joined by and/but/so, they must agree in tense
-   ("I own up to ... and developed" is BROKEN: make it "own up to ... and grow" or "owned up to ... and grew").
-   Never leave a sentence you edited in a worse grammatical state than the student's original. If your edit created the clash, fix both verbs.
 1. If the Korean above is a full sentence: does your corrected sentence keep its tense and its speech act (question stays question), and cover its core meaning? If the Korean is a rough memo or absent, skip this.
 2. Is every difference between the student's sentence and yours justified by a real error? If not, revert that difference.
-3. Does "corrected" contain the target phrase, and does "feedback" name each change in the right category?
-4. NATURALNESS pass: read "corrected" out loud as a native business speaker. Would you say it exactly like that? If not, put the better phrasing in "natural.sentence" and quote the awkward part in "natural.reason". Do not touch "corrected".`;
+3. Does "corrected" contain the target phrase, and does "feedback" name each change in the right category?`;
 }
 
 function buildStoryUserMessage(
@@ -466,7 +392,6 @@ serve(async (req) => {
         diff_html: buildDiffHtml(text, clean),
         why: '방금 다듬어드린 문장 그대로예요. 이게 최종 확정 문장이에요 ✓ 자신있게 쓰시면 됩니다!',
         verdict: 'correct',
-        natural: { sentence: '', reason: '' },
       });
     }
     // === 리플레이 가드: 같은 '원문'을 다시 보낸 경우, 이전에 준 교정을 글자 그대로 재현.
@@ -481,7 +406,6 @@ serve(async (req) => {
         diff_html: buildDiffHtml(text, replayHit.corrected),
         why: '아까와 같은 문장이라 제안도 같아요. 이 문장으로 바꿔보시고, 그대로 붙여넣어 제출하면 확정돼요!',
         verdict: 'fixed',
-        natural: { sentence: '', reason: '' },
       });
     }
 
@@ -582,12 +506,6 @@ serve(async (req) => {
         grammar: String(parsed?.feedback?.grammar || '').slice(0, 200),
         vocab: String(parsed?.feedback?.vocab || '').slice(0, 200),
         nuance: String(parsed?.feedback?.nuance || '').slice(0, 200),
-      },
-      // ✨ 자연스러움 제안 (2026-08-26). corrected 와 분리된 층.
-      // ⚠️ 이 줄이 빠져 있어서 모델이 만들어 보낸 natural 이 서버에서 통째로 버려졌었다.
-      natural: {
-        sentence: String(parsed?.natural?.sentence || '').slice(0, 400),
-        reason: String(parsed?.natural?.reason || '').slice(0, 300),
       },
       // 프리미엄 전용 심화 설명 (왜 고쳤는지). 베이직 요청이면 빈 문자열로 온다.
       deep: isPremium ? String(parsed?.deep || '').slice(0, 400) : '',
