@@ -32400,10 +32400,6 @@ const WEEK2_DECK = [
   ...WEEK2_CRISIS_SLIDES,
   { section: '복습', kicker: '2 · 회의 시뮬 15문항 (Day 1~9)', title: '회의에서 답을 해보아요!', meetingSim: true, sim: WEEK2_SIM,
     script: '"지금까지 배운 단어로 회의처럼! 상황 듣고, 상대방 말 듣고, 첫 글자 힌트 보고 문장 전체로 대답해주세요~"' },
-  { section: '발표', kicker: '3 · PT 발표', title: '🎤 오늘의 발표',
-    html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">발표 7분 + 피드백 3분씩 진행해요.</div>'
-      + '<div style="margin-top:12px;padding:13px 15px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);font-size:13.5px;color:var(--ink);line-height:1.8;"><b>듣는 버디님들의 역할</b><br>· 끝나면 "나라면 이렇게" 한 마디씩 (피드백은 동료가!)<br>· 안 들렸던 단어는 미팅 노트에 적어두기 (다음 주 2분 꿀팁이 됩니다)</div>'
-      + '<div style="margin-top:10px;padding:11px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;">🧡 여기선 틀리는 게 일이에요. 구체적 칭찬은 무제한!</div>' },
   { section: '마무리', kicker: '4 · 마무리', title: '마무리 체크', goalCapture: true,
     checks: ['오늘 표현 중 본인이 실제로 쓸 것 1개 정하기', '과제: 이번 주 회의에서 한 번 실제로 써보기'],
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래를 체크하며 마무리하고, 다음 주 목표를 받아적어요.</div>' },
@@ -32472,7 +32468,7 @@ const WEEK3_SMALLTALK = [
     ] },
 ];
 const WEEK3_SMALLTALK_SLIDES = WEEK3_SMALLTALK.map((g, i) => ({
-  section: '스몰톡 롤플레잉', kicker: '1 · 상황 ' + (i + 1) + ' / ' + WEEK3_SMALLTALK.length, title: g.emoji + ' ' + g.sit,
+  section: '스몰톡 시뮬레이션', kicker: '2 · 상황 ' + (i + 1) + ' / ' + WEEK3_SMALLTALK.length + ' · 1:1 페어', title: g.emoji + ' ' + g.sit,
   html: '<div style="padding:11px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;"><b>👥 진행</b><br>' + escapeHtml(g.how) + '</div>'
     + g.lines.map((it) =>
       '<div style="margin-top:10px;padding:12px 14px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);">'
@@ -32487,17 +32483,23 @@ const WEEK3_DECK = [
   { section: '오프닝', kicker: 'WEEK 3 · 60분', title: '오늘 순서 한눈에',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">8기 프리미엄 버디</b></div>'
       + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
-      + ['스몰톡 롤플레잉 (본론 전 2분 정복)', '회의 시뮬 · 단어 복습 15문항 (Day 1~14)', 'PT 발표 + 질의응답'].map((t, i) =>
+      + ['내 문장 발표 (근황 + 왜 이 표현을 골랐는지)', '스몰톡 시뮬레이션 (1:1 페어)', '어휘 퀴즈 15문항 (Day 1~14)'].map((t, i) =>
           '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
       + '</div>'
-      + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:13.5px;color:var(--ink);">🎯 목표: 본론 전 2분이 편해지면 회의 전체가 편해져요.</div>' },
+      + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:13.5px;color:var(--ink);">🎯 목표: 내가 고른 문장을 설명하고, 본론 전 2분을 편하게 만들기.<br>오늘 발표: <b>Yeajoon · Julia</b> 님</div>' },
+  { section: '내 문장 발표', kicker: '1 · 근황 + 내 문장', title: '🗣️ 내가 고른 문장, 왜 골랐나요?',
+    html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">한 사람씩 돌아가며 이야기해요. 이번 주에 쓴 문장 중 아무거나 하나면 됩니다.</div>'
+      + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">'
+      + [['\u2460 근황 한 줄', 'How was your week? 영어 한 문장, 어려우면 한국어도 OK'],
+         ['\u2461 내 문장 읽기', '이번 주에 쓴 문장 하나를 소리 내어'],
+         ['\u2462 왜 이 표현이었나', '어떤 상황이었고, 왜 이 단어를 골랐는지'],
+         ['\u2463 동료 한 마디', '"나라면 이렇게" 또는 구체적인 칭찬']].map(function (r) {
+          return '<div style="padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);"><div style="font-size:13.5px;font-weight:800;color:var(--ink);">' + r[0] + '</div><div style="margin-top:2px;font-size:12px;color:var(--ink-soft);line-height:1.5;">' + r[1] + '</div></div>'; }).join('')
+      + '</div>'
+      + '<div style="margin-top:11px;padding:11px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;">🎤 오늘 이어서 발표: <b>Yeajoon</b> → <b>Julia(옥은정)</b> 님</div>' },
   ...WEEK3_SMALLTALK_SLIDES,
-  { section: '복습', kicker: '2 · 회의 시뮬 15문항 (Day 1~14)', title: '회의에서 답을 해보아요!', meetingSim: true, sim: WEEK3_SIM,
+  { section: '어휘 퀴즈', kicker: '3 · 어휘 퀴즈 15문항 (Day 1~14)', title: '회의에서 답을 해보아요!', meetingSim: true, sim: WEEK3_SIM,
     script: '"이번 주 단어로 회의처럼! 상황 듣고, 상대방 말 듣고, 첫 글자 힌트 보고 문장 전체로 대답해주세요~"' },
-  { section: '발표', kicker: '3 · PT 발표', title: '🎤 오늘의 발표',
-    html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">발표 7분 + 피드백 3분씩 진행해요.</div>'
-      + '<div style="margin-top:12px;padding:13px 15px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);font-size:13.5px;color:var(--ink);line-height:1.8;"><b>듣는 버디님들의 역할</b><br>· 끝나면 "나라면 이렇게" 한 마디씩 (피드백은 동료가!)<br>· 안 들렸던 단어는 미팅 노트에 적어두기</div>'
-      + '<div style="margin-top:10px;padding:11px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;">🧡 여기선 틀리는 게 일이에요. 구체적 칭찬은 무제한!</div>' },
   { section: '마무리', kicker: '4 · 마무리', title: '마무리 체크', goalCapture: true,
     checks: ['오늘 스몰톡 문장 중 실제로 쓸 것 1개 정하기', '과제: 이번 주에 스몰톡 한 번 실제로 걸어보기'],
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">아래를 체크하며 마무리하고, 다음 주 목표를 받아적어요.</div>' },
