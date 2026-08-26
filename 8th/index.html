@@ -2246,6 +2246,10 @@ async function callAiReviewEdgeFunction(payload) {
     verdict: data.verdict,
     feedback: (data.feedback && typeof data.feedback === 'object') ? data.feedback : undefined,
     syn_examples: Array.isArray(data.syn_examples) ? data.syn_examples : undefined,
+    // 자연스러움 제안 (2026-08-26): 문법 교정과 별개 층. corrected 를 건드리지 않고 대안만 제시.
+    natural: (data.natural && typeof data.natural === 'object' && String(data.natural.sentence || '').trim())
+      ? { sentence: String(data.natural.sentence), reason: String(data.natural.reason || '') }
+      : undefined,
     deep: typeof data.deep === 'string' ? data.deep : '',
   };
 }
@@ -2530,6 +2534,19 @@ function buildAiFeedbackHtml(fb, fallbackWhy) {
       </div>`);
     });
   }
+  /* ✨ 더 자연스럽게 (2026-08-26): 문법 교정과 분리된 두 번째 층.
+     "문법은 맞지만 원어민은 이렇게 말해요" 를 대안으로만 제시하고, 고친 문장은 건드리지 않는다.
+     그래야 학습자가 자기 문장을 지키면서도 한 단계 위 표현을 배운다. */
+  const nat = (fb && fb.natural && String(fb.natural.sentence || '').trim()) ? fb.natural : null;
+  const naturalBlock = nat ? `<div style="margin-top:11px;padding:12px 14px;border-radius:12px;background:#EAF3DE;border:1px solid rgba(107,142,78,0.35);">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <span style="font-size:10px;font-weight:800;color:#3B6D11;letter-spacing:0.06em;">✨ 더 자연스럽게</span>
+        <span style="font-size:11px;color:#5C7A3A;font-weight:600;">이렇게도 말할 수 있어요</span>
+      </div>
+      <div style="margin-top:7px;font-size:13.5px;font-weight:700;color:#274D0B;line-height:1.6;">${escapeHtml(String(nat.sentence))}</div>
+      ${String(nat.reason || '').trim() ? `<div class="t-small" style="margin-top:6px;color:#4A5F35;line-height:1.65;">${escapeHtml(String(nat.reason))}</div>` : ''}
+    </div>` : '';
+
   // 프리미엄: 왜 고쳤는지 심화 설명. 베이직: 그런 게 있다는 안내 한 줄.
   // 팝업으로 광고하지 않는다. 첨삭을 막 본 그 자리에서만, 한 번만. (2026-08-12)
   const isPrem = (typeof state !== 'undefined' && state.tier === 'premium');
@@ -2549,8 +2566,8 @@ function buildAiFeedbackHtml(fb, fallbackWhy) {
       </div>`;
   }
 
-  if (rows.length) return `<div style="display:flex;flex-direction:column;gap:7px;">${rows.join('')}</div>${tail}`;
-  return `<div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(fallbackWhy || '')}</div>${tail}`;
+  if (rows.length) return `<div style="display:flex;flex-direction:column;gap:7px;">${rows.join('')}</div>${naturalBlock}${tail}`;
+  return `<div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(fallbackWhy || '')}</div>${naturalBlock}${tail}`;
 }
 
 // 같은 '원문'을 다시 제출한 경우: 이전에 준 교정을 글자 그대로 재현한다 (API 호출 X).
