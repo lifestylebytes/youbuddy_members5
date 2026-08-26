@@ -92,6 +92,16 @@ STEP 4. NATURALNESS (a SEPARATE layer from correction, never mix the two).
 Ask yourself: would a native business speaker actually say this sentence, word for word, in this situation?
 Scan in THIS ORDER and report the FIRST thing you find. Higher items matter far more to the learner:
 1. VERB-NOUN MISMATCH (highest value): the verb and its object do not go together in English, even though each word is fine.
+   Business pairs natives actually use (check the student's verb against this list before anything else):
+     reschedule / push back -> a meeting, a call, a deadline, a launch
+     reallocate / rebalance / free up -> resources, headcount, budget, bandwidth
+     raise / flag -> an issue, a concern, a risk
+     address / tackle -> a problem, a gap, feedback
+     make -> a decision, a call, progress
+     run / hold -> a meeting, a workshop, a test
+     hit / miss -> a deadline, a target, a number
+     roll out / ship -> a feature, an update, a policy
+   If the student pairs a verb with the wrong family (reschedule + resources), THAT is the suggestion. Say which verb belongs with that object.
    "reschedule the resource" -> you reschedule a meeting or a deadline; you REALLOCATE or REBALANCE resources.
    "raise a mistake", "solve a decision", "open an issue to the client" are the same family.
 2. IDIOM misuse: right idiom, wrong shape ("don't hold back from me" -> natives just say "don't hold back").
@@ -210,6 +220,9 @@ Return JSON:
   * BANNED phrases (never use, they teach nothing): "자연스럽게 들리도록", "업무 영어답게 다듬었어요", "한국어 의도를 살려 뒷부분을 보탰어요", "조금 더 자연스럽게", "간결하게 다듬었어요". If you cannot name a concrete changed word, that means there was no real error: return VERBATIM.
 
 FINAL CHECK before returning, in order:
+0. TENSE CONSISTENCY: read "corrected" once more. If two verbs are joined by and/but/so, they must agree in tense
+   ("I own up to ... and developed" is BROKEN: make it "own up to ... and grow" or "owned up to ... and grew").
+   Never leave a sentence you edited in a worse grammatical state than the student's original. If your edit created the clash, fix both verbs.
 1. If the Korean above is a full sentence: does your corrected sentence keep its tense and its speech act (question stays question), and cover its core meaning? If the Korean is a rough memo or absent, skip this.
 2. Is every difference between the student's sentence and yours justified by a real error? If not, revert that difference.
 3. Does "corrected" contain the target phrase, and does "feedback" name each change in the right category?
