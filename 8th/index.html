@@ -27014,6 +27014,21 @@ function SpacedRepeatPopupModal() {
   };
 
   const speakWord = (text) => { try { speakEnglish(text); } catch (e) {} };
+  const playAll = () => {
+    const items = [];
+    (ctx.words || []).forEach((w) => {
+      if (w.en) items.push(w.en);
+      if (w.ex_en) items.push(w.ex_en);
+    });
+    let i = 0;
+    const next = () => {
+      if (i >= items.length) return;
+      const text = items[i++];
+      try { speakEnglish(text); } catch (e) {}
+      setTimeout(next, Math.min(5200, 1300 + text.length * 55));
+    };
+    next();
+  };
 
   const backdrop = el('div', {
     class: 'modal-backdrop',
