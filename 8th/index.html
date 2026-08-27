@@ -32524,7 +32524,7 @@ const WEEK3_DECK = [
           '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
       + '</div>'
       + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:13.5px;color:var(--ink);">🎯 목표: 내가 고른 문장을 설명하고, 본론 전 2분을 편하게 만들기.<br>오늘 발표: <b>Yeajoon · Julia</b> 님</div>' },
-  { section: '내 문장 발표', kicker: '1 · 근황 + 내 문장', title: '🗣️ 내가 고른 문장, 왜 골랐나요?',
+  { section: '내 문장 발표', kicker: '1 · 근황 + 내 문장', title: '🗣️ 내가 고른 문장, 왜 골랐나요?', weekSentences: true,
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">한 사람씩 돌아가며 이야기해요. 이번 주에 쓴 문장 중 아무거나 하나면 됩니다.</div>'
       + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">'
       + [['\u2460 근황 한 줄', 'How was your week? 영어 한 문장, 어려우면 한국어도 OK'],
@@ -32578,7 +32578,7 @@ const WEEK4_DECK = [
         '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
     + '</div>'
     + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎯 목표: 4주간 쌓은 문장으로 <b>내 업무 영어 대본</b>을 완성하고, 실제 대화에서 꺼내 쓰기.</div>' },
-  { section: '내 문장 발표', kicker: '1 · 내 문장 발표', title: '🗣️ 마지막 라운드 · 내 문장',
+  { section: '내 문장 발표', kicker: '1 · 내 문장 발표', title: '🗣️ 마지막 라운드 · 내 문장', weekSentences: true,
     html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">한 명씩 돌아가며, 마지막으로 한 번 더 내 문장을 입 밖에 내요.</div>'
     + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">'
     + [['①', '이번 주 어땠는지 한 줄'], ['②', '이번 주에 쓴 내 문장 1개 소리 내어 읽기'], ['③', '4주 중 "진짜 내 것이 된 표현" 1개 + 실제로 언제 썼는지'], ['④', '들은 사람들은 코멘트 하나씩 ("나라면 이렇게"도 환영)']].map((r) =>
@@ -32958,6 +32958,40 @@ function MeetingDeckPage() {
         + s.bank.map((it) => '<div style="padding:8px 11px;border-radius:11px;background:#fff;border:1px solid rgba(125,92,255,0.16);"><span style="font-size:13.5px;font-family:var(--font-mono);color:#5C53A5;font-weight:700;">' + escapeHtml(it.en) + '</span><span style="font-size:11.5px;color:var(--ink-soft);margin-left:7px;">' + escapeHtml(it.kr) + '</span></div>').join('')
         + '</div></div>';
     }
+  }
+  if (s.weekSentences) {
+    const __wsWk = Number(__curMid().slice(1)) || 1;
+    const __wsD0 = (__wsWk - 1) * 5 + 1;
+    const __wsD1 = Math.min(__wsWk * 5, Number(state.currentDay) || __wsD0);
+    const __wsBy = {};
+    let __wsLoading = false;
+    for (let __d = __wsD0; __d <= __wsD1; __d++) {
+      const __c = communityFeedCache[__d];
+      if (!__c) {
+        __wsLoading = true;
+        if (hasSupabase() && !communityFeedInFlight[__d]) loadCommunityPosts(__d).then(function () { try { render(); } catch (e) {} });
+        continue;
+      }
+      (__c.rows || []).forEach(function (p) {
+        if ((p.tier || '') !== 'premium') return;
+        const __k = p.member_key || p.user; if (!__k) return;
+        __wsBy[__k] = {
+          name: displayName({ englishName: p.english_name, name: p.user, me: p.member_key === memberKey() }),
+          word: p.word || '', en: p.sentence || '', day: __d,
+        };
+      });
+    }
+    const __wsList = Object.values(__wsBy);
+    body += '<div style="margin-top:13px;padding:13px 14px;border-radius:14px;background:#F0F6FC;border:1px solid rgba(46,111,168,0.22);">'
+      + '<div style="font-size:12px;font-weight:800;color:#1F4F7D;">📝 이번 주 여러분이 쓴 문장</div>'
+      + (__wsList.length
+        ? '<div style="margin-top:9px;display:flex;flex-direction:column;gap:7px;">' + __wsList.map(function (x) {
+            return '<div style="padding:9px 12px;border-radius:11px;background:#fff;border:1px solid rgba(46,111,168,0.14);">'
+              + '<div style="font-size:11.5px;font-weight:800;color:var(--ink-soft);">' + escapeHtml(x.name) + ' · Day ' + x.day + (x.word ? ' · ' + escapeHtml(x.word) : '') + '</div>'
+              + '<div style="margin-top:3px;font-size:13.5px;font-family:var(--font-mono);font-weight:700;color:#1F4F7D;line-height:1.5;">' + escapeHtml(x.en) + '</div></div>';
+          }).join('') + '</div>'
+        : '<div style="margin-top:8px;font-size:12.5px;color:var(--ink-soft);">' + (__wsLoading ? '문장 불러오는 중이에요...' : '이번 주 제출된 문장이 아직 없어요.') + '</div>')
+      + '</div>';
   }
   if (s.bingoGrid) {
     const cells = s.bingoGrid;
