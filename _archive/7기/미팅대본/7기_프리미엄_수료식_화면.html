@@ -1,0 +1,127 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>7기 프리미엄 · 수료식</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<style>
+:root{--gold:#F0AC3D;--green:#5DCAA5;--dim:#8FB39F}
+*{box-sizing:border-box}
+body{margin:0;background:#12200F;color:#fff;font-family:Pretendard,system-ui,sans-serif;overflow:hidden}
+.bar{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;gap:8px;align-items:center;padding:10px 16px;background:rgba(0,0,0,.4);backdrop-filter:blur(6px)}
+.bar .t{font-size:12px;color:#9FE1CB;margin-right:auto}
+.bar button{padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.bar button.on{background:var(--gold);border-color:var(--gold);color:#2A1B02}
+.stage{height:100vh;display:flex;align-items:center;justify-content:center;padding:70px 40px 40px}
+.slide{display:none;width:100%;max-width:1000px;text-align:center;animation:in .5s ease}
+.slide.show{display:block}
+@keyframes in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.k{font-size:13px;letter-spacing:.3em;color:var(--gold);font-weight:800}
+h1{margin:18px 0 0;font-size:clamp(30px,5vw,54px);font-weight:900;letter-spacing:-.03em;line-height:1.2}
+.sub{margin-top:16px;font-size:clamp(15px,1.8vw,20px);color:#C8DDD0;line-height:1.7}
+.big{display:flex;justify-content:center;gap:clamp(24px,6vw,80px);margin-top:48px;flex-wrap:wrap}
+.big .n{font-size:clamp(46px,8vw,86px);font-weight:900;color:var(--gold);line-height:1;font-variant-numeric:tabular-nums}
+.big .l{margin-top:10px;font-size:14px;color:var(--dim);letter-spacing:.06em}
+.roll{margin-top:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;max-width:900px;margin-left:auto;margin-right:auto}
+.p{padding:16px 14px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);text-align:left}
+.p .nm{font-size:19px;font-weight:800}
+.p .st{margin-top:5px;font-size:13px;color:var(--green);font-weight:700;font-variant-numeric:tabular-nums}
+.p .hl{margin-top:6px;font-size:12.5px;color:#B9CFC2;line-height:1.6}
+.p.star{background:rgba(240,172,61,.14);border-color:rgba(240,172,61,.5)}
+.quote{margin:44px auto 0;max-width:760px;font-size:clamp(17px,2.2vw,24px);line-height:1.75;color:#EAF3DE;font-style:italic}
+.by{margin-top:16px;font-size:14px;color:var(--dim)}
+.nav{position:fixed;bottom:18px;left:0;right:0;display:flex;justify-content:center;gap:10px;z-index:60}
+.nav button{width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;font-size:16px;cursor:pointer}
+.dots{position:fixed;bottom:26px;right:22px;font-size:12px;color:var(--dim);z-index:60}
+[contenteditable=true]{outline:1px dashed rgba(240,172,61,.5);outline-offset:4px;border-radius:4px}
+[contenteditable=true]:focus{outline:2px solid var(--gold);background:rgba(255,255,255,.06)}
+.hint{position:fixed;bottom:70px;left:0;right:0;text-align:center;font-size:12px;color:var(--gold);z-index:55}
+</style></head><body>
+
+<div class="bar">
+<span class="t">🎉 7기 프리미엄 수료식 · 화면공유용 (← → 로 넘기기)</span>
+<button id="be" onclick="tog()">✏️ 편집</button>
+<button onclick="document.documentElement.requestFullscreen()">⛶ 전체화면</button>
+</div>
+
+<div class="stage">
+
+<div class="slide show">
+  <div class="k" data-e>YOUBUDDY 7기 · PREMIUM</div>
+  <h1 data-e>4주, 우리가 함께 한 것</h1>
+  <div class="sub" data-e>수료식은 다음 주지만, 오늘 먼저 볼게요.</div>
+  <div class="big">
+    <div><div class="n" data-e>9</div><div class="l" data-e>프리미엄 버디</div></div>
+    <div><div class="n" data-e>150+</div><div class="l" data-e>학습한 날</div></div>
+    <div><div class="n" data-e>400+</div><div class="l" data-e>직접 쓴 문장</div></div>
+    <div><div class="n" data-e>60</div><div class="l" data-e>배운 표현</div></div>
+  </div>
+  <div class="sub" style="margin-top:38px;" data-e>혼자 했으면 3일차에 끊겼을 거예요.</div>
+</div>
+
+<div class="slide">
+  <div class="k" data-e>ROLL CALL</div>
+  <h1 data-e>한 명씩 불러볼게요</h1>
+  <div class="roll">
+    <div class="p"><div class="nm" data-e>Selina</div><div class="st" data-e>학습 __일 · 문장 __개</div><div class="hl" data-e>플로리다에서, 주 6일 9 to 9 하면서</div></div>
+    <div class="p"><div class="nm" data-e>Silvia</div><div class="st" data-e>학습 __일 · 문장 __개</div><div class="hl" data-e>스페인어가 튀어나와도 끝까지 영어로</div></div>
+    <div class="p"><div class="nm" data-e>Tracy</div><div class="st" data-e>학습 __일 · 문장 __개</div><div class="hl" data-e>10월 CFO 발표를 향해</div></div>
+    <div class="p"><div class="nm" data-e>Jean</div><div class="st" data-e>학습 __일 · 문장 __개</div><div class="hl" data-e>아이들 깨기 전, 스터디카페에서</div></div>
+    <div class="p"><div class="nm" data-e>Jin</div><div class="st" data-e>학습 __일 · 문장 __개</div><div class="hl" data-e>부담감 10에서 시작해서 여기까지</div></div>
+    <div class="p"><div class="nm" data-e>ejay</div><div class="st" data-e>학습 __일 · 문장 __개</div><div class="hl" data-e>말할 기회가 적어도 이 방에서는</div></div>
+    <div class="p"><div class="nm" data-e>Jaden</div><div class="st" data-e>학습 __일 · 문장 __개</div><div class="hl" data-e>시스템 제약을 영어로 반박하기</div></div>
+    <div class="p"><div class="nm" data-e>Sunnie</div><div class="st" data-e>학습 __일 · 문장 __개</div><div class="hl" data-e>기다려주는 침묵을 견디며 한 문장씩</div></div>
+    <div class="p"><div class="nm" data-e>Sarah</div><div class="st" data-e>학습 __일 · 문장 __개</div><div class="hl" data-e>얼어붙던 자기소개를 자동으로</div></div>
+  </div>
+</div>
+
+<div class="slide">
+  <div class="k" data-e>WHAT CHANGED</div>
+  <h1 data-e>4주 전의 우리는</h1>
+  <div class="roll" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));max-width:820px;">
+    <div class="p"><div class="nm" style="color:#B9CFC2;font-size:16px;" data-e>Week 1</div><div class="hl" style="font-size:14px;" data-e>"맞는 말인지 확신이 없어서 못 뱉었어요"<br>"뒤돌아서면 그제야 생각나요"<br>"다들 내 말 끝나길 기다리는 게 부담돼요"</div></div>
+    <div class="p star"><div class="nm" style="color:var(--gold);font-size:16px;" data-e>Week 4 · 오늘</div><div class="hl" style="font-size:14px;color:#FFF3DC;" data-e>"With a caveat, some variables are missing."<br>"Let's do a quick poll before we decide."<br>"Please table it and take it offline."</div></div>
+  </div>
+  <div class="sub" style="margin-top:34px;" data-e>이건 제가 쓴 문장이 아니에요. <b style="color:var(--gold);">오늘 여러분이 한 말</b>이에요.</div>
+</div>
+
+<div class="slide">
+  <div class="k" data-e>ONE MORE THING</div>
+  <h1 data-e>프리미엄만 받는 것</h1>
+  <div class="roll" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));max-width:820px;">
+    <div class="p star"><div class="nm" data-e>🎤 발표 피드백 리포트</div><div class="hl" data-e>발표에서 한 말을 그대로 가져와, 더 자연스러운 표현으로 바꾼 개인 문서. 앱에서 열려요.</div></div>
+    <div class="p"><div class="nm" data-e>📥 4주 단어집 PDF</div><div class="hl" data-e>26페이지. 단어 60개 + 유의어 120개 + 예문. 18일 학습 + 파이널 응시하면 열려요.</div></div>
+    <div class="p"><div class="nm" data-e>🗣 내 업무 영어 대본</div><div class="hl" data-e>4주간 쌓은 내 문장들. 다음 회의에서 그대로 꺼내 쓰는 것.</div></div>
+  </div>
+</div>
+
+<div class="slide">
+  <div class="k" data-e>THANK YOU</div>
+  <h1 data-e>🎉 오늘은 여기까지</h1>
+  <div class="quote" data-e>
+    영어가 늘었다는 건 새 단어를 아는 게 아니라,<br>막혔을 때 안 멈추는 거예요.<br><br>
+    그건 이미 되고 계세요.
+  </div>
+  <div class="by" data-e>YOUBUDDY · 유버디</div>
+  <div class="sub" style="margin-top:34px;font-size:15px;" data-e>파이널 테스트는 금요일에 열려요. 응시만 하시면 단어집 PDF 바로 열립니다.</div>
+</div>
+
+</div>
+
+<div class="hint" id="hint">← → 방향키 또는 아래 버튼으로 넘기기</div>
+<div class="nav"><button onclick="mv(-1)">←</button><button onclick="mv(1)">→</button></div>
+<div class="dots" id="dots"></div>
+
+<script>
+var i=0, S=document.querySelectorAll('.slide'), ED=false;
+function draw(){S.forEach(function(s,k){s.classList.toggle('show',k===i);});document.getElementById('dots').textContent=(i+1)+' / '+S.length;
+  document.getElementById('hint').style.display=i===0?'block':'none';}
+function mv(d){i=Math.max(0,Math.min(S.length-1,i+d));draw();}
+function tog(){ED=!ED;document.querySelectorAll('[data-e]').forEach(function(n){n.contentEditable=ED;});
+  var b=document.getElementById('be');b.className=ED?'on':'';b.textContent=ED?'✏️ 편집 중':'✏️ 편집';}
+document.addEventListener('keydown',function(e){
+  if(ED)return;
+  if(e.key==='ArrowRight'||e.key===' ')mv(1);
+  if(e.key==='ArrowLeft')mv(-1);
+});
+draw();
+</script>
+</body></html>

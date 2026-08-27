@@ -1,0 +1,178 @@
+{
+  "cohort": "7기",
+  "overall": {
+    "members": 41,
+    "verif": 561,
+    "completers": 18,
+    "perfect": 8
+  },
+  "basic": {
+    "members": 31,
+    "verif": 413,
+    "completers": 13,
+    "perfect": 6,
+    "daily_rates": [
+      87,
+      84,
+      81,
+      77,
+      77,
+      74,
+      74,
+      74,
+      71,
+      71,
+      71,
+      71,
+      58,
+      52,
+      68,
+      64,
+      55,
+      48,
+      45,
+      26
+    ],
+    "hist": [
+      [
+        "18~20일 · 학습완료",
+        13
+      ],
+      [
+        "13~17일",
+        6
+      ],
+      [
+        "8~12일",
+        5
+      ],
+      [
+        "1~7일",
+        7
+      ]
+    ],
+    "awards": {
+      "earlybird": {
+        "name": "Oheun",
+        "time": "06:17"
+      },
+      "perfect_attend": [
+        "Joy",
+        "Mia",
+        "su",
+        "kathrine",
+        "Yeajoon",
+        "Sujin"
+      ],
+      "on_time": [
+        "su",
+        "Yeajoon",
+        "Oheun",
+        "Ellie"
+      ],
+      "timezone": [
+        "Yeajoon",
+        "Oheun",
+        "Joy은",
+        "Fullmoon",
+        "Mason"
+      ],
+      "near_complete": [
+        "Oheun",
+        "Lucy",
+        "Soy",
+        "Joy은",
+        "전수진",
+        "Ellie",
+        "Cindy"
+      ]
+    },
+    "roll": [
+      "Joy",
+      "Mia",
+      "su",
+      "kathrine",
+      "Yeajoon",
+      "Sujin",
+      "Oheun",
+      "Lucy",
+      "Soy",
+      "Joy은",
+      "전수진",
+      "Ellie",
+      "Cindy",
+      "Daisy",
+      "Sumi",
+      "Fullmoon",
+      "트루",
+      "Amanda",
+      "wonnie",
+      "정연아",
+      "Genie",
+      "아신",
+      "Julia",
+      "Ellen",
+      "Julie",
+      "Chloe",
+      "Bella",
+      "Ellen",
+      "Mason",
+      "람",
+      "버디"
+    ]
+  },
+  "premium": {
+    "members": 10,
+    "verif": 148,
+    "completers": 5,
+    "perfect": 2,
+    "activities": [
+      [
+        "주간 미팅 · Google Meet",
+        "4주"
+      ],
+      [
+        "상황 롤플레잉",
+        "매주"
+      ],
+      [
+        "개인 발표 + 피드백",
+        "4주"
+      ],
+      [
+        "쿠션어 실전",
+        "완료"
+      ]
+    ],
+    "awards": {
+      "earlybird": {
+        "name": "Selina",
+        "time": "09:59"
+      },
+      "nightowl": {
+        "name": "슐슐",
+        "time": "19:26"
+      },
+      "perfect_attend_ontime": [
+        "Hera"
+      ],
+      "global": [
+        "Jin",
+        "Selina",
+        "Sarah"
+      ]
+    },
+    "members_list": [
+      "슐슐",
+      "Hera",
+      "Silvia",
+      "Tracy",
+      "Jin",
+      "Selina",
+      "Sarah",
+      "Sunnie",
+      "ejay",
+      "전성진"
+    ]
+  }
+}
