@@ -147,12 +147,25 @@ function computeRow_() {
 
   const seg = { basic: { done: 0, all: 0, miss: [] }, premium: { done: 0, all: 0, miss: [] } };
   const tzW = { basic: [], premium: [] };
+  const restN = { basic: 0, premium: 0 };
 
   rows.forEach(function (r) {
     const t = (r.tier === 'premium') ? 'premium' : 'basic';
-    seg[t].all += 1;
     const days = (r.verified_days || []).map(Number);
     const name = r.english_name || r.member_name;
+
+    // 앱과 동일한 '쉬는 상태' 판정 (2026-08-29 통일):
+    // 대상 Day 직전 4일(dayN-1 ~ dayN-4)이 전부 미인증이면 분모·호명 양쪽에서 제외.
+    // 쉬는 멤버는 단톡방에 언급하지 않는 원칙(M7 1:1 케어 대상)과도 일치.
+    if (dayN >= 5) {
+      let resting = true;
+      for (let d = dayN - 4; d <= dayN - 1; d++) {
+        if (days.indexOf(d) >= 0) { resting = false; break; }
+      }
+      if (resting && days.indexOf(dayN) < 0) { restN[t] += 1; return; }
+    }
+
+    seg[t].all += 1;
     if (days.indexOf(dayN) >= 0) { seg[t].done += 1; return; }
     const tz = String(r.timezone_text || '+0h');
     const h = parseInt(tz.replace(/[^0-9-]/g, ''), 10) || 0;
@@ -168,8 +181,8 @@ function computeRow_() {
     targetDate,
     'Day ' + dayN,
     (aC ? Math.round(aD / aC * 1000) / 10 : 0) + '% (' + aD + '/' + aC + ')',
-    pct(seg.basic) + '% (' + seg.basic.done + '/' + seg.basic.all + ')',
-    pct(seg.premium) + '% (' + seg.premium.done + '/' + seg.premium.all + ')',
+    pct(seg.basic) + '% (' + seg.basic.done + '/' + seg.basic.all + ')' + (restN.basic ? ' · 쉼 ' + restN.basic : ''),
+    pct(seg.premium) + '% (' + seg.premium.done + '/' + seg.premium.all + ')' + (restN.premium ? ' · 쉼 ' + restN.premium : ''),
     pasteMsg_('베이직', dayN, targetDate, seg.basic, tzW.basic),
     pasteMsg_('프리미엄', dayN, targetDate, seg.premium, tzW.premium),
   ];
