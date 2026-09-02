@@ -9574,6 +9574,43 @@ function HomePage() {
     }
   } catch (e) {}
 
+  // 홈 진입 시 랜덤 어휘 복습 팝업 (2026-08-31 버디 요청: 홈 올 때마다 랜덤 복습).
+  // 렌더마다가 아니라 '다른 페이지 → 홈' 전환 때 1회 + 10분 쿨다운 (탭 연타 스팸 방지).
+  // 기존 SpacedRepeatPopupModal 재사용 (듣기 + 미니 퀴즈 포함).
+  try {
+    const __rrDay = Number(state.currentDay) || 0;
+    const __rrEntered = currentPage === 'home' && window.__rrLastPage !== 'home';
+    window.__rrLastPage = currentPage;
+    const __rrCool = !window.__rrLastShownAt || (Date.now() - window.__rrLastShownAt) > 10 * 60 * 1000;
+    if (__rrEntered && __rrCool && __rrDay >= 2 && !showSpacedRepeatPopup && challengeStarted() && guidedTourStep === null && !anyPopupOpen()) {
+      const __rrPool = [];
+      (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((d) => {
+        if (Number(d.day) > __rrDay) return;
+        (d.words || []).forEach((w) => { if (w && w.en) __rrPool.push({ en: w.en, ko: w.def || '', ex_en: w.ex_en || '', stat: 'Day ' + d.day + ' 표현' }); });
+      }));
+      if (__rrPool.length >= 3) {
+        const __rrPicks = [];
+        const __rrUsed = new Set();
+        while (__rrPicks.length < 3 && __rrUsed.size < __rrPool.length) {
+          const __i = Math.floor(Math.random() * __rrPool.length);
+          if (__rrUsed.has(__i)) continue;
+          __rrUsed.add(__i); __rrPicks.push(__rrPool[__i]);
+        }
+        window.__rrLastShownAt = Date.now();
+        setTimeout(() => {
+          if (showSpacedRepeatPopup || anyPopupOpen() || guidedTourStep !== null) return;
+          showSpacedRepeatPopup = {
+            dayN: __rrDay, _seenKey: 'home-random-review',
+            title: '홈에 온 김에, 랜덤 복습 3개',
+            subtitle: '지금까지 배운 표현 중 무작위 · 매번 달라져요',
+            words: __rrPicks, quiz: true,
+          };
+          render();
+        }, 700);
+      }
+    }
+  } catch (e) {}
+
   // 매주 금요일 (=Day 5/10/15/20) 자동 wrap-up 팝업, "지금 풀러가기 / 주말에 보기" 선택지.
   // 노출 조건: 그 주 5일 다 완주 + 시험 미통과 + 미열람 + 데드라인 안 지남.
   // 세션 내 1회만 트리거하는 가드 (window.__wrapupTriggeredSession), 무한 루프 방지.
@@ -11877,6 +11914,16 @@ function sceneHintFor(en) {
     return nz;
   } catch (e) { return ''; }
 }
+// 힌트 추가 클릭 시 단어를 앞에서부터 하나씩 공개 (2026-08-31 버디 요청: 오답률 높아 힌트 강화)
+function buildVerifyHintMaskProgressive(answer, revealCount) {
+  const toks = String(answer || '').split(/(\s+)/);
+  let wordIdx = 0;
+  return toks.map((tok) => {
+    if (/^\s+$/.test(tok) || !tok) return tok;
+    wordIdx += 1;
+    return (wordIdx <= revealCount) ? tok : buildVerifyHintMask(tok);
+  }).join('');
+}
 function buildVerifyHintMask(answer='') {
   return String(answer)
     .split(/(\s+)/) // 공백을 유지한 토큰
@@ -12698,7 +12745,7 @@ function VerifyPage(dayN) {
                 </div>`;
             })()}
             <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;">
-              <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;${ui.revealAnswer ? 'opacity:0.45;pointer-events:none;' : ''}" onclick="window.__toggleVerifyAnswer(${dayN})">${ui.reveal ? '힌트 숨기기' : '힌트 보기'}</button>
+              <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;${ui.revealAnswer ? 'opacity:0.45;pointer-events:none;' : ''}" onclick="window.__toggleVerifyAnswer(${dayN})">${(() => { if (!ui.reveal) return '힌트 보기'; const __tw = String(split.spanAnswer || currentQuestion.en).trim().split(/\s+/).length; const __rv = ui.revealWords || 0; return (__rv < __tw) ? ('💡 단어 하나 더 (' + __rv + '/' + __tw + ')') : '힌트 숨기기'; })()}</button>
               <button data-voice-btn="1" class="btn btn-ghost" style="background:#fff;color:#7D7A98;border:1px solid #E1DCF8;${ui.revealAnswer ? 'opacity:0.45;pointer-events:none;' : ''}" onclick="window.__startVoiceQuiz(${dayN}, this)">🎤 음성으로 답하기</button>
             </div>
             ${ui.revealAnswer ? `
@@ -12709,7 +12756,7 @@ function VerifyPage(dayN) {
                   ? `<div class="t-small" style="margin-top:4px;color:#8D8AA6;">사전형 · ${escapeHtml(currentQuestion.en)}</div>` : ''}
                 <div class="t-small" style="margin-top:6px;color:#6C6A86;">${escapeHtml(currentQuestion.kr || '')}</div>
               </div>
-            ` : (ui.reveal ? (() => { const __sh = sceneHintFor(currentQuestion.en); return (__sh ? `<div style="margin-top:14px;padding:12px 14px;border-radius:13px;background:#FFF8E1;border:1px solid rgba(255,193,7,0.35);text-align:left;font-size:12.5px;line-height:1.7;color:#7A5800;">💡 ${escapeHtml(__sh)}</div>` : '') + `<div style="margin-top:12px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);">${escapeHtml(buildVerifyHintMask(split.spanAnswer || currentQuestion.en))}</div>`; })() : '')}
+            ` : (ui.reveal ? (() => { const __sh = sceneHintFor(currentQuestion.en); return (__sh ? `<div style="margin-top:14px;padding:12px 14px;border-radius:13px;background:#FFF8E1;border:1px solid rgba(255,193,7,0.35);text-align:left;font-size:12.5px;line-height:1.7;color:#7A5800;">💡 ${escapeHtml(__sh)}</div>` : '') + `<div style="margin-top:12px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);">${escapeHtml(buildVerifyHintMaskProgressive(split.spanAnswer || currentQuestion.en, ui.revealWords || 0))}</div>`; })() : '')}
             <div style="display:flex;gap:8px;margin-top:18px;">
               ${!ui.revealAnswer ? `<button class="btn btn-primary" style="flex:1.6;justify-content:center;" onclick="window.__submitVerifyQuizAnswer(${dayN})">${ui.idx === questions.length - 1 ? '제출하고 채점 →' : '제출 · 다음 →'}</button>` : ''}
               <button class="btn btn-ghost" style="flex:1;justify-content:center;background:#4F4438;color:#fff;border:none;" onclick="window.__advanceVerifyQuiz(${dayN}, true)">${ui.revealAnswer ? (ui.idx === questions.length - 1 ? '확인했어요 · 제출' : '확인했어요 · 다음 문제') : (ui.idx === questions.length - 1 ? '모르겠어요 · 제출' : 'Skip')}</button>
@@ -12818,7 +12865,7 @@ function VerifyPage(dayN) {
             ui.idx = 0;
             ui.value = '';
             ui.score = 0;
-            ui.reveal = false;
+            ui.reveal = false; ui.revealWords = 0;
             render();
           }
         } else if (!step.done) {
@@ -13423,14 +13470,14 @@ function WeekReviewPage(weekN) {
         ${currentQuestion.kind === 'syn' && currentQuestion.sourceMain ? `<div class="t-small" style="margin-bottom:14px;color:var(--muted);">유의어 · "${escapeHtml(currentQuestion.sourceMain)}"</div>` : '<div style="height:14px;"></div>'}
         <input class="input" data-wr-input="1" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ${ui.revealAnswer ? 'disabled' : ''} style="${inputStyle}" placeholder="${ui.revealAnswer ? '' : '영어로 입력'}" value="${escapeHtml(ui.value || '')}" oninput="window.__setWeekReviewValue(${weekN}, ${stage}, this.value)" />
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;">
-          <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;${ui.revealAnswer ? 'opacity:0.45;pointer-events:none;' : ''}" onclick="window.__toggleWeekReviewHint(${weekN}, ${stage})">${ui.reveal ? '힌트 숨기기' : '힌트 보기'}</button>
+          <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;${ui.revealAnswer ? 'opacity:0.45;pointer-events:none;' : ''}" onclick="window.__toggleWeekReviewHint(${weekN}, ${stage})">${(() => { if (!ui.reveal) return '힌트 보기'; const __tw = String(split.spanAnswer || currentQuestion.en).trim().split(/\s+/).length; const __rv = ui.revealWords || 0; return (__rv < __tw) ? ('💡 단어 하나 더 (' + __rv + '/' + __tw + ')') : '힌트 숨기기'; })()}</button>
         </div>
         ${ui.revealAnswer ? `
           <div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:#EAF2FA;border:1px solid rgba(46,111,168,0.35);text-align:left;">
             <div class="t-small mono" style="color:var(--orange-dark);letter-spacing:0.08em;">정답</div>
             <div style="margin-top:6px;font-size:22px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em;">${escapeHtml(currentQuestion.en)}</div>
           </div>
-        ` : (ui.reveal ? (() => { const __sh = sceneHintFor(currentQuestion.en); return (__sh ? `<div style="margin-top:14px;padding:12px 14px;border-radius:13px;background:#FFF8E1;border:1px solid rgba(255,193,7,0.35);text-align:left;font-size:12.5px;line-height:1.7;color:#7A5800;">💡 ${escapeHtml(__sh)}</div>` : '') + `<div style="margin-top:12px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);">${escapeHtml(buildVerifyHintMask(split.spanAnswer || currentQuestion.en))}</div>`; })() : '')}
+        ` : (ui.reveal ? (() => { const __sh = sceneHintFor(currentQuestion.en); return (__sh ? `<div style="margin-top:14px;padding:12px 14px;border-radius:13px;background:#FFF8E1;border:1px solid rgba(255,193,7,0.35);text-align:left;font-size:12.5px;line-height:1.7;color:#7A5800;">💡 ${escapeHtml(__sh)}</div>` : '') + `<div style="margin-top:12px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);">${escapeHtml(buildVerifyHintMaskProgressive(split.spanAnswer || currentQuestion.en, ui.revealWords || 0))}</div>`; })() : '')}
         <div style="display:flex;gap:8px;margin-top:18px;">
           <button class="btn btn-ghost" style="flex:1;justify-content:center;background:#4F4438;color:#fff;border:none;" onclick="window.__advanceWeekReview(${weekN}, ${stage}, true)">${ui.revealAnswer ? (ui.idx === questions.length - 1 ? '결과 보기' : '확인했어요 · 다음') : (ui.idx === questions.length - 1 ? '모르겠어요 · 결과' : 'Skip')}</button>
         </div>
@@ -13527,13 +13574,20 @@ window.__toggleWeekReviewHint = (weekN, stage) => {
   if (!ui) return;
   // 힌트 누를 때 자동진행 타이머 취소 (정답 입력 후 200ms 내 힌트 누르면 다음 문제 이동하는 버그 방지)
   try { clearTimeout((window.__weekReviewAutoTimers || {})[key]); } catch (e) {}
+  const questions = buildWeekReviewQuestions(weekN, stage);
+  const current = questions[ui.idx];
+  const totalWords = current ? String(current.en || '').trim().split(/\s+/).length : 1;
   const turningOn = !ui.reveal;
-  ui.reveal = !ui.reveal;
-  if (turningOn) {
-    const questions = buildWeekReviewQuestions(weekN, stage);
-    const current = questions[ui.idx];
-    if (current && current.en) recordVocabHint(current.en);
+  if (!ui.reveal) {
+    ui.reveal = true;
+    ui.revealWords = 0;
+  } else if ((ui.revealWords || 0) < totalWords) {
+    ui.revealWords = (ui.revealWords || 0) + 1;
+  } else {
+    ui.reveal = false; ui.revealWords = 0;
+    ui.revealWords = 0;
   }
+  if (turningOn && current && current.en) recordVocabHint(current.en);
   render();
 };
 
@@ -13567,7 +13621,7 @@ window.__advanceWeekReview = (weekN, stage, skipped) => {
     ui.values = ['', ''];
     ui.pickedIdx = null;
   }
-  ui.reveal = false;
+  ui.reveal = false; ui.revealWords = 0;
   ui.revealAnswer = false;
   render();
 };
@@ -28704,15 +28758,22 @@ window.__toggleVerifyAnswer = (dayN) => {
   const ui = window.__verifyUi[dayN] || { idx: 0, value: '', done: false, score: 0, activeStep: 'capture', reveal: false };
   // 힌트 누를 때 자동진행 타이머 취소 (정답 입력 후 380ms 내 힌트 누르면 다음 문제 이동하는 버그 방지)
   try { clearTimeout((window.__verifyAutoAdvanceTimers || {})[dayN]); } catch (e) {}
-  // 힌트 false → true 전환 시 (즉 힌트 본 시점) 통계 기록.
+  // 클릭 순환: 힌트 켜기 → 단어 하나씩 공개 → (다 열리면) 힌트 숨기기 (2026-08-31)
+  const questions = buildVerifyQuestions(dayN);
+  const current = questions[ui.idx];
+  const totalWords = current ? String(current.en || '').trim().split(/\s+/).length : 1;
   const turningOn = !ui.reveal;
-  ui.reveal = !ui.reveal;
-  window.__verifyUi[dayN] = ui;
-  if (turningOn) {
-    const questions = buildVerifyQuestions(dayN);
-    const current = questions[ui.idx];
-    if (current && current.en) recordVocabHint(current.en);
+  if (!ui.reveal) {
+    ui.reveal = true;
+    ui.revealWords = 0;
+  } else if ((ui.revealWords || 0) < totalWords) {
+    ui.revealWords = (ui.revealWords || 0) + 1;
+  } else {
+    ui.reveal = false; ui.revealWords = 0;
+    ui.revealWords = 0;
   }
+  window.__verifyUi[dayN] = ui;
+  if (turningOn && current && current.en) recordVocabHint(current.en);
   render();
 };
 window.__advanceVerifyQuiz = (dayN, skipped) => {
@@ -28759,7 +28820,7 @@ window.__advanceVerifyQuiz = (dayN, skipped) => {
     // 다음 2칸 문제에 그대로 채워져 있는 버그가 있었다. (2026-08-11)
     ui.values = ['', ''];
   }
-  ui.reveal = false;
+  ui.reveal = false; ui.revealWords = 0;
   ui.revealAnswer = false;
   ui.activeStep = 'capture';
   window.__verifyUi[dayN] = ui;
@@ -30355,7 +30416,7 @@ window.__stepReview = () => {
   else ui.idx += 1;
   ui.value = '';
   ui.values = ['', ''];
-  ui.reveal = false;
+  ui.reveal = false; ui.revealWords = 0;
   ui.revealAnswer = false;
   render();
 };
