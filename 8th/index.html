@@ -12762,7 +12762,7 @@ function VerifyPage(dayN) {
                 </div>`;
             })()}
             <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;">
-              <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;${ui.revealAnswer ? 'opacity:0.45;pointer-events:none;' : ''}" onclick="window.__toggleVerifyAnswer(${dayN})">${(() => { if (!ui.reveal) return '힌트 보기'; const __tw = String(split.spanAnswer || currentQuestion.en).trim().split(/\s+/).length; const __rv = ui.revealWords || 0; return (__rv < __tw) ? ('💡 단어 하나 더 (' + __rv + '/' + __tw + ')') : '힌트 숨기기'; })()}</button>
+              <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;${ui.revealAnswer ? 'opacity:0.45;pointer-events:none;' : ''}" onclick="window.__toggleVerifyAnswer(${dayN})">${(() => { if (!ui.reveal) return '힌트 보기'; const __tw = String(split.spanAnswer || currentQuestion.en).trim().split(/\s+/).length; const __mx = Math.max(0, __tw - 1); const __rv = ui.revealWords || 0; return (__rv < __mx) ? ('💡 단어 하나 더 (' + __rv + '/' + __mx + ')') : '힌트 숨기기'; })()}</button>
               <button data-voice-btn="1" class="btn btn-ghost" style="background:#fff;color:#7D7A98;border:1px solid #E1DCF8;${ui.revealAnswer ? 'opacity:0.45;pointer-events:none;' : ''}" onclick="window.__startVoiceQuiz(${dayN}, this)">🎤 음성으로 답하기</button>
             </div>
             ${ui.revealAnswer ? `
@@ -13487,7 +13487,7 @@ function WeekReviewPage(weekN) {
         ${currentQuestion.kind === 'syn' && currentQuestion.sourceMain ? `<div class="t-small" style="margin-bottom:14px;color:var(--muted);">유의어 · "${escapeHtml(currentQuestion.sourceMain)}"</div>` : '<div style="height:14px;"></div>'}
         <input class="input" data-wr-input="1" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ${ui.revealAnswer ? 'disabled' : ''} style="${inputStyle}" placeholder="${ui.revealAnswer ? '' : '영어로 입력'}" value="${escapeHtml(ui.value || '')}" oninput="window.__setWeekReviewValue(${weekN}, ${stage}, this.value)" />
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;">
-          <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;${ui.revealAnswer ? 'opacity:0.45;pointer-events:none;' : ''}" onclick="window.__toggleWeekReviewHint(${weekN}, ${stage})">${(() => { if (!ui.reveal) return '힌트 보기'; const __tw = String(split.spanAnswer || currentQuestion.en).trim().split(/\s+/).length; const __rv = ui.revealWords || 0; return (__rv < __tw) ? ('💡 단어 하나 더 (' + __rv + '/' + __tw + ')') : '힌트 숨기기'; })()}</button>
+          <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;${ui.revealAnswer ? 'opacity:0.45;pointer-events:none;' : ''}" onclick="window.__toggleWeekReviewHint(${weekN}, ${stage})">${(() => { if (!ui.reveal) return '힌트 보기'; const __tw = String(split.spanAnswer || currentQuestion.en).trim().split(/\s+/).length; const __mx = Math.max(0, __tw - 1); const __rv = ui.revealWords || 0; return (__rv < __mx) ? ('💡 단어 하나 더 (' + __rv + '/' + __mx + ')') : '힌트 숨기기'; })()}</button>
         </div>
         ${ui.revealAnswer ? `
           <div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:#EAF2FA;border:1px solid rgba(46,111,168,0.35);text-align:left;">
@@ -13598,7 +13598,7 @@ window.__toggleWeekReviewHint = (weekN, stage) => {
   if (!ui.reveal) {
     ui.reveal = true;
     ui.revealWords = 0;
-  } else if ((ui.revealWords || 0) < totalWords) {
+  } else if ((ui.revealWords || 0) < Math.max(0, totalWords - 1)) {
     ui.revealWords = (ui.revealWords || 0) + 1;
   } else {
     ui.reveal = false; ui.revealWords = 0;
@@ -28815,7 +28815,7 @@ window.__toggleVerifyAnswer = (dayN) => {
   if (!ui.reveal) {
     ui.reveal = true;
     ui.revealWords = 0;
-  } else if ((ui.revealWords || 0) < totalWords) {
+  } else if ((ui.revealWords || 0) < Math.max(0, totalWords - 1)) {
     ui.revealWords = (ui.revealWords || 0) + 1;
   } else {
     ui.reveal = false; ui.revealWords = 0;
