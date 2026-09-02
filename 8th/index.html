@@ -1719,6 +1719,7 @@ const defaultState = () => ({
   daily_done_popup_seen: {},        // { "d6": true } '오늘 마무리' 완료 팝업을 그날 본 상태 (하루 1회).
   pre_meeting_todo: {},             // 미팅 전 할 일 수동 체크 { m1: { intro: true } }. 자동 항목(진단·노트)은 여기 안 씀.
   premium_intake: null,             // 프리미엄 D1 진단 12문항 { job, env, level, scene, moment, deadline, stuck[], tried, pressure, goal_track, success, must_know, at }
+  review_counts: {},                // { retake: N, weak: N, random: N } 복습 테스트 횟수 (2026-08-31)
   daily_pulse: {},                  // { "16": { a: 'keep', b: 'time', text: '...', at: ISO } } 데일리 펄스(1~2문항 초경량 설문) 응답. Day 키.
   daily_pulse_skipped: {},          // { "16": true } 그날 '다음에요'로 닫은 상태. 같은 Day 재노출 안 함.
   weekly_quiz_popup_seen: {},       // { "v1": true } 주간 퀴즈/보상 안내 팝업 본 상태. 버전별 키로 다음 주차 새 팝업 재발행 가능.
@@ -1809,6 +1810,7 @@ const PERSISTED_STATE_KEYS = [
   'daily_done_popup_seen',
   'pre_meeting_todo',
   'premium_intake',
+  'review_counts',
   'daily_pulse',
   'daily_pulse_skipped',
   'final_test',
@@ -10454,6 +10456,21 @@ function HomePage() {
       window.__homeTrackCard = trackCard;
     } else { window.__homeTrackCard = null; }
   } catch (e) { window.__homeTrackCard = null; }
+
+  /* ── 🔁 내 복습 현황 + 랜덤 단어 테스트 바로가기 (2026-08-31 버디 요청) ── */
+  try {
+    const rc = state.review_counts || {};
+    const rTotal = (Number(rc.retake) || 0) + (Number(rc.weak) || 0) + (Number(rc.random) || 0) + (Number(rc.sentence) || 0);
+    const revCard = el('div', { style: { marginTop: '14px', padding: '13px 15px', borderRadius: '16px', background: 'var(--paper)', border: '1px solid var(--line)' } });
+    revCard.innerHTML =
+      `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">`
+      + `<div><div style="font-size:10px;font-weight:800;letter-spacing:0.1em;color:var(--muted);">🔁 MY REVIEW</div>`
+      + `<div style="margin-top:4px;font-size:13px;color:var(--ink);font-weight:700;">복습 테스트 <b style="color:var(--orange-dark);">${rTotal}회</b>`
+      + `<span class="t-small" style="margin-left:6px;color:var(--muted);font-weight:600;">다시 보기 ${Number(rc.retake) || 0} · 약점 ${Number(rc.weak) || 0} · 랜덤 ${Number(rc.random) || 0}</span></div></div>`
+      + `<button onclick="window.__openRandomReview()" style="flex-shrink:0;padding:10px 16px;border-radius:999px;border:none;background:var(--orange);color:#fff;font-size:12.5px;font-weight:800;cursor:pointer;">🎲 랜덤 단어 테스트</button>`
+      + `</div>`;
+    page.appendChild(revCard);
+  } catch (e) {}
 
   /* ── 🎯 이번 주 과제: MY TRACK 카드 안 콜아웃으로 (2026-08-14 버디 요청).
      카드가 따로 서 있으면 목표와 과제가 딴 얘기처럼 읽힌다. 트랙 카드가 없으면 단독 카드로. ── */
@@ -28692,7 +28709,39 @@ window.__submitVerifyQuizAnswer = (dayN) => {
     try { const inp = document.querySelector('[data-quiz-input="1"]'); if (inp) inp.focus(); } catch (e) {}
   }
 };
+function bumpReviewCount(kind) {
+  try {
+    state.review_counts = state.review_counts || {};
+    state.review_counts[kind] = (Number(state.review_counts[kind]) || 0) + 1;
+    saveState();
+  } catch (e) {}
+}
+window.__openRandomReview = () => {
+  try {
+    const cDay = Number(state.currentDay) || 0;
+    const pool = [];
+    (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((d) => {
+      if (Number(d.day) > cDay) return;
+      (d.words || []).forEach((w) => { if (w && w.en) pool.push({ en: w.en, ko: w.def || '', ex_en: w.ex_en || '', stat: 'Day ' + d.day + ' 표현' }); });
+    }));
+    if (pool.length < 3) { showToast('아직 배운 단어가 부족해요. 내일 다시 열어봐요!'); return; }
+    const picks = []; const used = new Set();
+    while (picks.length < 5 && used.size < pool.length) {
+      const i = Math.floor(Math.random() * pool.length);
+      if (used.has(i)) continue; used.add(i); picks.push(pool[i]);
+    }
+    bumpReviewCount('random');
+    showSpacedRepeatPopup = {
+      dayN: cDay, _seenKey: 'home-random-review',
+      title: '🎲 랜덤 단어 테스트', subtitle: '지금까지 배운 표현 중 무작위 5개 · 열 때마다 달라져요',
+      words: picks, quiz: true,
+    };
+    render();
+  } catch (e) {}
+};
 window.__restartVerifyQuiz = (dayN) => {
+  // 이미 인증한 날 다시 열면 '다시 보기' 횟수로 집계 (2026-08-31)
+  try { if (state.verified && state.verified['d' + dayN]) bumpReviewCount('retake'); } catch (e) {}
   window.__verifyUi = window.__verifyUi || {};
   window.__verifyUi[dayN] = { idx: 0, value: '', values: ['', ''], done: false, score: 0, activeStep: 'capture', reveal: false, revealAnswer: false };
   // 새 회차엔 복습 문항을 새로 뽑도록 캐시 무효화 (모든 settings 조합 cache key 비우기).
@@ -30375,6 +30424,7 @@ window.__startReview = (mode) => {
     showToast(mode === 'sentence' ? '아직 제출한 문장이 없어요. 먼저 영작을 해보세요!' : '복습할 약점 단어가 없어요. 완벽해요 💪');
     return;
   }
+  bumpReviewCount(mode === 'weak' ? 'weak' : 'sentence');
   let remaining = 0;
   if (mode === 'weak') {
     // 데일리 단어시험 형식: 한 세션 10개 (약점 점수 높은 순), 유의어 문항 최대 5개 추가.
