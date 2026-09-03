@@ -10570,6 +10570,17 @@ function HomePage() {
     page.appendChild(revCard);
   } catch (e) {}
 
+  /* ── 📝 내 문장으로 테스트 바로가기, 프리미엄만 홈 노출 (2026-09-04 버디 요청) ── */
+  try {
+    if (state.tier === 'premium') {
+      let __sentN = 0;
+      try { __sentN = Object.keys(state.sentences || {}).filter((k) => (state.sentences[k] || '').trim()).length; } catch (e) {}
+      const sc = el('button', { style: { display: 'block', width: '100%', textAlign: 'left', marginTop: '10px', padding: '14px 16px', borderRadius: '16px', border: '1px solid rgba(125,92,255,0.3)', background: '#FBFAFF', cursor: 'pointer', fontFamily: 'inherit' }, onClick: () => { go('review'); setTimeout(() => { try { window.__startReview('sentence'); } catch (e) {} }, 150); } });
+      sc.innerHTML = '<div style="display:flex;align-items:center;gap:12px;"><span style="font-size:22px;">📝</span><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:800;color:#5C53A5;">내 문장으로 테스트 <span style="font-size:10px;background:#ECE8FF;color:#5C53A5;padding:2px 7px;border-radius:999px;vertical-align:middle;">PREMIUM</span></div><div class="t-small" style="margin-top:2px;color:var(--ink-soft);">내가 쓴 문장 ' + __sentN + '개로 빈칸 채우기</div></div>' + Icon('arrowRight', 16) + '</div>';
+      page.appendChild(sc);
+    }
+  } catch (e) {}
+
   /* ── 🎯 이번 주 과제: MY TRACK 카드 안 콜아웃으로 (2026-08-14 버디 요청).
      카드가 따로 서 있으면 목표와 과제가 딴 얘기처럼 읽힌다. 트랙 카드가 없으면 단독 카드로. ── */
   try {
