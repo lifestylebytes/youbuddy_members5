@@ -1813,6 +1813,7 @@ const PERSISTED_STATE_KEYS = [
   'premium_intake',
   'review_counts',
   'review_ask_seen',
+  'rr_snooze_day',
   'review_clicked',
   'review_grad_nudged',
   'daily_pulse',
@@ -9600,7 +9601,7 @@ function HomePage() {
     const __rrEntered = currentPage === 'home' && window.__rrLastPage !== 'home';
     window.__rrLastPage = currentPage;
     const __rrCool = !window.__rrLastShownAt || (Date.now() - window.__rrLastShownAt) > 10 * 60 * 1000;
-    if (__rrEntered && __rrCool && __rrDay >= 2 && !showSpacedRepeatPopup && challengeStarted() && guidedTourStep === null && !anyPopupOpen()) {
+    if (__rrEntered && __rrCool && __rrDay >= 2 && Number(state.rr_snooze_day) !== __rrDay && !showSpacedRepeatPopup && challengeStarted() && guidedTourStep === null && !anyPopupOpen()) {
       const __rrPool = [];
       (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((d) => {
         if (Number(d.day) > __rrDay) return;
@@ -27286,6 +27287,7 @@ function SpacedRepeatPopupModal() {
       <button id="__srPlayAll" class="btn btn-ghost btn-full" style="background:transparent;border:1px solid var(--orange-soft);color:var(--orange-dark);font-size:13px;padding:11px;font-weight:700;">🔊 한 번씩 듣고 가기</button>
       ${ctx.quiz ? `<button id="__srStartQuiz" class="btn btn-primary btn-full" style="background:var(--orange);border:none;font-size:14px;padding:13px;">⚡ 미니 퀴즈로 짚고 가기 (3문항)</button>` : ''}
       <button id="__srDone" class="btn btn-${ctx.quiz ? 'ghost' : 'primary'} btn-full" style="${ctx.quiz ? 'background:transparent;border:1px solid var(--line);color:var(--muted);' : 'background:var(--orange);border:none;color:#fff;'}font-size:13px;padding:11px;">${ctx.quiz ? '나중에' : '✓ 다 봤어요 · Day ' + ctx.dayN + ' 시작'}</button>
+      ${ctx._seenKey === 'home-random-review' ? '<button id="__srSnooze" style="background:transparent;border:none;color:var(--muted);font-size:11.5px;padding:5px;cursor:pointer;">오늘은 그만 보기</button>' : ''}
     </div>
   `;
   // 미니 퀴즈, 한국어 보고 영어 채워넣기. ctx.words 3개 순서대로.
@@ -27392,6 +27394,13 @@ function SpacedRepeatPopupModal() {
     const startQuizBtn = document.getElementById('__srStartQuiz');
     if (closeBtn) closeBtn.onclick = () => close(true);
     if (doneBtn) doneBtn.onclick = () => close(true);
+    const snoozeBtn = document.getElementById('__srSnooze');
+    if (snoozeBtn) snoozeBtn.onclick = () => {
+      state.rr_snooze_day = Number(state.currentDay) || 0; // 오늘 하루 홈 랜덤 복습 팝업 끄기 (2026-09-03)
+      try { saveState(); } catch (e) {}
+      showToast('오늘은 안 뜰게요. 내일 다시 만나요 :)');
+      close(true);
+    };
     if (playBtn) playBtn.onclick = playAll;
     if (startQuizBtn) startQuizBtn.onclick = () => {
       quizState = { idx: 0, correct: 0, input: '' };
