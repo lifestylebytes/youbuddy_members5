@@ -14553,7 +14553,7 @@ function renderWeekSurveyCard(weekN) {
   if (!window.__weekSurveyDraft[weekN]) {
     window.__weekSurveyDraft[weekN] = {
       nps: null, difficulty: null, time: null, ai_help: null,
-      ux: null, stuck: null, want_w2: [], comment: '',
+      ux: null, stuck: null, want_w2: [], update_loved: [], comment: '',
     };
   }
   const draft = window.__weekSurveyDraft[weekN];
@@ -14654,6 +14654,15 @@ function renderWeekSurveyCard(weekN) {
       ${sectionH(nextQ(), '친구한테 추천할 가능성?', '0 = 절대 추천 안 함 · 10 = 무조건 추천')}
       ${renderScale('nps', 0, 10, '0', '10')}
     ` : ''}
+
+    ${sectionH(nextQ(), '이번 주 업데이트, 뭐가 좋았어요?', '이번 주에 새로 생긴 기능들이에요 · 복수 선택')}
+    ${renderMulti('update_loved', [
+      { v: 'hint_step', label: '💡 단어시험 힌트가 단어 하나씩 열리는 것' },
+      { v: 'my_review', label: '🎲 복습 테스트 (MY REVIEW · 랜덤 단어 테스트)' },
+      { v: 'home_review', label: '🔁 홈 올 때마다 뜨는 랜덤 복습 팝업' },
+      { v: 'ai_voice', label: '🔊 듣기가 전부 AI 음성으로 바뀐 것' },
+      { v: 'none_yet', label: '아직 못 써봤어요' },
+    ], 5)}
 
     ${sectionH(nextQ(), '단어 난이도는 어땠어요?', '5점 만점 · 3 이 딱 좋음')}
     ${renderScale('difficulty', 1, 5, '1 너무 쉬움', '5 너무 어려움')}
