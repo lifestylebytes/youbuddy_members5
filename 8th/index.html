@@ -10359,7 +10359,7 @@ function HomePage() {
         <div class="t-small" style="margin-top:5px;font-size:12.5px;color:var(--orange-dark);font-weight:700;letter-spacing:-0.01em;display:inline-flex;align-items:center;gap:4px;">${bannerCta}</div>
         ${isFinalWeek ? `<div class="t-small" style="margin-top:6px;font-size:12px;color:var(--ink-soft);font-weight:600;letter-spacing:-0.01em;line-height:1.5;">이거 풀면 4주 단어집 PDF를 받을 수 있어요 🧡</div>` : ''}
         <div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:${isUrgent ? '#1F4F7D' : 'rgba(31,77,56,0.10)'};color:${isUrgent ? '#fff' : '#1F4F7D'};font-size:11px;font-weight:800;letter-spacing:-0.005em;">
-          ⏰ ${isFinalWeek ? FINAL_REVIEW_DEADLINE_LABEL : `다음 주 (Day ${deadlineDay})`}까지만 도전 가능
+          ${isFinalWeek ? '🎓 오늘 밤까지 풀면 내일 수료식에서 호명돼요!' : `⏰ 다음 주 (Day ${deadlineDay})까지만 도전 가능`}
         </div>
       </div>
     `;
@@ -11686,7 +11686,7 @@ function WeeksPage() {
       } else {
         reviewBtn.innerHTML = `
           <span>${w.n === 4 ? '🏆' : '🧠'} ${weekReviewLabelShort(w.n)}${w.n === 4 ? ' (Day 1~20 종합)' : ', 3단계 복습'}${previewTag}</span>
-          <span style="font-size:11px;font-weight:700;color:${limitColor};letter-spacing:-0.005em;">⏰ ${w.n === 4 ? FINAL_REVIEW_DEADLINE_LABEL : `다음 주 (Day ${deadlineDay})`}까지만 도전 가능</span>
+          <span style="font-size:11px;font-weight:700;color:${limitColor};letter-spacing:-0.005em;">${w.n === 4 ? '🎓 오늘 밤까지 풀면 내일 수료식에서 호명!' : `⏰ 다음 주 (Day ${deadlineDay})까지만 도전 가능`}</span>
         `;
       }
       if (w.n === 1) reviewBtn.setAttribute('data-tour', 'week-quiz'); // 가이드 투어: 주간 미션/복습 버튼 강조용
