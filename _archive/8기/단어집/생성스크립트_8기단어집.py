@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 유버디 8기 4주 단어집 PDF 생성기 (7기 스크립트 계승 · 2026-09-03)
-# 변경점: 8기 오렌지 팔레트 · 단어마다 '🧡 버디 톡' 한 줄 추가 (버디 실제 말투, 비유문 없음)
+# 변경점: 8기 오렌지 팔레트 · 단어마다 '♥ 버디 톡' 한 줄 추가 (버디 실제 말투, 비유문 없음)
 import json, html
 d = json.load(open('/tmp/8gi_full.json'))
 BUDDY = json.load(open('버디톡_60줄.json'))
@@ -109,7 +109,7 @@ for wk in d['weeks']:
                 <div class="ex-kr">{e(x['ex_kr'])}</div></div>
               <div class="blk"><span class="lab">이럴 때 써요</span>
                 <div class="nu">{e(x.get('nuance',''))}</div></div>
-              {f'<div class="bd"><b>🧡 버디 톡</b>{e(bl)}</div>' if bl else ''}
+              {f'<div class="bd"><b>♥ 버디 톡</b>{e(bl)}</div>' if bl else ''}
               {f'<div class="syn">{syns}</div>' if syns else ''}
             </div>"""
         P.append(f"""<div class="day">
