@@ -8674,10 +8674,12 @@ function HelpPage() {
           (it.tagName === 'DETAILS' ? [it] : innerD).forEach((d) => {
             const sm2 = d.querySelector('summary');
             const spans = sm2 ? sm2.querySelectorAll('span') : [];
-            const title = spans[1] ? spans[1].textContent.trim() : (sm2 ? sm2.textContent.trim() : '글');
+            let title = spans[1] ? spans[1].textContent.trim() : (sm2 ? sm2.textContent.trim() : '글');
+            const isNew = /^NEW/.test(title);
+            if (isNew) title = title.replace(/^NEW\s*/, '').trim();
             const emoji = spans[0] ? spans[0].textContent.trim() : meta2[0];
             const bodyEl = d.children[1] || null;
-            posts.push({ cat: meta2[1], catId: g.id, emoji, title, nodes: bodyEl ? [bodyEl] : [] });
+            posts.push({ cat: meta2[1], catId: g.id, emoji, title, isNew, nodes: bodyEl ? [bodyEl] : [] });
           });
           return;
         }
@@ -8781,7 +8783,7 @@ function HelpPage() {
       row.innerHTML = `
         <span style="flex-shrink:0;width:36px;height:36px;border-radius:11px;background:${isQ ? 'rgba(123,94,140,0.12)' : 'var(--paper2,#F7F4EE)'};display:grid;place-items:center;font-size:17px;">${p.emoji}</span>
         <span style="flex:1;min-width:0;">
-          <span style="display:block;font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.45;">${escapeHtml(p.title)}</span>
+          <span style="display:block;font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.45;">${p.isNew ? '<span style="display:inline-block;margin-right:6px;padding:1.5px 8px;border-radius:999px;border:1.2px solid #E8720C;color:#E8720C;font-size:9.5px;font-weight:800;letter-spacing:0.06em;vertical-align:1.5px;">NEW</span>' : ''}${escapeHtml(p.title)}</span>
           <span style="display:block;margin-top:2px;font-size:11px;color:${isQ ? '#7B5E8C' : 'var(--muted)'};font-weight:700;">${escapeHtml(p.cat)}</span>
         </span>
         <span style="flex-shrink:0;color:var(--muted);font-size:13px;">›</span>`;
