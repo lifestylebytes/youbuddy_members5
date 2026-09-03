@@ -8329,6 +8329,7 @@ function HelpPage() {
         <span data-fold-x style="flex-shrink:0;color:var(--muted);font-size:12px;font-weight:800;">＋</span>
       </summary>
       <div style="padding:2px 16px 16px 61px;font-size:13px;line-height:1.75;color:var(--ink-soft);border-left:none;">${bodyHtml}</div>`;
+    if (String(title).includes('>NEW<')) d.style.position = 'relative';
     d.addEventListener('toggle', () => {
       const x = d.querySelector('[data-fold-x]');
       if (x) x.textContent = d.open ? '－' : '＋';
@@ -8517,33 +8518,34 @@ function HelpPage() {
     page.appendChild(lock);
   }
   if (__seesQna) {
-  const NEWB = '<span style="display:inline-block;margin-right:6px;padding:2px 7px;border-radius:8px;background:#E8443A;color:#fff;font-size:9px;font-weight:800;letter-spacing:0.05em;vertical-align:2px;">NEW</span>';
+  const NEWB = '<span style="position:absolute;top:8px;right:12px;padding:3px 10px;border-radius:999px;background:#E8443A;color:#fff;font-size:9.5px;font-weight:800;letter-spacing:0.08em;box-shadow:0 2px 6px rgba(232,68,58,0.35);">NEW</span>';
   foldCard(NEWB + '면접 답변, 어떻게 시작해야 좋나요?', `
-    W4 미팅에서 EJ 님이 이직 면접 대비 발표를 했어요. 발표 후 Q&A에서 실제 면접 단골 질문들이 나왔죠.
-    커리어에서 가장 힘들었던 것(pain point), 거기서 배운 것(lesson learned), 코디네이터로서 나만의 강점.<br><br>
+    W4 미팅에서 영어 면접을 주제로 한 발표가 있었어요. 발표 후 Q&A에서 실제 면접 단골 질문들이 나왔죠.
+    커리어에서 가장 힘들었던 것(pain point), 거기서 배운 것(lesson learned), 내 직무에서 나만의 강점.<br><br>
     거기서 같이 도달한 답: <b>결론 한 단어를 먼저 던지고, 설명은 그다음에</b> 하는 거예요.<br><br>
     <span style="font-family:var(--font-mono);font-size:12.5px;">"My biggest strength? <b>Resourcefulness.</b> Let me give you an example..."<br>"The hardest part was X. And the lesson was <b>agile problem solving.</b> Here's what happened..."</span><br><br>
     면접관은 하루에 수십 개 답변을 들어요. 키워드가 먼저 오면 그 뒤 설명이 전부 그 단어의 근거로 들리고, 설명이 먼저 오면 결론 나오기 전에 집중이 끊깁니다.<br><br>
-    여기에 <b>내 산업의 전문 어휘</b>(EJ 님이면 배터리 제조)를 답변에 심으면 전문성까지 잡혀요.
-    9월 목표: 마스터 이력서 완성 + 예상 질문별 두괄식 답변 준비. 같은 상황이신 분들 그대로 가져가셔도 됩니다 :)`, PREM_C);
+    여기에 <b>내 산업의 전문 어휘</b>를 답변에 심으면 전문성까지 잡혀요.
+    면접 준비 중이시라면 그대로 가져가셔도 됩니다 :)`, PREM_C);
   foldCard(NEWB + '대본 없이 하는 대면 발표, 어떻게 준비하나요?', `
-    Tracy 님 상황이었어요. 동료 출산휴가로 글로벌 프로젝트를 인수인계받았는데,
-    10월에 글로벌 PM이 한국 오피스에 와요. 화상은 스크립트를 곁에 둘 수 있지만 대면은 그게 안 되죠.<br><br>
-    Tracy 님이 세운 방법: <b>문장을 외우는 게 아니라, 내 실무 문장 재고를 만들어두는 것.</b><br><br>
+    미팅에서 나온 상황이에요. 갑자기 글로벌 업무를 넘겨받았는데, 조만간 해외 담당자가 한국 오피스에 와서
+    대면 발표를 해야 하는 상황. 화상은 스크립트를 곁에 둘 수 있지만 대면은 그게 안 되죠.<br><br>
+    같이 도달한 방법: <b>문장을 외우는 게 아니라, 내 실무 문장 재고를 만들어두는 것.</b><br><br>
     <b>1)</b> 내 역할과 회사 정책을 설명하는 핵심 실무 문장 200개를 직접 요약·정리<br>
-    <b>2)</b> 9월 한 달 동안 이 문장들을 입에 붙이기 (읽는 게 아니라 소리 내어)<br>
+    <b>2)</b> 발표 전 한 달 동안 이 문장들을 입에 붙이기 (읽는 게 아니라 소리 내어)<br>
     <b>3)</b> 모의 발표(mock presentation)로 대본 없는 상황을 미리 여러 번 겪어두기<br><br>
     대면 발표가 무서운 이유는 "그 자리에서 문장을 만들어야 해서"예요.
     미리 만들어둔 문장에서 꺼내 쓰는 거라면, 대면도 화상과 다를 게 없어집니다.
     유비챌에서 매일 쓴 내 문장들이 바로 이 재고의 시작이에요. MY SCRIPTS 열어보세요 :)`, PREM_C);
   foldCard(NEWB + '복잡한 기획 문서, 영어로 어떻게 전달하나요?', `
-    Hera 님이 새 HR 휴가 관리 시스템 PRD를 개발팀에 영어로 설명해야 하는 상황이었어요.
-    문서가 복잡할수록 "빠짐없이 다 전달해야 한다"는 부담에 대본을 통째로 외우게 되는데, 그게 함정입니다.<br><br>
-    발표에서 확인된 것: <b>AI로 스크립트 초안을 만들되, 외우지 말고 내 말투로 바꿔서 말하기.</b>
+    복잡한 기획 문서를 개발팀에 영어로 설명해야 할 때, "빠짐없이 다 전달해야 한다"는 부담에
+    대본을 통째로 외우게 되는데, 그게 함정입니다.<br><br>
+    꿀팁은 이거예요. <b>AI로 스크립트 초안을 만들되, 외우지 말고 내 말투로 바꿔서 말하기.</b>
+    (H님이 적극적으로 추천해주신 방법이에요!)
     기계적으로 외운 문장은 하나 막히면 전체가 무너지는데, 내 말로 소화한 내용은 표현이 달라져도 이어져요.
-    전달력도 유창성도 이쪽이 확실히 좋았습니다.<br><br>
-    Hera 님의 9월 목표는 배운 표현을 소리 내어 말하면서 <b>의견 개진 속도를 끌어올리는 것.</b>
-    복잡한 내용일수록 문장을 완벽하게가 아니라, 말하는 속도와 리듬을 유지하는 게 설득력을 만들어요.`, PREM_C);
+    전달력도 유창성도 이쪽이 확실히 좋습니다.<br><br>
+    복잡한 내용일수록 문장을 완벽하게가 아니라, <b>말하는 속도와 리듬을 유지하는 게</b> 설득력을 만들어요.
+    배운 표현을 소리 내어 말하면서 속도를 끌어올려 보세요.`, PREM_C);
   foldCard('대면에서 단어가 생각 안 날 때는요?', `
     단어를 모르는 게 문제가 아니라 <b>멈추는 게</b> 문제예요. 원어민도 매일 단어가 안 떠오릅니다. 다만 안 멈출 뿐이에요.<br><br>
     <b>1) 시간 벌기</b> (2초만 벌면 대부분 떠올라요)<br>
@@ -8705,7 +8707,7 @@ function HelpPage() {
       // 나무위키식 개요 안내 박스 (2026-08-14). 드립은 카테고리별로 다르게.
       const notice = el('div', { style: { marginTop: '14px', padding: '11px 14px', borderRadius: '10px', background: 'var(--paper2,#FAF8F3)', border: '1px solid var(--line)', fontSize: '12px', lineHeight: '1.7', color: 'var(--ink-soft)' } });
       const noticeTxt = isQ
-        ? `이 문서는 <b>8기 프리미엄 미팅에서 실제로 나온 질문</b>을 다룹니다. <span style="text-decoration:line-through;opacity:0.6;">질문한 사람이 누군지는 버디만 알아요</span> 매주 목요일마다 늘어나요.`
+        ? `이 문서는 <b>8기 프리미엄 미팅에서 실제로 나온 질문</b>을 다룹니다. 매주 목요일마다 늘어나요.`
         : (found.catId === 'help-faq'
           ? `이 문서는 유비챌에서 <b>제일 많이 들어오는 질문</b>을 다룹니다. <span style="text-decoration:line-through;opacity:0.6;">읽고 나면 물어볼 게 없어져서 곤란해요</span>`
           : `이 문서는 유비챌 8기 <b>공식 설명서</b>의 일부입니다. <span style="text-decoration:line-through;opacity:0.6;">공식인지는 아무도 검증한 적 없어요</span> 안 읽어도 챌린지는 굴러가지만 읽으면 확실히 편해요.`);
