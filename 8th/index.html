@@ -3077,6 +3077,7 @@ function routeToHash() {
         return window.__weekSurveyResult ? `#survey/${window.__weekSurveyResult.weekN}` : '#home';
       case 'vocab-stats': return '#vocab-stats';
       case 'my-review': return '#my-review';
+      case 'quiz': return '#quiz';
       case 'weak-test': return '#weak-test';
       case 'meeting-deck': return '#meeting-deck';
       case 'screenshot-guide': return '#screenshot-guide';
@@ -3153,6 +3154,9 @@ function applyHashRoute(rawHash) {
       return true;
     case 'my-review':
       currentPage = 'my-review';
+      return true;
+    case 'quiz':
+      currentPage = 'quiz';
       return true;
     case 'random-test':
       // 단어집 표지 QR 진입점 (2026-09-04): 홈에서 랜덤 단어 테스트 팝업 자동 오픈.
@@ -14514,11 +14518,12 @@ function renderBingoDrill(page, weekN, week, drill) {
       </div>
       ${w.ex_kr ? `<div class="t-small" style="margin-top:14px;padding-top:10px;border-top:1px dashed rgba(46,111,168,0.25);color:var(--ink-soft);font-size:12.5px;line-height:1.5;">💡 ${escapeHtml(w.ex_kr)}</div>` : ''}
       ${w.def ? `<div class="t-small" style="margin-top:4px;color:var(--muted);font-size:11.5px;">뜻 · ${escapeHtml(w.def)}</div>` : ''}
-      ${drill.reveal ? `<div style="margin-top:14px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);text-align:center;">${escapeHtml(typeof buildVerifyHintMask === 'function' ? buildVerifyHintMask(w.en) : w.en)}</div>` : ''}
+      ${drill.reveal && !drill.showAns ? `<div style="margin-top:14px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);text-align:center;">${escapeHtml(typeof buildVerifyHintMask === 'function' ? buildVerifyHintMask(w.en) : w.en)}</div>` : ''}
+      ${drill.showAns ? `<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#EAF3DE;border:1px solid rgba(74,160,124,0.4);text-align:center;"><div style="font-size:10.5px;font-weight:800;letter-spacing:0.08em;color:#3B6D11;">정답</div><div style="margin-top:4px;font-size:22px;font-weight:800;color:#2E6B4F;">${escapeHtml(w.en)}</div></div>` : ''}
     </div>
     <div style="display:flex;gap:8px;margin-top:14px;">
-      <button onclick="window.__bingoDrillToggleHint(${weekN})" style="flex:1;padding:12px;border-radius:12px;background:#fff;color:var(--ink);border:1px solid var(--line);font-size:13px;font-weight:700;cursor:pointer;">${drill.reveal ? '힌트 숨기기' : '💡 힌트 보기'}</button>
-      <button onclick="window.__bingoDrillSkip(${weekN})" style="flex:1;padding:12px;border-radius:12px;background:#4F4438;color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;">모르겠어요 · 다음</button>
+      ${!drill.showAns ? `<button onclick="window.__bingoDrillToggleHint(${weekN})" style="flex:1;padding:12px;border-radius:12px;background:#fff;color:var(--ink);border:1px solid var(--line);font-size:13px;font-weight:700;cursor:pointer;">${drill.reveal ? '힌트 숨기기' : '💡 힌트 보기'}</button>` : ''}
+      <button onclick="window.__bingoDrillSkip(${weekN})" style="flex:1;padding:12px;border-radius:12px;background:#4F4438;color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;">${drill.showAns ? '확인했어요 · 다음' : '모르겠어요'}</button>
     </div>
     ${isOperator ? `<button onclick="window.__bingoDrillOperatorAuto(${weekN})" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;background:rgba(125,92,255,0.10);color:#5C53A5;border:1px dashed rgba(125,92,255,0.4);font-size:11.5px;font-weight:700;cursor:pointer;">⚙️ 운영자 자동 입력 (테스트)</button>` : ''}
   `;
@@ -15107,7 +15112,7 @@ window.__startFinalTest = function () {
       const others = allDefs.filter((d) => d !== w.def);
       if (others.length) shownDef = others[Math.floor(Math.random() * others.length)];
     }
-    return { en: w.en, shownDef, answer: shownDef === w.def };
+    return { en: w.en, shownDef, def: w.def, answer: shownDef === w.def };
   });
 
   // 객관식 4, 영어 표현 → 한국어 뜻 4지선다
@@ -15164,19 +15169,19 @@ window.__submitFinalTest = function () {
     const val = draft.ox[i] != null ? draft.ox[i] : null; // 'O' | 'X'
     const correct = val != null && ((val === 'O') === q.answer);
     if (correct) score += 1;
-    answers.ox.push({ en: q.en, picked: val, correct });
+    answers.ox.push({ en: q.en, picked: val, correct, answer: q.answer, shownDef: q.shownDef, def: q.def });
   });
   sess.mc.forEach((q, i) => {
     const idx = draft.mc[i] == null ? -1 : Number(draft.mc[i]);
     const correct = idx === q.correctIdx;
     if (correct) score += 1;
-    answers.mc.push({ en: q.en, pickedIdx: idx, correct });
+    answers.mc.push({ en: q.en, pickedIdx: idx, correct, def: q.def, pickedText: (idx >= 0 && q.choices) ? q.choices[idx] : '' });
   });
   sess.fill.forEach((q, i) => {
     const val = (draft.fill[i] || '').trim();
     const correct = val.toLowerCase() === String(q.en).toLowerCase();
     if (correct) score += 1;
-    answers.fill.push({ en: q.en, typed: val, correct });
+    answers.fill.push({ en: q.en, typed: val, correct, def: q.def, ex_kr: q.ex_kr });
   });
   sess.writing.forEach((q, i) => {
     answers.writing.push({ en: q.en, text: (draft.writing[i] || '').trim() });
@@ -15332,9 +15337,9 @@ function __renderFinalTestResult(page, sess) {
   const review = el('div', { style: { margin: '0 18px 14px' } });
   let rHtml = '<div class="kicker" style="color:var(--orange-dark);margin-bottom:8px;">📋 채점 결과</div>';
   const line = (label, ok, detail) => `<div style="display:flex;align-items:flex-start;gap:8px;padding:9px 12px;background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;"><span style="flex-shrink:0;">${ok ? '✅' : '❌'}</span><div style="flex:1;min-width:0;font-size:12.5px;line-height:1.5;color:var(--ink);">${label}${detail ? `<div style="margin-top:2px;font-size:11px;color:var(--muted);">${detail}</div>` : ''}</div></div>`;
-  (r.answers.ox || []).forEach((a, i) => { rHtml += line(`OX ${i + 1} · <b>${safe(a.en)}</b>`, a.correct, a.correct ? '' : '정답을 다시 확인해보세요'); });
-  (r.answers.mc || []).forEach((a, i) => { rHtml += line(`객관식 ${i + 1} · <b>${safe(a.en)}</b>`, a.correct, ''); });
-  (r.answers.fill || []).forEach((a, i) => { rHtml += line(`빈칸 ${i + 1} · <b>${safe(a.en)}</b>`, a.correct, a.correct ? '' : `입력: "${safe(a.typed || '-')}" → 정답: ${safe(a.en)}`); });
+  (r.answers.ox || []).forEach((a, i) => { rHtml += line(`OX ${i + 1} · <b>${safe(a.en)}</b>`, a.correct, a.correct ? '' : `정답: ${a.answer ? 'O (맞는 뜻이었어요)' : 'X (다른 단어의 뜻이었어요)'}${a.def ? ` · 실제 뜻: ${safe(a.def)}` : ''}`); });
+  (r.answers.mc || []).forEach((a, i) => { rHtml += line(`객관식 ${i + 1} · <b>${safe(a.en)}</b>`, a.correct, a.correct ? '' : `내 선택: ${safe(a.pickedText || '무응답')} → 정답: ${safe(a.def || '')}`); });
+  (r.answers.fill || []).forEach((a, i) => { rHtml += line(`빈칸 ${i + 1} · <b>${safe(a.en)}</b>`, a.correct, a.correct ? '' : `입력: "${safe(a.typed || '-')}" → 정답: ${safe(a.en)}${a.def ? ` (${safe(a.def)})` : ''}`); });
   review.innerHTML = rHtml;
   page.appendChild(review);
 
@@ -16003,7 +16008,14 @@ window.__bingoDrillSkip = (weekN) => {
   const drill = (window.__bingoDrill || {})[weekN];
   if (!drill || drill.done) return;
   const w = drill.queue[drill.idx];
-  if (w) recordVocabSkip(w.en);
+  // 빈칸(cloze) 문제: 첫 클릭은 정답을 먼저 보여주고, 두 번째 클릭에 넘어간다 (2026-09-04 버디)
+  if (w && w.mode !== 'recognition' && !drill.showAns && !drill.revealAnswer) {
+    drill.showAns = true;
+    if (w) recordVocabSkip(w.en);
+    render();
+    return;
+  }
+  drill.showAns = false;
   // 스킵 = 틀린 거 (학습 복습 대상)
   drill.wrongWords = drill.wrongWords || [];
   if (w) drill.wrongWords.push(w);
