@@ -153,19 +153,21 @@ s_css_anchor = '.ls-f {'
 assert s_css_anchor in CSS
 
 def idx_rows(items, hide):
+    # items = (원번호, (en, ko, day, is_syn)) · 번호는 APPENDIX 1 기준 고정 (테스트에서도 동일 → 정답 찾기 쉬움)
     rows = []
-    for n, (en, ko, day, is_syn) in enumerate(items, 1):
+    for n, (en, ko, day, is_syn) in items:
         en_html = '<span class="blank"></span>' if hide == 'en' else e(en)
         ko_html = '<span class="blank"></span>' if hide == 'ko' else e(ko)
         cls = 'en syn' if is_syn else 'en'
         rows.append(f'<div class="idx-row{" tst-row" if hide else ""}"><span class="n">{n:03d}</span><span class="{cls}">{en_html}</span><span class="ko">{ko_html}</span></div>')
     return ''.join(rows)
 
+NUMBERED = list(enumerate(ALL_WORDS, 1))
 import random
 rnd = random.Random(8)
-SHUF = ALL_WORDS[:]
+SHUF = NUMBERED[:]
 rnd.shuffle(SHUF)
-HALF_A, HALF_B = SHUF[:90], SHUF[90:]
+HALF_A, HALF_B = SHUF[:90], SHUF[90:]  # 순서는 랜덤 유지, 앞 번호만 APPENDIX 1 정답 번호
 
 APPX = []
 QR_B64 = open('/tmp/qr_weak.b64').read().strip()
@@ -175,9 +177,9 @@ APPX.append(f"""<div class="appx"><div class="ap-h" style="display:flex;align-it
     <img src="data:image/png;base64,{QR_B64}" style="width:17mm;height:17mm;"/>
     <div style="font-size:5.8pt;color:#6B6260;font-weight:700;margin-top:.5mm;line-height:1.3;">QR 찍으면 앱에서<br/>약점 단어 테스트</div>
   </div>
-</div><div class="idx-cols">{idx_rows(ALL_WORDS, None)}</div></div>""")
-APPX.append(f"""<div class="appx"><div class="ap-h"><div class="no">APPENDIX 2 · SELF TEST A</div><div class="ti">영어 보고 뜻 쓰기 · 90</div><div class="sub">무작위 순서 · 프린트해서 손으로 채워보세요. 정답은 APPENDIX 1</div></div><div class="idx-cols">{idx_rows(HALF_A, 'ko')}</div></div>""")
-APPX.append(f"""<div class="appx"><div class="ap-h"><div class="no">APPENDIX 2 · SELF TEST B</div><div class="ti">뜻 보고 영어 쓰기 · 90</div><div class="sub">무작위 순서 · 입으로 먼저 말하고, 손으로 확인하세요</div></div><div class="idx-cols">{idx_rows(HALF_B, 'en')}</div></div>""")
+</div><div class="idx-cols">{idx_rows(NUMBERED, None)}</div></div>""")
+APPX.append(f"""<div class="appx"><div class="ap-h"><div class="no">APPENDIX 2 · SELF TEST A</div><div class="ti">영어 보고 뜻 쓰기 · 90</div><div class="sub">무작위 추출 90개 · 앞 번호 = APPENDIX 1 정답 번호예요. 채우고 바로 맞춰보세요</div></div><div class="idx-cols">{idx_rows(HALF_A, 'ko')}</div></div>""")
+APPX.append(f"""<div class="appx"><div class="ap-h"><div class="no">APPENDIX 2 · SELF TEST B</div><div class="ti">뜻 보고 영어 쓰기 · 90</div><div class="sub">나머지 90개 · 앞 번호 = APPENDIX 1 정답 번호. 입으로 먼저, 손으로 확인</div></div><div class="idx-cols">{idx_rows(HALF_B, 'en')}</div></div>""")
 
 CSS = CSS + IDX_CSS
 for a in APPX: P.append(a)
