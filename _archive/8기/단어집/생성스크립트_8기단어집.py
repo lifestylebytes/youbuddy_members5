@@ -196,6 +196,8 @@ P.append(f"""<div class="last">
 </div>""")
 
 html_doc = f'<html><head><meta charset="utf-8"><style>{CSS}</style></head><body>{"".join(P)}</body></html>'
+# 가운뎃점 전부 슬래시로 (2026-09-04 버디 요청 · 원고 출처 무관 전체 적용)
+html_doc = html_doc.replace(' · ', ' / ').replace('·', '/')
 open('/tmp/8gi_vocab.html', 'w').write(html_doc)
 from weasyprint import HTML
 HTML(string=html_doc).write_pdf('/tmp/유버디_8기_4주단어집.pdf')
