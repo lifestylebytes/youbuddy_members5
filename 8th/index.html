@@ -1720,6 +1720,7 @@ const defaultState = () => ({
   pre_meeting_todo: {},             // 미팅 전 할 일 수동 체크 { m1: { intro: true } }. 자동 항목(진단·노트)은 여기 안 씀.
   premium_intake: null,             // 프리미엄 D1 진단 12문항 { job, env, level, scene, moment, deadline, stuck[], tried, pressure, goal_track, success, must_know, at }
   review_counts: {},                // { retake: N, weak: N, random: N } 복습 테스트 횟수 (2026-08-31)
+  review_ask_seen: false,           // 수료 후기 부탁 팝업 1회 노출 여부 (2026-09-03)
   daily_pulse: {},                  // { "16": { a: 'keep', b: 'time', text: '...', at: ISO } } 데일리 펄스(1~2문항 초경량 설문) 응답. Day 키.
   daily_pulse_skipped: {},          // { "16": true } 그날 '다음에요'로 닫은 상태. 같은 Day 재노출 안 함.
   weekly_quiz_popup_seen: {},       // { "v1": true } 주간 퀴즈/보상 안내 팝업 본 상태. 버전별 키로 다음 주차 새 팝업 재발행 가능.
@@ -1811,6 +1812,7 @@ const PERSISTED_STATE_KEYS = [
   'pre_meeting_todo',
   'premium_intake',
   'review_counts',
+  'review_ask_seen',
   'daily_pulse',
   'daily_pulse_skipped',
   'final_test',
@@ -15279,8 +15281,13 @@ window.__openFinalDownloads = function () {
     };
     // 수료 설문을 제출해야 최종 자료가 열린다. (2026-08-14 버디 확정)
     // 7기 교훈: 후기를 따로 부탁하면 0건. 보상 직전이 응답률이 제일 높은 자리다.
-    if (state.grad_survey && state.grad_survey.at) { proceed(); return; }
-    try { window.__openGradSurvey(proceed); } catch (e) { proceed(); }
+    // 2026-09-03: 설문 뒤에 랫피드 후기 부탁 스텝 추가 (강제 아님 · 초안 자동 작성 · 1회만).
+    const withReview = () => {
+      if (state.review_ask_seen) { proceed(); return; }
+      try { window.__openReviewAsk(proceed); } catch (e) { proceed(); }
+    };
+    if (state.grad_survey && state.grad_survey.at) { withReview(); return; }
+    try { window.__openGradSurvey(withReview); } catch (e) { withReview(); }
   };
   modal.querySelector('[data-fd-notion]').onclick = () => {
     markDownload('notion_at');
@@ -15297,6 +15304,50 @@ window.__openFinalDownloads = function () {
    "나중에 한다면"으로 묻는다. 판매 문구 금지.
    응답은 state.grad_survey 로 서버 동기화 (운영자는 app_state 에서 집계).
    ============================================================ */
+// 랫피드 후기 부탁 팝업 · PDF 직전, 강제 없음 (2026-09-03 버디 요청)
+// 백지 공포 해소가 핵심: 본인 실데이터(인증 일수)로 후기 초안을 미리 써준다.
+window.__openReviewAsk = function (onDone) {
+  const done = typeof onDone === 'function' ? onDone : function () {};
+  let vc = 0; const tot = (CHALLENGE.total_days || 20);
+  for (let i = 1; i <= tot; i++) { if (state.verified && state.verified['d' + i]) vc++; }
+  const draft = tot + '일 중 ' + vc + '일을 인증하며 완주했어요. 혼자서는 늘 흐지부지됐는데, 매일 인증하고 챙겨주는 시스템 덕분에 처음으로 영어 공부가 안 끊겼습니다. 토익 단어가 아니라 회의에서 진짜 쓰는 표현이라, 배운 날 바로 써먹은 게 많아요.';
+  const backdrop = el('div', { class: 'modal-backdrop', 'data-review-ask-popup': '1' });
+  const finish = () => {
+    state.review_ask_seen = true;
+    try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+    backdrop.remove();
+    done();
+  };
+  backdrop.onclick = (e) => { if (e.target === backdrop) finish(); };
+  const modal = el('div', { class: 'modal', style: { width: 'min(92vw, 400px)', padding: '0', borderRadius: '24px', overflow: 'hidden', background: '#fff', border: '1px solid var(--line)' } });
+  modal.innerHTML = `
+    <div style="padding:24px 22px 16px;background:linear-gradient(135deg, #FFF1E5 0%, #FFE4D0 100%);text-align:center;">
+      <div style="font-size:38px;line-height:1;">🙏</div>
+      <div style="margin-top:8px;font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;line-height:1.4;">단어집 드리기 전에,<br>딱 1분만 부탁드려도 될까요?</div>
+      <div class="t-small" style="margin-top:8px;font-size:12px;color:var(--ink-soft);line-height:1.6;">여러분의 후기 한 줄이 다음 기수 누군가에겐<br>시작할 용기가 돼요. 초안까지 써뒀어요 :)</div>
+    </div>
+    <div style="padding:16px 20px 20px;">
+      <div style="padding:12px 14px;border-radius:14px;background:#FBF7F0;border:1px solid var(--line);font-size:12.5px;color:var(--ink);line-height:1.65;">${escapeHtml(draft)}</div>
+      <div class="t-small" style="margin-top:6px;font-size:11px;color:var(--muted);">↑ 본인 얘기로 고쳐 쓰시면 더 좋아요!</div>
+      <button data-ra-copy class="btn btn-ghost btn-full" style="margin-top:12px;background:#fff;border:1px solid var(--line);color:var(--ink);font-size:13px;padding:11px;font-weight:700;">📋 초안 복사하기</button>
+      <button data-ra-go class="btn btn-primary btn-full" style="margin-top:8px;background:var(--orange);border:none;color:#fff;font-size:14px;padding:13px;font-weight:800;">⭐ 후기 남기고 단어집 받기 →</button>
+      <button data-ra-skip style="display:block;width:100%;margin-top:10px;background:transparent;border:none;color:var(--muted);font-size:11.5px;cursor:pointer;padding:6px;">다음에요, 단어집 먼저 받을게요</button>
+    </div>
+  `;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  modal.querySelector('[data-ra-copy]').onclick = () => {
+    try { navigator.clipboard.writeText(draft); showToast('초안을 복사했어요! 붙여넣고 고쳐 쓰세요 🧡'); } catch (e) { showToast('복사가 안 되면 길게 눌러 복사해주세요'); }
+  };
+  modal.querySelector('[data-ra-go]').onclick = () => {
+    try { navigator.clipboard.writeText(draft); } catch (e) {}
+    window.open('https://www.latpeed.com/products/en0l_', '_blank', 'noopener');
+    showToast('초안도 복사해뒀어요. 후기 칸에 붙여넣기만 하면 돼요!');
+    setTimeout(finish, 400);
+  };
+  modal.querySelector('[data-ra-skip]').onclick = finish;
+};
+
 window.__openGradSurvey = function (onDone) {
   if (document.querySelector('[data-grad-survey]')) return;
   const bd = el('div', { class: 'modal-backdrop', 'data-grad-survey': '1', style: { zIndex: '9800' } });
