@@ -33300,6 +33300,7 @@ function MeetingDeckPage() {
     }
   }
   window.__wsForceRefresh = function (d0, d1) {
+    try { if (typeof window.__loadMeetingMemberNotes === 'function') window.__loadMeetingMemberNotes(__curMid(), true); } catch (e) {}
     for (let d = d0; d <= d1; d++) { loadCommunityPosts(d, { force: true }).then(function () { try { render(); } catch (e) {} }); }
     try { showToast('문장을 다시 불러와요'); } catch (e) {}
   };
@@ -33326,6 +33327,22 @@ function MeetingDeckPage() {
         };
       });
     }
+    // 직접 고른 문장(pre_submit)이 있으면 그게 최우선. 인증 문장은 폴백. (2026-09-03 버디)
+    try {
+      const __wsMid = __curMid();
+      if (hasSupabase() && typeof window.__loadMeetingMemberNotes === 'function') { try { window.__loadMeetingMemberNotes(__wsMid); } catch (e) {} }
+      const __wsNotes = (meetingMemberNotesCache[__wsMid] && meetingMemberNotesCache[__wsMid].rows) || [];
+      __wsNotes.forEach(function (r) {
+        if ((r.tier || '') !== 'premium') return;
+        const ps = (r.timeline || {}).pre_submit;
+        if (!ps || !(ps.en || '').trim()) return;
+        const k = r.member_key || r.member_name; if (!k) return;
+        __wsBy[k] = {
+          name: displayName({ englishName: r.english_name, name: r.member_name, me: r.member_key === memberKey() }),
+          word: '', en: ps.en, day: null, picked: true,
+        };
+      });
+    } catch (e) {}
     const __wsList = Object.values(__wsBy);
     body += '<div style="margin-top:13px;padding:13px 14px;border-radius:14px;background:#F0F6FC;border:1px solid rgba(46,111,168,0.22);">'
       + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
@@ -33334,7 +33351,7 @@ function MeetingDeckPage() {
       + (__wsList.length
         ? '<div style="margin-top:9px;display:flex;flex-direction:column;gap:7px;">' + __wsList.map(function (x) {
             return '<div style="padding:9px 12px;border-radius:11px;background:#fff;border:1px solid rgba(46,111,168,0.14);">'
-              + '<div style="font-size:11.5px;font-weight:800;color:var(--ink-soft);">' + escapeHtml(x.name) + ' · Day ' + x.day + (x.word ? ' · ' + escapeHtml(x.word) : '') + '</div>'
+              + '<div style="font-size:11.5px;font-weight:800;color:var(--ink-soft);">' + escapeHtml(x.name) + (x.picked ? ' · <span style="color:#3B6D11;">✅ 직접 고른 문장</span>' : ' · Day ' + x.day + (x.word ? ' · ' + escapeHtml(x.word) : '')) + '</div>'
               + '<div style="margin-top:3px;font-size:13.5px;font-family:var(--font-mono);font-weight:700;color:#1F4F7D;line-height:1.5;">' + escapeHtml(x.en) + '</div></div>';
           }).join('') + '</div>'
         : '<div style="margin-top:8px;font-size:12.5px;color:var(--ink-soft);">' + (__wsLoading ? '문장 불러오는 중이에요...' : '이번 주 제출된 문장이 아직 없어요.') + '</div>')
