@@ -15240,7 +15240,7 @@ function __renderFinalTestResult(page, sess) {
 window.__openFinalDownloads = function () {
   const existing = document.querySelector('[data-final-download-popup]');
   if (existing) existing.remove();
-  const driveUrl = 'https://drive.google.com/file/d/1AUq7UniMf5omWYA5ZaaTOk--AqffE_AS/view?usp=sharing';
+  const driveUrl = 'https://drive.google.com/drive/folders/1OE-V2y4_46h6ewd6lUbLmf-qvTfyIfW7?usp=sharing';
   // 단어집 PDF 게이트 = 18일+ 인증 AND 파이널 테스트 완료 (운영자/스태프 예외).
   const __fdTotal = (typeof CHALLENGE !== 'undefined' && CHALLENGE.total_days) || 20;
   let __fdVc = 0; for (let __d = 1; __d <= __fdTotal; __d++) { if ((state.verified && state.verified['d' + __d]) || (state.verified_late && state.verified_late['d' + __d])) __fdVc++; }
@@ -24823,7 +24823,7 @@ function FinalReportPage() {
         return;
       }
       // 4주 단어집 PDF, 구글 드라이브 링크로 이동 (인앱 생성 대신).
-      const driveUrl = 'https://drive.google.com/file/d/1AUq7UniMf5omWYA5ZaaTOk--AqffE_AS/view?usp=sharing';
+      const driveUrl = 'https://drive.google.com/drive/folders/1OE-V2y4_46h6ewd6lUbLmf-qvTfyIfW7?usp=sharing';
       showToast('구글 드라이브에서 4주 단어집 PDF를 열어요 🧡');
       window.open(driveUrl, '_blank', 'noopener');
     },
