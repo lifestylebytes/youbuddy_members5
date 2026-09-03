@@ -9670,7 +9670,7 @@ function HomePage() {
       // (기존엔 sv.at(메인)만 봐서, 미니만 있는 1~3주는 답해도 영영 미완료로 잡혀 계속 떴음.)
       const mainHandled = !!(sv.at && !sv.skipped);
       const miniHandled = !!(sv.mini && (sv.mini.at || sv.mini.skipped));
-      const surveyDone = (wN === 4) ? mainHandled : (miniHandled || mainHandled);
+      const surveyDone = (miniHandled || mainHandled); // W4 도 미니 답했으면 메인 안 밈 (2026-09-03 라이트 구조)
       const sessionShown = !!window.__surveyNudgeSession[String(wN)];
       // persist 가드: 주차별 자동 노출은 '평생 1회'. 재접속/새로고침마다 다시 뜨던 문제 방지.
       // (스킵하거나 그냥 닫아도 다시 자동으로 안 뜸. 설문은 필요하면 수동으로 계속 접근 가능.)
@@ -15227,7 +15227,8 @@ function __renderFinalTestResult(page, sess) {
   // 최종 설문 카드 (2026-09-03): W4 메인 설문 미완료자는 여기서 바로 진입.
   // 홈 자동 팝업은 W4 5일 전부 인증해야만 떠서, 중간에 빠진 날 있는 수료자는 파이널이 유일한 길목.
   const __w4sv = (state.week_survey || {})['4'] || {};
-  if (!(__w4sv.at && !__w4sv.skipped)) {
+  const __w4any = (__w4sv.at && !__w4sv.skipped) || (__w4sv.mini && (__w4sv.mini.at || __w4sv.mini.skipped));
+  if (!__w4any) {
     const svCard = el('div', { style: { margin: '0 18px 14px', padding: '16px 18px', borderRadius: '16px', background: 'rgba(155,127,174,0.10)', border: '1px solid rgba(155,127,174,0.3)' } });
     svCard.innerHTML = `
       <div style="font-size:13.5px;font-weight:800;color:var(--ink);line-height:1.5;">📝 마지막으로, 1분 최종 설문</div>
@@ -15243,8 +15244,10 @@ function __renderFinalTestResult(page, sess) {
   const pdfBtn = el('button', { class: 'btn btn-primary btn-full', style: { background: 'var(--orange)', color: '#fff', border: 'none', fontSize: '14px', padding: '14px', fontWeight: '800' }, onClick: () => window.__openFinalDownloads() }, '🎁 4주 단어집 PDF 받기 →');
   const reportBtn = el('button', { class: 'btn btn-full', style: { background: 'linear-gradient(135deg,#1F1630 0%,#3A2A52 100%)', color: '#fff', border: 'none', fontSize: '13.5px', padding: '12px', fontWeight: '800' }, onClick: () => go('final-report') }, '📊 4주 종합 리포트 보기 →');
   const retryBtn = el('button', { class: 'btn btn-full', style: { background: '#fff', color: 'var(--ink)', border: '1px solid var(--line)', fontSize: '13px', padding: '11px', fontWeight: '700' }, onClick: () => window.__startFinalTest() }, '🔄 다시 풀기');
+  const reviewBtn = el('button', { class: 'btn btn-full', style: { background: '#fff', color: 'var(--ink)', border: '1px solid var(--orange-soft)', fontSize: '13px', padding: '11px', fontWeight: '700' }, onClick: () => { try { state.review_ask_seen = false; } catch (e) {} window.__openReviewAsk(function () {}); } }, '⭐ 후기 남기기 (초안 써뒀어요)');
   ctaWrap.appendChild(pdfBtn);
   ctaWrap.appendChild(reportBtn);
+  ctaWrap.appendChild(reviewBtn);
   ctaWrap.appendChild(retryBtn);
   page.appendChild(ctaWrap);
   return page;
@@ -15360,9 +15363,9 @@ window.__openReviewAsk = function (onDone) {
     });
   } catch (e) {}
   const draft = myQuotes.length
-    ? myQuotes.join('\n') + '\n\n(4주 동안 매주 남긴 소감이에요. ' + tot + '일 중 ' + vc + '일 인증하고 완주했습니다!)'
+    ? myQuotes.join('\n') + '\n\n(' + (myQuotes.length > 1 ? '4주 동안 매주 남긴 소감이에요. ' : '설문에 남겼던 소감이에요. ') + tot + '일 중 ' + vc + '일 인증하고 완주했습니다!)'
     : '처음 신청한 이유는\n\n처음이랑 비교해서 달라진 점은\n\n꾸준히 할 수 있었던 이유는\n\n(' + tot + '일 중 ' + vc + '일 인증하고 완주했어요!)';
-  const draftNote = myQuotes.length ? '↑ 매주 설문에 직접 남기셨던 말들이에요. 이어 붙이거나 고쳐 쓰셔도 좋아요!' : '↑ 세 줄만 이어서 채우면 후기 완성이에요!';
+  const draftNote = myQuotes.length ? '↑ 설문에 직접 남기셨던 말이에요. 이어 붙이거나 고쳐 쓰셔도 좋아요!' : '↑ 세 줄만 이어서 채우면 후기 완성이에요!';
   const backdrop = el('div', { class: 'modal-backdrop', 'data-review-ask-popup': '1' });
   const finish = () => {
     state.review_ask_seen = true;
