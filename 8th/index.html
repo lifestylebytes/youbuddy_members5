@@ -22404,9 +22404,8 @@ function CertPage() {
   // personal_quiz_done(영구 플래그) 우선, 없으면 현재 제출 상태 / 옛 MC 응답 기준으로도 인정.
   const pqItems = (state.personal_quiz && Array.isArray(state.personal_quiz.items))
     ? state.personal_quiz.items : [];
-  const quizDone = !!state.personal_quiz_done
-    || !!(state.personal_quiz_submitted && state.personal_quiz_submitted.fill)
-    || (pqItems.length > 0 && Object.keys(state.personal_quiz_answers || {}).length >= pqItems.length);
+  // 8기: 개인 퀴즈 대신 파이널 테스트 응시가 수료 체크 (2026-09-04 버디)
+  const quizDone = !!(state.final_test && state.final_test.at);
   // 8기: 버디 집계표(PREMIUM_MEETING_STATS) 우선, 없으면 status 기반.
   const __ms = __myMeetingStats();
   const meetingsDone = __ms ? __ms.attend : CHALLENGE.premium.weekly_meetings.filter(m => m.status === 'done').length;
@@ -22435,7 +22434,7 @@ function CertPage() {
     <div class="cert-name">${state.name}</div>
     <p class="t-body" style="margin-top:10px;">
       4주 동안 <b>${done}개</b>의 Day를 인증하고,<br>
-      ${meetingsDone}/4 주간 미팅 · ${presentedWeeks}회 발표자 참여 · ${quizDone ? '퀴즈 완료' : '퀴즈 진행 중'}을 함께했어요.
+      ${meetingsDone}/4 주간 미팅 · ${presentedWeeks}회 발표자 참여 · ${quizDone ? '파이널 테스트 완료' : '파이널 테스트 진행 중'}을 함께했어요.
     </p>
     <div class="bar lilac" style="margin-top:16px;"><span style="width:${overall}%;"></span></div>
     <div class="cert-progress-text">OVERALL · ${overall}% · ${overall >= 100 ? '🎉 완주!' : '챌린지 진행 중'}</div>`;
@@ -22446,7 +22445,7 @@ function CertPage() {
     { label: `매일 학습 인증 (${done}/20)`, on: done >= 20 },
     { label: `주간 미팅 (${meetingsDone}/4)`, on: meetingsDone >= 4 },
     { label: `발표자로 참여 (${presentedWeeks}/1)`, on: presentedWeeks >= 1 },
-    { label: `개인 퀴즈 완료`, on: quizDone },
+    { label: `파이널 테스트 완료`, on: quizDone },
   ];
   items.forEach(it => {
     const vs = el('div', { class: 'verify-step' + (it.on ? ' done' : '') });
