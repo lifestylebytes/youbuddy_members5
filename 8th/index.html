@@ -3073,6 +3073,7 @@ function routeToHash() {
         return window.__weekSurveyResult ? `#survey/${window.__weekSurveyResult.weekN}` : '#home';
       case 'vocab-stats': return '#vocab-stats';
       case 'my-review': return '#my-review';
+      case 'weak-test': return '#weak-test';
       case 'meeting-deck': return '#meeting-deck';
       case 'screenshot-guide': return '#screenshot-guide';
       default: return '';
@@ -3155,9 +3156,9 @@ function applyHashRoute(rawHash) {
       setTimeout(() => { try { window.__openRandomReview(); } catch (e) {} }, 900);
       return true;
     case 'weak-test':
-      // 단어집 PDF QR 진입점 (2026-09-04): 내 복습 페이지로 가서 약점 테스트 자동 시작.
-      // 베이직은 __startReview 내부 가드가 안내 토스트를 띄우고 페이지에 머무름.
-      currentPage = 'my-review';
+      // 단어집 PDF QR 진입점 (2026-09-04): 내 복습 화면 + 약점 테스트 자동 시작.
+      // 고유 URL(#weak-test)이 유지되는 독립 진입점. 베이직은 __startReview 가드가 안내.
+      currentPage = 'weak-test';
       setTimeout(() => { try { window.__startReview('weak'); } catch (e) {} }, 900);
       return true;
     case 'meeting-deck':
@@ -6769,7 +6770,7 @@ function render() {
     else if (currentPage === 'screenshot-guide') page = ScreenshotGuidePage();
     else if (currentPage === 'week-survey-result') page = WeekSurveyResultPage();
     else if (currentPage === 'vocab-stats') page = VocabStatsPage();
-    else if (currentPage === 'my-review') page = MyReviewPage();
+    else if (currentPage === 'my-review' || currentPage === 'weak-test') page = MyReviewPage();
     else if (currentPage === 'meeting-deck') page = MeetingDeckPage();
     else if (currentPage === 'final-report') page = FinalReportPage();
     else if (currentPage === 'ops') page = OpsDashboardPage();
