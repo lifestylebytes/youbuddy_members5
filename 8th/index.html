@@ -15361,8 +15361,8 @@ window.__openReviewAsk = function (onDone) {
   } catch (e) {}
   const draft = myQuotes.length
     ? myQuotes.join('\n') + '\n\n(4주 동안 매주 남긴 소감이에요. ' + tot + '일 중 ' + vc + '일 인증하고 완주했습니다!)'
-    : tot + '일 중 ' + vc + '일을 인증하며 완주했어요. 혼자서는 늘 흐지부지됐는데, 매일 인증하고 챙겨주는 시스템 덕분에 처음으로 영어 공부가 안 끊겼습니다. 토익 단어가 아니라 회의에서 진짜 쓰는 표현이라, 배운 날 바로 써먹은 게 많아요.';
-  const draftNote = myQuotes.length ? '↑ 매주 설문에 직접 남기셨던 말들이에요. 이어 붙이거나 고쳐 쓰셔도 좋아요!' : '↑ 본인 얘기로 고쳐 쓰시면 더 좋아요!';
+    : '처음 신청한 이유는\n\n처음이랑 비교해서 달라진 점은\n\n꾸준히 할 수 있었던 이유는\n\n(' + tot + '일 중 ' + vc + '일 인증하고 완주했어요!)';
+  const draftNote = myQuotes.length ? '↑ 매주 설문에 직접 남기셨던 말들이에요. 이어 붙이거나 고쳐 쓰셔도 좋아요!' : '↑ 세 줄만 이어서 채우면 후기 완성이에요!';
   const backdrop = el('div', { class: 'modal-backdrop', 'data-review-ask-popup': '1' });
   const finish = () => {
     state.review_ask_seen = true;
