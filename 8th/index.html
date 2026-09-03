@@ -20243,7 +20243,7 @@ function MeetingNotesPage(meetingId) {
     const ps = __preSubmitGet(mid);
     const psEdit = (window.__psEdit = window.__psEdit || {})[mid];
     const beforeMeeting = dLeft === null || dLeft >= 0;
-    const cands = __preSubmitCandidates(meta.n).slice(0, 4);
+    const cands = __preSubmitCandidates(meta.n).slice(0, 15); // 이번 주 문장 전부 (2026-09-03: 4개 제한이 '문장이 없어 보이는' 오해를 만들어 해제)
     (window.__psCand = window.__psCand || {})[mid] = cands;
     const card = el('div', { class: 'card', style: { padding: '18px 20px', borderRadius: '20px', marginTop: '14px', border: '1.5px solid rgba(46,111,168,0.28)', background: 'linear-gradient(145deg,#FFFDF8 55%,#EAF2FA)' } });
     let h = '<div class="kicker" style="color:#1F4F7D;">BRING YOUR SENTENCE · 미팅 전 준비</div>'
