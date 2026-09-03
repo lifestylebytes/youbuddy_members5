@@ -15393,7 +15393,7 @@ window.__openReviewAsk = function (onDone) {
   };
   modal.querySelector('[data-ra-go]').onclick = () => {
     try { navigator.clipboard.writeText(draft); } catch (e) {}
-    window.open('https://www.latpeed.com/products/en0l_', '_blank', 'noopener');
+    window.open('https://www.latpeed.com/products/en0l_/reviews/create', '_blank', 'noopener');
     showToast('초안도 복사해뒀어요. 후기 칸에 붙여넣기만 하면 돼요!');
     setTimeout(finish, 400);
   };
@@ -15462,7 +15462,7 @@ window.__showCohortCompletePopup = function () {
   if (document.querySelector('[data-cohort-complete-popup]')) return;
   state.cohort_complete_popup_seen = true;
   try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
-  const reviewUrl = 'https://www.latpeed.com/products/en0l_';
+  const reviewUrl = 'https://www.latpeed.com/products/en0l_/reviews/create';
   const cohort = (typeof CHALLENGE !== 'undefined' && CHALLENGE.cohort) || '';
   const backdrop = el('div', { class: 'modal-backdrop', 'data-cohort-complete-popup': '1' });
   const close = () => backdrop.remove();
