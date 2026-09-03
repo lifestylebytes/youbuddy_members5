@@ -6942,6 +6942,25 @@ function render() {
       const stale = document.querySelector('[data-notifications-panel]');
       if (stale) stale.remove();
     }
+    // ⭐ 후기 플로팅 버튼: Day 20부터 모든 페이지에 (2026-09-04 버디 요청).
+    // 후기 페이지로 이미 넘어간 사람(review_clicked)에겐 안 띄움.
+    try {
+      const __rfDay = Number(state.currentDay) || 0;
+      const __rfShow = state.onboarded && __rfDay >= 20 && !state.review_clicked && challengeStarted();
+      let __rfFab = document.querySelector('[data-review-fab]');
+      if (__rfShow) {
+        if (!__rfFab) {
+          __rfFab = el('button', { 'data-review-fab': '1', style: {
+            position: 'fixed', right: '14px', bottom: '92px', zIndex: '58',
+            padding: '11px 16px', borderRadius: '999px', border: 'none', cursor: 'pointer',
+            background: 'linear-gradient(135deg,#F7C948,#F0AC3D)', color: '#5C4308',
+            fontSize: '12.5px', fontWeight: '800', fontFamily: 'inherit',
+            boxShadow: '0 4px 14px rgba(240,172,61,0.45)',
+          }, onClick: () => { state.review_ask_seen = false; try { window.__openReviewAsk(function () {}); } catch (e) {} } }, '⭐ 후기 남기기');
+          document.body.appendChild(__rfFab);
+        }
+      } else if (__rfFab) __rfFab.remove();
+    } catch (e) {}
     if (showSpacedRepeatPopup) {
       if (!document.querySelector('[data-spaced-repeat-popup]')) {
         document.body.appendChild(SpacedRepeatPopupModal());
