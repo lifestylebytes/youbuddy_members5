@@ -30740,10 +30740,16 @@ window.__advanceReview = (skipped) => {
   window.__stepReview();
 };
 window.__reviewHint = () => {
+  // 데일리 단어시험과 같은 사이클: 힌트 켜기 → 단어 하나씩 공개(최대 단어수-1) → 숨기기 (2026-09-04)
   const ui = window.__reviewUi;
   if (!ui || ui.done || ui.revealAnswer) return;
   try { clearTimeout(window.__reviewAutoTimer); } catch (e) {}
-  ui.reveal = !ui.reveal;
+  const cur = ui.list[ui.idx] || {};
+  const tw = String(cur.en || '').trim().split(/\s+/).length;
+  const mx = Math.max(0, tw - 1);
+  if (!ui.reveal) { ui.reveal = true; ui.revealWords = 0; }
+  else if ((ui.revealWords || 0) < mx) { ui.revealWords = (ui.revealWords || 0) + 1; }
+  else { ui.reveal = false; ui.revealWords = 0; }
   render();
 };
 window.__restartReview = () => { const ui = window.__reviewUi; if (ui) window.__startReview(ui.mode); };
@@ -30845,7 +30851,7 @@ function MyReviewPage() {
     if (weak.length) {
       if (isPrem) {
         const t1 = el('button', { class: 'btn btn-primary btn-full btn-lg', style: { marginTop: '14px' }, onClick: () => window.__startReview('weak') });
-        t1.innerHTML = '🎯 약점 단어 테스트 · 10개씩 + 유의어 (' + weak.length + '개 대기) ' + Icon('arrowRight', 16);
+        t1.innerHTML = '🎯 약점 단어 테스트 · 한 번에 10개씩 <span style="font-weight:600;color:var(--muted);font-size:12px;">(모인 약점 단어 ' + weak.length + '개 · 유의어 문항 포함)</span> ' + Icon('arrowRight', 16);
         page.appendChild(t1);
       } else {
         // 8기: 잠금만 보여주면 "없는 기능"으로 읽혀서 욕망이 안 생김.
@@ -30959,7 +30965,7 @@ function MyReviewPage() {
       ${q.prompt_kr ? `<div style="margin-top:20px;font-size:18px;line-height:1.5;color:#6C6A86;">${escapeHtml(q.prompt_kr)}</div>` : ''}
       <div style="margin-top:10px;font-size:16px;line-height:1.5;color:#7D5CFF;font-weight:700;">뜻 · ${escapeHtml(cur.kr || '')}</div>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;">
-        <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;${ui.revealAnswer ? 'opacity:0.45;pointer-events:none;' : ''}" onclick="window.__reviewHint()">${ui.reveal ? '힌트 숨기기' : '힌트 보기'}</button>
+        <button class="btn btn-ghost" style="background:#fff;color:#3E3B59;border:1px solid #E1DCF8;${ui.revealAnswer ? 'opacity:0.45;pointer-events:none;' : ''}" onclick="window.__reviewHint()">${(() => { if (!ui.reveal) return '힌트 보기'; const __tw = String(cur.en || '').trim().split(/\s+/).length; const __mx = Math.max(0, __tw - 1); const __rv = ui.revealWords || 0; return (__rv < __mx) ? ('💡 단어 하나 더 (' + __rv + '/' + __mx + ')') : '힌트 숨기기'; })()}</button>
       </div>
       ${ui.revealAnswer ? `
         <div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:#EAF2FA;border:1px solid rgba(46,111,168,0.35);text-align:left;">
@@ -30967,7 +30973,7 @@ function MyReviewPage() {
           <div style="margin-top:6px;font-size:22px;font-weight:800;color:var(--orange-dark);letter-spacing:-0.01em;line-height:1.3;">${escapeHtml(cur.en)}</div>
           <div class="t-small" style="margin-top:6px;color:#6C6A86;">${escapeHtml(cur.kr || '')}</div>
         </div>
-      ` : (ui.reveal ? (() => { const __sh = sceneHintFor(cur.en); return (__sh ? `<div style="margin-top:14px;padding:12px 14px;border-radius:13px;background:#FFF8E1;border:1px solid rgba(255,193,7,0.35);text-align:left;font-size:12.5px;line-height:1.7;color:#7A5800;">💡 ${escapeHtml(__sh)}</div>` : '') + `<div style="margin-top:12px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);">${escapeHtml(buildVerifyHintMask(cur.en))}</div>`; })() : '')}
+      ` : (ui.reveal ? (() => { const __sh = sceneHintFor(cur.en); return (__sh ? `<div style="margin-top:14px;padding:12px 14px;border-radius:13px;background:#FFF8E1;border:1px solid rgba(255,193,7,0.35);text-align:left;font-size:12.5px;line-height:1.7;color:#7A5800;">💡 ${escapeHtml(__sh)}</div>` : '') + `<div style="margin-top:12px;font-size:22px;color:#3E3B59;font-weight:800;letter-spacing:0.18em;font-family:var(--font-mono);">${escapeHtml(buildVerifyHintMaskProgressive(cur.en, ui.revealWords || 0))}</div>`; })() : '')}
       <div style="display:flex;gap:8px;margin-top:18px;">
         ${!ui.revealAnswer ? `<button class="btn btn-primary" style="flex:1.6;justify-content:center;" onclick="window.__submitReview()">${ui.idx === ui.list.length - 1 ? '제출하고 채점 →' : '제출 · 다음 →'}</button>` : ''}
         <button class="btn btn-ghost" style="flex:1;justify-content:center;background:#4F4438;color:#fff;border:none;" onclick="window.__advanceReview(true)">${ui.revealAnswer ? (ui.idx === ui.list.length - 1 ? '확인했어요 · 채점' : '확인했어요 · 다음 문제') : (ui.idx === ui.list.length - 1 ? '모르겠어요' : 'Skip')}</button>
