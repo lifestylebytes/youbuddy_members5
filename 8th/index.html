@@ -24605,8 +24605,8 @@ function MemberCardModal(memberRef) {
       const taskHtml = __gs.tasks.length
         ? `<div style="margin-top:${__gs.goals.length ? '11px' : '8px'};padding-top:${__gs.goals.length ? '10px' : '0'};${__gs.goals.length ? 'border-top:1px dashed rgba(240,172,61,0.45);' : ''}">`
           + __gs.tasks.map((t) => {
-              const m2 = t.match(/^🎯\s*(Week\s*\d+)\s*과제\s*[·:]?\s*(.*)$/i);
-              const wk = m2 ? m2[1].toUpperCase() : '과제';
+              const m2 = t.match(/^🎯\s*(Week\s*\d+\s*과제|유비챌 8기 이후 목표)\s*[·:]?\s*(.*)$/i);
+              const wk = m2 ? m2[1].replace(/\s*과제$/, '').toUpperCase() : '과제';
               const body = m2 ? m2[2] : t.replace(/^🎯\s*/, '');
               return `<div style="margin-top:6px;">
                 <span style="display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(240,172,61,0.2);color:#A07A2A;font-size:9.5px;font-weight:800;letter-spacing:0.06em;">🎯 ${escapeHtml(wk)}</span>
@@ -32613,7 +32613,13 @@ window.__openReportList = function () {
 function splitGoalAndTasks(goalText) {
   const lines = String(goalText || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const goals = [], tasks = [];
-  lines.forEach((l) => { (l.indexOf('🎯') === 0 ? tasks : goals).push(l); });
+  lines.forEach((l) => {
+    // W4 마지막 미팅에서 받아적은 "Week 4 목표: ..." 줄은 8기 이후 계획이라
+    // '유비챌 8기 이후 목표' 칩으로 변환해서 예쁘게 보여준다 (2026-09-04 버디).
+    const mAfter = l.match(/^(?:🎯\s*)?Week\s*4\s*목표\s*[::]\s*(.+)$/i);
+    if (mAfter) { tasks.push('🎯 유비챌 8기 이후 목표 · ' + mAfter[1]); return; }
+    (l.indexOf('🎯') === 0 ? tasks : goals).push(l);
+  });
   return { goals, tasks };
 }
 
