@@ -15224,6 +15224,20 @@ function __renderFinalTestResult(page, sess) {
   review.innerHTML = rHtml;
   page.appendChild(review);
 
+  // 최종 설문 카드 (2026-09-03): W4 메인 설문 미완료자는 여기서 바로 진입.
+  // 홈 자동 팝업은 W4 5일 전부 인증해야만 떠서, 중간에 빠진 날 있는 수료자는 파이널이 유일한 길목.
+  const __w4sv = (state.week_survey || {})['4'] || {};
+  if (!(__w4sv.at && !__w4sv.skipped)) {
+    const svCard = el('div', { style: { margin: '0 18px 14px', padding: '16px 18px', borderRadius: '16px', background: 'rgba(155,127,174,0.10)', border: '1px solid rgba(155,127,174,0.3)' } });
+    svCard.innerHTML = `
+      <div style="font-size:13.5px;font-weight:800;color:var(--ink);line-height:1.5;">📝 마지막으로, 1분 최종 설문</div>
+      <div style="margin-top:4px;font-size:12px;color:var(--ink-soft);line-height:1.55;">4주 어떠셨어요? 본인 의견이 다음 기수에 그대로 반영돼요.</div>
+      <button data-final-survey-btn class="btn btn-full" style="margin-top:10px;background:var(--ink);color:var(--cream);border:none;font-size:13px;padding:11px;font-weight:800;border-radius:12px;">최종 설문 하러 가기 →</button>
+    `;
+    svCard.querySelector('[data-final-survey-btn]').addEventListener('click', () => { showSurveyFillModal = 4; render(); });
+    page.appendChild(svCard);
+  }
+
   // CTA, PDF 다운로드 안내 + 다시 풀기 + 리포트
   const ctaWrap = el('div', { style: { margin: '4px 18px 0', display: 'flex', flexDirection: 'column', gap: '8px' } });
   const pdfBtn = el('button', { class: 'btn btn-primary btn-full', style: { background: 'var(--orange)', color: '#fff', border: 'none', fontSize: '14px', padding: '14px', fontWeight: '800' }, onClick: () => window.__openFinalDownloads() }, '🎁 4주 단어집 PDF 받기 →');
