@@ -31026,23 +31026,41 @@ window.__openTodaySendBrief = function () {
     </div>
     <div style="padding:12px 16px 18px;display:flex;flex-direction:column;gap:8px;">
       ${items.map((it, i) => `
-        <div style="padding:10px 12px;border-radius:12px;background:var(--paper);border:1px solid var(--line);">
-          <div style="display:flex;align-items:center;gap:8px;">
+        <div style="border-radius:12px;background:var(--paper);border:1px solid var(--line);overflow:hidden;">
+          <div data-tsb-row="${i}" style="display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:${it.body ? 'pointer' : 'default'};">
             <span style="flex-shrink:0;font-size:11px;font-weight:800;color:var(--orange-dark);font-family:var(--font-mono);">${escapeHtml(it.time)}</span>
             <span style="flex-shrink:0;font-size:10px;font-weight:700;color:#fff;background:${it.who === '버디' ? 'var(--orange)' : '#8A93A0'};border-radius:999px;padding:2px 8px;">${escapeHtml(it.who)}</span>
             <span style="flex:1;font-size:12px;font-weight:700;color:var(--ink);line-height:1.4;">${escapeHtml(it.title)}</span>
-            ${it.body ? `<button data-tsb-copy="${i}" style="flex-shrink:0;font-size:10.5px;font-weight:800;padding:5px 10px;border-radius:999px;border:none;background:var(--orange);color:#fff;cursor:pointer;">복사</button>` : ''}
+            ${it.body ? `<span data-tsb-arrow="${i}" style="flex-shrink:0;font-size:11px;color:var(--muted);">▾</span><button data-tsb-copy="${i}" style="flex-shrink:0;font-size:10.5px;font-weight:800;padding:5px 10px;border-radius:999px;border:none;background:var(--orange);color:#fff;cursor:pointer;">복사</button>` : ''}
           </div>
+          ${it.body ? `<div data-tsb-detail="${i}" style="display:none;padding:0 12px 12px;">
+            <textarea data-tsb-text="${i}" style="width:100%;min-height:150px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:12px;line-height:1.6;font-family:inherit;color:var(--ink);resize:vertical;box-sizing:border-box;">${escapeHtml(it.body)}</textarea>
+            <div class="t-small" style="margin-top:4px;font-size:10px;color:var(--muted);">고쳐 쓰면 고친 그대로 복사돼요 (저장은 안 됨, 오늘용)</div>
+          </div>` : ''}
         </div>`).join('')}
     </div>
   `;
   backdrop.appendChild(modal);
   document.body.appendChild(backdrop);
   modal.querySelector('[data-tsb-close]').onclick = close;
+  modal.querySelectorAll('[data-tsb-row]').forEach((row) => {
+    row.onclick = (e) => {
+      if (e.target && e.target.hasAttribute && e.target.hasAttribute('data-tsb-copy')) return; // 복사 버튼은 토글 제외
+      const i = row.getAttribute('data-tsb-row');
+      const d = modal.querySelector('[data-tsb-detail="' + i + '"]');
+      if (!d) return;
+      const open = d.style.display !== 'none';
+      d.style.display = open ? 'none' : 'block';
+      const ar = modal.querySelector('[data-tsb-arrow="' + i + '"]');
+      if (ar) ar.textContent = open ? '▾' : '▴';
+    };
+  });
   modal.querySelectorAll('[data-tsb-copy]').forEach((b) => {
     b.onclick = () => {
-      const it = items[Number(b.getAttribute('data-tsb-copy'))];
-      try { navigator.clipboard.writeText(it.body); showToast('복사했어요! 카톡에 붙여넣으세요 🧡'); } catch (e) { showToast('복사 실패, 다시 눌러주세요'); }
+      const i = b.getAttribute('data-tsb-copy');
+      const ta = modal.querySelector('[data-tsb-text="' + i + '"]');
+      const text = ta ? ta.value : (items[Number(i)] || {}).body || '';
+      try { navigator.clipboard.writeText(text); showToast('복사했어요! 카톡에 붙여넣으세요 🧡'); } catch (e) { showToast('복사 실패, 다시 눌러주세요'); }
     };
   });
 };
