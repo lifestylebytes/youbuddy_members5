@@ -32694,7 +32694,7 @@ const WEEK4_DECK = [
   { section: '오프닝', kicker: 'WEEK 4 · 마지막 · 60분', title: '4주 총정리, 오늘 순서',
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.6;">참석: <b style="color:var(--ink);">8기 프리미엄 버디</b> · 마지막 주, 축하하는 자리예요.</div>'
     + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:9px;">'
-    + ['내 문장 발표 · 마지막 라운드', '4주 단어 칠판 + 단어 빙고', '종합 롤플레잉 (프로젝트 하나 굴리기)', '60개 복습 스윕 (막힌 것 🔖)', '내 대본 완성 · 수료 안내'].map((t, i) =>
+    + ['내 문장 발표 · 마지막 라운드', '발표 시간 (30분)', '랜덤 단어 퀴즈', '내 대본 완성 · 수료 안내'].map((t, i) =>
         '<div style="display:flex;gap:11px;align-items:center;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);"><span style="flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;">' + (i + 1) + '</span><div style="font-size:14.5px;font-weight:800;color:var(--ink);">' + t + '</div></div>').join('')
     + '</div>'
     + '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:13.5px;color:var(--ink);line-height:1.6;">🎯 목표: 4주간 쌓은 문장으로 <b>내 업무 영어 대본</b>을 완성하고, 실제 대화에서 꺼내 쓰기.</div>' },
@@ -32705,32 +32705,21 @@ const WEEK4_DECK = [
         '<div style="display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);"><span style="font-size:14px;font-weight:800;color:var(--orange);">' + r[0] + '</span><div style="font-size:13.5px;color:var(--ink);line-height:1.55;">' + r[1] + '</div></div>').join('')
     + '</div>'
     + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;font-size:12.5px;color:var(--ink);line-height:1.6;">💡 여기서 나온 문장들이 그대로 <b>내 대본</b>의 마지막 페이지가 돼요. 틀리는 게 일인 자리, 마지막까지요!</div>' },
-  { section: '복습', kicker: '2 · 4주 칠판', title: '4주 단어 60개 · 주차별',
-    html: (() => {
-      const block = (g) => '<div style="margin-top:13px;padding-top:11px;border-top:1px dashed rgba(255,255,255,0.18);">'
-        + '<div style="font-size:12px;font-weight:800;color:#9FE1CB;">' + escapeHtml(g.label) + '</div>'
-        + '<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:5px;">'
-        + g.items.map((it) => '<span style="font-size:11.5px;font-family:var(--font-mono);color:#fff;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:3px 7px;">' + escapeHtml(it.en) + '</span>').join('')
-        + '</div></div>';
-      return '<div style="background:#26331F;border-radius:18px;padding:18px;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.06);">'
-        + '<div style="font-size:11px;letter-spacing:0.1em;color:#FBE7A1;font-weight:800;">📋 4주 전체 칠판 · 60개</div>'
-        + WEEK4_RECAP.map(block).join('')
-        + '</div>'
-        + '<div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;">쭉 훑으며 <b>"입에서 바로 안 나온다" 싶은 것</b>만 눈도장. 그게 오늘 빙고·롤플레잉에서 노릴 표현이에요.</div>';
-    })() },
-  { section: '빙고', kicker: '3 · 단어 빙고', title: '🎲 단어 빙고 · 쓰면 마크',
-    bingoGrid: BINGO_WORDS,
-    how: '대화·롤플레잉 중에 칸의 표현을 실제 문장으로 입 밖에 내면 그 칸을 탭해서 마크해요. 한 줄(가로·세로·대각) 또는 8칸 채우면 빙고! "본인 상황 문장"으로 써야 인정.' },
-  { section: '종합 롤플레잉', kicker: '4 · 종합 롤플레잉', title: '한 프로젝트에 4주 단어 녹이기',
-    html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">가상의 <b>신규 프로젝트</b>를 다 같이 굴려요. 간 보기 → 논쟁 → 위기 → 전략 결정 흐름을 타면 4주 표현이 자연스럽게 다 나와요.</div>'
+  { section: '발표', kicker: '2 · 발표 시간', title: '🎤 발표 시간 · 30분',
+    html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">오늘의 발표자들을 소개합니다. 4주의 마무리 무대예요.</div>'
+    + '<div style="margin-top:12px;padding:13px 15px;border-radius:14px;background:#F3EEFF;border:1px solid rgba(125,92,255,0.22);font-size:13.5px;color:#3E3B59;line-height:1.7;">🎤 오늘 발표: <b>{발표자}</b><br><span style="font-size:12px;color:#6B5FB0;">본인 industry 주제 · 10~15분 + 피드백</span></div>'
     + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">'
-    + [['🟢 존재감·상황 공유 (W1)', 'keep someone posted · drive · bring up to speed · where things stand'], ['🟡 숫자로 말하기 (W2)', 'bottom line · year over year · give or take · too early to tell'], ['🔴 위기 대응 (W3)', 'escalate · fallback · scale back · be upfront'], ['🟣 성과 어필 (W4)', 'step up · give credit to · growth area · stretch assignment']].map((r) =>
-        '<div style="padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);"><div style="font-size:13px;font-weight:800;color:var(--ink);">' + r[0] + '</div><div style="margin-top:2px;font-size:11.5px;font-family:var(--font-mono);color:var(--orange-dark);">' + r[1] + '</div></div>').join('')
+    + [['👂 듣는 사람 미션 1', '안 들렸던 단어·표현을 미팅 노트에 적어두기'], ['💬 듣는 사람 미션 2', '발표 끝나면 실제 회의처럼 질문 하나씩 (배운 표현으로!)'], ['👏 피드백 규칙', '구체적인 칭찬 먼저, 그다음 "나라면 이렇게"']].map((r) =>
+        '<div style="padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);"><div style="font-size:13px;font-weight:800;color:var(--ink);">' + r[0] + '</div><div style="margin-top:2px;font-size:12px;color:var(--ink-soft);line-height:1.5;">' + r[1] + '</div></div>').join('')
+    + '</div>' },
+  { section: '랜덤 퀴즈', kicker: '3 · 랜덤 단어 퀴즈', title: '🎲 랜덤 단어 퀴즈 · 스피드 라운드',
+    html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">4주 단어 60개 중 <b>무작위</b>로 나와요. 한국어 뜻을 보고 영어로 먼저 외쳐보세요!</div>'
+    + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">'
+    + [['진행 방법', '운영자가 홈의 🎲 랜덤 단어 테스트를 화면 공유로 돌려요. 열 때마다 5문항이 새로 뽑혀요'], ['규칙', '먼저 말한 사람이 정답을 가져가요. 막히면 힌트(단어 하나씩 공개)로!'], ['목표', '맞히기보다 입 밖으로 내보는 것. 틀린 단어는 내일 파이널 전에 다시 만나요']].map((r) =>
+        '<div style="padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);"><div style="font-size:13px;font-weight:800;color:var(--ink);">' + r[0] + '</div><div style="margin-top:2px;font-size:12px;color:var(--ink-soft);line-height:1.5;">' + r[1] + '</div></div>').join('')
     + '</div>'
-    + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;font-size:12.5px;color:var(--ink);line-height:1.6;">🔁 운영자: 흐름 막히면 칠판 표현으로 힌트. 표현 쓸 때마다 빙고판 같이 마크.</div>' },
-  { section: '복습', kicker: '5 · 60개 스윕', title: '한국어 → 영어 빠른 한 바퀴', worksheet: true,
-    html: '<div style="font-size:13px;color:var(--ink-soft);line-height:1.6;">60개 다 완벽히 말고, <b>막히는 것만 🔖</b> 표시하며 빠르게.</div>' },
-  { section: '마무리', kicker: '6 · 수료 마무리', title: '4주 수고했어요 💚', wrapGoals: true,
+    + '<div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(46,111,168,0.2);font-size:12.5px;color:var(--ink);line-height:1.6;">💡 내일(Day 20) 파이널 테스트가 열려요. 오늘 막힌 단어가 곧 내일의 복습 목록입니다.</div>' },
+  { section: '마무리', kicker: '4 · 수료 마무리', title: '4주 수고했어요 💚', wrapGoals: true,
     checks: ['각자 "실제 내 단어가 된 표현 3개" 꼽기', '내 대본(MY SCRIPTS) 내보내기 눌러보기 · 4주치가 다 담겨 있어요', '수료 후에도 이어갈 한 가지 정하기'],
     html: '<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;">4주 챌린지 마지막이에요. 아래 체크하고, 각자 한마디씩 받아적어요.</div>'
     + '<div style="margin-top:12px;padding:13px 15px;border-radius:14px;background:#EAF3DE;color:#3B6D11;font-size:13.5px;line-height:1.7;">🎁 수료 기준: 18일 이상 학습 + 파이널 테스트 응시 (마감 없음, 지각도 인정). 채우시면 8기 단어집이 갑니다.<br>다음 기수(9기 · 9/14 시작) 안내와 재등록 혜택은 이 자리에서 직접 말씀드릴게요.<br>4주 동안 정말 수고했어요. 끝까지 와줘서 고마워요 💚</div>' },
