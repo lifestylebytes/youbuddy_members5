@@ -68,6 +68,7 @@ def buddy_line(en):
         if k.lower() == en.lower(): return v
     return ''
 
+QR_RANDOM = open('/tmp/qr_random.b64').read().strip()
 P = []
 P.append(f"""<div class="cover">
   <div class="cv-k">YOUBUDDY BUSINESS ENGLISH</div>
@@ -81,6 +82,10 @@ P.append(f"""<div class="cover">
     <b>Week 4</b> · 성과를 내 것으로
   </div>
   <div class="cv-foot">20일 완주를 축하드려요 · 이 단어집은 여러분의 것입니다</div>
+  <div style="position:absolute;right:24mm;bottom:22mm;text-align:center;">
+    <img src="data:image/png;base64,{QR_RANDOM}" style="width:20mm;height:20mm;border-radius:2mm;"/>
+    <div style="font-size:6.5pt;color:#E8DCD3;font-weight:700;margin-top:1.2mm;line-height:1.35;">QR 찍으면 앱에서<br/>랜덤 단어 테스트</div>
+  </div>
 </div>""")
 
 num = 0
@@ -163,7 +168,14 @@ rnd.shuffle(SHUF)
 HALF_A, HALF_B = SHUF[:90], SHUF[90:]
 
 APPX = []
-APPX.append(f"""<div class="appx"><div class="ap-h"><div class="no">APPENDIX 1</div><div class="ti">전체 표현 인덱스 · 180</div><div class="sub">메인 60 (진하게) + 유의어 120 · Day 순서</div></div><div class="idx-cols">{idx_rows(ALL_WORDS, None)}</div></div>""")
+QR_B64 = open('/tmp/qr_weak.b64').read().strip()
+APPX.append(f"""<div class="appx"><div class="ap-h" style="display:flex;align-items:flex-end;justify-content:space-between;gap:4mm;">
+  <div><div class="no">APPENDIX 1</div><div class="ti">전체 표현 인덱스 · 180</div><div class="sub">메인 60 (진하게) + 유의어 120 · Day 순서</div></div>
+  <div style="text-align:center;flex-shrink:0;">
+    <img src="data:image/png;base64,{QR_B64}" style="width:17mm;height:17mm;"/>
+    <div style="font-size:5.8pt;color:#6B6260;font-weight:700;margin-top:.5mm;line-height:1.3;">QR 찍으면 앱에서<br/>약점 단어 테스트</div>
+  </div>
+</div><div class="idx-cols">{idx_rows(ALL_WORDS, None)}</div></div>""")
 APPX.append(f"""<div class="appx"><div class="ap-h"><div class="no">APPENDIX 2 · SELF TEST A</div><div class="ti">영어 보고 뜻 쓰기 · 90</div><div class="sub">무작위 순서 · 프린트해서 손으로 채워보세요. 정답은 APPENDIX 1</div></div><div class="idx-cols">{idx_rows(HALF_A, 'ko')}</div></div>""")
 APPX.append(f"""<div class="appx"><div class="ap-h"><div class="no">APPENDIX 2 · SELF TEST B</div><div class="ti">뜻 보고 영어 쓰기 · 90</div><div class="sub">무작위 순서 · 입으로 먼저 말하고, 손으로 확인하세요</div></div><div class="idx-cols">{idx_rows(HALF_B, 'en')}</div></div>""")
 
