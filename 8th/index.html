@@ -10715,6 +10715,12 @@ function HomePage() {
       style: { fontSize: '12px', padding: '8px 14px' },
       onClick: () => { try { window.__openVerifyStatusCopy(); } catch (e) {} },
     }, '📋 인증 상태 복사'));
+    // 오늘 보낼 유버디 톡 브리핑 (2026-09-04 버디 요청)
+    btnRow.appendChild(el('button', {
+      class: 'btn btn-ghost',
+      style: { fontSize: '12px', padding: '8px 14px' },
+      onClick: () => { try { window.__openTodaySendBrief(); } catch (e) {} },
+    }, '📨 오늘 뭐 보내지?'));
     cbWrap.appendChild(btnRow);
   }
   cbWrap.appendChild(Checkboard());
@@ -30953,6 +30959,75 @@ async function loadIntakeBoard() {
   } catch (e) { ib.error = '불러오지 못했어요. 네트워크 확인 후 다시 시도해주세요.'; }
   finally { ib.loading = false; render(); }
 }
+
+/* ── 오늘 보낼 유버디 톡 브리핑 (운영자 전용) · 2026-09-04 ──
+   Day 번호로 오늘 발송 스케줄을 조립. 템플릿형은 값 채워 복사 버튼, 원고형(모닝·스푼)은 시트 안내.
+   시트가 원고의 원본이므로 여기선 "무엇을 언제"만 정확히, 복붙 가능한 건 즉석 조립. */
+window.__openTodaySendBrief = function () {
+  const existing = document.querySelector('[data-today-send-brief]');
+  if (existing) existing.remove();
+  const cDay = Number(state.currentDay) || 0;
+  const tot = (CHALLENGE.total_days || 20);
+  const wkN = Math.max(1, Math.ceil(cDay / 5));
+  const dow = new Date().getDay(); // 0일 6토
+  const items = [];
+  const add = (time, who, title, body) => items.push({ time, who, title, body });
+
+  if (dow === 0 || dow === 6) {
+    add(dow === 6 ? '토 14:00' : '일 19:00', '버디', dow === 6 ? '주차 랩업 + 다음 주 예고' : '주간 마무리 리마인드', '');
+  } else {
+    add('06:00', '매니저', '모닝 공지 (시트 → 모닝공지 탭 Day ' + cDay + ' 복사)', '');
+    if (cDay === tot) {
+      add('08:00', '버디', '파이널 테스트 오픈 안내', '드디어 마지막 날이에요! 🎉\n오늘 Day ' + tot + ' 인증까지 마치면 <파이널 테스트>가 열려요.\n앱 [내 학습] 맨 아래에서 응시할 수 있어요.\n18일 이상 + 파이널 응시하시면 4주 단어집 PDF가 열립니다.\n(마감은 없어요! 빠진 날은 채우시면 그대로 인정됩니다)\n마지막 날도 가볍게, 10분만 같이 가요 🧡');
+    } else if (cDay === 5 || cDay === 10 || cDay === 15) {
+      add('08:00', '버디', '주간 테스트 오픈 안내 (시트 → 주요 메시지 · 주간 테스트 오픈)', '');
+    }
+    if (cDay === 3 || cDay === 8 || cDay === 13 || cDay === 18) {
+      add('20:00', '버디', '미팅 전날 통합 예고 · Week ' + (wkN + (cDay % 5 >= 3 ? 1 : 0)) + ' (시트 → 미팅 전날 통합 예고, {N}·{테마} 채우기)', '');
+    }
+    if (cDay === 4 || cDay === 9 || cDay === 14 || cDay === 19) {
+      add('08:00', '버디', '미팅 당일 알림 · Week ' + wkN + ' (시트 → 당일 미팅 알림, {미트 링크} 채우기)', '');
+    }
+    add('19:00', '버디', '한 스푼 더 (시트 → 모닝공지 탭 Day ' + cDay + ' SPOON 칸)', '');
+    if (cDay === 3 || cDay === 5 || cDay === 7 || cDay === 11 || cDay === 14 || cDay === 18) {
+      add('19:30', '버디', '단어 복습 리마인드 (시트 → 복습 리마인드 ' + '①②③④⑤⑥'.charAt([3,5,7,11,14,18].indexOf(cDay)) + ')', '');
+    }
+    add('20:30', '매니저', '카톡 녹음 확인 → 앱 체크', '');
+    add('21:00', '매니저', '미인증 명단 리마인드 (📋 인증 상태 복사 버튼으로)', '');
+  }
+
+  const backdrop = el('div', { class: 'modal-backdrop', 'data-today-send-brief': '1' });
+  const close = () => backdrop.remove();
+  backdrop.onclick = (e) => { if (e.target === backdrop) close(); };
+  const modal = el('div', { class: 'modal', style: { width: 'min(94vw, 420px)', maxHeight: '86vh', overflowY: 'auto', padding: '0', borderRadius: '22px', background: '#fff', border: '1px solid var(--line)' } });
+  modal.innerHTML = `
+    <div style="position:sticky;top:0;background:#fff;padding:18px 20px 12px;border-bottom:1px solid var(--line);z-index:1;">
+      <button data-tsb-close style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:10px;background:var(--paper);border:none;color:var(--muted);font-size:14px;cursor:pointer;">✕</button>
+      <div style="font-size:15.5px;font-weight:800;color:var(--ink);">📨 오늘 뭐 보내지? · Day ${cDay}</div>
+      <div class="t-small" style="margin-top:3px;font-size:11px;color:var(--muted);">시각 순 · 원고가 앱에 있는 건 바로 복사돼요</div>
+    </div>
+    <div style="padding:12px 16px 18px;display:flex;flex-direction:column;gap:8px;">
+      ${items.map((it, i) => `
+        <div style="padding:10px 12px;border-radius:12px;background:var(--paper);border:1px solid var(--line);">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="flex-shrink:0;font-size:11px;font-weight:800;color:var(--orange-dark);font-family:var(--font-mono);">${escapeHtml(it.time)}</span>
+            <span style="flex-shrink:0;font-size:10px;font-weight:700;color:#fff;background:${it.who === '버디' ? 'var(--orange)' : '#8A93A0'};border-radius:999px;padding:2px 8px;">${escapeHtml(it.who)}</span>
+            <span style="flex:1;font-size:12px;font-weight:700;color:var(--ink);line-height:1.4;">${escapeHtml(it.title)}</span>
+            ${it.body ? `<button data-tsb-copy="${i}" style="flex-shrink:0;font-size:10.5px;font-weight:800;padding:5px 10px;border-radius:999px;border:none;background:var(--orange);color:#fff;cursor:pointer;">복사</button>` : ''}
+          </div>
+        </div>`).join('')}
+    </div>
+  `;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  modal.querySelector('[data-tsb-close]').onclick = close;
+  modal.querySelectorAll('[data-tsb-copy]').forEach((b) => {
+    b.onclick = () => {
+      const it = items[Number(b.getAttribute('data-tsb-copy'))];
+      try { navigator.clipboard.writeText(it.body); showToast('복사했어요! 카톡에 붙여넣으세요 🧡'); } catch (e) { showToast('복사 실패, 다시 눌러주세요'); }
+    };
+  });
+};
 
 /* ── 인증 상태 복사 (운영자 전용) ───────────────────────────────
    녹음 체크를 마친 뒤, 아직 안 한 사람을 카톡 복붙용 @명단으로 뽑는다.
