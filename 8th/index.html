@@ -1813,6 +1813,8 @@ const PERSISTED_STATE_KEYS = [
   'premium_intake',
   'review_counts',
   'review_ask_seen',
+  'review_clicked',
+  'review_grad_nudged',
   'daily_pulse',
   'daily_pulse_skipped',
   'final_test',
@@ -9739,6 +9741,24 @@ function HomePage() {
   //   옮겼는데도 이 트리거가 남아 있어서 650ms 로 먼저 떠버렸다. 그 결과 프리미엄 멤버가
   //   앱 내 진단 대신 7기 링크를 보게 됐다. PremiumIntakeModal 하나만 남긴다. (2026-08-07)
 
+  // 수료식(토, Day 20 지난 뒤) 후기 재부탁: 파이널 응시했는데 후기 페이지로 안 넘어간 멤버에게 홈에서 1회.
+  // 금요일 PDF 길목에서 "다음에요" 한 사람을 감정 피크(수료식 날)에 한 번만 다시 만난다. (2026-09-03 버디)
+  try {
+    const __finalDone = !!(state.final_test && state.final_test.at);
+    const __past20 = (Number(state.currentDay) || 1) > ((CHALLENGE.total_days || 20));
+    if (__past20 && __finalDone && state.onboarded && !state.review_clicked && !state.review_grad_nudged
+        && !window.__gradReviewNudgeArmed && guidedTourStep === null && !anyPopupOpen()) {
+      window.__gradReviewNudgeArmed = true;
+      state.review_grad_nudged = true;
+      try { saveState(); } catch (e) {}
+      setTimeout(() => {
+        if (guidedTourStep !== null || anyPopupOpen()) return;
+        state.review_ask_seen = false; // 팝업 1회 가드 해제 후 재사용
+        try { window.__openReviewAsk(function () {}); } catch (e) {}
+      }, 900);
+    }
+  } catch (e) {}
+
   // 후기 공개 동의 팝업: 주간 설문을 제출한 멤버에게, 응답할 때까지 세션당 1회.
   try {
     const hasSurvey = Object.keys(state.week_survey || {}).length > 0;
@@ -15395,6 +15415,7 @@ window.__openReviewAsk = function (onDone) {
     try { navigator.clipboard.writeText(draft); showToast('초안을 복사했어요! 붙여넣고 고쳐 쓰세요 🧡'); } catch (e) { showToast('복사가 안 되면 길게 눌러 복사해주세요'); }
   };
   modal.querySelector('[data-ra-go]').onclick = () => {
+    state.review_clicked = true; // 후기 페이지로 넘어간 기록. 토요일 재부탁 제외용 (2026-09-03)
     try { navigator.clipboard.writeText(draft); } catch (e) {}
     window.open('https://www.latpeed.com/products/en0l_/reviews/create', '_blank', 'noopener');
     showToast('초안도 복사해뒀어요. 후기 칸에 붙여넣기만 하면 돼요!');
