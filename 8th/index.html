@@ -30671,12 +30671,57 @@ function buildReviewMySentences() {
   return out;
 }
 window.__reviewUi = window.__reviewUi || null;
-window.__startReview = (mode) => {
+function __reviewSynFor(en) {
+  // CHALLENGE 에서 이 표현의 유의어 찾기 (내 문장 테스트 유의어 문항용)
+  try {
+    let found = null;
+    (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((d) => (d.words || []).forEach((w) => {
+      if (!found && w.en === en && Array.isArray(w.syn) && w.syn.length) found = w.syn[0];
+    })));
+    return found;
+  } catch (e) { return null; }
+}
+// 내 문장 테스트 시작 옵션 (데일리 단어시험처럼 10 / 20 / 유의어 선택. 2026-09-04 버디)
+window.__openSentenceTestOptions = function () {
+  if (!seesPremiumNow()) { showToast('내 문장 테스트는 프리미엄 전용이에요 💜'); return; }
+  const all = buildReviewMySentences();
+  if (!all.length) { showToast('아직 제출한 문장이 없어요. 먼저 영작을 해보세요!'); return; }
+  const existing = document.querySelector('[data-sent-opt-popup]');
+  if (existing) existing.remove();
+  const bd = el('div', { class: 'modal-backdrop', 'data-sent-opt-popup': '1' });
+  bd.onclick = (e) => { if (e.target === bd) bd.remove(); };
+  const md = el('div', { class: 'modal', style: { width: 'min(92vw, 360px)', padding: '22px 20px', borderRadius: '22px', background: '#FBFAFF', border: '1px solid rgba(125,92,255,0.3)' } });
+  let synOn = true;
+  const paint = () => {
+    md.innerHTML = `
+      <div style="font-size:26px;">📝</div>
+      <div style="margin-top:6px;font-size:16px;font-weight:800;color:#5C53A5;">내 문장으로 테스트 <span style="font-size:10px;background:#ECE8FF;color:#5C53A5;padding:2px 7px;border-radius:999px;vertical-align:middle;">PREMIUM</span></div>
+      <div class="t-small" style="margin-top:4px;color:var(--ink-soft);">내가 쓴 문장 ${all.length}개 중에서 뽑아요. 몇 문항 볼까요?</div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        ${[10, 20].filter((n) => all.length > 5 || n === 10).map((n) => `<button data-so-n="${n}" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(125,92,255,0.35);background:#fff;color:#5C53A5;font-size:14px;font-weight:800;cursor:pointer;">${n}문항</button>`).join('')}
+        <button data-so-n="all" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(125,92,255,0.35);background:#fff;color:#5C53A5;font-size:14px;font-weight:800;cursor:pointer;">전체 ${all.length}</button>
+      </div>
+      <button data-so-syn style="width:100%;margin-top:10px;padding:11px;border-radius:12px;border:1.5px solid ${synOn ? '#2273AE' : 'var(--line)'};background:${synOn ? '#DCEDFA' : '#fff'};color:${synOn ? '#2273AE' : 'var(--muted)'};font-size:12.5px;font-weight:800;cursor:pointer;">✦ 유의어 문항 포함 ${synOn ? 'ON' : 'OFF'}</button>
+      <button data-so-close style="display:block;width:100%;margin-top:10px;background:transparent;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:5px;">닫기</button>`;
+    md.querySelector('[data-so-syn]').onclick = () => { synOn = !synOn; paint(); };
+    md.querySelector('[data-so-close]').onclick = () => bd.remove();
+    md.querySelectorAll('[data-so-n]').forEach((b) => b.onclick = () => {
+      const v = b.getAttribute('data-so-n');
+      bd.remove();
+      window.__startReview('sentence', { count: v === 'all' ? all.length : Number(v), syn: synOn });
+    });
+  };
+  paint();
+  bd.appendChild(md);
+  document.body.appendChild(bd);
+};
+window.__startReview = (mode, opts) => {
   const _isPrem = seesPremiumNow();
   if (!_isPrem && (mode === 'sentence' || mode === 'weak')) {
     showToast(mode === 'sentence' ? '내 문장 테스트는 프리미엄 전용이에요 💜' : '약점 단어 테스트는 프리미엄 전용이에요 🔒');
     return;
   }
+  if (mode === 'sentence' && !opts) { window.__openSentenceTestOptions(); return; }
   let list = mode === 'sentence' ? buildReviewMySentences() : buildReviewWeakWords();
   if (!list.length) {
     showToast(mode === 'sentence' ? '아직 제출한 문장이 없어요. 먼저 영작을 해보세요!' : '복습할 약점 단어가 없어요. 완벽해요 💪');
@@ -30685,17 +30730,31 @@ window.__startReview = (mode) => {
   bumpReviewCount(mode === 'weak' ? 'weak' : 'sentence');
   let remaining = 0;
   if (mode === 'weak') {
-    // 데일리 단어시험 형식: 한 세션 10개 (약점 점수 높은 순), 유의어 문항 최대 5개 추가.
-    remaining = Math.max(0, list.length - 10);
-    const picked = list.slice(0, 10);
+    // 데일리 단어시험 형식: 총 10문항 = 약점 단어 7 + 유의어 최대 3 (2026-09-04 버디: 15개 → 10개).
+    remaining = Math.max(0, list.length - 7);
+    const picked = list.slice(0, 7);
     const synQs = [];
     picked.forEach((wd) => {
-      if (synQs.length >= 5) return;
+      if (synQs.length >= 3) return;
       const sy = (wd.syn || [])[0];
       if (!sy) return;
       synQs.push({ en: sy, kr: (typeof synonymMeaning === 'function' ? synonymMeaning(sy) : ''), def: '', isSyn: true, base: wd.en, ex_en: '' });
     });
     list = picked.concat(synQs);
+  }
+  if (mode === 'sentence') {
+    const cnt = Math.max(1, Number(opts.count) || 10);
+    list = list.sort(() => Math.random() - 0.5).slice(0, cnt);
+    if (opts.syn) {
+      const synQs = [];
+      list.forEach((it) => {
+        if (synQs.length >= 5) return;
+        const sy = __reviewSynFor(it.en);
+        if (!sy) return;
+        synQs.push({ en: sy, kr: (typeof synonymMeaning === 'function' ? synonymMeaning(sy) : ''), def: '', isSyn: true, base: it.en, ex_en: '' });
+      });
+      list = list.concat(synQs);
+    }
   }
   window.__reviewUi = { mode, list, idx: 0, value: '', values: ['', ''], score: 0, done: false, remaining, reveal: false, revealAnswer: false };
   render();
@@ -30799,7 +30858,7 @@ function MyReviewPage() {
   const page = el('div', { class: 'page' });
   const isPrem = seesPremiumNow();
   const head = el('div', { class: 'row-between', style: { marginBottom: '14px' } });
-  head.innerHTML = '<button class="icon-btn" onclick="window.__exitReview()" style="background:#fff;border:1px solid var(--line);">' + Icon('arrowLeft', 16) + '</button><div class="kicker" style="color:var(--orange-dark);">MY REVIEW · 내 복습</div><div style="width:36px;"></div>';
+  head.innerHTML = '<button class="icon-btn" onclick="window.__exitReview()" style="background:#fff;border:1px solid var(--line);">' + Icon('arrowLeft', 16) + '</button><div class="kicker" style="color:var(--orange-dark);">' + ((window.__reviewUi && window.__reviewUi.mode === 'sentence') ? '내 문장으로 테스트 PREMIUM' : (window.__reviewUi && window.__reviewUi.mode === 'weak') ? '약점 단어 테스트' : 'MY REVIEW · 내 복습') + '</div><div style="width:36px;"></div>';
   page.appendChild(head);
 
   if (!reviewFeatureUnlocked()) {
@@ -30986,7 +31045,7 @@ function MyReviewPage() {
   panel.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
       <div class="kicker" style="color:#8B84D7;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-        ${ui.mode === 'sentence' ? '내 문장 테스트' : '약점 단어 시험'} · 총 ${ui.list.length}문제
+        ${ui.mode === 'sentence' ? '📝 내 문장으로 테스트 <span style="padding:2px 7px;border-radius:999px;background:#ECE8FF;color:#5C53A5;font-size:9px;font-weight:800;">PREMIUM</span>' : '🎯 약점 단어 테스트 · 한 번에 10개씩'} · 총 ${ui.list.length}문제
         ${cur.isSyn ? `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:999px;background:#DCEDFA;color:#2273AE;font-size:9.5px;font-weight:800;letter-spacing:0.04em;text-transform:none;">✦ 유의어</span>` : ''}
       </div>
       <span class="badge" style="background:#ECE8FF;color:#5C53A5;">${ui.idx + 1} / ${ui.list.length}</span>
