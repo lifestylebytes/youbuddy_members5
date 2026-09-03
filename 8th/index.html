@@ -32944,7 +32944,7 @@ const WEEK4_DECK = [
     + [['👂 듣는 사람 미션 1', '안 들렸던 단어·표현을 미팅 노트에 적어두기'], ['💬 듣는 사람 미션 2', '발표 끝나면 실제 회의처럼 질문 하나씩 (배운 표현으로!)'], ['👏 피드백 규칙', '구체적인 칭찬 먼저, 그다음 "나라면 이렇게"']].map((r) =>
         '<div style="padding:11px 13px;border-radius:13px;background:#FFFDF8;border:1px solid rgba(46,111,168,0.16);"><div style="font-size:13px;font-weight:800;color:var(--ink);">' + r[0] + '</div><div style="margin-top:2px;font-size:12px;color:var(--ink-soft);line-height:1.5;">' + r[1] + '</div></div>').join('')
     + '</div>' },
-  { section: '랜덤 퀴즈', kicker: '3 · 랜덤 단어 퀴즈', title: '🎲 랜덤 단어 퀴즈 · 스피드 라운드',
+  { section: '랜덤 퀴즈', kicker: '3 · 랜덤 단어 퀴즈', title: '🎲 랜덤 단어 퀴즈 · 스피드 라운드', wordRoller: true,
     html: '<div style="font-size:13.5px;color:var(--ink);line-height:1.7;">4주 단어 60개 중 <b>무작위</b>로 나와요. 한국어 뜻을 보고 영어로 먼저 외쳐보세요!</div>'
     + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">'
     + [['진행 방법', '운영자가 홈의 🎲 랜덤 단어 테스트를 화면 공유로 돌려요. 열 때마다 5문항이 새로 뽑혀요'], ['규칙', '먼저 말한 사람이 정답을 가져가요. 막히면 힌트(단어 하나씩 공개)로!'], ['목표', '맞히기보다 입 밖으로 내보는 것. 틀린 단어는 내일 파이널 전에 다시 만나요']].map((r) =>
@@ -33300,11 +33300,53 @@ function MeetingDeckPage() {
         + '</div></div>';
     }
   }
+  window.__deckRollerPool = function (sc) {
+    const arr = [];
+    (CHALLENGE.weeks || []).forEach(function (wk) {
+      if (sc === 'week4' && Number(wk.n) !== 4) return;
+      (wk.days || []).forEach(function (d) { (d.words || []).forEach(function (w) { if (w && w.en) arr.push(w); }); });
+    });
+    return arr;
+  };
+  window.__deckRollerScope = function (sc) {
+    window.__m4RandScope = sc;
+    const np = window.__deckRollerPool(sc);
+    window.__m4RandWord = np[Math.floor(Math.random() * np.length)];
+    window.__m4RandCount = 1;
+    render();
+  };
+  window.__deckRollerNext = function () {
+    const pool = window.__deckRollerPool(window.__m4RandScope || 'all');
+    let nw = window.__m4RandWord;
+    if (pool.length > 1) { let g = 0; while (nw === window.__m4RandWord && g < 40) { nw = pool[Math.floor(Math.random() * pool.length)]; g++; } }
+    window.__m4RandWord = nw; window.__m4RandCount = (window.__m4RandCount || 1) + 1; render();
+  };
   window.__wsForceRefresh = function (d0, d1) {
     try { if (typeof window.__loadMeetingMemberNotes === 'function') window.__loadMeetingMemberNotes(__curMid(), true); } catch (e) {}
     for (let d = d0; d <= d1; d++) { loadCommunityPosts(d, { force: true }).then(function () { try { render(); } catch (e) {} }); }
     try { showToast('문장을 다시 불러와요'); } catch (e) {}
   };
+  if (s.wordRoller) {
+    const __drScope = window.__m4RandScope || 'all';
+    const __drPool = window.__deckRollerPool(__drScope);
+    if (__drPool.length) {
+      if (!window.__m4RandWord || __drPool.indexOf(window.__m4RandWord) === -1) { window.__m4RandWord = __drPool[Math.floor(Math.random() * __drPool.length)]; window.__m4RandCount = window.__m4RandCount || 1; }
+      const w = window.__m4RandWord;
+      const __drTab = function (key, label) { return '<button onclick="window.__deckRollerScope(\'' + key + '\')" style="flex:1;padding:9px;border-radius:10px;border:1px solid var(--orange-soft);background:' + (__drScope === key ? 'var(--orange)' : '#fff') + ';color:' + (__drScope === key ? '#fff' : 'var(--orange-dark)') + ';font-size:13px;font-weight:800;cursor:pointer;">' + label + '</button>'; };
+      body += '<div style="margin-top:14px;padding:22px;border-radius:22px;background:linear-gradient(135deg, #FFF5E6 0%, #FFE5D9 100%);border:1px solid var(--orange-soft);text-align:center;">'
+        + '<div class="kicker" style="color:var(--orange-dark);">🎲 단어 랜덤기 · ' + (window.__m4RandCount || 1) + '번째</div>'
+        + '<div style="display:flex;gap:8px;margin-top:10px;max-width:520px;margin-left:auto;margin-right:auto;">' + __drTab('all', '전체 (60개)') + __drTab('week4', 'Week 4만') + '</div>'
+        + '<div style="margin-top:18px;font-size:40px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;line-height:1.2;">' + escapeHtml(w.en) + (w.pos ? ' <span style="font-size:15px;font-weight:600;color:var(--muted);font-style:italic;">' + escapeHtml(w.pos) + '</span>' : '') + '</div>'
+        + '<div style="margin-top:10px;font-size:19px;font-weight:700;color:var(--orange-dark);">' + escapeHtml(w.def || '') + '</div>'
+        + (w.ex_en ? '<div style="margin-top:16px;padding:13px 15px;background:rgba(255,255,255,0.75);border-radius:14px;border:1px solid rgba(231,221,200,0.7);text-align:left;max-width:640px;margin-left:auto;margin-right:auto;">'
+            + '<div style="font-size:16px;line-height:1.6;color:var(--ink);font-style:italic;">"' + escapeHtml(w.ex_en) + '"</div>'
+            + (w.ex_kr ? '<div style="margin-top:5px;font-size:13.5px;color:var(--ink-soft);line-height:1.55;">' + escapeHtml(w.ex_kr) + '</div>' : '')
+            + '</div>' : '')
+        + ((Array.isArray(w.syn) && w.syn.length) ? '<div style="margin-top:10px;font-size:12px;color:var(--muted);">유의어 · ' + w.syn.map(function (x) { return escapeHtml(x); }).join(' · ') + '</div>' : '')
+        + '<button onclick="window.__deckRollerNext()" class="btn btn-primary btn-full" style="margin-top:16px;background:var(--orange);border:none;color:#fff;font-weight:800;padding:14px;font-size:15px;max-width:640px;">🎲 다음 단어 →</button>'
+        + '</div>';
+    }
+  }
   if (s.weekSentences) {
     const __wsWk = Number(__curMid().slice(1)) || 1;
     const __wsD0 = (__wsWk - 1) * 5 + 1;
