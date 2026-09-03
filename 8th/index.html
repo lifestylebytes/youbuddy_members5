@@ -33290,6 +33290,10 @@ function MeetingDeckPage() {
         + '</div></div>';
     }
   }
+  window.__wsForceRefresh = function (d0, d1) {
+    for (let d = d0; d <= d1; d++) { loadCommunityPosts(d, { force: true }).then(function () { try { render(); } catch (e) {} }); }
+    try { showToast('문장을 다시 불러와요'); } catch (e) {}
+  };
   if (s.weekSentences) {
     const __wsWk = Number(__curMid().slice(1)) || 1;
     const __wsD0 = (__wsWk - 1) * 5 + 1;
@@ -33298,11 +33302,12 @@ function MeetingDeckPage() {
     let __wsLoading = false;
     for (let __d = __wsD0; __d <= __wsD1; __d++) {
       const __c = communityFeedCache[__d];
-      if (!__c) {
-        __wsLoading = true;
-        if (hasSupabase() && !communityFeedInFlight[__d]) loadCommunityPosts(__d).then(function () { try { render(); } catch (e) {} });
-        continue;
+      // 캐시 없으면 로딩, 있어도 60초 지났으면 재조회 (덱 켜놓고 있어도 새 문장 자동 반영. 2026-09-03)
+      if (hasSupabase() && !communityFeedInFlight[__d]
+          && (!__c || (Date.now() - (__c.loadedAt || 0)) >= PEER_CACHE_MS)) {
+        loadCommunityPosts(__d).then(function () { try { render(); } catch (e) {} });
       }
+      if (!__c) { __wsLoading = true; continue; }
       (__c.rows || []).forEach(function (p) {
         if ((p.tier || '') !== 'premium') return;
         const __k = p.member_key || p.user; if (!__k) return;
@@ -33314,7 +33319,9 @@ function MeetingDeckPage() {
     }
     const __wsList = Object.values(__wsBy);
     body += '<div style="margin-top:13px;padding:13px 14px;border-radius:14px;background:#F0F6FC;border:1px solid rgba(46,111,168,0.22);">'
-      + '<div style="font-size:12px;font-weight:800;color:#1F4F7D;">📝 이번 주 여러분이 쓴 문장</div>'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+      + '<span style="font-size:12px;font-weight:800;color:#1F4F7D;">📝 이번 주 여러분이 쓴 문장</span>'
+      + '<button onclick="window.__wsForceRefresh(' + __wsD0 + ',' + __wsD1 + ')" style="font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid rgba(46,111,168,0.25);background:#fff;color:#1F4F7D;cursor:pointer;">↻ 새로고침</button></div>'
       + (__wsList.length
         ? '<div style="margin-top:9px;display:flex;flex-direction:column;gap:7px;">' + __wsList.map(function (x) {
             return '<div style="padding:9px 12px;border-radius:11px;background:#fff;border:1px solid rgba(46,111,168,0.14);">'
