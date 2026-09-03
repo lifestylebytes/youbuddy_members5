@@ -22395,8 +22395,9 @@ function CertPage() {
   const quizDone = !!state.personal_quiz_done
     || !!(state.personal_quiz_submitted && state.personal_quiz_submitted.fill)
     || (pqItems.length > 0 && Object.keys(state.personal_quiz_answers || {}).length >= pqItems.length);
-  // 7기: 주간 미팅은 실제 진행(status==='done')된 횟수만 카운트 (시작 전이라 0/4).
-  const meetingsDone = CHALLENGE.premium.weekly_meetings.filter(m => m.status === 'done').length;
+  // 8기: 버디 집계표(PREMIUM_MEETING_STATS) 우선, 없으면 status 기반.
+  const __ms = __myMeetingStats();
+  const meetingsDone = __ms ? __ms.attend : CHALLENGE.premium.weekly_meetings.filter(m => m.status === 'done').length;
   // 프레젠터 = 각 주차에서 내가 발표자로 자리 잡아 실제 발표한 횟수.
   const presentedWeeks = (() => {
     try {
@@ -22407,7 +22408,7 @@ function CertPage() {
         return w.some(s => s.uid === state.uid || s.memberKey === state.memberKey);
       }).length;
     } catch { return 0; }
-  })();
+  })() || (__ms ? __ms.presented : 0);
   const overall = Math.round(((done/total) * 0.5 + (meetingsDone/4) * 0.3 + (quizDone ? 0.15 : 0) + (presentedWeeks > 0 ? 0.05 : 0)) * 100);
 
   page.appendChild(el('div', { class: 'kicker' }, 'PREMIUM · CERTIFICATION'));
@@ -24705,11 +24706,11 @@ function FinalReportPage() {
   });
   // 미팅 / 발표 (프리미엄)
   const isPremium = state.tier === 'premium';
-  // 7기: 주간 미팅은 실제 진행(status==='done')된 횟수만 카운트 (시작 전이라 0/4).
-  const meetingsDone = (CHALLENGE.premium && CHALLENGE.premium.weekly_meetings)
-    ? CHALLENGE.premium.weekly_meetings.filter((m) => m.status === 'done').length : 0;
-  // 발표 횟수, 실제 발표 전이라 0.
-  const presentedCount = 0;
+  // 8기: 버디 집계표(PREMIUM_MEETING_STATS) 우선.
+  const __ms2 = __myMeetingStats();
+  const meetingsDone = __ms2 ? __ms2.attend : ((CHALLENGE.premium && CHALLENGE.premium.weekly_meetings)
+    ? CHALLENGE.premium.weekly_meetings.filter((m) => m.status === 'done').length : 0);
+  const presentedCount = __ms2 ? __ms2.presented : 0;
   // 본인 약점 단어 Top 5 (vocab_stats firstResult='wrong' 우선)
   const myStats = state.vocab_stats || {};
   const weakWords = Object.entries(myStats)
@@ -25020,6 +25021,14 @@ function FinalReportPage() {
   }, '🎁 다음 기수 신청하러 가기 →');
   cohortCard.appendChild(cohortBtn);
   page.appendChild(cohortCard);
+
+  // ⭐ 후기 버튼, 리포트 끝에서 감정이 올라온 순간에 (2026-09-04 버디 요청)
+  const frReviewBtn = el('button', { class: 'btn btn-full', style: {
+    margin: '12px 18px 0', width: 'calc(100% - 36px)', padding: '13px',
+    background: 'linear-gradient(135deg,#F7C948,#F0AC3D)', color: '#5C4308', border: 'none',
+    fontSize: '13.5px', fontWeight: '800', borderRadius: '14px', boxShadow: '0 2px 8px rgba(240,172,61,0.35)',
+  }, onClick: () => { state.review_ask_seen = false; try { window.__openReviewAsk(function () {}); } catch (e) {} } }, '⭐ 후기 남기기 (초안 써뒀어요)');
+  page.appendChild(frReviewBtn);
 
   return page;
 }
@@ -32415,6 +32424,20 @@ function __ptGuideHtml() {
    URL 은 추측 불가능한 파일명이지만 GitHub Pages 라 링크를 아는 사람은 볼 수 있다.
    멤버 본인 이름·직무가 들어가므로 링크를 단톡방에 붙이지 말 것.
    ============================================================ */
+// 8기 프리미엄 미팅 출석·발표 실적 (2026-09-04 버디 집계, 수료 리포트/인증서에 사용)
+const PREMIUM_MEETING_STATS = {
+  '유버디': { attend: 4, presented: 0 },
+  '이나윤': { attend: 2, presented: 1 },
+  '홍현정': { attend: 3, presented: 1 },
+  '오채미': { attend: 1, presented: 0 },
+  '정주혜': { attend: 3, presented: 1 },
+  '최예준': { attend: 3, presented: 0 },
+  '옥은정': { attend: 4, presented: 1 },
+};
+function __myMeetingStats() {
+  try { return PREMIUM_MEETING_STATS[(state.name || '').trim()] || null; } catch (e) { return null; }
+}
+
 const MEMBER_REPORTS = {
   // 예시) 'Cham': { url: '/8th/report-xxxxxxxx.html', week: 2, at: '2026-08-21', label: 'Cham · 오채미' },
   //       '오채미': { url: '/8th/report-xxxxxxxx.html', week: 2, at: '2026-08-21' },
