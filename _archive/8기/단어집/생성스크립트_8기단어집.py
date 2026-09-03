@@ -142,7 +142,7 @@ IDX_CSS = """
 .idx-row .en.syn { font-weight: 500; color: #6B6260; padding-left: 2mm; }
 .idx-row .ko { flex: 1; color: #5C5449; }
 .tst-row .ko { color: #2C2828; }
-.blank { display: inline-block; width: 100%; border-bottom: .8pt solid #8A7F78; height: 3.4mm; }
+.blank { display: inline-block; width: 90%; border-bottom: .8pt solid #8A7F78; height: 3.2mm; margin-right: 2.5mm; }
 """
 s_css_anchor = '.ls-f {'
 assert s_css_anchor in CSS
