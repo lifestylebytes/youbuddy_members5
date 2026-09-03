@@ -10080,8 +10080,9 @@ function HomePage() {
       const _tk = splitGoalAndTasks(state.goal).tasks;
       if (_tk.length) {
         const last = _tk[_tk.length - 1];
+        const __isAfter = last.indexOf('유비챌 8기 이후 목표') >= 0;
         const m2 = last.match(/Week\s*(\d+)/i);
-        const wkLabel = m2 ? ('WEEK ' + m2[1]) : 'THIS WEEK';
+        const wkLabel = __isAfter ? '유비챌 8기 이후 목표' : (m2 ? ('WEEK ' + m2[1]) : 'THIS WEEK');
         const seen = (state.week_task_popup_seen && typeof state.week_task_popup_seen === 'object') ? state.week_task_popup_seen : {};
         if (!seen[wkLabel]) {
           setTimeout(() => {
@@ -32152,7 +32153,7 @@ function WeekTaskPopupModal() {
   card.innerHTML = '<button onclick="window.__closeWeekTaskPopup()" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);font-size:13px;cursor:pointer;">✕</button>'
     + '<div style="font-size:34px;">🎯</div>'
     + '<div class="kicker" style="margin-top:8px;color:var(--orange-dark);">' + escapeHtml(ctx.wk) + ' · 미팅에서 정했어요</div>'
-    + '<div style="margin-top:5px;font-size:18px;font-weight:800;color:var(--ink);line-height:1.35;">이번 주 과제가 등록됐어요!</div>'
+    + '<div style="margin-top:5px;font-size:18px;font-weight:800;color:var(--ink);line-height:1.35;">' + (ctx.wk === '유비챌 8기 이후 목표' ? '8기 이후 목표가 등록됐어요!' : '이번 주 과제가 등록됐어요!') + '</div>'
     + '<div style="margin-top:12px;display:flex;flex-direction:column;gap:7px;">'
     + (ctx.tasks || []).map((t) => '<div style="padding:11px 13px;border-radius:13px;background:#FFF7EC;border:1px solid rgba(240,172,61,0.4);font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.6;">' + escapeHtml(String(t).replace(/^🎯\s*/, '')) + '</div>').join('')
     + '</div>'
