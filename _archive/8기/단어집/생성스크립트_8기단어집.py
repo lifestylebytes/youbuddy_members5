@@ -109,6 +109,67 @@ for wk in d['weeks']:
           {spoon_html}
         </div>""")
 
+
+# ── 부록: 180개 전체 인덱스 + 종이 테스트 (2026-09-04 버디 요청) ──
+SYN_GLOSS = json.load(open('/tmp/syn_gloss.json'))
+def syn_ko(en):
+    if en in SYN_GLOSS: return SYN_GLOSS[en]
+    low = en.lower()
+    for k, v in SYN_GLOSS.items():
+        if k.lower() == low: return v
+    return ''
+
+ALL_WORDS = []  # (en, ko, day, is_syn)
+for wk in d['weeks']:
+    for day in wk['days']:
+        for x in day['words']:
+            ALL_WORDS.append((x['en'], x['def'], day['day'], False))
+            for sy in (x.get('syn') or []):
+                ALL_WORDS.append((sy, syn_ko(sy), day['day'], True))
+missing_syn = [w for w in ALL_WORDS if w[3] and not w[1]]
+print('전체:', len(ALL_WORDS), '· 유의어 뜻 누락:', len(missing_syn), [w[0] for w in missing_syn][:6])
+
+IDX_CSS = """
+.appx { page-break-before: always; }
+.ap-h { border-bottom: 1.4pt solid #2C2828; padding-bottom: 2mm; margin-bottom: 3mm; }
+.ap-h .no { font-size: 7.2pt; letter-spacing: .22em; color: #C97F7F; font-weight: 800; }
+.ap-h .ti { margin-top: 1.4mm; font-size: 13pt; font-weight: 800; color: #2C2828; }
+.ap-h .sub { margin-top: 1mm; font-size: 7.6pt; color: #6B6260; }
+.idx-cols { column-count: 2; column-gap: 6mm; }
+.idx-row { display: flex; gap: 2mm; font-size: 6.9pt; line-height: 1.5; padding: .55mm 0; border-bottom: .3pt solid rgba(201,127,127,.16); break-inside: avoid; }
+.idx-row .n { flex: 0 0 6.5mm; color: #C97F7F; font-weight: 700; font-size: 6.2pt; }
+.idx-row .en { flex: 0 0 34mm; font-weight: 700; color: #2C2828; }
+.idx-row .en.syn { font-weight: 500; color: #6B6260; padding-left: 2mm; }
+.idx-row .ko { flex: 1; color: #5C5449; }
+.tst-row .ko { color: #2C2828; }
+.blank { display: inline-block; width: 100%; border-bottom: .8pt solid #8A7F78; height: 3.4mm; }
+"""
+s_css_anchor = '.ls-f {'
+assert s_css_anchor in CSS
+
+def idx_rows(items, hide):
+    rows = []
+    for n, (en, ko, day, is_syn) in enumerate(items, 1):
+        en_html = '<span class="blank"></span>' if hide == 'en' else e(en)
+        ko_html = '<span class="blank"></span>' if hide == 'ko' else e(ko)
+        cls = 'en syn' if is_syn else 'en'
+        rows.append(f'<div class="idx-row{" tst-row" if hide else ""}"><span class="n">{n:03d}</span><span class="{cls}">{en_html}</span><span class="ko">{ko_html}</span></div>')
+    return ''.join(rows)
+
+import random
+rnd = random.Random(8)
+SHUF = ALL_WORDS[:]
+rnd.shuffle(SHUF)
+HALF_A, HALF_B = SHUF[:90], SHUF[90:]
+
+APPX = []
+APPX.append(f"""<div class="appx"><div class="ap-h"><div class="no">APPENDIX 1</div><div class="ti">전체 표현 인덱스 · 180</div><div class="sub">메인 60 (진하게) + 유의어 120 · Day 순서</div></div><div class="idx-cols">{idx_rows(ALL_WORDS, None)}</div></div>""")
+APPX.append(f"""<div class="appx"><div class="ap-h"><div class="no">APPENDIX 2 · SELF TEST A</div><div class="ti">영어 보고 뜻 쓰기 · 90</div><div class="sub">무작위 순서 · 프린트해서 손으로 채워보세요. 정답은 APPENDIX 1</div></div><div class="idx-cols">{idx_rows(HALF_A, 'ko')}</div></div>""")
+APPX.append(f"""<div class="appx"><div class="ap-h"><div class="no">APPENDIX 2 · SELF TEST B</div><div class="ti">뜻 보고 영어 쓰기 · 90</div><div class="sub">무작위 순서 · 입으로 먼저 말하고, 손으로 확인하세요</div></div><div class="idx-cols">{idx_rows(HALF_B, 'en')}</div></div>""")
+
+CSS = CSS + IDX_CSS
+for a in APPX: P.append(a)
+
 APPLY = 'https://lifestylebytes.github.io/youbuddy-challenge/?utm_source=pdf&utm_medium=vocabbook&utm_campaign=8th_grad'
 P.append(f"""<div class="last">
   <div class="ls-t">여기까지 온 당신이<br/>이 단어집의 저자예요</div>
