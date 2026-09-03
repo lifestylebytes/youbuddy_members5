@@ -15314,22 +15314,23 @@ window.__openReviewAsk = function (onDone) {
   // 건의·아쉬움 계열 표현이 섞인 코멘트는 제외하고, 제일 알찬(긴) 것 하나를 고른다.
   const __raNeg = ['아쉬', '어려', '어렵', '불편', '부족', '모르겠', '좋겠', '했으면', '됐으면', '개선', '버그', '오류', '줄어', '밀리', '힘들', 'ㅜ', 'ㅠ', '바라', '원해요', '헷갈'];
   const __raPos = ['좋', '도움', '유용', '뿌듯', '신기', '만족', '멋짐', '재밌', '잘했다', '써먹', '편해', '빨라', '추천', '최고', '꾸준'];
-  let myQuote = '';
+  const myQuotes = [];
   try {
-    Object.values(state.week_survey || {}).forEach((sv) => {
+    ['1', '2', '3', '4'].forEach((wk) => {
+      const sv = (state.week_survey || {})[wk];
       [sv && sv.comment, sv && sv.mini && sv.mini.comment].forEach((c) => {
         c = String(c || '').trim().replace(/\s+/g, ' ');
         if (c.length < 8) return;
         if (!__raPos.some((p) => c.includes(p))) return;
         if (__raNeg.some((n) => c.includes(n))) return;
-        if (c.length > myQuote.length) myQuote = c;
+        if (!myQuotes.includes(c)) myQuotes.push(c);
       });
     });
   } catch (e) {}
-  const draft = myQuote
-    ? myQuote + '\n\n(' + tot + '일 중 ' + vc + '일 인증하고 완주하면서 남긴 후기예요!)'
+  const draft = myQuotes.length
+    ? myQuotes.join('\n') + '\n\n(4주 동안 매주 남긴 소감이에요. ' + tot + '일 중 ' + vc + '일 인증하고 완주했습니다!)'
     : tot + '일 중 ' + vc + '일을 인증하며 완주했어요. 혼자서는 늘 흐지부지됐는데, 매일 인증하고 챙겨주는 시스템 덕분에 처음으로 영어 공부가 안 끊겼습니다. 토익 단어가 아니라 회의에서 진짜 쓰는 표현이라, 배운 날 바로 써먹은 게 많아요.';
-  const draftNote = myQuote ? '↑ 챌린지 중에 설문에 직접 남기셨던 말이에요. 고쳐 쓰셔도 좋아요!' : '↑ 본인 얘기로 고쳐 쓰시면 더 좋아요!';
+  const draftNote = myQuotes.length ? '↑ 매주 설문에 직접 남기셨던 말들이에요. 이어 붙이거나 고쳐 쓰셔도 좋아요!' : '↑ 본인 얘기로 고쳐 쓰시면 더 좋아요!';
   const backdrop = el('div', { class: 'modal-backdrop', 'data-review-ask-popup': '1' });
   const finish = () => {
     state.review_ask_seen = true;
@@ -15346,7 +15347,7 @@ window.__openReviewAsk = function (onDone) {
       <div class="t-small" style="margin-top:8px;font-size:12px;color:var(--ink-soft);line-height:1.6;">여러분의 후기 한 줄이 다음 기수 누군가에겐<br>시작할 용기가 돼요. 초안까지 써뒀어요 :)</div>
     </div>
     <div style="padding:16px 20px 20px;">
-      <div style="padding:12px 14px;border-radius:14px;background:#FBF7F0;border:1px solid var(--line);font-size:12.5px;color:var(--ink);line-height:1.65;">${escapeHtml(draft)}</div>
+      <div style="padding:12px 14px;border-radius:14px;background:#FBF7F0;border:1px solid var(--line);font-size:12.5px;color:var(--ink);line-height:1.65;white-space:pre-line;">${escapeHtml(draft)}</div>
       <div class="t-small" style="margin-top:6px;font-size:11px;color:var(--muted);">${escapeHtml(draftNote)}</div>
       <button data-ra-copy class="btn btn-ghost btn-full" style="margin-top:12px;background:#fff;border:1px solid var(--line);color:var(--ink);font-size:13px;padding:11px;font-weight:700;">📋 초안 복사하기</button>
       <button data-ra-go class="btn btn-primary btn-full" style="margin-top:8px;background:var(--orange);border:none;color:#fff;font-size:14px;padding:13px;font-weight:800;">⭐ 후기 남기고 단어집 받기 →</button>
