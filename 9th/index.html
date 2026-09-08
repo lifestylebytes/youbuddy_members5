@@ -1798,6 +1798,7 @@ const PERSISTED_STATE_KEYS = [
   'premium_intake',
   'review_counts',
   'review_ask_seen',
+  'ai_review_feedback',
   'qna_w4_seen',
   'rr_snooze_day',
   'review_clicked',
@@ -2519,6 +2520,58 @@ function __isEssentiallySameAsPrior(currentSentence, history) {
 
 // AI 피드백 3분류 렌더 (문법 파랑 / 어휘 그린 / 뉘앙스 퍼플). 한눈에 스캔 가능하게.
 // 구조화 feedback 이 없으면 (구버전 서버·폴백·에코 등) 기존 💡 Why 한 줄로 fallback.
+
+// AI 리뷰 바로 아래 '피드백 주기' (2026-09-05 버디 요청). 멤버가 첨삭 품질을 👍👎 + 한 줄로 보내면
+// state.ai_review_feedback 에 쌓여 서버로 동기화되고, 운영진이 모아서 프롬프트 개선에 쓴다.
+function __aiFbRowHtml(key, fb) {
+  const list = Array.isArray(state.ai_review_feedback) ? state.ai_review_feedback : [];
+  const mine = list.filter((x) => x && x.key === key && x.corrected === (fb && fb.corrected));
+  if (mine.length) {
+    const last = mine[mine.length - 1];
+    return `<div style="margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);font-size:11.5px;color:var(--muted);">${last.rating === 'down' ? '👎' : '👍'} 피드백 전달됐어요. 버디가 읽고 첨삭을 계속 다듬을게요 🧡</div>`;
+  }
+  const k = escapeHtml(key);
+  return `<div data-aifb="${k}" style="margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <span style="font-size:11.5px;color:var(--ink-soft);font-weight:700;">이 첨삭 어땠어요?</span>
+        <button type="button" data-aifb-rate="up" style="padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:12px;cursor:pointer;">👍 도움됨</button>
+        <button type="button" data-aifb-rate="down" style="padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:12px;cursor:pointer;">👎 별로</button>
+      </div>
+      <div data-aifb-more style="display:none;margin-top:7px;">
+        <input data-aifb-text class="input" placeholder="어떤 점이요? 한 줄만 (선택) · 버디에게만 보여요" style="width:100%;font-size:12.5px;padding:8px 10px;" />
+        <button type="button" data-aifb-send style="margin-top:6px;padding:7px 12px;border-radius:10px;border:none;background:var(--orange);color:#fff;font-size:12px;font-weight:800;cursor:pointer;">버디에게 보내기</button>
+      </div>
+    </div>`;
+}
+function __wireAiFbRow(root, key, fb) {
+  const box = root.querySelector(`[data-aifb="${CSS.escape(key)}"]`);
+  if (!box) return;
+  let rating = null;
+  const more = box.querySelector('[data-aifb-more]');
+  box.querySelectorAll('[data-aifb-rate]').forEach((b) => {
+    b.onclick = () => {
+      rating = b.getAttribute('data-aifb-rate');
+      box.querySelectorAll('[data-aifb-rate]').forEach((x) => { x.style.background = '#fff'; x.style.borderColor = 'var(--line)'; });
+      b.style.background = 'var(--orange-ghost)'; b.style.borderColor = 'var(--orange)';
+      more.style.display = 'block';
+      try { more.querySelector('[data-aifb-text]').focus(); } catch (e) {}
+    };
+  });
+  box.querySelector('[data-aifb-send]').onclick = () => {
+    if (!rating) { showToast('👍 또는 👎 먼저 골라주세요'); return; }
+    const text = String((more.querySelector('[data-aifb-text]') || {}).value || '').trim().slice(0, 300);
+    state.ai_review_feedback = Array.isArray(state.ai_review_feedback) ? state.ai_review_feedback : [];
+    state.ai_review_feedback.push({
+      key, rating, text, at: new Date().toISOString(),
+      word: (fb && fb.word) || '', original: (fb && fb.originalInput) || '', corrected: (fb && fb.corrected) || '',
+      why: String((fb && fb.why) || '').slice(0, 200),
+    });
+    if (state.ai_review_feedback.length > 60) state.ai_review_feedback = state.ai_review_feedback.slice(-60);
+    try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
+    showToast('버디에게 전달됐어요. 고마워요 🧡');
+    render();
+  };
+}
 function buildAiFeedbackHtml(fb, fallbackWhy) {
   const f = fb && fb.feedback;
   const cats = [
@@ -17715,7 +17768,9 @@ function DayPage(dayN) {
           <div class="ai-head" style="margin:0;">${Icon('sparkles', 12)} 내 기록실 · AI 리뷰</div>
           <span style="font-size:10.5px;color:var(--muted);background:var(--paper);padding:3px 8px;border-radius:999px;">참고용 · 나만 봐요</span>
         </div>
-        ${bodyHtml}`;
+        ${bodyHtml}
+        ${(!fb.isError && !isFallback) ? __aiFbRowHtml(key, Object.assign({ word: w.en }, fb)) : ''}`;
+      try { __wireAiFbRow(result, key, Object.assign({ word: w.en }, fb)); } catch (e) {}
       // Wire up the copy button after innerHTML is set.
       const copyBtn = result.querySelector('.btn-copy-ai');
       if (copyBtn) {
