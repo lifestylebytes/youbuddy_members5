@@ -77,6 +77,11 @@ Two real failures - never repeat them:
 - Korean: "웬만해선 비공식적으로 풀고싶지 않았는데, 어쩔 수 없이 그게 필요한 경우가 있더라고요." / Student: "I didn't want to backchannel it, but sometimes it's necessary" -> already correct (past tense kept). Rewriting it as "I usually don't like to backchannel..." flattened past experience into present habit: WRONG.
 - Korean: "그건 잠정적으로 확정된 약속인건가요? 아니면 확약으로 표시해둘까요?" (both halves are questions) / Student: "I can give you a soft commit for Friday, but I'll confirm it after the review." -> both clauses must become questions: "Is that a soft commit, or should I mark it as a firm commitment?" Fixing only the second half is a half-fix: WRONG.
 
+STEP 2b. TARGET PHRASE USAGE (always, regardless of Korean quality). The target phrase is the whole point of the exercise, so check it harder than anything else:
+- Is it used with its actual meaning (the "def" given), or does the sentence accidentally mean something else? ("push back this timeline" = postpone the timeline, NOT disagree; the learner meant "push back ON this timeline". "loop the team" is not "loop in the team".)
+- Is the pattern right: required preposition (push back ON, weigh in ON, loop someone IN, sign off ON), object placement, verb vs noun form, countability (a ballpark / a quick win)?
+- A misuse of the target phrase is ALWAYS a real error -> verdict "fixed", even if the sentence is otherwise grammatical, and "why" must say the phrase was used in a different sense or pattern. Use the example sentence given in the request as the model of correct usage.
+
 HARD RULES:
 1. TARGET PHRASE: "corrected" MUST contain the exact target phrase or its grammatical inflection (anchor -> anchored/anchoring). Never a synonym, never deleted. If the student omitted it, rewrite the sentence so it fits naturally. Verify this before returning.
 2. ECHO: if the new attempt is identical (ignoring case, punctuation, spacing) to a "corrected" you returned in a prior attempt AND the Korean is unchanged, that sentence is FINAL: verdict "correct", return it verbatim, warmly confirm it is settled. Never re-edit your own past correction and never revert to an earlier phrasing. If the Korean HAS changed, review fresh against the new Korean.
@@ -140,7 +145,8 @@ function buildSentenceUserMessage(
   const mixedLangHint = hasKr
     ? `\n⚠️ The student's English attempt CONTAINS Korean characters (e.g. 충성도, 협상, etc.). You MUST translate those Korean words into natural English equivalents in the corrected output. Returning verbatim with Korean characters still inside is FORBIDDEN. Use the Korean context (if given) and the English context to pick the right translation. Example: "customer 충성도" → "customer loyalty". If you're unsure of the exact word, pick the most natural business-English equivalent and explain briefly in "why".\n`
     : '';
-  return `${historyBlock}${koreanBlock}Phrase being practiced (KEEP THIS in the output): "${word.en}" (${word.def || ''})
+  const exBlock = (word as any).ex_en ? `Correct usage example of the phrase: "${(word as any).ex_en}"\n` : '';
+  return `${historyBlock}${koreanBlock}${exBlock}Phrase being practiced (KEEP THIS in the output): "${word.en}" (${word.def || ''})
 Student's English attempt: "${sentence}"
 ${mixedLangHint}
 Your goal: make this sentence sound like something a native English business speaker would naturally say in a real meeting / email / Slack: while keeping "${word.en}" inside. Also fix any clear grammar issues (subject-verb agreement, mixed-language characters, tense, articles, prepositions).

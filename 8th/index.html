@@ -2621,7 +2621,7 @@ function __matchesPriorCorrection(currentSentence, history, korean) {
 async function requestSentenceCorrection(word, sentence, koreanContext) {
   const payload = {
     mode: 'sentence',
-    word: { en: word.en, def: word.def },
+    word: { en: word.en, def: word.def, ex_en: word.ex_en || '' },
     text: sentence,
     korean: (koreanContext || '').trim() || undefined,
     // 프리미엄은 '왜 고쳤는지' 심화 설명(deep)까지 받는다. (2026-08-12)
