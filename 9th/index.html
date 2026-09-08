@@ -5906,7 +5906,7 @@ async function supabaseRpc(fn, payload={}) {
 
 const communityFeedCache = {};
 const communityFeedInFlight = {};
-const COMMUNITY_REFRESH_MS = 15000;
+const COMMUNITY_REFRESH_MS = 60000; // 15초→60초 (2026-09-05 에그레스 절감. 탭 복귀 시엔 즉시 갱신)
 // 남의 데이터(피어 보드·커뮤니티 글) 캐시 수명. 내 app_state 동기화 주기
 // (COMMUNITY_REFRESH_MS) 와 일부러 분리했다. 내 상태는 다기기 덮어쓰기를 막으려고
 // 15초를 유지하고, 읽기 전용인 남의 데이터만 60초로 늘려 에그레스를 줄인다. (2026-08-09)
@@ -30517,8 +30517,16 @@ function __checkForUpdate() {
         if (!tag) return;
         let seen = null; try { seen = localStorage.getItem('yb9_update_prompt_seen'); } catch (e) {}
         if (seen === tag) return;
+        // 새 버전 배너 대신 조용히 갱신 (2026-09-05 버디): 입력 중이거나 팝업 열려 있으면 다음 기회에.
+        try {
+          const ae = document.activeElement;
+          if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;
+          if (typeof anyPopupOpen === 'function' && anyPopupOpen()) return;
+          if (Date.now() - (window.__lastTypingAt || 0) < 5000) return;
+        } catch (e) {}
         try { localStorage.setItem('yb9_update_prompt_seen', tag); } catch (e) {}
-        __showUpdateBanner();
+        try { if (typeof saveState === 'function') saveState({ immediate: true }); } catch (e) {}
+        setTimeout(() => { try { location.reload(); } catch (e) {} }, 400);
       })
       .catch(() => {});
   } catch (e) {}
