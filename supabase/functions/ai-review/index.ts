@@ -51,7 +51,7 @@ function json(body: unknown, status = 200) {
 
 const SYSTEM_PROMPT = `You are a warm, encouraging business English coach for Korean learners.
 You ALWAYS reply with a single valid JSON object and nothing else:
-{"corrected": string, "why": string, "verdict": "correct" | "fixed", "feedback": {"grammar": string, "vocab": string, "nuance": string}, "deep": string}
+{"corrected": string, "why": string, "verdict": "correct" | "fixed", "feedback": {"grammar": string, "vocab": string, "nuance": string}, "deep": string, "variants": {"email": string, "meeting": string}, "rule": string}
 
 HOW TO REVIEW - follow these steps in order, every time.
 
@@ -102,6 +102,9 @@ FIELDS:
   (3) 다음에 같은 상황이 오면 무엇을 먼저 떠올리면 되는지 (한 줄 규칙)
   If verdict is "correct", instead explain WHY the sentence already works: 어떤 선택이 좋았는지 짚어준다.
   Write like a colleague explaining over coffee, not like a textbook. No bullet points, no markdown.
+- "variants": the SAME meaning as "corrected", rewritten for two real channels the learner will use tomorrow. "email": a polite written version for an email to the counterpart. "meeting": a short spoken version for a live meeting or call. Each ONE sentence, each MUST contain the target phrase. If a learner profile is given, name the actual counterpart from that profile (the buyer, the engineers, HQ, the client) instead of generic "they".
+- "rule": ONE memorable Korean line (under 60 chars) the learner can keep: when to use the target phrase vs. what Koreans confuse it with. Written like a colleague's tip, not a grammar book (e.g. "반대할 땐 push back on, 미룰 땐 push back 그대로"). Always filled.
+- PERSONALIZATION: if a learner profile (role / goal / focus) is given, use it. Choose examples, counterparts and register from the learner's actual job (해외영업 -> buyers and shipments, IT -> engineers and tickets, HR -> employees and policies). In "why" and "deep", refer to their situation concretely ("바이어가 들으면...") so the feedback reads as written for this one person.
 - "corrected": normal sentence case, no bold or tricks.
 Do not include markdown, code fences, or any prose outside the JSON.`;
 
@@ -146,7 +149,10 @@ function buildSentenceUserMessage(
     ? `\n⚠️ The student's English attempt CONTAINS Korean characters (e.g. 충성도, 협상, etc.). You MUST translate those Korean words into natural English equivalents in the corrected output. Returning verbatim with Korean characters still inside is FORBIDDEN. Use the Korean context (if given) and the English context to pick the right translation. Example: "customer 충성도" → "customer loyalty". If you're unsure of the exact word, pick the most natural business-English equivalent and explain briefly in "why".\n`
     : '';
   const exBlock = (word as any).ex_en ? `Correct usage example of the phrase: "${(word as any).ex_en}"\n` : '';
-  return `${historyBlock}${koreanBlock}${exBlock}Phrase being practiced (KEEP THIS in the output): "${word.en}" (${word.def || ''})
+  const pf = (word as any).profile || {};
+  const pfParts = [pf.role ? `role: ${pf.role}` : '', pf.goal ? `goal: ${pf.goal}` : '', pf.focus ? `focus: ${pf.focus}` : ''].filter(Boolean);
+  const profileBlock = pfParts.length ? `Learner profile (personalize counterparts, examples and register to this): ${pfParts.join(' / ')}\n` : '';
+  return `${historyBlock}${koreanBlock}${exBlock}${profileBlock}Phrase being practiced (KEEP THIS in the output): "${word.en}" (${word.def || ''})
 Student's English attempt: "${sentence}"
 ${mixedLangHint}
 Your goal: make this sentence sound like something a native English business speaker would naturally say in a real meeting / email / Slack: while keeping "${word.en}" inside. Also fix any clear grammar issues (subject-verb agreement, mixed-language characters, tense, articles, prepositions).
@@ -515,6 +521,11 @@ serve(async (req) => {
       },
       // 프리미엄 전용 심화 설명 (왜 고쳤는지). 베이직 요청이면 빈 문자열로 온다.
       deep: isPremium ? String(parsed?.deep || '').slice(0, 400) : '',
+      variants: {
+        email: String(parsed?.variants?.email || '').slice(0, 300),
+        meeting: String(parsed?.variants?.meeting || '').slice(0, 300),
+      },
+      rule: String(parsed?.rule || '').slice(0, 120),
     });
   } catch (e) {
     console.error('ai-review error', e);

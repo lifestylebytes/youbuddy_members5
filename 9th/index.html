@@ -2205,6 +2205,14 @@ function buildLocalCorrection(word, sentence) {
 // The real API key lives only in Supabase Edge Function secrets, never in
 // the browser. On any failure we fall back to the local rule-based correction
 // so the UI never hard-breaks.
+// 온보딩에서 적은 직무·목표·집중영역을 첨삭 개인화에 사용 (2026-09-05)
+function __aiProfile() {
+  try {
+    const goal = String((state.goal || '').split(/\r?\n/)[0] || '').slice(0, 80);
+    const focus = Array.isArray(state.focusAreas) ? state.focusAreas.slice(0, 3).join(', ') : '';
+    return { role: String(state.role || '').slice(0, 60), goal, focus };
+  } catch (e) { return {}; }
+}
 async function callAiReviewEdgeFunction(payload) {
   if (!hasSupabase()) throw new Error('no supabase');
   // 25초 타임아웃 (모바일 네트워크가 끊겨도 영원히 매달리지 않게). 2026-08-22
@@ -2244,6 +2252,8 @@ async function callAiReviewEdgeFunction(payload) {
       ? { sentence: String(data.natural.sentence), reason: String(data.natural.reason || '') }
       : undefined,
     deep: typeof data.deep === 'string' ? data.deep : '',
+    variants: (data.variants && typeof data.variants === 'object') ? { email: String(data.variants.email || ''), meeting: String(data.variants.meeting || '') } : undefined,
+    rule: typeof data.rule === 'string' ? data.rule : '',
   };
 }
 
@@ -2542,20 +2552,35 @@ function buildAiFeedbackHtml(fb, fallbackWhy) {
 
   // 프리미엄: 왜 고쳤는지 심화 설명. 베이직: 그런 게 있다는 안내 한 줄.
   // 팝업으로 광고하지 않는다. 첨삭을 막 본 그 자리에서만, 한 번만. (2026-08-12)
-  const isPrem = (typeof state !== 'undefined' && state.tier === 'premium');
+  // 9기 한정: 프리미엄 첨삭(심화 설명 · 상황별 버전 · 한 줄 규칙)을 전 멤버에게. 딱지는 PREMIUM 그대로.
   const deepTxt = String((fb && fb.deep) || '').trim();
+  const vr = (fb && fb.variants) || {};
+  const ruleTxt = String((fb && fb.rule) || '').trim();
+  const __pf = (typeof __aiProfile === 'function') ? __aiProfile() : {};
+  const PB = '<span style="font-size:10px;font-weight:800;color:#7B5E8C;letter-spacing:0.06em;">👑 PREMIUM</span>';
   let tail = '';
-  if (isPrem && deepTxt) {
-    tail = `<div style="margin-top:11px;padding:12px 14px;border-radius:12px;background:#F4F0FA;border:1px solid rgba(123,94,140,0.28);">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-size:10px;font-weight:800;color:#7B5E8C;letter-spacing:0.06em;">👑 PREMIUM</span>
-          <span style="font-size:11px;font-weight:800;color:#7B5E8C;">왜 이렇게 고쳤을까요</span>
-        </div>
+  if (__pf.role && (deepTxt || vr.email || vr.meeting)) {
+    tail += `<div style="margin-top:10px;font-size:11px;color:var(--muted);">🎯 ${escapeHtml(__pf.role)}${__pf.goal ? ' · ' + escapeHtml(__pf.goal) : ''} 상황에 맞춰 봤어요</div>`;
+  }
+  if (deepTxt) {
+    tail += `<div style="margin-top:9px;padding:12px 14px;border-radius:12px;background:#F4F0FA;border:1px solid rgba(123,94,140,0.28);">
+        <div style="display:flex;align-items:center;gap:6px;">${PB}<span style="font-size:11px;font-weight:800;color:#7B5E8C;">왜 이렇게 고쳤을까요</span></div>
         <div class="t-small" style="margin-top:7px;color:var(--ink-soft);line-height:1.75;">${escapeHtml(deepTxt)}</div>
       </div>`;
-  } else if (!isPrem && rows.length) {
-    tail = `<div style="margin-top:10px;padding-top:9px;border-top:1px dashed var(--line);font-size:11.5px;color:var(--muted);line-height:1.6;">
-        프리미엄은 <b style="color:#7B5E8C;">왜 이렇게 고쳤는지</b>까지 설명해드려요.
+  }
+  if ((vr.email || '').trim() || (vr.meeting || '').trim()) {
+    const cell = (icon, label, txt) => txt ? `<div style="flex:1;min-width:0;padding:10px 12px;border-radius:12px;background:#FBFAFF;border:1px solid rgba(123,94,140,0.22);">
+        <div style="font-size:11px;font-weight:800;color:#7B5E8C;">${icon} ${label}</div>
+        <div style="margin-top:5px;font-size:13px;line-height:1.55;color:var(--ink);font-family:var(--font-mono);">${escapeHtml(txt)}</div></div>` : '';
+    tail += `<div style="margin-top:9px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">${PB}<span style="font-size:11px;font-weight:800;color:#7B5E8C;">내일 바로 쓸 버전</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">${cell('✉️', '메일이면', vr.email)}${cell('🗣️', '회의면', vr.meeting)}</div>
+      </div>`;
+  }
+  if (ruleTxt) {
+    tail += `<div style="margin-top:9px;padding:10px 13px;border-radius:12px;background:#FFF7EC;border:1px solid rgba(240,172,61,0.45);display:flex;gap:8px;align-items:flex-start;">
+        <span style="flex-shrink:0;">💡</span>
+        <div style="font-size:12.5px;line-height:1.6;color:var(--ink);"><span style="font-weight:800;color:#A07A2A;">한 줄 규칙</span> ${PB}<br>${escapeHtml(ruleTxt)}</div>
       </div>`;
   }
 
@@ -2606,11 +2631,11 @@ function __matchesPriorCorrection(currentSentence, history, korean) {
 async function requestSentenceCorrection(word, sentence, koreanContext) {
   const payload = {
     mode: 'sentence',
-    word: { en: word.en, def: word.def, ex_en: word.ex_en || '' },
+    word: { en: word.en, def: word.def, ex_en: word.ex_en || '', profile: __aiProfile() },
     text: sentence,
     korean: (koreanContext || '').trim() || undefined,
     // 프리미엄은 '왜 고쳤는지' 심화 설명(deep)까지 받는다. (2026-08-12)
-    tier: (state.tier === 'premium') ? 'premium' : 'basic',
+    tier: 'premium', // 9기 한정: 전 멤버 프리미엄 첨삭 (deep · 상황별 버전 · 한 줄 규칙)
     temperature: 0,
   };
 
@@ -2701,6 +2726,8 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
         why: '이미 충분히 자연스러워요! 비즈니스 영어로 그대로 가셔도 OK 입니다 🧡',
         feedback: result.feedback,
         deep: result.deep,
+        variants: result.variants,
+        rule: result.rule,
         originalInput: sentence,
         isFallback: false,
         isAlreadyNatural: true,
@@ -2827,7 +2854,7 @@ async function requestStoryCorrection(words, text, koreanContext) {
     })),
     text,
     korean: (koreanContext || '').trim() || undefined,
-    tier: (state.tier === 'premium') ? 'premium' : 'basic',
+    tier: 'premium', // 9기 한정: 전 멤버 프리미엄 첨삭 (deep · 상황별 버전 · 한 줄 규칙)
   };
 
   // 히스토리 기반 단계적 코칭
