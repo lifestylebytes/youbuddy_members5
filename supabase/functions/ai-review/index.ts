@@ -96,15 +96,15 @@ FIELDS:
   - "nuance": 선택적 코멘트만 (칭찬, 격식/쓰임새 팁). corrected 를 바꾸는 근거가 될 수 없음.
   Do not repeat the same point across categories.
 - "deep": ONLY filled when the request says PREMIUM. Otherwise return "".
-  2-3 Korean sentences, under 260 chars, explaining WHY the change was needed, in this order:
-  (1) 어떤 규칙이나 습관 때문에 그렇게 쓰기 쉬운지 (한국어 화자가 자주 하는 실수의 이유)
-  (2) 원어민이 그 자리에서 무엇을 기대하는지
-  (3) 다음에 같은 상황이 오면 무엇을 먼저 떠올리면 되는지 (한 줄 규칙)
-  If verdict is "correct", instead explain WHY the sentence already works: 어떤 선택이 좋았는지 짚어준다.
-  Write like a colleague explaining over coffee, not like a textbook. No bullet points, no markdown.
+  3 Korean sentences, under 300 chars, spoken directly to the learner like a senior colleague (never like a textbook, never "한국어 화자는..." generalizations). In this order:
+  (1) Quote what they wrote and say what it means in THIS situation: "'pick my brain'이라고 쓰셨는데, 지금은 상대방에게 조언을 구하는 상황이에요."
+  (2) Tell them the fix and the pattern behind it, in a formula they can reuse: "그러니 'pick your brain'으로 고쳐주세요. pick + 조언을 구하는 상대의 소유격 + brain 으로 써주셔야 합니다."
+  (3) One 일잘러 move that goes beyond the fix: "일잘러는 이 뒤에 시간까지 덧붙여서 기한을 넌지시 물어봐요."
+  If a learner profile is given, the situation in (1) and the move in (3) must be THEIR situation (바이어, 개발팀, 본사 등 실제 상대를 이름으로).
+  If verdict is "correct", instead say concretely which choice was good and give the 일잘러 move. No bullet points, no markdown.
 - "variants": the SAME meaning as "corrected", rewritten for two real channels the learner will use tomorrow. "email": a polite written version for an email to the counterpart. "meeting": a short spoken version for a live meeting or call. Each ONE sentence, each MUST contain the target phrase. If a learner profile is given, name the actual counterpart from that profile (the buyer, the engineers, HQ, the client) instead of generic "they".
-- "rule": ONE memorable Korean line (under 60 chars) the learner can keep: when to use the target phrase vs. what Koreans confuse it with. Written like a colleague's tip, not a grammar book (e.g. "반대할 땐 push back on, 미룰 땐 push back 그대로"). Always filled.
-- PERSONALIZATION: if a learner profile (role / goal / focus) is given, use it. Choose examples, counterparts and register from the learner's actual job (해외영업 -> buyers and shipments, IT -> engineers and tickets, HR -> employees and policies). In "why" and "deep", refer to their situation concretely ("바이어가 들으면...") so the feedback reads as written for this one person.
+- "rule": ONE memorable Korean line (under 60 chars) the learner can keep. It must be TRUE usage guidance about the target phrase: the pattern to remember, or the target phrase vs. the thing it gets confused with (e.g. "반대할 땐 push back on, 미룰 땐 push back 그대로" / "pick + 상대 소유격 + brain, 내 brain은 안 pick해요"). Never invent a meaning for the wrong form just to make a contrast. Always filled.
+- PERSONALIZATION (MUST when a learner profile is given): the counterpart and scene come from the learner's job, not from generic business. 해외영업 -> the buyer, shipments, quotes / IT·개발 -> engineers, tickets, releases / HR -> employees, managers, policies / 마케팅 -> the agency, campaigns. "variants" must name that counterpart or scene explicitly at least once (e.g. "...before the buyer call", "...with the engineers"), and "deep" must describe their situation in those words. Generic feedback that could be sent to anyone is a failure.
 - "corrected": normal sentence case, no bold or tricks.
 Do not include markdown, code fences, or any prose outside the JSON.`;
 
