@@ -6686,8 +6686,8 @@ function renderOperatorQuickToggle() {
     box.innerHTML =
       '<div style="display:flex;gap:3px;align-items:center;">'
       + '<span style="font-size:9px;font-weight:800;color:var(--muted);margin-right:1px;">뷰</span>'
-      + chip('운영자', !asMember, 'view-op', '#1E5FA0')
-      + chip('멤버', asMember, 'view-member', '#1E5FA0')
+      + chip('운영자', !asMember, 'view-op', '#6E4A28')
+      + chip('멤버', asMember, 'view-member', '#6E4A28')
       + '</div>'
       + '<div style="display:flex;gap:3px;align-items:center;">'
       + '<span style="font-size:9px;font-weight:800;color:var(--muted);margin-right:1px;">티어</span>'
@@ -8462,9 +8462,9 @@ function HelpPage() {
   /* ── 보드 색깔 ── */
   sh('🎨', '보드 색깔 · 색만 알면 한눈에 읽혀요');
   const COLORS = [
-    ['#1E5FA0', '정시 인증 + 녹음까지', '이게 완전한 인증이에요'],
-    ['#A9D0EC', '앱 인증만 완료', '카톡 녹음 대기 중'],
-    ['#B89E7A', '지각', '그날 자정을 넘겨서 인증'],
+    ['#6E4A28', '정시 인증 + 녹음까지', '이게 완전한 인증이에요'],
+    ['#E4CFB4', '앱 인증만 완료', '카톡 녹음 대기 중'],
+    ['#C9B79C', '지각', '그날 자정을 넘겨서 인증'],
     ['#EDE7DC', '아직 안 한 날', ''],
   ];
   const cw = el('div', { style: { marginTop: '10px', padding: '6px 0', borderRadius: '16px', background: '#fff', border: '1px solid var(--line)' } });
@@ -9720,7 +9720,7 @@ function HomePage() {
     const __rrEntered = currentPage === 'home' && window.__rrLastPage !== 'home';
     window.__rrLastPage = currentPage;
     const __rrCool = !window.__rrLastShownAt || (Date.now() - window.__rrLastShownAt) > 10 * 60 * 1000;
-    if (__rrEntered && __rrCool && __rrDay >= 2 && Number(state.rr_snooze_day) !== __rrDay && !showSpacedRepeatPopup && challengeStarted() && guidedTourStep === null && !anyPopupOpen()) {
+    if (__rrEntered && __rrCool && __rrDay >= 6 && Number(state.rr_snooze_day) !== __rrDay && !showSpacedRepeatPopup && challengeStarted() && guidedTourStep === null && !anyPopupOpen()) {
       const __rrPool = [];
       (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((d) => {
         if (Number(d.day) > __rrDay) return;
@@ -10892,15 +10892,15 @@ function HomePage() {
   // 색 범례: 새파랑만 완전한 인증이라는 걸 멤버 모두가 알게.
   const cbLegend = el('div', { style: { display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '10px', fontSize: '11px', color: 'var(--ink-soft)' } });
   cbLegend.innerHTML = `
-    <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#1E5FA0;"></span>정시 + 녹음까지 완료 (완전한 인증)</span>
-    <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#A9D0EC;"></span>정시 + 녹음 대기</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#6E4A28;"></span>정시 + 녹음까지 완료 (완전한 인증)</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#E4CFB4;"></span>정시 + 녹음 대기</span>
     <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#B89E7A;"></span>지각</span>`;
   cbWrap.appendChild(cbLegend);
   // 스태프(이지흔)·운영자 전용: 녹음 체크 모드 토글
   if ((state.isOperator || state.isStaff) && !state.operatorViewAsMember) {
     const recBtn = el('button', {
       class: 'btn btn-ghost',
-      style: { marginBottom: '10px', fontSize: '12px', padding: '8px 14px', ...(window.__recCheckMode ? { background: '#1E5FA0', color: '#fff', borderColor: '#1E5FA0' } : {}) },
+      style: { marginBottom: '10px', fontSize: '12px', padding: '8px 14px', ...(window.__recCheckMode ? { background: '#6E4A28', color: '#fff', borderColor: '#6E4A28' } : {}) },
       onClick: () => window.__toggleRecCheckMode(),
     }, window.__recCheckMode ? '🎙 녹음 체크 모드 ON · 칸 탭 = 토글' : '🎙 녹음 체크 모드');
     const btnRow = el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' } });
@@ -17083,7 +17083,7 @@ function DayPage(dayN) {
     },
   });
   dayNudge.innerHTML = `
-    <div style="font-size:13px;font-weight:800;color:#1E5FA0;letter-spacing:-0.01em;">⏱ 2분만 투자해도 Day ${dayN} 완료 · 완벽 금지</div>
+    <div style="font-size:13px;font-weight:800;color:#6E4A28;letter-spacing:-0.01em;">⏱ 2분만 투자해도 Day ${dayN} 완료 · 완벽 금지</div>
     <div style="margin-top:7px;font-size:13px;line-height:1.7;color:var(--ink-soft);">
       오늘은 <b style="color:var(--ink);">${escapeHtml(d.title || '')}</b> 표현 한 번 써보기만 해요.<br>
       1~3번은 자주 쓰는 순서라, 시간 없으시면 1번만 챙기셔도 충분해요!
@@ -30054,7 +30054,7 @@ function buildCertHtml({ name, englishName, role, done, total, overall, vocabCou
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
-    --orange-deep:#6E4A28; --orange-mid:#9C6B3F; --orange-soft:#7FB9E0; --orange-lite:#CDE2F2;
+    --orange-deep:#6E4A28; --orange-mid:#9C6B3F; --orange-soft:#C9A57A; --orange-lite:#CDE2F2;
     --gold:#C4986A; --gold-lite:#E8C99A; --cream:#FFFDF7;
     --ink:#2A1F14; --ink-mid:#6B5540; --ink-lite:#B09A80;
     --glass-bg:rgba(255,255,255,0.48); --glass-border:rgba(255,255,255,0.72);
@@ -30098,7 +30098,7 @@ function buildCertHtml({ name, englishName, role, done, total, overall, vocabCou
   .inner{position:relative; z-index:10; padding:42px 60px 36px 52px; display:flex; flex-direction:column;}
   header{text-align:center; margin-bottom:20px;}
   .logo-row{display:flex; align-items:center; justify-content:center; gap:9px; margin-bottom:16px;}
-  .logo-icon{width:26px; height:26px; background:linear-gradient(135deg, #7FB9E0, #6E4A28);
+  .logo-icon{width:26px; height:26px; background:linear-gradient(135deg, #C9A57A, #6E4A28);
     border-radius:7px; display:flex; align-items:center; justify-content:center; color:white;
     font-weight:700; font-size:14px; box-shadow:0 3px 10px rgba(201,87,33,0.35);}
   .logo-text{font-weight:700; font-size:17px; color:var(--ink); letter-spacing:-0.3px;}
@@ -31522,7 +31522,7 @@ window.__openVerifyStatusCopy = function () {
     const day = window.__vsCopyDay, tier = window.__vsCopyTier;
     const b = vsCopyBuckets(day, tier);
     const total = b.both.length + b.recOnly.length + b.webOnly.length + b.tzWait.length + b.done.length;
-    const chip = (t, on, act) => `<button data-act="${act}" style="padding:6px 12px;border-radius:999px;font-size:12px;font-weight:800;cursor:pointer;border:1px solid ${on ? '#1E5FA0' : 'var(--line)'};background:${on ? '#1E5FA0' : '#fff'};color:${on ? '#fff' : 'var(--muted)'};font-family:inherit;">${t}</button>`;
+    const chip = (t, on, act) => `<button data-act="${act}" style="padding:6px 12px;border-radius:999px;font-size:12px;font-weight:800;cursor:pointer;border:1px solid ${on ? '#6E4A28' : 'var(--line)'};background:${on ? '#6E4A28' : '#fff'};color:${on ? '#fff' : 'var(--muted)'};font-family:inherit;">${t}</button>`;
     const bucket = (emoji, title, arr, color) => !arr.length ? '' :
       `<div style="padding:11px 14px;border-radius:12px;background:${color};margin-top:8px;">
          <div style="font-size:11.5px;font-weight:800;color:var(--ink);">${emoji} ${title} · ${arr.length}명</div>
@@ -31542,11 +31542,11 @@ window.__openVerifyStatusCopy = function () {
           ${chip('베이직', tier === 'basic', 'tier-basic')}
           ${chip('프리미엄', tier === 'premium', 'tier-premium')}
         </div>
-        <div style="margin-top:8px;font-size:11.5px;color:var(--muted);">전체 ${total}명 중 <b style="color:#1E5FA0;">${b.done.length}명 완료</b> · ${total - b.done.length - b.tzWait.length}명 남음${b.tzWait.length ? ` · 시차 대기 ${b.tzWait.length}명` : ''}</div>
+        <div style="margin-top:8px;font-size:11.5px;color:var(--muted);">전체 ${total}명 중 <b style="color:#6E4A28;">${b.done.length}명 완료</b> · ${total - b.done.length - b.tzWait.length}명 남음${b.tzWait.length ? ` · 시차 대기 ${b.tzWait.length}명` : ''}</div>
       </div>
       <div style="padding:14px 16px 18px;">
         ${(!b.both.length && !b.recOnly.length && !b.webOnly.length && !b.tzWait.length)
-          ? `<div style="padding:26px 12px;text-align:center;font-size:13.5px;color:#1E5FA0;font-weight:800;">🎉 전원 인증 완료했어요!</div>`
+          ? `<div style="padding:26px 12px;text-align:center;font-size:13.5px;color:#6E4A28;font-weight:800;">🎉 전원 인증 완료했어요!</div>`
           : bucket('❌', '웹 미인증 + 녹음 미인증', b.both, 'rgba(192,57,43,0.07)')
             + bucket('🎤', '녹음 미인증', b.recOnly, 'rgba(240,172,61,0.14)')
             + bucket('❓', '웹 미인증', b.webOnly, 'rgba(148,137,122,0.10)')
