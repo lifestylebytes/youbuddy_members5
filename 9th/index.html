@@ -10572,10 +10572,10 @@ function HomePage() {
         <div class="serif" style="font-size:18px;line-height:1.15;margin-top:6px;color:var(--ink-soft);">${_cnt('basic')}명 ☕️</div>
         <div class="t-small" style="margin-top:4px;">${_sub('basic')}</div>
       </button>
-      <button class="card card-flat" data-stat-tier="premium" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
-        <div class="kicker">프리미엄</div>
-        <div class="serif" style="font-size:18px;line-height:1.15;margin-top:6px;color:#7B5E8C;">${_cnt('premium')}명 🌿</div>
-        <div class="t-small" style="margin-top:4px;">${_sub('premium')}</div>
+      <button class="card card-flat" data-stat-premium-unlock="1" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;background:#F4F0FA;border:1px solid rgba(123,94,140,0.3);">
+        <div class="kicker" style="color:#7B5E8C;">👑 이번 기수 한정</div>
+        <div class="serif" style="font-size:16px;line-height:1.2;margin-top:6px;color:#7B5E8C;">프리미엄 기능 해제</div>
+        <div class="t-small" style="margin-top:4px;color:var(--ink-soft);">AI 첨삭 무제한 · 내 문장 테스트</div>
       </button>`;
   } else if (isWeekend) {
     stats.innerHTML = `
@@ -10589,10 +10589,10 @@ function HomePage() {
         <div class="serif" style="font-size:18px;line-height:1.15;margin-top:6px;color:var(--ink-soft);">주말 ☕️</div>
         <div class="t-small" style="margin-top:4px;">단어 가볍게 한 번 훑기</div>
       </button>
-      <button class="card card-flat" data-stat-tier="premium" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
-        <div class="kicker">프리미엄</div>
-        <div class="serif" style="font-size:18px;line-height:1.15;margin-top:6px;color:var(--ink-soft);">주말 🌿</div>
-        <div class="t-small" style="margin-top:4px;">미팅 표현 떠올려보기</div>
+      <button class="card card-flat" data-stat-premium-unlock="1" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;background:#F4F0FA;border:1px solid rgba(123,94,140,0.3);">
+        <div class="kicker" style="color:#7B5E8C;">👑 이번 기수 한정</div>
+        <div class="serif" style="font-size:16px;line-height:1.2;margin-top:6px;color:#7B5E8C;">프리미엄 기능 해제</div>
+        <div class="t-small" style="margin-top:4px;color:var(--ink-soft);">AI 첨삭 무제한 · 내 문장 테스트</div>
       </button>`;
   } else {
     stats.innerHTML = `
@@ -10606,13 +10606,14 @@ function HomePage() {
         <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;">${basicRate}%</div>
         <div class="t-small" style="margin-top:2px;">${basicVerified}/${basicList.length} 인증</div>
       </button>
-      <button class="card card-flat" data-stat-tier="premium" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;">
-        <div class="kicker">프리미엄</div>
-        <div class="serif" style="font-size:30px;line-height:1;margin-top:4px;">${premiumRate}%</div>
-        <div class="t-small" style="margin-top:2px;">${premiumVerified}/${premiumList.length} 인증</div>
+      <button class="card card-flat" data-stat-premium-unlock="1" style="padding:14px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;background:#F4F0FA;border:1px solid rgba(123,94,140,0.3);">
+        <div class="kicker" style="color:#7B5E8C;">👑 이번 기수 한정</div>
+        <div class="serif" style="font-size:16px;line-height:1.2;margin-top:6px;color:#7B5E8C;">프리미엄 기능 해제</div>
+        <div class="t-small" style="margin-top:4px;color:var(--ink-soft);">AI 첨삭 무제한 · 내 문장 테스트</div>
       </button>`;
   }
   // 핸들러, innerHTML 후에 wire up.
+  try { const __pu = stats.querySelector('[data-stat-premium-unlock]'); if (__pu) __pu.onclick = () => { showToast('이번 기수는 AI 첨삭 무제한 + 내 문장 테스트가 전원 열려 있어요 👑'); }; } catch (e) {}
   stats.querySelectorAll('[data-stat-tier]').forEach((btn) => {
     btn.onclick = () => { showRateHistory = btn.dataset.statTier; render(); };
   });
