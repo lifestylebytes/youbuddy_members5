@@ -8457,7 +8457,7 @@ function HelpPage() {
       <span style="flex:0 0 auto;font-size:10px;font-weight:800;padding:3px 8px;border-radius:7px;background:${where === '카톡' ? 'rgba(254,229,0,0.28)' : 'var(--paper)'};color:${where === '카톡' ? '#8A6212' : 'var(--muted)'};">${where}</span>
     </div>`).join('');
   page.appendChild(flow);
-  card('', `<b style="color:var(--ink);">5번까지 해야 완전한 인증이에요.</b> 앱에서만 끝내면 절반만 된 거라 보드에 연한 하늘색으로 남아요.`, 'var(--orange)');
+  card('', `<b style="color:var(--ink);">5번까지 해야 완전한 인증이에요.</b> 앱에서만 끝내면 절반만 된 거라 보드에 연한 갈색으로 남아요.`, 'var(--orange)');
 
   /* ── 보드 색깔 ── */
   sh('🎨', '보드 색깔 · 색만 알면 한눈에 읽혀요');
@@ -12940,7 +12940,7 @@ function VerifyPage(dayN) {
           ${!ui.revealAnswer ? `
             <div style="margin-top:14px;padding:10px 14px;border-radius:12px;background:#FFF8E1;border:1px solid rgba(255,193,7,0.32);font-size:13px;color:#7A5800;line-height:1.55;display:flex;align-items:center;gap:8px;">
               <span style="font-size:16px;flex-shrink:0;">✍️</span>
-              <span>${split.mode === '2blank' ? '<b>두 빈칸 모두</b> 채우고 <b>제출</b>을 누르세요. (가운데 단어는 그대로 둬요)' : '<b>하늘색 빈칸을 탭해 타이핑</b>하고 <b>제출</b>(또는 Enter)을 누르세요.'}</span>
+              <span>${split.mode === '2blank' ? '<b>두 빈칸 모두</b> 채우고 <b>제출</b>을 누르세요. (가운데 단어는 그대로 둬요)' : '<b>빈칸을 탭해 타이핑</b>하고 <b>제출</b>(또는 Enter)을 누르세요.'}</span>
             </div>
           ` : ''}
           <div data-verify-quiz-card="1" style="margin-top:14px;padding:28px 18px;border-radius:24px;background:rgba(255,255,255,0.68);text-align:center;box-shadow:inset 0 0 0 1px rgba(236,232,255,0.9);position:relative;overflow:hidden;">
@@ -31150,7 +31150,7 @@ function MyReviewPage() {
     ${!ui.revealAnswer ? `
       <div style="margin-top:14px;padding:10px 14px;border-radius:12px;background:#FFF8E1;border:1px solid rgba(255,193,7,0.32);font-size:13px;color:#7A5800;line-height:1.55;display:flex;align-items:center;gap:8px;">
         <span style="font-size:16px;flex-shrink:0;">✍️</span>
-        <span>${split.mode === '2blank' ? '<b>두 빈칸 모두</b> 채우고 <b>제출</b>을 누르세요. (가운데 단어는 그대로 둬요)' : '<b>하늘색 빈칸을 탭해 타이핑</b>하고 <b>제출</b>(또는 Enter)을 누르세요.'}</span>
+        <span>${split.mode === '2blank' ? '<b>두 빈칸 모두</b> 채우고 <b>제출</b>을 누르세요. (가운데 단어는 그대로 둬요)' : '<b>빈칸을 탭해 타이핑</b>하고 <b>제출</b>(또는 Enter)을 누르세요.'}</span>
       </div>
     ` : ''}
     <div data-verify-quiz-card="1" style="margin-top:14px;padding:28px 18px;border-radius:24px;background:rgba(255,255,255,0.68);text-align:center;box-shadow:inset 0 0 0 1px rgba(236,232,255,0.9);position:relative;overflow:hidden;">
