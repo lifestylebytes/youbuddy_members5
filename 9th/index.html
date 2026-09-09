@@ -10643,8 +10643,9 @@ function HomePage() {
     } else { window.__homeTrackCard = null; }
   } catch (e) { window.__homeTrackCard = null; }
 
-  /* ── 🔁 내 복습 현황 + 랜덤 단어 테스트 바로가기 (2026-08-31 버디 요청) ── */
+  /* ── 🔁 내 복습 현황 + 랜덤 단어 테스트 바로가기 (2026-08-31 버디 요청) · 9기: Week 2(Day 6)부터 노출 ── */
   try {
+    if ((Number(state.currentDay) || 0) < 6) throw new Error('skip-before-week2');
     const rc = state.review_counts || {};
     const rTotal = (Number(rc.retake) || 0) + (Number(rc.weak) || 0) + (Number(rc.random) || 0) + (Number(rc.sentence) || 0);
     const revCard = el('div', { style: { marginTop: '14px', padding: '13px 15px', borderRadius: '16px', background: 'var(--paper)', border: '1px solid var(--line)' } });
