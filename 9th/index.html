@@ -12928,7 +12928,7 @@ function VerifyPage(dayN) {
     } else {
       // ─── 설정 패널, 문항 수 + 유의어 포함 (premium 만 일부 옵션) ───
       const vSettings = getVerifySettings();
-      const vIsPremium = state.tier === 'premium';
+      const vIsPremium = true; // 9기 한정 전원 해제 (원복 = state.tier === 'premium')
       const settingsHtml = `
         <div style="margin-bottom:14px;padding:14px 16px;border-radius:14px;background:rgba(251,247,240,0.06);border:1px solid rgba(251,247,240,0.12);">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
@@ -13298,7 +13298,7 @@ function _collectWeekVocab(weekN, includeSyn) {
 // stage 1 = 4지선다 (recognition), stage 2 = type (recall), stage 3 = mixed.
 function buildWeekReviewQuestions(weekN, stage = 1) {
   // Cache 키에 tier 포함, 운영자가 view 를 basic↔premium 토글하면 questions 다시 빌드됨.
-  const includeSyn = state.tier === 'premium';
+  const includeSyn = true; // 9기 한정 전원 해제 (원복 = state.tier === 'premium')
   // 멤버 sentences 시그니처도 cache key 에, 본인 문장 제출/수정 시 자동 invalidate.
   const week = (CHALLENGE.weeks || []).find((w) => w.n === weekN);
   let sentSig = '';
@@ -17500,8 +17500,9 @@ function DayPage(dayN) {
     // Card 2 의 유의어 한 끗 차이, 프리미엄 전용. flat 디자인 + 라일락 left accent
     // (그라데이션 제거, Notion 스타일 통일). 예시문장+분위기는 Card 1 (유의어 토글) 에서 노출됨.
     // 9기: 베이직도 유의어 자체는 보이게. 단 작은 글씨 한 줄만 (뜻·뉘앙스·듣기는 프리미엄 전용 유지).
-    const showSyn = state.tier === 'premium' && Array.isArray(w.syn) && w.syn.length;
-    const showSynLite = state.tier !== 'premium' && Array.isArray(w.syn) && w.syn.length;
+    // 9기 한정: 유의어 풀버전을 전원에게 (원복 = state.tier === 'premium' / !== 'premium')
+    const showSyn = Array.isArray(w.syn) && w.syn.length;
+    const showSynLite = false;
     let synBox = null;
     if (showSynLite) {
       synBox = el('div', {
