@@ -1485,8 +1485,49 @@ const MEMBER_DIRECTORY = [
   { code: '01', id: 'p1',  name: '이규태', color: 'ink',   tier: 'premium', role: '운영팀', isStaff: true, memberHidden: true }, // 사전 테스터 (프리미엄 시점)
   { code: '02', id: 'b1',  name: '이지흔', color: 'cream', tier: 'basic',   role: '운영팀', isStaff: true }, // 사전 테스터 (베이직 시점)
 
-  // COHORT-SLOT(manual): 9기 멤버 명단. 결제 확정되면 code 순으로 추가.
-  // 형식: { code: '03', id: 'b2', name: '홍길동', color: 'cream', tier: 'basic' },  // 영어닉네임
+  // COHORT-SLOT(manual): 9기 멤버 명단 (2026-09-10 결제 시트 기준, 결제순 = code 순).
+  // 주석은 신청서 닉네임. kakao 표시명은 톡방 입장 후 채운다 (인증 상태 복사 @태그용).
+  { code: '03', id: 'b2', name: '진', color: 'cream', tier: 'basic' },  // jin
+  { code: '04', id: 'b3', name: '정주혜', color: 'cream', tier: 'basic' },  // Hera
+  { code: '05', id: 'b4', name: '최유리', color: 'cream', tier: 'basic' },  // Olivia
+  { code: '06', id: 'b5', name: '박은실', color: 'cream', tier: 'basic' },  // Silvia
+  { code: '07', id: 'b6', name: '김예진', color: 'cream', tier: 'basic' },  // yejin
+  { code: '08', id: 'b7', name: '이보경', color: 'cream', tier: 'basic' },  // Hailey
+  { code: '09', id: 'b8', name: '이한나', color: 'cream', tier: 'basic' },  // 바비베어
+  { code: '10', id: 'b9', name: '김지영', color: 'cream', tier: 'basic' },  // anna
+  { code: '11', id: 'b10', name: '윤예지', color: 'cream', tier: 'basic' },  // Jiji00
+  { code: '12', id: 'b11', name: '박윤수', color: 'cream', tier: 'basic' },  // Sue
+  { code: '13', id: 'b12', name: '김민경', color: 'cream', tier: 'basic' },  // milky
+  { code: '14', id: 'b13', name: '안성진', color: 'cream', tier: 'basic' },  // Andy
+  { code: '15', id: 'b14', name: '임현주', color: 'cream', tier: 'basic' },  // Stella
+  { code: '16', id: 'b15', name: '김정미', color: 'cream', tier: 'basic' },  // Molly
+  { code: '17', id: 'b16', name: '박나영', color: 'cream', tier: 'basic' },  // 피치
+  { code: '18', id: 'b17', name: '류효정', color: 'cream', tier: 'basic' },  // Rachel
+  { code: '19', id: 'b18', name: '서미원', color: 'cream', tier: 'basic' },  // Mia
+  { code: '20', id: 'b19', name: '강혜영', color: 'cream', tier: 'basic' },  // Skyler
+  { code: '21', id: 'b20', name: '김정순', color: 'cream', tier: 'basic' },  // Aspyn
+  { code: '22', id: 'b21', name: '채혜정', color: 'cream', tier: 'basic' },  // Hye
+  { code: '23', id: 'b22', name: '윤민아', color: 'cream', tier: 'basic' },  // Mina
+  { code: '24', id: 'b23', name: '선혜주', color: 'cream', tier: 'basic' },  // sun
+  { code: '25', id: 'b24', name: '김효정', color: 'cream', tier: 'basic' },  // Haze
+  { code: '26', id: 'b25', name: '황유진', color: 'cream', tier: 'basic' },  // 유진
+  { code: '27', id: 'b26', name: '김정화', color: 'cream', tier: 'basic' },  // Purityart21
+  { code: '28', id: 'b27', name: '김경연', color: 'cream', tier: 'basic' },  // karen
+  { code: '29', id: 'b28', name: '전미린', color: 'cream', tier: 'basic' },  // MJ
+  { code: '30', id: 'b29', name: '류채리', color: 'cream', tier: 'basic' },  // Kate
+  { code: '31', id: 'b30', name: '정명훈', color: 'cream', tier: 'basic' },  // 므마
+  { code: '32', id: 'b31', name: 'Tina choi', color: 'cream', tier: 'basic' },  // Tina
+  { code: '33', id: 'b32', name: '권지선', color: 'cream', tier: 'basic' },  // Joy
+  { code: '34', id: 'b33', name: '김유진', color: 'cream', tier: 'basic' },  // Yujin
+  { code: '35', id: 'b34', name: '송우석', color: 'cream', tier: 'basic' },  // Leo
+  { code: '36', id: 'b35', name: '신나은', color: 'cream', tier: 'basic' },  // Nana
+  { code: '37', id: 'b36', name: '김옥진', color: 'cream', tier: 'basic' },  // Jeanne
+  { code: '38', id: 'b37', name: '박혜원', color: 'cream', tier: 'basic' },  // Kate
+  { code: '39', id: 'b38', name: '김나연', color: 'cream', tier: 'basic' },  // Chloe
+  { code: '40', id: 'b39', name: '이연준', color: 'cream', tier: 'basic' },  // Jenny
+  { code: '41', id: 'b40', name: '이송아', color: 'cream', tier: 'basic' },  // Song
+  { code: '42', id: 'b41', name: '심재환', color: 'cream', tier: 'basic' },  // Jason
+  { code: '43', id: 'b42', name: '남지우', color: 'cream', tier: 'basic' },  // 계좌이체 (입금 확인 후 활성)
 ];
 
 /* 5기 roster used across dashboard/community/profile */
