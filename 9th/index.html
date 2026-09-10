@@ -2721,7 +2721,41 @@ function __matchesPriorCorrection(currentSentence, history, korean) {
   return null;
 }
 
+// 예문(또는 유의어 예문)을 그대로 제출한 경우: AI 를 부르지 않고 "이건 예시문장이에요"로 답한다.
+// 예시를 고쳐주면 멤버 입장에선 민망하고, 배운 문장이 틀린 것처럼 느껴진다. (2026-09-10 버디)
+function __matchSampleSentence(word, sentence) {
+  const norm = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9']+/g, ' ').trim();
+  const cur = norm(sentence);
+  if (!cur) return null;
+  if (cur === norm(word && word.ex_en)) return { kind: 'main', en: word.ex_en, kr: word.ex_kr || '' };
+  try {
+    for (const sy of (word.syn || [])) {
+      const ex = (typeof synonymExample === 'function') ? synonymExample(word, sy) : null;
+      if (ex && norm(ex.en) === cur) return { kind: 'syn', en: ex.en, kr: ex.kr || '', syn: sy };
+    }
+  } catch (e) {}
+  return null;
+}
 async function requestSentenceCorrection(word, sentence, koreanContext) {
+  const __sample = __matchSampleSentence(word, sentence);
+  if (__sample) {
+    const label = __sample.kind === 'syn' ? `유의어 ${__sample.syn} 예시문장` : '오늘의 예시문장';
+    const why = `📌 이건 ${label} 그대로예요! 고칠 데가 없는 문장이라 AI 첨삭은 건너뛸게요.\n\n`
+      + `이 문장이 이렇게 쓰인 이유는요, ${word.en} 를 ${word.def || ''} 뜻으로 쓸 때 원어민이 실제로 붙이는 자리와 어순을 그대로 보여주기 때문이에요.`
+      + (__sample.kr ? ` (뜻: ${__sample.kr})` : '')
+      + `\n\n한 걸음만 더 가볼까요? 이 문장의 상황을 ${(state.role || '내 업무')} 쪽으로 바꿔서, 내가 내일 실제로 쓸 문장으로 다시 써보세요. 그때 첨삭이 제일 도움이 됩니다 🧡`;
+    return {
+      corrected: sentence,
+      diff_html: escapeHtml(sentence),
+      why,
+      verdict: 'correct',
+      feedback: { grammar: '', vocab: '', nuance: '예시문장이라 교정 없이 그대로 두었어요.' },
+      originalInput: sentence,
+      isFallback: false,
+      isSampleSentence: true,
+      attemptNumber: 1,
+    };
+  }
   const payload = {
     mode: 'sentence',
     word: { en: word.en, def: word.def, ex_en: word.ex_en || '', profile: __aiProfile() },
@@ -5428,6 +5462,127 @@ function synonymNuance(word, syn) {
 // 유의어 예시 문장 + 분위기, Day 1~9 메인 27개에 대한 syn 들. {en, mood} 형태.
 // mood 는 emoji + 한 줄로 "이 표현 쓸 때의 분위기/톤" 캡쳐.
 const SYN_EXAMPLES = {
+  // 9기 유의어 예문 120개 (2026-09-10 작성)
+  'Kick off::Get the ball rolling': { en: 'Let me get the ball rolling with a quick status update.', kr: '제가 현황 공유부터 하면서 시작해볼게요.' },
+  'Kick off::Start off': { en: 'Let\'s start off with the numbers, then move to the plan.', kr: '숫자부터 보고 그다음에 계획으로 넘어가죠.' },
+  'Pick someone\'s brain::Get your input': { en: 'I\'d like to get your input on the vendor shortlist.', kr: '업체 후보군에 대해 의견 좀 주셨으면 해요.' },
+  'Pick someone\'s brain::Tap your expertise': { en: 'Can we tap your expertise on the tax side?', kr: '세무 쪽은 전문성을 좀 빌려도 될까요?' },
+  'Bounce ideas off::Brainstorm with': { en: 'Can we brainstorm with the design team on Thursday?', kr: '목요일에 디자인팀이랑 같이 아이디어 좀 짜볼까요?' },
+  'Bounce ideas off::Run ideas by': { en: 'Let me run a couple of ideas by you before the meeting.', kr: '회의 전에 아이디어 두어 개만 먼저 보여드릴게요.' },
+  'Loop in::Bring in': { en: 'We should bring in legal before we commit to a date.', kr: '날짜 확정하기 전에 법무팀을 끌어들이는 게 좋겠어요.' },
+  'Loop in::CC': { en: 'I\'ll CC you so you can see the thread.', kr: '흐름 보실 수 있게 참조로 넣어드릴게요.' },
+  'Flag::Call out': { en: 'I want to call out one risk in the current plan.', kr: '지금 계획에서 리스크 하나만 짚고 갈게요.' },
+  'Flag::Raise': { en: 'I\'d like to raise a scheduling issue before we close.', kr: '마치기 전에 일정 문제를 하나 올리고 싶어요.' },
+  'Put out feelers::Test the waters': { en: 'Let\'s test the waters with a small pilot first.', kr: '작게 파일럿부터 돌려보면서 간을 보죠.' },
+  'Put out feelers::Gauge interest': { en: 'We sent a short survey to gauge interest.', kr: '관심이 있는지 보려고 짧은 설문을 돌렸어요.' },
+  'Weigh in::Give your two cents': { en: 'If I can give my two cents, the timeline feels tight.', kr: '제 소견을 보태자면 일정이 좀 빠듯해 보여요.' },
+  'Weigh in::Share your take': { en: 'Would you share your take on the pricing?', kr: '가격 건은 어떻게 보시는지 말씀해주실래요?' },
+  'Push back::Challenge': { en: 'I\'d like to challenge the assumption behind this forecast.', kr: '이 전망의 전제를 한번 따져보고 싶어요.' },
+  'Push back::Raise concerns': { en: 'I want to raise concerns about the delivery date.', kr: '납기일에 대해 우려를 말씀드리고 싶어요.' },
+  'Poke holes in::Stress-test': { en: 'Let\'s stress-test the plan with a worst-case scenario.', kr: '최악의 시나리오로 계획을 한번 두들겨보죠.' },
+  'Poke holes in::Find the gaps': { en: 'Can you read it once and find the gaps?', kr: '한 번 읽어보시고 빠진 데 좀 찾아주실래요?' },
+  'Take it offline::Discuss separately': { en: 'Let\'s discuss that separately after this call.', kr: '그건 이 콜 끝나고 따로 얘기하죠.' },
+  'Take it offline::Sidebar': { en: 'Can we have a quick sidebar on the budget?', kr: '예산 건으로 잠깐만 따로 얘기할 수 있을까요?' },
+  'Circle back::Revisit': { en: 'Let\'s revisit this once the numbers are in.', kr: '숫자 나오면 이 건 다시 보죠.' },
+  'Circle back::Come back to': { en: 'Can we come back to the pricing at the end?', kr: '가격 얘기는 마지막에 다시 다뤄도 될까요?' },
+  'Talk past each other::Miscommunicate': { en: 'I think we miscommunicated on the scope.', kr: '범위 건은 서로 얘기가 어긋난 것 같아요.' },
+  'Talk past each other::Not on the same page': { en: 'We\'re clearly not on the same page about the deadline.', kr: '마감일에 대해 서로 이해가 다른 게 확실해요.' },
+  'Align on::Get on the same page': { en: 'Let\'s get on the same page before we brief the client.', kr: '클라이언트 브리핑 전에 우리끼리 먼저 맞추죠.' },
+  'Align on::Agree on': { en: 'Can we agree on Friday as the cutoff?', kr: '금요일을 마감으로 합의해도 될까요?' },
+  'Level-set::Set the baseline': { en: 'Let\'s set the baseline with last quarter\'s numbers.', kr: '지난 분기 숫자로 기준선부터 잡죠.' },
+  'Level-set::Get everyone up to speed': { en: 'Give me two minutes to get everyone up to speed.', kr: '2분만 주시면 다들 따라오게 정리할게요.' },
+  'Read between the lines::Pick up on the subtext': { en: 'Did you pick up on the subtext in that email?', kr: '그 메일에 깔린 속뜻 눈치채셨어요?' },
+  'Read between the lines::Sense the real message': { en: 'I sensed the real message was about budget, not timing.', kr: '진짜 하려는 말은 일정이 아니라 예산이었던 것 같아요.' },
+  'Run point::Take the lead': { en: 'Would you take the lead on the supplier audit?', kr: '공급사 감사 건은 주도해서 맡아주실래요?' },
+  'Run point::Be the point person': { en: 'I\'ll be the point person for anything client-related.', kr: '클라이언트 관련은 제가 창구 맡을게요.' },
+  'Take ownership::Own it': { en: 'That slip was on my side, and I\'ll own it.', kr: '그 실수는 제 쪽이고, 제가 책임지겠습니다.' },
+  'Take ownership::Step up': { en: 'She stepped up while the lead was on leave.', kr: '리드가 휴가인 동안 그분이 나서서 맡아줬어요.' },
+  'Follow through::Deliver on': { en: 'They delivered on every commitment last quarter.', kr: '지난 분기에 약속한 걸 전부 지켜냈어요.' },
+  'Follow through::See it through': { en: 'It got messy, but we saw it through.', kr: '좀 험했지만 끝까지 밀고 갔어요.' },
+  'Bandwidth::Capacity': { en: 'The team doesn\'t have the capacity for another launch.', kr: '팀이 출시 하나를 더 감당할 여력이 없어요.' },
+  'Bandwidth::Headspace': { en: 'I don\'t have the headspace for that this week.', kr: '이번 주엔 그거 생각할 여유가 없네요.' },
+  'Carve out::Set aside': { en: 'We set aside a small budget for user testing.', kr: '사용자 테스트용으로 예산을 조금 떼어뒀어요.' },
+  'Carve out::Block off': { en: 'I\'ll block off an hour on Thursday for the review.', kr: '목요일에 리뷰용으로 한 시간 잡아둘게요.' },
+  'Deliverable::Output': { en: 'The output of this phase is a working prototype.', kr: '이 단계 산출물은 동작하는 프로토타입이에요.' },
+  'Deliverable::Work product': { en: 'All work product stays confidential until launch.', kr: '모든 결과물은 출시 전까지 대외비입니다.' },
+  'Milestone::Key checkpoint': { en: 'The audit is our key checkpoint before scaling.', kr: '확장 전에 감사가 핵심 점검 시점이에요.' },
+  'Milestone::Major step': { en: 'Getting the license was a major step for us.', kr: '라이선스를 받은 게 우리한텐 큰 진전이었어요.' },
+  'Move the needle::Make a real impact': { en: 'Onboarding changes could make a real impact on churn.', kr: '온보딩만 바꿔도 이탈률에 실질적인 영향이 있을 거예요.' },
+  'Move the needle::Shift the numbers': { en: 'The promo was fun, but it didn\'t shift the numbers.', kr: '프로모션은 재밌었는데 숫자는 안 움직였어요.' },
+  'Get traction::Gain momentum': { en: 'The pilot is finally gaining momentum.', kr: '파일럿이 드디어 탄력이 붙고 있어요.' },
+  'Get traction::Catch on': { en: 'The new format caught on faster than we expected.', kr: '새 포맷이 예상보다 빨리 퍼졌어요.' },
+  'Stakeholder::Interested party': { en: 'All interested parties must be notified in writing.', kr: '모든 이해 당사자에게 서면으로 통지해야 합니다.' },
+  'Stakeholder::Key player': { en: 'The regional head is the key player here.', kr: '이 건은 지역 총괄이 핵심 인물이에요.' },
+  'Get buy-in::Win support': { en: 'We need to win support from finance first.', kr: '재무팀 지지부터 얻어야 해요.' },
+  'Get buy-in::Get on board': { en: 'Let\'s get sales on board before we announce.', kr: '공지 전에 영업팀부터 같이 태우죠.' },
+  'Sign off::Approve': { en: 'Legal approved the contract this morning.', kr: '법무팀이 오늘 아침 계약서를 승인했어요.' },
+  'Sign off::Green-light': { en: 'The board green-lit the expansion.', kr: '이사회가 확장안에 파란불을 켰어요.' },
+  'Ballpark::Rough estimate': { en: 'Here\'s a rough estimate, not a final quote.', kr: '최종 견적은 아니고 대략 잡은 수치예요.' },
+  'Ballpark::Order of magnitude': { en: 'Are we talking thousands or tens of thousands, order of magnitude?', kr: '규모로 보면 천 단위예요, 만 단위예요?' },
+  'Key driver::Main factor': { en: 'Shipping delays were the main factor last month.', kr: '지난달엔 배송 지연이 주요 원인이었어요.' },
+  'Key driver::Growth lever': { en: 'Referrals are our strongest growth lever right now.', kr: '지금은 추천이 제일 센 성장 지렛대예요.' },
+  'On the back burner::On hold': { en: 'The rebrand is on hold until the merger closes.', kr: '합병이 끝날 때까지 리브랜딩은 보류예요.' },
+  'On the back burner::Deprioritized': { en: 'That request was deprioritized in this sprint.', kr: '그 요청은 이번 스프린트에서 우선순위가 내려갔어요.' },
+  'Bottleneck::Choke point': { en: 'Customs is the choke point in this route.', kr: '이 경로에선 통관이 병목이에요.' },
+  'Bottleneck::Constraint': { en: 'Headcount is our real constraint this year.', kr: '올해 진짜 제약은 인원이에요.' },
+  'Blocker::Obstacle': { en: 'The main obstacle is getting data access.', kr: '제일 큰 장애물은 데이터 접근 권한이에요.' },
+  'Blocker::Roadblock': { en: 'Legal review turned into a roadblock.', kr: '법무 검토가 큰 벽이 돼버렸어요.' },
+  'Workaround::Temporary fix': { en: 'This is a temporary fix until the patch ships.', kr: '패치 나올 때까지 임시 조치예요.' },
+  'Workaround::Stopgap': { en: 'We hired a contractor as a stopgap.', kr: '급한 대로 계약직을 한 명 썼어요.' },
+  'Root cause::Underlying cause': { en: 'The underlying cause was an outdated spec.', kr: '근본 원인은 오래된 스펙 문서였어요.' },
+  'Root cause::Source of the problem': { en: 'We finally found the source of the problem.', kr: '드디어 문제의 출처를 찾았어요.' },
+  'Get to the bottom of::Dig into': { en: 'Let me dig into the logs this afternoon.', kr: '오후에 로그를 좀 파볼게요.' },
+  'Get to the bottom of::Uncover': { en: 'The audit uncovered a duplicate payment.', kr: '감사에서 중복 결제가 드러났어요.' },
+  'Deep dive::In-depth analysis': { en: 'Finance shared an in-depth analysis of the margins.', kr: '재무팀이 마진 심층 분석을 공유했어요.' },
+  'Deep dive::Close look': { en: 'Let\'s take a close look at last week\'s numbers.', kr: '지난주 숫자를 좀 자세히 볼까요.' },
+  'Hash out::Thrash out': { en: 'We thrashed out the terms over two calls.', kr: '콜 두 번에 걸쳐 조건을 끝까지 정리했어요.' },
+  'Hash out::Work through': { en: 'Let\'s work through the open items one by one.', kr: '남은 항목을 하나씩 차근차근 풀어보죠.' },
+  'Iron out::Smooth out': { en: 'We still need to smooth out the handover process.', kr: '인수인계 절차는 아직 좀 다듬어야 해요.' },
+  'Iron out::Finalize': { en: 'Can we finalize the wording today?', kr: '오늘 문구를 최종 확정할 수 있을까요?' },
+  'Nail down::Pin down': { en: 'I couldn\'t pin down a date with the vendor.', kr: '업체랑 날짜를 못 잡았어요.' },
+  'Nail down::Lock in': { en: 'Let\'s lock in the rate before it goes up.', kr: '오르기 전에 요율을 잠가두죠.' },
+  'Pre-mortem::Risk workshop': { en: 'We\'re running a risk workshop before kickoff.', kr: '킥오프 전에 리스크 워크숍을 한번 돌려요.' },
+  'Pre-mortem::What-if session': { en: 'Let\'s do a short what-if session on Friday.', kr: '금요일에 짧게 시나리오 회의 하죠.' },
+  'Fall through the cracks::Slip through': { en: 'A few refund requests slipped through last month.', kr: '지난달에 환불 요청 몇 건이 그냥 새어 나갔어요.' },
+  'Fall through the cracks::Get missed': { en: 'Small tickets get missed when no one owns them.', kr: '주인이 없으면 작은 티켓들이 빠져요.' },
+  'Contingency plan::Plan B': { en: 'What\'s our plan B if the shipment is late?', kr: '선적이 늦으면 차선책이 뭐예요?' },
+  'Contingency plan::Backup plan': { en: 'Always bring a backup plan to the steering meeting.', kr: '운영위에는 항상 예비 계획을 들고 가세요.' },
+  'Take it with a grain of salt::Don\'t take it at face value': { en: 'Don\'t take that forecast at face value.', kr: '그 전망은 액면 그대로 믿지 마세요.' },
+  'Take it with a grain of salt::Stay skeptical': { en: 'Stay skeptical until we see the raw data.', kr: '원본 데이터 볼 때까지는 의심하고 계세요.' },
+  'Move the goalposts::Change the rules midgame': { en: 'They changed the rules midgame on the bonus criteria.', kr: '보너스 기준을 중간에 바꿔버렸어요.' },
+  'Move the goalposts::Shift the criteria': { en: 'The criteria shifted after we submitted.', kr: '제출한 뒤에 평가 기준이 바뀌었어요.' },
+  'Across the board::Universally': { en: 'The change was universally applied to all regions.', kr: '그 변경은 전 지역에 예외 없이 적용됐어요.' },
+  'Across the board::In every category': { en: 'We grew in every category except hardware.', kr: '하드웨어 빼고 모든 항목에서 성장했어요.' },
+  'Pain point::Friction point': { en: 'The signup form is a friction point for new users.', kr: '가입 폼이 신규 사용자에겐 자꾸 걸리는 지점이에요.' },
+  'Pain point::Sore spot': { en: 'Pricing is a sore spot with this client.', kr: '이 고객사한테 가격은 민감한 주제예요.' },
+  'Unpack::Break down': { en: 'Can you break down the cost by channel?', kr: '비용을 채널별로 쪼개서 보여주실래요?' },
+  'Unpack::Dig into': { en: 'Let\'s dig into why Q2 dropped.', kr: '2분기가 왜 빠졌는지 파고들어 보죠.' },
+  'Flesh out::Build out': { en: 'We\'ll build out the roadmap next quarter.', kr: '로드맵은 다음 분기에 확장해서 만들 거예요.' },
+  'Flesh out::Develop further': { en: 'Good direction, please develop it further.', kr: '방향 좋아요, 조금 더 발전시켜 주세요.' },
+  'Quick win::Easy victory': { en: 'Fixing the typo was an easy victory.', kr: '오타 수정은 쉬운 승리였죠.' },
+  'Quick win::Fast result': { en: 'We need a fast result to keep the team motivated.', kr: '팀 사기를 위해 빨리 나오는 결과가 하나 필요해요.' },
+  'Low-hanging fruit::Easy pickings': { en: 'The abandoned carts are easy pickings.', kr: '장바구니 이탈 건은 손쉬운 대상이에요.' },
+  'Low-hanging fruit::Obvious first step': { en: 'The obvious first step is cleaning the data.', kr: '당연한 첫 단계는 데이터 정리예요.' },
+  'Leverage::Make the most of': { en: 'Let\'s make the most of the existing partnership.', kr: '기존 제휴를 최대한 활용해보죠.' },
+  'Leverage::Capitalize on': { en: 'We should capitalize on the holiday traffic.', kr: '연휴 트래픽을 놓치지 말고 살려야 해요.' },
+  'Streamline::Simplify': { en: 'We simplified the approval flow to two steps.', kr: '승인 절차를 두 단계로 단순화했어요.' },
+  'Streamline::Cut the fat': { en: 'Let\'s cut the fat from this deck before Friday.', kr: '금요일 전에 이 덱에서 군더더기를 좀 덜어내죠.' },
+  'Ramp up::Scale up': { en: 'We can scale up once the process is stable.', kr: '프로세스가 안정되면 규모를 키울 수 있어요.' },
+  'Ramp up::Accelerate': { en: 'Can we accelerate the timeline by two weeks?', kr: '일정을 2주 당길 수 있을까요?' },
+  'Greenlight::Approve': { en: 'The client approved the revised scope.', kr: '클라이언트가 수정된 범위를 승인했어요.' },
+  'Greenlight::Give the go-ahead': { en: 'Once finance gives the go-ahead, we start.', kr: '재무팀이 진행하라고 하면 바로 시작해요.' },
+  'Elephant in the room::The unspoken issue': { en: 'The unspoken issue is that we\'re understaffed.', kr: '아무도 말 안 하는 문제는 인원이 모자란다는 거예요.' },
+  'Elephant in the room::What no one\'s saying': { en: 'What no one\'s saying is that the date is impossible.', kr: '다들 안 꺼내는 말은 그 날짜가 불가능하다는 거죠.' },
+  'Reinvent the wheel::Duplicate effort': { en: 'Two teams building dashboards is duplicate effort.', kr: '두 팀이 대시보드를 각각 만드는 건 중복이에요.' },
+  'Reinvent the wheel::Start from scratch unnecessarily': { en: 'There\'s a template, so let\'s not start from scratch unnecessarily.', kr: '템플릿이 있으니 굳이 처음부터 하지는 말죠.' },
+  'Pressure-test::Stress-test': { en: 'Let\'s stress-test the model with a 30% drop.', kr: '30% 하락을 넣고 모델을 한계까지 시험해보죠.' },
+  'Pressure-test::Put through its paces': { en: 'We put the new tool through its paces last week.', kr: '지난주에 새 툴을 제대로 굴려봤어요.' },
+  'Rollout::Launch': { en: 'The launch is set for October 5th.', kr: '출시는 10월 5일로 잡혀 있어요.' },
+  'Rollout::Deployment': { en: 'Deployment starts with the internal team.', kr: '배포는 내부 팀부터 시작해요.' },
+  'Wrap up::Close out': { en: 'Let\'s close out the remaining tickets today.', kr: '남은 티켓은 오늘 종결 처리하죠.' },
+  'Wrap up::Finish up': { en: 'I just need to finish up the summary.', kr: '요약만 마저 끝내면 돼요.' },
+  'Debrief::Recap session': { en: 'Let\'s do a quick recap session tomorrow morning.', kr: '내일 아침에 짧게 요약 자리 한번 가지죠.' },
+  'Debrief::Post-event review': { en: 'The post-event review is scheduled for Monday.', kr: '행사 후 리뷰는 월요일로 잡혀 있어요.' },
   // 9기 유의어 예문 120개 (2026-08-20 작성). 키: '메인표현::유의어'
   'Keep someone posted::Keep you in the loop': { en: 'I\'ll keep you in the loop as things move forward.', kr: '진행되는 대로 계속 공유드릴게요.' },
   'Keep someone posted::Give a heads-up': { en: 'I\'ll give you a heads-up before we send it to the client.', kr: '클라이언트에 보내기 전에 미리 알려드릴게요.' },
