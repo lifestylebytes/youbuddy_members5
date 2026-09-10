@@ -10334,6 +10334,22 @@ function HomePage() {
   ctaBtn.innerHTML = `오늘의 학습 열기 · Day ${state.currentDay} ${Icon('arrowRight', 16)}`;
   hero.appendChild(ctaBtn);
 
+  // 오늘 인증을 마친 뒤에는 단어시험만 다시 볼 수 있게 (2026-09-10 버디). 인증 상태는 그대로 유지.
+  try {
+    const __td = Number(state.currentDay) || 1;
+    const __opPrev = (state.isOperator || state.isStaff) && !state.operatorViewAsMember;
+    const __todayDone = !!(state.verified && state.verified['d' + __td]);
+    if (__todayDone || __opPrev) {
+      const qBtn = el('button', { class: 'btn btn-full', style: { marginTop: '10px', background: 'rgba(251,247,240,0.1)', color: 'var(--cream)', border: '1px solid rgba(251,247,240,0.22)' }, onClick: () => {
+        try { window.__restartVerifyQuiz(__td); } catch (e) {}
+        go('verify', { week: Math.max(1, Math.ceil(__td / 5)), day: __td });
+      } });
+      qBtn.innerHTML = `🔁 오늘 단어시험 다시 보기 ${Icon('arrowRight', 14)}`
+        + ((!__todayDone && __opPrev) ? ' <span style="font-size:10px;font-weight:800;background:#6E4A28;color:#fff;padding:1px 7px;border-radius:999px;">운영자 미리보기</span>' : '');
+      hero.appendChild(qBtn);
+    }
+  } catch (e) {}
+
   if (reviewFeatureUnlocked()) {
     const reviewBtn = el('button', { class: 'btn btn-full', style: { marginTop: '10px', background: 'rgba(251,247,240,0.1)', color: 'var(--cream)', border: '1px solid rgba(251,247,240,0.22)' }, onClick: () => go('my-review') });
     reviewBtn.innerHTML = `✍️ 내 약점 복습 ${Icon('arrowRight', 14)}` + ((Number(state.currentDay) || 1) < 6 ? ' <span style="font-size:10px;font-weight:800;background:#6E4A28;color:#fff;padding:1px 7px;border-radius:999px;">운영자 미리보기</span>' : '');
@@ -29150,12 +29166,12 @@ window.__updateVerifySettings = (dayN, key, value) => {
   // 단어 시험 설정 변경, 캐시 / ui 초기화 후 다시 풀기 모드.
   state.verify_settings = state.verify_settings || { includeSyn: false, questionCount: 10 };
   if (key === 'includeSyn') {
-    if (state.tier !== 'premium') return; // premium 만 가능
+    // 9기 한정: 전원 해제 (원복 = if (state.tier !== 'premium') return;)
     state.verify_settings.includeSyn = !!value;
     state.verify_settings.synUserSet = true; // 본인이 직접 고른 값이라는 표시
   } else if (key === 'questionCount') {
     const n = Number(value);
-    if (n === 20 && state.tier !== 'premium') return; // 20 은 premium 만
+    // 9기 한정: 20문항도 전원 해제
     if (n === 5 || n === 10 || n === 20) state.verify_settings.questionCount = n;
   }
   // 캐시 비우기 (해당 dayN 의 모든 cache key)
