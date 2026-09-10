@@ -1508,26 +1508,25 @@ const MEMBER_DIRECTORY = [
   { code: '21', id: 'b20', name: '김정순', color: 'cream', tier: 'basic' },  // Aspyn
   { code: '22', id: 'b21', name: '채혜정', color: 'cream', tier: 'basic' },  // Hye
   { code: '23', id: 'b22', name: '윤민아', color: 'cream', tier: 'basic' },  // Mina
-  { code: '24', id: 'b23', name: '선혜주', color: 'cream', tier: 'basic' },  // sun
-  { code: '25', id: 'b24', name: '김효정', color: 'cream', tier: 'basic' },  // Haze
-  { code: '26', id: 'b25', name: '황유진', color: 'cream', tier: 'basic' },  // 유진
-  { code: '27', id: 'b26', name: '김정화', color: 'cream', tier: 'basic' },  // Purityart21
-  { code: '28', id: 'b27', name: '김경연', color: 'cream', tier: 'basic' },  // karen
-  { code: '29', id: 'b28', name: '전미린', color: 'cream', tier: 'basic' },  // MJ
-  { code: '30', id: 'b29', name: '류채리', color: 'cream', tier: 'basic' },  // Kate
-  { code: '31', id: 'b30', name: '정명훈', color: 'cream', tier: 'basic' },  // 므마
-  { code: '32', id: 'b31', name: 'Tina choi', color: 'cream', tier: 'basic' },  // Tina
-  { code: '33', id: 'b32', name: '권지선', color: 'cream', tier: 'basic' },  // Joy
-  { code: '34', id: 'b33', name: '김유진', color: 'cream', tier: 'basic' },  // Yujin
-  { code: '35', id: 'b34', name: '송우석', color: 'cream', tier: 'basic' },  // Leo
-  { code: '36', id: 'b35', name: '신나은', color: 'cream', tier: 'basic' },  // Nana
-  { code: '37', id: 'b36', name: '김옥진', color: 'cream', tier: 'basic' },  // Jeanne
-  { code: '38', id: 'b37', name: '박혜원', color: 'cream', tier: 'basic' },  // Kate
-  { code: '39', id: 'b38', name: '김나연', color: 'cream', tier: 'basic' },  // Chloe
-  { code: '40', id: 'b39', name: '이연준', color: 'cream', tier: 'basic' },  // Jenny
-  { code: '41', id: 'b40', name: '이송아', color: 'cream', tier: 'basic' },  // Song
-  { code: '42', id: 'b41', name: '심재환', color: 'cream', tier: 'basic' },  // Jason
-  { code: '43', id: 'b42', name: '남지우', color: 'cream', tier: 'basic' },  // 계좌이체 (입금 확인 후 활성)
+  { code: '24', id: 'b23', name: '김효정', color: 'cream', tier: 'basic' },  // Haze
+  { code: '25', id: 'b24', name: '황유진', color: 'cream', tier: 'basic' },  // 유진
+  { code: '26', id: 'b25', name: '김정화', color: 'cream', tier: 'basic' },  // Purityart21
+  { code: '27', id: 'b26', name: '김경연', color: 'cream', tier: 'basic' },  // karen
+  { code: '28', id: 'b27', name: '전미린', color: 'cream', tier: 'basic' },  // MJ
+  { code: '29', id: 'b28', name: '류채리', color: 'cream', tier: 'basic' },  // Kate
+  { code: '30', id: 'b29', name: '정명훈', color: 'cream', tier: 'basic' },  // 므마
+  { code: '31', id: 'b30', name: 'Tina choi', color: 'cream', tier: 'basic' },  // Tina
+  { code: '32', id: 'b31', name: '권지선', color: 'cream', tier: 'basic' },  // Joy
+  { code: '33', id: 'b32', name: '김유진', color: 'cream', tier: 'basic' },  // Yujin
+  { code: '34', id: 'b33', name: '송우석', color: 'cream', tier: 'basic' },  // Leo
+  { code: '35', id: 'b34', name: '신나은', color: 'cream', tier: 'basic' },  // Nana
+  { code: '36', id: 'b35', name: '김옥진', color: 'cream', tier: 'basic' },  // Jeanne
+  { code: '37', id: 'b36', name: '박혜원', color: 'cream', tier: 'basic' },  // Kate
+  { code: '38', id: 'b37', name: '김나연', color: 'cream', tier: 'basic' },  // Chloe
+  { code: '39', id: 'b38', name: '이연준', color: 'cream', tier: 'basic' },  // Jenny
+  { code: '40', id: 'b39', name: '이송아', color: 'cream', tier: 'basic' },  // Song
+  { code: '41', id: 'b40', name: '심재환', color: 'cream', tier: 'basic' },  // Jason
+  { code: '42', id: 'b41', name: '남지우', color: 'cream', tier: 'basic' },  // 계좌이체 (입금 확인 후 활성)
 ];
 
 /* 5기 roster used across dashboard/community/profile */
@@ -8534,13 +8533,10 @@ function HelpPage() {
     중요한 건 예쁜 문장이 아니라 <b>내가 실제로 쓸 상황</b>으로 만드는 거예요.`);
   card('AI 첨삭', `
     문장을 제출하면 <b>AI 첨삭</b> 버튼이 생겨요. 어색한 부분을 자연스럽게 고쳐줍니다.
-    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-      <span style="flex:1;min-width:120px;padding:9px 11px;border-radius:11px;background:var(--paper);border:1px solid var(--line);">
-        <span style="display:block;font-size:10.5px;font-weight:800;color:var(--muted);">베이직</span>
-        <span style="display:block;margin-top:2px;font-size:13px;font-weight:800;color:var(--ink);">문장당 1회</span></span>
-      <span style="flex:1;min-width:120px;padding:9px 11px;border-radius:11px;background:#F4F0FA;border:1.5px solid #B79AD0;">
-        <span style="display:block;font-size:10.5px;font-weight:800;color:#7B5E8C;">👑 프리미엄</span>
-        <span style="display:block;margin-top:2px;font-size:13px;font-weight:800;color:#7B5E8C;">무제한</span></span>
+    <div style="margin-top:10px;padding:11px 13px;border-radius:12px;background:#F5EDE1;border:1.5px solid var(--orange);">
+      <div style="font-size:11px;font-weight:800;color:var(--orange-dark);letter-spacing:0.06em;">🎁 이번 기수 한정</div>
+      <div style="margin-top:3px;font-size:13.5px;font-weight:800;color:var(--ink);">AI 첨삭 무제한 (전원)</div>
+      <div style="margin-top:4px;font-size:12px;color:var(--ink-soft);line-height:1.55;">고칠 때까지 몇 번이고 받으셔도 돼요. 한 문장을 여러 번 다듬어보는 게 실력이 제일 빨리 늘거든요.</div>
     </div>`);
   card('단어 시험', `
     그날까지 배운 표현에서 빈칸 채우기로 나와요. 모르면 <b>힌트 보기</b>나 <b>Skip</b> 하셔도 되고,
@@ -11860,7 +11856,7 @@ function WeeksPage() {
 // 단어 시험 설정, premium 만 includeSyn / 20문항 사용 가능.
 function getVerifySettings() {
   const s = state.verify_settings || {};
-  const isPremium = state.tier === 'premium';
+  const isPremium = true; // 9기 한정: 프리미엄 학습 기능 전원 해제 (2026-09-10). 원복 = state.tier === 'premium'
   // 프리미엄은 '유의어까지 출제' 를 기본 ON 으로 둔다.
   // 예전엔 기본 OFF 라, 체크박스를 못 찾은 프리미엄 멤버가 "유의어가 안 나온다" 고 느꼈다.
   // 본인이 직접 끈 적이 있을 때(synUserSet)만 그 선택을 따른다. (2026-08-11)
@@ -13490,7 +13486,7 @@ function WeekReviewPage(weekN) {
     return page;
   }
 
-  const isPremium = state.tier === 'premium';
+  const isPremium = true; // 9기 한정: 프리미엄 학습 기능 전원 해제 (2026-09-10). 원복 = state.tier === 'premium'
   // UI state 키, tier 별로 분리. basic↔premium 토글 시 진행도 안 섞임.
   const uiKey = (stage) => `${weekN}-s${stage}-${isPremium ? 'p' : 'b'}`;
   window.__weekReviewActiveStage = window.__weekReviewActiveStage || {};
@@ -17314,7 +17310,7 @@ function DayPage(dayN) {
 
     if (isNuanceOpen) {
       const detail = el('div', { style: { marginTop: '10px' } });
-      const isPremiumViewer = state.tier === 'premium';
+      const isPremiumViewer = true; // 9기 한정: 프리미엄 학습 기능 전원 해제 (2026-09-10). 원복 = state.tier === 'premium'
       // 어휘 단어를 영문장 안에서 굵은 오렌지로 하이라이트 (premium 전용)
       const highlightSynInSentence = (sentence, synWord) => {
         if (!sentence || !synWord) return escapeHtml(sentence || '');
@@ -17378,7 +17374,7 @@ function DayPage(dayN) {
           <div style="font-size:12.5px;color:var(--ink-soft);font-family:var(--font-mono);font-weight:700;line-height:1.6;">${(w.syn || []).map((s) => escapeHtml(s)).join(', ') || '연결된 유의어가 아직 없어요.'}</div>
           <div style="margin-top:8px;display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;background:rgba(169,139,184,0.12);border:1px solid rgba(169,139,184,0.3);">
             <span style="color:var(--lilac);display:inline-flex;">${Icon('crown', 10)}</span>
-            <span style="font-size:10.5px;font-weight:700;color:#7B5E8C;letter-spacing:-0.01em;">뜻·예문·뉘앙스·시험 출제는 프리미엄에서 열려요</span>
+            <span style="font-size:10.5px;font-weight:700;color:var(--orange-dark);letter-spacing:-0.01em;">이번 기수는 뜻·예문·뉘앙스·시험 출제까지 전부 열려 있어요</span>
           </div>`}
         </div>
       `;
@@ -17854,7 +17850,7 @@ function DayPage(dayN) {
     // 유의어 = 카드 하단 점선 구분 후 작게 인라인. 프리미엄 배지는 영역 위 한 번만.
     const hookChips = [];
     const synChips = [];
-    const isPremium = state.tier === 'premium';
+    const isPremium = true; // 9기 한정: 프리미엄 학습 기능 전원 해제 (2026-09-10). 원복 = state.tier === 'premium'
 
     if (isPremium) {
       const premiumHint = el('div', {
@@ -30808,7 +30804,7 @@ function __reviewSynFor(en) {
 }
 // 내 문장 테스트 시작 옵션 (데일리 단어시험처럼 10 / 20 / 유의어 선택. 2026-09-04 버디)
 window.__openSentenceTestOptions = function () {
-  if (!seesPremiumNow()) { showToast('내 문장 테스트는 프리미엄 전용이에요 💜'); return; }
+  // 9기 한정: 내 문장 테스트 전원 개방
   const all = buildReviewMySentences();
   if (!all.length) { showToast('아직 제출한 문장이 없어요. 먼저 영작을 해보세요!'); return; }
   const existing = document.querySelector('[data-sent-opt-popup]');
@@ -30980,7 +30976,7 @@ window.__exitReview = () => { window.__reviewUi = null; go('home'); };
 
 function MyReviewPage() {
   const page = el('div', { class: 'page' });
-  const isPrem = seesPremiumNow();
+  const isPrem = true; // 9기 한정: 프리미엄 학습 기능 전원 해제 (2026-09-10). 원복 = state.tier === 'premium'
   const head = el('div', { class: 'row-between', style: { marginBottom: '14px' } });
   head.innerHTML = '<button class="icon-btn" onclick="window.__exitReview()" style="background:#fff;border:1px solid var(--line);">' + Icon('arrowLeft', 16) + '</button><div class="kicker" style="color:var(--orange-dark);">' + ((window.__reviewUi && window.__reviewUi.mode === 'sentence') ? '내 문장으로 테스트 PREMIUM' : (window.__reviewUi && window.__reviewUi.mode === 'weak') ? '약점 단어 테스트' : 'MY REVIEW · 내 복습') + '</div><div style="width:36px;"></div>';
   page.appendChild(head);
