@@ -385,7 +385,7 @@ input, textarea, select { font-family: inherit; }
 }
 .gt-wrap { position: fixed; inset: 0; z-index: 4000; }
 .gt-spot { position: fixed; display: none; border-radius: 16px; pointer-events: none; z-index: 4001; box-shadow: 0 0 0 9999px rgba(20,12,6,0.34); animation: gtPulse 1.8s ease-in-out infinite; transition: top .32s cubic-bezier(.4,0,.2,1), left .32s cubic-bezier(.4,0,.2,1), width .32s cubic-bezier(.4,0,.2,1), height .32s cubic-bezier(.4,0,.2,1); }
-.gt-card { position: fixed; left: 50%; transform: translateX(-50%); z-index: 4002; max-width: 420px; width: calc(100% - 28px); background: #fff; border-radius: 22px; padding: 20px; box-shadow: 0 20px 54px rgba(0,0,0,0.34); animation: gtCardIn .3s cubic-bezier(.22,.9,.3,1); }
+.gt-card { position: fixed; left: 50%; transform: translateX(-50%); z-index: 4002; max-width: 420px; width: calc(100% - 28px); background: #fff; border-radius: 22px; padding: 20px; box-shadow: 0 20px 54px rgba(0,0,0,0.34); max-height: 58vh; overflow-y: auto; -webkit-overflow-scrolling: touch; animation: gtCardIn .3s cubic-bezier(.22,.9,.3,1); }
 .gt-wrap { animation: gtFadeIn .22s ease; }
 .gt-wrap.gt-swap { animation: none; }
 .gt-wrap.gt-swap .gt-card { animation: gtCardSwap .26s cubic-bezier(.22,.9,.3,1); }
@@ -3648,6 +3648,7 @@ function GuidedTourOverlay() {
     return { top: T, left: L, width: R - L, height: B - T, bottom: B };
   };
   const reposition = () => {
+    card.style.maxHeight = ''; // 이전 스텝에서 좁혀둔 값 초기화
     const ur = __unionRect();
     const t = (!ur && step.target) ? document.querySelector(step.target) : null;
     const r = ur || (t ? t.getBoundingClientRect() : null);
@@ -3664,7 +3665,26 @@ function GuidedTourOverlay() {
         const below = r.bottom + cardH + 28 < window.innerHeight;
         if (below) { card.style.top = (r.bottom + 16) + 'px'; card.style.bottom = 'auto'; }
         else if (r.top - cardH - 16 > 8) { card.style.top = (r.top - cardH - 16) + 'px'; card.style.bottom = 'auto'; }
-        else { card.style.top = 'auto'; card.style.bottom = '24px'; }
+        else {
+          // 카드가 길어서 위아래 어디에도 안 들어가는 경우(모바일에서 흔함).
+          // 하단 고정으로 두면 카드가 하이라이트를 통째로 덮는다 → 대상을 화면 위로 올리고 아래에 붙인다.
+          // (2026-09-11 버디 제보: 온보딩에서 데일리 인증 보드가 가려짐)
+          const TOP_MARGIN = 84;
+          const shift = r.top - TOP_MARGIN;
+          if (!window.__tourShiftedFor || window.__tourShiftedFor !== i) {
+            if (Math.abs(shift) > 12) {
+              window.__tourShiftedFor = i;
+              try { window.scrollBy({ top: shift, behavior: 'auto' }); } catch (_) { window.scrollBy(0, shift); }
+              setTimeout(reposition, 60);
+              return;
+            }
+          }
+          const r2 = (__unionRect() || (t ? t.getBoundingClientRect() : r));
+          const spaceBelow = window.innerHeight - r2.bottom - 24;
+          card.style.bottom = 'auto';
+          card.style.top = Math.max(8, r2.bottom + 14) + 'px';
+          card.style.maxHeight = Math.max(180, spaceBelow - 10) + 'px';
+        }
         return;
       }
     }
@@ -3678,11 +3698,12 @@ function GuidedTourOverlay() {
   // 스크롤은 스텝이 '바뀔 때만', reposition(링 위치 보정)만 매번 수행 → 깜빡임 제거.
   const stepChanged = window.__tourLastPositionedStep !== i;
   window.__tourLastPositionedStep = i;
+  if (stepChanged) window.__tourShiftedFor = null;
   setTimeout(() => {
     const t = (Array.isArray(step.targetUnion) && document.querySelector(step.targetUnion[0]))
       || (step.target ? document.querySelector(step.target) : null);
     // 즉시(auto) 스크롤 후 측정해야 위치가 정확함 (smooth 중 측정하면 엉뚱한 곳에 링이 뜸).
-    if (stepChanged && t) { try { t.scrollIntoView({ behavior: 'auto', block: 'center' }); } catch (_) {} }
+    if (stepChanged && t) { try { t.scrollIntoView({ behavior: 'auto', block: 'start' }); window.scrollBy(0, -84); } catch (_) {} }
     reposition();
     if (stepChanged) setTimeout(reposition, 140); // 레이아웃 안정화 후 한 번 더 보정
   }, 40);
