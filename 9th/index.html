@@ -11,7 +11,7 @@
 <!-- 파비콘: 로즈레드 배경 + 흰색 소문자 y (인라인 SVG, 하위 라우트 전체 적용) -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='8'%20fill='%239C6B3F'/%3E%3Ctext%20x='16'%20y='23'%20font-family='Arial,Helvetica,sans-serif'%20font-size='22'%20font-weight='700'%20fill='%23ffffff'%20text-anchor='middle'%3Ey%3C/text%3E%3C/svg%3E" />
 <!-- PWA 설정 -->
-<link rel="manifest" href="/8th/manifest.json" />
+<link rel="manifest" href="/9th/manifest.json" />
 <meta name="theme-color" content="#9C6B3F" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -1059,7 +1059,7 @@ if (location.search.indexOf('debug') >= 0) {
   if (!('serviceWorker' in navigator)) return;
 
   /* 서비스 워커 등록 */
-  navigator.serviceWorker.register('/8th/sw.js', { scope: '/8th/' })
+  navigator.serviceWorker.register('/9th/sw.js', { scope: '/9th/' })
     .then((reg) => {
       window.__swReg = reg;
       console.log('[SW] 등록 완료', reg.scope);
@@ -29832,7 +29832,7 @@ window.__submitCommentComposer = async (postId) => {
               cohort: CHALLENGE.cohort,
               title: `${commenterName}님이 댓글을 달았어요 💬`,
               body: snippet,
-              url: '/8th/#community',
+              url: '/9th/#community',
               tag: `comment-${postId}`,
             }),
           }).catch(() => {});
@@ -30016,7 +30016,7 @@ window.__speakText = (text) => {
 };
 /* ------------------------------------------------------------
    AI 음성 재생 (2026-08-14)
-   8th/audio/dN-i-en.mp3 (단어) / dN-i-ex.mp3 (예문) 이 배포돼 있으면
+   9th/audio/dN-i-en.mp3 (단어) / dN-i-ex.mp3 (예문) 이 배포돼 있으면
    그 파일을 틀고, 없으면 (404) 기존 브라우저 TTS 로 폴백한다.
    파일 생성은 tools/generate_tts.mjs (Day 6~20 · nova 목소리).
    ------------------------------------------------------------ */
@@ -31792,9 +31792,10 @@ window.__openTodaySendBrief = function () {
     add(dow === 6 ? '토 14:00' : '일 19:00', '버디', dow === 6 ? '주차 랩업 + 다음 주 예고 (시트 원고 사용)' : '주간 마무리 리마인드 (시트 원고 사용)', '');
   } else {
     // 전날 인증률 공지 (2026-09-09 피드백): 어제 Day 인증율 + 미인증 명단 + 동기부여 5줄
-    if (cDay >= 2) {
+    {
       try {
-        const yd = cDay - 1;
+        const yd = Math.max(1, cDay - 1);
+        const isPreview = cDay < 2;
         const b = vsCopyBuckets(yd, 'basic');
         const total = b.both.length + b.recOnly.length + b.webOnly.length + b.tzWait.length + b.done.length;
         const webDone = b.done.length + b.recOnly.length;
@@ -31802,7 +31803,7 @@ window.__openTodaySendBrief = function () {
         const dd = dayDate(yd);
         const ymdS = dd.getFullYear() + '-' + String(dd.getMonth() + 1).padStart(2, '0') + '-' + String(dd.getDate()).padStart(2, '0');
         const head = '🌅 어제 (' + ymdS + ', Day ' + yd + ') ' + CHALLENGE.cohort + ' 인증율 베이직: ' + pct + '% (' + webDone + '/' + total + '명)';
-        add('07:00', '버디', '전날 인증률 공지 · Day ' + yd, head + '\n\n' + vsCopyText(yd, 'basic', false) + '\n\n💬 ' + __opsMotivation(yd));
+        add('07:00', '버디', '전날 인증률 공지 · Day ' + yd + (isPreview ? ' (미리보기 · Day 2부터 실제 명단)' : ''), head + '\n\n' + vsCopyText(yd, 'basic', false) + '\n\n💬 ' + __opsMotivation(yd));
       } catch (e) {}
     }
     add('06:00', '매니저', '모닝 공지 · Day ' + cDay, mBody);
