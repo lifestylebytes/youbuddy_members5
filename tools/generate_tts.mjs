@@ -43,12 +43,24 @@ const CHALLENGE = vm.runInNewContext('(' + html.slice(i, end) + ')');
 const outDir = path.join(ROOT, `${COHORT}/audio`);
 fs.mkdirSync(outDir, { recursive: true });
 
+// 유의어 예문 사전(SYN_EXAMPLES)도 같이 읽는다 (유의어 듣기 버튼이 기계음이 되지 않게)
+let SYN_EX = {};
+try {
+  const ms = html.match(/const SYN_EXAMPLES = \{[\s\S]*?\n\};/);
+  if (ms) SYN_EX = vm.runInNewContext(ms[0] + '\nSYN_EXAMPLES');
+} catch (e) { console.warn('SYN_EXAMPLES 파싱 실패, 유의어 예문은 건너뜁니다'); }
+
 const jobs = [];
 (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((d) => {
   if (d.day < FROM || d.day > TO) return;
   (d.words || []).forEach((w, k) => {
     if (w.en) jobs.push({ file: `d${d.day}-${k}-en.mp3`, text: w.en });
     if (w.ex_en) jobs.push({ file: `d${d.day}-${k}-ex.mp3`, text: w.ex_en });
+    (w.syn || []).forEach((sy, si) => {
+      if (sy) jobs.push({ file: `d${d.day}-${k}-s${si}-en.mp3`, text: sy });
+      const ex = SYN_EX[`${w.en}::${sy}`];
+      if (ex && ex.en) jobs.push({ file: `d${d.day}-${k}-s${si}-ex.mp3`, text: ex.en });
+    });
   });
 }));
 console.log(`${COHORT} · Day ${FROM}~${TO} · 목소리 ${VOICE} · 클립 ${jobs.length}개`);

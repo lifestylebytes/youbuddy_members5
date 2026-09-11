@@ -27848,6 +27848,7 @@ function WeeklyQuizPopupModal() {
   const weekN = (typeof showWeeklyQuizPopup === 'number') ? showWeeklyQuizPopup : 1;
   const seenKey = `v${weekN}`;
   const close = (markSeen = true) => {
+    try { window.__playAllToken = (window.__playAllToken || 0) + 1; if (window.__ttsEl) window.__ttsEl.pause(); window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
     if (markSeen) {
       state.weekly_quiz_popup_seen = state.weekly_quiz_popup_seen || {};
       state.weekly_quiz_popup_seen[seenKey] = true;
@@ -28031,6 +28032,7 @@ function SpacedRepeatPopupModal() {
   // 커스텀 seen key 가 있으면 그걸 사용, 없으면 기본 `day${dayN}` (dynamic Day 15 top-wrong 같은 경우)
   const seenKey = ctx._seenKey || `day${dayKey}`;
   const close = (markSeen = true) => {
+    try { window.__playAllToken = (window.__playAllToken || 0) + 1; if (window.__ttsEl) window.__ttsEl.pause(); window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
     if (markSeen) {
       state.spaced_repeat_seen = state.spaced_repeat_seen || {};
       state.spaced_repeat_seen[seenKey] = true;
@@ -28047,14 +28049,15 @@ function SpacedRepeatPopupModal() {
       if (w.en) items.push(w.en);
       if (w.ex_en) items.push(w.ex_en);
     });
-    let i = 0;
-    const next = () => {
-      if (i >= items.length) return;
-      const text = items[i++];
-      try { speakEnglish(text); } catch (e) {}
-      setTimeout(next, Math.min(5200, 1300 + text.length * 55));
-    };
-    next();
+    // 앞 음성이 끝난 뒤에 다음 걸 튼다 (예상 시간으로 넘기면 긴 예문이 잘림)
+    const token = (window.__playAllToken = (window.__playAllToken || 0) + 1);
+    (async () => {
+      for (const text of items) {
+        if (token !== window.__playAllToken) return; // 팝업을 닫았거나 다시 눌렀으면 중단
+        try { await speakEnglishAsync(text); } catch (e) {}
+        await new Promise((r) => setTimeout(r, 450)); // 단어 사이 숨 고르기
+      }
+    })();
   };
 
   const backdrop = el('div', {
@@ -28260,6 +28263,7 @@ function PreReviewPopupModal() {
   const { dayN, prevDayN, prev } = ctx;
   const dayKey = String(dayN);
   const close = (markSeen = true) => {
+    try { window.__playAllToken = (window.__playAllToken || 0) + 1; if (window.__ttsEl) window.__ttsEl.pause(); window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
     if (markSeen) {
       state.prereview_seen = state.prereview_seen || {};
       state.prereview_seen[`day${dayKey}`] = true;
@@ -28277,14 +28281,15 @@ function PreReviewPopupModal() {
       if (w.en) items.push(w.en);
       if (w.ex_en) items.push(w.ex_en);
     });
-    let i = 0;
-    const next = () => {
-      if (i >= items.length) return;
-      const text = items[i++];
-      try { speakEnglish(text); } catch (e) {}
-      setTimeout(next, Math.min(5200, 1300 + text.length * 55));
-    };
-    next();
+    // 앞 음성이 끝난 뒤에 다음 걸 튼다 (예상 시간으로 넘기면 긴 예문이 잘림)
+    const token = (window.__playAllToken = (window.__playAllToken || 0) + 1);
+    (async () => {
+      for (const text of items) {
+        if (token !== window.__playAllToken) return; // 팝업을 닫았거나 다시 눌렀으면 중단
+        try { await speakEnglishAsync(text); } catch (e) {}
+        await new Promise((r) => setTimeout(r, 450)); // 단어 사이 숨 고르기
+      }
+    })();
   };
 
   const backdrop = el('div', {
@@ -28914,6 +28919,7 @@ function WeekWrapupPopupModal() {
   const weekN = showWeekWrapupPopup;
   if (!weekN) return el('div');
   const close = (markSeen = true) => {
+    try { window.__playAllToken = (window.__playAllToken || 0) + 1; if (window.__ttsEl) window.__ttsEl.pause(); window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
     if (markSeen) {
       state.friday_redirect_seen = state.friday_redirect_seen || {};
       state.friday_redirect_seen[String(weekN)] = true;
@@ -30231,6 +30237,14 @@ function __ttsFileForText(text) {
       (CHALLENGE.weeks || []).forEach((wk) => (wk.days || []).forEach((dd) => (dd.words || []).forEach((w, i) => {
         if (w.en) idx[norm(w.en)] = `d${dd.day}-${i}-en.mp3`;
         if (w.ex_en) idx[norm(w.ex_en)] = `d${dd.day}-${i}-ex.mp3`;
+        // 유의어와 유의어 예문도 AI 음성으로 (없으면 기계음이라 2026-09-11 추가)
+        (w.syn || []).forEach((sy, k) => {
+          if (sy) idx[norm(sy)] = `d${dd.day}-${i}-s${k}-en.mp3`;
+          try {
+            const ex = (typeof SYN_EXAMPLES !== 'undefined') ? SYN_EXAMPLES[`${w.en}::${sy}`] : null;
+            if (ex && ex.en) idx[norm(ex.en)] = `d${dd.day}-${i}-s${k}-ex.mp3`;
+          } catch (e) {}
+        });
       })));
       window.__ttsIndex = idx;
     }
@@ -30243,6 +30257,50 @@ function speakEnglish(text) {
   __browserSpeak(text);
 }
 window.speakEnglish = speakEnglish;
+/* 끝날 때까지 기다렸다가 resolve. 연속 재생(워밍업·복습 팝업의 '한 번씩 듣고 가기')에서
+   예상 시간으로 다음 걸 틀다가 앞 음성이 잘리던 문제 때문에 추가. (2026-09-11 버디 제보)
+   mp3 는 ended, 기계음성은 onend 를 기준으로 하고, 혹시 이벤트가 안 오면 안전 타이머로 빠져나온다. */
+function speakEnglishAsync(text) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => { if (done) return; done = true; resolve(); };
+    const file = __ttsFileForText(text);
+    if (file) {
+      try {
+        if (window.__ttsEl) { try { window.__ttsEl.pause(); } catch (_) {} }
+        try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (_) {}
+        const a = new Audio('audio/' + file);
+        window.__ttsEl = a;
+        a.onended = finish;
+        a.onerror = () => { __browserSpeakAsync(text).then(finish); };
+        // 길이를 알면 그 길이 + 여유만큼만 기다린다 (이벤트 유실 대비)
+        a.onloadedmetadata = () => { if (isFinite(a.duration)) setTimeout(finish, a.duration * 1000 + 1200); };
+        a.play().catch(() => { __browserSpeakAsync(text).then(finish); });
+        setTimeout(finish, 15000);
+        return;
+      } catch (e) { /* 폴백으로 */ }
+    }
+    __browserSpeakAsync(text).then(finish);
+  });
+}
+window.speakEnglishAsync = speakEnglishAsync;
+function __browserSpeakAsync(text) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => { if (done) return; done = true; resolve(); };
+    try {
+      if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') { finish(); return; }
+      const u = new SpeechSynthesisUtterance(text);
+      try { u.voice = pickFemaleEnVoice(); } catch (_) {}
+      u.lang = 'en-US'; u.rate = 0.92; u.pitch = 1.1;
+      u.onend = finish; u.onerror = finish;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.resume && window.speechSynthesis.resume();
+      setTimeout(() => window.speechSynthesis.speak(u), 16);
+      setTimeout(finish, Math.min(12000, 2000 + String(text || '').length * 90));
+    } catch (e) { finish(); }
+  });
+}
 function __browserSpeak(text) {
   try {
     if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
