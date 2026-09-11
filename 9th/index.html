@@ -3663,27 +3663,26 @@ function GuidedTourOverlay() {
         spot.style.borderRadius = (r.height > 70 ? 18 : 12) + 'px';
         const cardH = card.offsetHeight || 200;
         const below = r.bottom + cardH + 28 < window.innerHeight;
-        if (below) { card.style.top = (r.bottom + 16) + 'px'; card.style.bottom = 'auto'; }
-        else if (r.top - cardH - 16 > 8) { card.style.top = (r.top - cardH - 16) + 'px'; card.style.bottom = 'auto'; }
+        const clampTop = (v) => Math.max(8, Math.min(v, window.innerHeight - Math.min(cardH, window.innerHeight * 0.6) - 12));
+        if (below) { card.style.top = clampTop(r.bottom + 16) + 'px'; card.style.bottom = 'auto'; }
+        else if (r.top - cardH - 16 > 8) { card.style.top = clampTop(r.top - cardH - 16) + 'px'; card.style.bottom = 'auto'; }
         else {
-          // 카드가 길어서 위아래 어디에도 안 들어가는 경우(모바일에서 흔함).
-          // 하단 고정으로 두면 카드가 하이라이트를 통째로 덮는다 → 대상을 화면 위로 올리고 아래에 붙인다.
-          // (2026-09-11 버디 제보: 온보딩에서 데일리 인증 보드가 가려짐)
-          const TOP_MARGIN = 84;
-          const shift = r.top - TOP_MARGIN;
-          if (!window.__tourShiftedFor || window.__tourShiftedFor !== i) {
-            if (Math.abs(shift) > 12) {
+          // 대상이 크거나 카드가 길어서 위아래 어디에도 안 들어가는 경우.
+          // 카드는 '항상 화면 안'이 최우선이라 하단 고정으로 두고 높이를 줄인다.
+          // 대신 대상의 윗부분이 카드 위 빈 공간에 보이도록 스크롤을 한 번 맞춘다.
+          // (2026-09-11 버디 제보: 보드가 가려짐 / 5번 카드가 아예 안 보임)
+          card.style.top = 'auto';
+          card.style.bottom = '20px';
+          card.style.maxHeight = Math.round(window.innerHeight * 0.42) + 'px';
+          const TOP_MARGIN = 76;
+          if (window.__tourShiftedFor !== i) {
+            const shift = r.top - TOP_MARGIN;
+            if (Math.abs(shift) > 16) {
               window.__tourShiftedFor = i;
               try { window.scrollBy({ top: shift, behavior: 'auto' }); } catch (_) { window.scrollBy(0, shift); }
               setTimeout(reposition, 60);
-              return;
             }
           }
-          const r2 = (__unionRect() || (t ? t.getBoundingClientRect() : r));
-          const spaceBelow = window.innerHeight - r2.bottom - 24;
-          card.style.bottom = 'auto';
-          card.style.top = Math.max(8, r2.bottom + 14) + 'px';
-          card.style.maxHeight = Math.max(180, spaceBelow - 10) + 'px';
         }
         return;
       }
