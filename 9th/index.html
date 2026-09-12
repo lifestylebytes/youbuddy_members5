@@ -1746,7 +1746,7 @@ const defaultState = () => ({
   premium_intake: null,             // 프리미엄 D1 진단 12문항 { job, env, level, scene, moment, deadline, stuck[], tried, pressure, goal_track, success, must_know, at }
   pledge: null,                     // 9기 다짐 { verify_time: 'HH:MM', recording_by: 'Day 15', at: ISO, updated_at: ISO }
   intake: null,                     // 9기 베이직 간단 설문(전부 선택) { env, freq, level, motive, success, at, updated_at }
-  pledge_popup_seen: false,         // 이미 가입을 끝낸 멤버에게 다짐 팝업을 1회 띄웠는지
+  pledge_popup_snooze: '',          // 다짐 팝업을 '다음에요'로 닫은 날짜(YYYY-MM-DD). 다음 날 다시 뜸. 다짐을 저장하면 영구히 안 뜸.
   review_counts: {},                // { retake: N, weak: N, random: N } 복습 테스트 횟수 (2026-08-31)
   review_ask_seen: false,           // 수료 후기 부탁 팝업 1회 노출 여부 (2026-09-03)
   daily_pulse: {},                  // { "16": { a: 'keep', b: 'time', text: '...', at: ISO } } 데일리 펄스(1~2문항 초경량 설문) 응답. Day 키.
@@ -1841,7 +1841,7 @@ const PERSISTED_STATE_KEYS = [
   'premium_intake',
   'pledge',
   'intake',
-  'pledge_popup_seen',
+  'pledge_popup_snooze',
   'review_counts',
   'review_ask_seen',
   'ai_review_feedback',
@@ -10458,7 +10458,7 @@ function __finishOnboarding() {
   state.currentIssue = (__onboardDraft.currentIssue || '').trim();
   __saveIntakeFromDraft(__onboardDraft);
   __savePledgeFromDraft(__onboardDraft);
-  state.pledge_popup_seen = true; // 가입 흐름에서 이미 받았으니 팝업은 다시 안 띄웁니다.
+  // 가입 흐름에서 이미 받았으니 팝업은 안 뜹니다 (state.pledge 가 채워지면 트리거가 꺼짐).
   state.onboarded = true;
   state.signedUp = true; // 영속 가입 플래그, 로그아웃 후 재로그인 시 목표/롤 다시 묻지 않게 하는 근거
   state.accountKey = (state.name || '').trim() || [state.accessCode || 'guest', 'member'].join(':'); // 7기: 이름 기준 식별키
@@ -10925,16 +10925,19 @@ function HomePage() {
     }
   } catch (e) {}
 
-  // 9기 다짐 팝업: 다짐 단계가 생기기 전에 가입한 멤버에게만 1회. 신규 가입자는 온보딩에서 이미 받음.
+  // 9기 다짐 팝업: 다짐 단계가 생기기 전에 가입한 멤버에게. 신규 가입자는 온보딩에서 이미 받음.
+  // '다음에요'는 오늘 하루만 미루는 것이고, 다짐을 저장할 때까지 다음 날 또 뜬다.
   try {
     // 가드: 온보딩을 끝냈고(state.onboarded) 앱 사용법 투어도 끝난 뒤에만.
     // 가입 도중이나 투어 도중에 이게 먼저 뜨면 안 됨.
-    if (state.onboarded && state.signedUp && !state.pledge && !state.pledge_popup_seen
+    const __pgToday = (typeof todayStr === 'function') ? todayStr() : '';
+    if (state.onboarded && state.signedUp && !state.pledge
+        && state.pledge_popup_snooze !== __pgToday
         && currentPage === 'home' && guidedTourStep === null && state.guided_tour_done
         && !anyPopupOpen() && !window.__pledgeArmed) {
       window.__pledgeArmed = true;
       setTimeout(() => {
-        if (guidedTourStep !== null || anyPopupOpen() || state.pledge || state.pledge_popup_seen) return;
+        if (guidedTourStep !== null || anyPopupOpen() || state.pledge) return;
         const pi = (state.intake && typeof state.intake === 'object') ? state.intake : {};
         window.__pledgeDraft = {
           verifyTime: '07:30',
@@ -32844,15 +32847,17 @@ function PledgeModal() {
     __wireIntakeChips(card, d, () => { showPledgePopup = true; render(); });
     const later = card.querySelector('#__pgLater');
     if (later) later.onclick = () => {
-      state.pledge_popup_seen = true;
+      // 오늘만 미룸. 다짐을 저장할 때까지 내일 또 뜹니다.
+      state.pledge_popup_snooze = (typeof todayStr === 'function') ? todayStr() : '';
       try { saveState(); } catch (e) {}
-      showPledgePopup = false; render();
+      showPledgePopup = false;
+      showToast('내일 다시 여쭤볼게요. [나] 탭에서 언제든 정하실 수 있어요.');
+      render();
     };
     const save = card.querySelector('#__pgSave');
     if (save) save.onclick = () => {
       __savePledgeFromDraft(d);
       __saveIntakeFromDraft(d);
-      state.pledge_popup_seen = true;
       try { saveState({ immediate: true }); } catch (e) {}
       showPledgePopup = false;
       showToast('다짐 저장했어요. 프로필에서 언제든 바꿀 수 있어요 🧡');
