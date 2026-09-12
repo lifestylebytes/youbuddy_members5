@@ -10812,9 +10812,14 @@ function HomePage() {
     }
   } catch (e) {}
 
-  // 후기 공개 동의 팝업: 주간 설문을 제출한 멤버에게, 응답할 때까지 세션당 1회.
+  // 후기 공개 동의 팝업: Week 1 주간시험 + Week 1 설문을 둘 다 마친 뒤에만. 응답할 때까지 세션당 1회.
+  // 예전엔 week_survey 키가 하나라도 있으면 떴는데, 그러면 첫 주가 끝나기도 전에
+  // "후기가 너무 좋아서" 라고 물어보는 그림이 나왔다. (2026-09-13 버디)
   try {
-    const hasSurvey = Object.keys(state.week_survey || {}).length > 0;
+    const _ws1 = (state.week_survey || {})['1'];
+    const _survey1Done = !!(_ws1 && _ws1.at && !_ws1.skipped);
+    const _test1Done = !!((state.bingo_boss_results || {})['1']);
+    const hasSurvey = _survey1Done && _test1Done;
     if (hasSurvey && state.onboarded && !state.review_consent && !window.__reviewConsentArmed
         && !window.__reviewConsentDismissed && guidedTourStep === null && !anyPopupOpen()) {
       window.__reviewConsentArmed = true;
