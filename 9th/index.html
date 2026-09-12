@@ -9611,6 +9611,7 @@ let __onboardDraft = {
   verifyTime: '07:30',
   recordingBy: '22:00',
   success: '',
+  note: '',
 };
 const __ONBOARD_STEP_COUNT = 6;
 
@@ -9661,10 +9662,11 @@ function __saveIntakeFromDraft(draft) {
     level: (draft.level || '').trim(),
     motive: (draft.motive || '').trim(),
     success: (draft.success || '').trim(),
+    note: (draft.note || '').trim(),
     at: (prev && prev.at) ? prev.at : new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
-  const empty = !next.env && !next.freq && !next.level && !next.motive && !next.success;
+  const empty = !next.env && !next.freq && !next.level && !next.motive && !next.success && !next.note;
   state.intake = (empty && !prev) ? null : next;
 }
 
@@ -9976,7 +9978,7 @@ function OnboardingPage() {
   if ((!__onboardDraft.focusAreas || __onboardDraft.focusAreas.length === 0) && Array.isArray(state.focusAreas) && state.focusAreas.length > 0) __onboardDraft.focusAreas = [...state.focusAreas];
   if (!__onboardDraft.currentIssue && state.currentIssue) __onboardDraft.currentIssue = state.currentIssue;
   if (state.intake && typeof state.intake === 'object') {
-    ['env', 'freq', 'level', 'motive', 'success'].forEach((k) => {
+    ['env', 'freq', 'level', 'motive', 'success', 'note'].forEach((k) => {
       if (!__onboardDraft[k] && state.intake[k]) __onboardDraft[k] = state.intake[k];
     });
   }
@@ -10166,6 +10168,11 @@ function OnboardingPage() {
         <span class="kicker" style="color:var(--muted);">4주 뒤 이것만 되면 성공 (선택)</span>
         <textarea id="__obSuccess" class="input" rows="2" placeholder="예: 회의에서 내 의견 한 번은 먼저 꺼내기" style="font-size:13.5px;line-height:1.55;resize:vertical;">${escapeHtml(__onboardDraft.success || '')}</textarea>
       </label>
+      <label style="display:grid;gap:6px;margin-top:14px;">
+        <span class="kicker" style="color:var(--muted);">유버디가 알아두면 좋은 점 (선택)</span>
+        <textarea id="__obNote" class="input" rows="2" placeholder="예: 출장이 잦아서 주중에 못 하는 날이 생길 수 있어요 / 영어 울렁증이 좀 있어요" style="font-size:13.5px;line-height:1.55;resize:vertical;">${escapeHtml(__onboardDraft.note || '')}</textarea>
+        <span style="font-size:11px;color:var(--muted);line-height:1.5;">일정, 컨디션, 부담되는 점 뭐든 좋아요. 버디만 봅니다.</span>
+      </label>
       <div style="margin-top:18px;padding:12px 14px;border-radius:12px;background:rgba(66,48,28,0.04);border:1px solid rgba(66,48,28,0.08);">
         <div class="kicker" style="color:var(--muted);margin-bottom:4px;">© COPYRIGHT · IP</div>
         <p style="margin:0;font-size:10.5px;color:var(--muted);line-height:1.6;">
@@ -10298,6 +10305,8 @@ function OnboardingPage() {
       __wirePledgeForm(page, __onboardDraft, {});
       const suc = document.getElementById('__obSuccess');
       if (suc) suc.oninput = (e) => { __onboardDraft.success = e.target.value; };
+      const nte = document.getElementById('__obNote');
+      if (nte) nte.oninput = (e) => { __onboardDraft.note = e.target.value; };
     }
   }, 0);
 
@@ -10942,7 +10951,7 @@ function HomePage() {
         window.__pledgeDraft = {
           verifyTime: '07:30',
           recordingBy: '22:00',
-          env: pi.env || '', freq: pi.freq || '', level: pi.level || '', motive: pi.motive || '', success: pi.success || '',
+          env: pi.env || '', freq: pi.freq || '', level: pi.level || '', motive: pi.motive || '', success: pi.success || '', note: pi.note || '',
         };
         showPledgePopup = true;
         render();
@@ -23645,7 +23654,7 @@ function ProfilePage() {
     const _sent = __pledgeSentence(_pg);
     const pc = el('div', { style: { marginTop: '12px', padding: '13px 15px', borderRadius: '14px', background: 'var(--orange-ghost)', border: '1px solid rgba(156,107,63,0.3)' } });
     const ikRows = _ik
-      ? [['환경', _ik.env], ['빈도', _ik.freq], ['단계', _ik.level], ['계기', _ik.motive], ['성공 기준', _ik.success]]
+      ? [['환경', _ik.env], ['빈도', _ik.freq], ['단계', _ik.level], ['계기', _ik.motive], ['성공 기준', _ik.success], ['버디에게', _ik.note]]
           .filter((r) => r[1]).map((r) => _rowT(r[0], r[1])).join('')
       : '';
     pc.innerHTML =
@@ -23667,7 +23676,7 @@ function ProfilePage() {
       window.__pledgeDraft = {
         verifyTime: pg.verify_time || '07:30',
         recordingBy: pg.recording_by || '22:00',
-        env: ik.env || '', freq: ik.freq || '', level: ik.level || '', motive: ik.motive || '', success: ik.success || '',
+        env: ik.env || '', freq: ik.freq || '', level: ik.level || '', motive: ik.motive || '', success: ik.success || '', note: ik.note || '',
       };
       showPledgePopup = true;
       render();
@@ -27826,7 +27835,7 @@ function OpsDashboardPage() {
       }
 
       // 간단 설문 집계
-      const withIntake = rows.filter((r) => r.i && (r.i.env || r.i.freq || r.i.level || r.i.motive));
+      const withIntake = rows.filter((r) => r.i && (r.i.env || r.i.freq || r.i.level || r.i.motive || r.i.note));
       if (withIntake.length) {
         g += `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--line2);font-size:11px;font-weight:800;color:var(--muted);letter-spacing:0.06em;">간단 설문 ${withIntake.length}명</div>`;
         __INTAKE_QUESTIONS.forEach((q) => {
@@ -27836,6 +27845,17 @@ function OpsDashboardPage() {
           if (!ents.length) return;
           g += `<div style="margin-top:7px;font-size:11.5px;font-weight:700;color:var(--ink);">${escapeHtml(q.label)}</div>`;
           ents.forEach(([k, n]) => { g += bar(k, n, withIntake.length, '#B98A5E'); });
+        });
+      }
+
+      // 버디에게 남긴 말. 묻혀서는 안 되는 정보라 따로 세웁니다.
+      const notes = rows.filter((r) => r.i && String(r.i.note || '').trim());
+      if (notes.length) {
+        g += `<div style="margin-top:12px;padding-top:9px;border-top:1px solid var(--line2);font-size:11px;font-weight:800;color:var(--orange-dark);letter-spacing:0.06em;">💬 버디에게 남긴 말 ${notes.length}건</div>`;
+        notes.forEach((r) => {
+          g += `<div style="margin-top:6px;padding:9px 11px;border-radius:10px;background:rgba(156,107,63,0.09);border-left:3px solid var(--orange-dark);">`
+            + `<div style="font-size:11.5px;font-weight:800;color:var(--ink);">${escapeHtml(nm(r.m))}</div>`
+            + `<div style="margin-top:3px;font-size:12px;color:var(--ink-soft);line-height:1.6;white-space:pre-wrap;">${escapeHtml(String(r.i.note))}</div></div>`;
         });
       }
 
@@ -27849,7 +27869,7 @@ function OpsDashboardPage() {
       if (withPledge.length || withIntake.length) {
         g += '<details style="margin-top:10px;"><summary style="cursor:pointer;font-size:11.5px;font-weight:800;color:var(--orange-dark);">📋 한 명씩 전부 보기</summary><div style="margin-top:8px;">';
         const _rowP = (k, v) => v ? `<div style="display:flex;gap:7px;margin-top:3px;font-size:11.5px;line-height:1.5;"><span style="flex:0 0 58px;color:var(--muted);font-weight:700;">${escapeHtml(k)}</span><span style="flex:1;min-width:0;color:var(--ink);white-space:pre-wrap;">${escapeHtml(String(v))}</span></div>` : '';
-        rows.filter((r) => (r.p && r.p.verify_time) || (r.i && (r.i.env || r.i.freq || r.i.level || r.i.motive || r.i.success)))
+        rows.filter((r) => (r.p && r.p.verify_time) || (r.i && (r.i.env || r.i.freq || r.i.level || r.i.motive || r.i.success || r.i.note)))
           .sort((a, b) => String((a.p && a.p.verify_time) || 'zz').localeCompare(String((b.p && b.p.verify_time) || 'zz')))
           .forEach((r) => {
             const i = r.i || {};
@@ -27863,6 +27883,7 @@ function OpsDashboardPage() {
               + _rowP('단계', i.level)
               + _rowP('계기', i.motive)
               + _rowP('성공 기준', i.success)
+              + _rowP('버디에게', i.note)
               + '</div>';
           });
         g += '</div></details>';
@@ -32834,6 +32855,15 @@ function PledgeModal() {
         <div style="font-size:13.5px;font-weight:800;color:var(--ink);margin-bottom:4px;">버디가 알아두면 좋은 것 (선택)</div>
         <div style="font-size:11.5px;color:var(--muted);line-height:1.5;margin-bottom:12px;">누르기만 하면 돼요. 건너뛰어도 괜찮아요.</div>
         ${__intakeChipsHtml(d)}
+        <label style="display:grid;gap:6px;margin-top:4px;">
+          <span class="kicker" style="color:var(--muted);">4주 뒤 이것만 되면 성공</span>
+          <textarea id="__pgSuccess" class="input" rows="2" placeholder="예: 회의에서 내 의견 한 번은 먼저 꺼내기" style="font-size:13.5px;line-height:1.55;resize:vertical;">${escapeHtml(d.success || '')}</textarea>
+        </label>
+        <label style="display:grid;gap:6px;margin-top:12px;">
+          <span class="kicker" style="color:var(--muted);">유버디가 알아두면 좋은 점</span>
+          <textarea id="__pgNote" class="input" rows="2" placeholder="예: 출장이 잦아서 주중에 못 하는 날이 생길 수 있어요 / 영어 울렁증이 좀 있어요" style="font-size:13.5px;line-height:1.55;resize:vertical;">${escapeHtml(d.note || '')}</textarea>
+          <span style="font-size:11px;color:var(--muted);line-height:1.5;">일정, 컨디션, 부담되는 점 뭐든 좋아요. 버디만 봅니다.</span>
+        </label>
       </div>
       <div style="display:flex;gap:8px;margin-top:8px;">
         <button id="__pgLater" class="btn btn-ghost" style="flex:0 0 auto;padding:13px 16px;">다음에요</button>
@@ -32845,6 +32875,10 @@ function PledgeModal() {
   setTimeout(() => {
     __wirePledgeForm(card, d, { timeId: '__pgTime', recId: '__pgRec', previewId: '__pgPreview' });
     __wireIntakeChips(card, d, () => { showPledgePopup = true; render(); });
+    const suc = card.querySelector('#__pgSuccess');
+    if (suc) suc.oninput = (e) => { d.success = e.target.value; };
+    const nte = card.querySelector('#__pgNote');
+    if (nte) nte.oninput = (e) => { d.note = e.target.value; };
     const later = card.querySelector('#__pgLater');
     if (later) later.onclick = () => {
       // 오늘만 미룸. 다짐을 저장할 때까지 내일 또 뜹니다.
