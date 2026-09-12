@@ -1744,6 +1744,9 @@ const defaultState = () => ({
   daily_done_popup_seen: {},        // { "d6": true } '오늘 마무리' 완료 팝업을 그날 본 상태 (하루 1회).
   pre_meeting_todo: {},             // 미팅 전 할 일 수동 체크 { m1: { intro: true } }. 자동 항목(진단·노트)은 여기 안 씀.
   premium_intake: null,             // 프리미엄 D1 진단 12문항 { job, env, level, scene, moment, deadline, stuck[], tried, pressure, goal_track, success, must_know, at }
+  pledge: null,                     // 9기 다짐 { verify_time: 'HH:MM', recording_by: 'Day 15', at: ISO, updated_at: ISO }
+  intake: null,                     // 9기 베이직 간단 설문(전부 선택) { env, freq, level, motive, success, at, updated_at }
+  pledge_popup_seen: false,         // 이미 가입을 끝낸 멤버에게 다짐 팝업을 1회 띄웠는지
   review_counts: {},                // { retake: N, weak: N, random: N } 복습 테스트 횟수 (2026-08-31)
   review_ask_seen: false,           // 수료 후기 부탁 팝업 1회 노출 여부 (2026-09-03)
   daily_pulse: {},                  // { "16": { a: 'keep', b: 'time', text: '...', at: ISO } } 데일리 펄스(1~2문항 초경량 설문) 응답. Day 키.
@@ -1836,6 +1839,9 @@ const PERSISTED_STATE_KEYS = [
   'daily_done_popup_seen',
   'pre_meeting_todo',
   'premium_intake',
+  'pledge',
+  'intake',
+  'pledge_popup_seen',
   'review_counts',
   'review_ask_seen',
   'ai_review_feedback',
@@ -3418,6 +3424,7 @@ let showReviewConsentPopup = false; // 설문 후기 공개 동의 요청 팝업
 let showWeekReviewIntro = false; // 진짜 외우기 첫 진입 온보딩 (3단계 진행 안내).  // Day 17+ 멤버에게 1회 자동 노출, 어휘 영역 지도 팝업.
 let showDonePopup = null;    // 그날 인증 완료 후 1회 '오늘 마무리' (스트릭/동료 상태별 분기).
 let showPremiumIntake = false; // 프리미엄 D1 온보딩 진단 팝업 (2문항, 평생 1회)
+let showPledgePopup = false; // 9기 다짐(인증 시각·녹음 기한) + 간단 설문 팝업, 기존 가입자에게 1회
 let showDailyPulse = null;   // { day, step, a, b, text } 데일리 펄스(1~2문항) 팝업 진행 상태.
 // '내 약점 복습' 기능은 Week 2(Day 6)부터 해제. 다음 기수도 동일(코호트 무관, currentDay 기준).
 function reviewFeatureUnlocked() { return (Number(state.currentDay) || 1) >= 6 || ((state.isOperator || state.isStaff) && !state.operatorViewAsMember); }
@@ -3443,7 +3450,7 @@ function anyPopupOpen() {
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
     || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup || showWeekTaskPopup
     || showFunFactPopup || showDonePopup || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup || showWeekReviewIntro
-    || showDailyPulse || showPremiumIntake || showHelpHintPopup || showWeekTestNudgePopup || showMeetupIntroPopup);
+    || showDailyPulse || showPremiumIntake || showPledgePopup || showHelpHintPopup || showWeekTestNudgePopup || showMeetupIntroPopup);
 }
 
 function go(page, opts={}) {
@@ -7719,6 +7726,14 @@ function render() {
       const stale = document.querySelector('[data-premium-intake]');
       if (stale) stale.remove();
     }
+    if (showPledgePopup) {
+      const stale = document.querySelector('[data-pledge-popup]');
+      if (stale) stale.remove();
+      document.body.appendChild(PledgeModal());
+    } else {
+      const stale = document.querySelector('[data-pledge-popup]');
+      if (stale) stale.remove();
+    }
     if (showDailyPulse) {
       const cur = document.querySelector('[data-daily-pulse]');
       // step 이 바뀌면 다시 그려야 하므로 step 을 속성으로 비교.
@@ -9589,8 +9604,167 @@ let __onboardDraft = {
   focusAreas: [],
   currentIssue: '',
   timezoneOffsetText: '+0h',
+  env: '',
+  freq: '',
+  level: '',
+  motive: '',
+  verifyTime: '07:30',
+  recordingBy: '',
+  success: '',
 };
-const __ONBOARD_STEP_COUNT = 4;
+const __ONBOARD_STEP_COUNT = 6;
+
+// 9기 간단 설문. 전부 선택이고 칩만 누르면 끝나게 (텍스트 입력 없음).
+const __INTAKE_QUESTIONS = [
+  {
+    key: 'env',
+    label: '영어를 쓰는 환경',
+    options: ['외국계·글로벌팀', '국내사인데 영어 씀', '프리랜서·개인', '이직·취업 준비 중', '아직 안 씀'],
+  },
+  {
+    key: 'freq',
+    label: '요즘 영어 쓰는 빈도',
+    options: ['거의 매일', '주 1~2번', '한 달에 몇 번', '거의 없음'],
+  },
+  {
+    key: 'level',
+    label: '지금 체감하는 단계',
+    options: ['말은 트였는데 표현이 단조로움', '문장은 되는데 어색함', '단어는 아는데 말이 안 나옴', '거의 처음이에요'],
+  },
+  {
+    key: 'motive',
+    label: '이번에 신청한 계기',
+    options: ['곧 영어 미팅·발표가 있음', '이직·면접 준비', '습관부터 만들고 싶음', '자신감이 없어서', '승진·평가 때문에'],
+  },
+];
+
+const __RECORDING_BY_OPTIONS = ['Day 10까지', 'Day 15까지', 'Day 20까지', '아직 모르겠어요'];
+
+// "저는 매일 07:30 에 인증하고, Day 15까지 녹음을 올리겠습니다." 한 문장으로 조립.
+function __pledgeSentence(p) {
+  if (!p) return '';
+  const t = String(p.verify_time || '').trim();
+  const r = String(p.recording_by || '').trim();
+  if (!t && !r) return '';
+  const parts = [];
+  if (t) parts.push(`매일 ${t} 에 인증하고`);
+  if (r && r !== '아직 모르겠어요') parts.push(`${r} 녹음을 올리겠습니다`);
+  else if (t) parts.push('녹음도 기간 안에 꼭 올리겠습니다');
+  else parts.push('녹음을 올리겠습니다');
+  return `저는 ${parts.join(', ')}.`;
+}
+
+// draft(온보딩·팝업·프로필 공용) → state 저장. 최초 작성 시각(at)은 보존합니다.
+function __saveIntakeFromDraft(draft) {
+  const prev = (state.intake && typeof state.intake === 'object') ? state.intake : null;
+  const next = {
+    env: (draft.env || '').trim(),
+    freq: (draft.freq || '').trim(),
+    level: (draft.level || '').trim(),
+    motive: (draft.motive || '').trim(),
+    success: (draft.success || '').trim(),
+    at: (prev && prev.at) ? prev.at : new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  const empty = !next.env && !next.freq && !next.level && !next.motive && !next.success;
+  state.intake = (empty && !prev) ? null : next;
+}
+
+function __savePledgeFromDraft(draft) {
+  const prev = (state.pledge && typeof state.pledge === 'object') ? state.pledge : null;
+  const t = (draft.verifyTime || '').trim();
+  const r = (draft.recordingBy || '').trim();
+  if (!t && !r) { state.pledge = prev; return; }
+  state.pledge = {
+    verify_time: t,
+    recording_by: r,
+    at: (prev && prev.at) ? prev.at : new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+}
+
+// 간단 설문 칩 묶음. 온보딩·팝업·프로필에서 같은 걸 씁니다.
+function __intakeChipsHtml(draft) {
+  return __INTAKE_QUESTIONS.map((q) => `
+    <div style="margin-bottom:14px;">
+      <div class="kicker" style="color:var(--muted);margin-bottom:6px;">${escapeHtml(q.label)}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${q.options.map((o) => {
+          const active = draft[q.key] === o;
+          return `<button type="button" class="__intakeChip" data-ikey="${escapeHtml(q.key)}" data-ival="${escapeHtml(o)}" style="border:1px solid ${active ? 'var(--orange-dark)' : 'var(--line)'};background:${active ? 'var(--orange-ghost)' : '#FFFDF7'};color:${active ? 'var(--orange-dark)' : 'var(--ink)'};border-radius:999px;padding:7px 12px;font-size:11.5px;font-weight:${active ? '700' : '500'};cursor:pointer;">${escapeHtml(o)}</button>`;
+        }).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function __wireIntakeChips(root, draft, onChange) {
+  if (!root) return;
+  root.querySelectorAll('.__intakeChip').forEach((chip) => {
+    chip.onclick = () => {
+      const k = chip.getAttribute('data-ikey') || '';
+      const v = chip.getAttribute('data-ival') || '';
+      if (!k) return;
+      draft[k] = draft[k] === v ? '' : v; // 같은 칩 다시 누르면 해제
+      if (typeof onChange === 'function') onChange();
+    };
+  });
+}
+
+// 다짐 입력 폼. 인증 시각 + 녹음 기한 두 칸.
+function __pledgeFormHtml(draft, opts) {
+  const o = opts || {};
+  const preview = __pledgeSentence({ verify_time: draft.verifyTime, recording_by: draft.recordingBy });
+  return `
+    <label style="display:grid;gap:6px;margin-bottom:14px;">
+      <span class="kicker" style="color:var(--muted);">매일 몇 시에 인증할까요?</span>
+      <input id="${escapeHtml(o.timeId || '__obVerifyTime')}" class="input" type="time" value="${escapeHtml(draft.verifyTime || '07:30')}" style="font-size:15px;font-weight:700;" />
+      <span style="font-size:11px;color:var(--muted);line-height:1.5;">지각해도 1일로 인정돼요. 이 시각은 마감이 아니라 나와의 약속이에요.</span>
+    </label>
+    <div style="margin-bottom:6px;">
+      <div class="kicker" style="color:var(--muted);margin-bottom:6px;">녹음 제출은 언제까지?</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${__RECORDING_BY_OPTIONS.map((r) => {
+          const active = draft.recordingBy === r;
+          return `<button type="button" class="__recChip" data-rec="${escapeHtml(r)}" style="border:1px solid ${active ? 'var(--orange-dark)' : 'var(--line)'};background:${active ? 'var(--orange-ghost)' : '#FFFDF7'};color:${active ? 'var(--orange-dark)' : 'var(--ink)'};border-radius:999px;padding:7px 12px;font-size:11.5px;font-weight:${active ? '700' : '500'};cursor:pointer;">${escapeHtml(r)}</button>`;
+        }).join('')}
+      </div>
+    </div>
+    <div style="margin:10px 0 14px;padding:11px 13px;border-radius:11px;background:rgba(156,107,63,0.07);border:1px solid rgba(156,107,63,0.16);">
+      <p style="margin:0;font-size:11.5px;color:var(--ink-soft);line-height:1.65;">
+        🎙 <b>녹음 과제가 있어요.</b> 내 문장을 직접 소리 내어 읽고 올리는 과제라, 조용히 말할 수 있는 시간과 장소가 필요해요.
+        퇴근 후 집, 점심시간 회의실, 차 안처럼 <b>편하게 소리 낼 수 있는 상황</b>을 미리 하나 정해두시면 훨씬 수월합니다.
+      </p>
+    </div>
+    <div id="${escapeHtml(o.previewId || '__obPledgePreview')}" style="padding:14px 16px;border-radius:13px;background:var(--orange-ghost);border:1px solid var(--orange-dark);">
+      <div class="kicker" style="color:var(--orange-dark);margin-bottom:5px;">나의 다짐</div>
+      <p style="margin:0;font-size:14.5px;font-weight:800;color:var(--ink);line-height:1.6;">${escapeHtml(preview || '시간을 고르면 여기에 다짐 문장이 완성돼요.')}</p>
+    </div>
+  `;
+}
+
+function __wirePledgeForm(root, draft, opts) {
+  if (!root) return;
+  const o = opts || {};
+  const timeId = o.timeId || '__obVerifyTime';
+  const previewId = o.previewId || '__obPledgePreview';
+  const repaint = () => {
+    const box = document.getElementById(previewId);
+    if (!box) return;
+    const p = box.querySelector('p');
+    if (p) p.textContent = __pledgeSentence({ verify_time: draft.verifyTime, recording_by: draft.recordingBy }) || '시간을 고르면 여기에 다짐 문장이 완성돼요.';
+  };
+  const timeInp = document.getElementById(timeId);
+  if (timeInp) timeInp.oninput = (e) => { draft.verifyTime = e.target.value; repaint(); };
+  root.querySelectorAll('.__recChip').forEach((chip) => {
+    chip.onclick = () => {
+      const r = chip.getAttribute('data-rec') || '';
+      draft.recordingBy = draft.recordingBy === r ? '' : r;
+      if (typeof o.onChange === 'function') o.onChange();
+      else repaint();
+    };
+  });
+}
 const __FOCUS_AREA_OPTIONS = [
   '회의에서 끼어들기',
   '내 의견 부드럽게 전달',
@@ -9812,6 +9986,15 @@ function OnboardingPage() {
   if (!__onboardDraft.yearsOfExperience && state.yearsOfExperience) __onboardDraft.yearsOfExperience = state.yearsOfExperience;
   if ((!__onboardDraft.focusAreas || __onboardDraft.focusAreas.length === 0) && Array.isArray(state.focusAreas) && state.focusAreas.length > 0) __onboardDraft.focusAreas = [...state.focusAreas];
   if (!__onboardDraft.currentIssue && state.currentIssue) __onboardDraft.currentIssue = state.currentIssue;
+  if (state.intake && typeof state.intake === 'object') {
+    ['env', 'freq', 'level', 'motive', 'success'].forEach((k) => {
+      if (!__onboardDraft[k] && state.intake[k]) __onboardDraft[k] = state.intake[k];
+    });
+  }
+  if (state.pledge && typeof state.pledge === 'object') {
+    if (state.pledge.verify_time) __onboardDraft.verifyTime = state.pledge.verify_time;
+    if (!__onboardDraft.recordingBy && state.pledge.recording_by) __onboardDraft.recordingBy = state.pledge.recording_by;
+  }
   // 시차는 가입 시 저장 후 본인은 못 바꿈. 미설정이면 브라우저 감지값 → state → fallback '+0h'.
   if (!__onboardDraft.timezoneOffsetText) {
     __onboardDraft.timezoneOffsetText = state.timezoneOffsetText || detectBrowserShiftText() || '+0h';
@@ -9969,6 +10152,31 @@ function OnboardingPage() {
         <textarea id="__obIssue" class="input" rows="4" placeholder="예: 미팅에서 아이디어는 있는데 타이밍을 못 잡아서 끼어들질 못해요" style="font-size:13.5px;line-height:1.55;resize:vertical;">${escapeHtml(__onboardDraft.currentIssue)}</textarea>
       </label>
       <p style="margin:8px 0 0;font-size:11px;color:var(--muted);line-height:1.5;">비워둬도 넘어갈 수 있어요. 나중에 프로필에서 수정할 수 있어요.</p>
+    `;
+  } else if (__onboardStep === 4) {
+    card.innerHTML = `
+      <div class="kicker">STEP 5 · 나에 대해 (선택)</div>
+      <h2 style="margin:6px 0 8px;font-size:20px;font-weight:800;letter-spacing:-0.02em;">${escapeHtml(__onboardDraft.name || '내')} 님은 어떤 상황이세요?</h2>
+      <p class="t-body" style="font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:16px;">
+        누르기만 하면 끝나요. 답 안 해도 괜찮고, 나중에 프로필에서 바꿀 수 있어요.
+      </p>
+      ${__intakeChipsHtml(__onboardDraft)}
+      <button id="__obSkipIntake" style="margin-top:4px;background:transparent;border:none;padding:6px 0;font-size:12px;color:var(--muted);text-decoration:underline;cursor:pointer;">
+        건너뛰기
+      </button>
+    `;
+  } else if (__onboardStep === 5) {
+    card.innerHTML = `
+      <div class="kicker">STEP 6 · 나의 다짐</div>
+      <h2 style="margin:6px 0 8px;font-size:20px;font-weight:800;letter-spacing:-0.02em;">4주, 이렇게 해보기로 해요</h2>
+      <p class="t-body" style="font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:16px;">
+        정해두면 훨씬 덜 밀려요. 지키기 빠듯한 시간보다 <b>진짜 할 수 있는 시간</b>으로 골라주세요.
+      </p>
+      ${__pledgeFormHtml(__onboardDraft)}
+      <label style="display:grid;gap:6px;margin-top:16px;">
+        <span class="kicker" style="color:var(--muted);">4주 뒤 이것만 되면 성공 (선택)</span>
+        <textarea id="__obSuccess" class="input" rows="2" placeholder="예: 회의에서 내 의견 한 번은 먼저 꺼내기" style="font-size:13.5px;line-height:1.55;resize:vertical;">${escapeHtml(__onboardDraft.success || '')}</textarea>
+      </label>
       <div style="margin-top:18px;padding:12px 14px;border-radius:12px;background:rgba(66,48,28,0.04);border:1px solid rgba(66,48,28,0.08);">
         <div class="kicker" style="color:var(--muted);margin-bottom:4px;">© COPYRIGHT · IP</div>
         <p style="margin:0;font-size:10.5px;color:var(--muted);line-height:1.6;">
@@ -10093,6 +10301,14 @@ function OnboardingPage() {
           render();
         };
       });
+    } else if (__onboardStep === 4) {
+      __wireIntakeChips(page, __onboardDraft, () => render());
+      const skipIntake = document.getElementById('__obSkipIntake');
+      if (skipIntake) skipIntake.onclick = () => { __onboardStep = 5; render(); };
+    } else if (__onboardStep === 5) {
+      __wirePledgeForm(page, __onboardDraft, {});
+      const suc = document.getElementById('__obSuccess');
+      if (suc) suc.oninput = (e) => { __onboardDraft.success = e.target.value; };
     }
   }, 0);
 
@@ -10227,6 +10443,13 @@ async function __onboardAdvance() {
     __onboardStep = 3;
     render();
   } else if (__onboardStep === 3) {
+    __onboardStep = 4;
+    render();
+  } else if (__onboardStep === 4) {
+    // 간단 설문은 전부 선택. 아무것도 안 골라도 그냥 넘어갑니다.
+    __onboardStep = 5;
+    render();
+  } else if (__onboardStep === 5) {
     __finishOnboarding();
   }
 }
@@ -10244,6 +10467,9 @@ function __finishOnboarding() {
   state.yearsOfExperience = (__onboardDraft.yearsOfExperience || '').trim();
   state.focusAreas = Array.isArray(__onboardDraft.focusAreas) ? [...__onboardDraft.focusAreas] : [];
   state.currentIssue = (__onboardDraft.currentIssue || '').trim();
+  __saveIntakeFromDraft(__onboardDraft);
+  __savePledgeFromDraft(__onboardDraft);
+  state.pledge_popup_seen = true; // 가입 흐름에서 이미 받았으니 팝업은 다시 안 띄웁니다.
   state.onboarded = true;
   state.signedUp = true; // 영속 가입 플래그, 로그아웃 후 재로그인 시 목표/롤 다시 묻지 않게 하는 근거
   state.accountKey = (state.name || '').trim() || [state.accessCode || 'guest', 'member'].join(':'); // 7기: 이름 기준 식별키
@@ -10710,6 +10936,25 @@ function HomePage() {
     }
   } catch (e) {}
 
+  // 9기 다짐 팝업: 다짐 단계가 생기기 전에 가입한 멤버에게만 1회. 신규 가입자는 온보딩에서 이미 받음.
+  try {
+    if (state.onboarded && !state.pledge && !state.pledge_popup_seen
+        && guidedTourStep === null && !anyPopupOpen() && !window.__pledgeArmed) {
+      window.__pledgeArmed = true;
+      setTimeout(() => {
+        if (guidedTourStep !== null || anyPopupOpen() || state.pledge || state.pledge_popup_seen) return;
+        const pi = (state.intake && typeof state.intake === 'object') ? state.intake : {};
+        window.__pledgeDraft = {
+          verifyTime: '07:30',
+          recordingBy: '',
+          env: pi.env || '', freq: pi.freq || '', level: pi.level || '', motive: pi.motive || '', success: pi.success || '',
+        };
+        showPledgePopup = true;
+        render();
+      }, 1200);
+    }
+  } catch (e) {}
+
   // 주간 퀴즈/보상 안내 팝업, 홈 진입 시 1회 자동 노출 (베이직/프리미엄 둘 다).
   // 멤버 currentDay 기준 현재 주차 popup 노출. weekly_quiz_popup_seen.v{N} 마커로 본 상태 추적.
   // 운영자는 설정에서 주차 골라 다시 보기 가능.
@@ -10963,6 +11208,26 @@ function HomePage() {
   }
 
   page.appendChild(hero);
+
+  // 나의 다짐 한 줄. 정해둔 인증 시각을 매일 보게 해서 "정한 걸 지키는 중"이라는 감각을 유지.
+  try {
+    const _hp = (state.pledge && typeof state.pledge === 'object') ? state.pledge : null;
+    const _hs = __pledgeSentence(_hp);
+    if (_hs) {
+      const pl = el('div', {
+        style: {
+          marginTop: '10px', padding: '11px 14px', borderRadius: '13px',
+          background: 'var(--orange-ghost)', border: '1px solid rgba(156,107,63,0.28)',
+          display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer',
+        },
+        onClick: () => go('profile'),
+      });
+      pl.innerHTML = `<span style="font-size:15px;flex-shrink:0;">✍️</span>`
+        + `<span style="flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--ink);line-height:1.5;">${escapeHtml(_hs)}</span>`
+        + `<span style="flex-shrink:0;font-size:11px;color:var(--orange-dark);font-weight:800;">수정 →</span>`;
+      page.appendChild(pl);
+    }
+  } catch (e) {}
 
   // 운영자 전용: 운영 대시보드 진입 (멤버에겐 아예 안 그려짐)
   if ((state.isOperator || state.isStaff) && !state.operatorViewAsMember) {
@@ -23378,8 +23643,40 @@ function ProfilePage() {
     }
   } catch (e) {}
   page.appendChild(goalCard);
+  // 나의 다짐(인증 시각·녹음 기한) + 간단 설문. 언제든 여기서 고칠 수 있게.
+  try {
+    const _pg = (state.pledge && typeof state.pledge === 'object') ? state.pledge : null;
+    const _ik = (state.intake && typeof state.intake === 'object') ? state.intake : null;
+    const _sent = __pledgeSentence(_pg);
+    const pc = el('div', { style: { marginTop: '12px', padding: '13px 15px', borderRadius: '14px', background: 'var(--orange-ghost)', border: '1px solid rgba(156,107,63,0.3)' } });
+    const ikRows = _ik
+      ? [['환경', _ik.env], ['빈도', _ik.freq], ['단계', _ik.level], ['계기', _ik.motive], ['성공 기준', _ik.success]]
+          .filter((r) => r[1]).map((r) => _rowT(r[0], r[1])).join('')
+      : '';
+    pc.innerHTML =
+        `<div style="display:flex;align-items:center;gap:6px;">`
+      +   `<span style="font-size:12px;">✍️</span>`
+      +   `<span style="font-size:10px;font-weight:800;letter-spacing:0.1em;color:var(--orange-dark);">MY PLEDGE</span>`
+      +   `<button id="__editPledgeBtn" style="margin-left:auto;background:transparent;border:none;font-size:11px;color:var(--orange-dark);cursor:pointer;padding:2px 5px;font-family:inherit;font-weight:700;">${_sent ? '수정' : '+ 다짐 정하기'}</button>`
+      + `</div>`
+      + `<div style="margin-top:6px;font-size:13.5px;font-weight:800;color:var(--ink);line-height:1.55;">${escapeHtml(_sent || '아직 다짐을 정하지 않았어요. 시간 하나만 정해두면 훨씬 덜 밀려요.')}</div>`
+      + (ikRows ? `<div style="margin-top:9px;padding-top:9px;border-top:1px solid rgba(156,107,63,0.22);">${ikRows}</div>` : '');
+    page.appendChild(pc);
+  } catch (e) {}
   // 목표 수정 = GoalModal (자체 모달, window.prompt 대체).
   setTimeout(() => {
+    const pBtn = document.getElementById('__editPledgeBtn');
+    if (pBtn) pBtn.onclick = () => {
+      const pg = (state.pledge && typeof state.pledge === 'object') ? state.pledge : {};
+      const ik = (state.intake && typeof state.intake === 'object') ? state.intake : {};
+      window.__pledgeDraft = {
+        verifyTime: pg.verify_time || '07:30',
+        recordingBy: pg.recording_by || '',
+        env: ik.env || '', freq: ik.freq || '', level: ik.level || '', motive: ik.motive || '', success: ik.success || '',
+      };
+      showPledgePopup = true;
+      render();
+    };
     const btn = document.getElementById('__editGoalBtn');
     if (btn) btn.onclick = () => { showGoalEditor = true; render(); };
     // 진단 12문항 전체를 다시 열어 수정 (장면·부담감·대본·데드라인·성공기준 포함).
@@ -27489,6 +27786,97 @@ function OpsDashboardPage() {
       c45.innerHTML += h;
       box.appendChild(c45);
     }
+
+    // ── 4.6 다짐 · 간단 설문 보드 (베이직 포함 전원) ──
+    (() => {
+      const rows = mem.map((m) => ({
+        m,
+        p: (stMap[m.member_name] || {}).pledge,
+        i: (stMap[m.member_name] || {}).intake,
+      }));
+      const withPledge = rows.filter((r) => r.p && r.p.verify_time);
+      const noPledge = rows.filter((r) => !(r.p && r.p.verify_time));
+      const c46 = mkCard(`✍️ 다짐 · 설문 ${withPledge.length}/${rows.length}`, '정해둔 인증 시각 · 녹음 기한 · 간단 설문');
+      let g = '<div style="margin-top:8px;">';
+
+      // 인증 시각 시간대 분포
+      const slotOf = (t) => {
+        const hh = Number(String(t || '').split(':')[0]);
+        if (!isFinite(hh)) return '기타';
+        if (hh >= 5 && hh < 8) return '새벽 5~8시';
+        if (hh >= 8 && hh < 12) return '오전 8~12시';
+        if (hh >= 12 && hh < 18) return '낮 12~18시';
+        if (hh >= 18 && hh < 22) return '저녁 18~22시';
+        return '밤 22시~새벽';
+      };
+      const SLOTS = ['새벽 5~8시', '오전 8~12시', '낮 12~18시', '저녁 18~22시', '밤 22시~새벽', '기타'];
+      const slotAgg = {};
+      withPledge.forEach((r) => { const s = slotOf(r.p.verify_time); slotAgg[s] = (slotAgg[s] || 0) + 1; });
+      const bar = (label, n, total, color) => {
+        const pct = total ? Math.round(n / total * 100) : 0;
+        return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;">`
+          + `<span style="flex:1;min-width:0;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(label)}</span>`
+          + `<span style="flex:0 0 84px;height:7px;background:#F0E8D8;border-radius:4px;position:relative;overflow:hidden;"><span style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:${color};"></span></span>`
+          + `<span style="flex:0 0 52px;text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--muted);">${n}명</span></div>`;
+      };
+      if (withPledge.length) {
+        g += '<div style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:0.06em;">인증 시각</div>';
+        SLOTS.filter((s) => slotAgg[s]).forEach((s) => { g += bar(s, slotAgg[s], withPledge.length, '#9C6B3F'); });
+        const recAgg = {};
+        withPledge.forEach((r) => { const v = r.p.recording_by || '미정'; recAgg[v] = (recAgg[v] || 0) + 1; });
+        g += '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--line2);font-size:11px;font-weight:800;color:var(--muted);letter-spacing:0.06em;">녹음 기한</div>';
+        Object.entries(recAgg).sort((a, b) => b[1] - a[1]).forEach(([k, n]) => { g += bar(k, n, withPledge.length, '#7B5E8C'); });
+      } else {
+        g += '<div style="font-size:12px;color:var(--muted);">아직 다짐을 정한 사람이 없어요.</div>';
+      }
+
+      // 간단 설문 집계
+      const withIntake = rows.filter((r) => r.i && (r.i.env || r.i.freq || r.i.level || r.i.motive));
+      if (withIntake.length) {
+        g += `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--line2);font-size:11px;font-weight:800;color:var(--muted);letter-spacing:0.06em;">간단 설문 ${withIntake.length}명</div>`;
+        __INTAKE_QUESTIONS.forEach((q) => {
+          const agg = {};
+          withIntake.forEach((r) => { const v = r.i[q.key]; if (v) agg[v] = (agg[v] || 0) + 1; });
+          const ents = Object.entries(agg).sort((a, b) => b[1] - a[1]);
+          if (!ents.length) return;
+          g += `<div style="margin-top:7px;font-size:11.5px;font-weight:700;color:var(--ink);">${escapeHtml(q.label)}</div>`;
+          ents.forEach(([k, n]) => { g += bar(k, n, withIntake.length, '#B98A5E'); });
+        });
+      }
+
+      // 미응답자 = 개인톡 대상
+      if (noPledge.length) {
+        g += `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--line2);font-size:11px;font-weight:800;color:var(--muted);letter-spacing:0.06em;">아직 다짐 없음 ${noPledge.length}명</div><div style="margin-top:5px;">`
+          + noPledge.map((r) => chip(nm(r.m), 'rgba(154,139,115,0.16)', 'var(--muted)')).join('') + '</div>';
+      }
+
+      // 전원 원문
+      if (withPledge.length || withIntake.length) {
+        g += '<details style="margin-top:10px;"><summary style="cursor:pointer;font-size:11.5px;font-weight:800;color:var(--orange-dark);">📋 한 명씩 전부 보기</summary><div style="margin-top:8px;">';
+        const _rowP = (k, v) => v ? `<div style="display:flex;gap:7px;margin-top:3px;font-size:11.5px;line-height:1.5;"><span style="flex:0 0 58px;color:var(--muted);font-weight:700;">${escapeHtml(k)}</span><span style="flex:1;min-width:0;color:var(--ink);white-space:pre-wrap;">${escapeHtml(String(v))}</span></div>` : '';
+        rows.filter((r) => (r.p && r.p.verify_time) || (r.i && (r.i.env || r.i.freq || r.i.level || r.i.motive || r.i.success)))
+          .sort((a, b) => String((a.p && a.p.verify_time) || 'zz').localeCompare(String((b.p && b.p.verify_time) || 'zz')))
+          .forEach((r) => {
+            const i = r.i || {};
+            g += `<div style="margin-top:8px;padding:11px 12px;border-radius:12px;background:var(--paper2);border:1px solid var(--line2);">`
+              + `<div style="display:flex;align-items:baseline;gap:7px;"><b style="font-size:13px;color:var(--ink);">${escapeHtml(nm(r.m))}</b>`
+              + `<span style="font-size:11px;color:var(--muted);">${escapeHtml(r.m.tier === 'premium' ? 'PREMIUM' : 'BASIC')}</span>`
+              + `<span style="margin-left:auto;font-family:var(--font-mono);font-size:12px;font-weight:800;color:var(--orange-dark);">${escapeHtml((r.p && r.p.verify_time) || '-')}</span></div>`
+              + _rowP('녹음', r.p && r.p.recording_by)
+              + _rowP('환경', i.env)
+              + _rowP('빈도', i.freq)
+              + _rowP('단계', i.level)
+              + _rowP('계기', i.motive)
+              + _rowP('성공 기준', i.success)
+              + '</div>';
+          });
+        g += '</div></details>';
+      }
+      g += '<div style="margin-top:8px;font-size:10.5px;color:var(--muted);line-height:1.5;">인증 시각은 마감이 아니라 본인이 정한 약속이에요. Day 2 저녁 공지에서 이 시간을 다시 점검하게 하면 이탈이 줄어요.</div>';
+      g += '</div>';
+      c46.innerHTML += g;
+      box.appendChild(c46);
+    })();
 
     // ── 5. 위험 멤버 ──
     const dormant = mem.filter((m) => rest(m));
@@ -32087,6 +32475,35 @@ window.__openTodaySendBrief = function () {
       add('08:00', '버디', '미팅 당일 알림 · Week ' + wkN,
         '오늘 밤 9시, Week ' + wkN + ' 미팅이에요! 🎥\n🗓 오늘 밤 9:00~10:00 · Google Meet\nhttps://meet.google.com/sff-fgce-npj\n\n오늘 하루는 이렇게만 챙기시면 돼요 :)\n· 오늘 학습·인증은 평소처럼! (미팅 전에 끝내두면 마음이 편해요)\n· 이번 주에 쓴 내 문장 1개 골라오기\n· 이번 주 단어 가볍게 훑어오기 (막히면 힌트 드리니 부담 노노)\n\n📌 참석 가능하신 분은 이모지 눌러주세요!\n못 오시는 분들을 위해 녹화본도 남겨드릴게요 :)\n밤 9시에 만나요 🧡');
     }
+    // Day 2 저녁: 복귀 규칙 선공지. 8기 데이터상 W2→W3 에서 -15.7%p 가 빠졌는데,
+    // 이탈은 "의지"가 아니라 "하루 놓친 뒤 밀린 분량"에서 시작된다. 그래서 밀리기 전인
+    // Day 2 에 미리 (1) 인증 시간 재점검 (2) 대체 시간 설정 (3) 밀린 것 말고 오늘 것부터,
+    // 이 세 가지를 깔아둔다. (2026-09-12 버디 확정)
+    if (cDay === 2) {
+      add('20:00', '버디', '복귀 규칙 선공지 · 인증 시간 재점검 (전체방)',
+        '해피 Day 2입니다 :)\n\n'
+        + '첫 이틀 해보니 정해둔 인증 시간이 잘 맞았나요?\n'
+        + '예상보다 바빴다면 지금 원래 시간대와 함께 <대체 시간> 하나만 정해두셔도 좋아요.\n'
+        + '(앱 [나] 탭 > 나의 다짐에서 시간은 언제든 바꾸실 수 있어요~!)\n\n'
+        + '그리고 하나 더 말씀드리면...\n'
+        + '하루를 놓치더라도 <밀린 분량을 전부 채울 필요가 없어요.>\n'
+        + '다시 들어온 날의 학습부터 시작하시면 됩니다 🧡\n\n'
+        + '빠진 날은 나중에 여유 있을 때 채우셔도 그대로 인정돼요. 마감 없습니다!');
+      try {
+        const b1 = vsCopyBuckets(1, 'basic');
+        const b2 = vsCopyBuckets(2, 'basic');
+        const s2 = new Set(b2.both);
+        const zero = b1.both.filter((x) => s2.has(x));
+        const names = zero.length ? zero.join(' · ') : '(해당 없음)';
+        add('20:30', '매니저', 'Day 1~2 한 번도 인증 안 한 분 1:1 · ' + zero.length + '명',
+          '대상: ' + names + '\n\n'
+          + '── 아래 원고를 이름만 바꿔서 1:1 로 ──\n\n'
+          + 'OO님 안녕하세요 🧡\n'
+          + '첫 이틀 이용하시면서 접속이나 인증에 불편한 점은 없으셨을까요?\n'
+          + '답장 부담 없이, 오늘은 링크를 열고 한 문장만 해보셔도 괜찮아요.\n'
+          + '밀린 분량은 두고 오늘 것부터 시작하시면 됩니다 🧡');
+      } catch (e) {}
+    }
     add('19:00', '버디', '한 스푼 더 · Day ' + cDay, spBody);
     if (cDay === 3 || cDay === 5 || cDay === 7 || cDay === 11 || cDay === 14 || cDay === 18) {
       add('19:30', '버디', '단어 복습 리마인드 (시트 → 복습 리마인드 ' + '①②③④⑤⑥'.charAt([3,5,7,11,14,18].indexOf(cDay)) + ')', '');
@@ -32403,6 +32820,56 @@ window.__savePremiumIntake = () => {
   showToast('잘 읽었어요. 첫 미팅에서 이 장면으로 만나요 🧡');
   render();
 };
+// 9기 다짐 팝업. 이미 가입을 끝낸 멤버(온보딩에 다짐 단계가 없던 시점 가입자)에게 1회.
+function PledgeModal() {
+  const d = window.__pledgeDraft || (window.__pledgeDraft = {});
+  const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' } });
+  overlay.setAttribute('data-pledge-popup', '1');
+  const card = el('div', { style: { width: '100%', maxWidth: '392px', background: 'var(--paper)', borderRadius: '24px', overflow: 'hidden', maxHeight: '92vh', overflowY: 'auto' } });
+  card.innerHTML = `
+    <div style="background:linear-gradient(135deg,#7A5230,#9C6B3F);padding:20px 20px 16px;color:#fff;">
+      <div style="font-size:18px;font-weight:800;line-height:1.35;">시작 전에, 딱 두 가지만 정해요</div>
+      <div style="margin-top:5px;font-size:12px;line-height:1.55;opacity:0.92;">
+        4주 내내 제일 많이 갈리는 게 <b>시간을 정해뒀는지</b>예요. 1분이면 끝나요.
+      </div>
+    </div>
+    <div style="padding:18px;">
+      ${__pledgeFormHtml(d, { timeId: '__pgTime', previewId: '__pgPreview' })}
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line-soft);">
+        <div style="font-size:13.5px;font-weight:800;color:var(--ink);margin-bottom:4px;">버디가 알아두면 좋은 것 (선택)</div>
+        <div style="font-size:11.5px;color:var(--muted);line-height:1.5;margin-bottom:12px;">누르기만 하면 돼요. 건너뛰어도 괜찮아요.</div>
+        ${__intakeChipsHtml(d)}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button id="__pgLater" class="btn btn-ghost" style="flex:0 0 auto;padding:13px 16px;">다음에요</button>
+        <button id="__pgSave" class="btn btn-primary" style="flex:1;padding:13px 16px;font-weight:700;">이렇게 할게요 ✍️</button>
+      </div>
+    </div>
+  `;
+  overlay.appendChild(card);
+  setTimeout(() => {
+    __wirePledgeForm(card, d, { timeId: '__pgTime', previewId: '__pgPreview' });
+    __wireIntakeChips(card, d, () => { showPledgePopup = true; render(); });
+    const later = card.querySelector('#__pgLater');
+    if (later) later.onclick = () => {
+      state.pledge_popup_seen = true;
+      try { saveState(); } catch (e) {}
+      showPledgePopup = false; render();
+    };
+    const save = card.querySelector('#__pgSave');
+    if (save) save.onclick = () => {
+      __savePledgeFromDraft(d);
+      __saveIntakeFromDraft(d);
+      state.pledge_popup_seen = true;
+      try { saveState({ immediate: true }); } catch (e) {}
+      showPledgePopup = false;
+      showToast('다짐 저장했어요. 프로필에서 언제든 바꿀 수 있어요 🧡');
+      render();
+    };
+  }, 0);
+  return overlay;
+}
+
 function PremiumIntakeModal() {
   const d = window.__intakeDraft || {};
   const step = window.__intakeStep || 1;
