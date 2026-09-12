@@ -9698,6 +9698,21 @@ function __intakeChipsHtml(draft) {
   `).join('');
 }
 
+// 칩 하이라이트만 제자리에서 갈아끼운다. render() 를 부르면 화면이 통째로 다시 그려지면서
+// 스크롤이 맨 위로 튀기 때문에, 선택 표시는 DOM 을 직접 손본다. (2026-09-13)
+function __repaintIntakeChips(root, draft) {
+  if (!root) return;
+  root.querySelectorAll('.__intakeChip').forEach((c) => {
+    const k = c.getAttribute('data-ikey') || '';
+    const v = c.getAttribute('data-ival') || '';
+    const on = draft[k] === v;
+    c.style.border = '1px solid ' + (on ? 'var(--orange-dark)' : 'var(--line)');
+    c.style.background = on ? 'var(--orange-ghost)' : '#FFFDF7';
+    c.style.color = on ? 'var(--orange-dark)' : 'var(--ink)';
+    c.style.fontWeight = on ? '700' : '500';
+  });
+}
+
 function __wireIntakeChips(root, draft, onChange) {
   if (!root) return;
   root.querySelectorAll('.__intakeChip').forEach((chip) => {
@@ -9706,6 +9721,7 @@ function __wireIntakeChips(root, draft, onChange) {
       const v = chip.getAttribute('data-ival') || '';
       if (!k) return;
       draft[k] = draft[k] === v ? '' : v; // 같은 칩 다시 누르면 해제
+      __repaintIntakeChips(root, draft);
       if (typeof onChange === 'function') onChange();
     };
   });
@@ -10261,7 +10277,13 @@ function OnboardingPage() {
           __onboardDraft.role = r;
           __onboardDraft.roleSkipped = false;
           if (roleInp) roleInp.value = r;
-          render();
+          page.querySelectorAll('.__roleChip').forEach((c) => {
+            const on = (c.getAttribute('data-role') || '') === __onboardDraft.role;
+            c.style.border = '1px solid ' + (on ? 'var(--ink)' : 'var(--line)');
+            c.style.background = on ? 'var(--ink)' : '#FFFDF7';
+            c.style.color = on ? 'var(--cream)' : 'var(--ink)';
+            c.style.fontWeight = on ? '700' : '500';
+          });
         };
       });
       page.querySelectorAll('.__yoeChip').forEach((chip) => {
@@ -10269,7 +10291,13 @@ function OnboardingPage() {
           const y = chip.getAttribute('data-yoe') || '';
           // Toggle: same chip clicked again clears the selection.
           __onboardDraft.yearsOfExperience = __onboardDraft.yearsOfExperience === y ? '' : y;
-          render();
+          page.querySelectorAll('.__yoeChip').forEach((c) => {
+            const on = (c.getAttribute('data-yoe') || '') === __onboardDraft.yearsOfExperience;
+            c.style.border = '1px solid ' + (on ? 'var(--ink)' : 'var(--line)');
+            c.style.background = on ? 'var(--ink)' : '#FFFDF7';
+            c.style.color = on ? 'var(--cream)' : 'var(--ink)';
+            c.style.fontWeight = on ? '700' : '500';
+          });
         };
       });
       const skip = document.getElementById('__obSkipRole');
@@ -10294,11 +10322,18 @@ function OnboardingPage() {
           if (idx >= 0) list.splice(idx, 1);
           else list.push(f);
           __onboardDraft.focusAreas = list;
-          render();
+          const sel = new Set(list);
+          page.querySelectorAll('.__focusChip').forEach((c) => {
+            const on = sel.has(c.getAttribute('data-focus') || '');
+            c.style.border = '1px solid ' + (on ? 'var(--orange-dark)' : 'var(--line)');
+            c.style.background = on ? 'var(--orange-ghost)' : '#FFFDF7';
+            c.style.color = on ? 'var(--orange-dark)' : 'var(--ink)';
+            c.style.fontWeight = on ? '700' : '500';
+          });
         };
       });
     } else if (__onboardStep === 4) {
-      __wireIntakeChips(page, __onboardDraft, () => render());
+      __wireIntakeChips(page, __onboardDraft);
       const skipIntake = document.getElementById('__obSkipIntake');
       if (skipIntake) skipIntake.onclick = () => { __onboardStep = 5; render(); };
     } else if (__onboardStep === 5) {
@@ -32874,7 +32909,7 @@ function PledgeModal() {
   overlay.appendChild(card);
   setTimeout(() => {
     __wirePledgeForm(card, d, { timeId: '__pgTime', recId: '__pgRec', previewId: '__pgPreview' });
-    __wireIntakeChips(card, d, () => { showPledgePopup = true; render(); });
+    __wireIntakeChips(card, d);
     const suc = card.querySelector('#__pgSuccess');
     if (suc) suc.oninput = (e) => { d.success = e.target.value; };
     const nte = card.querySelector('#__pgNote');
