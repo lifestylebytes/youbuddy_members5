@@ -33848,7 +33848,12 @@ const SHARE_CARD_HASHTAG = '@youbuddy_day';
 
 function __shareCardData(day) {
   const d = getDay(day) || {};
-  const words = Array.isArray(d.words) ? d.words.slice(0, 3) : [];
+  let words = Array.isArray(d.words) ? d.words.slice(0, 3) : [];
+  // 멤버가 고른 표현을 맨 앞으로 (지식 카드는 words[0] 하나만 씀)
+  try {
+    const wi = (showShareCard && Number.isInteger(showShareCard.wordIdx)) ? showShareCard.wordIdx : 0;
+    if (wi > 0 && words[wi]) words = [words[wi]].concat(words.filter((_, i) => i !== wi));
+  } catch (e) {}
   const name = (state.englishName || '').trim() || (state.name || '').trim() || 'Buddy';
   const vAt = (state.verified_at && state.verified_at['d' + day]) || todayStr();
   const vTime = (state.verified_time && state.verified_time['d' + day]) || nowTimeStr();
@@ -34088,7 +34093,8 @@ window.__openShareCard = async (day) => {
   const d = Number(day) || Number(state.currentDay) || 1;
   showDonePopup = null; window.__donePreviewDay = null;
   const defVariant = SHARE_CARD_MILESTONES.includes(d) ? 'A' : 'C';
-  showShareCard = { day: d, variant: (showShareCard && showShareCard.variant) || defVariant, blobs: {}, urls: {}, loading: true };
+  const keepIdx = (showShareCard && showShareCard.day === d && Number.isInteger(showShareCard.wordIdx)) ? showShareCard.wordIdx : 0;
+  showShareCard = { day: d, variant: (showShareCard && showShareCard.variant) || defVariant, wordIdx: keepIdx, blobs: {}, urls: {}, loading: true };
   render();
   try {
     // 폰트가 아직 안 올라왔으면 기다렸다 그린다 (canvas 는 fallback 폰트로 그려버림).
@@ -34113,6 +34119,13 @@ window.__closeShareCard = () => {
   showShareCard = null; render();
 };
 window.__setShareCardVariant = (v) => { if (showShareCard) { showShareCard.variant = v; render(); } };
+window.__setShareCardWord = (i) => {
+  if (!showShareCard) return;
+  const cur = showShareCard;
+  try { Object.values(cur.urls || {}).forEach((u) => URL.revokeObjectURL(u)); } catch (e) {}
+  showShareCard = { day: cur.day, variant: 'C', wordIdx: Number(i) || 0, blobs: {}, urls: {}, loading: true };
+  window.__openShareCard(cur.day);
+};
 window.__shareShareCard = async () => {
   if (!showShareCard) return;
   const v = showShareCard.variant; const blob = showShareCard.blobs[v]; if (!blob) return;
@@ -34151,7 +34164,15 @@ function ShareCardModal() {
       </div>
       <button onclick="window.__closeShareCard()" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:14px;">✕</button>
     </div>
-    <div style="display:flex;gap:6px;padding:0 18px 10px;">${tab('C', '오늘 표현')}${tab('A', '연속 기록')}${tab('B', '영수증')}</div>
+    <div style="display:flex;gap:6px;padding:0 18px 8px;">${tab('C', '오늘 표현')}${tab('A', '연속 기록')}${tab('B', '영수증')}</div>
+    ${s.variant === 'C' ? (() => {
+      const dd = getDay(s.day) || {}; const ws = Array.isArray(dd.words) ? dd.words.slice(0, 3) : [];
+      if (ws.length < 2) return '';
+      return `<div style="padding:0 18px 10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+        <span style="font-size:11px;color:var(--muted);font-weight:700;margin-right:2px;">카드에 넣을 표현</span>
+        ${ws.map((w, i) => `<button onclick="window.__setShareCardWord(${i})" style="padding:6px 10px;border-radius:999px;border:1px solid ${s.wordIdx === i ? 'var(--orange-dark)' : 'var(--line)'};background:${s.wordIdx === i ? 'var(--orange-ghost)' : '#fff'};color:${s.wordIdx === i ? 'var(--orange-dark)' : 'var(--ink)'};font-size:11.5px;font-weight:${s.wordIdx === i ? '800' : '600'};cursor:pointer;">${escapeHtml(w.en || '')}</button>`).join('')}
+      </div>`;
+    })() : ''}
     <div style="padding:0 18px;">
       <div style="width:100%;aspect-ratio:4/5;border-radius:16px;overflow:hidden;background:#1d150e;display:grid;place-items:center;box-shadow:0 12px 30px rgba(0,0,0,0.25);">
         ${s.loading || !url ? '<div style="color:#E4C08A;font-size:13px;font-weight:700;">카드 만드는 중…</div>' : `<img src="${url}" alt="Day ${s.day} 인증 카드" style="width:100%;height:100%;object-fit:cover;display:block;" />`}
