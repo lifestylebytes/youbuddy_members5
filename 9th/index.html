@@ -33864,7 +33864,11 @@ function __shareCardData(day) {
       if (s) { sentence = s; break; }
     }
   } catch (e) {}
-  return { day, total, done, verifiedSet, name, dateStr, vTime, theme: d.theme || d.title || '', words, sentence, cohort: (CHALLENGE.cohort || '9기') };
+  // 연속 일수: 카드의 Day 에서 거꾸로 세어 끊길 때까지. (미리보기 Day 도 그날 기준으로 계산)
+  let streak = 0;
+  for (let k = day; k >= 1; k -= 1) { if (verifiedSet.has(k)) streak += 1; else break; }
+  if (streak < 1) streak = 1;
+  return { day, total, done, verifiedSet, streak, name, dateStr, vTime, theme: d.theme || d.title || '', words, sentence, cohort: (CHALLENGE.cohort || '9기') };
 }
 
 function __scFont(weight, size, mono) {
@@ -33888,157 +33892,151 @@ function __scRoundRect(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
 }
 
-// A · 멤버십 카드 (다크 브라운 + 골드). "이 그룹에 속해 있다"는 느낌.
+// A · 멤버십 카드 (다크 브라운 + 골드). 핵심만: 며칠 연속 + 비즈니스 영어.
 function __drawShareCardA(ctx, W, H, dt) {
   const g = ctx.createLinearGradient(0, 0, W, H);
   g.addColorStop(0, '#221810'); g.addColorStop(1, '#3B2816');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  // 은은한 원 장식
   ctx.globalAlpha = 0.08; ctx.fillStyle = '#E4C08A';
-  ctx.beginPath(); ctx.arc(W - 120, 220, 360, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(W - 120, 260, 380, 0, Math.PI * 2); ctx.fill();
   ctx.globalAlpha = 1;
-  // 골드 테두리
   ctx.strokeStyle = 'rgba(228,192,138,0.55)'; ctx.lineWidth = 3;
   __scRoundRect(ctx, 56, 56, W - 112, H - 112, 40); ctx.stroke();
-  ctx.strokeStyle = 'rgba(228,192,138,0.18)'; ctx.lineWidth = 1;
-  __scRoundRect(ctx, 72, 72, W - 144, H - 144, 32); ctx.stroke();
 
-  ctx.textAlign = 'left'; ctx.fillStyle = '#E4C08A';
-  ctx.font = __scFont(700, 26, true); ctx.fillText('YOUBUDDY  ·  BUSINESS ENGLISH CHALLENGE', 120, 160);
-  ctx.textAlign = 'right'; ctx.fillText(`${dt.cohort.replace('기', '')}TH COHORT`, W - 120, 160);
+  ctx.textAlign = 'center'; ctx.fillStyle = '#E4C08A';
+  ctx.font = __scFont(700, 28, true); ctx.fillText('YOUBUDDY', W / 2, 190);
+  ctx.fillStyle = '#FFF6E8'; ctx.font = __scFont(800, 40, false);
+  ctx.fillText('BUSINESS ENGLISH CHALLENGE', W / 2, 250);
+  ctx.fillStyle = 'rgba(228,192,138,0.75)'; ctx.font = __scFont(600, 26, true);
+  ctx.fillText(`${dt.cohort}  ·  DAY ${String(dt.day).padStart(2, '0')}`, W / 2, 298);
 
+  // 히어로: 연속 N일
+  ctx.fillStyle = 'rgba(255,246,232,0.7)'; ctx.font = __scFont(700, 40, false);
+  ctx.fillText('연속', W / 2, 470);
+  const n = String(dt.streak);
+  ctx.fillStyle = '#FFF6E8'; ctx.font = __scFont(900, 380, false);
+  const nw = ctx.measureText(n).width;
+  ctx.font = __scFont(800, 90, false); const uw = ctx.measureText('일째').width;
+  const startX = (W - (nw + 24 + uw)) / 2;
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#E4C08A'; ctx.font = __scFont(700, 40, true); ctx.fillText('DAY', 120, 300);
-  const dayTxt = String(dt.day).padStart(2, '0');
-  ctx.fillStyle = '#FFF6E8'; ctx.font = __scFont(900, 340, false); ctx.fillText(dayTxt, 108, 590);
-  const dw = ctx.measureText(dayTxt).width;
-  ctx.fillStyle = 'rgba(255,246,232,0.5)'; ctx.font = __scFont(600, 44, true); ctx.fillText(`/ ${dt.total}`, 108 + dw + 26, 590);
+  ctx.font = __scFont(900, 380, false); ctx.fillText(n, startX, 800);
+  ctx.fillStyle = '#E4C08A'; ctx.font = __scFont(800, 90, false); ctx.fillText('일째', startX + nw + 24, 800);
+  ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(228,192,138,0.75)'; ctx.font = __scFont(700, 30, true);
+  ctx.fillText(`${dt.streak} DAY STREAK`, W / 2, 870);
 
-  ctx.fillStyle = 'rgba(228,192,138,0.7)'; ctx.font = __scFont(700, 24, true); ctx.fillText('VERIFIED', 120, 680);
-  ctx.fillStyle = '#FFF6E8'; ctx.font = __scFont(800, 76, false); ctx.fillText(dt.name, 120, 770);
-  ctx.fillStyle = 'rgba(255,246,232,0.7)'; ctx.font = __scFont(500, 30, true); ctx.fillText(`${dt.dateStr}  ${dt.vTime}  KST`, 120, 824);
-
-  // 구분선
   ctx.strokeStyle = 'rgba(228,192,138,0.35)'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(120, 880); ctx.lineTo(W - 120, 880); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(220, 950); ctx.lineTo(W - 220, 950); ctx.stroke();
 
-  ctx.fillStyle = 'rgba(228,192,138,0.7)'; ctx.font = __scFont(700, 24, true); ctx.fillText("TODAY'S EXPRESSIONS", 120, 936);
-  let y = 994;
-  dt.words.forEach((w) => {
-    ctx.fillStyle = '#E4C08A'; ctx.beginPath(); ctx.arc(132, y - 13, 7, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#FFF6E8'; ctx.font = __scFont(700, 40, false); ctx.fillText(w.en || '', 164, y);
-    y += 60;
-  });
+  ctx.fillStyle = '#FFF6E8'; ctx.font = __scFont(800, 44, false);
+  ctx.fillText('비즈니스 영어, 매일 20분', W / 2, 1030);
+  ctx.fillStyle = 'rgba(255,246,232,0.7)'; ctx.font = __scFont(500, 30, false);
+  ctx.fillText(`${dt.name}  ·  ${dt.dateStr} ${dt.vTime}`, W / 2, 1086);
 
-  // 진행 도트
-  const dotY = 1178; const n = dt.total; const gap = (W - 240) / (n - 1);
-  for (let i = 1; i <= n; i += 1) {
-    const x = 120 + (i - 1) * gap; const on = dt.verifiedSet.has(i);
-    ctx.beginPath(); ctx.arc(x, dotY, on ? 11 : 7, 0, Math.PI * 2);
-    ctx.fillStyle = on ? '#E4C08A' : 'rgba(228,192,138,0.22)'; ctx.fill();
-  }
-  ctx.fillStyle = 'rgba(255,246,232,0.7)'; ctx.font = __scFont(600, 24, true);
-  ctx.textAlign = 'left'; ctx.fillText(`${dt.done} / ${dt.total} DAYS`, 120, dotY + 56);
-  ctx.textAlign = 'right'; ctx.fillStyle = '#E4C08A'; ctx.fillText(`youbuddy.co.kr · ${SHARE_CARD_HASHTAG}`, W - 120, dotY + 56);
+  ctx.fillStyle = '#E4C08A'; ctx.font = __scFont(700, 26, true);
+  ctx.fillText(`youbuddy.co.kr  ·  ${SHARE_CARD_HASHTAG}`, W / 2, H - 120);
 }
 
-// B · 영수증. 모노 폰트, "오늘 결제한 건 20분과 꾸준함".
+// B · 영수증. 줄 3개만: 비즈니스 영어 / 연속 / 시간. 나머지는 뺐다.
 function __drawShareCardB(ctx, W, H, dt) {
   ctx.fillStyle = '#EFE6D6'; ctx.fillRect(0, 0, W, H);
-  const px = 120, pw = W - 240, py = 120, ph = H - 240;
+  const px = 150, pw = W - 300, py = 170, ph = H - 340;
   ctx.fillStyle = '#FFFDF8'; ctx.shadowColor = 'rgba(0,0,0,0.12)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 18;
   ctx.fillRect(px, py, pw, ph); ctx.shadowColor = 'transparent';
-  // 지그재그 상단
   ctx.fillStyle = '#EFE6D6';
   for (let x = px; x < px + pw; x += 28) { ctx.beginPath(); ctx.moveTo(x, py); ctx.lineTo(x + 14, py + 16); ctx.lineTo(x + 28, py); ctx.closePath(); ctx.fill(); }
   for (let x = px; x < px + pw; x += 28) { ctx.beginPath(); ctx.moveTo(x, py + ph); ctx.lineTo(x + 14, py + ph - 16); ctx.lineTo(x + 28, py + ph); ctx.closePath(); ctx.fill(); }
 
-  const L = px + 70, R = px + pw - 70; let y = py + 120;
+  const L = px + 70, R = px + pw - 70; let y = py + 130;
   ctx.textAlign = 'center'; ctx.fillStyle = '#2A1F14';
-  ctx.font = __scFont(800, 44, true); ctx.fillText('YOUBUDDY', W / 2, y); y += 44;
-  ctx.font = __scFont(500, 24, true); ctx.fillStyle = '#6B5A45'; ctx.fillText(`BUSINESS ENGLISH CHALLENGE  ·  ${dt.cohort}`, W / 2, y); y += 50;
-  const dash = () => { ctx.strokeStyle = '#C9BBA3'; ctx.setLineDash([10, 10]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(R, y); ctx.stroke(); ctx.setLineDash([]); y += 54; };
+  ctx.font = __scFont(800, 46, true); ctx.fillText('YOUBUDDY', W / 2, y); y += 48;
+  ctx.font = __scFont(600, 26, true); ctx.fillStyle = '#6B5A45'; ctx.fillText('BUSINESS ENGLISH CHALLENGE', W / 2, y); y += 60;
+  const dash = () => { ctx.strokeStyle = '#C9BBA3'; ctx.setLineDash([10, 10]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(R, y); ctx.stroke(); ctx.setLineDash([]); y += 60; };
   dash();
-  ctx.textAlign = 'left'; ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(500, 26, true);
-  ctx.fillText(`DATE   ${dt.dateStr}`, L, y); ctx.textAlign = 'right'; ctx.fillText(`${dt.vTime} KST`, R, y); y += 42;
-  ctx.textAlign = 'left'; ctx.fillText(`MEMBER ${dt.name}`, L, y); y += 30;
-  dash();
-  ctx.font = __scFont(800, 34, true); ctx.fillText(`DAY ${String(dt.day).padStart(2, '0')}  CHECK-IN`, L, y); y += 60;
   const row = (label, val) => {
-    ctx.font = __scFont(500, 28, true); ctx.fillStyle = '#2A1F14';
+    ctx.font = __scFont(500, 30, true); ctx.fillStyle = '#2A1F14';
     ctx.textAlign = 'left'; ctx.fillText(label, L, y);
     ctx.textAlign = 'right'; ctx.fillText(val, R, y);
     const lw = ctx.measureText(label).width, vw = ctx.measureText(val).width;
     ctx.fillStyle = '#C9BBA3'; let dx = L + lw + 16; const end = R - vw - 16;
     while (dx < end) { ctx.fillRect(dx, y - 6, 4, 4); dx += 12; }
-    y += 46;
+    y += 56;
   };
-  dt.words.forEach((w) => row((w.en || '').toUpperCase().slice(0, 26), '1'));
-  row('MY SENTENCE', dt.sentence ? '1' : '0');
-  row('RECORDING', '1');
-  y += 8; dash();
+  row('COHORT', dt.cohort);
+  row('DAY', String(dt.day).padStart(2, '0') + ' / ' + dt.total);
+  row('CHECK-IN', `${dt.dateStr} ${dt.vTime}`);
+  y += 10; dash();
+
+  // 히어로: STREAK 크게
+  ctx.textAlign = 'center'; ctx.fillStyle = '#6B5A45'; ctx.font = __scFont(600, 28, true);
+  ctx.fillText('STREAK', W / 2, y); y += 150;
+  ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(800, 170, true);
+  ctx.fillText(`${dt.streak}`, W / 2, y); y += 56;
+  ctx.font = __scFont(600, 30, true); ctx.fillStyle = '#6B5A45';
+  ctx.fillText(dt.streak === 1 ? 'DAY IN A ROW' : 'DAYS IN A ROW', W / 2, y); y += 50;
+  dash();
   ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(800, 40, true);
-  ctx.textAlign = 'left'; ctx.fillText('TOTAL', L, y); ctx.textAlign = 'right'; ctx.fillText('20 MIN', R, y); y += 50;
+  ctx.textAlign = 'left'; ctx.fillText('TOTAL', L, y); ctx.textAlign = 'right'; ctx.fillText('20 MIN', R, y); y += 48;
   ctx.font = __scFont(500, 26, true); ctx.fillStyle = '#6B5A45';
   ctx.textAlign = 'left'; ctx.fillText('PAID BY', L, y); ctx.textAlign = 'right'; ctx.fillText('CONSISTENCY', R, y); y += 40;
-  ctx.textAlign = 'left'; ctx.fillText('STREAK', L, y); ctx.textAlign = 'right'; ctx.fillText(`${dt.done} / ${dt.total} DAYS`, R, y); y += 30;
   dash();
-  // 바코드
-  let bx = L; const bh = 90; let seed = dt.day * 7 + dt.name.length * 13;
+  let bx = L; const bh = 80; let seed = dt.day * 7 + dt.name.length * 13;
   while (bx < R) { seed = (seed * 9301 + 49297) % 233280; const w = 3 + (seed % 9); ctx.fillStyle = (seed % 3 === 0) ? '#FFFDF8' : '#2A1F14'; ctx.fillRect(bx, y, w, bh); bx += w; }
-  y += bh + 46;
-  ctx.textAlign = 'center'; ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(700, 30, true);
-  ctx.fillText(`THANK YOU, ${dt.name.toUpperCase()}`, W / 2, y); y += 44;
+  y += bh + 44;
+  ctx.textAlign = 'center'; ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(700, 28, true);
+  ctx.fillText(`THANK YOU, ${dt.name.toUpperCase()}`, W / 2, y); y += 40;
   ctx.fillStyle = '#6B5A45'; ctx.font = __scFont(500, 24, true);
   ctx.fillText(`youbuddy.co.kr  ·  ${SHARE_CARD_HASHTAG}`, W / 2, y);
 }
 
-// C · 스탬프. 밝은 크림 + 큰 도장. 오늘 표현 하나를 크게.
+// C · 스탬프. 밝은 크림 + 도장 + 연속 N일. 오늘 표현은 한 줄만.
 function __drawShareCardC(ctx, W, H, dt) {
   const g = ctx.createLinearGradient(0, 0, 0, H);
   g.addColorStop(0, '#FBF6EC'); g.addColorStop(1, '#F1E4CF');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   ctx.textAlign = 'left'; ctx.fillStyle = '#9C6B3F'; ctx.font = __scFont(700, 26, true);
-  ctx.fillText(`YOUBUDDY · ${dt.cohort}`, 110, 150);
-  ctx.textAlign = 'right'; ctx.fillStyle = '#8A7A5C'; ctx.font = __scFont(500, 26, true);
-  ctx.fillText(`${dt.dateStr}  ${dt.vTime}`, W - 110, 150);
+  ctx.fillText('YOUBUDDY', 110, 150);
+  ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(800, 34, false);
+  ctx.fillText('비즈니스 영어 챌린지', 110, 200);
+  ctx.fillStyle = '#8A7A5C'; ctx.font = __scFont(500, 26, true);
+  ctx.fillText(`${dt.cohort}  ·  ${dt.dateStr} ${dt.vTime}`, 110, 244);
 
   // 도장
-  ctx.save(); ctx.translate(W - 300, 420); ctx.rotate(-0.22);
+  ctx.save(); ctx.translate(W - 290, 400); ctx.rotate(-0.22);
   ctx.strokeStyle = '#B54A2E'; ctx.lineWidth = 10; ctx.globalAlpha = 0.85;
-  ctx.beginPath(); ctx.arc(0, 0, 170, 0, Math.PI * 2); ctx.stroke();
-  ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 148, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, 0, 165, 0, Math.PI * 2); ctx.stroke();
+  ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 143, 0, Math.PI * 2); ctx.stroke();
   ctx.fillStyle = '#B54A2E'; ctx.textAlign = 'center';
-  ctx.font = __scFont(800, 34, true); ctx.fillText('VERIFIED', 0, -40);
-  ctx.font = __scFont(900, 88, false); ctx.fillText(`DAY ${dt.day}`, 0, 40);
-  ctx.font = __scFont(700, 24, true); ctx.fillText(dt.name.toUpperCase().slice(0, 14), 0, 92);
+  ctx.font = __scFont(800, 32, true); ctx.fillText('VERIFIED', 0, -40);
+  ctx.font = __scFont(900, 84, false); ctx.fillText(`DAY ${dt.day}`, 0, 40);
+  ctx.font = __scFont(700, 22, true); ctx.fillText(dt.name.toUpperCase().slice(0, 14), 0, 90);
   ctx.restore(); ctx.globalAlpha = 1;
 
-  ctx.textAlign = 'left'; ctx.fillStyle = '#8A7A5C'; ctx.font = __scFont(600, 28, false);
-  ctx.fillText('오늘 배운 표현', 110, 660);
-  const main = dt.words[0] || {};
-  ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(900, 84, false);
-  __scWrap(ctx, main.en || 'Business English', W - 220).slice(0, 2).forEach((ln, i) => ctx.fillText(ln, 110, 760 + i * 96));
-  ctx.fillStyle = '#5B4A32'; ctx.font = __scFont(500, 34, false);
-  __scWrap(ctx, main.def || '', W - 220).slice(0, 2).forEach((ln, i) => ctx.fillText(ln, 110, 940 + i * 46));
+  // 히어로: 연속 N일
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#8A7A5C'; ctx.font = __scFont(600, 30, false); ctx.fillText('연속', 110, 660);
+  const n = String(dt.streak);
+  ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(900, 320, false); ctx.fillText(n, 100, 930);
+  const nw = ctx.measureText(n).width;
+  ctx.fillStyle = '#9C6B3F'; ctx.font = __scFont(800, 80, false); ctx.fillText('일째', 100 + nw + 20, 930);
+  ctx.fillStyle = '#5B4A32'; ctx.font = __scFont(600, 34, false);
+  ctx.fillText('매일 20분, 회사에서 바로 쓰는 영어', 110, 1010);
 
-  if (dt.words[1] || dt.words[2]) {
-    ctx.fillStyle = '#8A7A5C'; ctx.font = __scFont(500, 28, false);
-    const rest = dt.words.slice(1).map((w) => w.en).filter(Boolean).join('  ·  ');
-    ctx.fillText('+ ' + rest, 110, 1050);
+  const main = dt.words[0] || {};
+  if (main.en) {
+    ctx.fillStyle = '#8A7A5C'; ctx.font = __scFont(500, 26, false);
+    ctx.fillText('오늘의 표현  ' + main.en, 110, 1080);
   }
 
-  // 스트릭 도트 + 하단
-  const dotY = H - 200; const n = dt.total; const gap = (W - 220) / (n - 1);
-  for (let i = 1; i <= n; i += 1) {
+  const dotY = H - 190; const total = dt.total; const gap = (W - 220) / (total - 1);
+  for (let i = 1; i <= total; i += 1) {
     const x = 110 + (i - 1) * gap; const on = dt.verifiedSet.has(i);
     ctx.beginPath(); ctx.arc(x, dotY, on ? 12 : 8, 0, Math.PI * 2);
     ctx.fillStyle = on ? '#9C6B3F' : 'rgba(156,107,63,0.2)'; ctx.fill();
   }
-  ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(800, 30, false);
-  ctx.textAlign = 'left'; ctx.fillText(`${dt.done}일째 하는 중`, 110, dotY + 64);
+  ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(800, 28, false);
+  ctx.textAlign = 'left'; ctx.fillText(`${dt.done} / ${total} days`, 110, dotY + 62);
   ctx.textAlign = 'right'; ctx.fillStyle = '#9C6B3F'; ctx.font = __scFont(700, 26, true);
-  ctx.fillText(`youbuddy.co.kr · ${SHARE_CARD_HASHTAG}`, W - 110, dotY + 64);
+  ctx.fillText(`youbuddy.co.kr · ${SHARE_CARD_HASHTAG}`, W - 110, dotY + 62);
 }
 
 function __renderShareCard(variant, day) {
