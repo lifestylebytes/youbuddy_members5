@@ -33796,7 +33796,7 @@ window.__closeDonePopup = () => {
   const wasPreview = window.__donePreviewDay != null;
   const d = Number(state.currentDay) || 1;
   showDonePopup = null; window.__donePreviewDay = null;
-  // Day 1·5·10·15·20 은 '다음에요'를 눌러도 카드가 한 번은 뜬다 (그날 1회). 나머지 날은 버튼으로만.
+  // 매일, '다음에요'를 눌러도 카드가 한 번은 뜬다 (그날 1회).
   if (!wasPreview && SHARE_CARD_AUTO_DAYS.includes(d) && !((state.share_card_seen || {})['d' + d])) {
     setTimeout(() => { try { window.__openShareCard(d); } catch (e) {} }, 250);
     return;
@@ -33842,7 +33842,8 @@ function DonePopupModal() {
    - 카드에 들어가는 개인정보는 영문 닉네임(없으면 이름)뿐. 코드·전화·이메일 절대 X.
    ============================================================ */
 let showShareCard = null; // { day, variant, blobs: {A,B,C}, urls: {A,B,C} }
-const SHARE_CARD_AUTO_DAYS = [1, 5, 10, 15, 20]; // 마무리 팝업 닫으면 자동으로 카드가 뜨는 날
+const SHARE_CARD_AUTO_DAYS = Array.from({ length: 20 }, (_, i) => i + 1); // 매일 자동 (2026-09-13 버디: 매일 뜨는 게 좋다)
+const SHARE_CARD_MILESTONES = [5, 10, 15, 20]; // 이 날은 '연속 N일' 카드(A)가 기본, 평일은 지식 카드(C)가 기본
 const SHARE_CARD_HASHTAG = '@youbuddy_day';
 
 function __shareCardData(day) {
@@ -33988,55 +33989,73 @@ function __drawShareCardB(ctx, W, H, dt) {
   ctx.fillText(`youbuddy.co.kr  ·  ${SHARE_CARD_HASHTAG}`, W / 2, y);
 }
 
-// C · 스탬프. 밝은 크림 + 도장 + 연속 N일. 오늘 표현은 한 줄만.
+// C · 지식 카드. 주인공은 "오늘 외국계에서 쓰는 표현" 하나. 팔로워한테 정보로 읽히게.
+// 스트릭·이름·브랜드는 구석에 작게. (2026-09-13 버디: 사람은 자기 출석부가 아니라 쓸모 있는 걸 올린다)
 function __drawShareCardC(ctx, W, H, dt) {
   const g = ctx.createLinearGradient(0, 0, 0, H);
   g.addColorStop(0, '#FBF6EC'); g.addColorStop(1, '#F1E4CF');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  ctx.textAlign = 'left'; ctx.fillStyle = '#9C6B3F'; ctx.font = __scFont(700, 26, true);
-  ctx.fillText('YOUBUDDY', 110, 150);
-  ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(800, 34, false);
-  ctx.fillText('비즈니스 영어 챌린지', 110, 200);
-  ctx.fillStyle = '#8A7A5C'; ctx.font = __scFont(500, 26, true);
-  ctx.fillText(`${dt.cohort}  ·  ${dt.dateStr} ${dt.vTime}`, 110, 244);
+  const main = dt.words[0] || {};
+  const M = 96, TW = W - M * 2;
 
-  // 도장
-  ctx.save(); ctx.translate(W - 290, 400); ctx.rotate(-0.22);
-  ctx.strokeStyle = '#B54A2E'; ctx.lineWidth = 10; ctx.globalAlpha = 0.85;
-  ctx.beginPath(); ctx.arc(0, 0, 165, 0, Math.PI * 2); ctx.stroke();
-  ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 143, 0, Math.PI * 2); ctx.stroke();
+  // 상단: 무엇인지 한 줄 + 작은 도장
+  ctx.textAlign = 'left'; ctx.fillStyle = '#9C6B3F'; ctx.font = __scFont(700, 26, true);
+  ctx.fillText('BUSINESS ENGLISH', M, 150);
+  ctx.fillStyle = '#5B4A32'; ctx.font = __scFont(700, 34, false);
+  ctx.fillText('오늘 외국계에서 쓰는 표현', M, 200);
+
+  ctx.save(); ctx.translate(W - 190, 170); ctx.rotate(-0.2);
+  ctx.strokeStyle = '#B54A2E'; ctx.lineWidth = 6; ctx.globalAlpha = 0.8;
+  ctx.beginPath(); ctx.arc(0, 0, 84, 0, Math.PI * 2); ctx.stroke();
   ctx.fillStyle = '#B54A2E'; ctx.textAlign = 'center';
-  ctx.font = __scFont(800, 32, true); ctx.fillText('VERIFIED', 0, -40);
-  ctx.font = __scFont(900, 84, false); ctx.fillText(`DAY ${dt.day}`, 0, 40);
-  ctx.font = __scFont(700, 22, true); ctx.fillText(dt.name.toUpperCase().slice(0, 14), 0, 90);
+  ctx.font = __scFont(800, 18, true); ctx.fillText('VERIFIED', 0, -18);
+  ctx.font = __scFont(900, 40, false); ctx.fillText(`DAY ${dt.day}`, 0, 26);
   ctx.restore(); ctx.globalAlpha = 1;
 
-  // 히어로: 연속 N일
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#8A7A5C'; ctx.font = __scFont(600, 30, false); ctx.fillText('연속', 110, 660);
-  const n = String(dt.streak);
-  ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(900, 320, false); ctx.fillText(n, 100, 930);
-  const nw = ctx.measureText(n).width;
-  ctx.fillStyle = '#9C6B3F'; ctx.font = __scFont(800, 80, false); ctx.fillText('일째', 100 + nw + 20, 930);
-  ctx.fillStyle = '#5B4A32'; ctx.font = __scFont(600, 34, false);
-  ctx.fillText('매일 20분, 회사에서 바로 쓰는 영어', 110, 1010);
+  // 표현 (크게, 최대 2줄)
+  ctx.textAlign = 'left'; ctx.fillStyle = '#2A1F14';
+  let size = 104; ctx.font = __scFont(900, size, false);
+  let lines = __scWrap(ctx, main.en || 'Business English', TW);
+  if (lines.length > 2) { size = 84; ctx.font = __scFont(900, size, false); lines = __scWrap(ctx, main.en || '', TW).slice(0, 2); }
+  let y = 380;
+  lines.forEach((ln) => { ctx.fillText(ln, M, y); y += size * 1.08; });
+  if (main.pron) { ctx.fillStyle = '#8A7A5C'; ctx.font = __scFont(500, 28, true); ctx.fillText(main.pron, M, y + 4); y += 44; }
 
-  const main = dt.words[0] || {};
-  if (main.en) {
-    ctx.fillStyle = '#8A7A5C'; ctx.font = __scFont(500, 26, false);
-    ctx.fillText('오늘의 표현  ' + main.en, 110, 1080);
-  }
+  // 뜻
+  y += 40;
+  ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(700, 44, false);
+  __scWrap(ctx, main.def || '', TW).slice(0, 2).forEach((ln) => { ctx.fillText(ln, M, y); y += 58; });
 
-  const dotY = H - 190; const total = dt.total; const gap = (W - 220) / (total - 1);
-  for (let i = 1; i <= total; i += 1) {
-    const x = 110 + (i - 1) * gap; const on = dt.verifiedSet.has(i);
-    ctx.beginPath(); ctx.arc(x, dotY, on ? 12 : 8, 0, Math.PI * 2);
-    ctx.fillStyle = on ? '#9C6B3F' : 'rgba(156,107,63,0.2)'; ctx.fill();
-  }
-  ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(800, 28, false);
-  ctx.textAlign = 'left'; ctx.fillText(`${dt.done} / ${total} days`, 110, dotY + 62);
-  ctx.textAlign = 'right'; ctx.fillStyle = '#9C6B3F'; ctx.font = __scFont(700, 26, true);
-  ctx.fillText(`youbuddy.co.kr · ${SHARE_CARD_HASHTAG}`, W - 110, dotY + 62);
+  // 예문 박스
+  y += 30;
+  const bx = M, bw = TW, pad = 34;
+  ctx.font = __scFont(600, 36, false);
+  const enLines = __scWrap(ctx, main.ex_en || '', bw - pad * 2).slice(0, 3);
+  ctx.font = __scFont(500, 30, false);
+  const krLines = __scWrap(ctx, main.ex_kr || '', bw - pad * 2).slice(0, 2);
+  const bh = pad + 30 + enLines.length * 50 + 18 + krLines.length * 42 + pad - 10;
+  ctx.fillStyle = 'rgba(156,107,63,0.09)'; __scRoundRect(ctx, bx, y, bw, bh, 22); ctx.fill();
+  ctx.fillStyle = '#9C6B3F'; ctx.fillRect(bx, y + 22, 6, bh - 44);
+  let yy = y + pad + 14;
+  ctx.fillStyle = '#9C6B3F'; ctx.font = __scFont(700, 22, true); ctx.fillText('IN A MEETING', bx + pad, yy); yy += 40;
+  ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(600, 36, false);
+  enLines.forEach((ln) => { ctx.fillText(ln, bx + pad, yy); yy += 50; });
+  yy += 8;
+  ctx.fillStyle = '#5B4A32'; ctx.font = __scFont(500, 30, false);
+  krLines.forEach((ln) => { ctx.fillText(ln, bx + pad, yy); yy += 42; });
+
+  // 하단: 작게 스트릭·이름·브랜드
+  const fy = H - 110;
+  ctx.strokeStyle = 'rgba(156,107,63,0.3)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(M, fy - 56); ctx.lineTo(W - M, fy - 56); ctx.stroke();
+  ctx.textAlign = 'left'; ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(800, 28, false);
+  const streakTxt = `연속 ${dt.streak}일째`;
+  ctx.fillText(streakTxt, M, fy);
+  const sw = ctx.measureText(streakTxt).width;
+  ctx.fillStyle = '#8A7A5C'; ctx.font = __scFont(500, 24, false);
+  ctx.fillText(`${dt.name} · ${dt.dateStr}`, M + sw + 22, fy);
+  ctx.textAlign = 'right'; ctx.fillStyle = '#9C6B3F'; ctx.font = __scFont(700, 24, true);
+  ctx.fillText(`youbuddy.co.kr · ${SHARE_CARD_HASHTAG}`, W - M, fy);
 }
 
 function __renderShareCard(variant, day) {
@@ -34053,7 +34072,8 @@ function __renderShareCard(variant, day) {
 window.__openShareCard = async (day) => {
   const d = Number(day) || Number(state.currentDay) || 1;
   showDonePopup = null; window.__donePreviewDay = null;
-  showShareCard = { day: d, variant: (showShareCard && showShareCard.variant) || 'A', blobs: {}, urls: {}, loading: true };
+  const defVariant = SHARE_CARD_MILESTONES.includes(d) ? 'A' : 'C';
+  showShareCard = { day: d, variant: (showShareCard && showShareCard.variant) || defVariant, blobs: {}, urls: {}, loading: true };
   render();
   try {
     // 폰트가 아직 안 올라왔으면 기다렸다 그린다 (canvas 는 fallback 폰트로 그려버림).
@@ -34116,7 +34136,7 @@ function ShareCardModal() {
       </div>
       <button onclick="window.__closeShareCard()" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:14px;">✕</button>
     </div>
-    <div style="display:flex;gap:6px;padding:0 18px 10px;">${tab('A', '멤버십')}${tab('B', '영수증')}${tab('C', '스탬프')}</div>
+    <div style="display:flex;gap:6px;padding:0 18px 10px;">${tab('C', '오늘 표현')}${tab('A', '연속 기록')}${tab('B', '영수증')}</div>
     <div style="padding:0 18px;">
       <div style="width:100%;aspect-ratio:4/5;border-radius:16px;overflow:hidden;background:#1d150e;display:grid;place-items:center;box-shadow:0 12px 30px rgba(0,0,0,0.25);">
         ${s.loading || !url ? '<div style="color:#E4C08A;font-size:13px;font-weight:700;">카드 만드는 중…</div>' : `<img src="${url}" alt="Day ${s.day} 인증 카드" style="width:100%;height:100%;object-fit:cover;display:block;" />`}
