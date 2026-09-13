@@ -34094,12 +34094,13 @@ window.__openShareCard = async (day) => {
   showDonePopup = null; window.__donePreviewDay = null;
   const defVariant = SHARE_CARD_MILESTONES.includes(d) ? 'A' : 'C';
   const keepIdx = (showShareCard && showShareCard.day === d && Number.isInteger(showShareCard.wordIdx)) ? showShareCard.wordIdx : 0;
-  showShareCard = { day: d, variant: (showShareCard && showShareCard.variant) || defVariant, wordIdx: keepIdx, blobs: {}, urls: {}, loading: true };
+  const prevV = showShareCard && showShareCard.variant;
+  showShareCard = { day: d, variant: (prevV === 'A' || prevV === 'C') ? prevV : defVariant, wordIdx: keepIdx, blobs: {}, urls: {}, loading: true };
   render();
   try {
     // 폰트가 아직 안 올라왔으면 기다렸다 그린다 (canvas 는 fallback 폰트로 그려버림).
     try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
-    for (const v of ['A', 'B', 'C']) {
+    for (const v of ['C', 'A']) { // B(영수증)는 2026-09-13 제외. 함수는 남겨둠.
       const blob = await __renderShareCard(v, d);
       if (!showShareCard) return;
       showShareCard.blobs[v] = blob;
@@ -34164,7 +34165,7 @@ function ShareCardModal() {
       </div>
       <button onclick="window.__closeShareCard()" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:14px;">✕</button>
     </div>
-    <div style="display:flex;gap:6px;padding:0 18px 8px;">${tab('C', '오늘 표현')}${tab('A', '연속 기록')}${tab('B', '영수증')}</div>
+    <div style="display:flex;gap:6px;padding:0 18px 8px;">${tab('C', '오늘 표현')}${tab('A', '연속 기록')}</div>
     ${s.variant === 'C' ? (() => {
       const dd = getDay(s.day) || {}; const ws = Array.isArray(dd.words) ? dd.words.slice(0, 3) : [];
       if (ws.length < 2) return '';
