@@ -34044,6 +34044,21 @@ function __drawShareCardC(ctx, W, H, dt) {
   ctx.fillStyle = '#5B4A32'; ctx.font = __scFont(500, 30, false);
   krLines.forEach((ln) => { ctx.fillText(ln, bx + pad, yy); yy += 42; });
 
+  // 이럴 때 써요: 뉘앙스 첫 한두 문장만. (공유받은 사람이 "오 이건 몰랐네" 하는 부분)
+  try {
+    const nu = String(main.nuance || '').trim();
+    if (nu) {
+      const sents = nu.replace(/([.!?。])\s+/g, '$1').split('').filter(Boolean);
+      const pick = (sents[0] || '') + (sents[1] && (sents[0].length + sents[1].length) < 110 ? ' ' + sents[1] : '');
+      let ny = y + bh + 70;
+      ctx.textAlign = 'left'; ctx.fillStyle = '#9C6B3F'; ctx.font = __scFont(700, 22, true);
+      ctx.fillText('WHEN TO USE', M, ny); ny += 44;
+      ctx.fillStyle = '#5B4A32'; ctx.font = __scFont(500, 30, false);
+      const maxLines = Math.max(0, Math.floor((H - 200 - ny) / 44));
+      __scWrap(ctx, pick, TW).slice(0, Math.min(4, maxLines)).forEach((ln) => { ctx.fillText(ln, M, ny); ny += 44; });
+    }
+  } catch (e) {}
+
   // 하단: 작게 스트릭·이름·브랜드
   const fy = H - 110;
   ctx.strokeStyle = 'rgba(156,107,63,0.3)'; ctx.lineWidth = 2;
