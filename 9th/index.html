@@ -1747,6 +1747,8 @@ const defaultState = () => ({
   pledge: null,                     // 9기 다짐 { verify_time: 'HH:MM', recording_by: 'Day 15', at: ISO, updated_at: ISO }
   intake: null,                     // 9기 베이직 간단 설문(전부 선택) { env, freq, level, motive, success, at, updated_at }
   pledge_popup_snooze: '',          // 다짐 팝업을 '다음에요'로 닫은 날짜(YYYY-MM-DD). 다음 날 다시 뜸. 다짐을 저장하면 영구히 안 뜸.
+  share_card_seen: {},              // { d1: true } 인증 카드 팝업을 본 날 (운영자 분석용)
+  share_card_shared: {},            // { d1: ISO } 실제로 공유 시트까지 간 날 (운영자 분석용)
   review_counts: {},                // { retake: N, weak: N, random: N } 복습 테스트 횟수 (2026-08-31)
   review_ask_seen: false,           // 수료 후기 부탁 팝업 1회 노출 여부 (2026-09-03)
   daily_pulse: {},                  // { "16": { a: 'keep', b: 'time', text: '...', at: ISO } } 데일리 펄스(1~2문항 초경량 설문) 응답. Day 키.
@@ -1842,6 +1844,8 @@ const PERSISTED_STATE_KEYS = [
   'pledge',
   'intake',
   'pledge_popup_snooze',
+  'share_card_seen',
+  'share_card_shared',
   'review_counts',
   'review_ask_seen',
   'ai_review_feedback',
@@ -3450,7 +3454,7 @@ function anyPopupOpen() {
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
     || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup || showWeekTaskPopup
     || showFunFactPopup || showDonePopup || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup || showWeekReviewIntro
-    || showDailyPulse || showPremiumIntake || showPledgePopup || showHelpHintPopup || showWeekTestNudgePopup || showMeetupIntroPopup);
+    || showDailyPulse || showPremiumIntake || showPledgePopup || showShareCard || showHelpHintPopup || showWeekTestNudgePopup || showMeetupIntroPopup);
 }
 
 function go(page, opts={}) {
@@ -7732,6 +7736,14 @@ function render() {
       document.body.appendChild(PledgeModal());
     } else {
       const stale = document.querySelector('[data-pledge-popup]');
+      if (stale) stale.remove();
+    }
+    if (showShareCard) {
+      const stale = document.querySelector('[data-share-card]');
+      if (stale) stale.remove();
+      document.body.appendChild(ShareCardModal());
+    } else {
+      const stale = document.querySelector('[data-share-card]');
       if (stale) stale.remove();
     }
     if (showDailyPulse) {
@@ -24867,6 +24879,7 @@ function SettingsModal() {
             <div style="display:flex;gap:8px;margin-top:8px;">
               <button onclick="showSettings=null;window.__previewFunFact()" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">🎲 오늘의 한 입</button>
               <button onclick="showSettings=null;window.__previewDonePopup()" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">🎉 오늘 마무리</button>
+              <button onclick="showSettings=null;window.__openShareCard(Number(state.currentDay)||1)" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">📸 인증 카드</button>
             </div>
           </div>
         </details>
@@ -33779,7 +33792,17 @@ function __buildDonePopup() {
   const peerLine = peersToday > 1 ? `오늘 함께 끝낸 동료 ${peersToday}명 🤝` : '';
   return { icon, title, body, peerLine, confetti };
 }
-window.__closeDonePopup = () => { showDonePopup = null; window.__donePreviewDay = null; render(); };
+window.__closeDonePopup = () => {
+  const wasPreview = window.__donePreviewDay != null;
+  const d = Number(state.currentDay) || 1;
+  showDonePopup = null; window.__donePreviewDay = null;
+  // Day 1·5·10·15·20 은 '다음에요'를 눌러도 카드가 한 번은 뜬다 (그날 1회). 나머지 날은 버튼으로만.
+  if (!wasPreview && SHARE_CARD_AUTO_DAYS.includes(d) && !((state.share_card_seen || {})['d' + d])) {
+    setTimeout(() => { try { window.__openShareCard(d); } catch (e) {} }, 250);
+    return;
+  }
+  render();
+};
 window.__previewDonePopup = () => { showSettings = null; window.__donePreviewDay = Number(state.currentDay) || 1; showDonePopup = true; render(); };
 window.__doneNav = (delta) => { const cur = window.__donePreviewDay || Number(state.currentDay) || 1; window.__donePreviewDay = Math.max(1, Math.min(20, cur + delta)); const ex = document.querySelector('[data-done-popup]'); if (ex) ex.remove(); render(); };
 function DonePopupModal() {
@@ -33803,7 +33826,311 @@ function DonePopupModal() {
         <button onclick="window.__doneNav(-1)" ${previewDay <= 1 ? 'disabled' : ''} style="flex:1;padding:10px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:700;cursor:pointer;${previewDay <= 1 ? 'opacity:0.4;' : ''}">◀ 이전 Day</button>
         <button onclick="window.__doneNav(1)" ${previewDay >= 20 ? 'disabled' : ''} style="flex:1;padding:10px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:700;cursor:pointer;${previewDay >= 20 ? 'opacity:0.4;' : ''}">다음 Day ▶</button>
       </div>` : ''}
-    <div style="padding:14px 18px 18px;"><button onclick="window.__closeDonePopup()" style="width:100%;background:var(--ink);color:var(--cream);border:none;border-radius:14px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">${isPreview ? '닫기' : '좋아요 ✓'}</button></div>`;
+    <div style="padding:14px 18px 18px;display:grid;gap:8px;">
+      <button onclick="window.__openShareCard(${previewDay})" style="width:100%;background:linear-gradient(135deg,#6E4A28,#9C6B3F);color:#fff;border:none;border-radius:14px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">📸 오늘 인증 카드 받기 · 공유</button>
+      <button onclick="window.__closeDonePopup()" style="width:100%;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:12px;font-size:13.5px;font-weight:700;cursor:pointer;">${isPreview ? '닫기' : '다음에요'}</button>
+    </div>`;
+  overlay.appendChild(card);
+  return overlay;
+}
+
+/* ============================================================
+   📸 인증 카드 (공유용 이미지) · 2026-09-13
+   - 인증 완료 후 '오늘 마무리' 팝업에서 진입. Day 1·5·10·15·20 은 마무리 팝업 닫으면 자동으로 뜸.
+   - 1080x1350 PNG 를 canvas 로 그려서 Web Share(파일) → 안 되면 다운로드.
+   - 시안 3종: A 멤버십 카드(다크) · B 영수증(모노) · C 스탬프(라이트). 탭으로 고를 수 있음.
+   - 카드에 들어가는 개인정보는 영문 닉네임(없으면 이름)뿐. 코드·전화·이메일 절대 X.
+   ============================================================ */
+let showShareCard = null; // { day, variant, blobs: {A,B,C}, urls: {A,B,C} }
+const SHARE_CARD_AUTO_DAYS = [1, 5, 10, 15, 20]; // 마무리 팝업 닫으면 자동으로 카드가 뜨는 날
+const SHARE_CARD_HASHTAG = '@youbuddy_day';
+
+function __shareCardData(day) {
+  const d = getDay(day) || {};
+  const words = Array.isArray(d.words) ? d.words.slice(0, 3) : [];
+  const name = (state.englishName || '').trim() || (state.name || '').trim() || 'Buddy';
+  const vAt = (state.verified_at && state.verified_at['d' + day]) || todayStr();
+  const vTime = (state.verified_time && state.verified_time['d' + day]) || nowTimeStr();
+  const dateStr = vAt.replace(/-/g, '.');
+  const total = CHALLENGE.total_days || 20;
+  const done = Object.keys(state.verified || {}).filter((k) => state.verified[k]).length || 1;
+  const verifiedSet = new Set(Object.keys(state.verified || {}).filter((k) => state.verified[k]).map((k) => Number(k.slice(1))));
+  if (!verifiedSet.size) verifiedSet.add(day);
+  let sentence = '';
+  try {
+    for (let i = 0; i < 3; i += 1) {
+      const key = `d${day}-${i}`;
+      const s = ((state.submitted_text || {})[key] || (state.sentences || {})[key] || '').trim();
+      if (s) { sentence = s; break; }
+    }
+  } catch (e) {}
+  return { day, total, done, verifiedSet, name, dateStr, vTime, theme: d.theme || d.title || '', words, sentence, cohort: (CHALLENGE.cohort || '9기') };
+}
+
+function __scFont(weight, size, mono) {
+  return mono
+    ? `${weight} ${size}px "JetBrains Mono", ui-monospace, Menlo, monospace`
+    : `${weight} ${size}px "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Noto Sans KR", sans-serif`;
+}
+function __scWrap(ctx, text, maxW) {
+  const words = String(text || '').split(/\s+/);
+  const lines = []; let cur = '';
+  words.forEach((w) => {
+    const t = cur ? cur + ' ' + w : w;
+    if (ctx.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t;
+  });
+  if (cur) lines.push(cur);
+  return lines;
+}
+function __scRoundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+
+// A · 멤버십 카드 (다크 브라운 + 골드). "이 그룹에 속해 있다"는 느낌.
+function __drawShareCardA(ctx, W, H, dt) {
+  const g = ctx.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, '#221810'); g.addColorStop(1, '#3B2816');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // 은은한 원 장식
+  ctx.globalAlpha = 0.08; ctx.fillStyle = '#E4C08A';
+  ctx.beginPath(); ctx.arc(W - 120, 220, 360, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 1;
+  // 골드 테두리
+  ctx.strokeStyle = 'rgba(228,192,138,0.55)'; ctx.lineWidth = 3;
+  __scRoundRect(ctx, 56, 56, W - 112, H - 112, 40); ctx.stroke();
+  ctx.strokeStyle = 'rgba(228,192,138,0.18)'; ctx.lineWidth = 1;
+  __scRoundRect(ctx, 72, 72, W - 144, H - 144, 32); ctx.stroke();
+
+  ctx.textAlign = 'left'; ctx.fillStyle = '#E4C08A';
+  ctx.font = __scFont(700, 26, true); ctx.fillText('YOUBUDDY  ·  BUSINESS ENGLISH CHALLENGE', 120, 160);
+  ctx.textAlign = 'right'; ctx.fillText(`${dt.cohort.replace('기', '')}TH COHORT`, W - 120, 160);
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#E4C08A'; ctx.font = __scFont(700, 40, true); ctx.fillText('DAY', 120, 300);
+  const dayTxt = String(dt.day).padStart(2, '0');
+  ctx.fillStyle = '#FFF6E8'; ctx.font = __scFont(900, 340, false); ctx.fillText(dayTxt, 108, 590);
+  const dw = ctx.measureText(dayTxt).width;
+  ctx.fillStyle = 'rgba(255,246,232,0.5)'; ctx.font = __scFont(600, 44, true); ctx.fillText(`/ ${dt.total}`, 108 + dw + 26, 590);
+
+  ctx.fillStyle = 'rgba(228,192,138,0.7)'; ctx.font = __scFont(700, 24, true); ctx.fillText('VERIFIED', 120, 680);
+  ctx.fillStyle = '#FFF6E8'; ctx.font = __scFont(800, 76, false); ctx.fillText(dt.name, 120, 770);
+  ctx.fillStyle = 'rgba(255,246,232,0.7)'; ctx.font = __scFont(500, 30, true); ctx.fillText(`${dt.dateStr}  ${dt.vTime}  KST`, 120, 824);
+
+  // 구분선
+  ctx.strokeStyle = 'rgba(228,192,138,0.35)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(120, 880); ctx.lineTo(W - 120, 880); ctx.stroke();
+
+  ctx.fillStyle = 'rgba(228,192,138,0.7)'; ctx.font = __scFont(700, 24, true); ctx.fillText("TODAY'S EXPRESSIONS", 120, 936);
+  let y = 994;
+  dt.words.forEach((w) => {
+    ctx.fillStyle = '#E4C08A'; ctx.beginPath(); ctx.arc(132, y - 13, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#FFF6E8'; ctx.font = __scFont(700, 40, false); ctx.fillText(w.en || '', 164, y);
+    y += 60;
+  });
+
+  // 진행 도트
+  const dotY = 1178; const n = dt.total; const gap = (W - 240) / (n - 1);
+  for (let i = 1; i <= n; i += 1) {
+    const x = 120 + (i - 1) * gap; const on = dt.verifiedSet.has(i);
+    ctx.beginPath(); ctx.arc(x, dotY, on ? 11 : 7, 0, Math.PI * 2);
+    ctx.fillStyle = on ? '#E4C08A' : 'rgba(228,192,138,0.22)'; ctx.fill();
+  }
+  ctx.fillStyle = 'rgba(255,246,232,0.7)'; ctx.font = __scFont(600, 24, true);
+  ctx.textAlign = 'left'; ctx.fillText(`${dt.done} / ${dt.total} DAYS`, 120, dotY + 56);
+  ctx.textAlign = 'right'; ctx.fillStyle = '#E4C08A'; ctx.fillText(`youbuddy.co.kr · ${SHARE_CARD_HASHTAG}`, W - 120, dotY + 56);
+}
+
+// B · 영수증. 모노 폰트, "오늘 결제한 건 20분과 꾸준함".
+function __drawShareCardB(ctx, W, H, dt) {
+  ctx.fillStyle = '#EFE6D6'; ctx.fillRect(0, 0, W, H);
+  const px = 120, pw = W - 240, py = 120, ph = H - 240;
+  ctx.fillStyle = '#FFFDF8'; ctx.shadowColor = 'rgba(0,0,0,0.12)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 18;
+  ctx.fillRect(px, py, pw, ph); ctx.shadowColor = 'transparent';
+  // 지그재그 상단
+  ctx.fillStyle = '#EFE6D6';
+  for (let x = px; x < px + pw; x += 28) { ctx.beginPath(); ctx.moveTo(x, py); ctx.lineTo(x + 14, py + 16); ctx.lineTo(x + 28, py); ctx.closePath(); ctx.fill(); }
+  for (let x = px; x < px + pw; x += 28) { ctx.beginPath(); ctx.moveTo(x, py + ph); ctx.lineTo(x + 14, py + ph - 16); ctx.lineTo(x + 28, py + ph); ctx.closePath(); ctx.fill(); }
+
+  const L = px + 70, R = px + pw - 70; let y = py + 120;
+  ctx.textAlign = 'center'; ctx.fillStyle = '#2A1F14';
+  ctx.font = __scFont(800, 44, true); ctx.fillText('YOUBUDDY', W / 2, y); y += 44;
+  ctx.font = __scFont(500, 24, true); ctx.fillStyle = '#6B5A45'; ctx.fillText(`BUSINESS ENGLISH CHALLENGE  ·  ${dt.cohort}`, W / 2, y); y += 50;
+  const dash = () => { ctx.strokeStyle = '#C9BBA3'; ctx.setLineDash([10, 10]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(R, y); ctx.stroke(); ctx.setLineDash([]); y += 54; };
+  dash();
+  ctx.textAlign = 'left'; ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(500, 26, true);
+  ctx.fillText(`DATE   ${dt.dateStr}`, L, y); ctx.textAlign = 'right'; ctx.fillText(`${dt.vTime} KST`, R, y); y += 42;
+  ctx.textAlign = 'left'; ctx.fillText(`MEMBER ${dt.name}`, L, y); y += 30;
+  dash();
+  ctx.font = __scFont(800, 34, true); ctx.fillText(`DAY ${String(dt.day).padStart(2, '0')}  CHECK-IN`, L, y); y += 60;
+  const row = (label, val) => {
+    ctx.font = __scFont(500, 28, true); ctx.fillStyle = '#2A1F14';
+    ctx.textAlign = 'left'; ctx.fillText(label, L, y);
+    ctx.textAlign = 'right'; ctx.fillText(val, R, y);
+    const lw = ctx.measureText(label).width, vw = ctx.measureText(val).width;
+    ctx.fillStyle = '#C9BBA3'; let dx = L + lw + 16; const end = R - vw - 16;
+    while (dx < end) { ctx.fillRect(dx, y - 6, 4, 4); dx += 12; }
+    y += 46;
+  };
+  dt.words.forEach((w) => row((w.en || '').toUpperCase().slice(0, 26), '1'));
+  row('MY SENTENCE', dt.sentence ? '1' : '0');
+  row('RECORDING', '1');
+  y += 8; dash();
+  ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(800, 40, true);
+  ctx.textAlign = 'left'; ctx.fillText('TOTAL', L, y); ctx.textAlign = 'right'; ctx.fillText('20 MIN', R, y); y += 50;
+  ctx.font = __scFont(500, 26, true); ctx.fillStyle = '#6B5A45';
+  ctx.textAlign = 'left'; ctx.fillText('PAID BY', L, y); ctx.textAlign = 'right'; ctx.fillText('CONSISTENCY', R, y); y += 40;
+  ctx.textAlign = 'left'; ctx.fillText('STREAK', L, y); ctx.textAlign = 'right'; ctx.fillText(`${dt.done} / ${dt.total} DAYS`, R, y); y += 30;
+  dash();
+  // 바코드
+  let bx = L; const bh = 90; let seed = dt.day * 7 + dt.name.length * 13;
+  while (bx < R) { seed = (seed * 9301 + 49297) % 233280; const w = 3 + (seed % 9); ctx.fillStyle = (seed % 3 === 0) ? '#FFFDF8' : '#2A1F14'; ctx.fillRect(bx, y, w, bh); bx += w; }
+  y += bh + 46;
+  ctx.textAlign = 'center'; ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(700, 30, true);
+  ctx.fillText(`THANK YOU, ${dt.name.toUpperCase()}`, W / 2, y); y += 44;
+  ctx.fillStyle = '#6B5A45'; ctx.font = __scFont(500, 24, true);
+  ctx.fillText(`youbuddy.co.kr  ·  ${SHARE_CARD_HASHTAG}`, W / 2, y);
+}
+
+// C · 스탬프. 밝은 크림 + 큰 도장. 오늘 표현 하나를 크게.
+function __drawShareCardC(ctx, W, H, dt) {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#FBF6EC'); g.addColorStop(1, '#F1E4CF');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'left'; ctx.fillStyle = '#9C6B3F'; ctx.font = __scFont(700, 26, true);
+  ctx.fillText(`YOUBUDDY · ${dt.cohort}`, 110, 150);
+  ctx.textAlign = 'right'; ctx.fillStyle = '#8A7A5C'; ctx.font = __scFont(500, 26, true);
+  ctx.fillText(`${dt.dateStr}  ${dt.vTime}`, W - 110, 150);
+
+  // 도장
+  ctx.save(); ctx.translate(W - 300, 420); ctx.rotate(-0.22);
+  ctx.strokeStyle = '#B54A2E'; ctx.lineWidth = 10; ctx.globalAlpha = 0.85;
+  ctx.beginPath(); ctx.arc(0, 0, 170, 0, Math.PI * 2); ctx.stroke();
+  ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 148, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = '#B54A2E'; ctx.textAlign = 'center';
+  ctx.font = __scFont(800, 34, true); ctx.fillText('VERIFIED', 0, -40);
+  ctx.font = __scFont(900, 88, false); ctx.fillText(`DAY ${dt.day}`, 0, 40);
+  ctx.font = __scFont(700, 24, true); ctx.fillText(dt.name.toUpperCase().slice(0, 14), 0, 92);
+  ctx.restore(); ctx.globalAlpha = 1;
+
+  ctx.textAlign = 'left'; ctx.fillStyle = '#8A7A5C'; ctx.font = __scFont(600, 28, false);
+  ctx.fillText('오늘 배운 표현', 110, 660);
+  const main = dt.words[0] || {};
+  ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(900, 84, false);
+  __scWrap(ctx, main.en || 'Business English', W - 220).slice(0, 2).forEach((ln, i) => ctx.fillText(ln, 110, 760 + i * 96));
+  ctx.fillStyle = '#5B4A32'; ctx.font = __scFont(500, 34, false);
+  __scWrap(ctx, main.def || '', W - 220).slice(0, 2).forEach((ln, i) => ctx.fillText(ln, 110, 940 + i * 46));
+
+  if (dt.words[1] || dt.words[2]) {
+    ctx.fillStyle = '#8A7A5C'; ctx.font = __scFont(500, 28, false);
+    const rest = dt.words.slice(1).map((w) => w.en).filter(Boolean).join('  ·  ');
+    ctx.fillText('+ ' + rest, 110, 1050);
+  }
+
+  // 스트릭 도트 + 하단
+  const dotY = H - 200; const n = dt.total; const gap = (W - 220) / (n - 1);
+  for (let i = 1; i <= n; i += 1) {
+    const x = 110 + (i - 1) * gap; const on = dt.verifiedSet.has(i);
+    ctx.beginPath(); ctx.arc(x, dotY, on ? 12 : 8, 0, Math.PI * 2);
+    ctx.fillStyle = on ? '#9C6B3F' : 'rgba(156,107,63,0.2)'; ctx.fill();
+  }
+  ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(800, 30, false);
+  ctx.textAlign = 'left'; ctx.fillText(`${dt.done}일째 하는 중`, 110, dotY + 64);
+  ctx.textAlign = 'right'; ctx.fillStyle = '#9C6B3F'; ctx.font = __scFont(700, 26, true);
+  ctx.fillText(`youbuddy.co.kr · ${SHARE_CARD_HASHTAG}`, W - 110, dotY + 64);
+}
+
+function __renderShareCard(variant, day) {
+  const W = 1080, H = 1350;
+  const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const dt = __shareCardData(day);
+  if (variant === 'B') __drawShareCardB(ctx, W, H, dt);
+  else if (variant === 'C') __drawShareCardC(ctx, W, H, dt);
+  else __drawShareCardA(ctx, W, H, dt);
+  return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), 'image/png'));
+}
+
+window.__openShareCard = async (day) => {
+  const d = Number(day) || Number(state.currentDay) || 1;
+  showDonePopup = null; window.__donePreviewDay = null;
+  showShareCard = { day: d, variant: (showShareCard && showShareCard.variant) || 'A', blobs: {}, urls: {}, loading: true };
+  render();
+  try {
+    // 폰트가 아직 안 올라왔으면 기다렸다 그린다 (canvas 는 fallback 폰트로 그려버림).
+    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
+    for (const v of ['A', 'B', 'C']) {
+      const blob = await __renderShareCard(v, d);
+      if (!showShareCard) return;
+      showShareCard.blobs[v] = blob;
+      showShareCard.urls[v] = URL.createObjectURL(blob);
+    }
+    showShareCard.loading = false;
+    try { state.share_card_seen = state.share_card_seen || {}; state.share_card_seen['d' + d] = true; saveState(); } catch (e) {}
+    render();
+  } catch (e) {
+    console.error('share card render failed', e);
+    showToast('카드를 만들지 못했어요. 다시 시도해주세요.');
+    showShareCard = null; render();
+  }
+};
+window.__closeShareCard = () => {
+  try { if (showShareCard) Object.values(showShareCard.urls || {}).forEach((u) => URL.revokeObjectURL(u)); } catch (e) {}
+  showShareCard = null; render();
+};
+window.__setShareCardVariant = (v) => { if (showShareCard) { showShareCard.variant = v; render(); } };
+window.__shareShareCard = async () => {
+  if (!showShareCard) return;
+  const v = showShareCard.variant; const blob = showShareCard.blobs[v]; if (!blob) return;
+  const fname = `youbuddy-day${showShareCard.day}-${v}.png`;
+  const file = new File([blob], fname, { type: 'image/png' });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: `유비챌 Day ${showShareCard.day} 인증` });
+      try { state.share_card_shared = state.share_card_shared || {}; state.share_card_shared['d' + showShareCard.day] = new Date().toISOString(); saveState(); } catch (e) {}
+      showToast('공유했어요 🧡 태그해주시면 스토리에서 소개할게요');
+      return;
+    }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  window.__downloadShareCard();
+};
+window.__downloadShareCard = () => {
+  if (!showShareCard) return;
+  const v = showShareCard.variant; const url = showShareCard.urls[v]; if (!url) return;
+  const a = document.createElement('a'); a.href = url; a.download = `youbuddy-day${showShareCard.day}-${v}.png`;
+  document.body.appendChild(a); a.click(); setTimeout(() => document.body.removeChild(a), 100);
+  showToast('이미지를 저장했어요. 스토리에 올려주세요 📸');
+};
+
+function ShareCardModal() {
+  const s = showShareCard;
+  const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9100', background: 'rgba(20,14,8,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px' } });
+  overlay.setAttribute('data-share-card', '1');
+  const card = el('div', { style: { width: '100%', maxWidth: '380px', background: 'var(--paper)', borderRadius: '24px', overflow: 'hidden', maxHeight: '94vh', overflowY: 'auto' } });
+  const tab = (v, label) => `<button onclick="window.__setShareCardVariant('${v}')" style="flex:1;padding:9px 6px;border-radius:999px;border:1px solid ${s.variant === v ? 'var(--orange-dark)' : 'var(--line)'};background:${s.variant === v ? 'var(--orange-dark)' : '#fff'};color:${s.variant === v ? '#fff' : 'var(--ink)'};font-size:12px;font-weight:800;cursor:pointer;">${label}</button>`;
+  const url = s.urls[s.variant];
+  card.innerHTML = `
+    <div style="padding:16px 18px 10px;display:flex;align-items:center;gap:8px;">
+      <div style="flex:1;">
+        <div class="kicker" style="color:var(--orange-dark);">DAY ${s.day} · 인증 카드</div>
+        <div style="margin-top:3px;font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;">오늘도 해냈다는 증거 📸</div>
+      </div>
+      <button onclick="window.__closeShareCard()" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:14px;">✕</button>
+    </div>
+    <div style="display:flex;gap:6px;padding:0 18px 10px;">${tab('A', '멤버십')}${tab('B', '영수증')}${tab('C', '스탬프')}</div>
+    <div style="padding:0 18px;">
+      <div style="width:100%;aspect-ratio:4/5;border-radius:16px;overflow:hidden;background:#1d150e;display:grid;place-items:center;box-shadow:0 12px 30px rgba(0,0,0,0.25);">
+        ${s.loading || !url ? '<div style="color:#E4C08A;font-size:13px;font-weight:700;">카드 만드는 중…</div>' : `<img src="${url}" alt="Day ${s.day} 인증 카드" style="width:100%;height:100%;object-fit:cover;display:block;" />`}
+      </div>
+    </div>
+    <div style="padding:12px 18px 0;font-size:12px;color:var(--ink-soft);line-height:1.55;text-align:center;">
+      인스타 스토리에 올리고 <b style="color:var(--orange-dark);">${SHARE_CARD_HASHTAG}</b> 태그해주세요.<br/>버디가 스토리에서 소개할게요 🧡
+    </div>
+    <div style="padding:12px 18px 18px;display:grid;gap:8px;">
+      <button onclick="window.__shareShareCard()" ${s.loading ? 'disabled' : ''} style="width:100%;background:linear-gradient(135deg,#6E4A28,#9C6B3F);color:#fff;border:none;border-radius:14px;padding:14px;font-size:14.5px;font-weight:800;cursor:pointer;${s.loading ? 'opacity:0.5;' : ''}">공유하기</button>
+      <button onclick="window.__downloadShareCard()" ${s.loading ? 'disabled' : ''} style="width:100%;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;${s.loading ? 'opacity:0.5;' : ''}">이미지만 저장</button>
+    </div>`;
   overlay.appendChild(card);
   return overlay;
 }
