@@ -33939,7 +33939,7 @@ function __drawShareCardA(ctx, W, H, dt) {
 // B · 영수증. 줄 3개만: 비즈니스 영어 / 연속 / 시간. 나머지는 뺐다.
 function __drawShareCardB(ctx, W, H, dt) {
   ctx.fillStyle = '#EFE6D6'; ctx.fillRect(0, 0, W, H);
-  const px = 150, pw = W - 300, py = 170, ph = H - 340;
+  const px = 150, pw = W - 300, py = 110, ph = H - 220;
   ctx.fillStyle = '#FFFDF8'; ctx.shadowColor = 'rgba(0,0,0,0.12)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 18;
   ctx.fillRect(px, py, pw, ph); ctx.shadowColor = 'transparent';
   ctx.fillStyle = '#EFE6D6';
@@ -33950,7 +33950,7 @@ function __drawShareCardB(ctx, W, H, dt) {
   ctx.textAlign = 'center'; ctx.fillStyle = '#2A1F14';
   ctx.font = __scFont(800, 46, true); ctx.fillText('YOUBUDDY', W / 2, y); y += 48;
   ctx.font = __scFont(600, 26, true); ctx.fillStyle = '#6B5A45'; ctx.fillText('BUSINESS ENGLISH CHALLENGE', W / 2, y); y += 60;
-  const dash = () => { ctx.strokeStyle = '#C9BBA3'; ctx.setLineDash([10, 10]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(R, y); ctx.stroke(); ctx.setLineDash([]); y += 60; };
+  const dash = () => { ctx.strokeStyle = '#C9BBA3'; ctx.setLineDash([10, 10]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(R, y); ctx.stroke(); ctx.setLineDash([]); y += 50; };
   dash();
   const row = (label, val) => {
     ctx.font = __scFont(500, 30, true); ctx.fillStyle = '#2A1F14';
@@ -33959,7 +33959,7 @@ function __drawShareCardB(ctx, W, H, dt) {
     const lw = ctx.measureText(label).width, vw = ctx.measureText(val).width;
     ctx.fillStyle = '#C9BBA3'; let dx = L + lw + 16; const end = R - vw - 16;
     while (dx < end) { ctx.fillRect(dx, y - 6, 4, 4); dx += 12; }
-    y += 56;
+    y += 50;
   };
   row('COHORT', dt.cohort);
   row('DAY', String(dt.day).padStart(2, '0') + ' / ' + dt.total);
@@ -33968,7 +33968,7 @@ function __drawShareCardB(ctx, W, H, dt) {
 
   // 히어로: STREAK 크게
   ctx.textAlign = 'center'; ctx.fillStyle = '#6B5A45'; ctx.font = __scFont(600, 28, true);
-  ctx.fillText('STREAK', W / 2, y); y += 150;
+  ctx.fillText('STREAK', W / 2, y); y += 130;
   ctx.fillStyle = '#2A1F14'; ctx.font = __scFont(800, 170, true);
   ctx.fillText(`${dt.streak}`, W / 2, y); y += 56;
   ctx.font = __scFont(600, 30, true); ctx.fillStyle = '#6B5A45';
