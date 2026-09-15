@@ -1748,6 +1748,7 @@ const defaultState = () => ({
   intake: null,                     // 9기 베이직 간단 설문(전부 선택) { env, freq, level, motive, success, at, updated_at }
   pledge_popup_snooze: '',          // 다짐 팝업을 '다음에요'로 닫은 날짜(YYYY-MM-DD). 다음 날 다시 뜸. 다짐을 저장하면 영구히 안 뜸.
   share_card_seen: {},              // { d1: true } 인증 카드 팝업을 본 날 (운영자 분석용)
+  spoon_seen: {},                   // { d1: true } '한 스푼 더' 팝업을 본 날 (하루 1회, 19시 이후 인증자에게)
   share_card_shared: {},            // { d1: ISO } 실제로 공유 시트까지 간 날 (운영자 분석용)
   review_counts: {},                // { retake: N, weak: N, random: N } 복습 테스트 횟수 (2026-08-31)
   review_ask_seen: false,           // 수료 후기 부탁 팝업 1회 노출 여부 (2026-09-03)
@@ -1845,6 +1846,7 @@ const PERSISTED_STATE_KEYS = [
   'intake',
   'pledge_popup_snooze',
   'share_card_seen',
+  'spoon_seen',
   'share_card_shared',
   'review_counts',
   'review_ask_seen',
@@ -3429,6 +3431,7 @@ let showWeekReviewIntro = false; // 진짜 외우기 첫 진입 온보딩 (3단�
 let showDonePopup = null;    // 그날 인증 완료 후 1회 '오늘 마무리' (스트릭/동료 상태별 분기).
 let showPremiumIntake = false; // 프리미엄 D1 온보딩 진단 팝업 (2문항, 평생 1회)
 let showPledgePopup = false; // 9기 다짐(인증 시각·녹음 기한) + 간단 설문 팝업, 기존 가입자에게 1회
+let showSpoonPopup = null; // { day } '한 스푼 더' 팝업. 19시 이후, 그날 인증 마친 멤버에게 1회 (2026-09-16)
 let showDailyPulse = null;   // { day, step, a, b, text } 데일리 펄스(1~2문항) 팝업 진행 상태.
 // '내 약점 복습' 기능은 Week 2(Day 6)부터 해제. 다음 기수도 동일(코호트 무관, currentDay 기준).
 function reviewFeatureUnlocked() { return (Number(state.currentDay) || 1) >= 6 || ((state.isOperator || state.isStaff) && !state.operatorViewAsMember); }
@@ -3454,7 +3457,7 @@ function anyPopupOpen() {
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
     || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup || showWeekTaskPopup
     || showFunFactPopup || showDonePopup || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup || showWeekReviewIntro
-    || showDailyPulse || showPremiumIntake || showPledgePopup || showShareCard || showHelpHintPopup || showWeekTestNudgePopup || showMeetupIntroPopup);
+    || showDailyPulse || showPremiumIntake || showPledgePopup || showShareCard || showSpoonPopup || showHelpHintPopup || showWeekTestNudgePopup || showMeetupIntroPopup);
 }
 
 function go(page, opts={}) {
@@ -7844,6 +7847,14 @@ function render() {
       const stale = document.querySelector('[data-funfact-popup]');
       if (stale) stale.remove();
     }
+    if (showSpoonPopup) {
+      const stale = document.querySelector('[data-spoon-popup]');
+      if (stale) stale.remove();
+      document.body.appendChild(SpoonPopupModal());
+    } else {
+      const stale = document.querySelector('[data-spoon-popup]');
+      if (stale) stale.remove();
+    }
 
     if (showMeetingPrepPopup) {
       if (!document.querySelector('[data-meeting-prep-popup]')) {
@@ -10986,6 +10997,25 @@ function HomePage() {
     }
   } catch (e) {}
 
+  // 한 스푼 더 팝업: 그날 인증을 마친 멤버에게 19:00(본인 시차) 이후 1회. 카톡 원고와 같은 내용.
+  try {
+    const sDay = Number(state.currentDay) || 0;
+    const sBody = (typeof OPS_TALK !== 'undefined' && OPS_TALK.spoon) ? OPS_TALK.spoon[String(sDay)] : '';
+    const sHour = (() => { try { return zonedNow().getHours(); } catch (e) { return new Date().getHours(); } })();
+    if (sDay >= 1 && sBody && sHour >= 19 && state.onboarded && challengeStarted()
+        && !!(state.verified && state.verified['d' + sDay])
+        && !((state.spoon_seen || {})['d' + sDay])
+        && guidedTourStep === null && !anyPopupOpen() && !window.__spoonArmed) {
+      window.__spoonArmed = true;
+      setTimeout(() => {
+        if (guidedTourStep !== null || anyPopupOpen()) { window.__spoonArmed = false; return; }
+        state.spoon_seen = state.spoon_seen || {};
+        state.spoon_seen['d' + sDay] = true; try { saveState(); } catch (e) {}
+        showSpoonPopup = { day: sDay }; render();
+      }, 1400);
+    }
+  } catch (e) {}
+
   // 9기 다짐 팝업: 다짐 단계가 생기기 전에 가입한 멤버에게. 신규 가입자는 온보딩에서 이미 받음.
   // '다음에요'는 오늘 하루만 미루는 것이고, 다짐을 저장할 때까지 다음 날 또 뜬다.
   try {
@@ -11264,6 +11294,25 @@ function HomePage() {
   }
 
   page.appendChild(hero);
+
+  // 🥄 한 스푼 더 다시 보기: 19시 이후 + 오늘 인증 마친 사람에게만 (운영자는 항상).
+  try {
+    const _sd = Number(state.currentDay) || 0;
+    const _sb = (typeof OPS_TALK !== 'undefined' && OPS_TALK.spoon) ? OPS_TALK.spoon[String(_sd)] : '';
+    const _sh = (() => { try { return zonedNow().getHours(); } catch (e) { return 0; } })();
+    const _op = (state.isOperator || state.isStaff) && !state.operatorViewAsMember;
+    if (_sb && ((_sh >= 19 && !!(state.verified && state.verified['d' + _sd])) || _op)) {
+      const sp = __parseSpoon(_sd);
+      const sb = el('div', {
+        style: { marginTop: '10px', padding: '11px 14px', borderRadius: '13px', background: '#FBF6EC', border: '1px solid rgba(156,107,63,0.28)', display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer' },
+        onClick: () => window.__openSpoon(_sd),
+      });
+      sb.innerHTML = `<span style="font-size:15px;flex-shrink:0;">🥄</span>`
+        + `<span style="flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--ink);line-height:1.5;">오늘의 한 스푼 더 · <b style="color:var(--orange-dark);">${escapeHtml((sp && sp.expr) || '')}</b></span>`
+        + `<span style="flex-shrink:0;font-size:11px;color:var(--orange-dark);font-weight:800;">보기 →</span>`;
+      page.appendChild(sb);
+    }
+  } catch (e) {}
 
   // 나의 다짐 한 줄. 정해둔 인증 시각을 매일 보게 해서 "정한 걸 지키는 중"이라는 감각을 유지.
   try {
@@ -24919,6 +24968,7 @@ function SettingsModal() {
               <button onclick="showSettings=null;window.__previewFunFact()" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">🎲 오늘의 한 입</button>
               <button onclick="showSettings=null;window.__previewDonePopup()" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">🎉 오늘 마무리</button>
               <button onclick="showSettings=null;window.__openShareCard(Number(state.currentDay)||1)" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">📸 인증 카드</button>
+              <button onclick="showSettings=null;window.__openSpoon(Number(state.currentDay)||1)" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">🥄 한 스푼</button>
             </div>
           </div>
         </details>
@@ -33791,6 +33841,43 @@ function MeetingPrepPopupModal(mid) {
   wrap.appendChild(card);
   return wrap;
 }
+// '한 스푼 더' 원고(OPS_TALK.spoon)를 팝업용으로 쪼갠다: 표현 이름 / 본문 줄들.
+function __parseSpoon(day) {
+  const raw = (typeof OPS_TALK !== 'undefined' && OPS_TALK.spoon) ? (OPS_TALK.spoon[String(day)] || '') : '';
+  if (!raw) return null;
+  const lines = raw.split('\n').filter((l, i) => !(i === 0 && l.indexOf('한 스푼 더!') >= 0));
+  const text = lines.join('\n').trim();
+  const m = text.match(/바로 (.+?)입니다/);
+  return { expr: m ? m[1].trim() : '', text };
+}
+function SpoonPopupModal() {
+  const day = (showSpoonPopup && showSpoonPopup.day) || Number(state.currentDay) || 1;
+  const sp = __parseSpoon(day);
+  const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
+  overlay.setAttribute('data-spoon-popup', '1');
+  const card = el('div', { style: { width: '100%', maxWidth: '360px', background: 'var(--paper)', borderRadius: '24px', overflow: 'hidden', maxHeight: '90vh', overflowY: 'auto' } });
+  const body = sp ? sp.text.split('\n').map((ln) => {
+    const t = ln.trim();
+    if (!t) return '<div style="height:8px;"></div>';
+    if (/^".*"$/.test(t)) return `<div style="margin-top:6px;font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.5;">${escapeHtml(t)}</div>`;
+    if (/^\(.*\)$/.test(t)) return `<div style="font-size:12.5px;color:var(--muted);line-height:1.5;">${escapeHtml(t)}</div>`;
+    return `<div style="font-size:13.5px;color:var(--ink-soft);line-height:1.65;">${escapeHtml(t)}</div>`;
+  }).join('') : '<div style="color:var(--muted);">오늘은 한 스푼이 없어요.</div>';
+  card.innerHTML = `
+    <div style="background:linear-gradient(135deg,#F1E4CF 0%,#FBF6EC 100%);padding:22px 20px 16px;position:relative;">
+      <button onclick="window.__closeSpoon()" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;">✕</button>
+      <div class="kicker" style="color:var(--orange-dark);">🥄 유버디 한 스푼 더 · Day ${day}</div>
+      <div style="margin-top:6px;font-size:24px;font-weight:900;color:var(--ink);letter-spacing:-0.02em;line-height:1.2;">${escapeHtml((sp && sp.expr) || '오늘의 보너스 표현')}</div>
+      <div style="margin-top:4px;font-size:12px;color:var(--ink-soft);">오늘 인증 마친 분께만 드리는 보너스예요 🧡</div>
+    </div>
+    <div style="padding:16px 20px 6px;">${body}</div>
+    <div style="padding:12px 18px 18px;"><button onclick="window.__closeSpoon()" style="width:100%;background:var(--orange);color:#fff;border:none;border-radius:14px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">잘 먹었어요 🥄</button></div>`;
+  overlay.appendChild(card);
+  return overlay;
+}
+window.__closeSpoon = () => { showSpoonPopup = null; render(); };
+window.__openSpoon = (d) => { showSpoonPopup = { day: Number(d) || Number(state.currentDay) || 1 }; render(); };
+
 function FunFactPopupModal() {
   const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
   overlay.setAttribute('data-funfact-popup', '1');
