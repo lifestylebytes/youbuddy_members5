@@ -12108,20 +12108,57 @@ async function loadRecordingChecks(force) {
   } catch (e) {} finally { rc.loading = false; }
 }
 let __recSaveTimer = null;
+// 저장은 "내 로컬 전체를 덮어쓰기"가 아니라 "서버 최신본 + 내가 누른 것만" 으로.
+// 2026-09-15 사고: 렌(폰)이 39명 체크 → 버디(PC)는 한 번 로드한 옛 사본을 들고 있다가
+// 하나 토글 → 옛 사본 전체가 서버를 덮어써서 렌 체크가 다 날아감. 그래서 토글은 op 로 쌓고,
+// 저장 직전에 서버를 다시 읽어 op 만 얹는다.
+window.__recPending = window.__recPending || [];
 function saveRecordingChecks() {
   clearTimeout(__recSaveTimer);
   __recSaveTimer = setTimeout(async () => {
+    const ops = window.__recPending.splice(0);
+    if (!ops.length) return;
     try {
+      let base = {};
+      try {
+        const latest = await supabaseRpc('get_member_app_state', { p_cohort: CHALLENGE.cohort, p_member_key: RECORDING_CHECKS_KEY });
+        base = (latest && latest.checks) || {};
+      } catch (e) { base = window.__recChecks.data || {}; }
+      ops.forEach((op) => {
+        const map = base[op.key] = base[op.key] || {};
+        if (op.on) map[op.name] = true; else delete map[op.name];
+      });
       await supabaseRpc('upsert_member_app_state', {
         p_cohort: CHALLENGE.cohort,
         p_member_key: RECORDING_CHECKS_KEY,
         p_member_name: RECORDING_CHECKS_KEY,
         p_tier: 'basic',
-        p_app_state: { ghost: true, checks: window.__recChecks.data, updated_at: new Date().toISOString(), updated_by: (state.name || '') },
+        p_app_state: { ghost: true, checks: base, updated_at: new Date().toISOString(), updated_by: (state.name || '') },
       });
-    } catch (e) { try { showToast('녹음 체크 저장 실패, 네트워크 확인 후 다시 눌러주세요'); } catch (_) {} }
+      window.__recChecks.data = base;
+      window.__cbCachedFingerprint = null;
+      render();
+    } catch (e) {
+      // 실패한 op 는 되돌려 놓고 다음 저장에 다시 시도
+      window.__recPending = ops.concat(window.__recPending);
+      try { showToast('녹음 체크 저장 실패, 네트워크 확인 후 다시 눌러주세요'); } catch (_) {}
+    }
   }, 400);
 }
+// 보드를 보고 있는 동안 60초마다 서버 최신본으로 갱신 (다른 스태프가 체크한 게 바로 보이게).
+// 내가 누른 게 아직 저장 중이면 그 턴은 건너뛴다.
+setInterval(() => {
+  try {
+    if (document.hidden) return;
+    if ((window.__recPending || []).length) return;
+    if (!(state.isOperator || state.isStaff)) return;
+    if (currentPage !== 'home' && currentPage !== 'ops') return;
+    loadRecordingChecks(true);
+  } catch (e) {}
+}, 60000);
+document.addEventListener('visibilitychange', () => {
+  try { if (!document.hidden && (state.isOperator || state.isStaff)) loadRecordingChecks(true); } catch (e) {}
+});
 // name = 한글 본명 (디렉토리 기준). d = Day 번호.
 function recChecked(name, d) {
   const m = (window.__recChecks.data || {})['d' + d];
@@ -12129,6 +12166,7 @@ function recChecked(name, d) {
 }
 window.__toggleRecCheckMode = () => {
   window.__recCheckMode = !window.__recCheckMode;
+  if (window.__recCheckMode) { try { loadRecordingChecks(true); } catch (e) {} } // 켤 때 서버 최신본부터
   window.__cbCachedFingerprint = null;
   showToast(window.__recCheckMode ? '🎙 녹음 체크 모드 ON · 인증된 칸을 탭하면 새파랑 토글' : '녹음 체크 모드 OFF');
   render();
@@ -12443,6 +12481,7 @@ function Checkboard() {
           const map = window.__recChecks.data[key] = window.__recChecks.data[key] || {};
           const nowOn = !map[nm];
           if (nowOn) map[nm] = true; else delete map[nm];
+          window.__recPending.push({ key: key, name: nm, on: nowOn });
           window.__cbCachedFingerprint = null;
           saveRecordingChecks();
           showToast(nowOn ? `🎙 ${nm} · Day ${d} 녹음 완료 체크` : `${nm} · Day ${d} 녹음 체크 해제`);
