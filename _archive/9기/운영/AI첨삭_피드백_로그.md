@@ -64,3 +64,62 @@
 - 교정: Could I pick your brain about this revision?
 - why: 전치사 on을 about으로 교정하고 revise를 revision으로 명사형 변환했어요.
 
+<!--id:정명훈|d1-2|2026-09-14T14:05:23.612Z-->
+## 👍 므마 · Bounce ideas off · 2026-09-14T14:05
+- 원문: I want to bounce a few ideas off you regarding this renewal.
+- 교정: I want to bounce a few ideas off you regarding this renewal.
+- why: 이미 자연스러워요! 그대로 가셔도 됩니다.
+
+<!--id:진|d1-1|2026-09-14T21:49:14.237Z-->
+## 👍 blair · Pick someone's brain · 2026-09-14T21:49
+- 원문: Can I pick your brain about the reporting process for a minute? 
+- 교정: Can I pick your brain about the reporting process for a minute? 
+- why: 이미 충분히 자연스러워요! 비즈니스 영어로 그대로 가셔도 OK 입니다 🧡
+
+<!--id:김민경|d2-0|2026-09-15T11:23:57.136Z-->
+## 👍 milky · Loop in · 2026-09-15T11:23
+- 한 줄: 고친이유 명확!
+- 원문: please note that the marketing team has to be loop in this mail chain
+- 교정: Please make sure to loop in the marketing team starting with this email chain.
+- why: 한국어 의도를 살려 뒷부분을 보탰고, 전치사와 어순을 자연스럽게 고쳤어요.
+
+<!--id:이보경|d2-1|2026-09-15T12:53:51.800Z-->
+## 👍 hailey · Flag · 2026-09-15T12:53
+- 한 줄: 저는 문장을 복잡하게 썼는데 간단하게 수정해줘서 너무 좋아요!
+- 원문: I would like to flag that we might have delay issue again, if we accept the request. 
+- 교정: I would like to flag that if we accept the request as is, we might face delay issues again.
+- why: 한국어 의도를 살려 뒷부분을 보탰고, 자연스러운 어순과 복수형을 적용했어요.
+
+<!--id:송우석|d2-0|2026-09-15T13:00:10.050Z-->
+## 👎 Leo · Loop in · 2026-09-15T13:00
+- 한 줄: 구동사를 더 많이 쓰길래 썼는데 지양할까요?
+- 원문: Let’s loop in mechanical team before conference call. We need them to go over P&I. 
+- 교정: Let's loop in the mechanical team before the conference call since we need them to review the P&I.
+- why: 한국어 의도를 살려 뒷부분을 보탰고, 전치사와 관사도 자연스럽게 고쳤어요.
+
+<!--id:김나연|d2-0|2026-09-15T13:42:37.009Z-->
+## 👍 Chloe · Loop in · 2026-09-15T13:42
+- 원문: let's loop financial in before sending emails. 
+- 교정: Let's loop in the financial team before sending the email.
+- why: 한국어 의도를 살려 'financial team'과 단수 이메일 형태로 자연스럽게 고쳤어요.
+
+<!--id:김나연|d2-1|2026-09-15T13:45:47.961Z-->
+## 👍 Chloe · Flag · 2026-09-15T13:45
+- 원문: just want to flag that you should report it to CEO.
+- 교정: Just want to flag that this matter needs to be reviewed by the CEO as well.
+- why: 한국어 의도를 살려 뒷부분을 보탰어요. 주어와 동사 어순도 자연스럽게 고쳤습니다.
+
+<!--id:정주혜|d3-1|2026-09-15T23:26:02.196Z-->
+## 👍 Hera · Push back · 2026-09-15T23:26
+- 한 줄: Push back 뒤에나오는  전치사, hr상황
+- 원문: Before we kick it off, I'd like to share push back in Previous meeting
+- 교정: Before we kick off the meeting, I'd like to push back on some points raised in the previous meeting before we start.
+- why: 한국어 의도를 살려 뒷부분을 보탰고, 전치사와 어순을 자연스럽게 고쳤어요.
+
+<!--id:김유진|d3-1|2026-09-16T01:35:01.981Z-->
+## 👎 Yujin · Push back · 2026-09-16T01:35
+- 한 줄: in our email communications / during the meeting 이 추가된 이유가 불명확
+- 원문: I would like to push back on that idea, since korean media prefer every documents localized in Korean. 
+- 교정: I would like to push back on that idea, as Korean media prefer all documents to be localized in Korean.
+- why: 한국어 의도를 살려 뒷부분을 보탰고, 문법과 어순을 자연스럽게 고쳤어요.
+

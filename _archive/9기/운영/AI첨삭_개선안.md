@@ -5,6 +5,136 @@
 
 ---
 
+## 2026-09-16 (Day 2~3 · Loop in / Flag / Push back)
+
+### 1. 오늘 들어온 피드백 요약: 👍 3 · 👎 1
+
+대표 사례:
+- Yujin (Push back, 👎): "in our email communications / during the meeting 이 추가된 이유가 불명확"
+  원문 "I would like to push back on that idea, since korean media prefer every documents localized in Korean."
+  교정 "I would like to push back on that idea, as Korean media prefer all documents to be localized in Korean."
+  why "한국어 의도를 살려 뒷부분을 보탰고, 문법과 어순을 자연스럽게 고쳤어요."
+- Hera (Push back, 👍): "Push back 뒤에나오는 전치사, hr상황"
+  원문 "Before we kick it off, I'd like to share push back in Previous meeting"
+  교정 "Before we kick off the meeting, I'd like to push back on some points raised in the previous meeting before we start."
+- Chloe (Loop in, 👍): 원문 "let's loop financial in before sending emails." → "Let's loop in the financial team before sending the email." (분리 구동사를 붙이고 team 을 보탠 건 정확)
+
+### 2. 👎 사유 판단 (Yujin 건)
+
+원문에서 진짜 고칠 건 넷: korean → Korean, every documents → all documents, "prefer ... localized" → "prefer ... to be localized", 그리고 취향 수준의 since → as. 교정문 자체는 멀쩡하다. 문제는 두 군데.
+
+| 한 일 | 판정 |
+|---|---|
+| corrected 의 문법 교정 4개 | 맞음 |
+| why "뒷부분을 보탰고" | 거짓. 보탠 절 없음. 어제 Leo 건과 같은 템플릿 문장. |
+| why "어순을 고쳤어요" | 거짓. 어순 그대로. |
+| variants 에 "in our email communications" / "during the meeting" 삽입 | 멤버가 안 쓴 내용을 채널 버전에 끼워 넣고, 왜 넣었는지 어디에도 설명이 없음. why 는 corrected 만 다루고 variants 는 설명 필드가 없으니, 멤버 입장에서는 이유 모를 첨가물. |
+
+분류: **why 가 실제 수정과 안 맞음 (템플릿)** + **variants 과교정 (장면·채널 문구를 멤버 문장에 덧붙임)**.
+
+이번 건으로 템플릿 why 의 뿌리를 찾았다. SYSTEM_PROMPT 가 아니라 `buildSentenceUserMessage` (index.ts 161행) 에 예시로 박힌 문구가 그대로 나온다:
+`In "why" (or feedback), briefly note what you added from the Korean (e.g. "한국어 의도를 살려 뒷부분을 보탰어요")`.
+모델이 이 예시를 "why 의 기본 문장" 으로 배운 것. 어제 (G) 를 SYSTEM_PROMPT 에만 넣으면 이 줄과 싸운다.
+
+### 3. 👍 인데도 걸리는 것
+
+- **Hera 건은 뜻이 바뀌었다.** 원문은 "지난 회의에서 나온 반대 의견을 (지금) 공유하고 싶다" 인데, 교정문은 "지난 회의에서 나온 포인트에 (내가) 반대하고 싶다" 가 됐다. 반대하는 주체가 남에서 나로 바뀜. 게다가 "Before we kick off the meeting ... before we start" 로 같은 말이 두 번. 멤버는 전치사 on 을 배웠다고 만족했지만, 목표 표현을 억지로 동사 자리에 넣느라 문장을 통째로 바꾼 사례. push back 은 명사로도 쓰이니 "share the pushback from the previous meeting" 이 원문 의도에 맞았다.
+- **Chloe (Flag) 건도 살짝 바뀌었다.** "you should report it to CEO" → "this matter needs to be reviewed by the CEO as well". report 가 review 로, 지시 대상(you) 이 사라지고 "as well" 이 새로 생김. 멤버는 만족했으니 넘어가지만 (F) 계열의 '멤버가 안 한 선택' 이다.
+
+### 4. 반복되는 실패 패턴
+
+- **why 템플릿 (3일 연속).** 09-14 (D) 오타 언급 없음 → 09-15 Leo → 09-16 Yujin. 원인이 사용자 메시지의 예시 문구로 특정됐으니 그 줄을 고치는 게 SYSTEM_PROMPT 문단 추가보다 확실하다.
+- **variants 가 corrected 에 없는 내용을 만든다.** PERSONALIZATION 규칙이 "variants must name that counterpart or scene explicitly at least once" 라고 강제해서, 프로필에서 가져올 게 없으면 "in our email communications" 같은 채널 이름을 장면 대용으로 집어넣는다. 규칙의 취지(바이어·엔지니어 같은 실제 상대)와 다르게 작동 중.
+- **목표 표현을 동사로만 인식.** push back 처럼 명사·동사 둘 다 되는 표현에서, 멤버가 명사로 쓴 걸 동사 패턴으로 바꾸며 뜻을 옮긴다 (Hera).
+
+### 5. 수정 제안 (영문 그대로, 위치 표시)
+
+**(H) `buildSentenceUserMessage` 161행, `In "why" (or feedback), briefly note what you added from the Korean (e.g. "한국어 의도를 살려 뒷부분을 보탰어요").` 를 아래로 교체** (템플릿 뿌리 제거 · SYSTEM_PROMPT 는 아니지만 같은 파일):
+
+```
+In "why", name the concrete change you made. Only say you added something ("뒷부분을 보탰어요") if you actually appended a clause that the student left out; if you fixed articles, plurals, capitalization, or verb forms, say that instead. Never open "why" with a stock phrase.
+```
+
+**(I) SYSTEM_PROMPT PERSONALIZATION 불릿, `"variants" must name that counterpart or scene explicitly at least once (...)` 문장 바로 뒤에 추가** (variants 첨가물 방지):
+
+```
+Scene words come ONLY from the learner profile. If the profile gives no counterpart, do not invent one and do not pad the sentence with channel labels ("in our email communications", "during the meeting", "in this thread"): the email/meeting split is already carried by tone and length, not by naming the channel inside the sentence. Everything in a variant must be traceable to "corrected" or to the profile.
+```
+
+**(J) STEP 2b 첫 불릿 뒤에 추가** (명사형 목표 표현 보호):
+
+```
+If the target phrase also works as a noun (push back / pushback, follow up / follow-up, sign off / sign-off, kick off / kick-off) and the student used it that way with the right meaning, keep the noun form. Do not force the verb pattern if doing so changes who is doing the action.
+```
+
+### 6. 제안 외 메모
+
+- (H) 는 (G) 를 대체한다. 어제 (G) 를 아직 안 넣었으면 (G) 는 빼고 (H) 만 넣어도 된다. 둘 다 넣으면 같은 말 두 번.
+- Yujin 님은 Day 1 에 "메일/회의 두 버전 좋다" 고 칭찬한 분이라, 이번 👎 도 variants 를 진지하게 읽어서 나온 것. 1:1 로 "그 문구는 AI 가 채널 흉내 내려고 넣은 거라 빼셔도 돼요" 한 줄이면 충분.
+- Hera 님은 (J) 반영 전까지는 "push back 을 명사로 쓰신 것도 맞아요, the pushback from the previous meeting" 을 한 스푼 더 자리에 한 번 언급해줘도 좋겠다. 오늘 Day 3 단어라 타이밍이 맞는다.
+
+---
+
+## 2026-09-15 (Day 1~2 · Bounce ideas off / Loop in / Flag)
+
+### 1. 오늘 들어온 피드백 요약: 👍 4 · 👎 1
+
+대표 사례:
+- hailey (Flag, 👍): "저는 문장을 복잡하게 썼는데 간단하게 수정해줘서 너무 좋아요!" 원문 "I would like to flag that we might have delay issue again, if we accept the request." → "...that if we accept the request as is, we might face delay issues again."
+- milky (Loop in, 👍): "고친이유 명확!" 원문 "please note that the marketing team has to be loop in this mail chain" → "Please make sure to loop in the marketing team starting with this email chain."
+- Leo (Loop in, 👎): "구동사를 더 많이 쓰길래 썼는데 지양할까요?"
+  원문 "Let's loop in mechanical team before conference call. We need them to go over P&I."
+  교정 "Let's loop in the mechanical team before the conference call since we need them to review the P&I."
+  why "한국어 의도를 살려 뒷부분을 보탰고, 전치사와 관사도 자연스럽게 고쳤어요."
+
+### 2. 👎 사유 판단 (Leo 건)
+
+원문에서 진짜 틀린 건 관사 두 개(the mechanical team, the conference call)뿐이다. 그런데 AI 가 한 일:
+
+| 한 일 | 판정 |
+|---|---|
+| 관사 추가 | 맞음 |
+| "go over" → "review" 로 교체 | 과교정. 멀쩡한 구동사를 라틴계 단어로 바꿈. STEP 3 에 "Never swap one correct word for another" 가 이미 있는데 뚫림. 멤버는 이걸 "구동사 쓰지 말라는 뜻인가?" 로 읽었다. 구동사 배우는 챌린지에서 제일 나쁜 신호. |
+| 두 문장을 since 로 한 문장으로 합침 | 과교정. STEP 3 fixed 의 "The result must be ONE fluent sentence" 가 두 문장 입력을 무조건 합치라는 뜻으로 작동한 것으로 보임. |
+| why "뒷부분을 보탰고" | 거짓. 보탠 내용 없음. 합치고 바꿨을 뿐. |
+| why "전치사 ... 고쳤어요" | 거짓. 전치사 손댄 데 없음. 관사만. |
+
+분류: **과교정 (구동사 → 단일동사 치환, 문장 병합)** + **why 가 실제 수정과 안 맞음**.
+
+### 3. 반복되는 실패 패턴
+
+- **why 가 템플릿 문장을 돌려쓴다.** 오늘 5건 중 3건의 why 가 "한국어 의도를 살려 뒷부분을 보탰고, ~도 자연스럽게 고쳤어요" 로 시작. hailey 건도 보탠 게 아니라 어순 바꾼 건데 같은 문구. 어제 (D) 에서 지적한 "오타 언급 없음"과 같은 뿌리: why 가 diff 를 보고 쓰는 게 아니라 정형구를 뱉는다.
+- **synonym swap 금지가 구동사에는 안 먹힌다.** STEP 3 예시(increase/raise, use/leverage, begin/kick off)가 전부 "단일어 ↔ 단일어" 또는 "단일어 → 구동사" 방향. 반대 방향(구동사 → 단일어)이 명시가 없어서 모델이 "격식 있게 다듬기" 로 인식하는 듯.
+- **다문장 입력을 한 문장으로 합친다.** 프롬프트가 1문장 과제를 전제로 쓰여 있어서, 멤버가 두 문장 쓰면 접속사로 붙인다. 병합 자체가 틀린 건 아니지만 멤버가 안 한 선택을 강제하는 거라 과교정.
+
+### 4. SYSTEM_PROMPT 수정 제안 (영문 그대로, 위치 표시)
+
+**(E) STEP 3 첫 불릿, "Never swap one correct word for another (...)" 문장 바로 뒤에 추가** (구동사 보호):
+
+```
+This includes the reverse direction: never replace a correct phrasal verb with a single-word verb (go over -> review, set up -> arrange, put off -> postpone, figure out -> determine, follow up -> contact). Phrasal verbs are exactly what this course teaches; a student who chose one made the right call. Keep it.
+```
+
+**(F) STEP 3 둘째 불릿, "The result must be ONE fluent sentence a colleague could actually say" 를 아래로 교체** (문장 병합 방지):
+
+```
+The result must read like something a colleague could actually say. Keep the student's sentence count: if they wrote two sentences, return two sentences. Do not merge them with since/because/so unless the Korean itself is one sentence and the split causes a meaning gap.
+```
+
+**(G) FIELDS 의 "why" 항목, "Fixed case: name exactly which words changed and why" 뒤에 추가** (정형구 금지 · 어제 (C)(D) 와 세트):
+
+```
+Write "why" from the actual diff between input and "corrected", not from a template. Say "뒷부분을 보탰어요" only if you appended a clause that was missing; say "전치사" only if a preposition changed (articles are 관사, not 전치사); say "어순을 바꿨어요" if you reordered. If you cannot name a real change, the verdict should have been "correct".
+```
+
+### 5. 제안 외 메모
+
+- (E) 는 오늘 👎 를 직접 만든 원인이라 다음 배포에 꼭. (F)(G) 는 같은 배포에 묶어 넣는 걸 권장. (G) 는 어제 (C)(D) 와 겹치니 셋을 한 문단으로 합쳐도 됨.
+- Leo 님에게는 1:1 로 "go over 맞게 쓰신 거예요, AI 가 괜히 바꾼 거" 한 줄 보내는 게 좋겠다. 안 그러면 구동사 자체를 피하기 시작할 수 있다.
+- 👍 4건 중 걸리는 것: hailey 건은 "delay issue → delay issues" 복수형이 진짜 교정이고 나머지 어순 변경은 취향. 멤버는 만족했으니 이번엔 넘어감.
+
+---
+
 ## 2026-09-14 (Day 1 · Kick off / Pick someone's brain)
 
 ### 1. 오늘 들어온 피드백 요약: 👍 9 · 👎 0
