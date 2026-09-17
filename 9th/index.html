@@ -1325,6 +1325,8 @@ const CHALLENGE = {
   ],
   // Premium-only add-ons
   premium: {
+    // ⚠️ 9기는 프리미엄 미운영. 아래 weekly_meetings 는 8기 구조를 남겨둔 것뿐이고,
+    //    미팅·녹화본·Q&A·예습 팝업은 전부 PREMIUM_MEETINGS_ACTIVE 로 꺼져 있다. (2026-09-17)
     presenter_slots_per_week: 4,  // 주마다 발표자 선착순 4명
     presenter_talk_minutes: 7,
     presenter_feedback_minutes: 3,
@@ -1345,7 +1347,7 @@ const CHALLENGE = {
         recap: '',
         pptUrl: '',
         // 미팅 다시보기 (Google Drive 공유 링크). 멤버 권한 필요할 수 있음.
-        recordingUrl: 'https://drive.google.com/file/d/1qnwDUDYWBERbDoiRqvAUXOH3Ul6e_JaF/view?usp=sharing', // Week 1 녹화본 (2026-08-14)
+        recordingUrl: '', // 9기 미운영 · 8기 Week 1 녹화본 링크 제거 (2026-09-17)
         scenario: {
           setting: '첫 주는 오리엔테이션 및 자기소개가 있습니다',
           premise: '챌린지 흐름과 유버디에 대해 소개하고, 멤버들이 서로 가볍게 알아가는 시간이에요. PT 진행 방식과 다음 주부터 시작할 롤플레이도 미리 안내드릴게요. 궁금한 거 편하게 물어보는 자리니까 부담 없이 와주세요.',
@@ -1398,7 +1400,7 @@ const CHALLENGE = {
         status: 'upcoming',
         zoom: 'Google Meet',
         meetUrl: 'https://meet.google.com/sff-fgce-npj', // 매주 목 21:00 공용 Meet 링크
-        recordingUrl: 'https://drive.google.com/file/d/1xS_OT9eMz9xCBTSrL7Oh-Ev1AQW_yCYp/view?usp=sharing', // Week 2 녹화본 (2026-08-21),
+        recordingUrl: '', // 9기 미운영 · 8기 Week 2 녹화본 링크 제거 (2026-09-17)
         // 버디가 미팅 후 직접 채움, recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
         recap: '',
         pptUrl: '',
@@ -1425,7 +1427,7 @@ const CHALLENGE = {
         status: 'upcoming',
         zoom: 'Google Meet',
         meetUrl: 'https://meet.google.com/sff-fgce-npj', // 매주 목 21:00 공용 Meet 링크
-        recordingUrl: 'https://drive.google.com/file/d/1oxyzDzkYJifcr5fKWPaYnxBTzSM2Cqzk/view?usp=sharing', // Week 3 녹화본 (2026-08-28)
+        recordingUrl: '', // 9기 미운영 · 8기 Week 3 녹화본 링크 제거 (2026-09-17)
         // 버디가 미팅 후 직접 채움, recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
         recap: '',
         pptUrl: '',
@@ -1448,7 +1450,7 @@ const CHALLENGE = {
         zoom: 'Google Meet',
         meetUrl: 'https://meet.google.com/sff-fgce-npj', // 매주 목 21:00 공용 Meet 링크
         // 미팅 다시보기 (Google Drive 공유 링크). 멤버 권한 필요할 수 있음.
-        recordingUrl: 'https://drive.google.com/file/d/1vJQWeF7ti28ltNx9o3gPJ8v2cE0VIqtR/view?usp=sharing', // Week 4 녹화본 (2026-09-04)
+        recordingUrl: '', // 9기 미운영 · 8기 Week 4 녹화본 링크 제거 (2026-09-17)
         // 버디가 미팅 후 직접 채움, recap: 멤버들에게 inline 표시될 간단 회의록 (마크다운 허용) · pptUrl: 발표자 PT 자료 Google Drive/Slides 공유 링크
         recap: '',
         pptUrl: '',
@@ -1472,6 +1474,11 @@ const CHALLENGE = {
     ]
   }
 };
+
+// 9기: 프리미엄 미팅 관련 팝업·알림 전부 OFF. 10기에 프리미엄 재개하면 true 로. (2026-09-17)
+const PREMIUM_MEETINGS_ACTIVE = false;
+// 8기 모닝밋업(8/18~) 이벤트. 9기엔 없음.
+const MORNING_MEETUP_ACTIVE = false;
 
 /* Single source of truth for member onboarding + tier access.
    Later, just edit this list and the app will sync:
@@ -8697,7 +8704,7 @@ function getNotifications() {
   //    남겨서 미트 링크를 언제든 다시 찾을 수 있게. (팝업만 있으면 링크 분실)
   try {
     const _cdN = Number(state.currentDay) || 0;
-    if (_cdN >= 5 && _cdN <= 15) {
+    if (MORNING_MEETUP_ACTIVE && _cdN >= 5 && _cdN <= 15) {
       list.push({
         id: 'morning-meetup-8th',
         icon: '🌅',
@@ -10788,7 +10795,7 @@ function HomePage() {
 
   // W4 미팅 Q&A 업데이트 알림: 프리미엄 멤버에게 1회 (2026-09-03)
   try {
-    if (state.onboarded && state.tier === 'premium' && !state.qna_w4_seen
+    if (PREMIUM_MEETINGS_ACTIVE && state.onboarded && state.tier === 'premium' && !state.qna_w4_seen
         && !window.__qnaW4Armed && guidedTourStep === null && !anyPopupOpen() && challengeStarted()) {
       window.__qnaW4Armed = true;
       setTimeout(() => {
@@ -10880,7 +10887,7 @@ function HomePage() {
   // 미팅 사전 예습 팝업: 프리미엄만, 미팅 D-1~당일, 준비(목표 or 문장 직접제출) 안 한 멤버에게 하루 1회.
   try {
     const __prepMemberish = !(state.isOperator || state.isStaff) || state.operatorViewAsMember;
-    if (state.tier === 'premium' && state.onboarded && __prepMemberish && guidedTourStep === null && !anyPopupOpen()) {
+    if (PREMIUM_MEETINGS_ACTIVE && state.tier === 'premium' && state.onboarded && __prepMemberish && guidedTourStep === null && !anyPopupOpen()) {
       const meetings = (CHALLENGE.premium && CHALLENGE.premium.weekly_meetings) || [];
       const target = meetings.find((m) => { const dl = daysUntilMeeting(m.date); return dl !== null && dl >= 0 && dl <= 1; });
       if (target) {
@@ -10977,7 +10984,7 @@ function HomePage() {
   // 프리미엄 D1 온보딩 진단: 프리미엄만, Day 1~3 사이 1회. 첫 미팅 전에 받아야 의미가 있음.
   try {
     const _iDay = Number(state.currentDay) || 0;
-    const _iPrem = state.tier === 'premium';
+    const _iPrem = PREMIUM_MEETINGS_ACTIVE && state.tier === 'premium';
     // 운영자·스태프도 멤버와 똑같이 뜨게 한다. 예전엔 제외했는데,
     // 그러면 운영자가 멤버 화면을 검수할 방법이 없고 본인 트랙 카드도 안 생겼다.
     // 운영진은 어차피 모든 집계에서 이름으로 제외되므로 데이터가 오염되지 않는다.
@@ -11114,7 +11121,7 @@ function HomePage() {
         }
       }
     } catch (e) {}
-    if (state.tier === 'premium' && !showWeekTaskPopup && !anyPopupOpen() && guidedTourStep === null) {
+    if (PREMIUM_MEETINGS_ACTIVE && state.tier === 'premium' && !showWeekTaskPopup && !anyPopupOpen() && guidedTourStep === null) {
       const _tk = splitGoalAndTasks(state.goal).tasks;
       if (_tk.length) {
         const last = _tk[_tk.length - 1];
@@ -11139,7 +11146,7 @@ function HomePage() {
   // ✅ 팝업 3종 세트 확인: 트리거(여기) · 컴포넌트(RecordingPopupModal) · 마운트(가드+stale 제거, 6664행)
   try {
     window.__recPopupTriggeredSession = window.__recPopupTriggeredSession || {};
-    if (state.tier === 'premium' && !showRecordingPopup && !anyPopupOpen() && guidedTourStep === null && challengeStarted()) {
+    if (PREMIUM_MEETINGS_ACTIVE && state.tier === 'premium' && !showRecordingPopup && !anyPopupOpen() && guidedTourStep === null && challengeStarted()) {
       const mtgs = (CHALLENGE.premium && CHALLENGE.premium.weekly_meetings) || [];
       const seen = state.recording_popup_seen || {};
       const target = mtgs.find((m) => m && m.recordingUrl && !seen['m' + m.n] && !window.__recPopupTriggeredSession['m' + m.n]);
@@ -11723,6 +11730,7 @@ function HomePage() {
      수료 기준과 무관. 기수 중 기준 변경 금지 원칙 준수). verified_time 기반 자동. */
   try {
     const EB_FROM = 6, EB_TO = 15, EB_GOAL = 5; // 월(8/17)부터 시작 (2026-08-16 버디: 내일부터)
+    if (!MORNING_MEETUP_ACTIVE) throw new Error('morning meetup off'); // 9기 미운영 → 카드 자체를 안 그림
     const _cd = Number(state.currentDay) || 0;
     if (_cd >= 5 && _cd <= EB_TO + 2) {
       const _stamp = (d) => {
