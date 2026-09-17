@@ -5,6 +5,53 @@
 
 ---
 
+## 2026-09-17 (Day 4 · Zero in on)
+
+### 1. 오늘 들어온 피드백 요약: 👍 1 · 👎 0
+
+- hailey (Zero in on, 👍): "써먹을 좋은표현으로 고쳐줌"
+  원문 "Let's zero in on resolving our differences over this change."
+  교정 "Let's zero in on resolving our differences regarding this change and reach a consensus."
+  why "한국어 의도를 살려 뒷부분을 보탰어요. '이견을 하나로 좁히다' 의미를 명확히 했습니다."
+
+### 2. 👍 인데도 걸리는 것
+
+원문은 그대로 써도 되는 문장이다. "differences over this change" 의 over 는 정확한 전치사(differences over / disagreement over 가 오히려 자연스러운 조합). AI 가 한 일:
+
+| 한 일 | 판정 |
+|---|---|
+| over → regarding | 불필요한 치환. 맞는 전치사를 더 격식 있는 단어로 바꿈. STEP 3 "Never swap one correct word for another" 가 또 뚫림. 이번엔 구동사가 아니라 전치사. |
+| "and reach a consensus" 추가 | 이번엔 why 가 말한 대로 실제로 뒷부분을 보탰다. 다만 zero in on resolving our differences 안에 이미 "합의로 좁혀간다" 가 들어 있어서 같은 말을 한 번 더 한 셈. 멤버 한국어 의도에 "합의" 가 명시돼 있었는지 로그로는 알 수 없음. |
+| why 첫 문장 | 09-15, 09-16 과 같은 "한국어 의도를 살려 뒷부분을 보탰어요" 정형구. 이번엔 사실이긴 하지만, 4일 연속 같은 문장으로 시작하는 것 자체가 (H) 가 아직 안 들어갔다는 신호. |
+
+멤버가 만족한 이유는 "and reach a consensus" 를 새 표현으로 받아들였기 때문. 나쁘지 않은 결과지만, 정확했던 over 가 사라진 건 멤버가 모른다.
+
+### 3. 반복되는 실패 패턴
+
+- **why 정형구 4일 연속.** (H) 미반영 상태로 판단. 새 제안 없음, (H) 우선 반영 요청.
+- **맞는 단어를 격식체로 바꾸는 치환.** 09-15 구동사(go over → review), 09-17 전치사(over → regarding). STEP 3 예시가 전부 동사라서 전치사·접속사 치환은 모델이 "금지 대상" 으로 안 보는 듯. 어제 (E) 가 구동사만 다루니 한 줄 더 필요.
+
+### 4. SYSTEM_PROMPT 수정 제안 (영문 그대로, 위치 표시)
+
+**(K) STEP 3 첫 불릿, (E) 바로 뒤에 추가** (전치사·접속사 치환 방지):
+
+```
+This also covers prepositions and conjunctions: if "over", "since", "about", "on" is already the natural choice, keep it. Do not upgrade it to "regarding", "as", "concerning", "with respect to" for formality. A more formal word is not a correction.
+```
+
+**(L) STEP 3, "additions" 관련 문장 뒤 또는 (F) 뒤에 추가** (중복 첨가 방지):
+
+```
+Before appending a clause from the Korean, check whether the English sentence already carries that meaning. If "zero in on resolving our differences" already implies reaching agreement, do not add "and reach a consensus". Add only what is missing, not what is implied.
+```
+
+### 5. 제안 외 메모
+
+- 오늘 새 건 1개뿐이라 제안은 두 줄만. (H)(I)(J) 와 오늘 (K)(L) 을 한 번에 반영하면 why 정형구·격식체 치환·중복 첨가 세 갈래가 같이 잡힌다.
+- hailey 님은 Day 1 부터 3일째 👍 를 남기는 분. 한 스푼 더 자리에 "differences over ~ 도 정확한 조합이에요" 한 줄 넣어주면 over 가 틀린 게 아니었다는 걸 알 수 있다.
+
+---
+
 ## 2026-09-16 (Day 2~3 · Loop in / Flag / Push back)
 
 ### 1. 오늘 들어온 피드백 요약: 👍 3 · 👎 1

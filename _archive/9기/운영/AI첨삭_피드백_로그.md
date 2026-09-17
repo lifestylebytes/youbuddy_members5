@@ -123,3 +123,10 @@
 - 교정: I would like to push back on that idea, as Korean media prefer all documents to be localized in Korean.
 - why: 한국어 의도를 살려 뒷부분을 보탰고, 문법과 어순을 자연스럽게 고쳤어요.
 
+<!--id:이보경|d4-0|2026-09-17T06:37:25.017Z-->
+## 👍 hailey · Zero in on · 2026-09-17T06:37
+- 한 줄: 써먹을 좋은표현으로 고쳐줌
+- 원문: Let's zero in on resolving our differences over this change.
+- 교정: Let's zero in on resolving our differences regarding this change and reach a consensus.
+- why: 한국어 의도를 살려 뒷부분을 보탰어요. '이견을 하나로 좁히다' 의미를 명확히 했습니다.
+
