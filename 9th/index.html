@@ -12997,10 +12997,20 @@ function normalizeQuizAnswer(value='') {
 // "front-load" / "front load" / "frontload" 다 같은 답.
 // "Call the shots" 답 / "calling the shots" 입력 / "called the shots" 입력 모두 정답.
 // (예문이 'Who is calling the shots ...' 처럼 변형돼있을 때 사용자가 자연스럽게 떠올린 형태도 OK.)
+// "Pick someone's brain" 을 "pick your brain" 으로 쓴 것도 정답. (2026-09-18 버디: 주간 테스트에서 오답 처리됨)
+// someone's / sb's / one's / my / your / his / her / their / our / its / 고유명사's → 전부 같은 자리로 본다.
+// someone / somebody / sb / me / you / him / her / them / us 도 같은 자리.
+function __foldPlaceholders(str) {
+  return String(str || '')
+    .replace(/\b(?:someone's|somebody's|anyone's|one's|sb's|sb\.'s|my|your|his|her|their|our|its|[a-z]+'s)\b/g, "someone's")
+    .replace(/\b(?:someone|somebody|anyone|sb|sth|something|me|you|him|them|us|it)\b/g, 'someone')
+    .replace(/\s+/g, ' ').trim();
+}
 function quizAnswerMatches(input, target) {
   const a = normalizeQuizAnswer(input);
   const b = normalizeQuizAnswer(target);
   if (a === b) return true;
+  try { if (__foldPlaceholders(a) === __foldPlaceholders(b)) return true; } catch (_) {}
   // 하이픈·스페이스 다 제거한 형태로 한 번 더 비교
   const stripSep = (s) => s.replace(/[-\s]+/g, '');
   if (stripSep(a) === stripSep(b)) return true;
@@ -13012,6 +13022,8 @@ function quizAnswerMatches(input, target) {
         // alts 의 \b 들은 ^...$ 로 감싸도 word-char 끝점에선 자연 매칭됨.
         const re = new RegExp('^(?:' + alts.join('|') + ')$', 'i');
         if (re.test(String(input || '').trim())) return true;
+        // 시제 변형 + 대명사 치환 동시 (picked your brain)
+        try { if (re.test(__foldPlaceholders(a))) return true; } catch (_) {}
         // 하이픈/공백 제거 입력도 한 번 더
         const inputStripped = stripSep(a);
         if (re.test(inputStripped)) return true;
