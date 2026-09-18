@@ -2582,12 +2582,43 @@ function __isEssentiallySameAsPrior(currentSentence, history) {
 
 // AI 리뷰 바로 아래 '피드백 주기' (2026-09-05 버디 요청). 멤버가 첨삭 품질을 👍👎 + 한 줄로 보내면
 // state.ai_review_feedback 에 쌓여 서버로 동기화되고, 운영진이 모아서 프롬프트 개선에 쓴다.
+// AI 첨삭 업데이트 공지 (2026-09-19). 배포된 것만 적는다. 이름은 절대 안 나가고,
+// 피드백 준 본인(memberKeys)에게만 "내 피드백이 반영됐어요" 한 줄이 추가로 보인다.
+const AI_REVIEW_UPDATES = [
+  {
+    date: '2026-09-19', until: '2026-09-24',
+    title: '멤버 피드백 2건으로 첨삭을 고쳤어요',
+    detail: [
+      '맞는 구동사(go over 같은)를 단어 하나로 안 바꿔요. 구동사 쓰는 게 이 과정 목표니까요.',
+      '맞는 전치사를 격식체로 안 바꿔요 (over → regarding 같은 건 교정이 아니에요).',
+      '"in our email communications" 처럼 원문에 없던 말을 덧붙이지 않아요.',
+      '"왜 고쳤나" 설명이 실제로 바꾼 것만 말해요. 틀에 박힌 첫 문장을 없앴어요.',
+    ],
+    memberKeys: ['송우석', '김유진'],
+  },
+];
+function __aiUpdateNoticeHtml() {
+  try {
+    const today = todayStr();
+    const u = AI_REVIEW_UPDATES.find((x) => x.date <= today && today <= x.until);
+    if (!u) return '';
+    const mine = (u.memberKeys || []).indexOf((state.name || '').trim()) >= 0;
+    const id = 'aiupd-' + u.date.replace(/-/g, '');
+    return `<div style="margin-top:9px;padding:8px 11px;border-radius:10px;background:rgba(156,107,63,0.08);border:1px solid rgba(156,107,63,0.18);font-size:11.5px;line-height:1.5;">
+      ${mine ? '<div style="font-weight:800;color:var(--orange-dark);margin-bottom:3px;">내 피드백이 반영됐어요 🧡 고마워요</div>' : ''}
+      <div style="display:flex;align-items:center;gap:6px;cursor:pointer;" onclick="var d=document.getElementById('${id}');if(d){d.style.display=d.style.display==='none'?'block':'none';}">
+        <span>🛠</span><span style="flex:1;color:var(--ink);font-weight:700;">${u.date.slice(5).replace('-', '/')} 첨삭 업데이트 · ${escapeHtml(u.title)}</span><span style="color:var(--muted);">자세히 ▾</span>
+      </div>
+      <div id="${id}" style="display:none;margin-top:6px;color:var(--ink-soft);">${u.detail.map((t) => '· ' + escapeHtml(t)).join('<br>')}</div>
+    </div>`;
+  } catch (e) { return ''; }
+}
 function __aiFbRowHtml(key, fb) {
   const list = Array.isArray(state.ai_review_feedback) ? state.ai_review_feedback : [];
   const mine = list.filter((x) => x && x.key === key && x.corrected === (fb && fb.corrected));
   if (mine.length) {
     const last = mine[mine.length - 1];
-    return `<div style="margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);font-size:11.5px;color:var(--muted);">${last.rating === 'down' ? '👎' : '👍'} 피드백 전달됐어요. 버디가 읽고 첨삭을 계속 다듬을게요 🧡</div>`;
+    return `<div style="margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);font-size:11.5px;color:var(--muted);">${last.rating === 'down' ? '👎' : '👍'} 피드백 전달됐어요. 버디가 읽고 첨삭을 계속 다듬을게요 🧡</div>` + __aiUpdateNoticeHtml();
   }
   const k = escapeHtml(key);
   return `<div data-aifb="${k}" style="margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);">
@@ -2600,7 +2631,7 @@ function __aiFbRowHtml(key, fb) {
         <input data-aifb-text class="input" placeholder="어떤 점이요? 한 줄만 (선택) · 버디에게만 보여요" style="width:100%;font-size:12.5px;padding:8px 10px;" />
         <button type="button" data-aifb-send style="margin-top:6px;padding:7px 12px;border-radius:10px;border:none;background:var(--orange);color:#fff;font-size:12px;font-weight:800;cursor:pointer;">버디에게 보내기</button>
       </div>
-    </div>`;
+    </div>` + __aiUpdateNoticeHtml();
 }
 function __wireAiFbRow(root, key, fb) {
   const box = root.querySelector(`[data-aifb="${CSS.escape(key)}"]`);
@@ -2627,7 +2658,7 @@ function __wireAiFbRow(root, key, fb) {
     });
     if (state.ai_review_feedback.length > 60) state.ai_review_feedback = state.ai_review_feedback.slice(-60);
     try { saveState({ immediate: true }); } catch (e) { try { saveState(); } catch (_) {} }
-    showToast('버디에게 전달됐어요. 고마워요 🧡');
+    showToast(rating === 'down' ? '받았어요 🧡 매일 밤 읽고 다음 날 첨삭에 반영해요' : '버디에게 전달됐어요. 고마워요 🧡');
     render();
   };
 }
