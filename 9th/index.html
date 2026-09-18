@@ -11086,7 +11086,7 @@ function HomePage() {
     try {
       if (!anyPopupOpen() && guidedTourStep === null) {
         const _cdMI = Number(state.currentDay) || 0;
-        if (_cdMI >= 5 && _cdMI <= 7 && !state.meetup_intro_seen && !window.__meetupIntroSession) {
+        if (MORNING_MEETUP_ACTIVE && _cdMI >= 5 && _cdMI <= 7 && !state.meetup_intro_seen && !window.__meetupIntroSession) {
           window.__meetupIntroSession = true; // 세션가드 즉시 설정
           setTimeout(() => {
             if (!anyPopupOpen() && guidedTourStep === null) { showMeetupIntroPopup = true; render(); }
