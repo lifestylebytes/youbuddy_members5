@@ -3,6 +3,9 @@
 `AI첨삭_피드백_로그.md` 에 쌓인 멤버 피드백을 보고 정리한 프롬프트 개선 제안.
 버디가 읽고 승인한 항목만 `supabase/functions/ai-review/index.ts` SYSTEM_PROMPT 에 반영한다. (이 파일은 제안만, 프롬프트는 안 건드림)
 
+
+> ✅ 2026-09-19: (A)~(L) 전부 `supabase/functions/ai-review/index.ts` 에 반영함. 배포는 버디가 `supabase functions deploy ai-review` 실행. 배포 후 앱에 '첨삭 업데이트' 한 줄 노출 예정.
+
 ---
 
 ## 2026-09-17 (Day 4 · Zero in on)
