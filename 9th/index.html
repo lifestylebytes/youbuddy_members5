@@ -23879,16 +23879,23 @@ function ProfilePage() {
   // 4. 저장한 표현, 단어 + 유의어 + 커뮤니티 문장 (단일 단어장, 필터 탭)
   const bookmarkedEntries = [];
   const synonymEntries = [];
+  // 2026-09-19 사고: 단어 시험 '모르는 단어 저장'(bookmarks['quiz::<en>'])과 주간 테스트 오답 저장(pitch_vocab)이
+  // 여기 집계에서 빠져서, 열심히 저장했는데 단어장이 0개로 보였다. 둘 다 단어 이름으로 풀어서 같이 센다.
+  const __extraWords = new Set();
+  try {
+    Object.keys(state.bookmarks || {}).forEach((k) => { if (state.bookmarks[k] && k.indexOf('quiz::') === 0) __extraWords.add(k.slice(6).toLowerCase().trim()); });
+    (Array.isArray(state.pitch_vocab) ? state.pitch_vocab : []).forEach((v) => { if (v && v.word) __extraWords.add(String(v.word).toLowerCase().trim()); });
+  } catch (e) {}
   CHALLENGE.weeks.forEach(w => {
     w.days.forEach(dy => {
       dy.words.forEach((word, idx) => {
         const key = `d${dy.day}-${idx}`;
-        if (state.bookmarks[key]) {
+        if (state.bookmarks[key] || __extraWords.has(String(word.en || '').toLowerCase().trim())) {
           bookmarkedEntries.push({ key, day: dy.day, weekN: w.n, word });
         }
         (word.syn || []).forEach((syn) => {
           const synKey = `${key}::${syn}`;
-          if (state.saved_syns?.[synKey]) {
+          if (state.saved_syns?.[synKey] || __extraWords.has(String(syn || '').toLowerCase().trim())) {
             synonymEntries.push({ key: synKey, day: dy.day, weekN: w.n, parent: word.en, syn });
           }
         });
