@@ -32625,7 +32625,39 @@ window.__openTodaySendBrief = function () {
   let __hasPrem = false;
   try { __hasPrem = (MEMBER_DIRECTORY || []).some((m) => m && m.tier === 'premium' && !m.isStaff && !m.isOperator); } catch (e) {}
   if (dow === 0 || dow === 6) {
-    add(dow === 6 ? '토 14:00' : '일 19:00', '버디', dow === 6 ? '주차 랩업 + 다음 주 예고 (시트 원고 사용)' : '주간 마무리 리마인드 (시트 원고 사용)', '');
+    // 주말 원고 (2026-09-19 버디: 주말에도 복사할 게 있어야 한다). 숫자는 실데이터로 계산.
+    const wkDone = Math.max(1, Math.min(4, Math.floor(cDay / 5)));   // 방금 끝난 주차
+    const lastDay = wkDone * 5;
+    const nextWk = (CHALLENGE.weeks || []).find((w) => w.n === wkDone + 1);
+    let perfect = 0, total = 0;
+    try {
+      paidMembers().forEach((m) => {
+        if (!m.registered && !m.me) return;
+        total += 1;
+        const set = m.me ? new Set(Object.keys(state.verified || {}).filter((k) => state.verified[k]).map((k) => Number(k.slice(1))))
+                         : new Set((m.verifiedDays || []).map(Number));
+        let ok = true; for (let d = 1; d <= lastDay; d += 1) if (!set.has(d)) { ok = false; break; }
+        if (ok) perfect += 1;
+      });
+    } catch (e) {}
+    const wkCount = ['', '1주', '2주', '3주', '4주'][wkDone] || (wkDone + '주');
+    const wrap = '여러분~~, ' + wkCount + '가 지났습니다! 🎉\n그리고 놀라운 사실…!\nDay 1부터 Day ' + lastDay + '까지 하루도 안 빠지신 분이 ' + perfect + '분이세요.\n'
+      + wkCount + ' 연속으로 매일 뭔가를 한다는 거… 진짜 어려운 일이잖아요?!\n그거 해내신 겁니다 👏\n\n'
+      + '그리고 빠진 날이 있는 분들께도 꼭 드리고 싶은 말이,\n유비챌은 마감이 없어요. ㅎㅎ\n지금 채워도 그날 인증은 가능해요~! (보드에 베이지색으로 표시)\n주말에 한두 개만 채워두시면 다음 주가 훨씬 가벼워져요 :)\n→ 보상은 18일 이상 채워주셔야 pdf 나갑니다!\n\n'
+      + '📌 주말에 딱 두 가지만!\n1) <Week ' + wkDone + ' 주간 테스트> 아직이시면 10분만 (앱 [내 학습])\n   틀린 단어는 자동으로 [내 약점 복습]에 모여요.\n2) 빠진 날 있으면 하나만 채우기\n\n'
+      + (nextWk ? ('다음 주 얘기도 살짝 해드리면…\n' + (wkDone + 1) + '주차는 <' + (nextWk.subtitle || nextWk.title) + '>예요.\n솔직히 제일 쓸 일 많은 표현들입니다 ㅎㅎ\n\n') : '')
+      + (wkDone === 2 ? '그리고 통계상 3주차가 제일 고비예요.\n그래서 미리 약속 하나 드릴게요.\n힘들면 그날은 1번 단어 하나만 하세요. 그것도 인증입니다.\n\n' : '')
+      + '여기까지 온 분들은 이미 습관이 절반 넘게 잡히신 거예요.\n푹 쉬시고 월요일에 만나요 🧡';
+    const satReview = '이번 주 표현 15개, 다 기억나세요? 🤔\n솔직히 다 안 나는 게 정상이에요 ㅎㅎ\n\n주말에 딱 5분만 써보세요.\n홈 [오늘의 학습 열기] 바로 아래 <오늘 단어시험 다시 보기>\n\n월요일에 새 단어가 또 들어오니까,\n그 전에 한 번 훑어두면 머리가 훨씬 가벼워요!\n(이미 인증을 완료한 후라면, 인증에는 영향을 주지 않습니다)';
+    const sunWrap = '내일 월요일, Day ' + (lastDay + 1) + ' 시작이에요 :)\n\n주말에 채우신 분들 계셨죠? 보드에 다 들어갔어요 👏\n아직 빠진 날 있으면 오늘 밤에 하나만 채워두세요. 마감 없어요!\n\n그리고 Week ' + wkDone + ' 주간 테스트 아직이시면 오늘이 딱 좋아요. 10분이면 끝나요.\n\n'
+      + (nextWk ? ('내일부터 ' + (wkDone + 1) + '주차 <' + (nextWk.subtitle || nextWk.title) + '>로 갑니다.\n') : '')
+      + '푹 쉬시고 아침에 만나요 🧡';
+    if (dow === 6) {
+      add('토 14:00', '버디', '주차 랩업 + 다음 주 예고 · Week ' + wkDone + ' (개근 ' + perfect + '/' + total + ' 자동 계산)', wrap);
+      add('토 19:30', '버디', '주말 복습 리마인드 · Week ' + wkDone, satReview);
+    } else {
+      add('일 19:00', '버디', '주간 마무리 리마인드 · 내일 Day ' + (lastDay + 1), sunWrap);
+    }
   } else {
     // 전날 인증률 공지 (2026-09-09 피드백): 어제 Day 인증율 + 미인증 명단 + 동기부여 5줄
     {
@@ -32694,8 +32726,8 @@ window.__openTodaySendBrief = function () {
       if (tipBody) add(seniorBody ? '15:00' : '12:30', '버디', '오늘의 앱 팁 · Day ' + cDay, tipBody);
     }
     add('19:00', '버디', '한 스푼 더 · Day ' + cDay, spBody);
-    if (cDay === 3 || cDay === 5 || cDay === 7 || cDay === 11 || cDay === 14 || cDay === 18) {
-      add('19:30', '버디', '단어 복습 리마인드 ' + '①②③④⑤⑥'.charAt([3,5,7,11,14,18].indexOf(cDay)) + ' · Day ' + cDay, (OPS_TALK.review || {})[String(cDay)] || '');
+    if (cDay === 3 || cDay === 7 || cDay === 11 || cDay === 14 || cDay === 18) { // Day 5 분은 토요일 '주말 복습 리마인드'로 이동 (2026-09-19)
+      add('19:30', '버디', '단어 복습 리마인드 · Day ' + cDay, (OPS_TALK.review || {})[String(cDay)] || '');
     }
     add('20:30', '매니저', '카톡 녹음 확인 → 앱 체크', '');
     try { add('21:00', '매니저', '미인증 명단 리마인드 · Day ' + cDay, vsCopyText(cDay, 'basic', true)); } catch (e) { add('21:00', '매니저', '미인증 명단 리마인드 (📋 인증 상태 복사 버튼으로)', ''); }
