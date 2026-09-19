@@ -8,6 +8,59 @@
 
 ---
 
+## 2026-09-19 (Day 5 · Align on)
+
+### 1. 오늘 들어온 피드백 요약: 👍 1 · 👎 0
+
+- Chloe (Align on, 👍, 09-18 22:57 KST):
+  원문 "Let's align on before report to CEO."
+  교정 "Let's align on the details before reporting to the CEO."
+  why "한국어 의도를 살려 뒷부분을 보탰고, 전치사와 어순을 자연스럽게 고쳤어요."
+
+교정 자체는 맞다. align on 뒤에 목적어가 없었고, before 뒤 동사형과 관사가 빠져 있었으니 "fixed" 가 정답. 멤버도 만족.
+
+### 2. 👍 인데도 걸리는 것
+
+문제는 이번에도 why 다. 실제 diff 와 why 를 대보면 세 가지 중 맞는 게 하나도 없다.
+
+| why 가 말한 것 | 실제로 한 일 | 판정 |
+|---|---|---|
+| "뒷부분을 보탰고" | 문장 끝이 아니라 중간에 목적어 "the details" 를 넣음 | 절을 덧붙인 게 아니라 목적어 삽입. "뒷부분" 아님 |
+| "전치사" | before 는 그대로. 바뀐 건 그 뒤 report → reporting (동명사) 와 the 추가 | 전치사 변경 0건. 동사형·관사를 전치사라고 부름 |
+| "어순" | 단어 순서 바뀐 것 없음 | 없는 변경을 이름 붙임 |
+
+멤버 입장에서는 "전치사·어순이 틀렸구나" 로 배우게 된다. 실제 배워야 할 건 (1) align on 은 목적어가 필요하다 (2) before + 동명사 (3) the CEO 인데 셋 다 why 에 없다.
+
+단, 이 건은 09-18 22:57 에 들어온 것이라 (H) 반영 커밋(9f0ef1c) 이전 프롬프트의 결과다. (H) 가 안 먹힌 증거가 아니라 (H) 가 필요했던 증거. 배포 후 들어오는 건부터가 진짜 검증.
+
+### 3. 반복되는 실패 패턴
+
+- **why 정형구 5일 연속** (09-15 ~ 09-18). "한국어 의도를 살려 뒷부분을 보탰" 로 시작하는 why 가 이제 5건. 전부 배포 전 건이므로 새 제안보다 **배포 확인이 먼저**.
+- **(H) 의 빈틈 하나.** (H) 는 "뒷부분을 보탰어요 는 절을 덧붙였을 때만 / 전치사 는 전치사가 바뀌었을 때만" 까지 막았다. 그런데 오늘 케이스는 (a) 목적어를 문장 중간에 끼워 넣은 것, (b) 전치사 뒤 동사형만 바뀐 것을 어떻게 불러야 하는지가 비어 있다. 모델이 "뭔가 넣었으니 뒷부분", "before 근처를 고쳤으니 전치사" 로 뭉뚱그릴 여지가 남는다.
+
+### 4. SYSTEM_PROMPT 수정 제안 (영문 그대로, 위치 표시)
+
+**(M) FIELDS "why" 항목, (H) 의 "say '어순을 바꿨어요' if you reordered." 바로 뒤에 추가** (변경 종류별 이름 고정):
+
+```
+Name each change by what actually moved: an object inserted after the target phrase ("align on" -> "align on the details") is "목적어를 넣었어요", not "뒷부분을 보탰어요"; a verb form fixed after a preposition ("before report" -> "before reporting") is "동명사", not "전치사"; an added article is "관사". List only changes that appear in the diff. A "why" that names three fix types when the diff shows one is a failure.
+```
+
+**(N) STEP 3 "fixed" 불릿, "reusing the student's own wording" 문장 뒤에 추가** (빈 목적어를 채울 때 출처 표시):
+
+```
+If the target phrase is missing a required object and the Korean does not supply one, fill it with the most neutral choice ("the details", "this", "the plan") and say in "why" that the object was missing, so the learner knows the gap was theirs to fill, not a style choice.
+```
+
+### 5. 제안 외 메모
+
+- 오늘 새 건 1개, 👎 0. 제안 2줄 (M)(N).
+- **배포 확인 요청.** 09-19 커밋 9f0ef1c 가 `supabase functions deploy ai-review` 로 올라갔는지 확인. 올라가기 전 피드백은 전부 구 프롬프트 결과라 이 파일의 09-15 ~ 09-19 분석이 다 같은 얘기를 반복하게 된다.
+- 로그에 한국어 원문이 안 남는다. "the details" 가 멤버 한국어에 있던 말인지 AI 가 지어낸 건지 판단이 안 됨. `collect_ai_feedback.py` 가 korean 필드도 같이 저장하면 (N) 같은 판단이 정확해진다. (프롬프트가 아니라 수집 스크립트 얘기라 여기엔 메모만.)
+- 사용자 메시지(`buildSentenceUserMessage`) 에 아직 "Edit aggressively for naturalness" 가 남아 있다. SYSTEM_PROMPT 의 "If your only edit would be a synonym swap or a tone polish, revert to verbatim" 과 정면으로 부딪히는 문장. (A)~(L) 이 시스템 프롬프트에만 들어갔다면 이 한 줄이 계속 반대 방향으로 당긴다. 다음 반영 때 "Edit for correctness, not for polish" 정도로 바꾸는 것 검토.
+
+---
+
 ## 2026-09-17 (Day 4 · Zero in on)
 
 ### 1. 오늘 들어온 피드백 요약: 👍 1 · 👎 0
