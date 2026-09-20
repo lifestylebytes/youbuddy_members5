@@ -130,9 +130,3 @@
 - 교정: Let's zero in on resolving our differences regarding this change and reach a consensus.
 - why: 한국어 의도를 살려 뒷부분을 보탰어요. '이견을 하나로 좁히다' 의미를 명확히 했습니다.
 
-<!--id:김나연|d5-0|2026-09-18T13:57:35.487Z-->
-## 👍 Chloe · Align on · 2026-09-18T13:57
-- 원문: Let's align on before report to CEO. 
-- 교정: Let's align on the details before reporting to the CEO.
-- why: 한국어 의도를 살려 뒷부분을 보탰고, 전치사와 어순을 자연스럽게 고쳤어요.
-

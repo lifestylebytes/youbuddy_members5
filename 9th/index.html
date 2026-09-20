@@ -1497,7 +1497,7 @@ const MEMBER_DIRECTORY = [
   { code: '03', id: 'b2', name: '진', color: 'cream', tier: 'basic' },  // jin
   { code: '04', id: 'b3', name: '정주혜', color: 'cream', tier: 'basic' },  // Hera
   { code: '05', id: 'b4', name: '최유리', color: 'cream', tier: 'basic' },  // Olivia
-  { code: '06', id: 'b5', name: '박은실', color: 'cream', tier: 'basic' },  // Silvia
+  { code: '06', id: 'b5', name: '박은실', color: 'cream', tier: 'basic', tzRanges: [{ tz: '-15h', from: '2026-09-24', to: '2026-09-28' }] },  // Silvia · 9/24~9/28 출장 시차 (본인 요청 2026-09-21)
   { code: '07', id: 'b6', name: '김예진', color: 'cream', tier: 'basic' },  // yejin
   { code: '08', id: 'b7', name: '이보경', color: 'cream', tier: 'basic' },  // Hailey
   { code: '09', id: 'b8', name: '이한나', color: 'cream', tier: 'basic' },  // 바비베어
@@ -4035,9 +4035,23 @@ function timezoneShiftLabel(offsetMinutes = effectiveTimezoneOffsetMinutes()) {
 
 // 운영자 지정 시차(MEMBER_DIRECTORY.tz)를 state 에 강제 적용. 해외 거주 멤버용.
 // 멤버 본인은 시차 못 바꾸는 구조라, 디렉토리 값이 진실이 되도록 로그인/온보딩 때 덮어씀.
+// 기간 한정 시차(출장·여행)를 먼저 본다. tzRanges: [{ tz:'-15h', from:'2026-09-24', to:'2026-09-28' }]
+// 한국 날짜 기준으로 from ~ to 사이일 때만 적용되고, 지나면 자동으로 평소 시차(tz)로 돌아온다.
+// 손으로 넣었다 빼는 걸 잊어서 멤버 Day 가 어긋나는 사고를 막으려고 범위로 받는다. (2026-09-21)
+function memberTzForToday(src) {
+  if (!src) return '';
+  try {
+    const today = koreaTodayStr();
+    const list = Array.isArray(src.tzRanges) ? src.tzRanges : [];
+    const hit = list.find((r) => r && r.tz && (!r.from || r.from <= today) && (!r.to || today <= r.to));
+    if (hit) return hit.tz;
+  } catch (e) {}
+  return src.tz || '';
+}
 function applyMemberTzOverride(src) {
-  if (!src || !src.tz) return;
-  const t = parseTimezoneShift(src.tz);
+  const raw = memberTzForToday(src);
+  if (!raw) return;
+  const t = parseTimezoneShift(raw);
   if (t && t.ok) {
     state.timezoneOffsetText = t.text;
     state.timezoneOffsetMinutes = t.offsetMinutes;
@@ -4161,7 +4175,7 @@ function memberTimezoneText(member) {
   const dirEntry = (typeof MEMBER_DIRECTORY !== 'undefined')
     ? MEMBER_DIRECTORY.find((d) => d.name === member.name || d.name === member.member_name)
     : null;
-  const dirTz = dirEntry ? dirEntry.tz : '';
+  const dirTz = dirEntry ? memberTzForToday(dirEntry) : '';
   // 운영자 지정 시차(dirTz)가 서버 저장값보다 우선 (멤버가 +0h로 잘못 입력했어도 -14h가 이기게).
   return dirTz || member.timezoneOffsetText || member.timezone_text || '';
 }
