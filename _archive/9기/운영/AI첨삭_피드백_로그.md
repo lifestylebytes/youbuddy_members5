@@ -143,3 +143,10 @@
 - 교정: Let's carve out the bandwidth of one person for the Q3 project.
 - why: 주어-동사 일치와 관사, 어순을 교정했어요.
 
+<!--id:정주혜|d7-2|2026-09-21T23:15:13.753Z-->
+## 👍 Hera · Deliverable · 2026-09-21T23:15
+- 한 줄: 동명사 계속 헷갈려서 도움됨
+- 원문: What are the deliverables before kick off the next project 
+- 교정: What are the deliverables we must complete before kicking off the next project?
+- why: 전치사와 동명사 형태를 교정하고, 문장 끝에 반드시 완료해야 하는 의미를 명확히 했어요.
+

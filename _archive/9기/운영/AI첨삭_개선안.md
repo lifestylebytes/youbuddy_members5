@@ -60,6 +60,63 @@ When the student drops a possessive ("one person bandwidth"), restore the posses
 - `buildSentenceUserMessage` 의 "Edit aggressively for naturalness" 는 여전히 살아 있다 (index.ts:163). 오늘 of 구문 교정이 나온 경로로 의심된다. "aggressively" 가 "더 격식 있게 고쳐라" 로 읽히면 (K)(P) 를 넣어도 계속 반대로 당긴다. 다음 반영 때 이 한 줄을 "Edit for correctness and for what the student will actually say in a meeting" 으로 바꾸는 것 검토.
 - 로그에 한국어 원문이 안 남는 문제는 그대로 (09-19 메모 참고). `carve out one person bandwidth` 가 "한 사람 몫의 여력" 이었는지 "한 명을 빼 달라" 였는지에 따라 정답 문장이 달라지는데 판단할 근거가 없다.
 
+### 6. 추가 수집 (같은 날 2차 실행 · Day 7 Deliverable)
+
+09-22 1차 실행 이후 1건 더 들어왔다. 이번 실행 분: 👍 1 · 👎 0 (오늘 누적 👍 2 · 👎 0).
+
+- Hera (Deliverable, 👍, 09-21 23:15 KST): "동명사 계속 헷갈려서 도움됨"
+  원문 "What are the deliverables before kick off the next project"
+  교정 "What are the deliverables we must complete before kicking off the next project?"
+  why "전치사와 동명사 형태를 교정하고, 문장 끝에 반드시 완료해야 하는 의미를 명확히 했어요."
+
+**교정 자체는 오늘 두 건 중 더 낫다.** `before kick off` → `before kicking off` 는 이 멤버가 실제로 막혔던 지점이고, 한 줄 피드백에서 본인이 "동명사"라고 정확히 집어냈다. 학습이 일어난 게 보이는 케이스다.
+
+**그런데 why 의 라벨은 또 틀렸다.** diff 를 세어 보면:
+
+| why 가 말한 것 | 실제로 한 일 | 판정 |
+|---|---|---|
+| "전치사를 교정" | before 는 원문 그대로다. 바뀐 건 before 뒤의 동사 형태 | 없는 변경. Carve out 건의 "주어-동사 일치" 와 같은 유형 |
+| "동명사 형태" | kick off → kicking off | 맞음. 멤버가 반응한 것도 이것 하나 |
+| "반드시 완료해야 하는 의미를 명확히" | we must complete 를 끼워 넣음 | 원문에 없던 말. 아래 참고 |
+
+변경 1.5개에 라벨 3개. 오늘 1차에서 (O) 로 잡으려던 "라벨 개수 부풀리기"가 같은 날 두 건 연속으로 재현됐다. (O) 를 반영해야 하는 근거가 하나 더 생겼다.
+
+**`we must complete` 는 군더더기로 본다.** "What are the deliverables before kicking off the next project?" 만으로 이미 완결된 질문이고, 회의에서 실제로 하는 말도 이쪽이다. 한국어 원문에 "반드시 완료해야 하는"이 있었을 가능성은 있는데, 로그에 한국어가 안 남아서 확인할 수 없다 (09-19·09-22 메모의 같은 문제).
+
+### 7. 이번 실행에서 새로 찾은 원인
+
+**`index.ts:164` 가 문법 용어 메뉴판을 직접 주고 있다.** `buildSentenceUserMessage` 의 why 지시가 이렇게 끝난다:
+
+> otherwise briefly explain what type of fix you made (e.g. "한국어 표현 번역 / 어순 / 전치사 교정 / 주어-동사 일치 등").
+
+오늘 두 건의 잘못된 라벨이 정확히 이 목록 안에 있다: Carve out 은 "주어-동사 일치", Deliverable 은 "전치사 교정". (H) 로 FIELDS 쪽(line 94)의 오용은 막았는데, line 164 가 옆에서 같은 단어를 예시로 계속 흘려보내고 있었다. 개별 단어를 금지하는 것보다 **목록 자체를 없애는 게 먼저**다.
+
+### 8. SYSTEM_PROMPT 수정 제안 추가 (영문 그대로, 위치 표시)
+
+**(Q) `index.ts:164` 의 "why" 줄 전체를 교체** (문법 용어 예시 목록 제거):
+
+```
+- "why": 1-2 Korean sentences (≤140 chars). **If unchanged, say so warmly ("이미 자연스러워요! 그대로 가셔도 됩니다.")** If you changed something, describe only the edits that are actually in the diff, naming the words themselves ("kick off 를 kicking off 로 바꿨어요"). Do not choose a label from a list of grammar categories, and do not name a category unless that exact thing changed.
+```
+
+**(R) FIELDS "why" 항목 (line 94), "say "전치사" only if a preposition changed (articles are 관사, not 전치사)" 바로 뒤에 삽입**:
+
+```
+A preposition that stayed in place is not a preposition fix: if you only changed the word form that follows it ("before kick off" -> "before kicking off"), call that 동명사 형태, not 전치사.
+```
+
+**(S) STEP 3 "fixed" 불릿, (P) 다음 줄에 추가** (불필요한 수식절 삽입 방지):
+
+```
+Do not insert a modifier clause the student did not write and the Korean does not require ("the deliverables" -> "the deliverables we must complete"). If the sentence already asks a complete question, leave it complete.
+```
+
+### 9. 제안 외 메모 (2차)
+
+- 이번 실행 새 건 1개, 👎 0. 제안 3줄 (Q)(R)(S). 미반영 제안 누적: (M)(N)(O)(P)(Q)(R)(S) 일곱 줄.
+- (Q) 는 (O) 보다 먼저 넣는 게 효과가 클 수 있다. (O) 가 "개수를 세라"는 규칙인데, 세고 나서 고를 단어 목록이 line 164 에 그대로 남아 있으면 계속 그 안에서 고른다.
+- 1차 메모의 `Edit aggressively for naturalness` (line 163) 건, 오늘 `we must complete` 삽입도 같은 경로로 의심된다. (S) 와 함께 검토.
+
 ---
 
 ## 2026-09-19 (Day 5 · Align on)
