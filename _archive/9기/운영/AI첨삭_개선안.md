@@ -8,6 +8,113 @@
 
 ---
 
+## 2026-09-22 (Day 7 · Carve out)
+
+### 1. 오늘 들어온 피드백 요약: 👍 1 · 👎 0
+
+- Hera (Carve out, 👍, 09-21 23:12 KST): "문법교정"
+  원문 "Let's carve out one person bandwidth  for the Q3 project"
+  교정 "Let's carve out the bandwidth of one person for the Q3 project."
+  why "주어-동사 일치와 관사, 어순을 교정했어요."
+
+**먼저 좋은 소식.** why 가 "한국어 의도를 살려 뒷부분을 보탰고" 로 시작하지 않는다. 09-15부터 5건 연속이던 정형구가 처음으로 깨졌다. (H) 가 배포까지 올라갔다는 신호로 본다.
+
+### 2. 👍 인데도 걸리는 것
+
+정형구는 깨졌는데, 자리를 다른 정형구가 채웠다. 실제 diff 는 딱 하나다: `one person bandwidth` → `the bandwidth of one person`.
+
+| why 가 말한 것 | 실제로 한 일 | 판정 |
+|---|---|---|
+| "주어-동사 일치" | 동사는 carve out 하나, 형태 그대로. 애초에 "Let's ~" 는 일치시킬 주어가 없는 청유문 | 없는 변경. 이번 로그에서 제일 명백한 오류 |
+| "관사" | the 를 넣은 건 맞다 | 맞음 |
+| "어순" | of 구문으로 바꾸면서 순서가 바뀐 건 맞다 | 맞음 |
+
+(H) 는 "뒷부분을 보탰어요 / 전치사 / 어순" 세 단어의 오용을 막았다. 그런데 모델은 단어만 바꿔서 같은 짓을 한다: 문법 용어를 세 개 나열하는 습관 자체가 안 잡혔다. 변경 1개에 라벨 3개.
+
+**교정 내용에도 짚을 게 있다.** 멤버가 틀린 건 소유격 아포스트로피 하나다 (`one person's bandwidth`). AI 는 그걸 `the bandwidth of one person` 이라는 of 구문으로 우회했다. 문법적으로는 맞지만 회의에서 쓰기엔 딱딱하고, 정작 멤버가 배워야 할 `person's` 는 화면에 나타나지도 않는다. 실무에서 더 흔한 건 `carve out bandwidth for one person` 쪽이다. 프롬프트가 "avoid stiff phrasing" 이라고 써 뒀는데 of 구문은 그 필터를 통과해 버린다.
+
+### 3. 반복되는 실패 패턴
+
+- **정형구 자리바꿈.** 09-15~09-18 "한국어 의도를 살려 뒷부분을 보탰고, 전치사와 어순을" → 09-21 "주어-동사 일치와 관사, 어순을". 표현은 새것인데 구조가 같다 (문법 용어 3개 + "교정했어요"). 개별 단어를 금지하는 방식으로는 계속 새 조합이 나온다. **"diff 에 있는 개수만큼만 말하라"** 로 규칙의 층위를 올려야 한다.
+- **소유격을 of 구문으로 회피.** 한국인이 제일 자주 빠뜨리는 게 `'s` 인데, 그걸 안 가르치고 돌아가는 교정이 나온다. 09-17 `over → regarding`, 09-15 `go over → review` 와 같은 계열: 문법적으로 맞는 쪽으로 가되 멤버가 실제로 쓸 문장에서는 멀어진다.
+- **(M)(N) 미반영.** 09-19 제안 두 줄은 아직 `index.ts` 에 없다 (grep 으로 "목적어를 넣었어요" 0건). 오늘 (O) 와 성격이 붙어 있으니 같이 넣는 게 낫다.
+
+### 4. SYSTEM_PROMPT 수정 제안 (영문 그대로, 위치 표시)
+
+**(O) FIELDS "why" 항목, (H) 의 "say '어순을 바꿨어요' if you reordered." 바로 뒤에 추가** (라벨 개수를 diff 개수에 묶음):
+
+```
+Count the edits in the diff before writing "why", then name exactly that many. One edit gets one label; do not pad the sentence out to three grammar terms because it sounds thorough. Never write "주어-동사 일치" unless a verb form changed to agree with its subject: an imperative or a "Let's ..." sentence has no subject-verb agreement to fix.
+```
+
+**(P) STEP 3 "fixed" 불릿, (N) 뒤 (또는 "Never swap one correct word for another" 다음 줄)에 추가** (소유격 우회 방지):
+
+```
+When the student drops a possessive ("one person bandwidth"), restore the possessive itself ("one person's bandwidth") or use a "for" phrase ("bandwidth for one person"). Do not rewrite it as "the X of Y": it is grammatical but stiff for a meeting, and it hides the apostrophe the student actually needed. The same holds for other small function-word gaps: show the missing piece in place rather than restructuring around it.
+```
+
+### 5. 제안 외 메모
+
+- 오늘 새 건 1개, 👎 0. 제안 2줄 (O)(P). 미반영 제안은 (M)(N)(O)(P) 네 줄.
+- **09-19 분석이 커밋 안 돼 있었다.** 어제 실행 때 `.git/index.lock` 이 0바이트로 남아 있어서 `git add` 가 조용히 실패했고, 커밋 5e759a6 에는 메시지만 들어가고 내용이 안 들어갔다. 오늘 lock 을 지우고 09-19 분석 + 오늘 분석을 같이 커밋한다.
+- `buildSentenceUserMessage` 의 "Edit aggressively for naturalness" 는 여전히 살아 있다 (index.ts:163). 오늘 of 구문 교정이 나온 경로로 의심된다. "aggressively" 가 "더 격식 있게 고쳐라" 로 읽히면 (K)(P) 를 넣어도 계속 반대로 당긴다. 다음 반영 때 이 한 줄을 "Edit for correctness and for what the student will actually say in a meeting" 으로 바꾸는 것 검토.
+- 로그에 한국어 원문이 안 남는 문제는 그대로 (09-19 메모 참고). `carve out one person bandwidth` 가 "한 사람 몫의 여력" 이었는지 "한 명을 빼 달라" 였는지에 따라 정답 문장이 달라지는데 판단할 근거가 없다.
+
+---
+
+## 2026-09-19 (Day 5 · Align on)
+
+### 1. 오늘 들어온 피드백 요약: 👍 1 · 👎 0
+
+- Chloe (Align on, 👍, 09-18 22:57 KST):
+  원문 "Let's align on before report to CEO."
+  교정 "Let's align on the details before reporting to the CEO."
+  why "한국어 의도를 살려 뒷부분을 보탰고, 전치사와 어순을 자연스럽게 고쳤어요."
+
+교정 자체는 맞다. align on 뒤에 목적어가 없었고, before 뒤 동사형과 관사가 빠져 있었으니 "fixed" 가 정답. 멤버도 만족.
+
+### 2. 👍 인데도 걸리는 것
+
+문제는 이번에도 why 다. 실제 diff 와 why 를 대보면 세 가지 중 맞는 게 하나도 없다.
+
+| why 가 말한 것 | 실제로 한 일 | 판정 |
+|---|---|---|
+| "뒷부분을 보탰고" | 문장 끝이 아니라 중간에 목적어 "the details" 를 넣음 | 절을 덧붙인 게 아니라 목적어 삽입. "뒷부분" 아님 |
+| "전치사" | before 는 그대로. 바뀐 건 그 뒤 report → reporting (동명사) 와 the 추가 | 전치사 변경 0건. 동사형·관사를 전치사라고 부름 |
+| "어순" | 단어 순서 바뀐 것 없음 | 없는 변경을 이름 붙임 |
+
+멤버 입장에서는 "전치사·어순이 틀렸구나" 로 배우게 된다. 실제 배워야 할 건 (1) align on 은 목적어가 필요하다 (2) before + 동명사 (3) the CEO 인데 셋 다 why 에 없다.
+
+단, 이 건은 09-18 22:57 에 들어온 것이라 (H) 반영 커밋(9f0ef1c) 이전 프롬프트의 결과다. (H) 가 안 먹힌 증거가 아니라 (H) 가 필요했던 증거. 배포 후 들어오는 건부터가 진짜 검증.
+
+### 3. 반복되는 실패 패턴
+
+- **why 정형구 5일 연속** (09-15 ~ 09-18). "한국어 의도를 살려 뒷부분을 보탰" 로 시작하는 why 가 이제 5건. 전부 배포 전 건이므로 새 제안보다 **배포 확인이 먼저**.
+- **(H) 의 빈틈 하나.** (H) 는 "뒷부분을 보탰어요 는 절을 덧붙였을 때만 / 전치사 는 전치사가 바뀌었을 때만" 까지 막았다. 그런데 오늘 케이스는 (a) 목적어를 문장 중간에 끼워 넣은 것, (b) 전치사 뒤 동사형만 바뀐 것을 어떻게 불러야 하는지가 비어 있다. 모델이 "뭔가 넣었으니 뒷부분", "before 근처를 고쳤으니 전치사" 로 뭉뚱그릴 여지가 남는다.
+
+### 4. SYSTEM_PROMPT 수정 제안 (영문 그대로, 위치 표시)
+
+**(M) FIELDS "why" 항목, (H) 의 "say '어순을 바꿨어요' if you reordered." 바로 뒤에 추가** (변경 종류별 이름 고정):
+
+```
+Name each change by what actually moved: an object inserted after the target phrase ("align on" -> "align on the details") is "목적어를 넣었어요", not "뒷부분을 보탰어요"; a verb form fixed after a preposition ("before report" -> "before reporting") is "동명사", not "전치사"; an added article is "관사". List only changes that appear in the diff. A "why" that names three fix types when the diff shows one is a failure.
+```
+
+**(N) STEP 3 "fixed" 불릿, "reusing the student's own wording" 문장 뒤에 추가** (빈 목적어를 채울 때 출처 표시):
+
+```
+If the target phrase is missing a required object and the Korean does not supply one, fill it with the most neutral choice ("the details", "this", "the plan") and say in "why" that the object was missing, so the learner knows the gap was theirs to fill, not a style choice.
+```
+
+### 5. 제안 외 메모
+
+- 오늘 새 건 1개, 👎 0. 제안 2줄 (M)(N).
+- **배포 확인 요청.** 09-19 커밋 9f0ef1c 가 `supabase functions deploy ai-review` 로 올라갔는지 확인. 올라가기 전 피드백은 전부 구 프롬프트 결과라 이 파일의 09-15 ~ 09-19 분석이 다 같은 얘기를 반복하게 된다.
+- 로그에 한국어 원문이 안 남는다. "the details" 가 멤버 한국어에 있던 말인지 AI 가 지어낸 건지 판단이 안 됨. `collect_ai_feedback.py` 가 korean 필드도 같이 저장하면 (N) 같은 판단이 정확해진다. (프롬프트가 아니라 수집 스크립트 얘기라 여기엔 메모만.)
+- 사용자 메시지(`buildSentenceUserMessage`) 에 아직 "Edit aggressively for naturalness" 가 남아 있다. SYSTEM_PROMPT 의 "If your only edit would be a synonym swap or a tone polish, revert to verbatim" 과 정면으로 부딪히는 문장. (A)~(L) 이 시스템 프롬프트에만 들어갔다면 이 한 줄이 계속 반대 방향으로 당긴다. 다음 반영 때 "Edit for correctness, not for polish" 정도로 바꾸는 것 검토.
+
+---
+
 ## 2026-09-17 (Day 4 · Zero in on)
 
 ### 1. 오늘 들어온 피드백 요약: 👍 1 · 👎 0
