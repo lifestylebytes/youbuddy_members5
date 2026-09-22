@@ -117,6 +117,57 @@ Do not insert a modifier clause the student did not write and the Korean does no
 - (Q) 는 (O) 보다 먼저 넣는 게 효과가 클 수 있다. (O) 가 "개수를 세라"는 규칙인데, 세고 나서 고를 단어 목록이 line 164 에 그대로 남아 있으면 계속 그 안에서 고른다.
 - 1차 메모의 `Edit aggressively for naturalness` (line 163) 건, 오늘 `we must complete` 삽입도 같은 경로로 의심된다. (S) 와 함께 검토.
 
+### 10. 3차 수집 (Day 7 Deliverable / Bandwidth)
+
+09-22 2차 실행 이후 2건 더 들어왔다. 이번 실행 분: 👍 1 · 👎 1 (오늘 누적 👍 3 · 👎 1).
+
+- Kate (Deliverable, 👍, 09-22 03:49 KST): "'왜이렇게 고쳤을까요'첨삭 칸에 글자수 제한이 있는것 같아요! ai가 설명해주다가 내용이 끊겼어요"
+  원문 "You should clarify the each action item and deadline in order to align on deliverables."
+  교정 "You should clarify each action item's deadline to ensure we align on the deliverables and reach mutual agreement on the outputs."
+  why "관사 'the' 삭제, 명확한 의미 전달 위해 'reach mutual agreement' 추가, 어순과 전치사 교정했어요."
+
+- Yujin (Bandwidth, 👎, 09-22 13:15 KST): "삭제된 표현에 대한 이유가 있으면 좋을 것 같아요!"
+  원문 "While having hectic week with events, do you have the bandwidth to review the byline?"
+  교정 "I know you're busy with events right now, but do you have the bandwidth to review the byline this week?"
+  why "어순과 전치사를 자연스럽게 고쳤고, 뒷부분을 보탰어요. 질문 형태 유지했습니다."
+
+### 11. 👎 사유 판단 (Yujin 건)
+
+원문에서 진짜 고칠 건 관사 하나다. `having hectic week` 에 `a` 가 빠졌다. `While having a hectic week with events, do you have the bandwidth...` 처럼 관사만 넣어도 문장이 완성됐다. AI 가 한 일은 그게 아니다.
+
+| 한 일 | 판정 |
+|---|---|
+| `While having hectic week with events` 절 전체 삭제 | 최소 수정이 아니라 절 통째 교체. 관사 하나 빠졌다고 절을 갈아엎을 이유가 없다 |
+| `I know you're busy with events right now, but` 로 교체 | 새 절 신설. 구조가 분사구문에서 접속사 절로 바뀌며 문장 톤 자체가 달라짐 |
+| why "어순과 전치사를 자연스럽게 고쳤고" | 거짓. 어순도 전치사도 안 바뀌었다. 절이 통째로 사라지고 새 절이 들어간 것 |
+| why "뒷부분을 보탰어요" | 절반만 맞음. 뒷부분(this week)은 보탰지만, 앞 절이 삭제됐다는 말이 어디에도 없음 |
+
+멤버가 정확히 이 지점을 짚었다: "삭제된 표현에 대한 이유가 있으면 좋겠다." 지금까지 (M)~(S) 가 잡아온 건 전부 "라벨이 실제 변경과 다르다" 계열인데, 이번 건은 그중에서도 **변경 종류 자체가 목록에 없는 경우**다. 지금 프롬프트의 why 규칙은 "보탰다 / 전치사 / 어순 / 관사 / 동명사 / 목적어를 넣었다"까지만 이름이 있고, "통째로 바꿨다·지웠다"를 부르는 말이 없다. 없는 이름 중에 제일 가까운 걸 억지로 갖다 붙이다 보니 "어순"이 됐다.
+
+이건 과교정 계열과도 겹친다. Leo(구동사→단일동사), Hera Push back(문장 통째 재작성), 오늘 1차 Deliverable(`we must complete` 삽입)과 같은 줄기: 관사 하나로 끝날 수정을 절 전체 교체로 처리한다. 최소 수정 원칙이 STEP 3에 없다.
+
+### 12. SYSTEM_PROMPT 수정 제안 (영문 그대로, 위치 표시)
+
+**(T) STEP 3, "The result must read like something a colleague could actually say." 문장 앞에 추가** (최소 수정 우선):
+
+```
+Prefer the smallest fix that solves the actual error. If a clause has one small problem (a missing article, a wrong verb form, a dropped word), fix that piece in place; do not discard the whole clause and write a new one. Replace a whole clause only when it is not salvageable as written (wrong meaning, broken beyond a one- or two-word fix).
+```
+
+**(U) FIELDS "why" 항목, (R) 뒤에 삽입** (절 삭제·교체를 이름으로 부르기):
+
+```
+If you deleted or fully replaced a clause instead of fixing it in place, say so plainly ("having hectic week 절을 지우고 다른 문장으로 바꿨어요"). Do not describe a clause replacement as "어순" or "전치사": those names are reserved for cases where the same words moved, or a single preposition changed. A missing article does not justify rewriting the whole clause around it (see the rule above): fix the article and say "관사를 넣었어요".
+```
+
+### 13. 제안 외 메모 (3차)
+
+- Kate 님 피드백은 👍 지만 프롬프트 문제가 아니라 데이터 수집 사각지대를 하나 찾았다. "'왜이렇게 고쳤을까요'" 는 로그에 안 남는 "deep" 필드(프리미엄 전용, 3문장·300자 이내)를 가리키는 것으로 보인다. `collect_ai_feedback.py` 가 `original/corrected/why` 만 저장하고 `deep` 은 저장하지 않아서, 실제로 끊겼는지 이 로그만으로는 확인이 안 된다.
+- 다만 `index.ts:37` 의 `MAX_TOKENS = 700` 은 한 응답 안에 corrected·why·feedback(3칸)·deep(프리미엄일 때 300자)·variants(email+meeting)·rule 을 전부 담아야 한다. 한글은 토큰 효율이 영어보다 낮아서, 프리미엄 응답처럼 필드가 많이 찬 경우 700 토큰이 빠듯할 수 있다. deep 이 JSON 필드 뒷순서에 있다면 예산이 먼저 소진돼 끊길 가능성이 있다. 버디가 Kate 님 실제 화면을 다시 확인하거나, `MAX_TOKENS` 를 900~1000 정도로 올려보는 걸 권장. (SYSTEM_PROMPT 문구가 아니라 코드 상수라 여기엔 메모만 남김.)
+- 재발 확인을 위해 `collect_ai_feedback.py` 가 `deep` 필드도 같이 저장하도록 스크립트를 바꾸면 다음번엔 실제 끊김 여부를 로그로 바로 확인할 수 있다. (이것도 프롬프트 아니라 수집 스크립트 얘기.)
+- Yujin 님에게는 1:1로 "이 표현도 맞는데 AI 가 문장을 통째로 바꿔서 헷갈리셨죠, 사실 관사 a 하나만 빠졌던 거예요" 한 줄 보내면 좋겠다. 안 그러면 본인 문장이 통째로 틀렸다고 오해할 수 있다.
+- 오늘 누적 제안 (M)(N)(O)(P)(Q)(R)(S)(T)(U) 아홉 줄, 전부 미반영. 다음 배포 때 한 번에 검토 권장.
+
 ---
 
 ## 2026-09-19 (Day 5 · Align on)

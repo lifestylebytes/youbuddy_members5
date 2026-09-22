@@ -150,3 +150,17 @@
 - 교정: What are the deliverables we must complete before kicking off the next project?
 - why: 전치사와 동명사 형태를 교정하고, 문장 끝에 반드시 완료해야 하는 의미를 명확히 했어요.
 
+<!--id:류채리|d7-2|2026-09-22T03:49:14.331Z-->
+## 👍 Kate · Deliverable · 2026-09-22T03:49
+- 한 줄: '왜이렇게 고쳤을까요'첨삭 칸에 글자수 제한이 있는것 같아요! ai가 설명해주다가 내용이 끊겼어요
+- 원문: You should clarify the each action item and deadline in order to align on deliverables.
+- 교정: You should clarify each action item's deadline to ensure we align on the deliverables and reach mutual agreement on the outputs.
+- why: 관사 'the' 삭제, 명확한 의미 전달 위해 'reach mutual agreement' 추가, 어순과 전치사 교정했어요.
+
+<!--id:김유진|d7-0|2026-09-22T13:15:05.238Z-->
+## 👎 Yujin · Bandwidth · 2026-09-22T13:15
+- 한 줄: 삭제된 표현에 대한 이유가 있으면 좋을 것 같아요!
+- 원문: While having hectic week with events, do you have the bandwidth to review the byline? 
+- 교정: I know you’re busy with events right now, but do you have the bandwidth to review the byline this week?
+- why: 어순과 전치사를 자연스럽게 고쳤고, 뒷부분을 보탰어요. 질문 형태 유지했습니다.
+
