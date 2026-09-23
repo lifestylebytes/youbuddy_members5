@@ -34011,7 +34011,7 @@ function HolidayPopupModal() {
     </div>
     <div style="padding:14px 20px 0;font-size:12.5px;line-height:1.65;color:var(--ink-soft);">${h.lead || ''}</div>
     <div style="padding:6px 20px 4px;">${rows}</div>
-    <div style="padding:12px 20px 0;font-size:12.5px;color:var(--muted);text-align:center;">${escapeHtml(h.foot)}</div>
+    <div style="padding:12px 20px 0;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center;">${h.foot || ''}</div>
     <div style="padding:14px 18px 18px;"><button onclick="window.__closeHoliday()" style="width:100%;background:var(--orange);color:#fff;border:none;border-radius:14px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">알겠어요 :)</button></div>`;
   overlay.appendChild(card);
   return overlay;
