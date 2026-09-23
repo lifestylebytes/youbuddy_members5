@@ -1756,6 +1756,7 @@ const defaultState = () => ({
   pledge_popup_snooze: '',          // 다짐 팝업을 '다음에요'로 닫은 날짜(YYYY-MM-DD). 다음 날 다시 뜸. 다짐을 저장하면 영구히 안 뜸.
   share_card_seen: {},              // { d1: true } 인증 카드 팝업을 본 날 (운영자 분석용)
   spoon_seen: {},                   // { d1: true } '한 스푼 더' 팝업을 본 날 (하루 1회, 19시 이후 인증자에게)
+  holiday_popup_seen: {},           // { 'chuseok': true } 공휴일 인증 안내 팝업 본 상태 (1회)
   share_card_shared: {},            // { d1: ISO } 실제로 공유 시트까지 간 날 (운영자 분석용)
   review_counts: {},                // { retake: N, weak: N, random: N } 복습 테스트 횟수 (2026-08-31)
   review_ask_seen: false,           // 수료 후기 부탁 팝업 1회 노출 여부 (2026-09-03)
@@ -1854,6 +1855,7 @@ const PERSISTED_STATE_KEYS = [
   'pledge_popup_snooze',
   'share_card_seen',
   'spoon_seen',
+  'holiday_popup_seen',
   'share_card_shared',
   'review_counts',
   'review_ask_seen',
@@ -3469,6 +3471,7 @@ let showWeekReviewIntro = false; // 진짜 외우기 첫 진입 온보딩 (3단�
 let showDonePopup = null;    // 그날 인증 완료 후 1회 '오늘 마무리' (스트릭/동료 상태별 분기).
 let showPremiumIntake = false; // 프리미엄 D1 온보딩 진단 팝업 (2문항, 평생 1회)
 let showPledgePopup = false; // 9기 다짐(인증 시각·녹음 기한) + 간단 설문 팝업, 기존 가입자에게 1회
+let showHolidayPopup = null; // 공휴일 인증 안내 팝업 (2026-09-23 추석)
 let showSpoonPopup = null; // { day } '한 스푼 더' 팝업. 19시 이후, 그날 인증 마친 멤버에게 1회 (2026-09-16)
 let showDailyPulse = null;   // { day, step, a, b, text } 데일리 펄스(1~2문항) 팝업 진행 상태.
 // '내 약점 복습' 기능은 Week 2(Day 6)부터 해제. 다음 기수도 동일(코호트 무관, currentDay 기준).
@@ -3495,7 +3498,7 @@ function anyPopupOpen() {
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
     || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup || showWeekTaskPopup
     || showFunFactPopup || showDonePopup || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup || showWeekReviewIntro
-    || showDailyPulse || showPremiumIntake || showPledgePopup || showShareCard || showSpoonPopup || showHelpHintPopup || showWeekTestNudgePopup || showMeetupIntroPopup);
+    || showDailyPulse || showPremiumIntake || showPledgePopup || showShareCard || showSpoonPopup || showHolidayPopup || showHelpHintPopup || showWeekTestNudgePopup || showMeetupIntroPopup);
 }
 
 function go(page, opts={}) {
@@ -7907,6 +7910,14 @@ function render() {
       const stale = document.querySelector('[data-spoon-popup]');
       if (stale) stale.remove();
     }
+    if (showHolidayPopup) {
+      const stale = document.querySelector('[data-holiday-popup]');
+      if (stale) stale.remove();
+      document.body.appendChild(HolidayPopupModal());
+    } else {
+      const stale = document.querySelector('[data-holiday-popup]');
+      if (stale) stale.remove();
+    }
 
     if (showMeetingPrepPopup) {
       if (!document.querySelector('[data-meeting-prep-popup]')) {
@@ -11046,6 +11057,22 @@ function HomePage() {
         showPremiumIntake = true;
         render();
       }, 1100);
+    }
+  } catch (e) {}
+
+  // 추석 연휴 인증 안내 팝업: 9/23~9/25 사이 1회. 연휴 전에 "늦게 해도 정상"을 확실히 알리려고.
+  try {
+    const hToday = koreaTodayStr();
+    const hOn = HOLIDAY_NOTICES.find((x) => x.from <= hToday && hToday <= x.to);
+    if (hOn && state.onboarded && !((state.holiday_popup_seen || {})[hOn.id])
+        && guidedTourStep === null && !anyPopupOpen() && !window.__holidayArmed) {
+      window.__holidayArmed = true;
+      setTimeout(() => {
+        if (guidedTourStep !== null || anyPopupOpen()) { window.__holidayArmed = false; return; }
+        state.holiday_popup_seen = state.holiday_popup_seen || {};
+        state.holiday_popup_seen[hOn.id] = true; try { saveState(); } catch (e) {}
+        showHolidayPopup = hOn; render();
+      }, 1000);
     }
   } catch (e) {}
 
@@ -25041,6 +25068,7 @@ function SettingsModal() {
               <button onclick="showSettings=null;window.__previewDonePopup()" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">🎉 오늘 마무리</button>
               <button onclick="showSettings=null;window.__openShareCard(Number(state.currentDay)||1)" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">📸 인증 카드</button>
               <button onclick="showSettings=null;window.__openSpoon(Number(state.currentDay)||1)" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">🥄 한 스푼</button>
+              <button onclick="showSettings=null;window.__openHoliday()" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">🌕 연휴 안내</button>
             </div>
           </div>
         </details>
@@ -33947,6 +33975,48 @@ function MeetingPrepPopupModal(mid) {
   wrap.appendChild(card);
   return wrap;
 }
+/* 공휴일 인증 안내. from~to 사이에 1회 뜬다. 지나면 자동으로 안 뜸. */
+const HOLIDAY_NOTICES = [
+  {
+    id: 'chuseok2026', from: '2026-09-23', to: '2026-09-25',
+    emoji: '🌕', kicker: '추석 연휴 인증 안내',
+    title: '이틀은 늦게 하셔도\n정상 인증이에요',
+    days: '9/24(목) Day 9 · 9/25(금) Day 10',
+    body: [
+      ['정상', '이 이틀은 <b>지나서 하셔도 정상 인증</b>으로 처리해드려요. 지각 표시 안 붙어요!'],
+      ['추천', '그래도 가능하시면 <b>그날 안에</b> 하시는 걸 추천드려요. 루틴은 한 번 끊기면 다시 붙이는 게 제일 어렵더라고요.'],
+      ['꿀팁', '<b>아침에 10분</b>이요! 눈 뜨자마자, 가족들 움직이기 전에 끝내두시면 하루 종일 마음이 편해요 :)'],
+    ],
+    foot: '연휴 잘 보내시고, 월요일에 또 만나요 🧡',
+  },
+];
+function HolidayPopupModal() {
+  const h = showHolidayPopup || HOLIDAY_NOTICES[0];
+  const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
+  overlay.setAttribute('data-holiday-popup', '1');
+  const card = el('div', { style: { width: '100%', maxWidth: '360px', background: 'var(--paper)', borderRadius: '24px', overflow: 'hidden', maxHeight: '90vh', overflowY: 'auto' } });
+  const rows = (h.body || []).map(([tag, txt]) => `
+    <div style="display:flex;gap:9px;margin-top:11px;">
+      <span style="flex:0 0 auto;margin-top:1px;padding:2px 9px;border-radius:999px;background:var(--orange-ghost);color:var(--orange-dark);font-size:10.5px;font-weight:800;">${escapeHtml(tag)}</span>
+      <span style="flex:1;min-width:0;font-size:13px;line-height:1.65;color:var(--ink-soft);">${txt}</span>
+    </div>`).join('');
+  card.innerHTML = `
+    <div style="background:linear-gradient(135deg,#F1E4CF 0%,#FBF6EC 100%);padding:22px 20px 18px;text-align:center;position:relative;">
+      <button onclick="window.__closeHoliday()" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;">✕</button>
+      <div style="font-size:42px;line-height:1;">${h.emoji}</div>
+      <div class="kicker" style="margin-top:8px;color:var(--orange-dark);">${escapeHtml(h.kicker)}</div>
+      <div style="margin-top:6px;font-size:20px;font-weight:900;color:var(--ink);letter-spacing:-0.02em;line-height:1.3;white-space:pre-line;">${escapeHtml(h.title)}</div>
+      <div style="margin-top:8px;display:inline-block;padding:4px 12px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:12px;font-weight:800;color:var(--ink);">${escapeHtml(h.days)}</div>
+    </div>
+    <div style="padding:14px 20px 4px;">${rows}</div>
+    <div style="padding:12px 20px 0;font-size:12.5px;color:var(--muted);text-align:center;">${escapeHtml(h.foot)}</div>
+    <div style="padding:14px 18px 18px;"><button onclick="window.__closeHoliday()" style="width:100%;background:var(--orange);color:#fff;border:none;border-radius:14px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">알겠어요 :)</button></div>`;
+  overlay.appendChild(card);
+  return overlay;
+}
+window.__closeHoliday = () => { showHolidayPopup = null; render(); };
+window.__openHoliday = () => { showHolidayPopup = HOLIDAY_NOTICES[0]; render(); };
+
 // '한 스푼 더' 원고(OPS_TALK.spoon)를 팝업용으로 쪼갠다: 표현 이름 / 본문 줄들.
 function __parseSpoon(day) {
   const raw = (typeof OPS_TALK !== 'undefined' && OPS_TALK.spoon) ? (OPS_TALK.spoon[String(day)] || '') : '';
