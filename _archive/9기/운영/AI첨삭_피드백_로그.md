@@ -164,3 +164,14 @@
 - 교정: I know you’re busy with events right now, but do you have the bandwidth to review the byline this week?
 - why: 어순과 전치사를 자연스럽게 고쳤고, 뒷부분을 보탰어요. 질문 형태 유지했습니다.
 
+<!--id:정주혜|d9-0|2026-09-24T02:05:59.613Z-->
+## 👍 Hera · Air cover · 2026-09-24T02:05
+- 한 줄: 실제 업무에서 쓰일문장
+- 원문: I need air cover from the director before I push back on this.
+- 교정: I need air cover from the director before I push back on this.
+- why: 📌 이건 오늘의 예시문장 그대로예요! 고칠 데가 없는 문장이라 AI 첨삭은 건너뛸게요.
+
+이 문장이 이렇게 쓰인 이유는요, Air cover 를 윗선이 막아주는 지원·방패막이 뜻으로 쓸 때 원어민이 실제로 붙이는 자리와 어순을 그대로 보여주기 때문이에요. (뜻: 이 건에 반대 의견을 내려면 디렉터가 좀 막아줘야 해요.)
+
+한 걸음만 더 가볼까요? 이 문장
+
