@@ -6082,6 +6082,10 @@ function isWeek1Zero(member) {
 function reviewDeadlineDay(weekN) {
   const n = Number(weekN);
   if (!Number.isFinite(n) || n < 1) return CHALLENGE.total_days || 20;
+  try {
+    const g = (typeof reviewDeadlineGrant === 'function') ? reviewDeadlineGrant(n) : null;
+    if (g) return Math.min(Number(g.untilDay) || 20, CHALLENGE.total_days || 20);
+  } catch (e) {}
   return Math.min((n + 1) * 5, CHALLENGE.total_days || 20);
 }
 // 파이널(Week 4) 도전 마감, currentDay 가 20 에서 멈춰 day-기반 잠금이 안 걸리므로 실제 캘린더 날짜로 마감.
@@ -6105,9 +6109,24 @@ const FINAL_REVIEW_DEADLINE_LABEL = (() => {
   try { const d = new Date(FINAL_REVIEW_DEADLINE_AT); return `${d.getMonth() + 1}/${d.getDate()} 저녁 7시`; }
   catch (e) { return '마감 후'; }
 })();
+/* 주간 테스트 기한 예외. 우리 쪽 데이터 유실·장애로 기간 안에 못 본 멤버에게만 연장해준다.
+   name = MEMBER_DIRECTORY 의 한글 이름, week = 주차, untilDay = 이 Day 까지 응시 가능.
+   (2026-10-03 김옥진님: Day 10~13 인증이 서버에 저장되지 않아 Week 2 를 못 봄. 녹음 체크로 학습 확인됨.) */
+const REVIEW_DEADLINE_GRANTS = [
+  { name: '김옥진', week: 2, untilDay: 20 },
+];
+function reviewDeadlineGrant(weekN) {
+  try {
+    const me = String(state.name || '').trim();
+    return REVIEW_DEADLINE_GRANTS.find((g) => g.name === me && Number(g.week) === Number(weekN)) || null;
+  } catch (e) { return null; }
+}
 function isReviewLocked(weekN) {
   // 운영자/스태프 (operatorViewAsMember false) 는 데드라인 무시
   if ((state.isOperator || state.isStaff) && !state.operatorViewAsMember) return false;
+  // 개별 연장 (데이터 유실 보상). 통과하면 평소대로 '통과' 상태가 된다.
+  const __g = reviewDeadlineGrant(weekN);
+  if (__g) return (Number(state.currentDay) || 0) > (Number(__g.untilDay) || (CHALLENGE.total_days || 20));
   // Week 4 (파이널) 은 실제 날짜·시각 기준 (FINAL_REVIEW_DEADLINE_AT = 마지막 Day + 3일 저녁 7시) 지나면 닫힘.
   if (Number(weekN) === 4) { try { return Date.now() > new Date(FINAL_REVIEW_DEADLINE_AT).getTime(); } catch (e) { return false; } }
   const today = Number(state.currentDay) || 0;
