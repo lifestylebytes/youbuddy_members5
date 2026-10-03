@@ -8,6 +8,39 @@
 
 ---
 
+## 2026-10-01 (Day 11~12 · Single-threaded / Root cause)
+
+### 1. 오늘 들어온 피드백 요약: 👍 1 · 👎 1
+
+- Mia (Single-threaded, 👍, 09-28): "메일.회의 두가지 버전으로 쓰는게 도움이 돼요."
+  원문 "We are Single-threaded on that people for presentation material." → 교정 "We are single-threaded on that person for all the presentation materials." (that people → that person 교정, variants 만족)
+- Molly (Root cause, 👎, 09-29): "...as soon as it has been identified? 라고 리뷰가 계속 나오는데 it is identified? 가 더 간결하고 자연스러운것 같아요"
+  원문 "Could you please share the root cause of the outage as soon as it is identified?"
+  교정 "...as soon as it has been identified?" / why "이미 자연스러워요! 그대로 가셔도 됩니다."
+
+### 2. 반복되는 실패 패턴
+
+- 과교정 + 설명 모순 (Molly 👎): 원문이 이미 자연스러운데 시제만 바꿔 놓고(is identified → has been identified), why 에는 "이미 자연스러워요, 그대로 가셔도 됩니다"라고 써서 교정문과 설명이 서로 어긋났다. 멤버가 "계속 나온다"고 쓴 걸 보면 같은 입력에서 반복되는 현상이다. 현재 프롬프트에 "synonym swap 금지"와 "why 는 verdict 와 일치"는 있지만, 시간 부사절(as soon as, once, when, before, after)의 시제 선택은 다루지 않아서 모델이 현재완료로 "격상"하는 걸로 보인다.
+- Mia 건은 정상 동작이다. 다만 why 가 두 가지 변경만 짚었고 'all ... materials' 추가는 설명하지 않았다 (사소함).
+
+### 3. SYSTEM_PROMPT 수정 제안 (버디 승인 시 반영)
+
+(M) STEP 3 의 "Never swap one correct word for another ..." 문장 바로 뒤에 추가 (과교정 방지):
+
+```
+- Tense inside time clauses is not a correction either. "as soon as it is identified", "once the build is done", "when you get a chance", "before we kick off" are already natural (present simple for a future or completed-in-context event). Do not upgrade them to present perfect or passive-perfect ("as soon as it has been identified", "once the build has finished") unless the Korean clearly requires a completed state.
+```
+
+(N) HARD RULES 맨 끝(4번 뒤)에 5번으로 추가 (교정문-설명 일치 가드):
+
+```
+5. CONSISTENCY CHECK before returning: compare "corrected" with the student's input. If they differ in any character other than case-insensitive whitespace, verdict MUST be "fixed" and "why" MUST name the change. If your "why" says the sentence is already natural, then "corrected" MUST be the input verbatim. Never return a changed sentence with a reassurance line.
+```
+
+(O) (선택, 코드 쪽) `index.ts` 후처리에서 `verdict === "correct"` 인데 corrected 가 입력과 다르면 corrected 를 입력으로 되돌리는 안전장치. 프롬프트만으로 안 잡히면 이 방법이 확실하다. 원하시면 따로 제안하겠다.
+
+---
+
 ## 2026-09-24 (Day 9 · Air cover)
 
 ### 1. 오늘 들어온 피드백 요약: 👍 1 · 👎 0

@@ -175,3 +175,17 @@
 
 한 걸음만 더 가볼까요? 이 문장
 
+<!--id:서미원|d11-0|2026-09-28T11:20:27.539Z-->
+## 👍 Mia · Single-threaded · 2026-09-28T11:20
+- 한 줄: 메일.회의 두가지 버전으로 쓰는게 도움이 돼요.
+- 원문: We are Single-threaded on that people for presentation material.
+- 교정: We are single-threaded on that person for all the presentation materials.
+- why: 주어-동사 일치와 단수 표현으로 수정했고, 'that people'를 'that person'으로 고쳤어요.
+
+<!--id:김정미|d12-0|2026-09-29T14:17:04.691Z-->
+## 👎 Molly · Root cause · 2026-09-29T14:17
+- 한 줄: Could you please share the root cause of the outage as soon as it has been identified? 라고 리뷰가 계속 나오는데 it is identified? 가 더 간결하고 자연스러운것 같아요 (물론 제생각)
+- 원문: Could you please share the root cause of the outage as soon as it is identified?
+- 교정: Could you please share the root cause of the outage as soon as it has been identified?
+- why: 이미 자연스러워요! 그대로 가셔도 됩니다.
+
