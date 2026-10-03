@@ -2054,6 +2054,48 @@ async function loadRemoteState() {
   }
 }
 
+/* ── 저장 전 서버 병합 (유실 방지) ────────────────────────────────
+   원칙: "지우는 변경"은 서버로 올리지 않는다. 더하는 변경만 올린다.
+   - ADD_ONLY_BOOL: 값이 true 였던 키는 false/삭제로 못 돌린다 (인증·시험 통과 등)
+   - ADD_ONLY_MAP : 서버에 있던 항목을 로컬에 없다고 지우지 않는다 (인증 시각·점수·문장 등)
+   운영자가 의도적으로 되돌릴 때는 서버에서 직접 고친다 (앱에서 못 지우는 게 맞다).
+   리셋 기능이 필요하면 state.__allowDestructiveSave = true 로 한 번만 통과시킨다. */
+const ADD_ONLY_BOOL = ['verified', 'submitted', 'bingo_done'];
+const ADD_ONLY_MAP = [
+  'verified_at', 'verified_time', 'quiz_results', 'quiz_answers', 'bingo_boss_results',
+  'sentences', 'sentence_notes', 'submitted_text', 'saved_examples', 'saved_syns',
+  'bookmarks', 'week_survey', 'vocab_stats', 'review_counts', 'personal_quiz_answers',
+];
+function mergeAddOnly(localVal, serverVal, boolMode) {
+  if (!serverVal || typeof serverVal !== 'object') return localVal;
+  const out = Object.assign({}, serverVal, (localVal && typeof localVal === 'object') ? localVal : {});
+  Object.keys(serverVal).forEach((k) => {
+    const sv = serverVal[k];
+    const lv = out[k];
+    if (boolMode) { if (sv) out[k] = true; return; }          // true 였으면 계속 true
+    const lvEmpty = lv === undefined || lv === null || lv === '';
+    const svFilled = !(sv === undefined || sv === null || sv === '');
+    if (lvEmpty && svFilled) out[k] = sv;                      // 서버 값이 더 알차면 유지
+  });
+  return out;
+}
+async function mergeWithServerBeforeSave(snapshot) {
+  if (state.__allowDestructiveSave) return snapshot;           // 의도적 리셋은 통과
+  const remote = await loadRemoteState();
+  if (!remote || typeof remote !== 'object') return snapshot;
+  const merged = Object.assign({}, snapshot);
+  ADD_ONLY_BOOL.forEach((k) => { merged[k] = mergeAddOnly(snapshot[k], remote[k], true); });
+  ADD_ONLY_MAP.forEach((k) => { merged[k] = mergeAddOnly(snapshot[k], remote[k], false); });
+  // pitch_vocab(단어장)은 배열이라 단어 기준으로 합친다
+  try {
+    const la = Array.isArray(snapshot.pitch_vocab) ? snapshot.pitch_vocab : [];
+    const ra = Array.isArray(remote.pitch_vocab) ? remote.pitch_vocab : [];
+    const seen = new Set(la.map((v) => String((v && v.word) || '').toLowerCase()));
+    merged.pitch_vocab = la.concat(ra.filter((v) => v && !seen.has(String(v.word || '').toLowerCase())));
+  } catch (_) {}
+  return merged;
+}
+
 async function persistStateNow() {
   const snapshot = persistedStateSnapshot();
   const snapshotJson = JSON.stringify(snapshot);
@@ -2089,14 +2131,22 @@ async function persistStateNow() {
       const dir = state.accessCode ? lookupCode(state.accessCode) : null;
       if (dir && dir.tier) publicTier = dir.tier;
     } catch (_) {}
+    // 저장 직전, 서버 최신본과 '더하기' 방향으로만 합친다. (2026-10-03 사고)
+    // 오래된 탭·기기가 열리면서 낡은 snapshot 이 서버의 멀쩡한 인증을 통째로
+    // 덮어쓴 일이 있었다 (김옥진님 Day 10~13 + 주간시험 + 스트릭 유실).
+    // 되돌릴 수 없는 기록(인증·시험·문장)은 서버에 있는 걸 절대 지우지 않는다.
+    let outgoing = snapshot;
+    try { outgoing = await mergeWithServerBeforeSave(snapshot); } catch (_) { outgoing = snapshot; }
     await supabaseRpc('upsert_member_app_state', {
       p_cohort: CHALLENGE.cohort,
       p_member_key: memberKey(),
       p_member_name: state.name || '',
       p_tier: publicTier,
-      p_app_state: snapshot,
+      p_app_state: outgoing,
     });
-    stateLastSavedJson = snapshotJson;
+    // 합친 결과를 로컬에도 반영 (다음 저장이 다시 옛 값을 들고 가지 않게)
+    try { if (outgoing !== snapshot) { mergePersistedState(outgoing); cacheState(); } } catch (_) {}
+    stateLastSavedJson = JSON.stringify(outgoing);
     return true;
   } catch (e) {
     return false;
@@ -15194,7 +15244,10 @@ function renderBingoMode(page, weekN, week, isPremium) {
           });
         }
         // 즉시 서버 sync, debounce 우회 (15초 merge 가 옛날 데이터로 복원하는 거 방지)
+        // 의도적 삭제라 '지우기 금지' 병합을 한 번만 우회한다. (2026-10-03)
+        state.__allowDestructiveSave = true;
         try { await saveState({ immediate: true }); } catch (e) { saveState(); }
+        finally { state.__allowDestructiveSave = false; }
         showToast(`🔄 Week ${weekN} 진행도 초기화 완료`);
         render();
       },
@@ -17299,7 +17352,8 @@ window.__bingoReset = (weekN) => {
   if (!confirm('이 주차 빙고판을 초기화할까요? 진행도 다 사라져요.')) return;
   state.bingo = state.bingo || {};
   delete state.bingo[String(weekN)];
-  saveState();
+  state.__allowDestructiveSave = true;
+  saveState({ immediate: true }).finally(() => { state.__allowDestructiveSave = false; });
   render();
 };
 
