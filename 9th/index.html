@@ -16882,13 +16882,29 @@ function buildWeakNoteHtml() {
     + '.tb{position:sticky;top:0;z-index:9;background:#2A1F14;color:#fff;padding:11px 16px;display:flex;align-items:center;gap:10px;font-size:13px}'
     + '.tb button{margin-left:auto;background:#E4C08A;color:#3B2A16;border:none;border-radius:999px;padding:9px 18px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit}'
     + '.tb .b2{background:transparent;color:#E8DCCB;border:1px solid rgba(232,220,203,.4);margin-left:8px}'
-    + '@media print{.tb{display:none}body{background:#fff}.sheet{box-shadow:none;margin:0;border-radius:0;padding:0 0 10mm;page-break-after:always}.cover,.last{border-radius:0}}';
+    + '.tbh{background:#3B2A16;color:#D9C7AE;font-size:11.5px;padding:8px 16px;text-align:center}'
+    + '.tbh b{color:#E4C08A}'
+    + '@media print{'
+    + '  @page{size:A4;margin:14mm 13mm}'
+    + '  @page cover{margin:0}@page last{margin:0}'
+    + '  .tb,.tbh{display:none}body{background:#fff}'
+    + '  .wrap{max-width:none;padding:0}'
+    + '  .sheet{box-shadow:none;margin:0;border-radius:0;padding:0;page-break-after:always;break-after:page}'
+    + '  .sheet:last-child{page-break-after:auto;break-after:auto}'
+    + '  .cover{page:cover;height:297mm;padding:70mm 26mm 0;border-radius:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    + '  .last{page:last;height:297mm;padding:85mm 30mm 0;border-radius:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    + '  .card,.qz,.ms,.stat{-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    + '  .bar,.bar i,.nu,.mine,.ins,.ctag{-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    + '}';
   const H = [];
   H.push('<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">');
   H.push('<title>나만의 약점 복습 노트 · ' + __wnEsc(name) + '</title>');
   H.push('<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet">');
   H.push('<style>' + CSS + '</style></head><body>');
-  H.push('<div class="tb"><span>📓 나만의 약점 복습 노트</span><button onclick="window.print()">PDF로 저장 / 인쇄</button><button class="b2" onclick="window.close()">닫기</button></div>');
+  H.push('<div class="tb"><span>📓 나만의 약점 복습 노트</span>'
+    + '<button onclick="window.print()">PDF로 저장 / 인쇄</button>'
+    + '<button class="b2" onclick="window.close()">닫기</button></div>'
+    + '<div class="tbh">인쇄 창에서 <b>머리글 및 바닥글 끄기</b> / <b>배경 그래픽 켜기</b> 해주시면 깔끔하게 저장돼요</div>');
   H.push('<div class="wrap">');
   H.push('<div class="sheet cover"><div class="ck">YOUBUDDY BUSINESS ENGLISH</div><div class="ct">나만의<br>약점 복습 노트</div>'
     + '<div class="cnm">' + __wnEsc(name) + ' 님</div><div class="cs">유버디 비즈니스 영어 챌린지 9기 / 20일 학습 기록 기반</div>'
