@@ -1757,6 +1757,7 @@ const defaultState = () => ({
   share_card_seen: {},              // { d1: true } 인증 카드 팝업을 본 날 (운영자 분석용)
   spoon_seen: {},                   // { d1: true } '한 스푼 더' 팝업을 본 날 (하루 1회, 19시 이후 인증자에게)
   holiday_popup_seen: {},           // { 'chuseok': true } 공휴일 인증 안내 팝업 본 상태 (1회)
+  gift_popup_seen: {},              // { d18: true } 완주 선물 기준 팝업 본 날 (하루 1회)
   share_card_shared: {},            // { d1: ISO } 실제로 공유 시트까지 간 날 (운영자 분석용)
   review_counts: {},                // { retake: N, weak: N, random: N } 복습 테스트 횟수 (2026-08-31)
   review_ask_seen: false,           // 수료 후기 부탁 팝업 1회 노출 여부 (2026-09-03)
@@ -1856,6 +1857,7 @@ const PERSISTED_STATE_KEYS = [
   'share_card_seen',
   'spoon_seen',
   'holiday_popup_seen',
+  'gift_popup_seen',
   'share_card_shared',
   'review_counts',
   'review_ask_seen',
@@ -3521,6 +3523,7 @@ let showWeekReviewIntro = false; // 진짜 외우기 첫 진입 온보딩 (3단�
 let showDonePopup = null;    // 그날 인증 완료 후 1회 '오늘 마무리' (스트릭/동료 상태별 분기).
 let showPremiumIntake = false; // 프리미엄 D1 온보딩 진단 팝업 (2문항, 평생 1회)
 let showPledgePopup = false; // 9기 다짐(인증 시각·녹음 기한) + 간단 설문 팝업, 기존 가입자에게 1회
+let showGiftPopup = false; // 완주 선물 기준 팝업 (Day 18~20, 하루 1회)
 let showHolidayPopup = null; // 공휴일 인증 안내 팝업 (2026-09-23 추석)
 let showSpoonPopup = null; // { day } '한 스푼 더' 팝업. 19시 이후, 그날 인증 마친 멤버에게 1회 (2026-09-16)
 let showDailyPulse = null;   // { day, step, a, b, text } 데일리 펄스(1~2문항) 팝업 진행 상태.
@@ -3548,7 +3551,7 @@ function anyPopupOpen() {
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
     || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup || showWeekTaskPopup
     || showFunFactPopup || showDonePopup || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup || showWeekReviewIntro
-    || showDailyPulse || showPremiumIntake || showPledgePopup || showShareCard || showSpoonPopup || showHolidayPopup || showHelpHintPopup || showWeekTestNudgePopup || showMeetupIntroPopup);
+    || showDailyPulse || showPremiumIntake || showPledgePopup || showShareCard || showSpoonPopup || showHolidayPopup || showGiftPopup || showHelpHintPopup || showWeekTestNudgePopup || showMeetupIntroPopup);
 }
 
 function go(page, opts={}) {
@@ -7987,6 +7990,14 @@ function render() {
       const stale = document.querySelector('[data-holiday-popup]');
       if (stale) stale.remove();
     }
+    if (showGiftPopup) {
+      const stale = document.querySelector('[data-gift-popup]');
+      if (stale) stale.remove();
+      document.body.appendChild(GiftPopupModal());
+    } else {
+      const stale = document.querySelector('[data-gift-popup]');
+      if (stale) stale.remove();
+    }
 
     if (showMeetingPrepPopup) {
       if (!document.querySelector('[data-meeting-prep-popup]')) {
@@ -11126,6 +11137,22 @@ function HomePage() {
         showPremiumIntake = true;
         render();
       }, 1100);
+    }
+  } catch (e) {}
+
+  // 완주 선물 기준 팝업: Day 18~20 에 하루 1회. 남은 날이 얼마 없을 때만.
+  try {
+    const gDay = Number(state.currentDay) || 0;
+    if (gDay >= 18 && gDay <= (CHALLENGE.total_days || 20) && state.onboarded && challengeStarted()
+        && !((state.gift_popup_seen || {})['d' + gDay])
+        && guidedTourStep === null && !anyPopupOpen() && !window.__giftArmed) {
+      window.__giftArmed = true;
+      setTimeout(() => {
+        if (guidedTourStep !== null || anyPopupOpen()) { window.__giftArmed = false; return; }
+        state.gift_popup_seen = state.gift_popup_seen || {};
+        state.gift_popup_seen['d' + gDay] = true; try { saveState(); } catch (e) {}
+        showGiftPopup = true; render();
+      }, 900);
     }
   } catch (e) {}
 
@@ -25394,6 +25421,7 @@ function SettingsModal() {
               <button onclick="showSettings=null;window.__openSpoon(Number(state.currentDay)||1)" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">🥄 한 스푼</button>
               <button onclick="showSettings=null;window.__openHoliday()" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">🌕 연휴 안내</button>
               <button onclick="showSettings=null;window.__openWeakNote()" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">📓 약점 노트</button>
+              <button onclick="showSettings=null;window.__openGift()" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">🎁 선물 기준</button>
             </div>
           </div>
         </details>
@@ -34316,6 +34344,83 @@ const HOLIDAY_NOTICES = [
     foot: '셋 다 안 되셔도 괜찮아요. 다음 주에 시간 날 때 Day 9·10 채우시면 그것도 정상 인증이에요.<br><b style="color:var(--orange-dark);">즐거운 한가위 되세요 🌕</b>',
   },
 ];
+
+/* ============================================================
+   🎁 인증 선물 기준 팝업 (Day 18~20 · 2026-10-06)
+   남은 날이 얼마 없을 때, 본인 현재 상태로 "뭘 받을 수 있는지"를 숫자로 보여준다.
+   하루 1회. 조건을 이미 다 채운 사람에겐 축하 톤으로 바뀐다.
+   ============================================================ */
+function giftStatus() {
+  const total = CHALLENGE.total_days || 20;
+  let ontime = 0, all = 0;
+  for (let d = 1; d <= total; d++) {
+    if (state.verified && state.verified['d' + d]) {
+      all++;
+      if (dayStatus(d) !== 'done-late') ontime++;
+    }
+  }
+  const finalDone = !!(state.final_test && state.final_test.at) || !!(state.bingo_done && state.bingo_done['4']);
+  const cDay = Number(state.currentDay) || 0;
+  const left = Math.max(0, total - cDay);          // 오늘 빼고 남은 날
+  const canAll = all + left;                        // 끝까지 다 하면 도달 가능한 최대
+  return { total, ontime, all, finalDone, cDay, left, canAll,
+    gotA: ontime >= 18 && finalDone,                // 단어집 + 약점 노트
+    gotB: all >= 18 && finalDone };                 // 단어집
+}
+function GiftPopupModal() {
+  const g = giftStatus();
+  const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
+  overlay.setAttribute('data-gift-popup', '1');
+  const card = el('div', { style: { width: '100%', maxWidth: '360px', background: 'var(--paper)', borderRadius: '24px', overflow: 'hidden', maxHeight: '92vh', overflowY: 'auto' } });
+  const row = (ok, reach, title, sub) => {
+    const bg = ok ? 'rgba(74,160,124,0.12)' : (reach ? '#fff' : 'rgba(154,139,115,0.10)');
+    const bd = ok ? '#4AA07C' : (reach ? 'var(--line)' : 'rgba(154,139,115,0.3)');
+    const icon = ok ? '✅' : (reach ? '🎯' : '🔒');
+    return `<div style="margin-top:9px;padding:11px 13px;border-radius:12px;background:${bg};border:1px solid ${bd};">
+      <div style="display:flex;align-items:baseline;gap:7px;"><span>${icon}</span>
+        <span style="flex:1;font-size:13px;font-weight:800;color:var(--ink);line-height:1.45;">${title}</span></div>
+      <div style="margin-top:4px;font-size:11.5px;color:var(--ink-soft);line-height:1.6;">${sub}</div></div>`;
+  };
+  const needA = Math.max(0, 18 - g.ontime);
+  const needB = Math.max(0, 18 - g.all);
+  const reachA = g.ontime + g.left >= 18;
+  const reachB = g.all + g.left >= 18;
+  const headline = g.gotA ? '두 개 다 확정이에요 🎉'
+    : (g.gotB ? '단어집은 확정! 하나 더 남았어요'
+    : (g.left === 0 ? '오늘이 마지막 날이에요' : `${g.left}일 남았어요`));
+  card.innerHTML = `
+    <div style="background:linear-gradient(135deg,#F1E4CF 0%,#FBF6EC 100%);padding:22px 20px 16px;text-align:center;position:relative;">
+      <button onclick="window.__closeGift()" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;">✕</button>
+      <div style="font-size:40px;line-height:1;">🎁</div>
+      <div class="kicker" style="margin-top:8px;color:var(--orange-dark);">완주 선물 · Day ${g.cDay}</div>
+      <div style="margin-top:6px;font-size:21px;font-weight:900;color:var(--ink);letter-spacing:-0.02em;">${escapeHtml(headline)}</div>
+      <div style="margin-top:10px;display:flex;gap:7px;justify-content:center;">
+        <span style="padding:5px 12px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:12px;font-weight:800;color:var(--ink);">정시 ${g.ontime}일</span>
+        <span style="padding:5px 12px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:12px;font-weight:800;color:var(--ink);">전체 ${g.all}일</span>
+        <span style="padding:5px 12px;border-radius:999px;background:${g.finalDone ? 'rgba(74,160,124,0.14)' : '#fff'};border:1px solid ${g.finalDone ? '#4AA07C' : 'var(--line)'};font-size:12px;font-weight:800;color:var(--ink);">파이널 ${g.finalDone ? '완료' : '대기'}</span>
+      </div>
+    </div>
+    <div style="padding:14px 18px 4px;">
+      ${row(g.gotA, reachA, '단어집 PDF + 나만의 약점 복습 노트',
+        g.gotA ? '조건 다 채우셨어요! 마지막 날에 바로 받아가세요.'
+          : `<b>정시 18일</b> + 파이널 응시<br>지금 정시 ${g.ontime}일 · ${needA > 0 ? (reachA ? `남은 ${g.left}일 중 ${needA}일만 정시로 더` : '이번 기수엔 어려워요. 아래 것은 아직 가능해요!') : '인증 조건 충족 ✓'}`)}
+      ${row(g.gotB, reachB, '9기 4주 단어집 PDF',
+        g.gotB ? '조건 충족! 마지막 날 다운로드가 열려요.'
+          : `<b>18일 인증</b>(지각 포함) + 파이널 응시<br>지금 ${g.all}일 · ${needB > 0 ? (reachB ? `${needB}일만 더 채우면 돼요` : '남은 날로는 18일이 안 돼요 ㅠㅠ') : '인증 조건 충족 ✓'}`)}
+      ${!g.finalDone ? `<div style="margin-top:11px;padding:10px 12px;border-radius:11px;background:rgba(156,107,63,0.08);font-size:11.5px;color:var(--ink-soft);line-height:1.6;">
+        🏁 <b>파이널 테스트</b>는 마지막 날 Day ${g.total} 인증을 마치면 열려요. 10분이면 끝나고 점수로 거르지 않아요.</div>` : ''}
+      <div style="margin-top:11px;font-size:11px;color:var(--muted);line-height:1.6;text-align:center;">
+        마감은 없어요. 빠진 날은 나중에 채우셔도 그대로 인정됩니다 🧡</div>
+    </div>
+    <div style="padding:14px 18px 18px;">
+      <button onclick="window.__closeGift()" style="width:100%;background:var(--orange);color:#fff;border:none;border-radius:14px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">${g.gotA || g.gotB ? '좋아요 🎉' : '오늘도 채우러 가기'}</button>
+    </div>`;
+  overlay.appendChild(card);
+  return overlay;
+}
+window.__closeGift = () => { showGiftPopup = false; render(); };
+window.__openGift = () => { showGiftPopup = true; render(); };
+
 function HolidayPopupModal() {
   const h = showHolidayPopup || HOLIDAY_NOTICES[0];
   const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
