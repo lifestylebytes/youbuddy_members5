@@ -716,6 +716,8 @@ input, textarea, select { font-family: inherit; }
    녹음 체크 여부는 색이 아니라 '📋 인증 상태 복사' 팝업에서 확인한다. (2026-08-11) */
 .cb-cell.on.rec.late { background: #B89E7A; border-color: #A88B65; }
 .cb-rec-mode .cb-cell.on { cursor: pointer; outline: 1px dashed rgba(30,95,160,0.45); outline-offset: 1px; }
+.cb-latefix-mode .cb-cell.on.late { cursor: pointer; outline: 2px dashed #A6482A; outline-offset: 1px; }
+.cb-latefix-mode .cb-cell.on:not(.late) { cursor: pointer; opacity: 0.75; }
 /* today = 오늘이지만 아직 미인증.
    인증된 'on'(꽉 찬 주황) 과 구분되도록 속은 비우고 주황 실선 링만. */
 .cb-cell.today { background: var(--paper); border: 1.5px solid var(--orange); }
@@ -12111,6 +12113,12 @@ function HomePage() {
     const btnRow = el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' } });
     recBtn.style.marginBottom = '0';
     btnRow.appendChild(recBtn);
+    // ⏱ 지각 → 정시 전환 모드
+    btnRow.appendChild(el('button', {
+      class: 'btn btn-ghost',
+      style: { fontSize: '12px', padding: '8px 14px', ...(window.__lateFixMode ? { background: '#A6482A', color: '#fff', borderColor: '#A6482A' } : {}) },
+      onClick: () => window.__toggleLateFixMode(),
+    }, window.__lateFixMode ? '⏱ 지각 수정 모드 ON · 지각 칸 탭' : '⏱ 지각 → 정시'));
     // 미인증 명단을 카톡 복붙용으로 뽑는 팝업. 녹음 체크를 마친 뒤 누르는 흐름이라 바로 옆에 둔다.
     btnRow.appendChild(el('button', {
       class: 'btn btn-ghost',
@@ -12389,9 +12397,73 @@ function recChecked(name, d) {
   const m = (window.__recChecks.data || {})['d' + d];
   return !!(m && m[name]);
 }
+
+/* ============================================================
+   ⏱ 지각 → 정시 전환 모드 (운영자/스태프 · 2026-10-08)
+   앱 인증이 늦게 찍혔지만 카톡 녹음은 제시간에 올린 분을 보드에서 바로 고친다.
+   원리: verified_at[dN] 을 그 Day 의 예정일로 당긴다. 지각 판정은 서버가
+   "인증일 > 예정일" 로 계산하므로 날짜만 당기면 정시가 된다.
+   되돌리기도 같은 버튼으로 (원래 날짜를 state.late_fix_log 에 남겨둔다).
+   ============================================================ */
+window.__lateFixMode = window.__lateFixMode || false;
+window.__toggleLateFixMode = () => {
+  window.__lateFixMode = !window.__lateFixMode;
+  if (window.__lateFixMode) window.__recCheckMode = false; // 두 모드 동시 ON 금지
+  window.__cbCachedFingerprint = null;
+  showToast(window.__lateFixMode ? '⏱ 지각 수정 모드 ON · 지각 칸을 탭하면 정시로' : '지각 수정 모드 OFF');
+  render();
+};
+// Day N 의 예정일 (YYYY-MM-DD). dayDate() 를 그대로 쓴다.
+function scheduledYmd(dayN) {
+  try {
+    const d = dayDate(Number(dayN));
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  } catch (e) { return ''; }
+}
+// 멤버 한 명의 Day N 을 정시로 (undo=true 면 원래 날짜로 되돌림)
+async function fixLateForMember(memberName, dayN, undo) {
+  const ymd = scheduledYmd(dayN);
+  if (!ymd) { showToast('예정일을 계산하지 못했어요'); return false; }
+  try {
+    const remote = await supabaseRpc('get_member_app_state', { p_cohort: CHALLENGE.cohort, p_member_key: memberName });
+    if (!remote || typeof remote !== 'object') { showToast(`${memberName} 님 기록을 못 찾았어요`); return false; }
+    const key = 'd' + dayN;
+    if (!(remote.verified && remote.verified[key])) { showToast(`${memberName} 님은 Day ${dayN} 인증이 없어요`); return false; }
+    remote.verified_at = remote.verified_at || {};
+    remote.late_fix_log = remote.late_fix_log || {};
+    if (undo) {
+      const orig = remote.late_fix_log[key];
+      if (!orig) { showToast('되돌릴 원래 기록이 없어요'); return false; }
+      remote.verified_at[key] = orig;
+      delete remote.late_fix_log[key];
+    } else {
+      const cur = remote.verified_at[key] || '';
+      if (cur && cur <= ymd) { showToast(`${memberName} 님 Day ${dayN} 은 이미 정시예요`); return false; }
+      if (!remote.late_fix_log[key]) remote.late_fix_log[key] = cur;
+      remote.verified_at[key] = ymd;
+    }
+    await supabaseRpc('upsert_member_app_state', {
+      p_cohort: CHALLENGE.cohort,
+      p_member_key: memberName,
+      p_member_name: remote.name || memberName,
+      p_tier: remote.tier || 'basic',
+      p_app_state: remote,
+    });
+    await loadMemberSummaries({ force: true });
+    window.__cbCachedFingerprint = null;
+    showToast(undo ? `${memberName} · Day ${dayN} 지각으로 되돌렸어요` : `✅ ${memberName} · Day ${dayN} 정시 인증으로 바꿨어요`);
+    render();
+    return true;
+  } catch (e) {
+    console.error('late fix failed', e);
+    showToast('바꾸지 못했어요. 네트워크 확인 후 다시 눌러주세요');
+    return false;
+  }
+}
+
 window.__toggleRecCheckMode = () => {
   window.__recCheckMode = !window.__recCheckMode;
-  if (window.__recCheckMode) { try { loadRecordingChecks(true); } catch (e) {} } // 켤 때 서버 최신본부터
+  if (window.__recCheckMode) { window.__lateFixMode = false; try { loadRecordingChecks(true); } catch (e) {} } // 켤 때 서버 최신본부터
   window.__cbCachedFingerprint = null;
   showToast(window.__recCheckMode ? '🎙 녹음 체크 모드 ON · 인증된 칸을 탭하면 새파랑 토글' : '녹음 체크 모드 OFF');
   render();
@@ -12695,6 +12767,27 @@ function Checkboard() {
   grid.insertAdjacentHTML('beforeend', rowsHtml);
   // 이름 클릭 = 멤버 카드, wrap 단 한 곳에 위임 (이벤트 리스너 1개만).
   grid.addEventListener('click', (ev) => {
+    // ⏱ 지각 수정 모드 (스태프/운영자): 지각 칸 탭 = 정시로 (한 번 더 탭하면 되돌림)
+    if (window.__lateFixMode && (state.isOperator || state.isStaff)) {
+      const lc = ev.target.closest && ev.target.closest('.cb-cell[data-rec-day]');
+      if (lc) {
+        const nm = lc.getAttribute('data-rec-name');
+        const d = Number(lc.getAttribute('data-rec-day'));
+        const isLate = lc.classList.contains('late');
+        if (nm && d) {
+          if (isLate) {
+            if (confirm(nm + ' 님 Day ' + d + ' 을 정시 인증으로 바꿀까요?\n(앱 인증은 늦었지만 녹음은 제때 하신 경우에만)')) {
+              fixLateForMember(nm, d, false);
+            }
+          } else {
+            if (confirm(nm + ' 님 Day ' + d + ' 을 지각으로 되돌릴까요?')) {
+              fixLateForMember(nm, d, true);
+            }
+          }
+        }
+        return;
+      }
+    }
     // 🎙 녹음 체크 모드 (스태프/운영자): 인증된 칸 탭 = 새파랑 토글 + 서버 저장
     if (window.__recCheckMode && (state.isOperator || state.isStaff)) {
       const rc = ev.target.closest && ev.target.closest('.cb-cell[data-rec-day]');
@@ -12729,6 +12822,7 @@ function Checkboard() {
     }
   });
   if (window.__recCheckMode && (state.isOperator || state.isStaff)) grid.classList.add('cb-rec-mode');
+  if (window.__lateFixMode && (state.isOperator || state.isStaff)) grid.classList.add('cb-latefix-mode');
   wrap.appendChild(grid);
   return wrap;
 }
