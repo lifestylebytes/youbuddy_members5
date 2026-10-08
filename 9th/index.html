@@ -17093,8 +17093,20 @@ window.__openFinalDownloads = function () {
         <div style="font-size:13.5px;font-weight:800;color:var(--ink);">📥 내 학습 자료 두 가지</div>
         <div class="t-small" style="margin-top:4px;font-size:11.5px;color:var(--muted);line-height:1.55;">단어집: Day 1~20 단어 60개 + 유의어 + 예문 (구글 드라이브)<br>내 문장: 4주 동안 직접 쓴 문장 전부, 노션으로 보관</div>
         <button data-fd-pdf class="btn btn-primary btn-full" style="margin-top:10px;background:var(--orange);border:none;color:#fff;font-size:13.5px;padding:12px;font-weight:800;">단어집 PDF 받기 →</button>
-        ${canGetWeakNote ? `<button data-fd-weak class="btn btn-full" style="margin-top:8px;background:linear-gradient(135deg,#6E4A28,#9C6B3F);border:none;color:#fff;font-size:13.5px;padding:12px;font-weight:800;">📓 나만의 약점 복습 노트 받기</button>
-        <div class="t-small" style="margin-top:5px;font-size:11px;color:var(--muted);line-height:1.5;">정시 ${__fdOnTime}일 인증 + 파이널 완료 ✓ 내가 흔들린 표현만 모은, 세상에 하나뿐인 노트예요</div>` : ''}
+        ${canGetWeakNote ? `
+        <div data-fd-weak-wrap style="margin-top:12px;padding:13px;border-radius:14px;background:linear-gradient(135deg,#FFF7EC 0%,#FBE8CE 100%);border:1.5px solid #C8963F;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="display:inline-block;padding:3px 9px;border-radius:50px;background:#6E4A28;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:0.02em;">🔓 잠금 해제</span>
+            <span style="font-size:11px;font-weight:800;color:#6E4A28;">정시 완주자 특전</span>
+          </div>
+          <div style="margin-top:8px;font-size:13px;font-weight:800;color:var(--ink);line-height:1.5;">📓 나만의 약점 복습 노트</div>
+          <div class="t-small" style="margin-top:4px;font-size:11.5px;color:var(--ink-soft);line-height:1.55;">20일 중 <b style="color:#6E4A28;">${__fdOnTime}일 정시 인증</b> ✓ 파이널 테스트 완료 ✓<br>내가 흔들린 표현만 모은, 세상에 하나뿐인 노트예요.</div>
+          <button data-fd-weak class="btn btn-full" style="margin-top:10px;background:linear-gradient(135deg,#6E4A28,#9C6B3F);border:none;color:#fff;font-size:13.5px;padding:12px;font-weight:800;">📓 내 복습 노트 받기 →</button>
+        </div>` : `
+        <div style="margin-top:12px;padding:12px 13px;border-radius:14px;background:#FAF7F3;border:1px dashed var(--line);">
+          <div style="font-size:12.5px;font-weight:800;color:var(--ink-soft);line-height:1.5;">📓 나만의 약점 복습 노트</div>
+          <div class="t-small" style="margin-top:4px;font-size:11.5px;color:var(--muted);line-height:1.6;">20일 중 18일을 <b>정시로</b> 인증하고 파이널까지 마치면 열리는 선물이에요. 다음 기수에서 꼭 한 권 가져가세요 🧡</div>
+        </div>`}
         <button data-fd-notion class="btn btn-full" style="margin-top:8px;background:#fff;border:1px solid var(--line);color:var(--ink);font-size:13px;padding:11px;font-weight:800;">📜 내 문장 내보내기 →</button>
       </div>
       <button data-fd-report class="btn btn-full" style="background:linear-gradient(135deg,#1F1630 0%,#3A2A52 100%);color:#fff;border:none;font-size:13.5px;padding:13px;font-weight:800;letter-spacing:-0.01em;">📊 4주 종합 리포트 보기 →</button>
