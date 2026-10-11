@@ -1760,6 +1760,7 @@ const defaultState = () => ({
   spoon_seen: {},                   // { d1: true } '한 스푼 더' 팝업을 본 날 (하루 1회, 19시 이후 인증자에게)
   holiday_popup_seen: {},           // { 'chuseok': true } 공휴일 인증 안내 팝업 본 상태 (1회)
   gift_popup_seen: {},              // { d18: true } 완주 선물 기준 팝업 본 날 (하루 1회)
+  grad_popup_seen: null,            // 졸업 안내 팝업 본 시각 (수료식 이후 1회 자동, 이후 배너로 재열람)
   share_card_shared: {},            // { d1: ISO } 실제로 공유 시트까지 간 날 (운영자 분석용)
   review_counts: {},                // { retake: N, weak: N, random: N } 복습 테스트 횟수 (2026-08-31)
   review_ask_seen: false,           // 수료 후기 부탁 팝업 1회 노출 여부 (2026-09-03)
@@ -1860,6 +1861,7 @@ const PERSISTED_STATE_KEYS = [
   'spoon_seen',
   'holiday_popup_seen',
   'gift_popup_seen',
+  'grad_popup_seen',
   'share_card_shared',
   'review_counts',
   'review_ask_seen',
@@ -3526,6 +3528,7 @@ let showDonePopup = null;    // 그날 인증 완료 후 1회 '오늘 마무리'
 let showPremiumIntake = false; // 프리미엄 D1 온보딩 진단 팝업 (2문항, 평생 1회)
 let showPledgePopup = false; // 9기 다짐(인증 시각·녹음 기한) + 간단 설문 팝업, 기존 가입자에게 1회
 let showGiftPopup = false; // 완주 선물 기준 팝업 (Day 18~20, 하루 1회)
+let showGradPopup = false; // 졸업 안내 팝업 (수료식 이후)
 let showHolidayPopup = null; // 공휴일 인증 안내 팝업 (2026-09-23 추석)
 let showSpoonPopup = null; // { day } '한 스푼 더' 팝업. 19시 이후, 그날 인증 마친 멤버에게 1회 (2026-09-16)
 let showDailyPulse = null;   // { day, step, a, b, text } 데일리 펄스(1~2문항) 팝업 진행 상태.
@@ -3553,7 +3556,7 @@ function anyPopupOpen() {
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
     || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup || showWeekTaskPopup
     || showFunFactPopup || showDonePopup || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup || showWeekReviewIntro
-    || showDailyPulse || showPremiumIntake || showPledgePopup || showShareCard || showSpoonPopup || showHolidayPopup || showGiftPopup || showHelpHintPopup || showWeekTestNudgePopup || showMeetupIntroPopup);
+    || showDailyPulse || showPremiumIntake || showPledgePopup || showShareCard || showSpoonPopup || showHolidayPopup || showGiftPopup || showGradPopup || showHelpHintPopup || showWeekTestNudgePopup || showMeetupIntroPopup);
 }
 
 function go(page, opts={}) {
@@ -8000,6 +8003,14 @@ function render() {
       const stale = document.querySelector('[data-gift-popup]');
       if (stale) stale.remove();
     }
+    if (showGradPopup) {
+      const stale = document.querySelector('[data-grad-popup]');
+      if (stale) stale.remove();
+      document.body.appendChild(GradPopupModal());
+    } else {
+      const stale = document.querySelector('[data-grad-popup]');
+      if (stale) stale.remove();
+    }
 
     if (showMeetingPrepPopup) {
       if (!document.querySelector('[data-meeting-prep-popup]')) {
@@ -11158,6 +11169,20 @@ function HomePage() {
     }
   } catch (e) {}
 
+  // 졸업 안내 팝업: 수료식(2026-10-10) 이후 처음 들어온 사람에게 1회. 이후엔 홈 배너로 다시 열 수 있다.
+  try {
+    if (koreaTodayStr() >= GRADUATION.from && state.onboarded && !state.grad_popup_seen
+        && guidedTourStep === null && !anyPopupOpen() && !window.__gradArmed) {
+      window.__gradArmed = true;
+      setTimeout(() => {
+        if (guidedTourStep !== null || anyPopupOpen()) { window.__gradArmed = false; return; }
+        state.grad_popup_seen = new Date().toISOString();
+        try { saveState(); } catch (e) {}
+        showGradPopup = true; render();
+      }, 900);
+    }
+  } catch (e) {}
+
   // 추석 연휴 인증 안내 팝업: 9/23~9/25 사이 1회. 연휴 전에 "늦게 해도 정상"을 확실히 알리려고.
   try {
     const hToday = koreaTodayStr();
@@ -11634,6 +11659,31 @@ function HomePage() {
       </div>
     `;
     page.appendChild(reviewBanner);
+  })();
+
+  // 수료식 이후: 졸업 안내 배너. 팝업을 닫았어도 여기서 다시 열 수 있다.
+  (() => {
+    try {
+      if (koreaTodayStr() < GRADUATION.from) return;
+      const gBanner = el('div', {
+        style: {
+          margin: '0 0 16px', padding: '16px 18px', borderRadius: '20px',
+          background: 'linear-gradient(135deg, #F1E4CF 0%, #FBF6EC 100%)',
+          border: '1.5px solid #C8963F', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: '14px',
+        },
+        onClick: () => window.__openGrad(),
+      });
+      gBanner.innerHTML = `
+        <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;background:rgba(110,74,40,0.14);display:grid;place-items:center;font-size:24px;">🎓</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;">🎓 수료 안내 · 앞으로 복습하는 법</div>
+          <div class="t-small" style="margin-top:4px;font-size:12px;color:var(--ink-soft);line-height:1.5;">단어집을 AI 에 넣고 매일 3개씩 받는 법 · 이 페이지는 ${GRADUATION.open_until}까지 열려요</div>
+        </div>
+        <div style="flex-shrink:0;color:var(--orange-dark);font-size:16px;font-weight:800;">→</div>
+      `;
+      page.appendChild(gBanner);
+    } catch (e) {}
   })();
 
   // 파이널 완료자, 메인보드에 4주 단어집 PDF / 내 문장 다운로드 배너 오픈.
@@ -25558,6 +25608,7 @@ function SettingsModal() {
               <button onclick="showSettings=null;window.__openSpoon(Number(state.currentDay)||1)" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">🥄 한 스푼</button>
               <button onclick="showSettings=null;window.__openHoliday()" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">🌕 연휴 안내</button>
               <button onclick="showSettings=null;window.__openWeakNote()" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">📓 약점 노트</button>
+              <button onclick="showSettings=null;window.__openGrad()" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">🎓 수료 안내</button>
               <button onclick="showSettings=null;window.__openGift()" class="btn btn-ghost" style="flex:1;justify-content:center;border-color:rgba(156,107,63,0.28);color:var(--orange-dark);">🎁 선물 기준</button>
             </div>
           </div>
@@ -34555,6 +34606,99 @@ function GiftPopupModal() {
   overlay.appendChild(card);
   return overlay;
 }
+
+/* ============================================================
+   🎓 졸업 안내 팝업 (수료식 이후)
+   끝났다고 페이지를 닫지 않게, "앞으로 어떻게 쓰는지"를 한 장에.
+   핵심은 복습법 1번 (단어집 PDF 를 AI 에 넣고 매일 3개씩 받기).
+   ============================================================ */
+const GRADUATION = {
+  from: '2026-10-10',                 // 이 날부터 팝업·배너가 뜬다
+  open_until: '2027년 10월 9일',       // 페이지 접근 가능 기한 (1년)
+  drive: 'https://drive.google.com/drive/folders/1JpojUhSK45QC70fh1zoLZ6MAA1qsNPBu?usp=sharing',
+  next: 'https://www.latpeed.com/products/en0l_',
+  oneday: 'https://1day-1biz.youbuddy.co.kr/onboarding',
+  help: 'http://pf.kakao.com/_ExdxcGX',
+};
+// AI 에 그대로 붙여넣는 복습 프롬프트. 복사 버튼으로 나간다.
+const GRAD_AI_PROMPT = [
+  '첨부한 유비챌 단어집 PDF 를 참고해서, 오늘부터 매일 표현 3개씩 나에게 내줘.',
+  '',
+  '규칙:',
+  '1. 매일 3개씩, 전에 낸 건 빼고 순서대로.',
+  '2. 각 표현마다 뜻이 아니라 "어떤 상황에서 꺼내 쓰는지" 를 한 줄로 설명해줘.',
+  '3. 내 업무 상황(여기에 본인 직무를 적으세요. 예: 외국계 제조사 구매팀, 메일과 화상회의가 많음)에 맞는 예문을 하나씩 만들어줘.',
+  '4. 마지막에 그 3개를 쓰는 짧은 영어 대화 하나를 만들어줘.',
+  '5. 다음 날 시작할 때, 전날 3개를 한글 뜻만 보여주고 내가 영어로 맞혀보게 해줘.',
+].join('\n');
+
+function GradPopupModal() {
+  const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '18px' } });
+  overlay.setAttribute('data-grad-popup', '1');
+  const card = el('div', { style: { width: '100%', maxWidth: '380px', background: 'var(--paper)', borderRadius: '24px', overflow: 'hidden', maxHeight: '92vh', overflowY: 'auto' } });
+  const sec = (n, title, body) => `
+    <div style="margin-top:10px;padding:13px 14px;border-radius:14px;background:#fff;border:1px solid var(--line);">
+      <div style="display:flex;align-items:baseline;gap:8px;">
+        <span style="flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:var(--orange);color:#fff;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;">${n}</span>
+        <span style="flex:1;font-size:13.5px;font-weight:800;color:var(--ink);line-height:1.45;">${title}</span>
+      </div>
+      <div style="margin-top:7px;font-size:12px;color:var(--ink-soft);line-height:1.7;">${body}</div>
+    </div>`;
+  card.innerHTML = `
+    <div style="background:linear-gradient(135deg,#F1E4CF 0%,#FBF6EC 100%);padding:24px 20px 18px;text-align:center;position:relative;">
+      <button onclick="window.__closeGrad()" style="position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;">✕</button>
+      <div style="font-size:40px;line-height:1;">🎓</div>
+      <div class="kicker" style="margin-top:8px;color:var(--orange-dark);">9기 수료</div>
+      <div style="margin-top:6px;font-size:20px;font-weight:900;color:var(--ink);letter-spacing:-0.02em;line-height:1.35;">4주 끝! 이제부터가<br>진짜 시작이에요</div>
+      <div style="margin-top:9px;font-size:12px;color:var(--ink-soft);line-height:1.6;">이 페이지는 <b>${GRADUATION.open_until}</b>까지 그대로 열어둘게요.<br>닫지 마시고, 아래 다섯 가지만 챙겨가세요 🧡</div>
+    </div>
+    <div style="padding:14px 18px 4px;">
+      <div style="padding:14px;border-radius:16px;background:linear-gradient(135deg,#FFF7EC 0%,#FBE8CE 100%);border:1.5px solid #C8963F;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="padding:3px 9px;border-radius:50px;background:#6E4A28;color:#fff;font-size:10.5px;font-weight:800;">가장 중요</span>
+          <span style="font-size:11px;font-weight:800;color:#6E4A28;">복습하는 법</span>
+        </div>
+        <div style="margin-top:8px;font-size:14px;font-weight:800;color:var(--ink);line-height:1.5;">단어집 PDF 를 AI 에 넣고<br>매일 3개씩 받아보세요</div>
+        <div style="margin-top:7px;font-size:12px;color:var(--ink-soft);line-height:1.7;">
+          단어집을 혼자 다시 펴보는 건 잘 안 됩니다. 대신 ChatGPT 나 Claude 에 <b>PDF 를 올리고</b> 아래 문장을 그대로 붙여넣으세요.
+          매일 3개씩, 내 직무에 맞는 예문으로 다시 만들어줍니다. 60개를 20일에 한 번 더 도는 셈이에요.
+        </div>
+        <button onclick="window.__copyGradPrompt(this)" style="margin-top:10px;width:100%;background:#6E4A28;color:#fff;border:none;border-radius:12px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;">📋 AI 에 붙여넣을 문장 복사</button>
+        <button onclick="window.__openGradDrive()" style="margin-top:7px;width:100%;background:#fff;border:1px solid #C8963F;color:#6E4A28;border-radius:12px;padding:11px;font-size:12.5px;font-weight:800;cursor:pointer;">📘 단어집 PDF 받으러 가기 →</button>
+        <div style="margin-top:7px;font-size:10.5px;color:var(--muted);line-height:1.55;">PDF 는 18일 이상 학습 + 파이널 완료 시 열려요. 아직이면 파이널부터 보고 오세요!</div>
+      </div>
+      ${sec(2, '내가 쓴 문장은 노션으로 옮겨두세요', '4주 동안 직접 쓴 문장이 전부 남아 있어요. 페이지는 1년 열어두지만, 내 문장만큼은 내 공간에 두는 게 안전합니다. <b>설정 → 내 문장 내보내기</b> 를 누르면 노션에 붙여넣을 수 있는 형태로 한 번에 나와요.')}
+      ${sec(3, '단어 시험은 계속 보셔도 돼요', '학습 탭은 그대로 열려 있어요. 흐려졌다 싶을 때 <b>주간 테스트</b> 와 <b>단어 시험</b> 을 다시 돌리시면 됩니다. 횟수 제한 없고, 틀린 것만 다시 모아줘요. 파이널도 마감 없이 언제든 응시 가능합니다.')}
+      ${sec(4, '매일 한 표현씩 받고 싶다면 1일1비', '혼자 리듬을 잡기 어려우면, 매일 아침 비즈니스 표현 하나를 카카오톡으로 보내드리는 구독이 있어요. 하루 3분이면 충분합니다. <a href="' + GRADUATION.oneday + '" target="_blank" rel="noopener" style="color:var(--orange-dark);font-weight:800;">1일1비 보러 가기 →</a>')}
+      ${sec(5, '한 번 더 하실 분은 10기에서 만나요', '10기는 <b>10월 19일(월)</b> 시작이에요. 9기에서 반응 좋았던 프리미엄 교정은 그대로 유지하고, AI 교정이 문장을 통째로 새로 쓰지 않도록 손보는 중입니다. 9기 하셨던 분께는 재등록 쿠폰을 드려요. <a href="' + GRADUATION.next + '" target="_blank" rel="noopener" style="color:var(--orange-dark);font-weight:800;">10기 보러 가기 →</a>')}
+      <div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:rgba(156,107,63,0.08);font-size:11.5px;color:var(--ink-soft);line-height:1.65;">
+        💌 궁금한 건 언제든 <a href="${GRADUATION.help}" target="_blank" rel="noopener" style="color:var(--orange-dark);font-weight:800;">고객센터 채널</a> 로 편하게 남겨주세요. 수료 후에도 답변드립니다.
+      </div>
+      <div style="margin-top:11px;font-size:11px;color:var(--muted);line-height:1.6;text-align:center;">4주 동안 정말 고생 많으셨어요. 이 화면은 홈의 <b>🎓 수료 안내</b> 배너로 다시 열 수 있어요.</div>
+    </div>
+    <div style="padding:14px 18px 18px;">
+      <button onclick="window.__closeGrad()" style="width:100%;background:var(--orange);color:#fff;border:none;border-radius:14px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">챙겨갈게요 🎉</button>
+    </div>`;
+  overlay.appendChild(card);
+  return overlay;
+}
+window.__closeGrad = () => { showGradPopup = false; render(); };
+window.__openGrad = () => { showGradPopup = true; render(); };
+window.__openGradDrive = () => {
+  try { window.open(GRADUATION.drive, '_blank', 'noopener'); } catch (e) {}
+};
+window.__copyGradPrompt = (btn) => {
+  const done = () => { if (btn) { const t = btn.textContent; btn.textContent = '✅ 복사했어요! AI 에 PDF 올리고 붙여넣으세요'; setTimeout(() => { btn.textContent = t; }, 2600); } };
+  try {
+    navigator.clipboard.writeText(GRAD_AI_PROMPT).then(done).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = GRAD_AI_PROMPT; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { showToast('복사가 안 돼요. 길게 눌러 직접 복사해주세요'); }
+      ta.remove();
+    });
+  } catch (e) { showToast('복사가 안 돼요. 길게 눌러 직접 복사해주세요'); }
+};
+
 window.__closeGift = () => { showGiftPopup = false; render(); };
 window.__openGift = () => { showGiftPopup = true; render(); };
 
