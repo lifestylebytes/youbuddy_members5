@@ -2060,6 +2060,23 @@ async function loadRemoteState() {
   }
 }
 
+/* 병합 전용 리더. loadRemoteState 는 네트워크 오류와 "행 없음" 을 둘 다 null 로
+   돌려주는데, 병합에서는 이 둘을 반드시 구분해야 한다. 오류를 "서버에 아무것도
+   없음" 으로 읽는 순간, 낡은 로컬 사본이 서버를 통째로 덮어쓴다.
+   (2026-10-11 김옥진님 2차 유실: Day 10~20 + 문장 24개 + 파이널 기록 날아감) */
+async function loadRemoteStateForMerge() {
+  if (!hasSupabase()) return { ok: true, data: null };
+  try {
+    const payload = await supabaseRpc('get_member_app_state', {
+      p_cohort: CHALLENGE.cohort,
+      p_member_key: memberKey(),
+    });
+    return { ok: true, data: (payload === null || payload === undefined) ? null : payload };
+  } catch (e) {
+    return { ok: false, data: null };   // 못 읽었다 = 덮어쓰면 안 된다
+  }
+}
+
 /* ── 저장 전 서버 병합 (유실 방지) ────────────────────────────────
    원칙: "지우는 변경"은 서버로 올리지 않는다. 더하는 변경만 올린다.
    - ADD_ONLY_BOOL: 값이 true 였던 키는 false/삭제로 못 돌린다 (인증·시험 통과 등)
@@ -2087,8 +2104,10 @@ function mergeAddOnly(localVal, serverVal, boolMode) {
 }
 async function mergeWithServerBeforeSave(snapshot) {
   if (state.__allowDestructiveSave) return snapshot;           // 의도적 리셋은 통과
-  const remote = await loadRemoteState();
-  if (!remote || typeof remote !== 'object') return snapshot;
+  const res = await loadRemoteStateForMerge();
+  if (!res.ok) return null;                 // 서버를 못 읽었다 → 이번 저장은 포기
+  const remote = res.data;
+  if (!remote || typeof remote !== 'object') return snapshot;  // 진짜 신규 멤버
   const merged = Object.assign({}, snapshot);
   ADD_ONLY_BOOL.forEach((k) => { merged[k] = mergeAddOnly(snapshot[k], remote[k], true); });
   ADD_ONLY_MAP.forEach((k) => { merged[k] = mergeAddOnly(snapshot[k], remote[k], false); });
@@ -2098,6 +2117,22 @@ async function mergeWithServerBeforeSave(snapshot) {
     const ra = Array.isArray(remote.pitch_vocab) ? remote.pitch_vocab : [];
     const seen = new Set(la.map((v) => String((v && v.word) || '').toLowerCase()));
     merged.pitch_vocab = la.concat(ra.filter((v) => v && !seen.has(String(v.word || '').toLowerCase())));
+  } catch (_) {}
+  // 파이널 기록은 한 번 생기면 사라지지 않는다 (ADD_ONLY_MAP 로는 안 걸리는 단일 객체)
+  try {
+    if (remote.final_test && remote.final_test.at && !(snapshot.final_test && snapshot.final_test.at)) {
+      merged.final_test = remote.final_test;
+    }
+  } catch (_) {}
+  // 마지막 안전망: 어떤 이유로든 인증 일수가 서버보다 줄었으면 서버 쪽을 그대로 쓴다.
+  try {
+    const cnt = (o) => Object.keys((o && o.verified) || {}).filter((k) => (o.verified || {})[k]).length;
+    if (cnt(merged) < cnt(remote)) {
+      console.warn('[merge] 인증 일수가 줄어듦. 서버 값 유지', cnt(merged), '<', cnt(remote));
+      merged.verified = Object.assign({}, merged.verified, remote.verified);
+      merged.verified_at = Object.assign({}, remote.verified_at, merged.verified_at);
+      merged.verified_time = Object.assign({}, remote.verified_time, merged.verified_time);
+    }
   } catch (_) {}
   return merged;
 }
@@ -2141,8 +2176,15 @@ async function persistStateNow() {
     // 오래된 탭·기기가 열리면서 낡은 snapshot 이 서버의 멀쩡한 인증을 통째로
     // 덮어쓴 일이 있었다 (김옥진님 Day 10~13 + 주간시험 + 스트릭 유실).
     // 되돌릴 수 없는 기록(인증·시험·문장)은 서버에 있는 걸 절대 지우지 않는다.
-    let outgoing = snapshot;
-    try { outgoing = await mergeWithServerBeforeSave(snapshot); } catch (_) { outgoing = snapshot; }
+    let outgoing = null;
+    try { outgoing = await mergeWithServerBeforeSave(snapshot); } catch (_) { outgoing = null; }
+    // 병합을 못 했으면(서버 못 읽음 등) 이번엔 올리지 않는다. 로컬 캐시는 이미
+    // 위에서 해뒀으니 사용자 입력은 안 날아가고, 다음 저장 때 다시 시도한다.
+    // 예전엔 여기서 snapshot 을 그대로 올려서 서버 기록을 덮어썼다.
+    if (!outgoing) {
+      statePersistQueued = true;
+      return false;
+    }
     await supabaseRpc('upsert_member_app_state', {
       p_cohort: CHALLENGE.cohort,
       p_member_key: memberKey(),
