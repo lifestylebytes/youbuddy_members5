@@ -2088,6 +2088,11 @@ const ADD_ONLY_MAP = [
   'verified_at', 'verified_time', 'quiz_results', 'quiz_answers', 'bingo_boss_results',
   'sentences', 'sentence_notes', 'submitted_text', 'saved_examples', 'saved_syns',
   'bookmarks', 'week_survey', 'vocab_stats', 'review_counts', 'personal_quiz_answers',
+  // 2026-10-11 추가: 전부 "한 번 쌓이면 되돌릴 수 없는" 기록인데 보호 밖에 있었다.
+  'ai_history', 'ai_feedback', 'ai_review_feedback', 'ai_daily_usage',
+  'personal_quiz', 'personal_quiz_fill_answers', 'personal_quiz_submitted',
+  'community_comments', 'community_edits', 'meeting_notes', 'pitch_scratch',
+  'bingo', 'bingo_marked', 'sentences_first', 'checkpoints', 'final_downloads',
 ];
 function mergeAddOnly(localVal, serverVal, boolMode) {
   if (!serverVal || typeof serverVal !== 'object') return localVal;
@@ -2103,7 +2108,9 @@ function mergeAddOnly(localVal, serverVal, boolMode) {
   return out;
 }
 async function mergeWithServerBeforeSave(snapshot) {
-  if (state.__allowDestructiveSave) return snapshot;           // 의도적 리셋은 통과
+  // 의도적 리셋은 통과시키되 "딱 한 번" 만. 플래그가 켜져 있는 몇 초 사이에
+  // 다른 debounce 저장이 같이 통과해버리는 걸 막는다.
+  if (state.__allowDestructiveSave) { state.__allowDestructiveSave = false; return snapshot; }
   const res = await loadRemoteStateForMerge();
   if (!res.ok) return null;                 // 서버를 못 읽었다 → 이번 저장은 포기
   const remote = res.data;
@@ -2118,11 +2125,12 @@ async function mergeWithServerBeforeSave(snapshot) {
     const seen = new Set(la.map((v) => String((v && v.word) || '').toLowerCase()));
     merged.pitch_vocab = la.concat(ra.filter((v) => v && !seen.has(String(v.word || '').toLowerCase())));
   } catch (_) {}
-  // 파이널 기록은 한 번 생기면 사라지지 않는다 (ADD_ONLY_MAP 로는 안 걸리는 단일 객체)
+  // 단일 객체 기록은 "서버에 있는데 로컬이 비었으면 서버 것 유지" (ADD_ONLY_MAP 로는 안 걸린다)
+  // 파이널 점수, 다짐, 사전 설문, 수료 설문. 전부 다시 받을 수 없는 운영 데이터.
   try {
-    if (remote.final_test && remote.final_test.at && !(snapshot.final_test && snapshot.final_test.at)) {
-      merged.final_test = remote.final_test;
-    }
+    const KEEP_IF_EMPTY = ['final_test', 'pledge', 'intake', 'premium_intake', 'grad_survey', 'cert_profile', 'verify_settings'];
+    const empty = (v) => !v || (typeof v === 'object' && Object.keys(v).length === 0);
+    KEEP_IF_EMPTY.forEach((k) => { if (!empty(remote[k]) && empty(snapshot[k])) merged[k] = remote[k]; });
   } catch (_) {}
   // 마지막 안전망: 어떤 이유로든 인증 일수가 서버보다 줄었으면 서버 쪽을 그대로 쓴다.
   try {
@@ -12444,11 +12452,18 @@ function saveRecordingChecks() {
     const ops = window.__recPending.splice(0);
     if (!ops.length) return;
     try {
-      let base = {};
+      // 서버 최신본을 못 읽으면 저장하지 않는다. 예전엔 여기서 로컬 사본을 base 로
+      // 삼아 checks 맵 전체를 덮어썼고, 다른 스태프가 찍은 체크가 통째로 날아갔다.
+      // (김옥진님 인증 유실과 완전히 같은 패턴. 2026-10-11)
+      let base;
       try {
         const latest = await supabaseRpc('get_member_app_state', { p_cohort: CHALLENGE.cohort, p_member_key: RECORDING_CHECKS_KEY });
         base = (latest && latest.checks) || {};
-      } catch (e) { base = window.__recChecks.data || {}; }
+      } catch (e) {
+        window.__recPending = ops.concat(window.__recPending);   // op 는 큐에 돌려놓고
+        try { showToast('서버를 못 읽어서 저장을 미뤘어요. 잠시 뒤 다시 눌러주세요'); } catch (_) {}
+        return;                                                  // 이번 턴은 아무것도 안 쓴다
+      }
       ops.forEach((op) => {
         const map = base[op.key] = base[op.key] || {};
         if (op.on) map[op.name] = true; else delete map[op.name];
