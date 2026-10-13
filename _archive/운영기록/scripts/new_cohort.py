@@ -70,6 +70,21 @@ json.dump(m,open(f'{dst}/manifest.json','w',encoding='utf-8'),ensure_ascii=False
 if a.kakao:
     s=re.sub(r"(basic: ')https://open\.kakao\.com/o/[A-Za-z0-9]+(')", r"\g<1>"+a.kakao+r"\2", s, count=1)
     s=re.sub(r"(premium: ')https://open\.kakao\.com/o/[A-Za-z0-9]+(')", r"\g<1>"+a.kakao+r"\2", s, count=1)
+
+# ── 2026-10-14 추가 (10기 세팅에서 손으로 한 것) ──
+s=s.replace(f'/{src}/', f'/{dst}/').replace(f'{src}/audio/', f'{dst}/audio/')      # manifest·sw 경로 (2026-09-11 사고)
+s=s.replace(f'utm_campaign={src}', f'utm_campaign={dst}')
+s=re.sub(r"const REVIEW_DEADLINE_GRANTS = \[[\s\S]*?\];", "const REVIEW_DEADLINE_GRANTS = [];", s, count=1)   # 개별 연장은 기수별
+_i=s.find("const HOLIDAY_NOTICES = [")
+if _i>0:
+    _j=s.find("];",_i)+2; s=s[:_i]+"const HOLIDAY_NOTICES = [];  // 기수 기간 공휴일 있으면 여기에"+s[_j:]
+s=re.sub(r"from: '\d{4}-\d{2}-\d{2}',(\s*//[^\n]*수료식[^\n]*)?", "from: '"+a.end+"',  // 수료식 전날 끝 → 다음날부터 (필요시 수정)", s, count=1)
+s=re.sub(r"open_until: '[^']*',", "open_until: '수료 후 1년',", s, count=1)
+s=re.sub(r"const COHORT_DRIVE_URL = '[^']*';", "const COHORT_DRIVE_URL = '';  // TODO 단어집 드라이브", s, count=1)
+# 이전 기수 음성 삭제 (안 지우면 옛 단어 음성이 재생된다)
+_ad=os.path.join(dst,'audio')
+if os.path.isdir(_ad):
+    shutil.rmtree(_ad); os.makedirs(_ad)
 open(idx,'w',encoding='utf-8').write(s)
 # 검증
 r=subprocess.run(['node','-e',"const fs=require('fs'),vm=require('vm');const h=fs.readFileSync(process.argv[1],'utf8');const m=[...h.matchAll(/<script>([\\s\\S]*?)<\\/script>/g)];m.forEach((b,i)=>{new vm.Script(b[1])});console.log('script OK '+m.length)",idx],capture_output=True,text=True)
