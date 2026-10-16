@@ -198,13 +198,15 @@ Return JSON with FIVE fields ("verdict" and "feedback" as defined in the system 
 
 1. "corrected": polished, native-sounding business-English mini story.
    - MUST contain each MAIN expression at least once (or its inflection: tense / plural).
-   - Edit aggressively for fluency: fix grammar, awkward word order, non-native phrasing, weird prepositions, choppy connectors. Native business speaker register.
-   - You DO NOT need to keep every synonym the student wrote: feel free to drop redundant synonym variants if they make the prose awkward. Synonyms get proper treatment in field 3 below.
-   - Only return verbatim if the text already reads as if a fluent native speaker wrote it.
+   - MINIMAL EDITS ONLY (changed 2026-10-16 after learner feedback: "almost every word got crossed out, I can't tell where to start"). Fix real errors: grammar, a wrong preposition, a broken collocation, a word that contradicts the meaning. Do NOT restyle sentences that are already correct, do NOT reorder clauses for taste, do NOT swap a fine word for a fancier one, do NOT merge or split sentences.
+   - NEVER change what the story says. The student's meaning, scene, timeline and facts stay exactly as written ("wrap up the project by Friday" must not become "wrap up the meeting in five minutes"). If a sentence is grammatical and means what the Korean says, keep it verbatim even if you would phrase it differently.
+   - Budget: keep at least 75% of the student's words. If you find yourself rewriting more than that, you are restyling, not correcting. Stop and return the original with the few real fixes.
+   - If the text is already natural, verdict "correct", return it VERBATIM, and praise one specific choice.
+   - You DO NOT need to keep every synonym the student wrote, but do not delete a synonym that is used correctly; only touch it if it is wrong.
 
 2. "why": 1-2 Korean sentences (≤140 chars). Friendly, brief.
    - If unchanged: "이미 흐름 좋아요! 수정할 부분 없어요." style.
-   - If edited: short fix-type tag ("흐름 / 어순 / 자연스러운 표현으로 다듬었어요.").
+   - If edited: name the ONE most important fix first, as the thing to remember ("제일 먼저: 'by Friday' 앞에 전치사가 빠졌어요"), then at most one more. Never a generic tag like "자연스럽게 다듬었어요"; the learner must be able to point at the word you mean.
 
 3. "syn_examples": array of objects, ONE entry for EACH synonym the student wrote in their text (skip synonyms they didn't actually use).
    Schema: [{ syn: string, context: string, example: string }]

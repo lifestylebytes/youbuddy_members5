@@ -996,6 +996,12 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .celebration { position: fixed; inset: 0; pointer-events: none; z-index: 90; overflow: hidden; }
 .celebration span { position: absolute; top: -20px; font-size: 18px; animation: fall 2.8s cubic-bezier(.2,.9,.3,1.1) forwards; }
 @keyframes fall { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 100% { transform: translate(var(--x, 0), 110vh) rotate(var(--r, 360deg)); opacity: 0.3; } }
+.diff-rewrite{display:flex;flex-direction:column;gap:8px;}
+.diff-rw-note{font-size:11.5px;color:var(--muted);line-height:1.5;}
+.diff-rw-col{padding:10px 12px;border-radius:12px;background:rgba(0,0,0,0.03);border:1px solid var(--line);}
+.diff-rw-fix{background:rgba(74,160,124,0.08);border-color:rgba(74,160,124,0.35);}
+.diff-rw-lab{font-size:10.5px;font-weight:800;color:var(--muted);letter-spacing:0.02em;margin-bottom:4px;}
+.diff-rw-txt{font-size:14px;line-height:1.6;color:var(--ink);}
 </style>
 </head>
 <body>
@@ -2317,6 +2323,27 @@ function buildWordDiffHtml(original, corrected) {
       else dp[i][j] = Math.max(dp[i + 1][j], dp[i][j + 1]);
     }
   }
+  // 2026-10-16: 바뀐 단어가 너무 많으면 글자 단위 diff 는 오히려 못 읽는다 (거의 전부 취소선).
+  // 그런 경우 "내 문장 / 다듬은 문장" 두 덩어리로 나란히 보여준다. (멤버 피드백 + 9기 이탈 사례)
+  try {
+    const isWord = (t) => /[A-Za-z0-9]/.test(t);
+    const wa = A.filter(isWord).length, wb = B.filter(isWord).length;
+    // LCS 중 단어 토큰만 센다 (공백·구두점 제외)
+    let ii = 0, jj = 0, same = 0;
+    while (ii < m && jj < n) {
+      if (norm(A[ii]) === norm(B[jj])) { if (isWord(A[ii])) same++; ii++; jj++; }
+      else if (dp[ii + 1][jj] >= dp[ii][jj + 1]) ii++; else jj++;
+    }
+    const base = Math.max(wa, wb, 1);
+    const changed = 1 - same / base;
+    if (wa >= 6 && changed > 0.35) {
+      return `<div class="diff-rewrite">`
+        + `<div class="diff-rw-note">바뀐 데가 많아서 글자 단위 표시는 접었어요. 두 문장을 통째로 비교해보세요.</div>`
+        + `<div class="diff-rw-col"><div class="diff-rw-lab">내 문장</div><div class="diff-rw-txt">${escapeHtml(a)}</div></div>`
+        + `<div class="diff-rw-col diff-rw-fix"><div class="diff-rw-lab">다듬은 문장</div><div class="diff-rw-txt">${escapeHtml(b)}</div></div>`
+        + `</div>`;
+    }
+  } catch (_) {}
 
   const parts = [];
   let i = 0, j = 0;
