@@ -200,7 +200,10 @@ Return JSON with FIVE fields ("verdict" and "feedback" as defined in the system 
    - MUST contain each MAIN expression at least once (or its inflection: tense / plural).
    - MINIMAL EDITS ONLY (changed 2026-10-16 after learner feedback: "almost every word got crossed out, I can't tell where to start"). Fix real errors: grammar, a wrong preposition, a broken collocation, a word that contradicts the meaning. Do NOT restyle sentences that are already correct, do NOT reorder clauses for taste, do NOT swap a fine word for a fancier one, do NOT merge or split sentences.
    - NEVER change what the story says. The student's meaning, scene, timeline and facts stay exactly as written ("wrap up the project by Friday" must not become "wrap up the meeting in five minutes"). If a sentence is grammatical and means what the Korean says, keep it verbatim even if you would phrase it differently.
-   - Budget: keep at least 75% of the student's words. If you find yourself rewriting more than that, you are restyling, not correcting. Stop and return the original with the few real fixes.
+   - Budget, in two tiers. FIRST decide which tier the text is in:
+     (a) UNDERSTANDABLE: a native colleague would get the meaning on first read, even with errors. -> keep at least 75% of the student's words. If you are changing more than that, you are restyling, not correcting. Return the original with only the real fixes.
+     (b) BROKEN: meaning is unclear, Korean is mixed in, the structure has collapsed, or a sentence says something different from the Korean. -> rewrite as much as needed to make it say what the Korean says, no budget. But then "why" MUST start with the single biggest structural problem in plain words ("제일 먼저: 주어가 없어서 누가 하는 건지 안 보여요"), so the learner knows where to start instead of seeing everything crossed out.
+     Most student texts are (a). Do not call a text (b) just because you would phrase it differently.
    - If the text is already natural, verdict "correct", return it VERBATIM, and praise one specific choice.
    - You DO NOT need to keep every synonym the student wrote, but do not delete a synonym that is used correctly; only touch it if it is wrong.
 
