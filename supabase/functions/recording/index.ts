@@ -133,10 +133,19 @@ serve(async (req) => {
     // 2) 음성인식 + 대조 (실패해도 인증은 막지 않는다)
     let transcript = ''; let sttOk = true; let scores: number[] = []; let matched = 0;
     try {
-      transcript = await transcribe(bytes, mime, sentences.join(' '));
+      // 주의: 문장 전체를 힌트로 주면 모델이 안 읽은 문장까지 받아 적는다 (2026-10-17 실측: 한 문장만 읽어도 3개 통과).
+      //       힌트는 표현(구동사·고유명사) 수준까지만.
+      const hints: string[] = Array.isArray(body.hints) ? body.hints.map((h: any) => String(h || '').slice(0, 60)).filter(Boolean).slice(0, 6) : [];
+      transcript = await transcribe(bytes, mime, hints.length ? `Business English practice. Expressions: ${hints.join(', ')}.` : 'Business English practice.');
       const tt = tokens(transcript);
       scores = sentences.map((s) => Math.round(sentenceScore(s, tt) * 100) / 100);
       matched = scores.filter((x) => x >= 0.6).length;
+      // 길이 검증: 세 문장을 다 읽었다면 들린 단어 수가 목표의 절반은 넘어야 한다.
+      // (한 문장만 읽고 나머지가 "맞은 걸로" 나오는 경우를 막는다)
+      const targetTok = sentences.reduce((n, s) => n + tokens(s).length, 0);
+      const coverage = targetTok ? Math.min(1, tt.length / targetTok) : 1;
+      const maxMatched = Math.max(0, Math.min(sentences.length, Math.round(coverage * sentences.length + 0.3)));
+      if (matched > maxMatched) matched = maxMatched;
     } catch (e) {
       sttOk = false; scores = sentences.map(() => 0); matched = 0;
       console.error('stt failed', String(e));

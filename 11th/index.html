@@ -1033,6 +1033,9 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .rec-acc-mini{display:flex;align-items:baseline;gap:4px;flex-wrap:wrap;padding:10px 12px;}
 .rec-acc-mini .rec-acc-num{font-size:28px;}
 .rec-acc-week{margin-left:auto;font-size:11.5px;font-weight:700;color:rgba(255,255,255,0.7);}
+.rec-heard{margin-top:10px;font-size:12px;color:rgba(255,255,255,0.65);}
+.rec-heard summary{cursor:pointer;font-weight:700;color:rgba(255,255,255,0.75);}
+.rec-heard div{margin-top:6px;padding:10px 12px;border-radius:10px;background:rgba(0,0,0,0.18);line-height:1.6;font-style:italic;}
 .rec-sent-empty{margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.08);font-size:13px;color:rgba(255,255,255,0.8);line-height:1.5;}
 .rec-btn-main{margin-top:14px;padding:15px;border-radius:16px;border:none;background:#fff;color:#1E2A38;font-size:15px;font-weight:800;cursor:pointer;min-height:48px;}
 .rec-btn-main:disabled{opacity:0.45;cursor:not-allowed;}
@@ -35286,7 +35289,7 @@ async function recSubmit(dayN) {
       res = await fetch(`${SUPABASE_URL}/functions/v1/recording`, {
         method: 'POST',
         headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'submit', cohort: CHALLENGE.cohort, member: state.name, day: dayN, mime: R.mime, duration_ms: R.durationMs || 0, attempt: R.attempt, sentences, audio_b64: b64 }),
+        body: JSON.stringify({ mode: 'submit', cohort: CHALLENGE.cohort, member: state.name, day: dayN, mime: R.mime, duration_ms: R.durationMs || 0, attempt: R.attempt, sentences, hints: (getDay(dayN) || { words: [] }).words.map((w) => w.en), audio_b64: b64 }),
         signal: ctrl ? ctrl.signal : undefined,
       });
     } finally { if (to) clearTimeout(to); }
@@ -35394,6 +35397,11 @@ function recAccHtml(acc, scores, sentences) {
       <div class="rec-acc-lab">내 문장이 들린 정도 (문장별)</div>${bars}
       <div class="rec-acc-note">발음 점수가 아니에요. 음성인식이 내 문장을 얼마나 알아들었는지예요. 매일 쌓여서 나중에 그래프로 볼 수 있어요.</div>
     </div>`;
+}
+function recHeardHtml(transcript) {
+  const t = String(transcript || '').trim();
+  if (!t) return '';
+  return `<details class="rec-heard"><summary>이렇게 들렸어요</summary><div>${escapeHtml(t)}</div></details>`;
 }
 function recWeekAvg(dayN) {
   try {
@@ -35514,11 +35522,13 @@ function RecorderCard(dayN) {
       body = `<div class="rec-result ok">${H(r.message)}</div>
         ${r.stt_ok ? recAccHtml(r.accuracy, sc, sentences) : ''}
         ${r.stt_ok ? `<ol class="rec-sent rec-check">${chips}</ol>` : ''}
+        ${r.stt_ok ? recHeardHtml(r.transcript) : ''}
         <button class="btn btn-full rec-btn-main" onclick="window.__recReset(${dayN});window.__openRecShare(${dayN})">다음 · 단톡방에 올리기 →</button>`;
     } else {
       body = `<div class="rec-result miss">${H(r.message)}</div>
         ${recAccHtml(r.accuracy, sc, sentences)}
         <ol class="rec-sent rec-check">${chips}</ol>
+        ${recHeardHtml(r.transcript)}
         <div class="rec-hint" style="text-align:left;">· 표시된 문장이 안 들렸어요. 그 문장을 조금 더 천천히 읽어주세요.${R.attempt >= 2 ? ' 한 번 더 제출하시면 운영진 확인으로 넘기고 인증은 완료해드릴게요.' : ''}</div>
         <button class="btn btn-full rec-btn-main" onclick="window.__recStart(${dayN})">🎙 다시 녹음</button>`;
     }
