@@ -25408,6 +25408,14 @@ function CommunityPage() {
     <div class="kicker">${selectedDay === state.currentDay ? 'today' : 'looking back'} · DAY ${selectedDay} · ${dateStr}</div>
     <h1 style="margin:10px 0 0;font-size:26px;line-height:1.12;letter-spacing:-0.03em;font-weight:700;">다같이 제출한 문장</h1>`;
   page.appendChild(hero);
+  // 📥 문장 내려받기 (그날 전체 / 전체). 복습용 문장집. (2026-10-17)
+  if (hasSupabase()) {
+    const dlRow = el('div', { style: { display: 'flex', gap: '8px', padding: '0 8px 8px' } });
+    dlRow.innerHTML = `
+      <button class="btn btn-ghost" style="flex:1;justify-content:center;font-size:12.5px;padding:9px 10px;" onclick="window.__cmDownloadDay(${selectedDay}, this)">📥 Day ${selectedDay} 전체</button>
+      <button class="btn btn-ghost" style="flex:1;justify-content:center;font-size:12.5px;padding:9px 10px;" onclick="window.__cmDownloadAll(this)">📥 전체 (Day 1~오늘)</button>`;
+    page.appendChild(dlRow);
+  }
 
   // 제출 카운트 mini-banner, 이 day 에 코호트가 지금까지 몇 문장 제출했는지.
   // (서버 캐시 기준이라 약간 lag 있을 수 있지만, 새로고침 / 15초 sync 마다 갱신됨.)
@@ -35092,6 +35100,82 @@ window.__copyGradPrompt = (btn) => {
       ta.remove();
     });
   } catch (e) { showToast('복사가 안 돼요. 길게 눌러 직접 복사해주세요'); }
+};
+
+
+/* ── 커뮤니티 문장 내려받기 (2026-10-17 · 9기부터) ──
+   그날 전체 / 20일 전체를 .txt 로. 복습용 문장집. 이름은 멤버가 쓴 표시명 그대로. */
+function __cmNorm(p) {
+  return {
+    day: Number(p.day_n || p.day || 0),
+    word: String(p.word || ''),
+    user: String(p.member_name || p.user || '익명'),
+    sentence: String(p.sentence || '').trim(),
+    translation: String(p.translation || '').trim(),
+  };
+}
+function __cmBuildText(rowsByDay, title) {
+  const lines = [`${CHALLENGE.cohort} 유비챌 · ${title}`, `내려받은 시각: ${new Date().toLocaleString('ko-KR')}`, ''];
+  const days = Object.keys(rowsByDay).map(Number).sort((a, b) => a - b);
+  let total = 0;
+  days.forEach((dn) => {
+    const rows = rowsByDay[dn] || []; if (!rows.length) return;
+    const d = getDay(dn);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`DAY ${dn}${d ? ` · ${d.title}` : ''}${d ? ` · ${d.words.map((w) => w.en).join(' / ')}` : ''}`);
+    lines.push('');
+    const byWord = {};
+    rows.forEach((r) => { const k = r.word || ''; (byWord[k] = byWord[k] || []).push(r); });
+    Object.keys(byWord).forEach((w) => {
+      if (w) lines.push(`[${w}]`);
+      byWord[w].forEach((r) => {
+        lines.push(`· ${r.sentence}${r.translation ? `\n   ${r.translation}` : ''}   (${r.user})`);
+        total++;
+      });
+      lines.push('');
+    });
+  });
+  lines.push(`총 ${total}문장`);
+  return lines.join('\n');
+}
+function __cmSaveText(text, filename) {
+  try {
+    const blob = new Blob(['﻿' + text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename; a.style.display = 'none';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch (_) {} }, 1500);
+    showToast('📥 내려받았어요. 파일 앱(또는 다운로드 폴더)에서 확인하세요');
+  } catch (e) {
+    try { navigator.clipboard.writeText(text).then(() => showToast('다운로드가 막혀서 클립보드에 복사했어요')); } catch (_) { showToast('내려받기에 실패했어요'); }
+  }
+}
+window.__cmDownloadDay = async (dn, btn) => {
+  try {
+    if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
+    const rows = (await loadCommunityPosts(dn, { force: true })).map(__cmNorm).filter((r) => r.sentence);
+    if (!rows.length) { showToast('이 날은 아직 올라온 문장이 없어요'); return; }
+    rows.forEach((r) => { r.day = dn; });
+    __cmSaveText(__cmBuildText({ [dn]: rows }, `Day ${dn} 다같이 제출한 문장`), `유비챌${CHALLENGE.cohort}_Day${dn}_문장.txt`);
+  } catch (e) { showToast('불러오지 못했어요. 잠시 뒤 다시 눌러주세요'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = `📥 Day ${dn} 전체`; } }
+};
+window.__cmDownloadAll = async (btn) => {
+  const total = CHALLENGE.total_days || 20;
+  const upto = Math.min(total, Number(state.currentDay) || total);
+  try {
+    if (btn) { btn.disabled = true; }
+    const byDay = {};
+    for (let dn = 1; dn <= upto; dn++) {
+      if (btn) btn.textContent = `불러오는 중… ${dn}/${upto}`;
+      const rows = (await loadCommunityPosts(dn, {})).map(__cmNorm).filter((r) => r.sentence);
+      rows.forEach((r) => { r.day = dn; });
+      if (rows.length) byDay[dn] = rows;
+    }
+    if (!Object.keys(byDay).length) { showToast('아직 올라온 문장이 없어요'); return; }
+    __cmSaveText(__cmBuildText(byDay, `Day 1~${upto} 다같이 제출한 문장 전체`), `유비챌${CHALLENGE.cohort}_전체문장_Day1-${upto}.txt`);
+  } catch (e) { showToast('불러오지 못했어요. 잠시 뒤 다시 눌러주세요'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = '📥 전체 (Day 1~오늘)'; } }
 };
 
 window.__closeGift = () => { showGiftPopup = false; render(); };
