@@ -35103,7 +35103,7 @@ function recPickMime() {
   return '';
 }
 function recSentences(dayN) {
-  const d = findDay(dayN); if (!d) return [];
+  const d = getDay(dayN); if (!d) return [];
   return d.words.map((w, i) => {
     const key = `d${dayN}-${i}`;
     const t = (state.ai_feedback && state.ai_feedback[key] && state.ai_feedback[key].corrected) || (state.sentences && state.sentences[key]) || '';
