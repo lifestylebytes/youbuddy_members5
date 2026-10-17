@@ -1002,6 +1002,46 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .diff-rw-fix{background:rgba(74,160,124,0.08);border-color:rgba(74,160,124,0.35);}
 .diff-rw-lab{font-size:10.5px;font-weight:800;color:var(--muted);letter-spacing:0.02em;margin-bottom:4px;}
 .diff-rw-txt{font-size:14px;line-height:1.6;color:var(--ink);}
+/* 🎙 앱 녹음 인증 (11기) */
+.rec-card{margin-top:12px;padding:18px 18px 14px;border-radius:22px;background:linear-gradient(135deg,#1E2A38 0%,#2C4A66 100%);color:#fff;}
+.rec-card.rec-done{background:linear-gradient(135deg,#1F3A2E 0%,#2E5C47 100%);}
+.rec-head{display:flex;align-items:center;gap:14px;}
+.rec-ic{width:56px;height:56px;border-radius:18px;background:rgba(255,255,255,0.12);display:grid;place-items:center;font-size:22px;flex-shrink:0;}
+.rec-title{margin-top:4px;font-size:17px;font-weight:800;letter-spacing:-0.01em;line-height:1.3;}
+.rec-sub{margin-top:4px;font-size:12px;line-height:1.5;color:rgba(255,255,255,0.72);}
+.rec-sent{margin:14px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;counter-reset:rs;}
+.rec-sent li{counter-increment:rs;position:relative;padding:11px 12px 11px 38px;border-radius:12px;background:rgba(255,255,255,0.08);font-size:15px;line-height:1.5;font-weight:600;}
+.rec-sent li::before{content:counter(rs);position:absolute;left:12px;top:11px;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,0.18);font-size:11px;font-weight:800;display:grid;place-items:center;}
+.rec-sent.rec-check li{padding-left:36px;}
+.rec-sent.rec-check li::before{content:'';background:none;}
+.rec-sent.rec-check li>span{position:absolute;left:12px;top:10px;font-weight:900;}
+.rec-sent.rec-check li.ok{background:rgba(120,220,160,0.18);}
+.rec-sent.rec-check li.miss{background:rgba(255,160,120,0.16);opacity:0.9;}
+.rec-sent-empty{margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.08);font-size:13px;color:rgba(255,255,255,0.8);line-height:1.5;}
+.rec-btn-main{margin-top:14px;padding:15px;border-radius:16px;border:none;background:#fff;color:#1E2A38;font-size:15px;font-weight:800;cursor:pointer;min-height:48px;}
+.rec-btn-main:disabled{opacity:0.45;cursor:not-allowed;}
+.rec-btn-stop{margin-top:14px;padding:15px;border-radius:16px;border:none;background:#FF6B6B;color:#fff;font-size:15px;font-weight:800;cursor:pointer;min-height:48px;}
+.rec-btn-ghost{flex:1;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.08);color:#fff;font-size:13.5px;font-weight:800;cursor:pointer;min-height:44px;}
+.rec-row{display:flex;gap:8px;margin-top:12px;}
+.rec-hint{margin-top:10px;font-size:12px;line-height:1.6;color:rgba(255,255,255,0.75);text-align:center;}
+.rec-warn{margin-top:12px;padding:10px 12px;border-radius:12px;background:rgba(255,120,120,0.18);font-size:13px;font-weight:700;line-height:1.5;}
+.rec-notice{margin-top:12px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,0.08);font-size:12.5px;line-height:1.6;color:rgba(255,255,255,0.88);}
+.rec-notice ul{margin:6px 0 0;padding-left:18px;}
+.rec-foot{margin-top:12px;font-size:11px;line-height:1.55;color:rgba(255,255,255,0.55);}
+.rec-live{margin-top:14px;padding:14px;border-radius:14px;background:rgba(0,0,0,0.18);text-align:center;}
+.rec-bars{display:flex;align-items:flex-end;justify-content:center;gap:4px;height:40px;}
+.rec-bars i{display:block;width:6px;height:4px;border-radius:3px;background:#9CCBEE;transition:height 80ms linear;}
+.rec-timer{margin-top:10px;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;display:flex;align-items:center;justify-content:center;gap:8px;}
+.rec-max{font-size:12px;color:rgba(255,255,255,0.5);font-weight:600;}
+.rec-dot{width:10px;height:10px;border-radius:50%;background:#FF6B6B;animation:recblink 1s infinite;}
+@keyframes recblink{50%{opacity:0.2;}}
+.rec-center{margin-top:16px;text-align:center;}
+.rec-pulse{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.2);margin:0 auto;animation:recpulse 1.2s infinite;}
+@keyframes recpulse{0%{transform:scale(0.85);opacity:0.6;}50%{transform:scale(1);opacity:1;}100%{transform:scale(0.85);opacity:0.6;}}
+.rec-result{margin-top:14px;padding:12px 14px;border-radius:12px;font-size:14px;font-weight:800;line-height:1.5;}
+.rec-result.ok{background:rgba(120,220,160,0.2);}
+.rec-result.miss{background:rgba(255,160,120,0.2);}
+@media (prefers-reduced-motion:reduce){.rec-dot,.rec-pulse{animation:none;}.rec-bars i{transition:none;}}
 </style>
 </head>
 <body>
@@ -1709,6 +1749,8 @@ const defaultState = () => ({
   holiday_popup_seen: {},           // { 'chuseok': true } 공휴일 인증 안내 팝업 본 상태 (1회)
   gift_popup_seen: {},              // { d18: true } 완주 선물 기준 팝업 본 날 (하루 1회)
   grad_popup_seen: null,            // 졸업 안내 팝업 본 시각 (수료식 이후 1회 자동, 이후 배너로 재열람)
+  recordings: {},                   // { d1: { at, path, matched, verified, needs_review, attempts } } 앱 녹음 인증 (11기)
+  recording_notice_seen: false,     // 녹음 보관 안내 1회
   share_card_shared: {},            // { d1: ISO } 실제로 공유 시트까지 간 날 (운영자 분석용)
   review_counts: {},                // { retake: N, weak: N, random: N } 복습 테스트 횟수 (2026-08-31)
   review_ask_seen: false,           // 수료 후기 부탁 팝업 1회 노출 여부 (2026-09-03)
@@ -1810,6 +1852,8 @@ const PERSISTED_STATE_KEYS = [
   'holiday_popup_seen',
   'gift_popup_seen',
   'grad_popup_seen',
+  'recordings',
+  'recording_notice_seen',
   'share_card_shared',
   'review_counts',
   'review_ask_seen',
@@ -2041,6 +2085,7 @@ const ADD_ONLY_MAP = [
   'personal_quiz', 'personal_quiz_fill_answers', 'personal_quiz_submitted',
   'community_comments', 'community_edits', 'meeting_notes', 'pitch_scratch',
   'bingo', 'bingo_marked', 'sentences_first', 'checkpoints', 'final_downloads',
+  'recordings',
 ];
 function mergeAddOnly(localVal, serverVal, boolMode) {
   if (!serverVal || typeof serverVal !== 'object') return localVal;
@@ -3668,7 +3713,7 @@ const GUIDED_TOUR_STEPS = [
   { page: 'day', opts: { day: 1, week: 1 }, previewSubmit: true, target: '[data-tour="day-ai-btn"]', title: '⑤ AI 첨삭', bodyHtml: '문장을 제출하면 이 <b>AI 첨삭</b> 버튼이 생겨요. 누르면 어색한 부분을 자연스럽게 고쳐줘요.<div style="margin-top:11px;display:flex;gap:8px;"><div style="flex:1;padding:10px 11px;border-radius:11px;background:#F5F2EC;border:1px solid #E0D9CD;"><div style="font-size:11px;font-weight:800;color:#94897A;">베이직</div><div style="margin-top:3px;font-size:13px;font-weight:800;color:#2A2620;">문장당 1회</div></div><div style="flex:1;padding:10px 11px;border-radius:11px;background:#F4F0FA;border:1.5px solid #B79AD0;"><div style="font-size:11px;font-weight:800;color:#7B5E8C;">👑 프리미엄</div><div style="margin-top:3px;font-size:13px;font-weight:800;color:#7B5E8C;">무제한</div></div></div><div style="margin-top:8px;font-size:12.5px;line-height:1.6;color:#5C5449;">프리미엄은 <b style="color:#2A2620;">고칠 때까지 몇 번이고</b> 받을 수 있어요. 한 문장을 여러 번 다듬어보는 게 실력이 제일 빨리 늘거든요.</div><div style="margin-top:10px;padding:10px 12px;border-radius:11px;background:#F1F5F9;border:1.5px solid #2F4A6D;font-size:13px;font-weight:800;color:#1F3350;line-height:1.5;">🎁 이번 기수 한정: 베이직도 AI 첨삭 무제한이 적용돼요!</div>', body: '문장을 제출하면 AI 첨삭 버튼이 생겨요. 어색한 부분을 자연스럽게 고쳐줘요. 이번 기수는 베이직도 무제한으로 받을 수 있어요.' },
   { page: 'community', target: '[data-tour="tab-community"]', title: '커뮤니티', body: '내가 제출한 문장과 동료들의 문장을 여기서 함께 봐요. 다른 사람은 어떻게 썼는지 구경하며 표현을 늘려요.' },
   { page: 'home',      target: '[data-tour="streak-board"]',  targetUnion: ['.cb-name.cb-row-me', '.cb-cell.cb-cell-me'], title: '인증 완료', body: '단어 시험까지 풀면 그날 인증 완료! 홈 보드의 내 칸에 바로 표시돼요.' },
-  { page: 'day', opts: { day: 1, week: 1 }, previewVerify: true, target: '[data-tour="day-video"]', title: '마지막 한 걸음, 녹음 인증', media: KAKAO_ILLUST, bodyHtml: '앱에서 인증을 마치면 이 자리에 <b>"녹음 제출하러 가기"</b> 버튼이 열려요. 오늘 문장 3개를 소리 내어 녹음해 카톡방에 올리면 끝!<br><br>보드 색으로 구분돼요: 앱 인증만 하면 <b style="color:#C9A57A;">연한 갈색</b>, 녹음까지 올리면 <b style="color:#1F3350;">진한 갈색</b>. <b>진한 갈색이 완전한 인증</b>이에요. 입으로 나와야 내 표현이 되니까요 💪 (지금은 미리보기로 보여드려요)', body: '앱 인증을 마치면 "녹음 제출하러 가기" 버튼이 열려요. 문장 3개를 녹음해 카톡방에 올리면 끝. 앱 인증만 하면 연한 갈색, 녹음까지 하면 진한 갈색으로 보드에 표시되고, 진한 갈색이 완전한 인증이에요.' },
+  { page: 'day', opts: { day: 1, week: 1 }, previewVerify: true, target: '[data-tour="day-video"]', title: '마지막 한 걸음, 녹음 인증', media: KAKAO_ILLUST, bodyHtml: '앱에서 인증을 마치면 이 자리에 <b>녹음 카드</b>가 열려요. 오늘 쓴 문장 3개를 앱에서 바로 녹음하면 끝! 카톡에 따로 올리지 않아도 돼요.<br><br>보드 색으로 구분돼요: 앱 인증만 하면 <b style="color:#C9A57A;">연한 색</b>, 녹음까지 마치면 <b style="color:#1F3350;">진한 색</b>. <b>진한 색이 완전한 인증</b>이에요. 입으로 나와야 내 표현이 되니까요 💪 (지금은 미리보기로 보여드려요)', body: '앱 인증을 마치면 "녹음 제출하러 가기" 버튼이 열려요. 문장 3개를 녹음해 카톡방에 올리면 끝. 앱 인증만 하면 연한 갈색, 녹음까지 하면 진한 갈색으로 보드에 표시되고, 진한 갈색이 완전한 인증이에요.' },
   { page: 'weeks',     previewQuiz: true, target: '[data-tour="week-quiz"]', title: '주간 미션 / 파이널', body: '한 주(5일)를 다 채우면 이 주간 미션 퀴즈가 열려요. 통과하면 선물이 있어요 🎁. 마지막엔 종합 파이널 퀴즈가 있고, 20일 중 18일 이상 인증하면 단어집 PDF가 열려요. (지금은 미리보기)' },
   { page: 'profile',   target: '[data-tour="profile-replay"]', title: '여기서 다시 볼 수 있어요', body: '이 안내가 헷갈리면 언제든 "나" 탭의 이 버튼을 눌러 처음부터 다시 볼 수 있어요. 부담 없이 활용해주세요!' },
   { page: 'home',      target: '[data-tour="home-hero"]',     title: '준비 끝!', bodyHtml: '이제 오늘의 학습을 열어볼까요? 매일 20분이면 충분해요 🧡<br><br>💡 미리 하나만 말씀드리면, <b style="color:#2F4A6D;">둘째~셋째 주가 가장 고비</b>예요. 그때 하루 빠져도 정상이니, 포기하지 말고 가볍게 복귀하면 돼요. 월요일마다 응원 들고 올게요!<br><br>📌 <b>방금 본 "나" 탭 &gt; 앱 사용법 다시 보기 버튼으로 언제든 이 안내를 다시 볼 수 있어요.</b>', body: '이제 오늘의 학습을 열어볼까요? 매일 20분이면 충분해요 🧡 미리 하나만: 둘째~셋째 주가 가장 고비예요. 하루 빠져도 포기하지 말고 가볍게 복귀하면 돼요. "나" 탭 > 앱 사용법 다시 보기로 언제든 이 안내를 다시 볼 수 있어요.', last: true },
@@ -9683,7 +9728,7 @@ function HelpPage() {
   sh('🎨', '보드 색깔 · 색만 알면 한눈에 읽혀요');
   const COLORS = [
     ['#1F3350', '정시 인증 + 녹음까지', '이게 완전한 인증이에요'],
-    ['#E4CFB4', '앱 인증만 완료', '카톡 녹음 대기 중'],
+    ['#E4CFB4', '앱 인증만 완료', '녹음 대기 중'],
     ['#C9B79C', '지각', '그날 자정을 넘겨서 인증'],
     ['#EDE7DC', '아직 안 한 날', ''],
   ];
@@ -9782,7 +9827,7 @@ function HelpPage() {
       </div>`],
     ['기간 연장이 되나요?', `다 같이 같은 날짜로 달리는 챌린지라 연장이나 연기는 따로 없어요.<br>
       <b>대신 20일 중 18일이 기준이라 이틀은 빠지셔도 수료됩니다.</b> 바쁜 주에는 하루 5분만 잡고 가볍게 넘어가셔도 충분해요.`],
-    ['인증했는데 보드에 안 찍혔어요', `앱 인증과 카톡 녹음은 별개예요. <b>녹음까지 올리셔야 진한 갈색</b>이 됩니다.
+    ['인증했는데 보드에 안 찍혔어요', `앱 인증과 녹음은 별개예요. <b>Day 페이지에서 녹음까지 마쳐야 진한 색</b>이 됩니다.
       녹음은 운영진이 확인하고 체크하는 거라 조금 걸릴 수 있어요. <b>늦게 체크돼도 지각이 되지 않으니</b> 안심하셔도 됩니다.`],
     ['인증 마무리 버튼이 안 눌려요', `버튼 바로 위에 <b>뭐가 남았는지</b> 목록으로 떠요. 보통은 문장 3개 중 하나가 제출이 안 된 경우예요.`],
     ['주말에도 해야 하나요?', `아니에요. <b>평일만 진행</b>하고 주말은 쉬어갑니다.`],
@@ -10199,7 +10244,7 @@ const __INTAKE_QUESTIONS = [
 ];
 
 // "저는 매일 07:30 에 인증하고, 22:00 까지 녹음을 올리겠습니다." 한 문장으로 조립.
-// 녹음은 매일 카톡방에 올리는 과제라 기한도 '날짜'가 아니라 '그날 몇 시까지'로 받습니다.
+// 녹음은 매일 앱에서 하는 과제라 기한도 '날짜'가 아니라 '그날 몇 시까지'로 받습니다.
 function __pledgeSentence(p) {
   if (!p) return '';
   const t = String(p.verify_time || '').trim();
@@ -10299,7 +10344,7 @@ function __pledgeFormHtml(draft, opts) {
     <label style="display:grid;gap:6px;margin-bottom:6px;">
       <span class="kicker" style="color:var(--muted);">녹음은 그날 몇 시까지 올릴까요?</span>
       <input id="${escapeHtml(o.recId || '__obRecTime')}" class="input" type="time" value="${escapeHtml(draft.recordingBy || '22:00')}" style="font-size:15px;font-weight:700;" />
-      <span style="font-size:11px;color:var(--muted);line-height:1.5;">녹음은 매일 카톡방에 올리는 과제예요. 인증과 다른 시간대로 잡아두시는 분이 많아요.</span>
+      <span style="font-size:11px;color:var(--muted);line-height:1.5;">녹음은 매일 앱에서 하는 과제예요. 인증과 다른 시간대로 잡아두시는 분이 많아요.</span>
     </label>
     <div style="margin:10px 0 14px;padding:11px 13px;border-radius:11px;background:rgba(156,107,63,0.07);border:1px solid rgba(156,107,63,0.16);">
       <p style="margin:0;font-size:11.5px;color:var(--ink-soft);line-height:1.65;">
@@ -14820,7 +14865,7 @@ function VerifyPage(dayN) {
     const guide = el('div', {
       style: { padding: '14px 16px', borderRadius: '16px', background: 'rgba(251,247,240,0.06)', border: '1px solid rgba(156,107,63,0.28)' }
     });
-    guide.innerHTML = `<div class="t-small mono" style="color:rgba(251,247,240,0.45)">recording guide · 카톡 제출</div><div style="margin-top:8px;font-size:14.5px;line-height:1.55;color:rgba(251,247,240,0.85);">아래 내 문장 3개를 소리 내어 녹음한 뒤 <b>유버디 카톡방에 올려주세요.</b> 입으로 나와야 내 표현이 돼요.</div>`;
+    guide.innerHTML = `<div class="t-small mono" style="color:rgba(251,247,240,0.45)">recording guide · 앱 녹음</div><div style="margin-top:8px;font-size:14.5px;line-height:1.55;color:rgba(251,247,240,0.85);">아래 내 문장 3개를 <b>앱에서 바로 녹음해주세요.</b> 녹음하면 인증이 자동으로 끝나요. 입으로 나와야 내 표현이 돼요.</div>`;
     box.appendChild(guide);
     if (!hasAny) {
       const empty = el('div', {
@@ -14844,10 +14889,10 @@ function VerifyPage(dayN) {
       });
     }
     box.appendChild(el('button', { class: 'btn btn-ghost btn-full', style: { marginTop: '16px', background: 'rgba(251,247,240,0.1)', border: '1px solid rgba(251,247,240,0.3)', color: 'var(--cream)' }, onClick: () => {
-      const url = kakaoRoomUrl();
-      if (url) { try { window.open(url, '_blank', 'noopener,noreferrer'); } catch (e) {} }
-      else { try { showToast('🎙 카톡방 링크 준비 중이에요. 단톡방에서 직접 올려주세요!'); } catch (e) {} }
-    }, html: `${Icon('mic', 14)} 녹음 제출하러 가기 (카톡방 열기)` }));
+      const c = document.querySelector('[data-rec-card]');
+      if (c) { try { c.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { c.scrollIntoView(); } }
+      else { try { showToast('🎙 위의 인증을 먼저 마치면 녹음 카드가 열려요'); } catch (e) {} }
+    }, html: `${Icon('mic', 14)} 앱에서 녹음하러 가기` }));
     panel.appendChild(box);
   }
   page.appendChild(panel);
@@ -19054,47 +19099,9 @@ function DayPage(dayN) {
 
   // Yellow tip card, low-pressure encouragement
 
-  // 인증 완료 후엔 '녹음 제출하러 가기'를 페이지 상단에 크게 배치.
-  // 11기: 보너스 영상 제도 폐지, 그 자리에 녹음 제출 + 카톡방 링크 (tier 별).
+  // 인증 완료 후엔 '앱 녹음 인증' 카드를 페이지 상단에 크게 배치. (11기: 카톡 녹음 → 앱 녹음)
   if (state.verified['d' + dayN] || window.__tourVerifyPreview === dayN) {
-    const bonusTop = el('button', {
-      'data-tour': 'day-video',
-      style: {
-        width: '100%',
-        marginTop: '12px',
-        padding: '18px 20px',
-        borderRadius: '22px',
-        border: 'none',
-        background: 'linear-gradient(135deg, #1E2A38 0%, #2C4A66 100%)',
-        color: '#fff',
-        textAlign: 'left',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '14px',
-        cursor: 'pointer',
-      },
-      onClick: () => {
-        // 11기: 본인 tier 카톡방을 새 탭으로. 링크 미설정이면 안내 토스트.
-        const url = kakaoRoomUrl();
-        if (url) {
-          try { window.open(url, '_blank', 'noopener,noreferrer'); } catch (e) {}
-        } else {
-          try { showToast('🎙 카톡방 링크 준비 중이에요. 단톡방에서 직접 올려주세요!'); } catch (e) {}
-        }
-      },
-    });
-    bonusTop.innerHTML = `
-      <div style="width:56px;height:56px;border-radius:18px;background:rgba(255,255,255,0.12);display:grid;place-items:center;flex-shrink:0;">
-        <span style="font-size:22px;">🎙</span>
-      </div>
-      <div style="flex:1;min-width:0;">
-        <div class="kicker" style="color:#9CCBEE;font-size:10px;">인증 완료 · 마지막 한 걸음</div>
-        <div style="margin-top:4px;font-size:17px;font-weight:800;letter-spacing:-0.01em;">녹음 제출하러 가기</div>
-        <div class="t-small" style="margin-top:4px;font-size:12px;line-height:1.45;color:rgba(255,255,255,0.72);">오늘 문장 3개를 소리 내어 녹음해서 우리 방에 올려요. 입으로 나와야 내 표현이 돼요 💪</div>
-      </div>
-      <span style="width:40px;height:40px;border-radius:999px;background:rgba(255,255,255,0.14);display:grid;place-items:center;flex-shrink:0;">${Icon('mic', 16)}</span>
-    `;
-    page.appendChild(bonusTop);
+    page.appendChild(RecorderCard(dayN));
   }
 
   // Today's 3 words, slim overview strip (tap to scroll to that word card)
@@ -35071,6 +35078,285 @@ window.__copyGradPrompt = (btn) => {
     });
   } catch (e) { showToast('복사가 안 돼요. 길게 눌러 직접 복사해주세요'); }
 };
+
+
+/* ============================================================
+   🎙 앱 녹음 인증 (11기 신설 · 2026-10-17)
+   카톡에 올리던 녹음을 앱에서 받는다. 흐름:
+   안내(1회) → 마이크 허용 → 녹음(최대 60초, 레벨 미터) → 미리듣기 → 제출
+   → 서버가 저장 + 음성인식 + 내 문장 대조 → 2/3 이상이면 녹음 인증 자동 완료.
+   음성인식이 실패하면 멤버 탓이 아니므로 인증은 인정하고 운영진 확인 플래그만 남긴다.
+   파일은 기수 종료 + 30일 뒤 자동 삭제. 인증 기록은 남는다.
+   ============================================================ */
+const REC_MAX_MS = 60000;
+const REC_WARN_MS = 50000;
+window.__rec = window.__rec || { stream: null, mr: null, chunks: [], blob: null, mime: '', startAt: 0, timer: null, raf: null, ctx: null, analyser: null, dayN: 0, status: 'idle', result: null, err: '', attempt: 0, url: '' };
+
+function recSupported() {
+  return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+}
+function recInKakao() { return /KAKAOTALK/i.test(navigator.userAgent || ''); }
+function recIsIOS() { return /iPhone|iPad|iPod/i.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+function recPickMime() {
+  const cands = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/aac', 'audio/ogg;codecs=opus'];
+  for (const c of cands) { try { if (MediaRecorder.isTypeSupported(c)) return c; } catch (_) {} }
+  return '';
+}
+function recSentences(dayN) {
+  const d = findDay(dayN); if (!d) return [];
+  return d.words.map((w, i) => {
+    const key = `d${dayN}-${i}`;
+    const t = (state.ai_feedback && state.ai_feedback[key] && state.ai_feedback[key].corrected) || (state.sentences && state.sentences[key]) || '';
+    return String(t || '').trim();
+  }).filter(Boolean);
+}
+function recFmt(ms) { const s = Math.floor(ms / 1000); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
+function recStopTracks() {
+  try { if (window.__rec.stream) window.__rec.stream.getTracks().forEach((t) => t.stop()); } catch (_) {}
+  window.__rec.stream = null;
+  try { if (window.__rec.ctx) window.__rec.ctx.close(); } catch (_) {}
+  window.__rec.ctx = null; window.__rec.analyser = null;
+  if (window.__rec.raf) cancelAnimationFrame(window.__rec.raf); window.__rec.raf = null;
+  if (window.__rec.timer) clearInterval(window.__rec.timer); window.__rec.timer = null;
+}
+function recReset(dayN) {
+  recStopTracks();
+  if (window.__rec.url) { try { URL.revokeObjectURL(window.__rec.url); } catch (_) {} }
+  Object.assign(window.__rec, { mr: null, chunks: [], blob: null, mime: '', startAt: 0, status: 'idle', result: null, err: '', url: '' });
+  if (dayN) window.__rec.dayN = dayN;
+}
+function recRepaint() { try { render(); } catch (_) {} }
+
+async function recStart(dayN) {
+  const R = window.__rec;
+  if (R.status === 'recording') return;
+  recReset(dayN);
+  R.status = 'asking'; recRepaint();
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+  } catch (e) {
+    R.status = 'denied'; R.err = String(e && e.name || e); recRepaint(); return;
+  }
+  R.stream = stream;
+  const mime = recPickMime(); R.mime = mime;
+  let mr;
+  try { mr = mime ? new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: 48000 }) : new MediaRecorder(stream); }
+  catch (e) { try { mr = new MediaRecorder(stream); } catch (e2) { R.status = 'unsupported'; recStopTracks(); recRepaint(); return; } }
+  R.mr = mr; R.chunks = [];
+  mr.ondataavailable = (ev) => { if (ev.data && ev.data.size) R.chunks.push(ev.data); };
+  mr.onstop = () => {
+    const type = mr.mimeType || mime || 'audio/webm';
+    R.blob = new Blob(R.chunks, { type });
+    R.mime = type;
+    if (R.url) { try { URL.revokeObjectURL(R.url); } catch (_) {} }
+    R.url = URL.createObjectURL(R.blob);
+    R.durationMs = Date.now() - R.startAt;
+    recStopTracks();
+    R.status = (R.durationMs < 1500) ? 'tooshort' : 'recorded';
+    recRepaint();
+  };
+  // 레벨 미터
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) {
+      R.ctx = new AC(); const src = R.ctx.createMediaStreamSource(stream);
+      R.analyser = R.ctx.createAnalyser(); R.analyser.fftSize = 256; src.connect(R.analyser);
+    }
+  } catch (_) {}
+  R.startAt = Date.now(); R.status = 'recording';
+  try { mr.start(250); } catch (e) { R.status = 'unsupported'; recStopTracks(); recRepaint(); return; }
+  recRepaint();
+  R.timer = setInterval(() => {
+    const t = Date.now() - R.startAt;
+    const tEl = document.querySelector('[data-rec-timer]'); if (tEl) tEl.textContent = recFmt(t);
+    const wEl = document.querySelector('[data-rec-warn]'); if (wEl) wEl.style.display = t >= REC_WARN_MS ? 'block' : 'none';
+    if (t >= REC_MAX_MS) recStop();
+  }, 200);
+  const bars = () => {
+    if (!R.analyser) return;
+    const arr = new Uint8Array(R.analyser.frequencyBinCount); R.analyser.getByteFrequencyData(arr);
+    const els = document.querySelectorAll('[data-rec-bar]');
+    const step = Math.max(1, Math.floor(arr.length / els.length));
+    els.forEach((b, i) => { const v = arr[i * step] / 255; b.style.height = Math.max(4, Math.round(v * 34)) + 'px'; b.style.opacity = String(0.35 + v * 0.65); });
+    R.raf = requestAnimationFrame(bars);
+  };
+  R.raf = requestAnimationFrame(bars);
+}
+function recStop() {
+  const R = window.__rec;
+  if (R.timer) clearInterval(R.timer); R.timer = null;
+  try { if (R.mr && R.mr.state !== 'inactive') R.mr.stop(); } catch (_) { recStopTracks(); R.status = 'idle'; recRepaint(); }
+}
+function recBlobToB64(blob) {
+  return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result || '')); fr.onerror = rej; fr.readAsDataURL(blob); });
+}
+async function recSubmit(dayN) {
+  const R = window.__rec;
+  if (!R.blob) return;
+  R.status = 'uploading'; R.err = ''; recRepaint();
+  const sentences = recSentences(dayN);
+  R.attempt = (R.attempt || 0) + 1;
+  try {
+    const b64 = await recBlobToB64(R.blob);
+    const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const to = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (_) {} }, 60000) : null;
+    let res;
+    try {
+      res = await fetch(`${SUPABASE_URL}/functions/v1/recording`, {
+        method: 'POST',
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'submit', cohort: CHALLENGE.cohort, member: state.name, day: dayN, mime: R.mime, duration_ms: R.durationMs || 0, attempt: R.attempt, sentences, audio_b64: b64 }),
+        signal: ctrl ? ctrl.signal : undefined,
+      });
+    } finally { if (to) clearTimeout(to); }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      R.status = 'error'; R.err = data.message || ('서버 오류 ' + res.status); recRepaint(); return;
+    }
+    R.result = data; R.status = 'done';
+    // 결과를 내 기록에 남긴다 (서버 로그가 원본, 이건 화면용)
+    state.recordings = state.recordings || {};
+    const prev = state.recordings['d' + dayN] || {};
+    state.recordings['d' + dayN] = { at: new Date().toISOString(), path: data.path || '', matched: data.matched, verified: !!data.verified, needs_review: !!data.needs_review, attempts: R.attempt, scores: data.scores || [], transcript: (data.transcript || '').slice(0, 300), prev_verified: !!prev.verified };
+    try { saveState({ immediate: true }); } catch (_) { try { saveState(); } catch (__) {} }
+    if (data.verified) { try { showToast('🎙 녹음 인증 완료!'); } catch (_) {} try { window.__cbCachedFingerprint = null; if (typeof loadRecordingChecks === 'function') loadRecordingChecks(true); } catch (_) {} }
+    recRepaint();
+  } catch (e) {
+    R.status = 'error'; R.err = (e && e.name === 'AbortError') ? '네트워크가 느려서 시간이 초과됐어요. 다시 시도해주세요.' : '전송 중 문제가 생겼어요. 네트워크 확인 후 다시 시도해주세요.'; recRepaint();
+  }
+}
+async function recPlaySaved(path, btn) {
+  try {
+    if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/recording`, { method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'url', path }) });
+    const data = await res.json();
+    if (!data.url) throw new Error('no url');
+    const a = document.querySelector('[data-rec-saved-audio]');
+    if (a) { a.src = data.url; a.style.display = 'block'; try { await a.play(); } catch (_) {} }
+  } catch (e) { try { showToast('녹음을 불러오지 못했어요. 잠시 뒤 다시 눌러주세요.'); } catch (_) {} }
+  finally { if (btn) { btn.disabled = false; btn.textContent = '▶ 내 녹음 듣기'; } }
+}
+window.__recStart = recStart; window.__recStop = recStop; window.__recSubmit = recSubmit; window.__recReset = recReset; window.__recPlaySaved = recPlaySaved;
+window.__recAckNotice = () => { state.recording_notice_seen = true; try { saveState(); } catch (_) {} recRepaint(); };
+
+function RecorderCard(dayN) {
+  const R = window.__rec;
+  if (R.dayN !== dayN && R.status !== 'idle') recReset(dayN); else R.dayN = dayN;
+  const sentences = recSentences(dayN);
+  const saved = (state.recordings || {})['d' + dayN];
+  const card = el('div', { 'data-tour': 'day-video', 'data-rec-card': '1', class: 'rec-card' });
+  const H = (s) => escapeHtml(String(s == null ? '' : s));
+  const sentHtml = sentences.length
+    ? `<ol class="rec-sent">${sentences.map((s) => `<li>${H(s)}</li>`).join('')}</ol>`
+    : `<div class="rec-sent-empty">아직 오늘 문장이 없어요. 위에서 문장 3개를 먼저 제출해주세요.</div>`;
+  const head = (kicker, title, sub) => `
+    <div class="rec-head">
+      <div class="rec-ic">🎙</div>
+      <div style="flex:1;min-width:0;">
+        <div class="kicker" style="color:#9CCBEE;font-size:10px;">${kicker}</div>
+        <div class="rec-title">${title}</div>
+        ${sub ? `<div class="rec-sub">${sub}</div>` : ''}
+      </div>
+    </div>`;
+  const retention = `<div class="rec-foot">🔒 녹음은 인증 확인용으로만 쓰고, 기수가 끝나고 30일 뒤 자동 삭제돼요. 운영진 외엔 아무도 듣지 않고, 인증 기록은 그대로 남아요.</div>`;
+
+  // 0) 지원 안 되는 환경
+  if (recInKakao() || !recSupported()) {
+    card.innerHTML = head('마지막 한 걸음', '녹음은 사파리·크롬에서 해주세요',
+      recInKakao() ? '카카오톡 안에서 열면 마이크를 쓸 수 없어요. 아래 버튼으로 주소를 복사해서 브라우저에 붙여넣어 주세요.' : '이 브라우저는 녹음을 지원하지 않아요. 최신 사파리나 크롬으로 열어주세요.')
+      + `<button class="btn btn-full rec-btn-ghost" onclick="try{navigator.clipboard.writeText(location.href).then(()=>showToast('주소를 복사했어요. 브라우저에 붙여넣으세요!'))}catch(e){prompt('이 주소를 복사하세요', location.href)}">🔗 페이지 주소 복사</button>`;
+    return card;
+  }
+  // 1) 이미 오늘 인증 완료 + 지금 새 작업 중이 아님
+  if (saved && saved.verified && R.status === 'idle') {
+    card.classList.add('rec-done');
+    card.innerHTML = head('녹음 인증 완료', `오늘 녹음 끝! ${saved.matched === 3 ? '세 문장 다 또렷했어요' : saved.needs_review ? '운영진이 한 번 들어볼게요' : '잘 들렸어요'}`,
+      `${new Date(saved.at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 제출`)
+      + `<div class="rec-row">
+           <button class="btn rec-btn-ghost" data-rec-play onclick="window.__recPlaySaved(${JSON.stringify(saved.path)}, this)">▶ 내 녹음 듣기</button>
+           <button class="btn rec-btn-ghost" onclick="window.__rec.status='idle';window.__recStart(${dayN})">다시 녹음</button>
+         </div>
+         <audio data-rec-saved-audio controls style="display:none;width:100%;margin-top:10px;"></audio>`
+      + retention;
+    return card;
+  }
+  // 2) 안내 1회
+  if (!state.recording_notice_seen && R.status === 'idle') {
+    card.innerHTML = head('마지막 한 걸음', '오늘 쓴 문장 3개, 소리 내어 읽어볼까요?', '앱에서 바로 녹음하면 녹음 인증이 자동으로 끝나요. 카톡에 따로 올리지 않아도 돼요.')
+      + sentHtml
+      + `<div class="rec-notice">
+           <div><b>🔒 녹음은 이렇게 다뤄요</b></div>
+           <ul>
+             <li>내 문장을 읽었는지 확인하는 데만 써요</li>
+             <li>운영진 외엔 아무도 듣지 않아요</li>
+             <li>기수가 끝나고 30일 뒤 자동으로 지워져요. 인증 기록은 남아요</li>
+           </ul>
+         </div>
+         <button class="btn btn-full rec-btn-main" onclick="window.__recAckNotice()">알겠어요, 녹음할게요</button>`;
+    return card;
+  }
+  // 3) 상태별
+  let body = '';
+  if (R.status === 'idle') {
+    body = sentHtml + `<button class="btn btn-full rec-btn-main" ${sentences.length ? '' : 'disabled'} onclick="window.__recStart(${dayN})">🎙 녹음 시작</button>
+      <div class="rec-hint">조용한 곳에서, 마이크 가까이. 세 문장을 천천히 또박또박 읽으면 돼요 (최대 60초)</div>`;
+  } else if (R.status === 'asking') {
+    body = `<div class="rec-center"><div class="rec-pulse"></div><div class="rec-hint">마이크 권한을 허용해주세요</div></div>`;
+  } else if (R.status === 'denied') {
+    body = `<div class="rec-warn">마이크 권한이 꺼져 있어요.</div>
+      <div class="rec-hint" style="text-align:left;">${recIsIOS()
+        ? '아이폰: <b>설정 → Safari → 마이크</b> 에서 허용으로 바꾼 뒤, 이 페이지를 새로고침해주세요.'
+        : '안드로이드: 주소창 왼쪽 <b>자물쇠 아이콘 → 권한 → 마이크</b> 를 허용으로 바꾼 뒤 새로고침해주세요.'}</div>
+      <button class="btn btn-full rec-btn-main" onclick="window.__recStart(${dayN})">다시 시도</button>`;
+  } else if (R.status === 'unsupported') {
+    body = `<div class="rec-warn">이 브라우저에서는 녹음이 안 돼요. 최신 사파리나 크롬으로 열어주세요.</div>`;
+  } else if (R.status === 'recording') {
+    body = sentHtml + `
+      <div class="rec-live">
+        <div class="rec-bars">${Array.from({ length: 16 }).map(() => '<i data-rec-bar></i>').join('')}</div>
+        <div class="rec-timer"><span class="rec-dot"></span><span data-rec-timer>00:00</span><span class="rec-max">/ 01:00</span></div>
+        <div class="rec-warn" data-rec-warn style="display:none;">10초 남았어요. 마무리해주세요</div>
+      </div>
+      <button class="btn btn-full rec-btn-stop" onclick="window.__recStop()">■ 녹음 끝</button>`;
+  } else if (R.status === 'tooshort') {
+    body = `<div class="rec-warn">너무 짧아요. 세 문장을 다 읽어주세요.</div>
+      <button class="btn btn-full rec-btn-main" onclick="window.__recStart(${dayN})">🎙 다시 녹음</button>`;
+  } else if (R.status === 'recorded') {
+    body = `<div class="rec-hint" style="margin-top:0;">녹음됐어요 (${recFmt(R.durationMs || 0)}). 한 번 들어보고 제출해요.</div>
+      <audio controls src="${R.url}" style="width:100%;margin-top:8px;"></audio>
+      <div class="rec-row">
+        <button class="btn rec-btn-ghost" onclick="window.__recStart(${dayN})">다시 녹음</button>
+        <button class="btn rec-btn-main" onclick="window.__recSubmit(${dayN})">이걸로 제출 →</button>
+      </div>`;
+  } else if (R.status === 'uploading') {
+    body = `<div class="rec-center"><div class="rec-pulse"></div><div class="rec-hint">올리고, 문장을 확인하는 중이에요… (10초쯤)</div></div>`;
+  } else if (R.status === 'error') {
+    body = `<div class="rec-warn">${H(R.err)}</div>
+      <div class="rec-row">
+        <button class="btn rec-btn-ghost" onclick="window.__recStart(${dayN})">다시 녹음</button>
+        <button class="btn rec-btn-main" onclick="window.__recSubmit(${dayN})">다시 제출</button>
+      </div>`;
+  } else if (R.status === 'done' && R.result) {
+    const r = R.result; const sc = Array.isArray(r.scores) ? r.scores : [];
+    const chips = sentences.map((s, i) => `<li class="${sc[i] >= 0.6 ? 'ok' : 'miss'}"><span>${sc[i] >= 0.6 ? '✓' : '·'}</span>${H(s)}</li>`).join('');
+    if (r.verified) {
+      card.classList.add('rec-done');
+      body = `<div class="rec-result ok">${H(r.message)}</div>
+        ${r.stt_ok ? `<ol class="rec-sent rec-check">${chips}</ol>` : ''}
+        <button class="btn btn-full rec-btn-main" onclick="window.__recReset(${dayN});render()">좋아요 🎉</button>`;
+    } else {
+      body = `<div class="rec-result miss">${H(r.message)}</div>
+        <ol class="rec-sent rec-check">${chips}</ol>
+        <div class="rec-hint" style="text-align:left;">· 표시된 문장이 안 들렸어요. 그 문장을 조금 더 천천히 읽어주세요.${R.attempt >= 2 ? ' 한 번 더 제출하시면 운영진 확인으로 넘기고 인증은 완료해드릴게요.' : ''}</div>
+        <button class="btn btn-full rec-btn-main" onclick="window.__recStart(${dayN})">🎙 다시 녹음</button>`;
+    }
+  }
+  const kick = (R.status === 'done' && R.result && R.result.verified) ? '녹음 인증 완료' : '마지막 한 걸음 · 녹음 인증';
+  const ttl = (R.status === 'recording') ? '읽는 중…' : (R.status === 'done' && R.result && R.result.verified) ? '오늘 녹음 끝!' : '오늘 쓴 문장 3개, 소리 내어 읽기';
+  card.innerHTML = head(kick, ttl, '') + body + retention;
+  return card;
+}
 
 window.__closeGift = () => { showGiftPopup = false; render(); };
 window.__openGift = () => { showGiftPopup = true; render(); };
