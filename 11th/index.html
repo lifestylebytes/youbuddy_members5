@@ -4488,16 +4488,17 @@ function startDateKR() {
   return `${m}월 ${d}일 (${dayNames[dt.getDay()]})`;
 }
 
-function guardFutureDay(dayN) {
+function guardFutureDay(dayN, opts) {
+  const silent = !!(opts && opts.silent);
   // Pre-start: 전체 차단, 아직 챌린지 시작 전이면 어떤 Day 도 제출 못함.
   if (!challengeStarted()) {
-    showToast('챌린지는 ' + startDateKR() + '에 시작돼요. 지금은 미리보기만 가능해요.');
+    if (!silent) showToast('챌린지는 ' + startDateKR() + '에 시작돼요. 지금은 미리보기만 가능해요.');
     return true;
   }
   // 접근/제출 게이트는 한국시간 기준 열린 Day 까지 허용 (해외 멤버도 한국 Day 열리면 바로 가능).
   const cap = koreaOpenDay();
   if (dayN > cap) {
-    showToast('Day ' + dayN + '은(는) 아직 안 열렸어요. 당일에 풀 수 있어요 (미리보기만 가능).');
+    if (!silent) showToast('Day ' + dayN + '은(는) 아직 안 열렸어요. 당일에 풀 수 있어요 (미리보기만 가능).');
     return true;
   }
   return false;
@@ -11540,7 +11541,8 @@ function HomePage() {
       }, 1800);
     }
     if (dDay >= 1 && challengeStarted() && guidedTourStep === null && !anyPopupOpen()) {
-      const vToday = !!(state.verified && state.verified['d' + dDay]);
+      // 11기: '오늘 마무리' 팝업과 인증 카드는 녹음 인증까지 끝나야 뜬다 (웹 인증만으로는 안 뜸).
+      const vToday = !!(state.verified && state.verified['d' + dDay]) && !!(((state.recordings || {})['d' + dDay] || {}).verified);
       const doneSeen = !!(state.daily_done_popup_seen || {})['d' + dDay];
       const factSeen = !!(state.daily_funfact_seen || {})['d' + dDay];
       const wantDone = vToday && !doneSeen;
@@ -14637,9 +14639,11 @@ function VerifyPage(dayN) {
     { id: 'sentence', label: '내 문장 3개 제출하기', time: '5분', done: sentenceDone,
       subs: d.words.map((w, i) => ({ t: `문장 ${i + 1} 제출 (${w.en})`, ok: !!state.submitted[`d${dayN}-${i}`] })) },
     { id: 'capture', label: '단어 시험 바로 풀기', time: '1분', done: !!state.checkpoints[quizKey],
-      subs: [{ t: '시험 결과 제출하기', ok: !!state.checkpoints[quizKey] }] },
+      subs: [{ t: '70% 이상 맞추기 (자동 완료)', ok: !!state.checkpoints[quizKey] }] },
   ];
   const completed = steps.filter((step) => step.done).length;
+  // 11기: Step 4 녹음 인증. 웹 인증(1~3단계) 뒤 Day 페이지 녹음 카드에서 한다. 인증 완료 버튼은 막지 않는다.
+  const recDone = !!((state.recordings || {})['d' + dayN] || {}).verified;
   const activeStep = steps.find((step) => !step.done)?.id || 'capture';
   const currentQuestion = questions[ui.idx] || questions[0];
 
@@ -14703,16 +14707,13 @@ function VerifyPage(dayN) {
           <button class="btn btn-ghost" style="margin-top:14px;background:#fff;color:var(--ink);border:none;" onclick="window.__restartVerifyQuiz(${dayN})">다시 풀기</button>
         </div>
       `;
-      wrap.appendChild(el('button', {
-        class: 'btn btn-full',
-        style: { marginTop: '12px', background: passed ? 'var(--cream)' : 'rgba(251,247,240,0.16)', color: passed ? 'var(--ink)' : 'rgba(251,247,240,0.5)' },
-        disabled: !passed,
-        onClick: () => {
-          if (guardFutureDay(dayN)) return;
-          state.checkpoints[quizKey] = true; saveState(); render();
-        },
-        html: `${Icon('check', 14)} 시험 결과 제출`
-      }));
+      if (passed) {
+        // 통과하면 이미 자동 완료됨 (답 제출 시점). 혹시 못 찍혔으면 여기서 보정.
+        if (!state.checkpoints[quizKey] && !guardFutureDay(dayN, { silent: true })) { state.checkpoints[quizKey] = true; try { saveState(); } catch (_) {} }
+        wrap.appendChild(el('div', { style: { marginTop: '12px', padding: '12px 14px', borderRadius: '14px', background: 'rgba(251,247,240,0.1)', textAlign: 'center', fontSize: '13.5px', fontWeight: '800', color: 'var(--cream)' }, html: `${Icon('check', 14)} 단어 시험 완료됐어요. 아래 '인증 완료하기'를 눌러주세요` }));
+      } else {
+        wrap.appendChild(el('div', { style: { marginTop: '12px', padding: '12px 14px', borderRadius: '14px', background: 'rgba(251,247,240,0.08)', textAlign: 'center', fontSize: '13px', color: 'rgba(251,247,240,0.7)', lineHeight: '1.5' }, html: `70% 이상 맞추면 자동으로 완료돼요. 다시 풀기를 눌러주세요` }));
+      }
     } else {
       // ─── 설정 패널, 문항 수 + 유의어 포함 (premium 만 일부 옵션) ───
       const vSettings = getVerifySettings();
@@ -14948,6 +14949,22 @@ function VerifyPage(dayN) {
     row.innerHTML = `<div style="display:flex;align-items:center;gap:14px;width:100%;"><div style="width:56px;height:56px;border-radius:18px;flex:0 0 auto;background:${step.done ? 'rgba(107,142,78,0.12)' : 'var(--paper)'};display:grid;place-items:center;color:${step.done ? 'var(--green)' : 'var(--ink-soft)'};">${step.done ? Icon('check', 18) : Icon(idx === 0 ? 'mic' : idx === 1 ? 'edit' : idx === 2 ? 'play' : 'mic', 18)}</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:800;color:var(--ink);">${step.label}</div><div class="t-small mono" style="margin-top:4px;color:var(--muted);">${step.time} · Step ${idx + 1}</div></div>${step.done ? '<span class="badge badge-green">완료</span>' : isActive ? '<span class="badge badge-orange">진행</span>' : Icon('lock', 14)}</div>${subsHtml}`;
     row.style.flexDirection = 'column';
     row.style.alignItems = 'stretch';
+    if (idx === steps.length - 1) {
+      // Step 4 · 녹음 인증하기 (11기)
+      const recRow = el('button', {
+        style: { width: '100%', display: 'flex', alignItems: 'center', gap: '14px', padding: '18px', borderRadius: '24px', border: (verified && !recDone) ? '1.5px solid rgba(47,74,109,0.85)' : '1px solid var(--line)', background: recDone ? '#E4F1D6' : '#FFFDF7', textAlign: 'left', cursor: 'pointer' },
+        onClick: () => {
+          if (!verified) { try { showToast('먼저 아래 인증 완료하기를 눌러주세요. 그 다음에 녹음이 열려요'); } catch (e) {} return; }
+          go('day', { week: d.weekN, day: dayN });
+          setTimeout(() => { const c = document.querySelector('[data-rec-card]'); if (c) { try { c.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { c.scrollIntoView(); } } }, 350);
+        },
+      });
+      recRow.innerHTML = `<div style="display:flex;align-items:center;gap:14px;width:100%;"><div style="width:56px;height:56px;border-radius:18px;flex:0 0 auto;background:${recDone ? '#CFE3BF' : 'var(--orange-ghost)'};display:grid;place-items:center;color:${recDone ? 'var(--green)' : 'var(--orange-dark)'};">${recDone ? Icon('check', 18) : Icon('mic', 18)}</div><div style="flex:1;min-width:0;"><div style="font-weight:800;font-size:16px;color:var(--ink);">녹음 인증하기</div><div class="t-small mono" style="margin-top:4px;color:var(--muted);">2분 · Step 4</div></div><span class="pill" style="flex:0 0 auto;background:${recDone ? '#D7EBC5' : (verified ? 'var(--orange-ghost)' : 'rgba(0,0,0,0.05)')};color:${recDone ? 'var(--green)' : (verified ? 'var(--orange-dark)' : 'var(--muted)')};">${recDone ? '완료' : (verified ? '진행' : '대기')}</span></div>`
+        + (recDone ? '' : `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--muted);">${verified ? '○ <b style="color:var(--ink);">Day 페이지에서 내 문장 3개 녹음</b> → 단톡방에 문장 올리기' : '○ 인증 완료하기를 누르면 열려요'}</div>`);
+      stepList.appendChild(row);
+      stepList.appendChild(recRow);
+      return;
+    }
     stepList.appendChild(row);
   });
   page.appendChild(stepList);
@@ -14980,8 +14997,11 @@ function VerifyPage(dayN) {
     const vt = (state.verified_time && state.verified_time['d'+dayN]) || '';
     const vd = (state.verified_at && state.verified_at['d'+dayN]) || '';
     const stampText = formatVerifyStamp(vd, vt, state.timezoneOffsetText);
-    finalBtn.innerHTML = `
-      <span style="font-size:18px;font-weight:700;">오늘 인증 완료됨</span>
+    finalBtn.innerHTML = recDone ? `
+      <span style="font-size:18px;font-weight:700;">오늘 인증 완료됨</span>` : `
+      <span style="font-size:18px;font-weight:700;">웹 인증 완료 · 녹음만 남았어요 →</span>`;
+    if (!recDone) finalBtn.innerHTML += `<span style="font-size:11px;font-weight:500;opacity:0.8;">누르면 Day 페이지 녹음 카드로 가요</span>`;
+    if (recDone) finalBtn.innerHTML += `
       ${stampText ? `<span style="font-size:11px;font-weight:500;opacity:0.75;letter-spacing:0.02em;">인증 ${escapeHtml(stampText)}</span>` : ''}
     `;
   } else {
@@ -15678,6 +15698,15 @@ window.__advanceWeekReview = (weekN, stage, skipped) => {
   }
   if (ui.idx >= questions.length - 1) {
     ui.done = true;
+    // 2026-10-17: 다 풀고 통과선(70%)을 넘으면 '시험 결과 제출' 없이 바로 완료 처리.
+    try {
+      const __qk = `d${dayN}-quiz`;
+      const __passed = questions.length > 0 && ((ui.score || 0) / questions.length) >= 0.7;
+      if (__passed && !state.checkpoints[__qk] && !(typeof guardFutureDay === 'function' && guardFutureDay(dayN, { silent: true }))) {
+        state.checkpoints[__qk] = true; try { saveState(); } catch (_) {}
+        try { showToast('✅ 단어 시험 통과! 자동으로 완료됐어요'); } catch (_) {}
+      }
+    } catch (_) {}
   } else {
     ui.idx += 1;
     ui.value = '';
