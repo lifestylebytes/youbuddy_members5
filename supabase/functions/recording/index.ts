@@ -96,7 +96,8 @@ function b64ToBytes(b64: string): Uint8Array {
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
 }
-const safe = (s: string) => String(s || '').replace(/[^\w가-힣.\-]/g, '_').slice(0, 60);
+// Storage 키는 ASCII 만 허용된다 (한글 넣으면 "Invalid key"). 한글은 URL 인코딩 후 % 를 _ 로.
+const safe = (s: string) => encodeURIComponent(String(s || '')).replace(/%/g, '_').replace(/[^A-Za-z0-9_.\-]/g, '_').slice(0, 80);
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
