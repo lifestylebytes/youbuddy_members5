@@ -3593,6 +3593,7 @@ let showPremiumIntake = false; // 프리미엄 D1 온보딩 진단 팝업 (2문�
 let showPledgePopup = false; // 11기 다짐(인증 시각·녹음 기한) + 간단 설문 팝업, 기존 가입자에게 1회
 let showGiftPopup = false; // 완주 선물 기준 팝업 (Day 18~20, 하루 1회)
 let showGradPopup = false; // 졸업 안내 팝업 (수료식 이후)
+let showRecShare = 0; // 녹음 인증 직후 '단톡방에 문장 올리기' 팝업 (dayN)
 let showHolidayPopup = null; // 공휴일 인증 안내 팝업 (2026-09-23 추석)
 let showSpoonPopup = null; // { day } '한 스푼 더' 팝업. 19시 이후, 그날 인증 마친 멤버에게 1회 (2026-09-16)
 let showDailyPulse = null;   // { day, step, a, b, text } 데일리 펄스(1~2문항) 팝업 진행 상태.
@@ -3620,7 +3621,7 @@ function anyPopupOpen() {
     || showMeetingConsent || showConsentAudit || showRecordingPopup || showWeeklyQuizPopup || showNotifications
     || showSpacedRepeatPopup || showSurveyFillModal || showPreReviewPopup || showMiniWeekSurvey || showWeekWrapupPopup || showBestPopup || showReviewUnlockPopup || showWeekTaskPopup
     || showFunFactPopup || showDonePopup || showMeetingPrepPopup || showVocabMapPopup || showBingoIntroPopup || showReviewConsentPopup || showWeekReviewIntro
-    || showDailyPulse || showPremiumIntake || showPledgePopup || showShareCard || showSpoonPopup || showHolidayPopup || showGiftPopup || showGradPopup || showHelpHintPopup || showWeekTestNudgePopup || showMeetupIntroPopup);
+    || showDailyPulse || showPremiumIntake || showPledgePopup || showShareCard || showSpoonPopup || showHolidayPopup || showGiftPopup || showGradPopup || showRecShare || showHelpHintPopup || showWeekTestNudgePopup || showMeetupIntroPopup);
 }
 
 function go(page, opts={}) {
@@ -8426,6 +8427,14 @@ function render() {
       document.body.appendChild(GiftPopupModal());
     } else {
       const stale = document.querySelector('[data-gift-popup]');
+      if (stale) stale.remove();
+    }
+    if (showRecShare) {
+      const stale = document.querySelector('[data-recshare-popup]');
+      if (stale) stale.remove();
+      document.body.appendChild(RecSharePopup(showRecShare));
+    } else {
+      const stale = document.querySelector('[data-recshare-popup]');
       if (stale) stale.remove();
     }
     if (showGradPopup) {
@@ -35228,7 +35237,7 @@ async function recSubmit(dayN) {
     const prev = state.recordings['d' + dayN] || {};
     state.recordings['d' + dayN] = { at: new Date().toISOString(), path: data.path || '', matched: data.matched, verified: !!data.verified, needs_review: !!data.needs_review, attempts: R.attempt, scores: data.scores || [], transcript: (data.transcript || '').slice(0, 300), prev_verified: !!prev.verified };
     try { saveState({ immediate: true }); } catch (_) { try { saveState(); } catch (__) {} }
-    if (data.verified) { try { showToast('🎙 녹음 인증 완료!'); } catch (_) {} try { window.__cbCachedFingerprint = null; if (typeof loadRecordingChecks === 'function') loadRecordingChecks(true); } catch (_) {} }
+    if (data.verified) { try { showToast('🎙 녹음 인증 완료!'); } catch (_) {} try { window.__cbCachedFingerprint = null; if (typeof loadRecordingChecks === 'function') loadRecordingChecks(true); } catch (_) {} showRecShare = dayN; }
     recRepaint();
   } catch (e) {
     R.status = 'error'; R.err = (e && e.name === 'AbortError') ? '네트워크가 느려서 시간이 초과됐어요. 다시 시도해주세요.' : '전송 중 문제가 생겼어요. 네트워크 확인 후 다시 시도해주세요.'; recRepaint();
@@ -35247,6 +35256,65 @@ async function recPlaySaved(path, btn) {
 }
 window.__recStart = recStart; window.__recStop = recStop; window.__recSubmit = recSubmit; window.__recReset = recReset; window.__recPlaySaved = recPlaySaved;
 window.__recAckNotice = () => { state.recording_notice_seen = true; try { saveState(); } catch (_) {} recRepaint(); };
+
+
+// ── 녹음 인증 뒤 "내 문장 3개 단톡방에 올리기" ──
+// 녹음은 앱에서 끝났지만, 단톡에 문장이 올라와야 서로 보이고 분위기가 산다. (9기 인증률의 비결)
+function recShareText(dayN) {
+  const ss = recSentences(dayN);
+  const who = (state.englishName || state.name || '').trim();
+  return [`[Day ${dayN}] ${who}`, ...ss.map((t, i) => `${i + 1}. ${t}`)].join('\n');
+}
+async function recCopyText(dayN) {
+  const text = recShareText(dayN);
+  try { await navigator.clipboard.writeText(text); return true; }
+  catch (_) {
+    try { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); return true; } catch (__) { return false; }
+  }
+}
+window.__recCopyAndOpen = async (dayN) => {
+  const ok = await recCopyText(dayN);
+  const url = kakaoRoomUrl();
+  try { showToast(ok ? '📋 문장 복사됐어요. 단톡방에 붙여넣기!' : '복사가 안 됐어요. 문장을 길게 눌러 복사해주세요'); } catch (_) {}
+  state.recordings = state.recordings || {};
+  if (state.recordings['d' + dayN]) { state.recordings['d' + dayN].shared_at = new Date().toISOString(); try { saveState(); } catch (_) {} }
+  showRecShare = 0;
+  if (url) { setTimeout(() => { try { window.open(url, '_blank', 'noopener,noreferrer'); } catch (_) { location.href = url; } }, 350); }
+  render();
+};
+window.__recShareSheet = async (dayN) => {
+  const text = recShareText(dayN);
+  try {
+    if (navigator.share) { await navigator.share({ text }); showRecShare = 0; render(); return; }
+  } catch (_) { /* 사용자가 취소 */ return; }
+  window.__recCopyAndOpen(dayN);
+};
+window.__recShareLater = () => { showRecShare = 0; render(); };
+window.__openRecShare = (dayN) => { showRecShare = dayN; render(); };
+
+function RecSharePopup(dayN) {
+  const overlay = el('div', { style: { position: 'fixed', inset: '0', zIndex: '9000', background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '0' } });
+  overlay.setAttribute('data-recshare-popup', '1');
+  overlay.onclick = (e) => { if (e.target === overlay) window.__recShareLater(); };
+  const card = el('div', { style: { width: '100%', maxWidth: '480px', background: 'var(--paper)', borderRadius: '24px 24px 0 0', padding: '22px 20px 26px', maxHeight: '88vh', overflowY: 'auto' } });
+  const H = (t) => escapeHtml(String(t == null ? '' : t));
+  const ss = recSentences(dayN);
+  card.innerHTML = `
+    <div style="width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px;"></div>
+    <div style="text-align:center;">
+      <div style="font-size:36px;line-height:1;">🎉</div>
+      <div class="kicker" style="margin-top:8px;color:var(--orange-dark);">녹음 인증 완료</div>
+      <div style="margin-top:6px;font-size:19px;font-weight:900;color:var(--ink);letter-spacing:-0.02em;line-height:1.3;">마지막으로, 내 문장 3개를<br>단톡방에 올려주세요</div>
+      <div class="t-small" style="margin-top:8px;font-size:12.5px;color:var(--ink-soft);line-height:1.6;">여기까지가 오늘 인증 완료예요.<br>서로의 문장이 보여야 다 같이 끝까지 가요 🧡</div>
+    </div>
+    <div style="margin-top:14px;padding:12px 14px;border-radius:14px;background:#fff;border:1px solid var(--line);font-size:13.5px;line-height:1.65;color:var(--ink);white-space:pre-wrap;word-break:break-word;">${H(recShareText(dayN))}</div>
+    <button class="btn btn-full" style="margin-top:14px;background:var(--orange);color:#fff;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:800;min-height:48px;" onclick="window.__recCopyAndOpen(${dayN})">📋 복사하고 단톡방 열기</button>
+    ${(typeof navigator !== 'undefined' && navigator.share) ? `<button class="btn btn-ghost btn-full" style="margin-top:8px;padding:12px;font-size:13.5px;font-weight:800;" onclick="window.__recShareSheet(${dayN})">공유 메뉴로 보내기</button>` : ''}
+    <button class="btn btn-ghost btn-full" style="margin-top:8px;padding:11px;font-size:13px;color:var(--muted);border:none;background:transparent;" onclick="window.__recShareLater()">나중에 올릴게요</button>
+    <div class="t-small" style="margin-top:10px;font-size:11px;color:var(--muted);line-height:1.5;text-align:center;">붙여넣기만 하면 돼요. 이 화면은 Day 페이지 녹음 카드에서 다시 열 수 있어요.</div>`;
+  overlay.appendChild(card);
+  return overlay;
+}
 
 function RecorderCard(dayN) {
   const R = window.__rec;
@@ -35285,7 +35353,9 @@ function RecorderCard(dayN) {
            <button class="btn rec-btn-ghost" data-rec-play onclick="window.__recPlaySaved(${JSON.stringify(saved.path)}, this)">▶ 내 녹음 듣기</button>
            <button class="btn rec-btn-ghost" onclick="window.__rec.status='idle';window.__recStart(${dayN})">다시 녹음</button>
          </div>
-         <audio data-rec-saved-audio controls style="display:none;width:100%;margin-top:10px;"></audio>`
+         <audio data-rec-saved-audio controls style="display:none;width:100%;margin-top:10px;"></audio>
+         <button class="btn btn-full rec-btn-main" style="margin-top:10px;" onclick="window.__openRecShare(${dayN})">${saved.shared_at ? '📋 문장 다시 복사해서 단톡방 열기' : '📋 내 문장 3개 단톡방에 올리기'}</button>
+         ${saved.shared_at ? '' : '<div class="rec-hint">여기까지 해야 오늘 인증 완료예요</div>'}`
       + retention;
     return card;
   }
@@ -35352,7 +35422,7 @@ function RecorderCard(dayN) {
       card.classList.add('rec-done');
       body = `<div class="rec-result ok">${H(r.message)}</div>
         ${r.stt_ok ? `<ol class="rec-sent rec-check">${chips}</ol>` : ''}
-        <button class="btn btn-full rec-btn-main" onclick="window.__recReset(${dayN});render()">좋아요 🎉</button>`;
+        <button class="btn btn-full rec-btn-main" onclick="window.__recReset(${dayN});window.__openRecShare(${dayN})">다음 · 단톡방에 올리기 →</button>`;
     } else {
       body = `<div class="rec-result miss">${H(r.message)}</div>
         <ol class="rec-sent rec-check">${chips}</ol>
