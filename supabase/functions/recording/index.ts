@@ -141,6 +141,8 @@ serve(async (req) => {
       sttOk = false; scores = sentences.map(() => 0); matched = 0;
       console.error('stt failed', String(e));
     }
+    // 정확도(%) = 문장별 일치율 평균. 멤버에게 보여주고 recording_events.accuracy 에 쌓는다.
+    const accuracy = sttOk && scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 100) : null;
     const forced = attempt >= FORCE_PASS_ATTEMPT;
     const verified = sttOk ? (matched >= PASS_MATCHED || forced) : true; // STT 실패 = 멤버 탓 아님 → 인정
     const needsReview = !sttOk || (forced && matched < PASS_MATCHED);
@@ -148,7 +150,7 @@ serve(async (req) => {
     // 3) 로그 (append-only)
     await sb.from('recording_events').insert({
       cohort, member_key: member, day_n: day, path, mime, duration_ms: durationMs,
-      transcript: transcript.slice(0, 2000), scores, matched, verified, stt_ok: sttOk,
+      transcript: transcript.slice(0, 2000), scores, matched, verified, stt_ok: sttOk, accuracy, attempt,
     });
 
     // 4) 녹음 체크 자동 ON
@@ -158,13 +160,27 @@ serve(async (req) => {
     }
 
     return json({
-      ok: true, verified, matched, scores, stt_ok: sttOk, needs_review: needsReview, path,
+      ok: true, verified, matched, scores, accuracy, stt_ok: sttOk, needs_review: needsReview, path,
       transcript: transcript.slice(0, 600),
       // 멤버에게 보여줄 한 줄 (앱이 그대로 써도 되고 자체 문구를 써도 된다)
       message: !sttOk ? '녹음은 잘 받았어요. 음성 확인이 잠깐 안 돼서 운영진이 한 번 들어볼게요. 인증은 완료예요!'
         : verified ? (matched === 3 ? '세 문장 다 들렸어요! 오늘 녹음 인증 완료 🎉' : forced && matched < PASS_MATCHED ? '여러 번 시도해주셨네요. 녹음 인증은 완료로 처리하고, 운영진이 한 번 들어볼게요.' : '두 문장은 또렷하게 들렸어요. 녹음 인증 완료!')
         : (matched === 1 ? '한 문장만 들렸어요. 조금 천천히, 또박또박 세 문장을 읽어주세요.' : '제가 쓴 문장이 잘 안 들려요. 마이크 가까이에서 세 문장을 읽어주세요.'),
     });
+  }
+
+  // ── stats : 내 정확도 이력 (Day 별 최신 정확도) ────────────
+  if (mode === 'stats') {
+    const cohort = String(body.cohort || ''); const member = String(body.member || '');
+    if (!cohort || !member) return json({ error: 'cohort, member required' }, 400);
+    const sb = admin();
+    const { data: rows } = await sb.from('recording_events').select('day_n,accuracy,verified,created_at').eq('cohort', cohort).eq('member_key', member).order('created_at', { ascending: true });
+    const byDay: Record<string, number | null> = {};
+    (rows || []).forEach((r: any) => { if (r.verified) byDay[String(r.day_n)] = r.accuracy; });
+    const vals = Object.values(byDay).filter((v): v is number => typeof v === 'number');
+    const avg = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+    const best = vals.length ? Math.max(...vals) : null;
+    return json({ ok: true, by_day: byDay, avg, best, days: vals.length });
   }
 
   // ── url : 본인 녹음 재생용 서명 URL ─────────────────────

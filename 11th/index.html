@@ -1018,6 +1018,21 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .rec-sent.rec-check li.ok{background:rgba(120,220,160,0.18);}
 .rec-sent.rec-check li.miss{background:rgba(255,160,120,0.16);opacity:0.9;}
 .rec-kr{margin-top:3px;font-size:12px;font-weight:500;line-height:1.45;color:rgba(255,255,255,0.55);}
+.rec-acc{margin-top:12px;padding:14px;border-radius:14px;background:rgba(0,0,0,0.18);}
+.rec-acc-big{display:flex;align-items:baseline;gap:4px;}
+.rec-acc-num{font-size:40px;font-weight:900;line-height:1;letter-spacing:-0.02em;color:#fff;}
+.rec-acc-unit{font-size:18px;font-weight:800;color:rgba(255,255,255,0.7);}
+.rec-acc-grade{margin-left:10px;padding:3px 10px;border-radius:50px;background:rgba(120,220,160,0.22);font-size:12px;font-weight:800;color:#CFF5DF;}
+.rec-acc-lab{margin-top:8px;font-size:11px;color:rgba(255,255,255,0.55);}
+.rec-acc-row{display:flex;align-items:center;gap:8px;margin-top:6px;}
+.rec-acc-n{width:16px;font-size:11px;font-weight:800;color:rgba(255,255,255,0.6);text-align:center;}
+.rec-acc-track{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,0.12);overflow:hidden;}
+.rec-acc-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#9CCBEE,#CFF5DF);transition:width 600ms ease;}
+.rec-acc-pct{width:38px;text-align:right;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;}
+.rec-acc-note{margin-top:10px;font-size:10.5px;line-height:1.5;color:rgba(255,255,255,0.5);}
+.rec-acc-mini{display:flex;align-items:baseline;gap:4px;flex-wrap:wrap;padding:10px 12px;}
+.rec-acc-mini .rec-acc-num{font-size:28px;}
+.rec-acc-week{margin-left:auto;font-size:11.5px;font-weight:700;color:rgba(255,255,255,0.7);}
 .rec-sent-empty{margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.08);font-size:13px;color:rgba(255,255,255,0.8);line-height:1.5;}
 .rec-btn-main{margin-top:14px;padding:15px;border-radius:16px;border:none;background:#fff;color:#1E2A38;font-size:15px;font-weight:800;cursor:pointer;min-height:48px;}
 .rec-btn-main:disabled{opacity:0.45;cursor:not-allowed;}
@@ -35287,7 +35302,7 @@ async function recSubmit(dayN) {
     // 결과를 내 기록에 남긴다 (서버 로그가 원본, 이건 화면용)
     state.recordings = state.recordings || {};
     const prev = state.recordings['d' + dayN] || {};
-    state.recordings['d' + dayN] = { at: new Date().toISOString(), path: data.path || '', matched: data.matched, verified: !!data.verified, needs_review: !!data.needs_review, attempts: R.attempt, scores: data.scores || [], transcript: (data.transcript || '').slice(0, 300), prev_verified: !!prev.verified };
+    state.recordings['d' + dayN] = { at: new Date().toISOString(), path: data.path || '', matched: data.matched, verified: !!data.verified, needs_review: !!data.needs_review, attempts: R.attempt, scores: data.scores || [], accuracy: (typeof data.accuracy === 'number') ? data.accuracy : null, transcript: (data.transcript || '').slice(0, 300), prev_verified: !!prev.verified };
     try { saveState({ immediate: true }); } catch (_) { try { saveState(); } catch (__) {} }
     if (data.verified) { try { showToast('🎙 녹음 인증 완료!'); } catch (_) {} try { window.__cbCachedFingerprint = null; if (typeof loadRecordingChecks === 'function') loadRecordingChecks(true); } catch (_) {} showRecShare = dayN; }
     recRepaint();
@@ -35368,6 +35383,27 @@ function RecSharePopup(dayN) {
   return overlay;
 }
 
+// 정확도 표시. 음성인식 "들린 정도" 라 발음 점수가 아니라는 걸 문구로 분명히 한다.
+function recAccHtml(acc, scores, sentences) {
+  if (typeof acc !== 'number') return '';
+  const grade = acc >= 90 ? '또렷해요' : acc >= 75 ? '잘 들려요' : acc >= 60 ? '괜찮아요' : '조금 더 또박또박';
+  const bars = (Array.isArray(scores) ? scores : []).map((x, i) => `
+      <div class="rec-acc-row"><span class="rec-acc-n">${i + 1}</span><div class="rec-acc-track"><div class="rec-acc-fill" style="width:${Math.round(Math.max(0, Math.min(1, x)) * 100)}%"></div></div><span class="rec-acc-pct">${Math.round(x * 100)}%</span></div>`).join('');
+  return `<div class="rec-acc">
+      <div class="rec-acc-big"><span class="rec-acc-num">${acc}</span><span class="rec-acc-unit">%</span><span class="rec-acc-grade">${grade}</span></div>
+      <div class="rec-acc-lab">내 문장이 들린 정도 (문장별)</div>${bars}
+      <div class="rec-acc-note">발음 점수가 아니에요. 음성인식이 내 문장을 얼마나 알아들었는지예요. 매일 쌓여서 나중에 그래프로 볼 수 있어요.</div>
+    </div>`;
+}
+function recWeekAvg(dayN) {
+  try {
+    const d = getDay(dayN); if (!d) return null;
+    const w = CHALLENGE.weeks.find((x) => x.n === d.weekN); if (!w) return null;
+    const vals = w.days.map((dd) => ((state.recordings || {})['d' + dd.day] || {}).accuracy).filter((v) => typeof v === 'number');
+    if (!vals.length) return null;
+    return { avg: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length), n: vals.length };
+  } catch (_) { return null; }
+}
 function RecorderCard(dayN) {
   const R = window.__rec;
   if (R.dayN !== dayN && R.status !== 'idle') recReset(dayN); else R.dayN = dayN;
@@ -35402,6 +35438,7 @@ function RecorderCard(dayN) {
     card.classList.add('rec-done');
     card.innerHTML = head('녹음 인증 완료', `오늘 녹음 끝! ${saved.matched === 3 ? '세 문장 다 또렷했어요' : saved.needs_review ? '운영진이 한 번 들어볼게요' : '잘 들렸어요'}`,
       `${new Date(saved.at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 제출`)
+      + (typeof saved.accuracy === 'number' ? (() => { const wk = recWeekAvg(dayN); return `<div class="rec-acc rec-acc-mini"><span class="rec-acc-num">${saved.accuracy}</span><span class="rec-acc-unit">%</span><span class="rec-acc-grade">오늘 들린 정도</span>${wk && wk.n > 1 ? `<span class="rec-acc-week">이번 주 평균 ${wk.avg}% · ${wk.n}일</span>` : ''}</div>`; })() : '')
       + `<div class="rec-row">
            <button class="btn rec-btn-ghost" data-rec-play onclick="window.__recPlaySaved(${JSON.stringify(saved.path)}, this)">▶ 내 녹음 듣기</button>
            <button class="btn rec-btn-ghost" onclick="window.__rec.status='idle';window.__recStart(${dayN})">다시 녹음</button>
@@ -35475,10 +35512,12 @@ function RecorderCard(dayN) {
     if (r.verified) {
       card.classList.add('rec-done');
       body = `<div class="rec-result ok">${H(r.message)}</div>
+        ${r.stt_ok ? recAccHtml(r.accuracy, sc, sentences) : ''}
         ${r.stt_ok ? `<ol class="rec-sent rec-check">${chips}</ol>` : ''}
         <button class="btn btn-full rec-btn-main" onclick="window.__recReset(${dayN});window.__openRecShare(${dayN})">다음 · 단톡방에 올리기 →</button>`;
     } else {
       body = `<div class="rec-result miss">${H(r.message)}</div>
+        ${recAccHtml(r.accuracy, sc, sentences)}
         <ol class="rec-sent rec-check">${chips}</ol>
         <div class="rec-hint" style="text-align:left;">· 표시된 문장이 안 들렸어요. 그 문장을 조금 더 천천히 읽어주세요.${R.attempt >= 2 ? ' 한 번 더 제출하시면 운영진 확인으로 넘기고 인증은 완료해드릴게요.' : ''}</div>
         <button class="btn btn-full rec-btn-main" onclick="window.__recStart(${dayN})">🎙 다시 녹음</button>`;
