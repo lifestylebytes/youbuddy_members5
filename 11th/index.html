@@ -33711,7 +33711,10 @@ window.__openTodaySendBrief = function () {
   // 11기는 프리미엄 미운영. 프리미엄 멤버가 한 명도 없으면 미팅·리포트 관련 항목은 아예 안 띄운다.
   let __hasPrem = false;
   try { __hasPrem = (MEMBER_DIRECTORY || []).some((m) => m && m.tier === 'premium' && !m.isStaff && !m.isOperator); } catch (e) {}
-  if (!challengeStarted()) {
+  // 운영자는 미리보기 해제(operatorPreviewUnlock) 때문에 challengeStarted() 가 true 로 나온다.
+  // 톡 브리핑은 "실제 날짜" 기준이어야 하므로 한국 날짜로만 판단. (2026-10-18: 운영자 화면에 '내일 Day 6' 이 또 뜬 사고)
+  const __realPreStart = (typeof koreaTodayStr === 'function' ? koreaTodayStr() : '') < CHALLENGE.start_date;
+  if (__realPreStart) {
     // 시작 전 (온보딩 기간): D-1 안내. 주말 분기보다 먼저 봐야 한다. (2026-10-18: 일요일에 '내일 Day 6' 이 떴던 사고)
     const __room = (typeof kakaoRoomUrl === 'function' && kakaoRoomUrl()) || '';
     const __site = location.origin + '/' + (location.pathname.split('/').filter(Boolean)[0] || '') + '/';
