@@ -1718,6 +1718,7 @@ const defaultState = () => ({
   recording_popup_seen: {},         // { "m1": true } 미팅 다시보기 팝업을 본 상태. 한 번 X 누르면 다시 안 뜸.
   daily_funfact_seen: {},           // { "d6": true } 홈 '오늘의 한 입' 팝업을 그날 본 상태 (하루 1회).
   help_hint_seen: false,            // 상단 ? 설명서 안내 팝업을 봤는지 (계정당 1회).
+  reward_popup_seen: false,         // 첫 인증 후 인증 카드 다음에 뜨는 '수료 보상 기준' 팝업 (계정당 1회, 2026-10-18).
   meeting_prep_popup_seen: {},      // { "m1": "2026-07-15" } 미팅 사전 예습 팝업을 그날 본 상태 (하루 1회, 저장하면 영구 스킵).
   best_popup_seen: {},              // { "2": true } 이번주 베스트 팝업을 주차별로 본 상태 (자동 노출 1회).
   daily_done_popup_seen: {},        // { "d6": true } '오늘 마무리' 완료 팝업을 그날 본 상태 (하루 1회).
@@ -1819,6 +1820,7 @@ const PERSISTED_STATE_KEYS = [
   'week_survey_nudged',
   'daily_funfact_seen',
   'help_hint_seen',
+  'reward_popup_seen',
   'meeting_prep_popup_seen',
   'best_popup_seen',
   'daily_done_popup_seen',
@@ -35460,6 +35462,7 @@ window.__closeDonePopup = () => {
     return;
   }
   render();
+  if (!wasPreview) setTimeout(() => { try { window.__maybeRewardPopup(); } catch (e) {} }, 300);
 };
 window.__previewDonePopup = () => { showSettings = null; window.__donePreviewDay = Number(state.currentDay) || 1; showDonePopup = true; render(); };
 window.__doneNav = (delta) => { const cur = window.__donePreviewDay || Number(state.currentDay) || 1; window.__donePreviewDay = Math.max(1, Math.min(20, cur + delta)); const ex = document.querySelector('[data-done-popup]'); if (ex) ex.remove(); render(); };
@@ -35776,6 +35779,52 @@ window.__openShareCard = async (day) => {
 window.__closeShareCard = () => {
   try { if (showShareCard) Object.values(showShareCard.urls || {}).forEach((u) => URL.revokeObjectURL(u)); } catch (e) {}
   showShareCard = null; render();
+  setTimeout(() => { try { window.__maybeRewardPopup(); } catch (e) {} }, 300);
+};
+
+/* ── 수료 보상 기준 팝업 (2026-10-18 버디) ─────────────────────────
+   첫 인증을 마친 날, '오늘 마무리' → 인증 카드(오늘 단어 이미지)가 닫힌 직후 1회.
+   인증 카드가 안 뜨는 날이면 '오늘 마무리' 닫을 때 바로. 계정당 1회 (reward_popup_seen).
+   보상 내용은 유버디 톡 '수료 보상 기준 안내' / assets/tips/reward.png 와 같다. 바꾸면 셋 다 같이. */
+window.__maybeRewardPopup = (force) => {
+  if (!force) {
+    if (state.reward_popup_seen) return;
+    const anyVerified = Object.keys(state.verified || {}).some((k) => state.verified[k]);
+    if (!anyVerified) return;
+    if (anyPopupOpen() || document.querySelector('[data-reward-popup]')) return;
+  }
+  if (!force) { state.reward_popup_seen = true; try { saveState(); } catch (e) {} }
+  const ov = document.createElement('div');
+  ov.setAttribute('data-reward-popup', '1');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9100;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;padding:18px;';
+  const item = (t) => `<div style="display:flex;align-items:center;gap:8px;margin-top:7px;font-size:14px;font-weight:700;color:var(--ink);"><span style="width:7px;height:7px;border-radius:50%;background:#F3589B;flex:0 0 auto;"></span>${t}</div>`;
+  const tier = (badge, bg, title, cond, items) => `
+    <div style="margin-top:12px;padding:14px 16px;border-radius:16px;background:#fff;border:1px solid var(--line);text-align:left;">
+      <span style="display:inline-block;padding:3px 10px;border-radius:999px;background:${bg};color:#fff;font-size:11px;font-weight:800;">${badge}</span>
+      <div style="margin-top:8px;font-size:16px;font-weight:800;color:var(--ink);">${title}</div>
+      <div style="margin-top:2px;font-size:12px;color:var(--muted);font-weight:600;">${cond}</div>
+      ${items.map(item).join('')}
+    </div>`;
+  ov.innerHTML = `
+    <div style="width:100%;max-width:360px;max-height:88vh;overflow-y:auto;background:var(--paper);border-radius:24px;padding:22px 18px 18px;text-align:center;">
+      <div style="font-size:40px;line-height:1;">🎁</div>
+      <div class="kicker" style="margin-top:8px;color:var(--orange-dark);">첫 인증 완료!</div>
+      <div style="margin-top:4px;font-size:20px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;">수료 보상, 이렇게 받아요</div>
+      <div style="margin-top:6px;font-size:12.5px;color:var(--ink-soft);line-height:1.5;">조건은 딱 두 개: 인증 일수 + 파이널 테스트 응시</div>
+      ${tier('18일 이상 (지각 포함)', '#C8963F', '18일 + 파이널 응시', '자정 넘겨 채운 날(지각)도 1일로 인정', ['10기 4주 단어집 PDF', '1일1비 1개월 정기권'])}
+      ${tier('정시 18일 이상', '#7B3B4E', '정시로 18일 + 파이널 응시', '당일 자정 전 인증 18일 이상', ['위 두 개 전부', '나만의 약점 복습 노트 PDF'])}
+      <div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:rgba(243,88,155,0.08);font-size:12px;color:var(--ink-soft);line-height:1.6;text-align:left;">
+        · 이미 1일1비를 구매하신 분은 <b>1개월 연장권</b>으로 드려요<br>
+        · 파이널은 점수로 거르지 않아요. 응시만 하면 OK<br>
+        · 약점 복습 노트 = 내가 흔들린 표현만 모은, 사람마다 다른 노트
+      </div>
+      <button data-reward-close class="btn btn-full" style="margin-top:14px;background:var(--ink);color:var(--cream);border:none;padding:14px;font-size:14.5px;font-weight:800;border-radius:999px;">확인했어요 · 18일 가보자고요 🧡</button>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted);">📖 앱 사용 설명서 > 자주 묻는 질문에서 다시 볼 수 있어요</div>
+    </div>`;
+  const close = () => ov.remove();
+  ov.addEventListener('click', (e) => { if (e.target === ov) close(); });
+  ov.querySelector('[data-reward-close]').onclick = close;
+  document.body.appendChild(ov);
 };
 window.__setShareCardVariant = (v) => { if (showShareCard) { showShareCard.variant = v; render(); } };
 window.__setShareCardWord = (i) => {
