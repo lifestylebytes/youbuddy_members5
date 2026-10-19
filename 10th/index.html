@@ -31849,7 +31849,12 @@ window.__speakText = (text) => {
    파일 생성은 tools/generate_tts.mjs (Day 6~20 · nova 목소리).
    ------------------------------------------------------------ */
 window.__ttsEl = window.__ttsEl || null;
+// mp3 가 아직 배포 안 된 기수면, 누른 순간 바로 브라우저 음성으로 (2026-10-19 10기 Day 1 무음 사고).
+// iOS 사파리는 mp3 404 를 기다렸다가 폴백하면 '누른 순간'이 지나서 음성이 막힌다.
+window.__ttsAvailable = window.__ttsAvailable;
+try { fetch('audio/d1-0-en.mp3', { method: 'HEAD', cache: 'no-store' }).then((r) => { window.__ttsAvailable = r.ok; }).catch(() => {}); } catch (e) {}
 function playAiVoiceOrFallback(file, fallbackText) {
+  if (window.__ttsAvailable === false) { __browserSpeak(fallbackText); return; }
   try {
     if (window.__ttsEl) { try { window.__ttsEl.pause(); } catch (_) {} }
     try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (_) {}
@@ -31897,7 +31902,7 @@ function speakEnglishAsync(text) {
   return new Promise((resolve) => {
     let done = false;
     const finish = () => { if (done) return; done = true; resolve(); };
-    const file = __ttsFileForText(text);
+    const file = window.__ttsAvailable === false ? null : __ttsFileForText(text);
     if (file) {
       try {
         if (window.__ttsEl) { try { window.__ttsEl.pause(); } catch (_) {} }
