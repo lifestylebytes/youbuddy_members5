@@ -165,7 +165,7 @@ for (const f of [`supabase_migration_${COHORT}_summaries.sql`, `supabase_migrati
 }
 
 // 11. 검증 3종
-const em = (html.match(/—/g) || []).length, gaby = (html.match(/가비/g) || []).length;
+const em = (html.match(/\u2014/g) || []).length, gaby = (html.match(/가비/g) || []).length;
 let parseBad = 0;
 for (const m of html.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g)) { try { new vm.Script(m[1]); } catch (e) { parseBad++; } }
 if (!em && !gaby && !parseBad) ok('검증 3종 (스크립트 파싱 · em dash 0 · "가비" 0)');
