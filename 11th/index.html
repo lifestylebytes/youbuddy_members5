@@ -14657,6 +14657,21 @@ function VerifyPage(dayN) {
   const sentenceDone = d.words.every((_, i) => !!state.submitted[`d${dayN}-${i}`]);
   const quizKey = `d${dayN}-quiz`;
   const recordKey = `d${dayN}-record`;
+  // 단어 시험 70% 통과면 단계 목록을 그리기 '전에' 완료 처리한다. (2026-10-21 10기 Day 3)
+  // 예전엔 결과 화면을 그리면서 저장해서, 같은 화면의 Step 3·맨 아래 버튼이 '진행 / 2/3' 으로 남아 인증 버튼이 안 보였다.
+  // 새로고침해서 ui 가 날아가도 저장된 첫 점수(quiz_results)가 70% 이상이면 완료로 본다.
+  {
+    const _qs = buildVerifyQuestions(dayN);
+    const _ui = (window.__verifyUi || {})[dayN] || {};
+    const _r = (state.quiz_results || {})['d' + dayN];
+    const _passedNow = (_ui.done && _qs.length > 0 && (_ui.score / _qs.length) >= 0.7)
+      || !!(_r && _r.total && (_r.score / _r.total) >= 0.7);
+    if (_passedNow && !(state.checkpoints || {})[`d${dayN}-quiz`] && !guardFutureDay(dayN, { silent: true })) {
+      state.checkpoints = state.checkpoints || {};
+      state.checkpoints[`d${dayN}-quiz`] = true;
+      try { saveState(); } catch (_) {}
+    }
+  }
   // 각 단계 안에서 정확히 무엇이 남았는지 보이게 subs 를 같이 넘긴다.
   // "왜 인증 마무리가 안 눌리지" 를 멤버가 스스로 알 수 있어야 문의가 줄어든다. (2026-08-11)
   const steps = [
