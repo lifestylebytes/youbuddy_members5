@@ -998,6 +998,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
 @keyframes fall { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 100% { transform: translate(var(--x, 0), 110vh) rotate(var(--r, 360deg)); opacity: 0.3; } }
 .diff-rewrite{display:flex;flex-direction:column;gap:8px;}
 mark.ai-hl{background:rgba(255,214,102,0.55);color:inherit;border-radius:4px;padding:0 2px;}
+sup.ai-hl-n{font-size:0.62em;font-weight:800;color:#C47A12;margin-right:2px;vertical-align:super;}
 .diff-rw-note{font-size:11.5px;color:var(--muted);line-height:1.5;}
 .diff-rw-col{padding:10px 12px;border-radius:12px;background:rgba(0,0,0,0.03);border:1px solid var(--line);}
 .diff-rw-fix{background:rgba(74,160,124,0.08);border-color:rgba(74,160,124,0.35);}
@@ -2418,7 +2419,7 @@ async function callAiReviewEdgeFunction(payload) {
     rule: typeof data.rule === 'string' ? data.rule : '',
     // 고친 곳 목록 (2026-10-22): [{from, to, why, added}] 최대 3개. 화면의 "전 → 후 + 한 줄 이유".
     changes: Array.isArray(data.changes) ? data.changes.filter((c) => c && (c.to || c.from)).slice(0, 3).map((c) => ({
-      from: String(c.from || '').slice(0, 120), to: String(c.to || '').slice(0, 160), why: String(c.why || '').slice(0, 120), added: !!c.added,
+      from: String(c.from || '').slice(0, 120), to: String(c.to || '').slice(0, 160), why: String(c.why || '').slice(0, 120), type: String(c.type || ''), added: !!c.added,
     })) : undefined,
   };
 }
@@ -2771,7 +2772,9 @@ function __wireAiFbRow(root, key, fb) {
 /* 교정 화면 (2026-10-22 버디 피드백: "틀렸는데 잘 썼다고 나와요 / 피드백이 이상해요")
    - 내 문장 / 다듬은 문장을 위아래로. 취소선은 안 쓰고, 다듬은 문장에서 바뀐 단어만 형광펜.
    - 맨 위 한 줄은 정직하게 "N군데 다듬었어요". 칭찬은 진짜 똑같을 때만. */
-function __correctionView(original, corrected) {
+function __correctionView(original, corrected, word) {
+  // 2026-10-22 v2 (버디): 형광펜만으론 "어떻게 고쳐졌는지" 한눈에 안 보인다.
+  // 바뀐 덩어리마다 ①②③ 번호를 달고, 아래 목록에서 같은 번호로 "전 → 후 + 태그(스펠링/관사/전치사...) + 이유".
   const a = String(original || '').trim(), b = String(corrected || '').trim();
   const tokenize = (x) => x.match(/[A-Za-z0-9'’]+|[^A-Za-z0-9\s]|\s+/g) || [];
   const A = tokenize(a), B = tokenize(b);
@@ -2779,23 +2782,108 @@ function __correctionView(original, corrected) {
   const m = A.length, n = B.length;
   const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
   for (let i = m - 1; i >= 0; i--) for (let j = n - 1; j >= 0; j--) dp[i][j] = norm(A[i]) === norm(B[j]) ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
-  const keep = new Array(n).fill(false);
-  let i = 0, j = 0;
-  while (i < m && j < n) {
-    if (norm(A[i]) === norm(B[j])) { keep[j] = true; i++; j++; }
-    else if (dp[i + 1][j] >= dp[i][j + 1]) i++; else j++;
+  // 정렬: ops = [{t:'eq'|'del'|'ins', a, b}]
+  const ops = []; let i = 0, j = 0;
+  while (i < m || j < n) {
+    if (i < m && j < n && norm(A[i]) === norm(B[j])) { ops.push({ t: 'eq', a: A[i], b: B[j] }); i++; j++; }
+    else if (j < n && (i >= m || dp[i][j + 1] >= dp[i + 1][j])) { ops.push({ t: 'ins', b: B[j] }); j++; }
+    else { ops.push({ t: 'del', a: A[i] }); i++; }
   }
-  let html = '', inMark = false, spots = 0;
-  B.forEach((t, k) => {
-    const isWs = /^\s+$/.test(t);
-    const changed = !keep[k] && !isWs;
-    if (changed && !inMark) { html += '<mark class="ai-hl">'; inMark = true; spots++; }
-    if (!changed && inMark && !isWs) { html += '</mark>'; inMark = false; }
-    html += escapeHtml(t);
+  // 바뀐 덩어리 묶기: 공백·구두점만 같은 구간은 덩어리를 끊지 않는다 (단어 사이 공백 때문에 쪼개지지 않게).
+  const isWordTok = (t) => /[A-Za-z0-9]/.test(t || '');
+  const groups = []; let cur = null; const bParts = [];
+  ops.forEach((op, k) => {
+    if (op.t === 'eq') {
+      const bridge = cur && !isWordTok(op.b) && ops.slice(k + 1).find((o) => o.t !== 'eq' || isWordTok(o.b));
+      if (cur && bridge && bridge.t !== 'eq') { cur.from += op.a; cur.to += op.b; bParts.push({ txt: op.b, g: cur }); return; }
+      cur = null; bParts.push({ txt: op.b, g: null }); return;
+    }
+    if (!cur) { cur = { from: '', to: '' }; groups.push(cur); }
+    if (op.t === 'del') cur.from += op.a; else { cur.to += op.b; bParts.push({ txt: op.b, g: cur }); }
   });
-  if (inMark) html += '</mark>';
-  html = html.replace(/(\s+)<\/mark>/g, '</mark>$1');
-  return { html, spots };
+  groups.forEach((g, k) => { g.from = g.from.trim(); g.to = g.to.trim(); g.n = k + 1; });
+  const real = groups.filter((g) => isWordTok(g.from) || isWordTok(g.to));
+  real.forEach((g, k) => { g.n = k + 1; });
+  // HTML: 덩어리 단위로 형광펜 + 번호
+  let html = '', open = null;
+  const circ = (k) => '①②③④⑤⑥⑦⑧⑨⑩'[k - 1] || `(${k})`;
+  bParts.forEach((p) => {
+    const g = p.g && real.includes(p.g) ? p.g : null;
+    if (g !== open) {
+      if (open) html += `</mark>`;
+      if (g) html += `<mark class="ai-hl"><sup class="ai-hl-n">${circ(g.n)}</sup>`;
+      open = g;
+    }
+    html += escapeHtml(p.txt);
+  });
+  if (open) html += '</mark>';
+  // 원문에서만 지워진 덩어리(to 가 빈 것)는 다듬은 문장에 자리가 없으니 목록에서만 보인다.
+  return { html, groups: real, spots: real.length, circ };
+}
+// 태그 추정 (AI 가 type 을 안 줬을 때). 맞히기 어려운 건 '표현' 으로 둔다.
+function __changeTag(g, word) {
+  const f = (g.from || '').toLowerCase(), t = (g.to || '').toLowerCase();
+  const ws = (x) => x.split(/\s+/).filter(Boolean);
+  const ART = ['a', 'an', 'the'];
+  const PREP = ['in', 'on', 'at', 'to', 'for', 'with', 'about', 'of', 'by', 'from', 'into', 'over', 'up', 'out', 'off'];
+  const lev = (x, y) => { const d = Array.from({ length: x.length + 1 }, (_, i) => [i]); for (let j = 1; j <= y.length; j++) d[0][j] = j; for (let i = 1; i <= x.length; i++) for (let j = 1; j <= y.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1)); return d[x.length][y.length]; };
+  if (!f && t) return 'added';
+  if (f && !t) return 'removed';
+  const fw = ws(f), tw = ws(t);
+  if (fw.length === 1 && tw.length === 1 && fw[0].length > 3 && lev(fw[0], tw[0]) <= 3 && fw[0][0] === tw[0][0]) return 'spelling';
+  if (Math.abs(fw.length - tw.length) <= 1 && fw.some((x) => x.length > 3 && tw.some((y) => y !== x && y[0] === x[0] && lev(x, y) <= 2))) return 'spelling';
+  if ([...fw, ...tw].every((x) => ART.includes(x))) return 'article';
+  if ([...fw, ...tw].every((x) => PREP.includes(x))) return 'preposition';
+  if (word && t.includes(String(word).toLowerCase().split(' ')[0]) && !f.includes(String(word).toLowerCase().split(' ')[0])) return 'phrase';
+  if (fw.length === 1 && tw.length === 1 && fw[0].replace(/(ing|ed|s|es)$/, '') === tw[0].replace(/(ing|ed|s|es)$/, '')) return 'grammar';
+  return 'word';
+}
+const __TAG = {
+  spelling:    { label: '스펠링', color: '#B23A48', bg: '#FCE9EC' },
+  grammar:     { label: '문법', color: '#2456C4', bg: '#E9F0FD' },
+  tense:       { label: '시제', color: '#2456C4', bg: '#E9F0FD' },
+  article:     { label: '관사', color: '#2456C4', bg: '#E9F0FD' },
+  preposition: { label: '전치사', color: '#2456C4', bg: '#E9F0FD' },
+  order:       { label: '어순', color: '#2456C4', bg: '#E9F0FD' },
+  word:        { label: '단어 선택', color: '#1F6B47', bg: '#E8F3EC' },
+  phrase:      { label: '오늘 표현', color: '#9C4B0F', bg: '#FDEFE3' },
+  added:       { label: '덧붙임', color: '#7A4DB8', bg: '#F2EBFB' },
+  removed:     { label: '뺌', color: '#6B6B6B', bg: '#EFEFEF' },
+  punctuation: { label: '문장부호', color: '#6B6B6B', bg: '#EFEFEF' },
+};
+function __changesListHtml(cv, fb, word) {
+  const ai = (fb && Array.isArray(fb.changes)) ? fb.changes : [];
+  const low = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const used = new Set();
+  const items = cv.groups.map((g) => {
+    // AI 가 준 설명 중 이 덩어리와 겹치는 것을 찾는다 (to 또는 from 이 서로 포함).
+    let hit = null;
+    ai.forEach((c, k) => {
+      if (hit || used.has(k)) return;
+      const ct = low(c.to), cf = low(c.from), gt = low(g.to), gf = low(g.from);
+      if ((ct && gt && (ct.includes(gt) || gt.includes(ct))) || (cf && gf && (cf.includes(gf) || gf.includes(cf)))) { hit = c; used.add(k); }
+    });
+    const type = (hit && __TAG[hit.type]) ? hit.type : (hit && hit.added ? 'added' : __changeTag(g, word));
+    return { g, type, why: hit ? hit.why : '' };
+  });
+  return items.map(({ g, type, why }) => {
+    const tg = __TAG[type] || __TAG.word;
+    const body = type === 'added'
+      ? `<b style="color:var(--ink);">${escapeHtml(g.to)}</b>`
+      : type === 'removed'
+        ? `<span style="text-decoration:line-through;color:var(--muted);">${escapeHtml(g.from)}</span>`
+        : `<span style="color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(192,57,43,0.55);">${escapeHtml(g.from)}</span> <span style="color:var(--muted);">→</span> <b style="color:var(--ink);">${escapeHtml(g.to)}</b>`;
+    return `<div style="display:flex;gap:9px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:#fff;border:1px solid var(--line);">
+      <span style="flex-shrink:0;font-size:15px;font-weight:800;color:#C47A12;line-height:1.4;">${cv.circ(g.n)}</span>
+      <div style="min-width:0;flex:1;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:10.5px;font-weight:800;color:${tg.color};background:${tg.bg};border-radius:999px;padding:2px 9px;">${tg.label}</span>
+          <span style="font-size:13.5px;line-height:1.55;">${body}</span>
+        </div>
+        ${why ? `<div class="t-small" style="margin-top:4px;color:var(--ink-soft);line-height:1.55;">${escapeHtml(why)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
 }
 function buildAiFeedbackHtml(fb, fallbackWhy) {
   const f = fb && fb.feedback;
@@ -2805,8 +2893,10 @@ function buildAiFeedbackHtml(fb, fallbackWhy) {
     { key: 'nuance',  label: '뉘앙스', color: '#7A4DB8', bg: '#F2EBFB' },
   ];
   const rows = [];
-  const chg = (fb && Array.isArray(fb.changes)) ? fb.changes.filter((c) => c && (c.to || c.from)) : [];
-  if (chg.length) {
+  const chg = (fb && !fb.__noRows && Array.isArray(fb.changes)) ? fb.changes.filter((c) => c && (c.to || c.from)) : [];
+  if (fb && fb.__noRows) {
+    // 고친 곳 목록은 위에서 번호와 함께 이미 그렸다.
+  } else if (chg.length) {
     chg.forEach((c) => {
       const head = c.added
         ? `<span style="font-size:10.5px;font-weight:800;color:#7A4DB8;background:#F2EBFB;border-radius:999px;padding:2px 9px;">원래 문장엔 없던 말</span> <b style="color:var(--ink);">${escapeHtml(c.to)}</b>`
@@ -2873,6 +2963,7 @@ function buildAiFeedbackHtml(fb, fallbackWhy) {
       </div>`;
   }
 
+  if (fb && fb.__noRows) return `${naturalBlock}${tail}`;
   if (rows.length) return `${chg.length ? '<div style="margin:12px 0 6px;font-size:11.5px;font-weight:800;color:var(--orange-dark);">고친 곳</div>' : ''}<div style="display:flex;flex-direction:column;gap:7px;">${rows.join('')}</div>${naturalBlock}${tail}`;
   return `<div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(fallbackWhy || '')}</div>${naturalBlock}${tail}`;
 }
@@ -19921,8 +20012,8 @@ function DayPage(dayN) {
           </div>
           <div class="t-small" style="color:var(--ink-soft);line-height:1.55;">${escapeHtml(fb.why || '')}</div>`;
       } else if (hasDiff) {
-        const __cv = __correctionView(__orig, fb.corrected);
-        const __n = Math.max(1, (Array.isArray(fb.changes) && fb.changes.length) || __cv.spots);
+        const __cv = __correctionView(__orig, fb.corrected, w.en);
+        const __n = Math.max(1, __cv.spots);
         bodyHtml = `
           <div style="font-size:14px;font-weight:800;color:var(--orange-dark);margin-bottom:10px;">✏️ ${__n}군데 다듬었어요</div>
           ${__orig ? `<div style="padding:10px 12px;border-radius:12px;background:rgba(0,0,0,0.03);border:1px solid var(--line);">
@@ -19934,9 +20025,10 @@ function DayPage(dayN) {
               <div style="font-size:10.5px;font-weight:800;color:#2E7D5B;">다듬은 문장</div>
               <button type="button" class="btn-copy-ai" data-copy-text="${escapeHtml(fb.corrected)}" style="flex-shrink:0;padding:5px 10px;border-radius:999px;background:#fff;color:var(--orange-dark);border:1px solid var(--orange-soft);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">📋 복사</button>
             </div>
-            <div class="ai-corrected" style="line-height:1.6;">${__cv.html}</div>
+            <div class="ai-corrected" style="line-height:1.75;">${__cv.html}</div>
           </div>
-          ${buildAiFeedbackHtml(fb, reconciledWhy)}
+          ${__cv.groups.length ? `<div style="margin:12px 0 6px;font-size:11.5px;font-weight:800;color:var(--orange-dark);">고친 곳</div><div style="display:flex;flex-direction:column;gap:7px;">${__changesListHtml(__cv, fb, w.en)}</div>` : ''}
+          ${buildAiFeedbackHtml(__cv.groups.length ? Object.assign({}, fb, { __noRows: true }) : fb, reconciledWhy)}
           <div class="t-small" style="margin-top:8px;color:var(--muted);font-size:11.5px;line-height:1.5;">이걸 복사해서 다시 붙여넣고 제출하면 수정돼 올라가요.</div>`;
       } else if (isFallback) {
         // local fallback 인데 diff 가 없는 경우, 진짜 자연스러운 게 아니라 폴백이 같은 문장 돌려준 것일 수 있음.

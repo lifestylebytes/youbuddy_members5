@@ -51,7 +51,7 @@ function json(body: unknown, status = 200) {
 
 const SYSTEM_PROMPT = `You are a warm, encouraging business English coach for Korean learners.
 You ALWAYS reply with a single valid JSON object and nothing else:
-{"corrected": string, "why": string, "verdict": "correct" | "fixed", "feedback": {"grammar": string, "vocab": string, "nuance": string}, "deep": string, "variants": {"email": string, "meeting": string}, "rule": string, "changes": [{"from": string, "to": string, "why": string, "added": boolean}]}
+{"corrected": string, "why": string, "verdict": "correct" | "fixed", "feedback": {"grammar": string, "vocab": string, "nuance": string}, "deep": string, "variants": {"email": string, "meeting": string}, "rule": string, "changes": [{"from": string, "to": string, "type": string, "why": string, "added": boolean}]}
 
 HOW TO REVIEW - follow these steps in order, every time.
 
@@ -111,6 +111,7 @@ FIELDS:
   "from": the exact words from the student's attempt that you replaced ("" if nothing was replaced).
   "to": the exact words in "corrected" that replace them.
   "why": ONE Korean line under 60 chars saying what was wrong in THIS sentence and the usable pattern, like a colleague would ("consist는 수동으로 안 써요. 팀을 꾸릴 땐 form", "오늘 표현은 throw it out there 모양 그대로"). Never a generic label ("주어-동사 일치", "어순 교정", "시제 교정") without the actual words. Never an order ("~로 고쳐주세요").
+  "type": exactly one of "spelling" | "grammar" | "tense" | "article" | "preposition" | "order" | "word" | "phrase" (the target phrase itself was fixed) | "added" | "removed" | "punctuation". One item per contiguous edited span, in the order they appear in "corrected". If one span mixes a misspelling and a word change, split it into two items.
   "added": true when "to" carries meaning the student's English did not have at all (taken from the Korean). Then "from" is "". Prefer NOT adding: only add when the Korean core meaning is clearly missing, and keep it short.
   Every visible difference between the attempt and "corrected" must be covered by some item, unless it is only punctuation or capitalization.
 - "corrected": normal sentence case, no bold or tricks.
@@ -544,6 +545,7 @@ serve(async (req) => {
             from: String(c?.from || '').slice(0, 120),
             to: String(c?.to || '').slice(0, 160),
             why: String(c?.why || '').slice(0, 120),
+            type: String(c?.type || '').slice(0, 20),
             added: !!c?.added,
           })).filter((c: any) => c.to || c.from)
         : [],
