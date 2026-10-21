@@ -33955,7 +33955,7 @@ window.__openTodaySendBrief = function () {
         add('07:00', '버디', '전날 인증률 공지 · Day ' + yd + (isPreview ? ' (미리보기 · Day 2부터 실제 명단)' : ''), head + '\n\n' + vsCopyText(yd, 'basic', false) + '\n\n💬 ' + __opsMotivation(yd));
       } catch (e) {}
     }
-    add('06:00', '매니저', '모닝 공지 · Day ' + cDay, mBody);
+    add('06:00', '매니저', '모닝 공지 · Day ' + cDay + (mBody ? '' : ' ⚠️ 원고 비어 있음 (Claude 에게 이번 기수 단어로 써달라고 하기)'), mBody);
     if (cDay === tot) {
       if (__hasPrem)       add('10:00', '버디', '프리미엄 방 · 리포트 + 녹화본 + 인증서 공지', '해피 마지막 day' + tot + '입니다 :)\n\n프리미엄 여러분께 오늘 챙겨드릴 게... 바로.. 세 가지예요!\n\n1️⃣ <발표 피드백 리포트>\n발표 기반으로 한 분 한 분 정리해서 올려뒀어요.\n앱 [프리미엄] 탭에서 내 이름으로 확인해주세요.\n(우측 상단 버튼으로 PDF 소장도 가능해요!)\n\n2️⃣ <Week 4 미팅 녹화본>\n어제 마지막 미팅 다시보기, 미팅 페이지에 올려뒀습니다.\n\n3️⃣ <수료 인증서>\n오늘 파이널 테스트까지 마치면 [프리미엄] 탭 > 수료 인증에서\n인증서를 바로 출력할 수 있어요 🎓\n\n📌 리포트는 발표하신 분들에 한해 확인 가능하고,\n인증서는 조건 충족 시 누구나 받아가실 수 있어요!\n\n오늘 인증 + 파이널까지 마치고, 수료식에서 만나요 🧡');
       add('08:00', '버디', '파이널 테스트 오픈 안내', '드디어 마지막 날이에요! 🎉\n오늘 Day ' + tot + ' 인증까지 마치면 <파이널 테스트>가 열려요.\n앱 [내 학습] 맨 아래에서 응시할 수 있어요.\n18일 이상 + 파이널 응시하시면 4주 단어집 PDF가 열립니다.\n(빠진 날은 채우시면 1일로 인정됩니다)\n마지막 날도 가볍게, 10분만 같이 가요 🧡');
@@ -34007,7 +34007,7 @@ window.__openTodaySendBrief = function () {
       const tipImgs = __tipImgs(cDay);
       if (tipBody || tipImgs.length) add(seniorBody ? '15:00' : '12:30', '버디', '오늘의 앱 팁 · Day ' + cDay + (tipImgs.length ? ' (이미지 ' + tipImgs.length + '장)' : ''), tipBody, tipImgs);
     }
-    add('19:00', '버디', '한 스푼 더 · Day ' + cDay, spBody);
+    add('19:00', '버디', '한 스푼 더 · Day ' + cDay + (spBody ? '' : ' ⚠️ 원고 비어 있음'), spBody);
     // 공휴일 안내 (2026-09-23): 해당 Day 저녁에만.
     { const hb = (OPS_TALK.holiday || {})[String(cDay)] || ''; if (hb) add('20:00', '버디', '추석 연휴 인증 안내 · Day ' + cDay, hb); }
     if (cDay === 3 || cDay === 7 || cDay === 11 || cDay === 14 || cDay === 18) { // Day 5 분은 토요일 '주말 복습 리마인드'로 이동 (2026-09-19)

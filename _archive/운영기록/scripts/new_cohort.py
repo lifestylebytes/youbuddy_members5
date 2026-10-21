@@ -85,18 +85,28 @@ s=re.sub(r"const COHORT_DRIVE_URL = '[^']*';", "const COHORT_DRIVE_URL = '';  //
 _ad=os.path.join(dst,'audio')
 if os.path.isdir(_ad):
     shutil.rmtree(_ad); os.makedirs(_ad)
+# 유버디 톡 모닝·스푼 원고 비우기 (2026-10-22 10기 Day 4 사고: 9기 원고가 그대로 나감).
+# 이전 기수 원고가 남아 있으면 "있으니까 됐다"로 넘어가 버린다. 비워두면 톡 창에 '원고 없음'이 뜨고 prelaunch_check 가 ❌ 를 낸다.
+_lines=s.split('\n')
+for _k,_l in enumerate(_lines):
+    if _l.startswith('const OPS_TALK = '):
+        _o=json.loads(_l[len('const OPS_TALK = '):].rstrip().rstrip(';'))
+        for _sec in ('morning','spoon'):
+            _o[_sec]={str(_d):'' for _d in range(1,21)}
+        _lines[_k]='const OPS_TALK = '+json.dumps(_o,ensure_ascii=False)+';'
+s='\n'.join(_lines)
 open(idx,'w',encoding='utf-8').write(s)
 # 검증
 r=subprocess.run(['node','-e',"const fs=require('fs'),vm=require('vm');const h=fs.readFileSync(process.argv[1],'utf8');const m=[...h.matchAll(/<script>([\\s\\S]*?)<\\/script>/g)];m.forEach((b,i)=>{new vm.Script(b[1])});console.log('script OK '+m.length)",idx],capture_output=True,text=True)
 print(r.stdout.strip() or r.stderr.strip())
-print('em dash:', s.count('—'), '· 가비:', s.count('가비'))
+print('em dash:', s.count('\u2014'), '· 가비:', s.count('가비'))
 print(f"""
 ✅ {dst}/ 생성 완료 ({a.cohort}, {a.start} ~ {a.end})
 
 사람이 해야 남는 것 (순서대로):
  1. 단어 60개: _archive/{a.cohort}/운영/ 커리큘럼 확정 → CHALLENGE.weeks 교체 (9기 때 /tmp/9gi_words.py 방식: 파이썬 리스트 → weeks 블록 생성)
  2. 유의어 뜻 사전(SYNONYM 사전) · 회의 시뮬 12문항 · 파이널 퀴즈 풀 → 새 단어 기준으로 재작성
- 3. 유버디 톡 OPS_TALK(모닝 20일 + 스푼) 원고 리라이트
+ 3. 유버디 톡 OPS_TALK(모닝 20일 + 스푼) 원고 새로 쓰기 (스크립트가 비워둠. 다 쓰면 node tools/prelaunch_check.mjs 로 확인)
  4. 완주 보상 문구 (투어 ①·FAQ) 확인
  5. 상세페이지·노션 동기화, 카톡방 링크(--kakao 안 줬으면 KAKAO_ROOMS)
  6. 멤버 명단 code 순 입력 (결제 확정 후)

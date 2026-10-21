@@ -134,8 +134,28 @@ else {
   else ok('유버디 톡 원고에 이전 기수 단어 없음');
   const missDays = [];
   for (let d = 1; d <= 20; d++) { if (!OPS.morning?.[d]) missDays.push(`모닝${d}`); if (!OPS.spoon?.[d]) missDays.push(`스푼${d}`); }
-  if (missDays.length) warn(`유버디 톡 빈 원고: ${missDays.join(', ')}`);
+  if (missDays.length) bad(`유버디 톡 빈 원고 ${missDays.length}개: ${missDays.slice(0, 8).join(', ')}${missDays.length > 8 ? ' ...' : ''}`, '이번 기수 단어로 모닝·스푼 새로 쓰기 (new_cohort.py 가 일부러 비워둠)');
   else ok('유버디 톡 모닝·스푼 20일치 다 있음');
+  // 2026-10-22: 10기 Day 4 까지 9기 모닝·스푼이 그대로 나간 사고. "이전 기수 단어가 없나"만 봐선 못 잡는다
+  // (11기는 10기가 아니라 9기 원고를 물려받아서 통과했다). 이번 기수 단어와 '맞는지'를 직접 본다.
+  const byDay = {};
+  words.forEach((w) => { (byDay[w.day] = byDay[w.day] || []).push(w); });
+  const titleOf = {};
+  (CH.weeks || []).forEach((wk) => (wk.days || []).forEach((dd) => { titleOf[dd.day] = dd.title; }));
+  const mismatch = [];
+  for (let d = 1; d <= 20; d++) {
+    const ws = byDay[d] || [];
+    const m = String(OPS.morning?.[d] || ''), sp = String(OPS.spoon?.[d] || '');
+    if (m) {
+      const hasEx = ws.some((w) => w.ex_kr && m.includes(String(w.ex_kr).trim()));
+      const th = (m.match(/오늘 테마: ([^)]+)\)/) || [])[1];
+      if (!hasEx) mismatch.push(`모닝${d}: 미리보기 문장이 Day ${d} 예문과 다름`);
+      else if (th && titleOf[d] && th.trim() !== titleOf[d]) mismatch.push(`모닝${d}: 테마 "${th}" ≠ "${titleOf[d]}"`);
+    }
+    if (sp && !ws.some((w) => sp.toLowerCase().includes(String(w.en).toLowerCase().split(' ').slice(0, 2).join(' ')))) mismatch.push(`스푼${d}: Day ${d} 단어 언급 없음`);
+  }
+  if (mismatch.length) bad(`유버디 톡이 이번 기수 단어와 안 맞음 ${mismatch.length}곳 (예: ${mismatch.slice(0, 4).join(' / ')})`, '다른 기수 원고가 남아 있다는 뜻. 모닝·스푼을 이번 기수 단어로 다시 쓰기');
+  else if (!missDays.length) ok('유버디 톡 모닝·스푼이 Day 별 이번 기수 단어와 일치');
   const banned = [];
   for (const sec of Object.keys(OPS)) for (const [d, txt] of Object.entries(OPS[sec] || {})) if (/마감[이은도]?\s*없/.test(String(txt))) banned.push(`${sec} ${d}`);
   if (banned.length) bad(`"마감 없어요" 문구 남음: ${banned.join(', ')}`, 'CLAUDE.md 규칙: "빠진 날은 나중에 채워도 1일로 인정 (지각으로 표시)"');
