@@ -997,6 +997,7 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .celebration span { position: absolute; top: -20px; font-size: 18px; animation: fall 2.8s cubic-bezier(.2,.9,.3,1.1) forwards; }
 @keyframes fall { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 100% { transform: translate(var(--x, 0), 110vh) rotate(var(--r, 360deg)); opacity: 0.3; } }
 .diff-rewrite{display:flex;flex-direction:column;gap:8px;}
+mark.ai-hl{background:rgba(255,214,102,0.55);color:inherit;border-radius:4px;padding:0 2px;}
 .diff-rw-note{font-size:11.5px;color:var(--muted);line-height:1.5;}
 .diff-rw-col{padding:10px 12px;border-radius:12px;background:rgba(0,0,0,0.03);border:1px solid var(--line);}
 .diff-rw-fix{background:rgba(74,160,124,0.08);border-color:rgba(74,160,124,0.35);}
@@ -1194,7 +1195,7 @@ const CHALLENGE = {
         { day: 4, title: "분위기 다루기", goal_en: "Throw it out, slow it down, get to the point.", goal_kr: "던지고, 숨 고르고, 본론으로",
           words: [
             { en: "Throw it out there", pron: "/ˌθroʊ ɪt ˈaʊt ðer/", pos: "phrase", def: "정리 안 된 생각을 일단 꺼내보다", ex_en: "This might be off, but I'll throw it out there: what if we skip the pilot?", ex_kr: "틀릴 수도 있는데 일단 던져볼게요. 파일럿을 건너뛰면 어떨까요?", syn: ["Put it on the table", "Float it"], nuance: "공을 멀리 던져놓고 누가 받는지 보는 그림이에요. 아직 다듬지 않은 아이디어를 말하기 전에 이 말을 붙이면 \"완성본 아니니까 가볍게 들어\" 라는 안전장치가 걸립니다. 한국인은 생각이 정리될 때까지 입을 다무는데, 외국계 회의는 정리 전에 꺼내는 사람이 기여한 사람으로 기록돼요. 이 한 줄이 그 차이를 메워줍니다." },
-            { en: "Take a beat", pron: "/ˌteɪk ə ˈbiːt/", pos: "phrase", def: "잠깐 숨 고르다", ex_en: "Let's take a beat before we commit to a date.", ex_kr: "날짜 박기 전에 잠깐 숨 좀 고르죠.", syn: ["Pause for a second", "Step back for a moment"], nuance: "음악에서 한 박자 쉬어가는 그림이에요. 회의가 과열되거나 결정이 너무 빨리 가려고 할 때 이 말로 속도를 늦추면, 반대하는 게 아니라 생각할 시간을 주는 사람으로 보입니다. 미국 쪽에서 요 몇 년 부쩍 늘어난 표현이라 젊은 매니저들이 특히 자주 써요. 긴 멈춤이 아니라 딱 한 박자입니다." },
+            { en: "Take a beat", pron: "/ˌteɪk ə ˈbiːt/", pos: "phrase", def: "잠깐 숨 고르다", ex_en: "Let's take a beat before we commit to a date.", ex_kr: "날짜 정하기 전에 잠깐 쉬죠 (숨 좀 고르죠).", syn: ["Pause for a second", "Step back for a moment"], nuance: "음악에서 한 박자 쉬어가는 그림이에요. 회의가 과열되거나 결정이 너무 빨리 가려고 할 때 이 말로 속도를 늦추면, 반대하는 게 아니라 생각할 시간을 주는 사람으로 보입니다. 미국 쪽에서 요 몇 년 부쩍 늘어난 표현이라 젊은 매니저들이 특히 자주 써요. 긴 멈춤이 아니라 딱 한 박자입니다." },
             { en: "Beat around the bush", pron: "/ˌbiːt əˌraʊnd ðə ˈbʊʃ/", pos: "phrase", def: "본론을 피하며 빙빙 돌려 말하다", ex_en: "I won't beat around the bush: the launch has to move.", ex_kr: "돌려 말하지 않을게요. 출시는 미뤄야 합니다.", syn: ["Dance around it", "Skirt the issue"], nuance: "덤불 속 새를 잡으려고 주변만 두드리는 그림이에요. 보통 I won't beat around the bush 처럼 부정형으로 써서 \"지금부터 직구 던집니다\" 를 예고하는 데 씁니다. 나쁜 소식을 전해야 할 때 이 한 줄을 먼저 깔면 듣는 사람이 마음의 준비를 해요. 남에게 Stop beating around the bush 라고 하면 꽤 세니 조심." },
           ] },
         { day: 5, title: "윗선을 움직이는 말", goal_en: "Go up, get in, get the go.", goal_kr: "올리고, 끼어들고, 승인받기",
@@ -1255,7 +1256,7 @@ const CHALLENGE = {
             { en: "Make or break", pron: "/ˌmeɪk ɔːr ˈbreɪk/", pos: "phrase", def: "성패를 통째로 가르는", ex_en: "This renewal is make or break for the account.", ex_kr: "이번 갱신에 이 고객사 거래가 통째로 걸려 있어요.", syn: ["Decisive", "Pivotal"], nuance: "이걸로 흥하거나 망하거나 둘 중 하나라는 그림이에요. important 는 매일 쓰여서 무게가 없는데, make or break 는 \"여기서 갈린다\" 라서 팀의 집중을 모을 때 이 말이 통합니다. 너무 자주 쓰면 양치기 소년이 되니 진짜 중요한 한 번에만. 하이픈 형용사 a make-or-break moment 로도 씁니다." },
             { en: "Tipping point", pron: "/ˈtɪpɪŋ pɔɪnt/", pos: "noun", def: "작은 변화가 큰 변화로 확 넘어가는 지점", ex_en: "Churn is near a tipping point. One more price hike and we lose them.", ex_kr: "이탈률이 임계점 직전이에요. 한 번만 더 올리면 다 나가요.", syn: ["Critical mass", "Point of no return"], nuance: "천천히 기울던 물건이 어느 순간 확 넘어가는 그림이에요. 지금은 버티고 있지만 조금만 더 밀면 돌이킬 수 없다는 경고라, 위험을 알릴 때 과장 없이 무게를 실어줍니다. 긍정으로도 써요. 입소문이 tipping point 를 넘으면 알아서 퍼지니까요. 어느 쪽이든 \"그 전과 후가 다르다\" 가 핵심입니다." },
           ] },
-        { day: 13, title: "막판", goal_en: "Down to the wire, last minute, back to the start.", goal_kr: "막판, 늦은 변경, 원점",
+        { day: 13, title: "마지막 고비", goal_en: "Down to the wire, last minute, back to the start.", goal_kr: "막판, 늦은 변경, 원점",
           words: [
             { en: "Down to the wire", pron: "/ˌdaʊn tə ðə ˈwaɪər/", pos: "phrase", def: "마지막 순간까지 결판이 안 나다", ex_en: "The negotiation went down to the wire, but we closed at 6pm.", ex_kr: "협상이 막판까지 갔는데 6시에 마무리했어요.", syn: ["To the last minute", "Right up to the deadline"], nuance: "경마에서 결승선 철사(wire)를 지날 때까지 누가 이길지 모르는 그림이에요. 마감 직전까지 긴장했다는 뜻이라, 힘들게 끝낸 일을 보고할 때 이 표현이 그 긴장감을 전해줍니다. 보통 go down to the wire 로 쓰고요. 매번 이러면 계획 문제니, 가끔 쓰는 말로 남겨두세요." },
             { en: "Eleventh hour", pron: "/ɪˌlevnθ ˈaʊər/", pos: "noun", def: "너무 늦은 막판", ex_en: "They changed the spec at the eleventh hour, so QA starts over.", ex_kr: "막판에 스펙을 바꿔서 QA를 처음부터 다시 해요.", syn: ["Last-minute", "At the last moment"], nuance: "12시 마감 직전인 11시에 뭔가 바뀌는 그림이에요. last minute 과 뜻은 같지만 조금 더 격식 있고 \"이건 너무 늦었다\" 는 불만이 같이 실립니다. 늦은 변경 요청에 대해 기록을 남길 때 at the eleventh hour 라고 적어두면 나중에 일정 지연의 책임이 어디 있는지 분명해져요. 형용사로 eleventh-hour change 도 됩니다." },
@@ -1302,10 +1303,10 @@ const CHALLENGE = {
             { en: "Disagree and commit", pron: "/ˌdɪsəˈɡriː ənd kəˈmɪt/", pos: "phrase", def: "반대 의견을 냈어도 결정되면 전력으로 따르다", ex_en: "I still think it's risky, but I'll disagree and commit.", ex_kr: "저는 여전히 위험하다고 보는데, 그래도 결정됐으니 제대로 하겠습니다.", syn: ["Get behind the decision", "Fall in line"], nuance: "회의에서는 끝까지 반대하고, 문을 나서면 그 결정을 내 것처럼 미는 그림이에요. 한국 조직은 반대하면 삐딱한 사람, 따르면 줏대 없는 사람이 되기 쉬운데, 이 표현은 그 둘을 한 문장에 담아서 \"의견은 냈고 팀은 지킨다\" 가 됩니다. 인텔과 아마존에서 시작해 외국계 전반으로 퍼졌어요. 이 말을 쓸 줄 알면 리더감으로 보입니다." },
             { en: "Stick one's neck out", pron: "/ˌstɪk wʌnz ˈnek aʊt/", pos: "phrase", def: "위험을 무릅쓰고 나서다", ex_en: "I'll stick my neck out and say the forecast is too optimistic.", ex_kr: "제가 총대 메고 말할게요. 그 전망치는 너무 낙관적이에요.", syn: ["Go out on a limb", "Take a risk for"], nuance: "거북이가 등껍질 밖으로 목을 내미는 그림이에요. 틀리면 내가 다친다는 걸 알면서도 말하는 거라, 이 표현을 앞에 붙이면 뒤의 말에 용기가 실립니다. 남을 위해 쓰면 He stuck his neck out for me, 나를 위해 나서준 사람에게 하는 고마움이고요. Disagree and commit 전에 하는 게 바로 이거예요." },
           ] },
-        { day: 20, title: "다음 판", goal_en: "Driver's seat, blue sky, cross that bridge.", goal_kr: "주도권, 상상, 닥치면 그때",
+        { day: 20, title: "다음 걸음", goal_en: "Driver's seat, blue sky, cross that bridge.", goal_kr: "주도권, 상상, 닥치면 그때",
           words: [
             { en: "In the driver's seat", pron: "/ɪn ðə ˈdraɪvərz siːt/", pos: "phrase", def: "주도권을 쥐고 상황을 끌고 가는", ex_en: "After the merger, we're in the driver's seat on pricing.", ex_kr: "합병 후엔 가격 결정은 우리가 주도해요.", syn: ["In control", "Calling the shots"], nuance: "운전석에 앉아 방향과 속도를 정하는 그림이에요. 참여하는 것과 끌고 가는 것은 다른데, 이 표현은 후자입니다. 협상 결과나 조직 변화 뒤에 \"이제 우리가 정한다\" 를 말할 때 쓰고, 반대로 in the passenger seat 은 따라가는 입장이에요. 4주 동안 배운 말들을 쓰기 시작하면 회의에서 이 자리에 앉게 됩니다." },
-            { en: "Blue-sky thinking", pron: "/ˌbluː ˈskaɪ ˌθɪŋkɪŋ/", pos: "noun", def: "제약 없이 자유롭게 상상하기", ex_en: "Forget the budget for ten minutes. Let's do some blue-sky thinking.", ex_kr: "10분만 예산 잊고, 제약 없이 상상해보죠.", syn: ["Brainstorming", "Thinking big"], nuance: "구름 한 점 없는 하늘처럼 한계를 걷어낸 상태에서 생각하는 그림이에요. 브레인스토밍 시작할 때 이 말로 열면 \"현실성 따지지 말고 일단 꺼내\" 가 전달돼서 사람들이 입을 엽니다. 영국 회사에서 특히 자주 쓰고, 형용사로 blue-sky ideas 도 돼요. 현실 검토는 그다음 단계라고 미리 못 박는 게 포인트입니다." },
+            { en: "Blue-sky thinking", pron: "/ˌbluː ˈskaɪ ˌθɪŋkɪŋ/", pos: "noun", def: "제약 없이 자유롭게 상상하기", ex_en: "Forget the budget for ten minutes. Let's do some blue-sky thinking.", ex_kr: "10분만 예산 잊고, 제약 없이 상상해보죠.", syn: ["Brainstorming", "Thinking big"], nuance: "구름 한 점 없는 하늘처럼 한계를 걷어낸 상태에서 생각하는 그림이에요. 브레인스토밍 시작할 때 이 말로 열면 \"현실성 따지지 말고 일단 꺼내\" 가 전달돼서 사람들이 입을 엽니다. 영국 회사에서 특히 자주 쓰고, 형용사로 blue-sky ideas 도 돼요. 현실 검토는 그다음 단계라고 미리 분명히 해두는 게 포인트입니다." },
             { en: "Cross that bridge when you come to it", pron: "/ˌkrɔːs ðæt ˈbrɪdʒ wen ju ˌkʌm tu ɪt/", pos: "phrase", def: "닥치면 그때 생각하자", ex_en: "What if they ask for a discount? Let's cross that bridge when we come to it.", ex_kr: "할인 요구하면 어쩌냐고요? 그건 닥치면 그때 생각하죠.", syn: ["Deal with it later", "Take it as it comes"], nuance: "아직 안 나온 다리를 미리 걱정하지 말고, 도착하면 건너자는 그림이에요. 회의가 \"만약에\" 로 늘어질 때 이 한마디가 지금 결정할 것으로 돌려놓습니다. 무책임이 아니라 우선순위라서, 걱정 많은 동료를 안심시킬 때도 좋아요. 4주의 마지막 단어로 고른 이유: 다음 기수 걱정은 그때 하시고, 오늘은 완주한 것만 챙기세요." },
           ] },
       ],
@@ -2415,6 +2416,10 @@ async function callAiReviewEdgeFunction(payload) {
     deep: typeof data.deep === 'string' ? data.deep : '',
     variants: (data.variants && typeof data.variants === 'object') ? { email: String(data.variants.email || ''), meeting: String(data.variants.meeting || '') } : undefined,
     rule: typeof data.rule === 'string' ? data.rule : '',
+    // 고친 곳 목록 (2026-10-22): [{from, to, why, added}] 최대 3개. 화면의 "전 → 후 + 한 줄 이유".
+    changes: Array.isArray(data.changes) ? data.changes.filter((c) => c && (c.to || c.from)).slice(0, 3).map((c) => ({
+      from: String(c.from || '').slice(0, 120), to: String(c.to || '').slice(0, 160), why: String(c.why || '').slice(0, 120), added: !!c.added,
+    })) : undefined,
   };
 }
 
@@ -2763,6 +2768,35 @@ function __wireAiFbRow(root, key, fb) {
     render();
   };
 }
+/* 교정 화면 (2026-10-22 버디 피드백: "틀렸는데 잘 썼다고 나와요 / 피드백이 이상해요")
+   - 내 문장 / 다듬은 문장을 위아래로. 취소선은 안 쓰고, 다듬은 문장에서 바뀐 단어만 형광펜.
+   - 맨 위 한 줄은 정직하게 "N군데 다듬었어요". 칭찬은 진짜 똑같을 때만. */
+function __correctionView(original, corrected) {
+  const a = String(original || '').trim(), b = String(corrected || '').trim();
+  const tokenize = (x) => x.match(/[A-Za-z0-9'’]+|[^A-Za-z0-9\s]|\s+/g) || [];
+  const A = tokenize(a), B = tokenize(b);
+  const norm = (t) => /^\s+$/.test(t) ? ' ' : t.toLowerCase().replace(/[’]/g, "'");
+  const m = A.length, n = B.length;
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = m - 1; i >= 0; i--) for (let j = n - 1; j >= 0; j--) dp[i][j] = norm(A[i]) === norm(B[j]) ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  const keep = new Array(n).fill(false);
+  let i = 0, j = 0;
+  while (i < m && j < n) {
+    if (norm(A[i]) === norm(B[j])) { keep[j] = true; i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) i++; else j++;
+  }
+  let html = '', inMark = false, spots = 0;
+  B.forEach((t, k) => {
+    const isWs = /^\s+$/.test(t);
+    const changed = !keep[k] && !isWs;
+    if (changed && !inMark) { html += '<mark class="ai-hl">'; inMark = true; spots++; }
+    if (!changed && inMark && !isWs) { html += '</mark>'; inMark = false; }
+    html += escapeHtml(t);
+  });
+  if (inMark) html += '</mark>';
+  html = html.replace(/(\s+)<\/mark>/g, '</mark>$1');
+  return { html, spots };
+}
 function buildAiFeedbackHtml(fb, fallbackWhy) {
   const f = fb && fb.feedback;
   const cats = [
@@ -2771,7 +2805,18 @@ function buildAiFeedbackHtml(fb, fallbackWhy) {
     { key: 'nuance',  label: '뉘앙스', color: '#7A4DB8', bg: '#F2EBFB' },
   ];
   const rows = [];
-  if (f && typeof f === 'object') {
+  const chg = (fb && Array.isArray(fb.changes)) ? fb.changes.filter((c) => c && (c.to || c.from)) : [];
+  if (chg.length) {
+    chg.forEach((c) => {
+      const head = c.added
+        ? `<span style="font-size:10.5px;font-weight:800;color:#7A4DB8;background:#F2EBFB;border-radius:999px;padding:2px 9px;">원래 문장엔 없던 말</span> <b style="color:var(--ink);">${escapeHtml(c.to)}</b>`
+        : `<span style="color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(192,57,43,0.55);">${escapeHtml(c.from || '(없음)')}</span> <span style="color:var(--muted);">→</span> <b style="color:var(--ink);">${escapeHtml(c.to || '(빼기)')}</b>`;
+      rows.push(`<div style="padding:10px 12px;border-radius:12px;background:#fff;border:1px solid var(--line);">
+        <div style="font-size:13.5px;line-height:1.55;">${head}</div>
+        ${c.why ? `<div class="t-small" style="margin-top:4px;color:var(--ink-soft);line-height:1.55;">${escapeHtml(c.why)}${c.added ? ' (한국어 문장 뜻을 살리려고 보탰어요)' : ''}</div>` : ''}
+      </div>`);
+    });
+  } else if (f && typeof f === 'object') {
     cats.forEach((c) => {
       const txt = String(f[c.key] || '').trim();
       if (!txt) return;
@@ -2813,12 +2858,12 @@ function buildAiFeedbackHtml(fb, fallbackWhy) {
       </div>`;
   }
   if ((vr.email || '').trim() || (vr.meeting || '').trim()) {
-    const cell = (icon, label, txt) => txt ? `<div style="flex:1;min-width:0;padding:10px 12px;border-radius:12px;background:#FBFAFF;border:1px solid rgba(123,94,140,0.22);">
+    const cell = (icon, label, txt) => txt ? `<div style="min-width:0;padding:10px 12px;border-radius:12px;background:#FBFAFF;border:1px solid rgba(123,94,140,0.22);">
         <div style="font-size:11px;font-weight:800;color:#7B5E8C;">${icon} ${label}</div>
-        <div style="margin-top:5px;font-size:13px;line-height:1.55;color:var(--ink);font-family:var(--font-mono);">${escapeHtml(txt)}</div></div>` : '';
+        <div style="margin-top:5px;font-size:14px;line-height:1.6;color:var(--ink);">${escapeHtml(txt)}</div></div>` : '';
     tail += `<div style="margin-top:9px;">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">${PB}<span style="font-size:11px;font-weight:800;color:#7B5E8C;">내일 바로 쓸 버전</span></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">${cell('✉️', '메일이면', vr.email)}${cell('🗣️', '회의면', vr.meeting)}</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">${cell('✉️', '메일이면', vr.email)}${cell('🗣️', '회의면', vr.meeting)}</div>
       </div>`;
   }
   if (ruleTxt) {
@@ -2828,7 +2873,7 @@ function buildAiFeedbackHtml(fb, fallbackWhy) {
       </div>`;
   }
 
-  if (rows.length) return `<div style="display:flex;flex-direction:column;gap:7px;">${rows.join('')}</div>${naturalBlock}${tail}`;
+  if (rows.length) return `${chg.length ? '<div style="margin:12px 0 6px;font-size:11.5px;font-weight:800;color:var(--orange-dark);">고친 곳</div>' : ''}<div style="display:flex;flex-direction:column;gap:7px;">${rows.join('')}</div>${naturalBlock}${tail}`;
   return `<div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(fallbackWhy || '')}</div>${naturalBlock}${tail}`;
 }
 
@@ -4805,7 +4850,7 @@ const SYNONYM_GLOSSARY = {
   "raise the bar": "기준을 한 단계 올리다",
   "take a bigger swing": "더 크게 시도하다",
   "set it up for": "~가 하기 좋게 세팅해두다",
-  "prep the ground": "미리 판을 깔아두다",
+  "prep the ground": "미리 분위기를 만들어두다",
   // 10기 유의어 뜻 120개 (2026-09-10 작성)
   "get the ball rolling": "일단 굴러가게 첫발을 떼다",
   "start off": "~부터 시작하다",
@@ -5271,7 +5316,7 @@ const SYNONYM_NUANCE = {
   "Rein in::Keep under control": "풀어 쓴 표현이에요. 비유 없이 상황 관리를 말할 때.",
   "Cut one's losses::Pull the plug": "전원을 뽑는 그림이라 더 단호해요. 프로젝트 종료 결정에.",
   "Cut one's losses::Walk away": "협상이나 거래에서 발 빼는 쪽이에요. 손실 언급 없이.",
-  "Firm up::Lock down": "더 강해요. 바꿀 수 없게 못 박는 느낌.",
+  "Firm up::Lock down": "더 강해요. 이제 못 바꾸게 확정하는 느낌.",
   "Firm up::Confirm": "표준 단어예요. 결과를 말할 때. firm up 은 과정, confirm 은 결과.",
   "Sign on the dotted line::Close the deal": "영업 쪽 표준이에요. 서명 장면 없이 결과만.",
   "Sign on the dotted line::Make it official": "계약뿐 아니라 발표·승진에도 써요.",
@@ -5476,7 +5521,7 @@ const SYNONYM_NUANCE = {
   "Hash out::Thrash out": "영국식에서 더 자주 들리고 뜻은 같아요. 상대가 영국계면 이 말이 더 익숙할 수 있습니다.",
   "Hash out::Work through": "차분히 하나씩 정리하는 그림이라 갈등이 크지 않을 때 어울려요. 끝장 토론의 에너지는 Hash out 에 있습니다.",
   "Iron out::Smooth out": "프로세스나 관계의 껄끄러움을 없앨 때도 써요. 계약 조항 같은 세부는 Iron out 이 정확합니다.",
-  "Iron out::Finalize": "다 끝내고 못 박는다는 뜻이라 다듬는 과정이 빠져요. 아직 조율 중이면 Iron out 을 씁니다.",
+  "Iron out::Finalize": "다 끝내고 확정한다는 뜻이라 다듬는 과정이 빠져요. 아직 조율 중이면 Iron out 을 씁니다.",
   "Nail down::Pin down": "잘 안 잡히던 걸 겨우 붙잡았다는 뉘앙스가 있어요. 자꾸 미뤄지던 일정에 어울립니다.",
   "Nail down::Lock in": "한번 정하면 못 바꾼다는 무게가 있어요. 가격이나 계약 조건에 자주 씁니다.",
   "Pre-mortem::Risk workshop": "정식 세션 이름이라 일정표에 적기 좋아요. 망했다고 치고 이유를 대보는 방식 자체는 Pre-mortem 이 담습니다.",
@@ -5561,7 +5606,7 @@ const SYNONYM_NUANCE = {
   "Fallback::Backup option": "가장 알아듣기 쉬워요. 비원어민이 섞인 자리에서 안전합니다.",
   "Fallback::Plan B": "한국에서도 그대로 쓰는 말이라 편해요. 다만 캐주얼해서 공식 문서에는 원래 표현이 낫습니다.",
   "Slippage::Schedule drift": "원인 없이 자연스럽게 밀린다는 뉘앙스예요. 책임 소재를 흐리지 않고 현상만 말할 때 씁니다.",
-  "Slippage::Days lost": "숫자로 못 박아요. 사흘을 잃었다는 식으로 쓰면 심각성이 바로 전달됩니다.",
+  "Slippage::Days lost": "숫자로 분명하게 말해요. 사흘을 잃었다는 식으로 쓰면 심각성이 바로 전달됩니다.",
   "Head something off::Get ahead of it": "요즘 회사에서 가장 많이 들리는 표현이에요. 문제뿐 아니라 소문이나 예상 질문에도 씁니다.",
   "Head something off::Nip it in the bud": "초기에 확실히 끝낸다는 강한 말이에요. 작은 문제일 때 어울리고 큰 사안에 쓰면 과해 보입니다.",
   "Scale back::Narrow the scope": "프로젝트 용어라 회의에서 정확하게 통해요. 무엇을 뺄지 이야기할 때 씁니다.",
@@ -5620,7 +5665,7 @@ const SYNONYM_NUANCE = {
   "Circle up::Touch base": "여럿이 모이는 게 아니라 보통 1:1 로 짧게 확인하는 자리예요. 야구에서 베이스를 찍고 지나가는 그림이라, \"Let's touch base Friday.\" 는 5분짜리 통화 느낌입니다.",
   "Drop someone a line::Shoot me a message": "메일보다 슬랙·문자 쪽이에요. shoot 이 들어가서 더 빠르고 캐주얼하게 들리니 동료 사이에서 편하게 쓰기 좋습니다.",
   "Drop someone a line::Give me a shout": "도와줄 준비가 돼 있다는 신호예요. \"Give me a shout if you get stuck.\" 처럼 상대가 막혔을 때 부담 없이 부르라고 할 때 씁니다. 영국계 회사에서 특히 자주 들려요.",
-  "Drive::Own it end to end": "책임 범위를 못 박는 말이에요. 일부만 돕는 게 아니라는 걸 분명히 할 때 씁니다. 평가나 면접에서 내 기여를 말할 때 특히 강하게 들려요.",
+  "Drive::Own it end to end": "책임 범위를 분명히 하는 말이에요. 일부만 돕는 게 아니라는 걸 분명히 할 때 씁니다. 평가나 면접에서 내 기여를 말할 때 특히 강하게 들려요.",
   "Drive::Lead the charge": "돌격을 이끄는 그림이라 새로 시작하거나 어려운 걸 뚫을 때 어울려요. 이미 굴러가는 일을 관리할 때보다 처음 여는 일에 씁니다.",
   "Free rein::Free hand": "뜻은 거의 같은데 문서나 계약처럼 조금 더 격식 있는 자리에서 보여요. 말할 때는 free rein 이 더 자연스럽습니다.",
   "Free rein::Leave it up to me": "권한을 받은 상태를 설명하는 게 아니라, 내가 먼저 달라고 요청하는 문장이에요. 회의에서 주도권을 가져오고 싶을 때 씁니다.",
@@ -5838,7 +5883,7 @@ Object.assign(SYNONYM_GLOSSARY, {
   'sketch it out': '대충 윤곽을 그려보다',
   'map it out': '구조·흐름을 체계적으로 짜다',
   'bare minimum': '최소한 갖춰야 할 것',
-  'cost of entry': '이 판에 들어오는 기본 비용',
+  'cost of entry': '시작하려면 기본으로 드는 비용',
   'set aside': '따로 떼어두다',
   'block off': '(캘린더에) 시간을 막아두다',
   'get everything lined up': '전부 줄 세워 정리해두다',
@@ -6204,7 +6249,7 @@ const SYN_EXAMPLES = {
   'Push the envelope::Raise the bar': { en: 'This release raises the bar for quality.', kr: '이번 릴리스가 품질 기준을 한 단계 올렸어요.' },
   'Push the envelope::Take a bigger swing': { en: 'Let\'s take a bigger swing this quarter.', kr: '이번 분기엔 더 크게 한번 가보죠.' },
   'Tee up::Set it up for': { en: 'I set it up for the team to take over.', kr: '팀이 이어받기 좋게 세팅해뒀어요.' },
-  'Tee up::Prep the ground': { en: 'We prepped the ground with finance last week.', kr: '지난주에 재무팀 쪽 판은 깔아뒀어요.' },
+  'Tee up::Prep the ground': { en: 'We prepped the ground with finance last week.', kr: '지난주에 재무팀 쪽엔 미리 얘기해뒀어요.' },
   // 10기 유의어 예문 120개 (2026-09-10 작성)
   'Kick off::Get the ball rolling': { en: 'Let me get the ball rolling with a quick status update.', kr: '제가 현황 공유부터 하면서 시작해볼게요.' },
   'Kick off::Start off': { en: 'Let\'s start off with the numbers, then move to the plan.', kr: '숫자부터 보고 그다음에 계획으로 넘어가죠.' },
@@ -19853,7 +19898,12 @@ function DayPage(dayN) {
     // Private "내 기록실", only shown after AI review requested.
     const fb = state.ai_feedback[key];
     if (fb && isSubmitted) {
-      const hasDiff = /<del>|<ins>/i.test(fb.diff_html || '');
+      // 2026-10-22: 35% 넘게 바뀐 문장은 diff_html 에 <del>/<ins> 가 없어서(통째 비교 모드) "고칠 부분이 없어요"로 잘못 떴다.
+      // 실제 문장 비교로 판단한다.
+      const __nrm = (x) => String(x || '').toLowerCase().replace(/[’]/g, "'").replace(/[^a-z0-9']+/g, ' ').trim();
+      const __orig = fb.originalInput || state.sentences?.[key] || '';
+      const hasDiff = /<del>|<ins>|diff-rewrite/i.test(fb.diff_html || '') || fb.verdict === 'fixed'
+        || (!!__orig && !!fb.corrected && __nrm(__orig) !== __nrm(fb.corrected));
       const isError = !!fb.isError; // 네트워크/AI 진짜 에러, 절대 "잘 썼어요" 로 표시 X
       const isFallback = !!fb.isFallback; // local fallback (덜 정확), 사용자에게 한 번 더 시도 권유
       // AI 가 "수정 없음" 류 메시지 보냈는데 실제 diff 가 있으면 → 일관성 깨진 케이스.
@@ -19871,12 +19921,21 @@ function DayPage(dayN) {
           </div>
           <div class="t-small" style="color:var(--ink-soft);line-height:1.55;">${escapeHtml(fb.why || '')}</div>`;
       } else if (hasDiff) {
+        const __cv = __correctionView(__orig, fb.corrected);
+        const __n = Math.max(1, (Array.isArray(fb.changes) && fb.changes.length) || __cv.spots);
         bodyHtml = `
-          <div class="ai-corrected" style="display:flex;align-items:flex-start;gap:8px;">
-            <span style="flex:1;min-width:0;">"${escapeHtml(fb.corrected)}"</span>
-            <button type="button" class="btn-copy-ai" data-copy-text="${escapeHtml(fb.corrected)}" style="flex-shrink:0;padding:6px 10px;border-radius:999px;background:#fff;color:var(--orange-dark);border:1px solid var(--orange-soft);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">📋 복사</button>
+          <div style="font-size:14px;font-weight:800;color:var(--orange-dark);margin-bottom:10px;">✏️ ${__n}군데 다듬었어요</div>
+          ${__orig ? `<div style="padding:10px 12px;border-radius:12px;background:rgba(0,0,0,0.03);border:1px solid var(--line);">
+            <div style="font-size:10.5px;font-weight:800;color:var(--muted);margin-bottom:4px;">내 문장</div>
+            <div class="day-fs-sm" style="line-height:1.6;color:var(--ink-soft);">${escapeHtml(__orig)}</div>
+          </div>` : ''}
+          <div style="margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(74,160,124,0.08);border:1px solid rgba(74,160,124,0.35);">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
+              <div style="font-size:10.5px;font-weight:800;color:#2E7D5B;">다듬은 문장</div>
+              <button type="button" class="btn-copy-ai" data-copy-text="${escapeHtml(fb.corrected)}" style="flex-shrink:0;padding:5px 10px;border-radius:999px;background:#fff;color:var(--orange-dark);border:1px solid var(--orange-soft);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">📋 복사</button>
+            </div>
+            <div class="ai-corrected" style="line-height:1.6;">${__cv.html}</div>
           </div>
-          <div class="day-fs-sm" style="margin:8px 0;line-height:1.55;">${fb.diff_html}</div>
           ${buildAiFeedbackHtml(fb, reconciledWhy)}
           <div class="t-small" style="margin-top:8px;color:var(--muted);font-size:11.5px;line-height:1.5;">이걸 복사해서 다시 붙여넣고 제출하면 수정돼 올라가요.</div>`;
       } else if (isFallback) {
@@ -24334,7 +24393,7 @@ function QuizPage() {
     opCard.appendChild(el('div', { class: 'kicker', style: { color: 'var(--orange-dark)' } }, '📤 OPERATOR · 퀴즈 주입 / 푸시'));
     opCard.appendChild(el('p', { class: 't-small', style: { marginTop: '6px', color: 'var(--ink-soft)', lineHeight: '1.5' } },
       '대사 → Claude 가 JSON 만들어주면 여기 붙여넣기. 형식: { "fill_items": [ { "pre","en","post","hint"(한국어 뜻),"ko"(문장 한국어) } ] }'));
-    const ta = el('textarea', { class: 'textarea', style: { width: '100%', minHeight: '120px', marginTop: '8px', fontFamily: 'monospace', fontSize: '12px', padding: '10px', border: '1px solid var(--line)', borderRadius: '10px', boxSizing: 'border-box' }, placeholder: '{"fill_items":[{"pre":"Let me ","en":"set the stage","post":" for today.","hint":"판을 깔다","ko":"오늘 판을 깔아볼게요."}]}' });
+    const ta = el('textarea', { class: 'textarea', style: { width: '100%', minHeight: '120px', marginTop: '8px', fontFamily: 'monospace', fontSize: '12px', padding: '10px', border: '1px solid var(--line)', borderRadius: '10px', boxSizing: 'border-box' }, placeholder: '{"fill_items":[{"pre":"Let me ","en":"set the stage","post":" for today.","hint":"분위기를 잡다","ko":"오늘 얘기 시작 열어볼게요."}]}' });
     opCard.appendChild(ta);
     const parseQuiz = () => {
       try {

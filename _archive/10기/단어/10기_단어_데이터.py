@@ -55,7 +55,7 @@ WEEKS = [
         syn=["Put it on the table", "Float it"],
         nuance="공을 멀리 던져놓고 누가 받는지 보는 그림이에요. 아직 다듬지 않은 아이디어를 말하기 전에 이 말을 붙이면 \"완성본 아니니까 가볍게 들어\" 라는 안전장치가 걸립니다. 한국인은 생각이 정리될 때까지 입을 다무는데, 외국계 회의는 정리 전에 꺼내는 사람이 기여한 사람으로 기록돼요. 이 한 줄이 그 차이를 메워줍니다."),
    dict(en="Take a beat", pron="/ˌteɪk ə ˈbiːt/", pos="phrase", defn="잠깐 숨 고르다",
-        ex_en="Let's take a beat before we commit to a date.", ex_kr="날짜 박기 전에 잠깐 숨 좀 고르죠.",
+        ex_en="Let's take a beat before we commit to a date.", ex_kr="날짜 정하기 전에 잠깐 쉬죠 (숨 좀 고르죠).",
         syn=["Pause for a second", "Step back for a moment"],
         nuance="음악에서 한 박자 쉬어가는 그림이에요. 회의가 과열되거나 결정이 너무 빨리 가려고 할 때 이 말로 속도를 늦추면, 반대하는 게 아니라 생각할 시간을 주는 사람으로 보입니다. 미국 쪽에서 요 몇 년 부쩍 늘어난 표현이라 젊은 매니저들이 특히 자주 써요. 긴 멈춤이 아니라 딱 한 박자입니다."),
    dict(en="Beat around the bush", pron="/ˌbiːt əˌraʊnd ðə ˈbʊʃ/", pos="phrase", defn="본론을 피하며 빙빙 돌려 말하다",
