@@ -3,7 +3,7 @@
 """유비챌 참가확인서(회사 제출용 수강증) PDF 생성기 (2026-10-22, 10기 양지유님 건으로 형식 확정)
 
 멤버가 "회사 제출용 수강증"을 요청하면 이걸로 만든다. 수강자명 · 수강기간 · 수강금액이 들어가고,
-발급자(사업자 정보) · 대표 직인까지 찍힌다.
+발급자(브랜드·사업자등록번호) · 직인까지 찍힌다. 상호·대표 이름은 안 넣는다.
 
 사용:
   python3 tools/make_certificate.py --name 양지유 --cohort 10 \
@@ -17,8 +17,7 @@ import argparse, datetime, os, sys
 
 # ── 발급자 정보 (바뀌면 여기만 고친다) ──
 ISSUER_BRAND = '유버디 (YOUBUDDY)'
-ISSUER_TRADE = '버디버디'            # 사업자등록증 상호
-ISSUER_CEO = '유가람'
+SEAL_TEXT = '유버디인'              # 직인 글자 4자 (2x2). 상호·대표 이름은 넣지 않기로 함 (2026-10-22 버디)
 ISSUER_BIZNO = '703-91-02314'
 ISSUER_CONTACT = 'youbuddy.co.kr · 문의 http://pf.kakao.com/_ExdxcGX'
 
@@ -48,8 +47,8 @@ root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 out = a.out or os.path.join(root, '_archive', f'{a.cohort}기', '운영', '확인서', f'{a.cohort}기_참가확인서_{a.name}.pdf')
 os.makedirs(os.path.dirname(out), exist_ok=True)
 
-# 대표 직인: 붉은 원형 도장 (유가람인, 2x2). 살짝 기울이고 번짐을 줘서 찍은 느낌.
-seal = f"""<span class="seal"><span class="s1">{ISSUER_CEO[0]}</span><span class="s2">{ISSUER_CEO[1]}</span><span class="s3">{ISSUER_CEO[2]}</span><span class="s4">인</span></span>"""
+# 직인: 붉은 원형 도장 (유버디인, 2x2). 살짝 기울이고 번짐을 줘서 찍은 느낌.
+seal = f"""<span class="seal"><span class="s1">{SEAL_TEXT[0]}</span><span class="s2">{SEAL_TEXT[1]}</span><span class="s3">{SEAL_TEXT[2]}</span><span class="s4">{SEAL_TEXT[3]}</span></span>"""
 
 html = f"""<!doctype html><html lang="ko"><head><meta charset="utf-8">
 <style>
@@ -91,9 +90,7 @@ th {{ width:28%; background:#F6EEF1; text-align:left; font-weight:700; color:#55
 <div class="body">위 사람은 본 프로그램에 정식으로 등록하여 상기 기간 동안 교육에 참가함을 확인합니다.</div>
 <div class="date">{kdate(issued)}</div>
 <div class="issuer">
-  <b>{ISSUER_BRAND}</b><br>
-  <span class="small">상호 {ISSUER_TRADE}</span><br>
-  <span class="ceo">대표 {ISSUER_CEO} (인){seal}</span><br>
+  <span class="ceo"><b>{ISSUER_BRAND}</b> (인){seal}</span><br>
   <span class="small">사업자등록번호 {ISSUER_BIZNO} · {ISSUER_CONTACT}</span>
 </div>
 <div class="foot">본 확인서는 교육 참가 사실을 증명하기 위해 발급되었으며, 수료 여부는 교육 종료 후 별도 수료증으로 확인합니다. 위·변조 시 효력이 없습니다.</div>
