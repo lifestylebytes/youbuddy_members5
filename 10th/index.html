@@ -14467,6 +14467,22 @@ function computeQuizSplit(question) {
       answer,
     };
   }
+  // 1.5) 표제어 끝이 자리표시자(something/someone/it...)면 떼고 다시 맞춘다. (2026-10-27 10기 Day 6)
+  //      "Take a stab at something" / 예문 "I'll take a stab at the first draft" → 빈칸 = take a stab at.
+  //      예전엔 끝의 something 때문에 아무 데도 안 맞아서 문장 전체가 그대로 보이고(정답 노출),
+  //      힌트도 "T___ a s___ a_ s_________" 처럼 예문에 없는 단어까지 요구했다.
+  {
+    const _tk = answer.split(/\s+/);
+    const _last = (_tk[_tk.length - 1] || '').toLowerCase().replace(/[.,!?]+$/, '');
+    if (_tk.length >= 3 && ['something', 'someone', 'sth', 'sb', 'it', 'one'].includes(_last)) {
+      const core = _tk.slice(0, -1).join(' ');
+      const r = computeQuizSplit(Object.assign({}, question, { en: core }));
+      if (r && !r.fallback) {
+        if (r.mode === '1blank') return Object.assign({}, r, { answer, spanAnswer: r.spanAnswer || core });
+        return Object.assign({}, r, { answer });
+      }
+    }
+  }
   // 2) 대명사 치환 2빈칸 split (답안 가운데가 someone/something/it 같은 자리표시자일 때).
   //    반드시 아래 3) 굴절 매칭보다 먼저 돌아야 한다.
   //    _buildPhraseAlternatives 의 대명사 치환 패턴이 "Drop me a line" 을 통째로 잡아버리면
@@ -14583,14 +14599,18 @@ function computeQuizSplit(question) {
         // 답안 자체에 든 관사/수량사는 예문에서 다른 관사로 바뀔 수 있음
         return smallRe.test(clean) ? SMALL_WORDS : escapeRe(tk);
       });
+      // 사이에 끼는 말: 관사·수량사 + "a lot of / a bit of / so much / some serious" 같은 강조 (2026-10-27 Take heat → taking a lot of heat)
+      const GAP_WORDS = '(?:a|an|the|some|any|one|two|more|much|my|your|his|her|their|our|its|lot|lots|of|bit|little|ton|tons|bunch|serious|real|huge|major|so|too|very|quite|extra|plenty)';
       const pattern = '\\b(?:' + headForms.map(escapeRe).join('|') + ')'
-        + body.map((b) => '\\s+(?:' + SMALL_WORDS + '\\s+){0,2}' + b).join('') + '\\b';
+        + body.map((b) => '\\s+(?:' + GAP_WORDS + '\\s+){0,3}' + b).join('') + '\\b';
       const m = promptText.match(new RegExp(pattern, 'i'));
       if (m) {
+        const span = m[0].trim();
         return {
           mode: '1blank',
           parts: [promptText.slice(0, m.index), promptText.slice(m.index + m[0].length)],
           answer,
+          ...(span.toLowerCase() !== answer.toLowerCase() ? { spanAnswer: span } : {}),
         };
       }
     }
@@ -14725,7 +14745,7 @@ function computeQuizSplit(question) {
   //    별도 빈칸 line 으로 dictionary form 을 직접 입력하게 함 (UX: "이 표현을 영어로?").
   //    parts[0] 끝에 줄바꿈 마커 둬서 렌더 쪽에서 처리. (현재 렌더가 inline 이라
   //    여기선 안전하게 prompt + 줄바꿈 + ' → ' 형태 유지.)
-  return { mode: '1blank', parts: [promptText + ' → ', ''], answer };
+  return { mode: '1blank', parts: [promptText + ' → ', ''], answer, fallback: true };
 }
 
 // 2-blank 정답 체크, 두 빈칸 모두 정답이어야 정답 처리.
