@@ -2177,8 +2177,14 @@ async function persistStateNow() {
     // 합친 결과를 로컬에도 반영 (다음 저장이 다시 옛 값을 들고 가지 않게)
     try { if (outgoing !== snapshot) { mergePersistedState(outgoing); cacheState(); } } catch (_) {}
     stateLastSavedJson = JSON.stringify(outgoing);
+    window.__persistFailCount = 0;
     return true;
   } catch (e) {
+    // 2026-10-27: 저장이 실패하면 예전엔 그냥 버렸다 (다음 클릭 때까지 안 올라감 → 그 사이 갱신이 덮어씀).
+    // 몇 초 뒤 다시 시도한다. 연속 실패면 간격을 늘린다 (최대 30초).
+    window.__persistFailCount = (window.__persistFailCount || 0) + 1;
+    const wait = Math.min(30000, 2000 * window.__persistFailCount);
+    setTimeout(() => { try { persistStateNow(); } catch (_) {} }, wait);
     return false;
   } finally {
     statePersistInFlight = false;
@@ -2194,7 +2200,9 @@ function saveState(opts = {}) {
   cacheState();
   if (immediate) return persistStateNow();
   clearTimeout(statePersistTimer);
+  window.__statePersistTimerPending = true;
   statePersistTimer = setTimeout(() => {
+    window.__statePersistTimerPending = false;
     persistStateNow();
   }, 450);
   return Promise.resolve(true);
@@ -7536,9 +7544,29 @@ async function refreshRemoteStateAndCommunity(opts = {}) {
   // 안에만 있어서, 목표를 저장하자마자 탭을 전환하면 아직 안 올라간 값이
   // 서버의 옛 값으로 덮어써져 방금 쓴 목표가 사라졌다. (2026-08-07)
   if (statePersistInFlight || statePersistQueued) return false;
+  // 2026-10-27 (10기 김소영님 Day 6 인증 유실): 저장 대기(450ms 디바운스) 중이거나
+  // 아직 서버에 안 올라간 로컬 변경이 있으면, 서버 값으로 덮지 말고 먼저 올린다.
+  // 해외(시차 -15h)·느린 망에서 저장이 늦거나 실패한 사이에 60초 갱신/탭 복귀가 서버의 옛 값을 덮어서
+  // "버튼 눌러도 다시 보면 풀려 있어요 / 문장 확인 누르면 지워져요" 가 났다.
+  if (window.__statePersistTimerPending) return false;
+  try {
+    if (stateHydrated && stateLastSavedJson && JSON.stringify(persistedStateSnapshot()) !== stateLastSavedJson) {
+      persistStateNow();
+      return false;
+    }
+  } catch (_) {}
   let changed = false;
   try {
-    const remote = await loadRemoteState();
+    let remote = await loadRemoteState();
+    // 그래도 서버 값을 들일 땐 '더하기'로만: 로컬에만 있는 인증·문장·체크는 지우지 않는다.
+    if (remote && typeof remote === 'object') {
+      try {
+        const loc = persistedStateSnapshot();
+        remote = Object.assign({}, remote);
+        ADD_ONLY_BOOL.forEach((k) => { remote[k] = mergeAddOnly(remote[k], loc[k], true); });
+        ADD_ONLY_MAP.forEach((k) => { remote[k] = mergeAddOnly(remote[k], loc[k], false); });
+      } catch (_) {}
+    }
     if (remote && typeof remote === 'object') {
       const localJson = JSON.stringify(persistedStateSnapshot());
       const remoteJson = JSON.stringify(remote);
@@ -7546,6 +7574,8 @@ async function refreshRemoteStateAndCommunity(opts = {}) {
       // 전체 재렌더를 안 함 → 모바일에서 탭 전환·스크롤·키보드로 포커스가 자주 바뀔 때 깜빡임 제거.
       if (remoteJson && remoteJson !== localJson) {
         mergePersistedState(remote);
+        // 서버에서 받은 상태 = 저장된 상태로 기록 (안 그러면 다음 갱신 때 '미저장'으로 보고 매번 다시 올린다)
+        try { stateLastSavedJson = JSON.stringify(persistedStateSnapshot()); } catch (_) {}
         // Keep localStorage in sync with the server, prevents stale cache
         // from outliving a remote reset across tab/visibility cycles.
         try { cacheState(); } catch (_) {}
@@ -32947,6 +32977,7 @@ if (!__DEMO_MODE__ && hasSupabase()) {
       const remote = await loadRemoteState();
       if (remote && typeof remote === 'object') {
         mergePersistedState(remote);
+        if (!statePersistQueued) { try { stateLastSavedJson = JSON.stringify(persistedStateSnapshot()); } catch (_) {} }
         // Overwrite the stale localStorage snapshot NOW with the fresh remote
         // state, so next reload (even offline) starts clean. Prevents the
         // "local cache keeps resurrecting verified d2" bug on reset.
