@@ -14395,7 +14395,7 @@ function computeQuizSplit(question) {
   {
     const _tk = answer.split(/\s+/);
     const _last = (_tk[_tk.length - 1] || '').toLowerCase().replace(/[.,!?]+$/, '');
-    if (_tk.length >= 3 && ['something', 'someone', 'sth', 'sb', 'it', 'one'].includes(_last)) {
+    if ((_tk.length >= 3 && ['something', 'someone', 'sth', 'sb', 'it', 'one'].includes(_last)) || (_tk.length === 2 && ['something', 'someone', 'sth', 'sb'].includes(_last))) {
       const core = _tk.slice(0, -1).join(' ');
       const r = computeQuizSplit(Object.assign({}, question, { en: core }));
       if (r && !r.fallback) {
@@ -14666,6 +14666,27 @@ function computeQuizSplit(question) {
   //    별도 빈칸 line 으로 dictionary form 을 직접 입력하게 함 (UX: "이 표현을 영어로?").
   //    parts[0] 끝에 줄바꿈 마커 둬서 렌더 쪽에서 처리. (현재 렌더가 inline 이라
   //    여기선 안전하게 prompt + 줄바꿈 + ' → ' 형태 유지.)
+  // 4) 인칭 바꿔 끼우기 (2026-10-27): 표제어의 you/one/oneself 가 예문에선 we/ourselves 등으로 나오는 경우.
+  //    "Cross that bridge when you come to it" / "...when we come to it", "Get ahead of oneself" / "get ahead of ourselves"
+  try {
+    const SUBJ = '(?:you|we|i|they|he|she|one)';
+    const REFL = '(?:myself|yourself|yourselves|ourselves|themselves|himself|herself|oneself)';
+    const POSS = '(?:my|your|our|their|his|her|one\'s)';
+    const toks4 = answer.split(/\s+/);
+    const heads4 = (typeof inflectionVariants === 'function') ? inflectionVariants(toks4[0].toLowerCase()) : [toks4[0].toLowerCase()];
+    const body4 = toks4.slice(1).map((tk) => {
+      const c = tk.toLowerCase().replace(/[.,!?]+$/, '');
+      if (['you', 'one', 'we', 'i', 'they'].includes(c)) return SUBJ;
+      if (/self$|selves$/.test(c)) return REFL;
+      if (["one's", 'your', "someone's"].includes(c)) return POSS;
+      return escapeRe(tk);
+    });
+    if (body4.some((b, k) => b !== escapeRe(toks4[k + 1]))) {
+      const re4 = new RegExp('\\b(?:' + heads4.map(escapeRe).join('|') + ')' + body4.map((b) => '\\s+' + b).join('') + '\\b', 'i');
+      const m4 = promptText.match(re4);
+      if (m4) return { mode: '1blank', parts: [promptText.slice(0, m4.index), promptText.slice(m4.index + m4[0].length)], answer, spanAnswer: m4[0].trim() };
+    }
+  } catch (_) {}
   return { mode: '1blank', parts: [promptText + ' → ', ''], answer, fallback: true };
 }
 

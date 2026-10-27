@@ -6192,7 +6192,7 @@ const SYN_EXAMPLES = {
   "Beat around the bush::Skirt the issue": { en: "The report skirts the issue of churn.", kr: "보고서가 이탈 문제를 피해 갔어요." },
   "Go over someone's head::Bypass someone": { en: "You can't bypass procurement on this.", kr: "이건 구매팀을 건너뛸 수 없어요." },
   "Go over someone's head::Escalate past someone": { en: "If it stalls, I'll escalate past the team lead.", kr: "막히면 팀장 위로 올릴게요." },
-  "Seat at the table::A say in the decision": { en: "Marketing wants a say in the pricing decision.", kr: "마케팅이 가격 결정에 발언권을 원해요." },
+  "Seat at the table::A say in the decision": { en: "Marketing wants a say in the decision on pricing.", kr: "마케팅도 가격 결정에 한마디 하고 싶어 해요." },
   "Seat at the table::A voice in the room": { en: "We need a voice in the room when they decide.", kr: "그쪽이 결정할 때 우리 목소리가 들어가야 해요." },
   "Get the green light::Get approval": { en: "We got approval for two more headcount.", kr: "두 명 추가 채용 승인받았어요." },
   "Get the green light::Get the go-ahead": { en: "Once we get the go-ahead, we ship Monday.", kr: "진행 허가 떨어지면 월요일에 내보내요." },
@@ -6230,14 +6230,14 @@ const SYN_EXAMPLES = {
   "In the red::Operating at a loss": { en: "The division is operating at a loss.", kr: "그 사업부는 손실 상태로 운영 중이에요." },
   "Break even::Recover the cost": { en: "We recover the cost in eight months.", kr: "8개월이면 비용 회수돼요." },
   "Break even::Reach the break-even point": { en: "We reach the break-even point in Q2.", kr: "2분기에 손익분기점 도달이에요." },
-  "Leave money on the table::Undersell": { en: "We undersold the premium tier.", kr: "프리미엄 티어를 너무 싸게 팔았어요." },
+  "Leave money on the table::Undersell": { en: "We tend to undersell the premium tier.", kr: "우리 프리미엄 티어를 늘 너무 싸게 팔아요." },
   "Leave money on the table::Miss out on value": { en: "Without upsell, we miss out on value.", kr: "업셀 없으면 가치를 놓치는 거예요." },
   "Apples to apples::Like-for-like": { en: "Like-for-like sales grew 4%.", kr: "동일 조건 매출이 4% 늘었어요." },
   "Apples to apples::On the same basis": { en: "Compare them on the same basis, excluding tax.", kr: "세금 빼고 같은 기준으로 비교하세요." },
   "Make or break::Decisive": { en: "Q4 will be decisive for the renewal.", kr: "4분기가 갱신에 결정적이에요." },
   "Make or break::Pivotal": { en: "This hire is pivotal for the expansion.", kr: "이 채용이 확장의 핵심이에요." },
   "Tipping point::Critical mass": { en: "We hit critical mass at 10,000 users.", kr: "사용자 1만에서 임계 질량에 도달했어요." },
-  "Tipping point::Point of no return": { en: "Past this point, there's no return on the migration.", kr: "여기 넘어가면 마이그레이션 되돌릴 수 없어요." },
+  "Tipping point::Point of no return": { en: "Once we switch the servers, we're past the point of no return.", kr: "서버 바꾸고 나면 그때부턴 되돌릴 수 없어요." },
   "Down to the wire::To the last minute": { en: "It went to the last minute, but we made it.", kr: "마지막 순간까지 갔는데 해냈어요." },
   "Down to the wire::Right up to the deadline": { en: "We were editing right up to the deadline.", kr: "마감 직전까지 수정하고 있었어요." },
   "Eleventh hour::Last-minute": { en: "A last-minute change broke the build.", kr: "막판 변경이 빌드를 깨뜨렸어요." },
@@ -14474,7 +14474,7 @@ function computeQuizSplit(question) {
   {
     const _tk = answer.split(/\s+/);
     const _last = (_tk[_tk.length - 1] || '').toLowerCase().replace(/[.,!?]+$/, '');
-    if (_tk.length >= 3 && ['something', 'someone', 'sth', 'sb', 'it', 'one'].includes(_last)) {
+    if ((_tk.length >= 3 && ['something', 'someone', 'sth', 'sb', 'it', 'one'].includes(_last)) || (_tk.length === 2 && ['something', 'someone', 'sth', 'sb'].includes(_last))) {
       const core = _tk.slice(0, -1).join(' ');
       const r = computeQuizSplit(Object.assign({}, question, { en: core }));
       if (r && !r.fallback) {
@@ -14745,6 +14745,27 @@ function computeQuizSplit(question) {
   //    별도 빈칸 line 으로 dictionary form 을 직접 입력하게 함 (UX: "이 표현을 영어로?").
   //    parts[0] 끝에 줄바꿈 마커 둬서 렌더 쪽에서 처리. (현재 렌더가 inline 이라
   //    여기선 안전하게 prompt + 줄바꿈 + ' → ' 형태 유지.)
+  // 4) 인칭 바꿔 끼우기 (2026-10-27): 표제어의 you/one/oneself 가 예문에선 we/ourselves 등으로 나오는 경우.
+  //    "Cross that bridge when you come to it" / "...when we come to it", "Get ahead of oneself" / "get ahead of ourselves"
+  try {
+    const SUBJ = '(?:you|we|i|they|he|she|one)';
+    const REFL = '(?:myself|yourself|yourselves|ourselves|themselves|himself|herself|oneself)';
+    const POSS = '(?:my|your|our|their|his|her|one\'s)';
+    const toks4 = answer.split(/\s+/);
+    const heads4 = (typeof inflectionVariants === 'function') ? inflectionVariants(toks4[0].toLowerCase()) : [toks4[0].toLowerCase()];
+    const body4 = toks4.slice(1).map((tk) => {
+      const c = tk.toLowerCase().replace(/[.,!?]+$/, '');
+      if (['you', 'one', 'we', 'i', 'they'].includes(c)) return SUBJ;
+      if (/self$|selves$/.test(c)) return REFL;
+      if (["one's", 'your', "someone's"].includes(c)) return POSS;
+      return escapeRe(tk);
+    });
+    if (body4.some((b, k) => b !== escapeRe(toks4[k + 1]))) {
+      const re4 = new RegExp('\\b(?:' + heads4.map(escapeRe).join('|') + ')' + body4.map((b) => '\\s+' + b).join('') + '\\b', 'i');
+      const m4 = promptText.match(re4);
+      if (m4) return { mode: '1blank', parts: [promptText.slice(0, m4.index), promptText.slice(m4.index + m4[0].length)], answer, spanAnswer: m4[0].trim() };
+    }
+  } catch (_) {}
   return { mode: '1blank', parts: [promptText + ' → ', ''], answer, fallback: true };
 }
 
