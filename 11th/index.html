@@ -14078,10 +14078,15 @@ function buildVerifyHintMask(answer='') {
 const INFLECT_IRREGULAR = {
   be: ['be','am','is','are','was','were','been','being'],
   get: ['get','gets','got','gotten','getting'],
+  hang: ['hang','hangs','hung','hanged','hanging'],
+  have: ['have','has','had','having','got'],
+  hold: ['hold','holds','held','holding'],
+  sell: ['sell','sells','sold','selling'],
+  undersell: ['undersell','undersells','undersold','underselling'],
   bring: ['bring','brings','brought','bringing'],
   take: ['take','takes','took','taken','taking'],
   make: ['make','makes','made','making'],
-  have: ['have','has','had','having'],
+  have: ['have','has','had','having','got'],
   come: ['come','comes','came','coming'],
   go: ['go','goes','went','gone','going'],
   do: ['do','does','did','done','doing'],
@@ -14625,7 +14630,7 @@ function computeQuizSplit(question) {
   const POSSESSIVE_TOKEN_RE = /^(?:someone|anyone|one|sb|my|your|his|her|their|our|its|sb\.|sth|sth\.)(?:'s|s)?$/i;
   const isPossessiveLike = (t) => POSSESSIVE_TOKEN_RE.test(String(t).replace(/[.,!?]+$/, ''));
   // prompt 안에서 매칭될 가능한 possessive 형태 (pronoun + 's / 고유명사's / 인칭 possessive)
-  const POSSESSIVE_ALT = "(?:[A-Za-z]+'s|someone's|anyone's|no one's|one's|sb's|my|your|his|her|their|our|its)";
+  const POSSESSIVE_ALT = "(?:(?:the|a|our|your|their|my)\\s+)?(?:[A-Za-z]+'s|someone's|anyone's|no one's|one's|sb's|my|your|his|her|their|our|its)";
   for (let i = 1; i < tokens.length - 1; i += 1) {
     if (!isPossessiveLike(tokens[i])) continue;
     const prefixToks = tokens.slice(0, i);
