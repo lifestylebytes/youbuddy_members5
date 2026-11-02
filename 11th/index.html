@@ -2523,7 +2523,7 @@ async function callAiReviewEdgeFunction(payload) {
   return {
     corrected: data.corrected,
     diff_html: data.diff_html || escapeHtml(data.corrected),
-    why: data.why || '표현이 더 자연스럽게 들리도록 다듬었어요.',
+    why: String(data.why || '표현이 더 자연스럽게 들리도록 다듬었어요.').replace(/\*\*/g, ''),
     // 아래 필드들이 여기서 잘려나가서 3분류 칩·verdict 양보가 무력화됐던 사고 있음. 항상 통과시킬 것.
     verdict: data.verdict,
     feedback: (data.feedback && typeof data.feedback === 'object') ? data.feedback : undefined,
@@ -3238,7 +3238,7 @@ async function requestSentenceCorrection(word, sentence, koreanContext) {
     const result = await callAiReviewEdgeFunction(payload);
 
     // === 동일 문장 재제출인데 AI 가 아직 새 swap 만 던지는 경우 → 코칭 모드로 강제 전환 ===
-    if (priorMatch && __isMinorContentEdit(sentence, result.corrected)) {
+    if (priorMatch && __isMinorContentEdit(sentence, result.corrected) && !__aiFoundRealError(result)) {
       const coachingTip = __buildCoachingFallback(word, sentence, attemptN, history);
       const out = {
         corrected: sentence,
@@ -3335,27 +3335,26 @@ window.__retryAiReview = async (dayN, i) => {
 
 // === 코칭 fallback, 같은 문장 재제출 + AI 가 또 사소한 swap 만 던질 때.
 // 단계별로 다른 톤의 코칭 메시지를 보냄. 매번 같은 거 아니라 시나리오를 바꿔서.
+// 재제출 코칭으로 덮어도 되는지: AI 가 '진짜 오류'를 하나라도 고쳤으면 덮지 않는다.
+// (2026-11-02 버디: "open the event ... left money on the table?" 이 틀렸는데 '고칠 부분 없어요'로 뜸)
+function __aiFoundRealError(result) {
+  if (!result) return false;
+  const ch = Array.isArray(result.changes) ? result.changes : [];
+  if (ch.some((x) => x && x.type && !['punctuation', 'order'].includes(x.type))) return true;
+  return result.verdict === 'fixed' && !ch.length;
+}
 function __buildCoachingFallback(word, sentence, attemptN, history) {
   const target = word?.en || '';
   const def = word?.def || '';
 
   // 단계별 코칭 시나리오 풀 (랜덤 아닌 attemptN 기반 결정적 선택)
+  // 멤버 화면에 그대로 나가는 문장. ** 같은 기호 쓰지 말고, 동료한테 말하듯이. (2026-11-02 버디: "정치적 무게"가 무슨 말인지 모르겠다)
   const scenarios = [
-    {
-      tip: `이 문장 이미 자연스러워요 🧡 같은 "${target}" 표현으로 **다른 상황**을 영작해보세요. 예: 팀 회의가 아니라 1:1 보고 상황에서 어떻게 쓸까요?`,
-    },
-    {
-      tip: `"${target}" 잘 쓰셨어요! 이번엔 **더 격식 있는 자리** (임원 보고 / 외부 클라이언트 미팅) 에서 같은 의미를 어떻게 표현할지 한 문장 더 써보세요.`,
-    },
-    {
-      tip: `반대로 **이메일 한 줄**로 "${target}" 을 짧고 단호하게 써보면? Slack 보낼 때 톤으로요.`,
-    },
-    {
-      tip: `이번엔 **상대가 동의 안 할 때** "${target}" 을 어떻게 부드럽게 꺼낼지 써보세요. 같은 표현, 다른 정치적 무게.`,
-    },
-    {
-      tip: `같은 "${target}" 을 **부정문**으로 한 번 써볼까요? "We shouldn't ${target.toLowerCase()}..." 처럼 거꾸로 활용해보세요.`,
-    },
+    { tip: `이 문장은 이대로 좋아요 🧡 이번엔 상황만 바꿔서 "${target}" 문장을 하나 더 써보세요. 팀 회의 말고 팀장님께 1:1로 보고하는 상황이면 어떻게 말할까요?` },
+    { tip: `"${target}" 잘 쓰셨어요! 이번엔 임원 보고나 외부 클라이언트 미팅처럼 조금 더 격식 있는 자리라고 생각하고 써보세요.` },
+    { tip: `이번엔 슬랙 메시지 한 줄처럼 짧게 "${target}"를 넣어 써보세요.` },
+    { tip: `상대가 내 의견에 반대하는 상황이라고 생각하고, "${target}"를 넣어서 부드럽게 말하는 문장을 써보세요.` },
+    { tip: `"${target}"를 부정문으로도 한번 써볼까요? "~하지 말자", "~하면 안 돼요" 같은 문장으로요.` },
   ];
   const idx = Math.min(attemptN - 2, scenarios.length - 1); // 2차 시도부터 idx 0
   const safe = scenarios[Math.max(0, idx)];
@@ -3434,12 +3433,12 @@ async function requestStoryCorrection(words, text, koreanContext) {
     const result = await callAiReviewEdgeFunction(payload);
 
     // 동일 스토리 재제출인데 AI 가 또 사소한 swap → 코칭 모드
-    if (priorMatch && __isMinorContentEdit(text, result.corrected)) {
+    if (priorMatch && __isMinorContentEdit(text, result.corrected) && !__aiFoundRealError(result)) {
       const wordList = (words || []).map((w) => w.en).join(', ');
       const tipPool = [
-        `흐름 이미 자연스러워요 🧡 같은 3표현 (${wordList}) 으로 **다른 시나리오** 한 번 더 써볼까요? 회의 → 이메일로 옮기면 어떻게 바뀔지.`,
-        `이번엔 **상대가 부정적으로 반응할 때** 어떻게 같은 3표현을 자연스럽게 녹일지 써보세요.`,
-        `**더 짧게**, 3문장이 아니라 2문장으로 압축해서 같은 메시지 전달해보세요. 임원 보고 톤으로요.`,
+        `흐름은 이대로 좋아요 🧡 같은 표현 3개(${wordList})로 다른 상황을 하나 더 써볼까요? 회의 말고 메일로 쓴다면 어떻게 바뀔지요.`,
+        `이번엔 상대가 반대하는 상황이라고 생각하고, 같은 표현 3개를 넣어서 부드럽게 말해보세요.`,
+        `이번엔 더 짧게, 2문장으로 줄여서 같은 내용을 전해보세요. 임원 보고하듯이요.`,
       ];
       const tip = tipPool[Math.min(attemptN - 2, tipPool.length - 1)] || tipPool[0];
       const synExamples = Array.isArray(result.syn_examples) ? result.syn_examples : [];
