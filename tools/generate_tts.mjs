@@ -65,10 +65,18 @@ const jobs = [];
 }));
 console.log(`${COHORT} · Day ${FROM}~${TO} · 목소리 ${VOICE} · 클립 ${jobs.length}개`);
 
+// 2026-11-02: 파일마다 어떤 문장으로 만들었는지 audio/_texts.json 에 남긴다.
+// 문장을 고친 뒤 다시 돌리면, 글자가 달라진 파일만 새로 만든다. (전엔 "파일 있으면 건너뜀"이라 옛 음성이 계속 나갔다)
+const manifestPath = path.join(outDir, '_texts.json');
+let manifest = {};
+try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch (_) {}
 let made = 0, skipped = 0, failed = 0;
 for (const job of jobs) {
   const fp = path.join(outDir, job.file);
-  if (fs.existsSync(fp) && fs.statSync(fp).size > 1000) { skipped++; continue; }
+  const exists = fs.existsSync(fp) && fs.statSync(fp).size > 1000;
+  const known = manifest[job.file];
+  if (exists && (known === undefined || known === job.text)) { if (known === undefined) manifest[job.file] = job.text; skipped++; continue; }
+  if (exists && known !== job.text) console.log(`\n↻ 문장이 바뀌어서 다시 만듦: ${job.file}`);
   try {
     const res = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
@@ -77,6 +85,7 @@ for (const job of jobs) {
     });
     if (!res.ok) throw new Error(`${res.status} ${(await res.text()).slice(0, 120)}`);
     fs.writeFileSync(fp, Buffer.from(await res.arrayBuffer()));
+    manifest[job.file] = job.text;
     made++;
     process.stdout.write(`\r✅ ${made}개 생성 (건너뜀 ${skipped})  ${job.file}        `);
     await new Promise((r) => setTimeout(r, 150));
@@ -85,5 +94,7 @@ for (const job of jobs) {
     console.error(`\n✗ ${job.file}: ${e.message}`);
   }
 }
+fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 1));
 console.log(`\n완료: 생성 ${made} · 건너뜀 ${skipped} · 실패 ${failed}`);
+console.log(`검사: node tools/audio_audit.mjs ${COHORT}`);
 console.log(`다음: git add ${COHORT}/audio && git commit -m "feat(${COHORT}): AI 음성" && git push`);
