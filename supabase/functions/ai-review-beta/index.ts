@@ -75,10 +75,12 @@ STEP 2c. KOREAN CALQUES (word-for-word Korean) ARE REAL ERRORS, not word-choice 
 Korean learners often translate a Korean noun+하다 literally. The result can be grammatical but no native colleague would say it. Examples:
 이벤트 활성화하다 -> "activate the event" (say: run the promotion / launch the campaign) / 미팅 잡다 -> "catch a meeting" (set up a meeting) / 컨펌하다 -> "confirm" when it means approval (sign off on it) / 일정 당기다 -> "pull the schedule" (move it up) / 피드백 반영하다 -> "reflect the feedback" (incorporate the feedback) / 자료 공유드리다 -> "share you the file" (share the file with you) / 체크하다 -> "check" when it means review in depth (go over).
 When you see one: verdict "fixed", replace ONLY that chunk, and add a "changes" item (type "word") whose "why" names the Korean it came from and what natives say, e.g. "'활성화'를 그대로 옮긴 말이에요. 프로모션은 run 해요". This overrides the "never swap a correct word" rule, because a calque is not a correct word.
+The reverse is forbidden: NEVER introduce a calque yourself. The Korean wording is not an English word choice. If the student already wrote the natural English (run the promotion, set up a meeting, incorporate the feedback), keep it, even though the Korean says 활성화/잡다/반영. Writing "activate the promotion" because the Korean says 활성화 is exactly the mistake this step exists to remove.
 
 STEP 2d. NATIVE PATTERN of the target phrase (do NOT change "corrected" for this).
 Some idioms are grammatical in many shapes but natives reach for one shape. Example: "leave money on the table" is almost always used as an affirmative regret or warning ("we left money on the table by not..." / "we might be leaving money on the table"), rarely as a negated hypothetical ("we would not have left money on the table").
 If the student's use of the target phrase is grammatical but not the shape a native would pick, keep "corrected" as is (minimal edits) and fill "natural" with the native-shape version of THEIR sentence (same meaning, contains the target phrase, one sentence) and a short Korean reason. Otherwise "natural" is null.
+"natural" must keep the student's meaning AND certainty (do not turn "we left" into "we might have left"). If the sentence is already in the native shape, "natural" is null and, if nothing else is wrong, the verdict is "correct" with the input returned verbatim. Do not rewrite connectors that already work ("and running" vs "before running") just to sharpen sequence.
 
 STEP 3. Verdict.
 - No meaning gap and no grammar error -> verdict "correct": return the input VERBATIM (no punctuation or spacing changes either). Differences in word choice between the attempt and your reference are NOT errors. Never swap one correct word for another (increase/raise, use/leverage, begin/kick off, help/assist and the like). This includes the reverse direction: never replace a correct phrasal verb with a single-word verb (go over -> review, set up -> arrange, put off -> postpone, figure out -> determine, follow up -> contact). Phrasal verbs are exactly what this course teaches; a student who chose one made the right call. Keep it. This also covers prepositions and conjunctions: if "over", "since", "about", "on" is already the natural choice, keep it. Do not upgrade it to "regarding", "as", "concerning", "with respect to" for formality. A more formal word is not a correction. A noun or adjective form of the target phrase that is already natural ("our kick-off meeting", "a quick brain-picking session") counts as correct usage. Do not rewrite a correct sentence just to force the verb form. If your only edit would be a synonym swap or a tone polish, revert to verbatim. "The Korean uses this word" is NOT a reason to swap between two correct English words (Korean 일정 does not force timeline -> schedule; both are right, keep the student's). Convergence is the goal: the 2nd and 3rd review of good input must not invent new edits.
@@ -315,8 +317,8 @@ function correctedContainsTarget(corrected: string, target: string): boolean {
 // 번역 전용 시스템 프롬프트: self-serve 빈칸 퀴즈의 영어 문장 → 자연스러운 한국어.
 const TRANSLATE_SYSTEM = `You are a professional English→Korean translator for a business-English learning app. Translate each English sentence into natural, conversational Korean (존댓말, business tone). Be faithful and concise. Do NOT add explanations or notes. Always reply as strict JSON only.`;
 
-let __betaModel = OPENAI_MODEL; // 요청마다 바뀜 (betaModel: 'big' → gpt-4.1)
-async function callOpenAI(userMessage: string, systemPrompt: string = SYSTEM_PROMPT): Promise<string> {
+// 모델은 요청마다 인자로 받는다. 전역 변수로 두면 동시에 들어온 요청끼리 모델이 섞인다 (2026-11-02 비교 테스트에서 발견).
+async function callOpenAI(userMessage: string, systemPrompt: string = SYSTEM_PROMPT, model: string = OPENAI_MODEL): Promise<string> {
   const key = Deno.env.get('OPENAI_API_KEY');
   if (!key) throw new Error('OPENAI_API_KEY not set');
   const res = await fetch(OPENAI_URL, {
@@ -326,7 +328,7 @@ async function callOpenAI(userMessage: string, systemPrompt: string = SYSTEM_PRO
       authorization: `Bearer ${key}`,
     },
     body: JSON.stringify({
-      model: __betaModel,
+      model,
       max_tokens: MAX_TOKENS,
       // 0.5 → 0.1 로 낮춤. 같은 input → 거의 같은 output 보장하기 위함.
       // 학습자가 재호출 시마다 다른 추천 받으면 "뭐가 맞는지 모름" 피드백 발생.
@@ -431,7 +433,7 @@ serve(async (req) => {
         attempt: typeof h.attempt === 'number' ? h.attempt : undefined,
       }));
     const isRepeat = Boolean(body?.isRepeatSubmission);
-    __betaModel = String(body?.betaModel || '') === 'big' ? 'gpt-4.1' : OPENAI_MODEL;
+    const useModel = String(body?.betaModel || '') === 'big' ? 'gpt-4.1' : OPENAI_MODEL;
     const learned: LearnedPhrase[] = (Array.isArray(body?.learned) ? body.learned : [])
       .filter((l: any) => l && typeof l.en === 'string' && l.en.trim())
       .slice(0, 240)
@@ -490,7 +492,7 @@ serve(async (req) => {
     const tierNote = isPremium
       ? '\n\n*** PREMIUM request. Fill "deep" following the FIELDS rule. ***'
       : '\n\n*** BASIC request. Return "deep" as an empty string "". ***';
-    const raw = await callOpenAI(userMessage + tierNote);
+    const raw = await callOpenAI(userMessage + tierNote, SYSTEM_PROMPT, useModel);
     const parsed = extractJson(raw);
     let corrected = String(parsed?.corrected || text).trim();
     let why = String(parsed?.why || '').trim() ||
@@ -537,7 +539,7 @@ serve(async (req) => {
           : 'Rewrite so the phrase is contained verbatim (or with grammatical inflection only).'
       } Same JSON shape.`;
       try {
-        const retryRaw = await callOpenAI(`${userMessage}${tierNote}\n\n${retryMsg}`);
+        const retryRaw = await callOpenAI(`${userMessage}${tierNote}\n\n${retryMsg}`, SYSTEM_PROMPT, useModel);
         const retryParsed = extractJson(retryRaw);
         const retryCorrected = String(retryParsed?.corrected || '').trim();
         const stillMissing = targetSlots.filter((slot, i) => {
@@ -583,7 +585,7 @@ serve(async (req) => {
         && String(parsed.natural.sentence).trim().toLowerCase() !== corrected.trim().toLowerCase())
         ? { sentence: String(parsed.natural.sentence).slice(0, 300), reason: String(parsed.natural.reason || '').slice(0, 160) }
         : undefined,
-      beta: __betaModel,
+      beta: useModel,
       reused: Array.isArray(parsed?.reused)
         ? parsed.reused.slice(0, 4).map((r: any) => ({
             phrase: String(r?.phrase || '').slice(0, 60),
