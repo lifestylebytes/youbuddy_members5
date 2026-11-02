@@ -191,6 +191,27 @@ for (const m of html.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g))
 if (!em && !gaby && !parseBad) ok('검증 3종 (스크립트 파싱 · em dash 0 · "가비" 0)');
 else bad(`검증 3종 실패: 파싱 오류 ${parseBad} · em dash ${em} · 가비 ${gaby}`);
 
+// 11.5 이전 기수에서 고친 게 새 기수에 다 넘어왔나 (2026-11-02 버디: "10기에서 고친 거는 11기에 다 동기화")
+//   이전 기수 앱에만 있는 함수 = 기수 진행 중 추가된 수정이 새 기수로 안 넘어온 것.
+if (prevHtml) {
+  const fnNames = (h) => new Set([...h.matchAll(/function\s+([A-Za-z_$][\w$]*)\s*\(/g)].map((m) => m[1]));
+  const cur = fnNames(html);
+  const missing = [...fnNames(prevHtml)].filter((f) => !cur.has(f));
+  if (missing.length) bad(`${PREV} 에만 있고 ${COHORT} 엔 없는 함수 ${missing.length}개: ${missing.slice(0, 12).join(', ')}${missing.length > 12 ? ' …' : ''}`, `${PREV} 에서 고친 걸 ${COHORT} 로 옮기기 (git log -- ${PREV}/index.html 로 기수 중 커밋 확인)`);
+  else ok(`${PREV} 함수 전부 ${COHORT} 에 있음`);
+}
+// 함수 안쪽만 고친 것(퀴즈 빈칸, 저장 충돌 등)은 위에서 못 잡는다 → 새 기수 만든 뒤 이전 기수에만 들어간 커밋 목록.
+try {
+  const { execSync } = await import('child_process');
+  const born = execSync(`git log --diff-filter=A --format=%H -- ${COHORT}/index.html`, { cwd: ROOT }).toString().trim().split('\n').pop();
+  if (born) {
+    const only = execSync(`git log --format="%h %ad %s" --date=short ${born}..HEAD -- ${PREV}/index.html`, { cwd: ROOT }).toString().trim().split('\n').filter(Boolean)
+      .filter((l) => { const h = l.split(' ')[0]; try { return !execSync(`git show --stat --format= ${h}`, { cwd: ROOT }).toString().includes(`${COHORT}/index.html`); } catch (_) { return true; } });
+    if (only.length) warn(`${COHORT} 만든 뒤 ${PREV} 에만 들어간 커밋 ${only.length}개 (하나씩 ${COHORT} 에도 필요한지 확인):\n     ` + only.join('\n     '));
+    else ok(`${COHORT} 만든 뒤 ${PREV} 수정은 전부 같이 반영됨`);
+  }
+} catch (_) {}
+
 // 12. 녹음 기능이 있는 기수면
 const hasRec = /function RecorderCard\(/.test(html);
 
