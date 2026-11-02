@@ -997,6 +997,8 @@ body.modal-open { overflow: hidden; touch-action: none; }
 .celebration span { position: absolute; top: -20px; font-size: 18px; animation: fall 2.8s cubic-bezier(.2,.9,.3,1.1) forwards; }
 @keyframes fall { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 100% { transform: translate(var(--x, 0), 110vh) rotate(var(--r, 360deg)); opacity: 0.3; } }
 .diff-rewrite{display:flex;flex-direction:column;gap:8px;}
+mark.ai-hl{background:rgba(255,214,102,0.55);color:inherit;border-radius:4px;padding:0 2px;}
+sup.ai-hl-n{font-size:0.62em;font-weight:800;color:#C47A12;margin-right:2px;vertical-align:super;}
 .diff-rw-note{font-size:11.5px;color:var(--muted);line-height:1.5;}
 .diff-rw-col{padding:10px 12px;border-radius:12px;background:rgba(0,0,0,0.03);border:1px solid var(--line);}
 .diff-rw-fix{background:rgba(74,160,124,0.08);border-color:rgba(74,160,124,0.35);}
@@ -1755,6 +1757,7 @@ const defaultState = () => ({
   recording_popup_seen: {},         // { "m1": true } 미팅 다시보기 팝업을 본 상태. 한 번 X 누르면 다시 안 뜸.
   daily_funfact_seen: {},           // { "d6": true } 홈 '오늘의 한 입' 팝업을 그날 본 상태 (하루 1회).
   help_hint_seen: false,            // 상단 ? 설명서 안내 팝업을 봤는지 (계정당 1회).
+  reward_popup_seen: false,         // 첫 인증 후 인증 카드 다음에 뜨는 '수료 보상 기준' 팝업 (계정당 1회, 2026-10-18).
   meeting_prep_popup_seen: {},      // { "m1": "2026-07-15" } 미팅 사전 예습 팝업을 그날 본 상태 (하루 1회, 저장하면 영구 스킵).
   best_popup_seen: {},              // { "2": true } 이번주 베스트 팝업을 주차별로 본 상태 (자동 노출 1회).
   daily_done_popup_seen: {},        // { "d6": true } '오늘 마무리' 완료 팝업을 그날 본 상태 (하루 1회).
@@ -1858,6 +1861,7 @@ const PERSISTED_STATE_KEYS = [
   'week_survey_nudged',
   'daily_funfact_seen',
   'help_hint_seen',
+  'reward_popup_seen',
   'meeting_prep_popup_seen',
   'best_popup_seen',
   'daily_done_popup_seen',
@@ -2422,8 +2426,67 @@ function __aiProfile() {
     return { role: String(state.role || '').slice(0, 60), goal, focus };
   } catch (e) { return {}; }
 }
+// 이전 Day 에 배운 표현 재활용 (2026-11-02 버디: "예전에 배운 표현 써서 예문 쓰면 다 다른 말로 고쳐버려서 이상한 말인가 싶어요").
+// AI 에 '이미 배운 표현' 목록을 같이 보내고, 멤버가 꺼내 쓰면 알아봐주고 칭찬한다.
+// 정말 안 맞으면 AI 가 뉘앙스를 설명하고 바꾼다 (말없이 바꾸지 않음).
+function __learnedBefore(payload) {
+  const first = payload && (payload.word ? payload.word.en : (payload.words && payload.words[0] && payload.words[0].en));
+  let curDay = 0;
+  const all = [];
+  CHALLENGE.weeks.forEach((w) => w.days.forEach((dy) => dy.words.forEach((wd) => {
+    if (first && wd.en === first) curDay = dy.day;
+    all.push({ en: wd.en, day: dy.day });
+    (wd.syn || []).forEach((sy) => all.push({ en: sy, day: dy.day }));
+  })));
+  if (!curDay) return [];
+  return all.filter((l) => l.day < curDay);
+}
+const __PH_SKIP = new Set(['something', 'someone', 'somebody', "someone's", "somebody's", "sb's", 'sth', 'sb', 'it', 'one', "one's", 'oneself', 'your', 'you', 'yourself']);
+function __phraseIn(text, phrase) {
+  const ws = String(text || '').toLowerCase().replace(/[^a-z0-9' -]+/g, ' ').replace(/-/g, ' ').split(/\s+/).filter(Boolean);
+  const ts = String(phrase || '').toLowerCase().replace(/[^a-z0-9' -]+/g, ' ').replace(/-/g, ' ').split(/\s+/).filter((t) => t && !__PH_SKIP.has(t));
+  if (!ts.length) return false;
+  const stem = (t) => t.length > 4 ? t.slice(0, t.length - (/(e|y)$/.test(t) ? 1 : 0)) : t;
+  const hit = (w, t) => w === t || (t.length >= 4 && w.startsWith(stem(t)));
+  for (let i = 0; i < ws.length; i++) {
+    if (!hit(ws[i], ts[0])) continue;
+    let k = 1, j = i + 1;
+    while (k < ts.length && j < ws.length && j - i <= ts.length + 3) { if (hit(ws[j], ts[k])) k++; j++; }
+    if (k === ts.length) return true;
+  }
+  return false;
+}
+function __detectReused(text, corrected, learned) {
+  const out = [], seen = new Set();
+  (learned || []).forEach((l) => {
+    const key = l.en.toLowerCase();
+    // 한 단어짜리(Confirm, Balance 등)는 흔한 단어라 앱 쪽에선 안 잡는다. AI 판단에 맡김.
+    if (l.en.trim().split(/[\s-]+/).length < 2) return;
+    if (seen.has(key) || !__phraseIn(text, l.en)) return;
+    seen.add(key);
+    out.push({ phrase: l.en, day: l.day, kept: __phraseIn(corrected, l.en), note: '' });
+  });
+  return out.slice(0, 4);
+}
+function __reusedBlockHtml(fb) {
+  const rs = (fb && Array.isArray(fb.reused)) ? fb.reused : [];
+  if (!rs.length) return '';
+  return `<div style="margin:12px 0 4px;display:flex;flex-direction:column;gap:7px;">${rs.map((r) => {
+    const kept = r.kept !== false;
+    const note = String(r.note || '').trim() || (kept ? '예전에 배운 표현을 다시 꺼내 쓰셨어요! 이렇게 쌓이는 거예요 👏' : '이번 문장엔 다른 말이 더 잘 맞아서 바꿨어요. 표현 자체는 다른 장면에서 꼭 써보세요!');
+    return `<div style="padding:10px 12px;border-radius:12px;background:${kept ? '#EAF3DE' : '#F2EBFB'};border:1px solid ${kept ? 'rgba(107,142,78,0.35)' : 'rgba(122,77,184,0.28)'};">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <span style="font-size:10.5px;font-weight:800;color:${kept ? '#3B6D11' : '#7A4DB8'};">🔁 ${r.day ? 'Day ' + r.day + ' ' : ''}표현 ${kept ? '다시 썼어요!' : '다시 써봤어요'}</span>
+        <b style="font-size:13.5px;color:var(--ink);">${escapeHtml(r.phrase)}</b>
+      </div>
+      <div class="t-small" style="margin-top:4px;color:var(--ink-soft);line-height:1.55;">${escapeHtml(note)}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
 async function callAiReviewEdgeFunction(payload) {
   if (!hasSupabase()) throw new Error('no supabase');
+  let __learned = [];
+  try { __learned = __learnedBefore(payload); if (__learned.length) payload.learned = __learned; } catch (_) {}
   // 25초 타임아웃 (모바일 네트워크가 끊겨도 영원히 매달리지 않게). 2026-08-22
   const __ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
   const __to = __ctrl ? setTimeout(() => { try { __ctrl.abort(); } catch (_) {} }, 25000) : null;
@@ -2463,6 +2526,14 @@ async function callAiReviewEdgeFunction(payload) {
     deep: typeof data.deep === 'string' ? data.deep : '',
     variants: (data.variants && typeof data.variants === 'object') ? { email: String(data.variants.email || ''), meeting: String(data.variants.meeting || '') } : undefined,
     rule: typeof data.rule === 'string' ? data.rule : '',
+    // 고친 곳 목록 (2026-10-22): [{from, to, why, added}] 최대 3개. 화면의 "전 → 후 + 한 줄 이유".
+    // 예전에 배운 표현 재활용 (2026-11-02). 서버가 안 주면(배포 전) 앱이 직접 찾아서 칭찬만.
+    reused: (Array.isArray(data.reused) && data.reused.length)
+      ? data.reused.slice(0, 4).map((r) => ({ phrase: String(r.phrase || ''), day: Number(r.day) || 0, kept: r.kept !== false, note: String(r.note || '') })).filter((r) => r.phrase)
+      : __detectReused(payload.text, data.corrected, __learned),
+    changes: Array.isArray(data.changes) ? data.changes.filter((c) => c && (c.to || c.from)).slice(0, 3).map((c) => ({
+      from: String(c.from || '').slice(0, 120), to: String(c.to || '').slice(0, 160), why: String(c.why || '').slice(0, 120), type: String(c.type || ''), added: !!c.added,
+    })) : undefined,
   };
 }
 
@@ -2811,6 +2882,123 @@ function __wireAiFbRow(root, key, fb) {
     render();
   };
 }
+/* 교정 화면 (2026-10-22 버디 피드백: "틀렸는데 잘 썼다고 나와요 / 피드백이 이상해요")
+   - 내 문장 / 다듬은 문장을 위아래로. 취소선은 안 쓰고, 다듬은 문장에서 바뀐 단어만 형광펜.
+   - 맨 위 한 줄은 정직하게 "N군데 다듬었어요". 칭찬은 진짜 똑같을 때만. */
+function __correctionView(original, corrected, word) {
+  // 2026-10-22 v2 (버디): 형광펜만으론 "어떻게 고쳐졌는지" 한눈에 안 보인다.
+  // 바뀐 덩어리마다 ①②③ 번호를 달고, 아래 목록에서 같은 번호로 "전 → 후 + 태그(스펠링/관사/전치사...) + 이유".
+  const a = String(original || '').trim(), b = String(corrected || '').trim();
+  const tokenize = (x) => x.match(/[A-Za-z0-9'’]+|[^A-Za-z0-9\s]|\s+/g) || [];
+  const A = tokenize(a), B = tokenize(b);
+  const norm = (t) => /^\s+$/.test(t) ? ' ' : t.toLowerCase().replace(/[’]/g, "'");
+  const m = A.length, n = B.length;
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = m - 1; i >= 0; i--) for (let j = n - 1; j >= 0; j--) dp[i][j] = norm(A[i]) === norm(B[j]) ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  // 정렬: ops = [{t:'eq'|'del'|'ins', a, b}]
+  const ops = []; let i = 0, j = 0;
+  while (i < m || j < n) {
+    if (i < m && j < n && norm(A[i]) === norm(B[j])) { ops.push({ t: 'eq', a: A[i], b: B[j] }); i++; j++; }
+    else if (j < n && (i >= m || dp[i][j + 1] >= dp[i + 1][j])) { ops.push({ t: 'ins', b: B[j] }); j++; }
+    else { ops.push({ t: 'del', a: A[i] }); i++; }
+  }
+  // 바뀐 덩어리 묶기: 공백·구두점만 같은 구간은 덩어리를 끊지 않는다 (단어 사이 공백 때문에 쪼개지지 않게).
+  const isWordTok = (t) => /[A-Za-z0-9]/.test(t || '');
+  const groups = []; let cur = null; const bParts = [];
+  ops.forEach((op, k) => {
+    if (op.t === 'eq') {
+      const bridge = cur && !isWordTok(op.b) && ops.slice(k + 1).find((o) => o.t !== 'eq' || isWordTok(o.b));
+      if (cur && bridge && bridge.t !== 'eq') { cur.from += op.a; cur.to += op.b; bParts.push({ txt: op.b, g: cur }); return; }
+      cur = null; bParts.push({ txt: op.b, g: null }); return;
+    }
+    if (!cur) { cur = { from: '', to: '' }; groups.push(cur); }
+    if (op.t === 'del') cur.from += op.a; else { cur.to += op.b; bParts.push({ txt: op.b, g: cur }); }
+  });
+  groups.forEach((g, k) => { g.from = g.from.trim(); g.to = g.to.trim(); g.n = k + 1; });
+  const real = groups.filter((g) => isWordTok(g.from) || isWordTok(g.to));
+  real.forEach((g, k) => { g.n = k + 1; });
+  // HTML: 덩어리 단위로 형광펜 + 번호
+  let html = '', open = null;
+  const circ = (k) => '①②③④⑤⑥⑦⑧⑨⑩'[k - 1] || `(${k})`;
+  bParts.forEach((p) => {
+    const g = p.g && real.includes(p.g) ? p.g : null;
+    if (g !== open) {
+      if (open) html += `</mark>`;
+      if (g) html += `<mark class="ai-hl"><sup class="ai-hl-n">${circ(g.n)}</sup>`;
+      open = g;
+    }
+    html += escapeHtml(p.txt);
+  });
+  if (open) html += '</mark>';
+  // 원문에서만 지워진 덩어리(to 가 빈 것)는 다듬은 문장에 자리가 없으니 목록에서만 보인다.
+  return { html, groups: real, spots: real.length, circ };
+}
+// 태그 추정 (AI 가 type 을 안 줬을 때). 맞히기 어려운 건 '표현' 으로 둔다.
+function __changeTag(g, word) {
+  const f = (g.from || '').toLowerCase(), t = (g.to || '').toLowerCase();
+  const ws = (x) => x.split(/\s+/).filter(Boolean);
+  const ART = ['a', 'an', 'the'];
+  const PREP = ['in', 'on', 'at', 'to', 'for', 'with', 'about', 'of', 'by', 'from', 'into', 'over', 'up', 'out', 'off'];
+  const lev = (x, y) => { const d = Array.from({ length: x.length + 1 }, (_, i) => [i]); for (let j = 1; j <= y.length; j++) d[0][j] = j; for (let i = 1; i <= x.length; i++) for (let j = 1; j <= y.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1)); return d[x.length][y.length]; };
+  if (!f && t) return 'added';
+  if (f && !t) return 'removed';
+  const fw = ws(f), tw = ws(t);
+  if (fw.length === 1 && tw.length === 1 && fw[0].length > 3 && lev(fw[0], tw[0]) <= 3 && fw[0][0] === tw[0][0]) return 'spelling';
+  if (Math.abs(fw.length - tw.length) <= 1 && fw.some((x) => x.length > 3 && tw.some((y) => y !== x && y[0] === x[0] && lev(x, y) <= 2))) return 'spelling';
+  if ([...fw, ...tw].every((x) => ART.includes(x))) return 'article';
+  if ([...fw, ...tw].every((x) => PREP.includes(x))) return 'preposition';
+  if (word && t.includes(String(word).toLowerCase().split(' ')[0]) && !f.includes(String(word).toLowerCase().split(' ')[0])) return 'phrase';
+  if (fw.length === 1 && tw.length === 1 && fw[0].replace(/(ing|ed|s|es)$/, '') === tw[0].replace(/(ing|ed|s|es)$/, '')) return 'grammar';
+  return 'word';
+}
+const __TAG = {
+  spelling:    { label: '스펠링', color: '#B23A48', bg: '#FCE9EC' },
+  grammar:     { label: '문법', color: '#2456C4', bg: '#E9F0FD' },
+  tense:       { label: '시제', color: '#2456C4', bg: '#E9F0FD' },
+  article:     { label: '관사', color: '#2456C4', bg: '#E9F0FD' },
+  preposition: { label: '전치사', color: '#2456C4', bg: '#E9F0FD' },
+  order:       { label: '어순', color: '#2456C4', bg: '#E9F0FD' },
+  word:        { label: '단어 선택', color: '#1F6B47', bg: '#E8F3EC' },
+  phrase:      { label: '오늘 표현', color: '#9C4B0F', bg: '#FDEFE3' },
+  nuance:      { label: '뉘앙스', color: '#7A4DB8', bg: '#F2EBFB' },
+  added:       { label: '덧붙임', color: '#7A4DB8', bg: '#F2EBFB' },
+  removed:     { label: '뺌', color: '#6B6B6B', bg: '#EFEFEF' },
+  punctuation: { label: '문장부호', color: '#6B6B6B', bg: '#EFEFEF' },
+};
+function __changesListHtml(cv, fb, word) {
+  const ai = (fb && Array.isArray(fb.changes)) ? fb.changes : [];
+  const low = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const used = new Set();
+  const items = cv.groups.map((g) => {
+    // AI 가 준 설명 중 이 덩어리와 겹치는 것을 찾는다 (to 또는 from 이 서로 포함).
+    let hit = null;
+    ai.forEach((c, k) => {
+      if (hit || used.has(k)) return;
+      const ct = low(c.to), cf = low(c.from), gt = low(g.to), gf = low(g.from);
+      if ((ct && gt && (ct.includes(gt) || gt.includes(ct))) || (cf && gf && (cf.includes(gf) || gf.includes(cf)))) { hit = c; used.add(k); }
+    });
+    const type = (hit && __TAG[hit.type]) ? hit.type : (hit && hit.added ? 'added' : __changeTag(g, word));
+    return { g, type, why: hit ? hit.why : '' };
+  });
+  return items.map(({ g, type, why }) => {
+    const tg = __TAG[type] || __TAG.word;
+    const body = type === 'added'
+      ? `<b style="color:var(--ink);">${escapeHtml(g.to)}</b>`
+      : type === 'removed'
+        ? `<span style="text-decoration:line-through;color:var(--muted);">${escapeHtml(g.from)}</span>`
+        : `<span style="color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(192,57,43,0.55);">${escapeHtml(g.from)}</span> <span style="color:var(--muted);">→</span> <b style="color:var(--ink);">${escapeHtml(g.to)}</b>`;
+    return `<div style="display:flex;gap:9px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:#fff;border:1px solid var(--line);">
+      <span style="flex-shrink:0;font-size:15px;font-weight:800;color:#C47A12;line-height:1.4;">${cv.circ(g.n)}</span>
+      <div style="min-width:0;flex:1;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:10.5px;font-weight:800;color:${tg.color};background:${tg.bg};border-radius:999px;padding:2px 9px;">${tg.label}</span>
+          <span style="font-size:13.5px;line-height:1.55;">${body}</span>
+        </div>
+        ${why ? `<div class="t-small" style="margin-top:4px;color:var(--ink-soft);line-height:1.55;">${escapeHtml(why)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
 function buildAiFeedbackHtml(fb, fallbackWhy) {
   const f = fb && fb.feedback;
   const cats = [
@@ -2819,7 +3007,20 @@ function buildAiFeedbackHtml(fb, fallbackWhy) {
     { key: 'nuance',  label: '뉘앙스', color: '#7A4DB8', bg: '#F2EBFB' },
   ];
   const rows = [];
-  if (f && typeof f === 'object') {
+  const chg = (fb && !fb.__noRows && Array.isArray(fb.changes)) ? fb.changes.filter((c) => c && (c.to || c.from)) : [];
+  if (fb && fb.__noRows) {
+    // 고친 곳 목록은 위에서 번호와 함께 이미 그렸다.
+  } else if (chg.length) {
+    chg.forEach((c) => {
+      const head = c.added
+        ? `<span style="font-size:10.5px;font-weight:800;color:#7A4DB8;background:#F2EBFB;border-radius:999px;padding:2px 9px;">원래 문장엔 없던 말</span> <b style="color:var(--ink);">${escapeHtml(c.to)}</b>`
+        : `<span style="color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(192,57,43,0.55);">${escapeHtml(c.from || '(없음)')}</span> <span style="color:var(--muted);">→</span> <b style="color:var(--ink);">${escapeHtml(c.to || '(빼기)')}</b>`;
+      rows.push(`<div style="padding:10px 12px;border-radius:12px;background:#fff;border:1px solid var(--line);">
+        <div style="font-size:13.5px;line-height:1.55;">${head}</div>
+        ${c.why ? `<div class="t-small" style="margin-top:4px;color:var(--ink-soft);line-height:1.55;">${escapeHtml(c.why)}${c.added ? ' (한국어 문장 뜻을 살리려고 보탰어요)' : ''}</div>` : ''}
+      </div>`);
+    });
+  } else if (f && typeof f === 'object') {
     cats.forEach((c) => {
       const txt = String(f[c.key] || '').trim();
       if (!txt) return;
@@ -2861,12 +3062,12 @@ function buildAiFeedbackHtml(fb, fallbackWhy) {
       </div>`;
   }
   if ((vr.email || '').trim() || (vr.meeting || '').trim()) {
-    const cell = (icon, label, txt) => txt ? `<div style="flex:1;min-width:0;padding:10px 12px;border-radius:12px;background:#FBFAFF;border:1px solid rgba(123,94,140,0.22);">
+    const cell = (icon, label, txt) => txt ? `<div style="min-width:0;padding:10px 12px;border-radius:12px;background:#FBFAFF;border:1px solid rgba(123,94,140,0.22);">
         <div style="font-size:11px;font-weight:800;color:#7B5E8C;">${icon} ${label}</div>
-        <div style="margin-top:5px;font-size:13px;line-height:1.55;color:var(--ink);font-family:var(--font-mono);">${escapeHtml(txt)}</div></div>` : '';
+        <div style="margin-top:5px;font-size:14px;line-height:1.6;color:var(--ink);">${escapeHtml(txt)}</div></div>` : '';
     tail += `<div style="margin-top:9px;">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">${PB}<span style="font-size:11px;font-weight:800;color:#7B5E8C;">내일 바로 쓸 버전</span></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">${cell('✉️', '메일이면', vr.email)}${cell('🗣️', '회의면', vr.meeting)}</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">${cell('✉️', '메일이면', vr.email)}${cell('🗣️', '회의면', vr.meeting)}</div>
       </div>`;
   }
   if (ruleTxt) {
@@ -2876,8 +3077,10 @@ function buildAiFeedbackHtml(fb, fallbackWhy) {
       </div>`;
   }
 
-  if (rows.length) return `<div style="display:flex;flex-direction:column;gap:7px;">${rows.join('')}</div>${naturalBlock}${tail}`;
-  return `<div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(fallbackWhy || '')}</div>${naturalBlock}${tail}`;
+  const reusedBlock = __reusedBlockHtml(fb);
+  if (fb && fb.__noRows) return `${reusedBlock}${naturalBlock}${tail}`;
+  if (rows.length) return `${reusedBlock}${chg.length ? '<div style="margin:12px 0 6px;font-size:11.5px;font-weight:800;color:var(--orange-dark);">고친 곳</div>' : ''}<div style="display:flex;flex-direction:column;gap:7px;">${rows.join('')}</div>${naturalBlock}${tail}`;
+  return `${reusedBlock}<div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(fallbackWhy || '')}</div>${naturalBlock}${tail}`;
 }
 
 // 같은 '원문'을 다시 제출한 경우: 이전에 준 교정을 글자 그대로 재현한다 (API 호출 X).
@@ -19969,7 +20172,12 @@ function DayPage(dayN) {
     // Private "내 기록실", only shown after AI review requested.
     const fb = state.ai_feedback[key];
     if (fb && isSubmitted) {
-      const hasDiff = /<del>|<ins>/i.test(fb.diff_html || '');
+      // 2026-10-22: 35% 넘게 바뀐 문장은 diff_html 에 <del>/<ins> 가 없어서(통째 비교 모드) "고칠 부분이 없어요"로 잘못 떴다.
+      // 실제 문장 비교로 판단한다.
+      const __nrm = (x) => String(x || '').toLowerCase().replace(/[’]/g, "'").replace(/[^a-z0-9']+/g, ' ').trim();
+      const __orig = fb.originalInput || state.sentences?.[key] || '';
+      const hasDiff = /<del>|<ins>|diff-rewrite/i.test(fb.diff_html || '') || fb.verdict === 'fixed'
+        || (!!__orig && !!fb.corrected && __nrm(__orig) !== __nrm(fb.corrected));
       const isError = !!fb.isError; // 네트워크/AI 진짜 에러, 절대 "잘 썼어요" 로 표시 X
       const isFallback = !!fb.isFallback; // local fallback (덜 정확), 사용자에게 한 번 더 시도 권유
       // AI 가 "수정 없음" 류 메시지 보냈는데 실제 diff 가 있으면 → 일관성 깨진 케이스.
@@ -19987,13 +20195,23 @@ function DayPage(dayN) {
           </div>
           <div class="t-small" style="color:var(--ink-soft);line-height:1.55;">${escapeHtml(fb.why || '')}</div>`;
       } else if (hasDiff) {
+        const __cv = __correctionView(__orig, fb.corrected, w.en);
+        const __n = Math.max(1, __cv.spots);
         bodyHtml = `
-          <div class="ai-corrected" style="display:flex;align-items:flex-start;gap:8px;">
-            <span style="flex:1;min-width:0;">"${escapeHtml(fb.corrected)}"</span>
-            <button type="button" class="btn-copy-ai" data-copy-text="${escapeHtml(fb.corrected)}" style="flex-shrink:0;padding:6px 10px;border-radius:999px;background:#fff;color:var(--orange-dark);border:1px solid var(--orange-soft);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">📋 복사</button>
+          <div style="font-size:14px;font-weight:800;color:var(--orange-dark);margin-bottom:10px;">✏️ ${__n}군데 다듬었어요</div>
+          ${__orig ? `<div style="padding:10px 12px;border-radius:12px;background:rgba(0,0,0,0.03);border:1px solid var(--line);">
+            <div style="font-size:10.5px;font-weight:800;color:var(--muted);margin-bottom:4px;">내 문장</div>
+            <div class="day-fs-sm" style="line-height:1.6;color:var(--ink-soft);">${escapeHtml(__orig)}</div>
+          </div>` : ''}
+          <div style="margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(74,160,124,0.08);border:1px solid rgba(74,160,124,0.35);">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
+              <div style="font-size:10.5px;font-weight:800;color:#2E7D5B;">다듬은 문장</div>
+              <button type="button" class="btn-copy-ai" data-copy-text="${escapeHtml(fb.corrected)}" style="flex-shrink:0;padding:5px 10px;border-radius:999px;background:#fff;color:var(--orange-dark);border:1px solid var(--orange-soft);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">📋 복사</button>
+            </div>
+            <div class="ai-corrected" style="line-height:1.75;">${__cv.html}</div>
           </div>
-          <div class="day-fs-sm" style="margin:8px 0;line-height:1.55;">${fb.diff_html}</div>
-          ${buildAiFeedbackHtml(fb, reconciledWhy)}
+          ${__cv.groups.length ? `<div style="margin:12px 0 6px;font-size:11.5px;font-weight:800;color:var(--orange-dark);">고친 곳</div><div style="display:flex;flex-direction:column;gap:7px;">${__changesListHtml(__cv, fb, w.en)}</div>` : ''}
+          ${buildAiFeedbackHtml(__cv.groups.length ? Object.assign({}, fb, { __noRows: true }) : fb, reconciledWhy)}
           <div class="t-small" style="margin-top:8px;color:var(--muted);font-size:11.5px;line-height:1.5;">이걸 복사해서 다시 붙여넣고 제출하면 수정돼 올라가요.</div>`;
       } else if (isFallback) {
         // local fallback 인데 diff 가 없는 경우, 진짜 자연스러운 게 아니라 폴백이 같은 문장 돌려준 것일 수 있음.
@@ -33769,6 +33987,12 @@ async function loadIntakeBoard() {
    시트가 원고의 원본이므로 여기선 "무엇을 언제"만 정확히, 복붙 가능한 건 즉석 조립. */
 // 발송 원고: 모닝 공지 20일 + 한 스푼 더 Day 1~20 (11기 단어 기준, 2026-09-14 전면 교체)
 const OPS_TALK = {"morning": {"1": "오늘도 좋은 아침이에요, Day 1 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 안 될 수도 있는데, 해볼 만은 해요.\n· 그 툴 써본 적 없는데, 한번 해볼게요.\n· 클라이언트가 먼저 보는 건 당연한 거고요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 가볍게 답하기)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요. 주말은 쉬어갑니다~\n\n아직 온보딩 안 하신 분은 오늘 안에 마치고 같이 출발해주세요!\n\n🧡 첫날이라 앱이 좀 낯설게 느껴지실 수도 있어요. 그래도 오늘 딱 한 번 해보시면 내일부터는 훨씬 수월하실 거예요 :) 20일 같이 가봐요, 화이팅입니다!!", "2": "오늘도 좋은 아침이에요, Day 2 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 돕고는 싶은데, 이번 주는 제 일이 꽉 찼어요.\n· 답이 늦었어요, 월말 마감에 파묻혀 있었어요.\n· 리뷰 하루만 미룰 수 있을까요? 숨 돌릴 틈이 좀 필요해요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 내 상태 말하기)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요. 주말은 쉬어갑니다~\n\n아직 온보딩 안 하신 분은 오늘 안에 마치고 같이 출발해주세요!\n\n🧡 어제보다 오늘이 조금 더 수월하게 느껴지실 거예요. 표현 하나만 입 밖으로 내보는 걸로 충분해요, 화이팅입니다 :)", "3": "오늘도 좋은 아침이에요, Day 3 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 초안은 거의 다 됐어요. 마지막으로 한 번만 읽으면 돼요.\n· 데이터는 아직 없는데, 제 짐작으로는 2분기 중반쯤이에요.\n· 숫자는 괜찮은데, 뭔가 이상하다는 감이 와요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 어림잡기)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요. 주말은 쉬어갑니다~\n\n아직 온보딩 안 하신 분은 오늘 안에 마치고 같이 출발해주세요!\n\n🧡 사흘째예요. 딱 여기까지가 제일 어색한 구간이고, 이번 주만 넘기면 손이 알아서 움직입니다. 오늘도 10분만 같이 가봐요!", "4": "오늘도 좋은 아침이에요, Day 4 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 지금은 비싼데, 길게 보면 절약이에요.\n· 참고로 말씀드리면, 저라면 법무 승인 나올 때까지 기다릴 것 같아요.\n· 말할 것도 없이, 클라이언트는 지연에 불만이었어요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 문장 잇는 말)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요. 주말은 쉬어갑니다~\n\n🧡 오늘 표현은 회의에서 바로 써먹기 좋은 것들이에요. 하나만 골라서 오늘 안에 한 번 써보시는 걸 목표로 해보세요 :)", "5": "오늘도 좋은 아침이에요, Day 5 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 장애로 일주일 잃었는데, 지금은 다시 정상이에요.\n· 날짜 아직 확정 아니니까, 겹치면 말씀해주세요.\n· 갱신 건은 저쪽 이사회 끝날 때까지 결과를 모르는 상태예요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 진행 상태)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요. 주말은 쉬어갑니다~\n\n🧡 첫 주 마지막 날이에요! 여기까지 오신 것만으로 이미 절반은 습관이 잡힌 거예요. 주말엔 푹 쉬시고 월요일에 봬요 🎉", "6": "오늘도 좋은 아침이에요, Day 6 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 출시 전까지는 막판 집중 기간이니까 회의는 짧게 가죠.\n· 이번 주는 인보이스에 귀까지 잠겨 있어요.\n· 팀이 데모 준비하느라 밤늦게까지 일했어요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 바쁠 때)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요. 주말은 쉬어갑니다~\n\n🧡 주말 잘 쉬셨나요? 월요일이 제일 무거운 날인데 오늘만 넘기면 이번 주가 쭉 갑니다. 가볍게 시작해봐요!", "7": "오늘도 좋은 아침이에요, Day 7 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 대충 빠르게 돌려봤어요. 방향은 맞아요.\n· 문구가 완벽하진 않은데 지금은 이 정도면 됐어요. 내보내죠.\n· 서버 재시작은 임시방편이에요. 근본 원인은 따로 찾아야 해요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 임시로)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요. 주말은 쉬어갑니다~\n\n🧡 오늘 표현들은 급한 대로 일단 막아둘 때 쓰는 것들이에요. 바쁠 때 바로 꺼내 쓰실 수 있을 거예요 :)", "8": "오늘도 좋은 아침이에요, Day 8 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 죄송해요, 인수인계 중에 그 요청이 빠졌어요.\n· 한 분기 더 기다리면 이 시장은 때를 놓쳐요.\n· 가격 질문은 예상 못 해서 당황했어요. 메일로 다시 답드릴게요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 놓쳤을 때)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요. 주말은 쉬어갑니다~\n\n🧡 딱 10분이면 됩니다. 지금 안 하면 저녁에 더 무거워지더라고요, 아침에 가볍게 털어버려요!", "9": "오늘도 좋은 아침이에요, Day 9 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 자료가 안 됐으니까 처음 5분은 그냥 즉흥으로 갈게요.\n· 그건 즉석에서 말한 추정이라, 그대로 인용하진 말아주세요.\n· 그 사람은 클라이언트 콜에서 생각 없이 말을 던져서, 법무팀이 불안해해요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 즉흥)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요. 주말은 쉬어갑니다~\n\n🧡 오늘로 절반 가까이 왔어요. 매일 한 줄씩 쌓인 게 생각보다 큽니다, 오늘도 화이팅이에요 :)", "10": "오늘도 좋은 아침이에요, Day 10 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 제가 반대했던 결정인데 그 책임을 뒤집어쓸 생각은 없어요.\n· 리뷰에서 저만 덩그러니 남겨졌어요. 자기들이 승인한 계획인데 아무도 편을 안 들더라고요.\n· 납기 건은 업체를 강하게 압박해야 해요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 떠넘겨질 때)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요. 주말은 쉬어갑니다~\n\n🧡 2주차 마지막이에요! 여기까지 온 분들은 이미 흐름을 잡으신 거예요. 주말에 푹 쉬세요 🙌", "11": "오늘도 좋은 아침이에요, Day 11 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 감사 전에 출시하는 건 계산된 위험이에요. 대신 한 분기를 벌어요.\n· 안전하게 가죠. 기존 가격 한 달만 더 유지해요.\n· 혹시 몰라서 법무랑 재무도 같이 넣어뒀어요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 위험 재기)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요. 주말은 쉬어갑니다~\n\n🧡 통계상 3주차가 제일 고비예요. 미리 말씀드렸던 그 주가 왔습니다. 완벽하게 하려고 하지 마시고, 딱 한 문장만 채워주세요 :)", "12": "오늘도 좋은 아침이에요, Day 12 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 저쪽이 가격으로 세게 나와서, 우리도 포기 기준 숫자가 필요해요.\n· 저쪽 첫 제안이 터무니없이 낮았어요. 우리는 시세로 역제안했어요.\n· 망설이면 온보딩 지원을 얹어서 조건을 더 달게 해줄 수 있어요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 협상)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요. 주말은 쉬어갑니다~\n\n🧡 오늘 못 하셔도 괜찮아요. 늦게 하셔도 그날 1일로 그대로 들어갑니다. 부담 내려놓고 편하게 오세요 🧡", "13": "오늘도 좋은 아침이에요, Day 13 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 라벨 오류는 우리 실수니까, 재발송 비용은 우리가 떠안을게요.\n· 한 번 더 고치는 건 손해에 돈 더 붓는 거예요. 새로 만들죠.\n· 파일럿 전체를 아주 빠듯한 예산으로 돌렸어요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 돈 지키기)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요. 주말은 쉬어갑니다~\n\n🧡 이 주만 넘기면 마지막 주예요. 지금 흐름 끊기는 게 제일 아까우니까 오늘 10분만 같이 가봐요!", "14": "오늘도 좋은 아침이에요, Day 14 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· CEO를 패널로 모시는 건 가능성 낮은데, 그래도 물어볼게요.\n· 기조연설 장소는 그 호텔이 안전한 선택이에요.\n· 2주 안에 전체 전개는 꿈같은 얘기예요. 3개월이 현실이에요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 가능성 말하기)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요. 주말은 쉬어갑니다~\n\n🧡 오늘 표현들은 될지 안 될지 가능성 얘기할 때 쓰는 것들이에요. 실무에서 은근히 자주 필요한 말들입니다 :)", "15": "오늘도 좋은 아침이에요, Day 15 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 마감 두 번 놓치고 나니 이 클라이언트랑은 아슬아슬해요.\n· 패치는 올라갔는데, 오늘 밤 트래픽 피크 지날 때까진 고비를 넘긴 게 아니에요.\n· 데이터 이전이 끝나서 이 프로젝트 제일 힘든 고비는 넘겼어요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 위기 넘기기)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요. 주말은 쉬어갑니다~\n\n🧡 3주차 완주하셨어요! 제일 힘든 구간을 넘기셨습니다. 이제 마지막 한 주만 남았어요 🎉", "16": "오늘도 좋은 아침이에요, Day 16 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 위험한 안으로 발표하세요. 제가 뒤에서 받쳐드릴게요.\n· 이 프로젝트는 저 포함 전원이 자기 몫을 해야 해요.\n· 누군가 아침 7시에 발표해야 하잖아요. 제가 팀 위해 맡을게요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 팀)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요.\n\n🧡 마지막 주 시작이에요. 여기까지 온 게 진짜 대단한 거예요. 5일만 더 가봐요!", "17": "오늘도 좋은 아침이에요, Day 17 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 그분이 직급으로 눌러서 팀 결정을 뒤집었어요.\n· 그분이 인맥을 써서 컨퍼런스 자리를 잡아줬어요.\n· 이 건은 제 영역이 아니니까 디자인팀 결정에 맡길게요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 권력)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요.\n\n🧡 오늘 표현들은 직급·인맥처럼 조직 얘기할 때 쓰는 것들이에요. 사내 얘기할 때 꺼내 쓰시면 딱입니다 :)", "18": "오늘도 좋은 아침이에요, Day 18 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 조직 개편 공지가 영업팀 심기를 좀 건드렸어요.\n· 예산 싸움 끝났으니, 이제 구매팀이랑 관계 회복할 때예요.\n· 놓친 마감은 지나간 일이에요. 4분기에 집중하죠.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 풀기)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요.\n\n🧡 이제 사흘 남았어요. 마무리까지 같이 가봐요, 화이팅입니다!", "19": "오늘도 좋은 아침이에요, Day 19 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 브리프를 모든 업체에 똑같이 공유하면 조건이 공평해져요.\n· 이 자리는 영업과 개발 사이를 잇는 역할이에요.\n· 지난 분기 출시가 우리 릴리스 기준을 세웠어요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 큰 그림)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요.\n\n🧡 내일이면 마지막 날이에요. 20일 동안 쌓은 표현들이 곧 한 번에 지나갑니다 :)", "20": "오늘도 좋은 아침이에요, Day 20 시작합니다 :)\n\n💌 오늘 표현 미리 맛보기\n· 승인 두 개만 더 받으면 이 건 마무리예요.\n· 시작 좋은 팀은 많아요. 이 팀은 끝까지 갈 수 있어요.\n· 지연이 오히려 다행이었어요. 출시 전에 버그를 잡았으니까요.\n\n이 세 마디, 영어로 바로 안 나오신다면 오늘 표현 꼭 알아가보세요!\n(오늘 테마: 마무리)\n\n⏰ 오늘 자정 전까지 하면 정시 인증이에요. 주말에는 수료식이 있습니다 🎓\n\n🧡 마지막 날이에요 🎓 여기까지 오신 것만으로 정말 대단하십니다. 오늘 파이널까지 마치고 기분 좋게 마무리해요, 그동안 진짜 수고 많으셨어요 🧡"}, "spoon": {"1": "🥄유버디 한 스푼 더! Day 1\n\n오늘 <가볍게 답하는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 No harm in trying입니다.\n\"밑져야 본전이니 해보죠\" 하고 부담 없이 시도해볼 때 써요.\n\n\"They might say no, but there's no harm in trying, right?\"\n(거절할 수도 있지만, 밑져야 본전이잖아요?)\n\"No harm in trying. Should I ask for a discount?\"\n(밑져야 본전이죠. 할인 한번 물어볼까요?)\n\n즉, Worth a shot은 \"해볼 만한 가치가 있다\"는 판단, no harm in trying은 \"해봐서 손해 볼 건 없다\"는 표현!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "2": "🥄유버디 한 스푼 더! Day 2\n\n오늘 <내 상태를 말하는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 Running on empty입니다.\n체력이든 자원이든 바닥나기 직전일 때 써요.\n\n\"I'm running on empty after this week. Can we keep tomorrow's call short?\"\n(이번 주 끝나고 완전히 방전이에요. 내일 콜은 짧게 할 수 있을까요?)\n\"Is the team running on empty after the launch?\"\n(출시 끝나고 팀이 다 지친 상태인가요?)\n\n즉, Plate is full은 \"할 일이 꽉 찼다\"는 일정 얘기, running on empty는 \"에너지가 바닥났다\"는 상태 얘기!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "3": "🥄유버디 한 스푼 더! Day 3\n\n오늘 <어림잡는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 Off the top of my head입니다.\n자료 안 보고 지금 머릿속에 있는 걸로 바로 답할 때 써요.\n\n\"Off the top of my head, it's around 20 percent. I'll confirm after the call.\"\n(지금 기억으로는 20% 정도예요. 콜 끝나고 확인해드릴게요.)\n\"Can you give me a number off the top of your head?\"\n(대충이라도 지금 바로 숫자 하나만 말해주실래요?)\n\n즉, Educated guess는 \"근거 있는 추측\", off the top of my head는 \"자료 없이 즉석에서\" 답한다는 표현!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "4": "🥄유버디 한 스푼 더! Day 4\n\n오늘 <문장을 잇는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 Just so you know입니다.\n상대가 알아두면 좋을 정보를 부드럽게 미리 알려줄 때 써요.\n\n\"Just so you know, the client might join the call late.\"\n(참고로, 클라이언트가 콜에 좀 늦게 들어올 수도 있어요.)\n\"Just so you know, I'll be out on Friday. Can we move the review?\"\n(미리 말씀드리면, 저 금요일에 없어요. 리뷰 옮길 수 있을까요?)\n\n즉, For what it's worth는 \"도움 될진 모르겠지만 내 의견은\", just so you know는 \"알아두시라고 정보 하나\" 건네는 표현!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "5": "🥄유버디 한 스푼 더! Day 5\n\n오늘 <진행 상태를 말하는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 Touch and go입니다.\n될지 안 될지 끝까지 아슬아슬한 상황에 써요.\n\n\"It was touch and go for a while, but the shipment cleared customs.\"\n(한동안 아슬아슬했는데, 선적이 통관됐어요.)\n\"Is the deal still touch and go, or are we closer now?\"\n(그 딜 아직 아슬아슬한 상태예요, 아니면 좀 가까워졌어요?)\n\n즉, Hanging in the balance는 \"결과가 아직 안 나온\" 상태, touch and go는 그 과정이 \"아슬아슬했다\"는 표현!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "6": "🥄유버디 한 스푼 더! Day 6\n\n오늘 <바쁠 때 쓰는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 All hands on deck입니다.\n급한 일 때문에 전원이 다 달라붙어야 할 때 써요.\n\n\"It's all hands on deck for the audit. Can you help with the data?\"\n(감사 때문에 다 같이 달라붙어야 해요. 데이터 좀 도와주실래요?)\n\"Do we need all hands on deck for the launch, or just the core team?\"\n(출시에 전원이 붙어야 해요, 아니면 핵심 팀만 있으면 돼요?)\n\n즉, Crunch time은 \"마지막에 몰아치는 기간\"이라는 시기, all hands on deck은 그때 \"전원 투입\"하자는 표현!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "7": "🥄유버디 한 스푼 더! Day 7\n\n오늘 <임시로 막는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 Duct tape입니다.\n일단 급한 대로 대충 붙여놓은 해결책을 말할 때 써요. duct-tape solution 처럼도 써요.\n\n\"This is a duct-tape solution. Can we fix it properly next sprint?\"\n(이건 급한 대로 붙여놓은 거예요. 다음 스프린트에 제대로 고칠 수 있을까요?)\n\"How long can we keep the duct tape on this?\"\n(이 임시방편으로 언제까지 버틸 수 있어요?)\n\n즉, Band-aid fix는 \"반창고처럼 겉만 덮은\" 임시방편, duct tape는 \"테이프로 대충 붙여 굴러가게만 한\" 느낌!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "8": "🥄유버디 한 스푼 더! Day 8\n\n오늘 <놓쳤을 때 쓰는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 Blindside입니다.\n전혀 예상 못 한 쪽에서 갑자기 일이 터져 당했을 때 써요.\n\n\"The price change blindsided us. Why didn't we hear about it earlier?\"\n(가격 변경을 전혀 몰랐어요. 왜 미리 못 들었을까요?)\n\"I don't want to blindside the client. Can we tell them today?\"\n(클라이언트가 갑자기 놀라지 않게, 오늘 미리 말할까요?)\n\n즉, Catch someone off guard는 \"방심한 틈에 당황하게\" 하는 것, blindside는 \"전혀 안 보이던 쪽에서\" 훅 들어오는 표현!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "9": "🥄유버디 한 스푼 더! Day 9\n\n오늘 <즉흥으로 하는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 Think on one's feet입니다.\n준비 안 된 상황에서도 그 자리에서 빠르게 판단하고 대응할 때 써요. 칭찬으로 많이 써요.\n\n\"You really thought on your feet when the client changed the scope.\"\n(클라이언트가 범위 바꿨을 때 진짜 순발력 있게 대응하셨어요.)\n\"Can you think on your feet if the VP asks about pricing?\"\n(부사장님이 가격 물어보시면 그 자리에서 대응 가능하세요?)\n\n즉, Wing it은 \"준비 없이 일단 해보는\" 것, think on one's feet는 그 상황에서 \"순발력 있게 잘 대응하는\" 능력!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "10": "🥄유버디 한 스푼 더! Day 10\n\n오늘 <떠넘겨질 때 쓰는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 Left holding the bag입니다.\n다들 빠지고 나 혼자 뒷수습과 책임을 떠안게 됐을 때 써요.\n\n\"Everyone moved on, and I was left holding the bag.\"\n(다들 다른 데로 가고 저 혼자 뒷수습하게 됐어요.)\n\"If the vendor pulls out, who's left holding the bag?\"\n(업체가 빠지면 결국 누가 다 떠안게 돼요?)\n\n즉, Take the fall은 \"남 대신 책임을 뒤집어쓰는\" 것, left holding the bag은 \"남들 빠지고 혼자 떠안게 된\" 상황!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "11": "🥄유버디 한 스푼 더! Day 11\n\n오늘 <위험을 재는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 Better safe than sorry입니다.\n괜히 나중에 후회하느니 조심하는 게 낫다고 할 때 써요.\n\n\"Let's get legal to check it. Better safe than sorry.\"\n(법무팀 확인 한번 받죠. 조심해서 나쁠 거 없어요.)\n\"Should we back up the data first? Better safe than sorry.\"\n(데이터 먼저 백업해둘까요? 혹시 모르니까요.)\n\n즉, Play it safe는 \"안전한 쪽을 고르는\" 행동, better safe than sorry는 그 이유를 말하는 \"후회보단 조심\" 한마디!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "12": "🥄유버디 한 스푼 더! Day 12\n\n오늘 <협상하는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 Walk-away point입니다.\n이 선 밑으로 가면 협상 접고 일어난다는, 내가 정한 마지노선이에요.\n\n\"What's our walk-away point on price?\"\n(가격은 어디까지 내려가면 접기로 할까요?)\n\"If they go below 80, that's our walk-away point.\"\n(80 밑으로 가면 거기서 협상 접어요.)\n\n즉, Play hardball은 \"세게 밀어붙이는\" 태도, walk-away point는 그 밀당에서 \"여기까진 안 된다\"는 기준선!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "13": "🥄유버디 한 스푼 더! Day 13\n\n오늘 <돈 지키는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 Belt-tightening입니다.\n허리띠 졸라매듯 비용을 줄이는 걸 말해요. 예산 회의 단골이에요.\n\n\"Are we doing more belt-tightening next quarter?\"\n(다음 분기에도 비용 더 줄여요?)\n\"After some belt-tightening, we're back on budget.\"\n(비용을 좀 줄이고 나서 다시 예산 안으로 들어왔어요.)\n\n즉, Shoestring budget은 \"원래 빠듯한 예산\" 상태, belt-tightening은 \"허리띠를 졸라매는\" 행동!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "14": "🥄유버디 한 스푼 더! Day 14\n\n오늘 <가능성을 말하는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 Odds are입니다.\n\"아마 ~일 거예요\" 하고 확률을 가볍게 말할 때 문장 맨 앞에 붙여요.\n\n\"Odds are they'll ask for a discount. Should we prepare a number?\"\n(아마 할인 얘기 나올 거예요. 숫자 하나 준비해둘까요?)\n\"Odds are the launch slips a week. Can we tell sales now?\"\n(출시가 일주일 밀릴 가능성이 커요. 영업팀에 지금 말할까요?)\n\n즉, Long shot은 \"가능성 낮은 시도\" 자체, odds are는 \"아마 ~일 것\"이라고 확률을 말하는 표현!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "15": "🥄유버디 한 스푼 더! Day 15\n\n오늘 <위기를 넘기는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 Close call입니다.\n큰일 날 뻔했는데 아슬아슬하게 피했을 때 써요.\n\n\"That was a close call. The file almost went to the wrong client.\"\n(큰일 날 뻔했어요. 파일이 다른 클라이언트한테 갈 뻔했어요.)\n\"Close call! What can we change so it doesn't happen again?\"\n(아슬아슬했네요! 다시 안 그러려면 뭘 바꾸면 될까요?)\n\n즉, Out of the woods는 \"고비를 다 넘겼다\"는 상태, close call은 \"큰일 날 뻔한 순간\" 그 자체!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "16": "🥄유버디 한 스푼 더! Day 16\n\n오늘 <팀으로 일하는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 Pitch in입니다.\n다 같이 조금씩 손을 보태 도울 때 써요.\n\n\"Can everyone pitch in on the deck before Friday?\"\n(금요일 전에 다들 자료 조금씩만 도와주실 수 있어요?)\n\"Thanks for pitching in on the event. It made a huge difference.\"\n(행사 도와주셔서 감사해요. 정말 큰 도움 됐어요.)\n\n즉, Pull one's weight는 \"내 몫은 내가 하는\" 것, pitch in은 \"남의 일에도 손을 보태는\" 표현!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "17": "🥄유버디 한 스푼 더! Day 17\n\n오늘 <조직에서 선 지키는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 Above my pay grade입니다.\n내 권한이나 직급으로 정할 일이 아니라고 넘길 때 써요. 가볍게 웃으며 말하기 좋아요.\n\n\"Budget approval is above my pay grade. Can we ask Jin?\"\n(예산 승인은 제 선에서 정할 게 아니에요. 진 님께 여쭤볼까요?)\n\"That call is above my pay grade, but I'll flag it to my director.\"\n(그건 제가 정할 일이 아니라서, 디렉터님께 올려둘게요.)\n\n즉, Stay in one's lane은 \"내 영역만 지킨다\"는 태도, above my pay grade는 \"내 권한 밖\"이라는 이유를 말하는 표현!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "18": "🥄유버디 한 스푼 더! Day 18\n\n오늘 <관계를 푸는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 Bury the hatchet입니다.\n싸웠던 사람과 앙금을 털고 화해할 때 써요.\n\n\"Can we bury the hatchet and focus on the launch?\"\n(지난 일은 털고 출시에만 집중할까요?)\n\"Did sales and marketing finally bury the hatchet?\"\n(영업팀이랑 마케팅팀 드디어 화해했어요?)\n\n즉, Mend fences는 틀어진 관계를 \"고쳐나가는\" 과정, bury the hatchet은 \"싸움을 끝내고 화해하는\" 결정!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "19": "🥄유버디 한 스푼 더! Day 19\n\n오늘 <큰 그림을 그리는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 On equal footing입니다.\n양쪽이 같은 조건, 같은 입장에서 시작할 때 써요.\n\n\"Can we share the same data so all vendors are on equal footing?\"\n(모든 업체가 같은 조건이 되게 같은 데이터 공유할까요?)\n\"Are the two teams on equal footing for the budget?\"\n(예산 면에서 두 팀이 같은 조건인가요?)\n\n즉, Level the playing field는 조건을 \"공평하게 만드는\" 행동, on equal footing은 그렇게 \"같은 조건에 선\" 상태!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍", "20": "🥄유버디 한 스푼 더! Day 20\n\n오늘 <마무리하는> 표현들이었죠 :)\n여기에 딱 붙는 말 하나 더! 바로 Home stretch입니다.\n끝이 보이는 마지막 구간에 들어섰을 때 써요.\n\n\"We're in the home stretch. Just two more reviews to go.\"\n(이제 마지막 구간이에요. 리뷰 두 개만 남았어요.)\n\"Can we keep the pace for the home stretch?\"\n(마지막 구간까지 이 속도 유지할 수 있을까요?)\n\n즉, Across the finish line은 \"결승선을 넘는\" 마무리 순간, home stretch는 그 직전 \"마지막 직선 구간\"!\n둘이 같이 기억해두면 실무에서 진짜 유용하답니다 👍"}, "tip": {"1": "Day1인데도 다들 넘 잘해주시고 계십니다~~!\n\n<오늘의 앱 팁 1> 📱 앱처럼 깔아두기 + 🔊 듣기\n\n첫날이니까 딱 두 가지 리마인드드릴게요\n1) 유비챌은 앱스토어에 없고, 브라우저에서 [홈 화면에 추가]하면 앱처럼 써요.\n· 아이폰: 사파리 → 공유 버튼 → 홈 화면에 추가\n· 갤럭시: 크롬 → 메뉴(⋮) → 홈 화면에 추가\n매일 링크 찾는 수고가 없어져서 이거 하나로 완주율이 달라져요 ㅎㅎ\n\n2) 단어·예문 옆 스피커 🔊 눌러서 듣고 바로 따라 중얼거리기.\n눈으로만 읽은 표현은 회의에서 안 나오는데, \n입으로 한 번 지나간 건 더 쉽게 나오더라고요~\n꼭 중얼거리기 한번씩 해주세요! ", "2": "<오늘의 앱 팁 2> 🔁 단어 아래에 유의어도 있어요!\n\n오늘 표현 3개만 보고 넘어가셨다면, 단어 카드 아래로 조금만 내려보세요.\n같은 상황에서 톤만 다른 표현 2개가 예문이랑 같이 있어요. 유의어 예문도 스피커 🔊 있어서 바로 들을 수 있고요.\n\n예를 들어 오늘 Plate is full 아래엔 Have a lot on, Fully booked 가 붙어 있어요. \"이번 주 일이 꽉 찼어요\"를 세 가지로 말할 수 있게 되는 거죠 ㅎㅎ\n\n원래 프리미엄만 보던 건데 이번 기수는 전부 열어뒀어요. 다 외우려고 하지 마시고, \"이건 내가 쓸 것 같다\" 싶은 문장 하나만 🔖 눌러두세요. [나] 탭 단어장에 모여요.\n\n오늘 유의어 하나만 열어보고 저장 눌러보세요! ", "3": "<오늘의 앱 팁 3> ✍️ AI 첨삭은 한국어로 먼저\n\n문장 쓸 때 영어부터 쓰려고 하지 마시고, 한국어로 \"이 말을 하고 싶다\"를 먼저 적어보세요.\nAI가 그 의도를 보고 영어를 잡아줘요. 그리고 [나] 탭 ⚙️ 설정에서 직무 적어두시면 첨삭이 내 직무 상황으로 나와요.\n\n이번 기수는 AI 첨삭 무제한이니까 부담 없이 여러 번 돌려보세요~!\n오늘 문장 쓰실 때 한국어 한 줄부터 꼭 적어보세요! ", "4": "<오늘의 앱 팁 4> ⏱ 20분 학습 순서 (바쁜 날은 2분)\n\n나흘째니까 효율 제일 좋은 순서 한 번 정리해드릴게요.\n\n① 카드1: 표현 3개 듣기 🔊 → 예문 한국어는 가려져 있어요. 영어만 보고 뜻 떠올린 다음 [한국어 뜻 보기]로 확인\n② 카드2: 한국어 보고 영어로 만들기 (AI 첨삭까지)\n③ 인증 → 녹음 제출\n\n바쁜 날은 ①의 1번 표현만 챙기고 인증하셔도 돼요. 완벽 금지! 하루 놓치는 것보다 2분이 훨씬 나아요 :)\n\n오늘 한 번만 이 순서대로 해보세요! ", "5": "<오늘의 앱 팁 5> 📝 첫 주간 테스트\n\n해피 Day 5! 다들 첫 주 잘 달려오셨어요~~!\n\n오늘 인증하면 홈에 <주간 테스트 보러가기>가 생겨요.\n한국어 문장 보고 영어를 먼저 떠올려본 다음 탭해서 확인하고, 막힌 건 [기억 안나요] 체크해두시면 따로 빠르게 복습할 수 있어요.\n\n틀려도 손해 아닙니다. 막힌 단어는 다음 주 [내 약점 복습]에 모여요 :)\n오늘 인증하고 테스트까지 꼭 한 번 봐주세요! ", "6": "<오늘의 앱 팁 6> 🎯 내 약점 복습이 열렸어요\n\n2주차부터 홈에 [내 약점 복습] 버튼이 생겨요.\n지난주 테스트에서 틀렸거나 힌트 본 단어만 모아서 10개씩 다시 풀어요.\n\n전체를 다시 보는 게 아니라 나한테 안 붙은 것만 보는 거라, 5분이면 끝나요~\n5분만 내서 약점 복습 한 번 돌려보세요! ", "7": "<오늘의 앱 팁 7> 📌 내 문장으로 테스트\n\n[내 약점 복습] 안에 [내 문장으로 테스트]가 있어요.\n예문이 아니라 내가 직접 쓴 문장에서 표현 자리가 빈칸으로 나와요.\n\n내 문장이라 상황이 기억나서 훨씬 잘 채워지실 거예요. 은근 뿌듯함 ㅎㅎ\n오늘 내 문장 테스트 한 번 해보세요! ", "8": "<오늘의 앱 팁 8> 📧 첨삭 결과에 메일 버전·회의 버전\n\nAI 첨삭 결과 아래를 보시면 같은 문장을 [메일에서] / [회의에서] 버전으로 바꿔주는 칸이 있어요.\n그리고 맨 아래 \"한 줄 규칙\"은 캡처해두시면 좋아요. 그 표현을 쓸 때마다 헷갈리는 딱 그 지점이거든요~\n오늘 첨삭 받으시면 회의 버전 꼭 눌러보세요! ", "9": "<오늘의 앱 팁 9> 📱 잠금화면 단어장\n\nWeek 1 끝나셨으니 [내 학습] 탭 Week 1에서 [잠금화면 단어장 받기] 눌러보세요.\n지난주 15개 표현이 잠금화면 이미지로 나와요.\n\n폰 켤 때마다 한 번씩 스치는 게, 생각보다 오래 갑니다 :)\n지금 바로 받아서 잠금화면에 깔아보세요! ", "10": "<오늘의 앱 팁 10> 🔁 오늘 단어시험 다시 보기\n\n해피 Day 10! 오늘 인증 끝나면 홈 [오늘의 학습 열기] 아래에 [오늘 단어시험 다시 보기]가 생겨요.\n인증은 이미 됐으니까 점수 부담 없이 한 번 더~\n\n그리고 오늘 Week 2 주간 테스트도 열립니다!\n오늘 다시 보기 한 번, 주간 테스트 한 번 부탁드려요! ", "11": "<오늘의 앱 팁 11> 🎲 홈 랜덤 복습 3개\n\n홈 들어올 때 뜨는 랜덤 복습 3개, 귀찮으면 [오늘은 그만 보기] 눌러도 돼요.\n대신 하루에 한 번만 풀어주세요. 지난 단어를 잊을 때쯤 딱 다시 보여주는 거라서요.\n\n3주차가 제일 고비예요. 오늘 하나만 채워도 충분합니다 🧡\n오늘도 딱 하나만 채워주세요! ", "12": "<오늘의 앱 팁 12> 📸 오늘 표현 카드\n\n인증 마치고 뜨는 [오늘 인증 카드]에서 오늘 표현 3개 중 하나 골라서 카드로 만들 수 있어요.\n인스타 스토리에 올려도 되고, 동료한테 카톡으로 \"이거 오늘 배운 건데\" 하고 보내도 되고요 ㅎㅎ\n\n@youbuddy_day 태그해주시면 제가 스토리에서 소개할게요~\n오늘 카드 하나 만들어서 누구한테든 보내보세요! ", "13": "<오늘의 앱 팁 13> 👀 커뮤니티 탭\n\n[커뮤니티] 탭 열어보셨어요? 다른 분들이 오늘 단어로 쓴 문장이 올라와요.\n같은 표현인데 직무마다 문장이 완전히 달라서, 훑어보기만 해도 \"아 이렇게도 쓰네\" 하는 게 생겨요.\n\n마음에 드는 문장은 북마크해두세요~\n오늘 커뮤니티 한 번 훑어보고 북마크 하나 눌러보세요! ", "14": "<오늘의 앱 팁 14> 👍👎 첨삭 피드백\n\nAI 첨삭 결과 바로 아래에 👍 👎 버튼 있는 거 보셨나요?\n\"이건 좀 아닌데\" 싶으면 👎 누르고 한 줄만 남겨주세요. 제가 매일 밤 읽고 다음 날 첨삭에 반영해요.\n\n여러분 피드백으로 첨삭이 좋아지는 구조라, 눌러주시는 게 진짜 도움이 됩니다 🧡\n오늘 첨삭 받으시면 👍👎 꼭 한 번 눌러주세요! ", "15": "<오늘의 앱 팁 15> ⏰ 나의 다짐 다시 보기\n\n해피 Day 15, 3주차 마지막이에요!\n[나] 탭 맨 위에 처음 정하신 인증 시각이 있어요. 3주 해보니 그 시간이 잘 맞았나요?\n안 맞으면 지금 바꾸셔도 돼요. 마지막 주는 진짜 되는 시간으로~\n\n오늘 Week 3 주간 테스트도 열립니다!\n[나] 탭 열어서 내 인증 시각 한 번 확인해주세요! ", "16": "<오늘의 앱 팁 16> 📜 내 대본 모아 보기\n\n[나] 탭에 [내 대본]이 있어요. 3주 동안 쓰신 문장이 전부 모여 있어요.\n영어 회의 전에 한 번 쭉 훑어보세요. 내 업무 상황으로 쓴 문장들이라 그날 바로 꺼내 쓸 수 있어요.\n\n이게 유비챌 끝나고 남는 진짜 자산입니다 :)\n오늘 내 대본 한 번 쭉 읽어보세요! ", "17": "<오늘의 앱 팁 17> 🔖 북마크한 문장\n\n단어 카드·유의어·커뮤니티에서 북마크(🔖)한 문장은 [나] 탭 [저장한 문장]에 모여요.\n마지막 주니까 여기 모인 것만 하루 한 번 소리 내어 읽어보세요.\n\n내가 고른 문장이라 외우는 속도가 달라요~\n오늘 저장한 문장만 한 번 소리 내어 읽어보세요! ", "18": "<오늘의 앱 팁 18> 🎙 녹음은 3문장 한 번에\n\n앱 녹음할 때 문장마다 끊지 마시고, 🔊로 3문장 한 번씩 듣고 → 한 번에 이어서 읽어보세요.\n듣기 → 따라 말하기 → 녹음, 이 순서면 5분이면 끝나고 정확도도 훨씬 잘 나와요.\n\n이제 사흘 남았어요. 마무리까지 같이 가봐요!\n오늘 녹음은 3문장 한 번에, 해보세요! ", "19": "<오늘의 앱 팁 19> 🏁 파이널 테스트 미리 안내\n\n내일 Day 20 인증을 마치면 [내 학습] 맨 아래에 파이널 테스트가 열려요.\n18일 이상 학습 + 파이널 응시하시면 4주 단어집 PDF가 열립니다.\n\n오늘 [내 약점 복습] 한 번 돌려두시면 내일 파이널이 편해요 :)\n오늘 약점 복습 한 번만 돌려두세요! ", "20": "<오늘의 앱 팁 20> 🎓 마지막 날, 세 가지만\n\n1. 오늘 인증 → 파이널 테스트 응시\n2. 단어집 PDF 받기 (파이널 끝나면 바로 열려요)\n3. 후기 한 줄 남기기 (PDF 받기 전에 팝업으로 떠요)\n\n빠진 날은 나중에 채우셔도 1일로 인정됩니다 (지각으로 표시).\n20일 진짜 수고 많으셨어요 🧡\n세 가지 다 마치고 수료식에서 만나요! "}, "senior": {"3": "🎙 선배 버디의 한마디 · Week 1\n\n수요일마다 유비챌 오래 하신 분들 얘기를 하나씩 들려드릴게요.\n오늘은 3기부터 지금 11기까지, 7기수째 함께하고 계신 Hera님(HR)이에요.\n\n처음 시작하실 때 회의 부담감이 10점 만점에 8점이었대요. \"실무 표현을 못 알아들어서 대답을 못 했다\"는 게 시작이었고요.\n\n그런 Hera님이 제일 강조하는 건 이거예요.\n\n\"문장은 무조건 내 업무 상황으로 써요. 예문 베끼면 안 외워져요.\"\n실제로 Hera님 문장 노트를 보면 전부 본인 프로젝트 얘기예요. \"UAT 테스트가 아직 불안정해서 보고 일정이 밀렸어요\" 이런 식으로요.\n그렇게 쓴 표현을 그 주 미팅에서 바로 써봤더니 진짜 남더래요.\n\n오늘 문장 쓰실 때, 예문 말고 내 상황 한 줄로 써보세요! ", "8": "🎙 선배 버디의 한마디 · Week 2\n\n오늘은 8기 20일 개근하고 11기도 같이 하고 계신 Kate님(PM)이에요.\n\n영어는 오래 공부했는데 비즈니스 영어는 처음이었대요. 8기 때 남기신 말 중에 이게 제일 좋았어요.\n\n\"요즘 please share 말고, 간단한 거 메신저로 달라고 할 때 drop me a line 썼어요.\"\n\n거창하게 회의에서 쓰려고 하지 마시고, 이렇게 슬랙·메일 한 줄에 배운 표현 하나 끼워 넣는 게 제일 빨라요. 같이 일하는 외국 동료가 \"오 표현이 달라졌네\" 하는 순간이 온다고 하시더라고요 ㅎㅎ\n\n이번 주 배운 표현 중 하나, 오늘 메신저에 한 번 써보세요! ", "13": "🎙 선배 버디의 한마디 · Week 3\n\n3주차예요. 통계상 여기가 제일 많이 빠지는 구간이라, 오늘은 8기 20일 개근하신 Silvia님(세일즈) 얘기를 들고 왔어요.\n\nSilvia님이 계속하시는 이유를 딱 네 글자로 쓰셨어요.\n\n\"강제 루틴.\"\n\n그리고 이렇게 덧붙이셨어요. \"매주 한 번씩은 강제로 미팅에 쓸 표현을 복습하려고 하고 있어요.\"\n의지가 아니라 시간을 정해두는 거예요. 우리가 처음에 정한 인증 시각, 그게 이 강제 루틴이에요.\n\n혹시 며칠 빠지셨다면 밀린 거 채우려고 하지 마시고, 오늘 것부터 다시 시작하시면 돼요. 빠진 날은 나중에 채워도 그대로 인정됩니다 🧡\n\n오늘 딱 한 문장만 채워주세요! ", "18": "🎙 선배 버디의 한마디 · Week 4\n\n마지막 주예요. 다시 한번 Hera님(3기→11기, 7기수째) 얘기로 마무리할게요.\n\n\"표현 외우는 게 원래 힘들었는데, 반복하다 보니 외우는 노하우가 생겼어요.\"\n\nHera님 루틴은 이거였어요.\n· 매일 밤 8시 반, 그날 문장 5번 소리 내어 읽기\n· 지난주 표현으로 짧은 스크립트 하나 만들어서 3번 읽기\n\n대단한 게 아니라 그냥 반복이에요. 그런데 그 반복이 7기수를 만들었어요.\n\n[나] 탭 [내 대본]에 3주 동안 쓰신 문장이 다 모여 있어요. 오늘 그거 한 번 쭉 소리 내어 읽어보세요. 그게 여러분 스크립트예요! "}, "review": {"3": "벌써 표현이 9개 쌓였어요! :)\n지금은 적어 보여도 다음 주엔 훅 늘어납니다 ㅎㅎ\n\n그래서 지금부터 습관 하나만 만들어보실래요?\n<하루 두 번, 단어시험 다시 보기>예요.\n한 번은 아침에, 한 번은 자기 전에!\n(이미 인증을 완료한 후라면, 인증에는 영향을 주지 않습니다)\n\n홈 [오늘의 학습 열기] 바로 아래 <오늘 단어시험 다시 보기>\n\n한 번 더 보는 게 새로 외우는 것보다 훨씬 빨라요 :)", "5": "이번 주 표현 15개, 다 기억나세요? 🤔\n솔직히 다 안 나는 게 정상이에요 ㅎㅎ\n\n주말에 딱 5분만 써보세요.\n홈 [오늘의 학습 열기] 바로 아래 <오늘 단어시험 다시 보기>\n\n월요일에 새 단어가 또 들어오니까,\n그 전에 한 번 훑어두면 머리가 훨씬 가벼워요!\n(이미 인증을 완료한 후라면, 인증에는 영향을 주지 않습니다)", "7": "단어가 슬슬 많아졌죠? 😅\n이럴 때 제일 좋은 게 <자투리 시간 복습>이에요.\n\n출근길에 한 번, 퇴근길에 한 번!\n스피커 버튼 눌러서 발음까지 같이 들으시면 더 좋아요 🔊\n\n홈 [오늘의 학습 열기] 바로 아래 <오늘 단어시험 다시 보기>\n(이미 인증을 완료한 후라면, 인증에는 영향을 주지 않습니다)", "11": "여러분.. 이제 슬슬 단어가 많아졌죠?\n이럴 때는 많이 복습하는 게 최고예요!!!\n단어시험을 아침, 저녁으로 한 번 다시 보세요~~\n(이미 인증을 완료한 후라면, 인증에는 영향을 주지 않습니다)\n\n홈 [오늘의 학습 열기] 바로 아래 <오늘 단어시험 다시 보기>\n그리고 2주차부터 열린 [내 약점 복습]도 같이요. 틀린 것만 모아서 5분이면 끝나요!", "14": "슬슬 마지막 주가 보이기 시작하네요 :)\n파이널 테스트는 <Day 1~20 전체>에서 나와요.\n\n지금부터 하루 두 번씩만 훑어두시면\n마지막 주에 몰아서 하는 일이 없어집니다 ㅎㅎ\n\n홈 [오늘의 학습 열기] 바로 아래 <오늘 단어시험 다시 보기>\n(이미 인증을 완료한 후라면, 인증에는 영향을 주지 않습니다)", "18": "이제는 좀 지겹죠..? ㅋㅋㅋ\n그래도 마지막으로 한 번만 더 말씀드릴게요!\n\n아침, 저녁으로 단어 복습 해주세요~\n지겨워질 때쯤 진짜로 외워지는 거거든요 :)\n\n홈 [오늘의 학습 열기] 바로 아래 <오늘 단어시험 다시 보기>\n(이미 인증을 완료한 후라면, 인증에는 영향을 주지 않습니다)\n\n여기까지 오신 것만으로 이미 대단하십니다 🧡"}, "weekly_test": "이번 주 5일을 다 채우신 분들은 <주간 테스트>가 열렸어요! 🎁\n\n앱 [내 학습]에서 이번 주 카드를 눌러보시면 보입니다.\n10문항 / 20문항, 유의어 포함 여부 고를 수 있고 10분이면 끝나요.\n틀린 단어는 자동으로 [내 약점 복습]에 모여요.\n\n통과하시면 <잠금화면 단어장>을 드려요.\n휴대폰 잠금화면에 이번 주 표현을 걸어두시면\n하루에 몇 번씩 저절로 복습됩니다 :)\n\n아직 5일을 못 채우셨어도 괜찮아요!\n빠진 날을 채우시면 그때 바로 열립니다~", "holiday": {"8": "해피 Day 8입니다 :)\n\n내일부터 추석 연휴네요! 🌕\n인증 관련해서 미리 안내드릴게요~\n\n📌 9/24(목) Day 9, 9/25(금) Day 10\n이 이틀은 <지나서 하셔도 정상 인증>으로 처리해드려요.\n연휴에 정신없으실 테니까요 ㅎㅎ (지각 표시 안 붙습니다!)\n\n다만 루틴은 한 번 끊기면 다시 붙이는 게 제일 어렵더라고요 :(\n그래서 이 중에 하나 골라두시는 걸 추천드려요~\n\n🥇 <목·금 정상 인증 → 토요일에 Week 2 테스트>\n   제일 깔끔해요. Day 10까지 채우면 토요일에 테스트가 열려요!\n   아침에 10분이요. 가족들 움직이기 전에 끝내두시면 하루가 편해요 :)\n\n🥈 <주말에 몰아서 목·금 인증 + Week 2 테스트>\n   이것도 매우 굳! 연휴 지나고 토·일에 한 번에 정리하기\n\n🥉 <일요일에 몰아하기>\n   일요일 저녁에 셋 다 끝내고 월요일 가볍게 시작하기\n\n그리고 이 셋 다 안 되시는 분들!\n다음 주에 시간 날 때 Day 9, 10 채워주시면 돼요.\n그것도 <정상 인증>이에요 :)\n\n연휴 잘 보내시고, 월요일에 또 만나요 🧡\n즐거운 한가위 되세요! 🌕"}};
+// 유버디 톡에 같이 붙는 이미지 (앱 화면 안내 캡처 등). 키 = Day 번호, '0' = 시작 전날(D-1).
+// 파일은 이 폴더의 assets/tips/ 에 둔다. 파일이 없으면 톡 창에 "파일 없음" 으로만 뜨고 다른 기능엔 영향 없음.
+// (2026-10-18 버디: 앱 팁 이미지를 매번 폰으로 캡처해야 해서 불편)
+// 11기: 아직 11기 화면 캡처 없음. 만들면 '0': ['assets/tips/d0_howto_1.png'] 식으로 추가.
+OPS_TALK.tip_images = Object.assign({}, OPS_TALK.tip_images || {}, {
+});
 
 // 전날 인증률 공지 아래 붙는 동기부여 5줄 (Day 구간별). 복사 후 편집 가능.
 function __opsMotivation(yd) {
@@ -33801,7 +34025,9 @@ window.__openTodaySendBrief = function () {
   const wkN = Math.max(1, Math.ceil(cDay / 5));
   const dow = new Date().getDay(); // 0일 6토
   const items = [];
-  const add = (time, who, title, body) => items.push({ time, who, title, body });
+  // images: 같이 보낼 이미지 URL 배열 (앱 팁 안내 캡처 등). 톡 항목에서 [이미지 복사]·[공유] 로 바로 나간다. (2026-10-18 버디: 매번 폰 캡처하기 불편)
+  const add = (time, who, title, body, images) => items.push({ time, who, title, body, images: Array.isArray(images) ? images : [] });
+  const __tipImgs = (d) => ((OPS_TALK.tip_images || {})[String(d)] || []);
 
   const mBody = (OPS_TALK.morning || {})[String(cDay)] || '';
   const spBody = (OPS_TALK.spoon || {})[String(cDay)] || '';
@@ -33826,7 +34052,7 @@ window.__openTodaySendBrief = function () {
       + '매일 20분이면 충분해요.\n당일 자정 전까지 하면 정시, 넘겨도 지각으로 인정되니 부담 갖지 마시고요.\n\n'
       + '💌 접속 코드 아직 못 받으신 분은 유버디 채널로 [이름 + 닉네임] 보내주세요\nhttp://pf.kakao.com/_ExdxcGX\n\n'
       + '그럼 내일 아침 공지로 만나요 🧡';
-    add('오늘 19:00', '버디', '시작 전날 · 온보딩 안내 + 내일 할 것 (D-1)', pre);
+    add('오늘 19:00', '버디', '시작 전날 · 온보딩 안내 + 내일 할 것 (D-1)', pre, __tipImgs('0'));
     // 버디 실발송 템플릿 (2026-10-18). 시작일은 CHALLENGE.start_date 에서 자동.
     const __sd = (() => { const [y, mo, d] = CHALLENGE.start_date.split('-').map(Number); const dt = new Date(y, mo - 1, d); return mo + '/' + d + '(' + '일월화수목금토'[dt.getDay()] + ')'; })();
     const __cohortNo = String(CHALLENGE.cohort || '').replace(/[^0-9]/g, '');
@@ -33844,6 +34070,19 @@ window.__openTodaySendBrief = function () {
       + '2. 앱 녹음 인증 : 학습 마지막에 내 문장 3개를 앱에서 녹음하고, 단톡방에 문장 붙여넣기\n\n'
       + '그럼 이번 ' + __cohortNo + '기도 화이팅입니다!';
     add('수시', '버디 (1:1)', '접속 코드 안내 · 아직 못 받은 분께', codeMsg);
+    // 보상 기준 공지 (2026-10-18 버디 확정: 18일+지각 = 단어집 + 1일1비 1개월 / 정시 18일 = + 약점 복습 노트 / 기존 구매자 = 1개월 연장)
+    // 10기 보상 안내(10기에서만 뜸). 11기 보상 확정되면 문구 바꾸고 조건을 '11' 로.
+    if (__cohortNo === '10') {
+      const rewardMsg = '💌 접속 코드 아직 못 받으신 분은 유버디 채널로 [이름 + 닉네임] 보내주세요\nhttp://pf.kakao.com/_ExdxcGX\n\nㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ\n\n'
+        + '10기 여러분~ 시작 전에 <수료 보상> 한 번에 정리해드릴게요 :)\n\n'
+        + '조건은 딱 두 개예요. 인증 일수 + 파이널 테스트 응시!\n\n'
+        + '🎁 18일 이상 인증 (지각 포함) + 파이널 응시\n· 10기 4주 단어집 PDF\n· 1일1비 1개월 정기권\n\n'
+        + '🎁 정시 18일 이상 + 파이널 응시\n· 위 두 개 전부 +\n· 나만의 약점 복습 노트 PDF\n(내가 흔들렸던 표현만 모아서 만드는, 사람마다 다른 노트예요. 9기 때 반응 제일 좋았던 게... 바로 이거예요 ㅎㅎ)\n\n'
+        + '그리고 하나 더..!\n이미 1일1비를 구매하신 분께는 <1개월 연장권>을 드려요. 손해 보는 분 없게 챙길게요 :)\n\n'
+        + '📌 알아두시면 편한 것\n· 지각도 1일로 인정돼요. 늦어도 괜찮아요~\n· 빠진 날은 나중에 채워도 1일로 들어가요 (지각으로 표시)\n· 파이널은 점수로 거르지 않아요. 응시만 하면 OK!\n\n'
+        + '20일 중 18일이니까, 이틀은 쉬어가셔도 됩니다 🧡\n내일 아침 Day 1에서 만나요!';
+      add('오늘 20:00', '버디', '수료 보상 기준 안내 (이미지 1장)', rewardMsg, ['assets/tips/reward.png']);
+    }
   } else if (dow === 0 || dow === 6) {
     // 주말 원고 (2026-09-19 버디: 주말에도 복사할 게 있어야 한다). 숫자는 실데이터로 계산.
     const wkDone = Math.max(1, Math.min(4, Math.floor(cDay / 5)));   // 방금 끝난 주차
@@ -33943,7 +34182,8 @@ window.__openTodaySendBrief = function () {
       const seniorBody = (OPS_TALK.senior || {})[String(cDay)] || '';
       const tipBody = (OPS_TALK.tip || {})[String(cDay)] || '';
       if (seniorBody) add('12:30', '버디', '선배 버디의 한마디 · Week ' + wkN, seniorBody);
-      if (tipBody) add(seniorBody ? '15:00' : '12:30', '버디', '오늘의 앱 팁 · Day ' + cDay, tipBody);
+      const tipImgs = __tipImgs(cDay);
+      if (tipBody || tipImgs.length) add(seniorBody ? '15:00' : '12:30', '버디', '오늘의 앱 팁 · Day ' + cDay + (tipImgs.length ? ' (이미지 ' + tipImgs.length + '장)' : ''), tipBody, tipImgs);
     }
     add('19:00', '버디', '한 스푼 더 · Day ' + cDay + (spBody ? '' : ' ⚠️ 원고 비어 있음'), spBody);
     // 공휴일 안내 (2026-09-23): 해당 Day 저녁에만.
@@ -33966,19 +34206,41 @@ window.__openTodaySendBrief = function () {
       <div class="t-small" style="margin-top:3px;font-size:11px;color:var(--muted);">시각 순 · 원고가 앱에 있는 건 바로 복사돼요</div>
     </div>
     <div style="padding:12px 16px 18px;display:flex;flex-direction:column;gap:8px;">
-      ${items.map((it, i) => `
+      ${items.map((it, i) => {
+        const imgs = it.images || [];
+        const expandable = !!it.body || imgs.length > 0;
+        const imgHtml = imgs.length ? `
+            <div style="margin-top:${it.body ? '10px' : '0'};display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span style="font-size:11px;font-weight:800;color:var(--ink);">🖼 같이 보낼 이미지 ${imgs.length}장</span>
+                <button data-tsb-share-all="${i}" style="font-size:10.5px;font-weight:800;padding:5px 10px;border-radius:999px;border:none;background:var(--ink);color:#fff;cursor:pointer;">전부 공유 (폰)</button>
+              </div>
+              ${imgs.map((src, j) => `
+                <div style="border-radius:10px;border:1px solid var(--line);background:#fff;overflow:hidden;">
+                  <img data-tsb-img="${i}-${j}" src="${escapeHtml(encodeURI(src))}" alt="" loading="lazy" style="display:block;width:100%;height:auto;background:#f4f1ec;" onerror="this.replaceWith(Object.assign(document.createElement('div'),{textContent:'이미지 파일이 아직 없어요: ${escapeHtml(src)}',style:'padding:14px;font-size:11px;color:#a33;'}))">
+                  <div style="display:flex;gap:6px;padding:8px;">
+                    <button data-tsb-imgcopy="${i}-${j}" style="flex:1;font-size:10.5px;font-weight:800;padding:7px 0;border-radius:999px;border:none;background:var(--orange);color:#fff;cursor:pointer;">이미지 복사</button>
+                    <button data-tsb-imgshare="${i}-${j}" style="flex:1;font-size:10.5px;font-weight:800;padding:7px 0;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;">공유</button>
+                    <button data-tsb-imgsave="${i}-${j}" style="flex:1;font-size:10.5px;font-weight:800;padding:7px 0;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;">저장</button>
+                  </div>
+                </div>`).join('')}
+              <div class="t-small" style="font-size:10px;color:var(--muted);line-height:1.5;">PC: [이미지 복사] 후 카톡창에 붙여넣기 · 폰: [공유] 누르면 카톡 바로 선택돼요</div>
+            </div>` : '';
+        return `
         <div style="border-radius:12px;background:var(--paper);border:1px solid var(--line);overflow:hidden;">
-          <div data-tsb-row="${i}" style="display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:${it.body ? 'pointer' : 'default'};">
+          <div data-tsb-row="${i}" style="display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:${expandable ? 'pointer' : 'default'};">
             <span style="flex-shrink:0;font-size:11px;font-weight:800;color:var(--orange-dark);font-family:var(--font-mono);">${escapeHtml(it.time)}</span>
             <span style="flex-shrink:0;font-size:10px;font-weight:700;color:#fff;background:${it.who === '버디' ? 'var(--orange)' : '#8A93A0'};border-radius:999px;padding:2px 8px;">${escapeHtml(it.who)}</span>
             <span style="flex:1;font-size:12px;font-weight:700;color:var(--ink);line-height:1.4;">${escapeHtml(it.title)}</span>
-            ${it.body ? `<span data-tsb-arrow="${i}" style="flex-shrink:0;font-size:11px;color:var(--muted);">▾</span><button data-tsb-copy="${i}" style="flex-shrink:0;font-size:10.5px;font-weight:800;padding:5px 10px;border-radius:999px;border:none;background:var(--orange);color:#fff;cursor:pointer;">복사</button>` : ''}
+            ${expandable ? `<span data-tsb-arrow="${i}" style="flex-shrink:0;font-size:11px;color:var(--muted);">▾</span>` : ''}
+            ${it.body ? `<button data-tsb-copy="${i}" style="flex-shrink:0;font-size:10.5px;font-weight:800;padding:5px 10px;border-radius:999px;border:none;background:var(--orange);color:#fff;cursor:pointer;">복사</button>` : ''}
           </div>
-          ${it.body ? `<div data-tsb-detail="${i}" style="display:none;padding:0 12px 12px;">
-            <textarea data-tsb-text="${i}" style="width:100%;min-height:150px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:12px;line-height:1.6;font-family:inherit;color:var(--ink);resize:vertical;box-sizing:border-box;">${escapeHtml(it.body)}</textarea>
-            <div class="t-small" style="margin-top:4px;font-size:10px;color:var(--muted);">고쳐 쓰면 고친 그대로 복사돼요 (저장은 안 됨, 오늘용)</div>
+          ${expandable ? `<div data-tsb-detail="${i}" style="display:none;padding:0 12px 12px;">
+            ${it.body ? `<textarea data-tsb-text="${i}" style="width:100%;min-height:150px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:12px;line-height:1.6;font-family:inherit;color:var(--ink);resize:vertical;box-sizing:border-box;">${escapeHtml(it.body)}</textarea>
+            <div class="t-small" style="margin-top:4px;font-size:10px;color:var(--muted);">고쳐 쓰면 고친 그대로 복사돼요 (저장은 안 됨, 오늘용)</div>` : ''}
+            ${imgHtml}
           </div>` : ''}
-        </div>`).join('')}
+        </div>`; }).join('')}
     </div>
   `;
   backdrop.appendChild(modal);
@@ -34002,6 +34264,66 @@ window.__openTodaySendBrief = function () {
       const ta = modal.querySelector('[data-tsb-text="' + i + '"]');
       const text = ta ? ta.value : (items[Number(i)] || {}).body || '';
       try { navigator.clipboard.writeText(text); showToast('복사했어요! 카톡에 붙여넣으세요 🧡'); } catch (e) { showToast('복사 실패, 다시 눌러주세요'); }
+    };
+  });
+
+  // ── 이미지: 복사 / 공유 / 저장 ──
+  // iOS 사파리는 공유·복사가 "누른 순간" 안에 시작돼야 해서, 창을 열 때 미리 받아둔다.
+  const __imgBlob = new Map();
+  const __imgSrc = (key) => { const [i, j] = key.split('-').map(Number); return ((items[i] || {}).images || [])[j] || ''; };
+  const __fetchBlob = (src) => {
+    if (!__imgBlob.has(src)) __imgBlob.set(src, fetch(encodeURI(src), { cache: 'force-cache' }).then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); }));
+    return __imgBlob.get(src);
+  };
+  const __toPng = async (blob) => {
+    if (blob.type === 'image/png') return blob;
+    const bmp = await createImageBitmap(blob);
+    const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+    c.getContext('2d').drawImage(bmp, 0, 0);
+    return await new Promise((r) => c.toBlob(r, 'image/png'));
+  };
+  const __fileName = (src) => decodeURIComponent(String(src).split('/').pop() || 'image.png');
+  items.forEach((it) => (it.images || []).forEach((src) => { __fetchBlob(src).catch(() => {}); }));
+
+  modal.querySelectorAll('[data-tsb-imgcopy]').forEach((b) => {
+    b.onclick = (e) => {
+      e.stopPropagation();
+      const src = __imgSrc(b.getAttribute('data-tsb-imgcopy'));
+      try {
+        if (!window.ClipboardItem || !navigator.clipboard || !navigator.clipboard.write) throw new Error('unsupported');
+        // Promise 를 그대로 넘겨야 사파리에서도 된다.
+        navigator.clipboard.write([new ClipboardItem({ 'image/png': __fetchBlob(src).then(__toPng) })])
+          .then(() => showToast('이미지 복사했어요! 카톡창에 붙여넣으세요 🧡'))
+          .catch(() => showToast('이 브라우저는 이미지 복사가 안 돼요. [공유] 나 [저장] 을 써주세요'));
+      } catch (err) { showToast('이 브라우저는 이미지 복사가 안 돼요. [공유] 나 [저장] 을 써주세요'); }
+    };
+  });
+  const __share = async (srcs) => {
+    try {
+      const files = await Promise.all(srcs.map(async (s) => new File([await __fetchBlob(s)], __fileName(s), { type: 'image/png' })));
+      if (navigator.canShare && navigator.canShare({ files })) { await navigator.share({ files }); return; }
+      throw new Error('cannot share');
+    } catch (err) {
+      if (err && err.name === 'AbortError') return; // 사용자가 공유창 닫음
+      showToast('여기선 공유가 안 돼요 (PC 등). [이미지 복사] 나 [저장] 을 써주세요');
+    }
+  };
+  modal.querySelectorAll('[data-tsb-imgshare]').forEach((b) => {
+    b.onclick = (e) => { e.stopPropagation(); __share([__imgSrc(b.getAttribute('data-tsb-imgshare'))]); };
+  });
+  modal.querySelectorAll('[data-tsb-share-all]').forEach((b) => {
+    b.onclick = (e) => { e.stopPropagation(); const i = Number(b.getAttribute('data-tsb-share-all')); __share((items[i] || {}).images || []); };
+  });
+  modal.querySelectorAll('[data-tsb-imgsave]').forEach((b) => {
+    b.onclick = async (e) => {
+      e.stopPropagation();
+      const src = __imgSrc(b.getAttribute('data-tsb-imgsave'));
+      try {
+        const blob = await __fetchBlob(src);
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = __fileName(src);
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      } catch (err) { showToast('이미지 파일을 못 찾았어요 (assets/tips 에 있는지 확인)'); }
     };
   });
 };
@@ -35877,6 +36199,7 @@ window.__closeDonePopup = () => {
     return;
   }
   render();
+  if (!wasPreview) setTimeout(() => { try { window.__maybeRewardPopup(); } catch (e) {} }, 300);
 };
 window.__previewDonePopup = () => { showSettings = null; window.__donePreviewDay = Number(state.currentDay) || 1; showDonePopup = true; render(); };
 window.__doneNav = (delta) => { const cur = window.__donePreviewDay || Number(state.currentDay) || 1; window.__donePreviewDay = Math.max(1, Math.min(20, cur + delta)); const ex = document.querySelector('[data-done-popup]'); if (ex) ex.remove(); render(); };
@@ -36193,6 +36516,52 @@ window.__openShareCard = async (day) => {
 window.__closeShareCard = () => {
   try { if (showShareCard) Object.values(showShareCard.urls || {}).forEach((u) => URL.revokeObjectURL(u)); } catch (e) {}
   showShareCard = null; render();
+  setTimeout(() => { try { window.__maybeRewardPopup(); } catch (e) {} }, 300);
+};
+
+/* ── 수료 보상 기준 팝업 (2026-10-18 버디) ─────────────────────────
+   첫 인증을 마친 날, '오늘 마무리' → 인증 카드(오늘 단어 이미지)가 닫힌 직후 1회.
+   인증 카드가 안 뜨는 날이면 '오늘 마무리' 닫을 때 바로. 계정당 1회 (reward_popup_seen).
+   11기 보상은 아직 미확정(2026-11-02): 앱 FAQ 와 같은 단어집/약점 노트만 적어둠. 확정되면 FAQ·졸업 선물 팝업과 같이 고칠 것.
+   보상 내용은 유버디 톡 '수료 보상 기준 안내' / assets/tips/reward.png 와 같다. 바꾸면 셋 다 같이. */
+window.__maybeRewardPopup = (force) => {
+  if (!force) {
+    if (state.reward_popup_seen) return;
+    const anyVerified = Object.keys(state.verified || {}).some((k) => state.verified[k]);
+    if (!anyVerified) return;
+    if (anyPopupOpen() || document.querySelector('[data-reward-popup]')) return;
+  }
+  if (!force) { state.reward_popup_seen = true; try { saveState(); } catch (e) {} }
+  const ov = document.createElement('div');
+  ov.setAttribute('data-reward-popup', '1');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9100;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;padding:18px;';
+  const item = (t) => `<div style="display:flex;align-items:center;gap:8px;margin-top:7px;font-size:14px;font-weight:700;color:var(--ink);"><span style="width:7px;height:7px;border-radius:50%;background:#F3589B;flex:0 0 auto;"></span>${t}</div>`;
+  const tier = (badge, bg, title, cond, items) => `
+    <div style="margin-top:12px;padding:14px 16px;border-radius:16px;background:#fff;border:1px solid var(--line);text-align:left;">
+      <span style="display:inline-block;padding:3px 10px;border-radius:999px;background:${bg};color:#fff;font-size:11px;font-weight:800;">${badge}</span>
+      <div style="margin-top:8px;font-size:16px;font-weight:800;color:var(--ink);">${title}</div>
+      <div style="margin-top:2px;font-size:12px;color:var(--muted);font-weight:600;">${cond}</div>
+      ${items.map(item).join('')}
+    </div>`;
+  ov.innerHTML = `
+    <div style="width:100%;max-width:360px;max-height:88vh;overflow-y:auto;background:var(--paper);border-radius:24px;padding:22px 18px 18px;text-align:center;">
+      <div style="font-size:40px;line-height:1;">🎁</div>
+      <div class="kicker" style="margin-top:8px;color:var(--orange-dark);">첫 인증 완료!</div>
+      <div style="margin-top:4px;font-size:20px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;">수료 보상, 이렇게 받아요</div>
+      <div style="margin-top:6px;font-size:12.5px;color:var(--ink-soft);line-height:1.5;">조건은 딱 두 개: 인증 일수 + 파이널 테스트 응시</div>
+      ${tier('18일 이상 (지각 포함)', '#C8963F', '18일 + 파이널 응시', '자정 넘겨 채운 날(지각)도 1일로 인정', ['11기 4주 단어집 PDF'])}
+      ${tier('정시 18일 이상', '#7B3B4E', '정시로 18일 + 파이널 응시', '당일 자정 전 인증 18일 이상', ['11기 4주 단어집 PDF', '나만의 약점 복습 노트 PDF'])}
+      <div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:rgba(243,88,155,0.08);font-size:12px;color:var(--ink-soft);line-height:1.6;text-align:left;">
+        · 파이널은 점수로 거르지 않아요. 응시만 하면 OK<br>
+        · 약점 복습 노트 = 내가 흔들린 표현만 모은, 사람마다 다른 노트
+      </div>
+      <button data-reward-close class="btn btn-full" style="margin-top:14px;background:var(--ink);color:var(--cream);border:none;padding:14px;font-size:14.5px;font-weight:800;border-radius:999px;">확인했어요 · 18일 가보자고요 🧡</button>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted);">📖 앱 사용 설명서 > 자주 묻는 질문에서 다시 볼 수 있어요</div>
+    </div>`;
+  const close = () => ov.remove();
+  ov.addEventListener('click', (e) => { if (e.target === ov) close(); });
+  ov.querySelector('[data-reward-close]').onclick = close;
+  document.body.appendChild(ov);
 };
 window.__setShareCardVariant = (v) => { if (showShareCard) { showShareCard.variant = v; render(); } };
 window.__setShareCardWord = (i) => {

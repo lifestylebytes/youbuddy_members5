@@ -204,8 +204,11 @@ if (prevHtml) {
 try {
   const { execSync } = await import('child_process');
   const born = execSync(`git log --diff-filter=A --format=%H -- ${COHORT}/index.html`, { cwd: ROOT }).toString().trim().split('\n').pop();
-  if (born) {
-    const only = execSync(`git log --format="%h %ad %s" --date=short ${born}..HEAD -- ${PREV}/index.html`, { cwd: ROOT }).toString().trim().split('\n').filter(Boolean)
+  // 마지막으로 '동기화' 커밋한 지점 이후만 본다 (커밋 메시지에 '동기화' + 새 기수 파일 포함).
+  const synced = execSync(`git log -1 --grep=동기화 --format=%H -- ${COHORT}/index.html`, { cwd: ROOT }).toString().trim();
+  const base = synced || born;
+  if (base) {
+    const only = execSync(`git log --format="%h %ad %s" --date=short ${base}..HEAD -- ${PREV}/index.html`, { cwd: ROOT }).toString().trim().split('\n').filter(Boolean)
       .filter((l) => { const h = l.split(' ')[0]; try { return !execSync(`git show --stat --format= ${h}`, { cwd: ROOT }).toString().includes(`${COHORT}/index.html`); } catch (_) { return true; } });
     if (only.length) warn(`${COHORT} 만든 뒤 ${PREV} 에만 들어간 커밋 ${only.length}개 (하나씩 ${COHORT} 에도 필요한지 확인):\n     ` + only.join('\n     '));
     else ok(`${COHORT} 만든 뒤 ${PREV} 수정은 전부 같이 반영됨`);
