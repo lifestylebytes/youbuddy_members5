@@ -2384,8 +2384,67 @@ function __aiProfile() {
     return { role: String(state.role || '').slice(0, 60), goal, focus };
   } catch (e) { return {}; }
 }
+// 이전 Day 에 배운 표현 재활용 (2026-11-02 버디: "예전에 배운 표현 써서 예문 쓰면 다 다른 말로 고쳐버려서 이상한 말인가 싶어요").
+// AI 에 '이미 배운 표현' 목록을 같이 보내고, 멤버가 꺼내 쓰면 알아봐주고 칭찬한다.
+// 정말 안 맞으면 AI 가 뉘앙스를 설명하고 바꾼다 (말없이 바꾸지 않음).
+function __learnedBefore(payload) {
+  const first = payload && (payload.word ? payload.word.en : (payload.words && payload.words[0] && payload.words[0].en));
+  let curDay = 0;
+  const all = [];
+  CHALLENGE.weeks.forEach((w) => w.days.forEach((dy) => dy.words.forEach((wd) => {
+    if (first && wd.en === first) curDay = dy.day;
+    all.push({ en: wd.en, day: dy.day });
+    (wd.syn || []).forEach((sy) => all.push({ en: sy, day: dy.day }));
+  })));
+  if (!curDay) return [];
+  return all.filter((l) => l.day < curDay);
+}
+const __PH_SKIP = new Set(['something', 'someone', 'somebody', "someone's", "somebody's", "sb's", 'sth', 'sb', 'it', 'one', "one's", 'oneself', 'your', 'you', 'yourself']);
+function __phraseIn(text, phrase) {
+  const ws = String(text || '').toLowerCase().replace(/[^a-z0-9' -]+/g, ' ').replace(/-/g, ' ').split(/\s+/).filter(Boolean);
+  const ts = String(phrase || '').toLowerCase().replace(/[^a-z0-9' -]+/g, ' ').replace(/-/g, ' ').split(/\s+/).filter((t) => t && !__PH_SKIP.has(t));
+  if (!ts.length) return false;
+  const stem = (t) => t.length > 4 ? t.slice(0, t.length - (/(e|y)$/.test(t) ? 1 : 0)) : t;
+  const hit = (w, t) => w === t || (t.length >= 4 && w.startsWith(stem(t)));
+  for (let i = 0; i < ws.length; i++) {
+    if (!hit(ws[i], ts[0])) continue;
+    let k = 1, j = i + 1;
+    while (k < ts.length && j < ws.length && j - i <= ts.length + 3) { if (hit(ws[j], ts[k])) k++; j++; }
+    if (k === ts.length) return true;
+  }
+  return false;
+}
+function __detectReused(text, corrected, learned) {
+  const out = [], seen = new Set();
+  (learned || []).forEach((l) => {
+    const key = l.en.toLowerCase();
+    // 한 단어짜리(Confirm, Balance 등)는 흔한 단어라 앱 쪽에선 안 잡는다. AI 판단에 맡김.
+    if (l.en.trim().split(/[\s-]+/).length < 2) return;
+    if (seen.has(key) || !__phraseIn(text, l.en)) return;
+    seen.add(key);
+    out.push({ phrase: l.en, day: l.day, kept: __phraseIn(corrected, l.en), note: '' });
+  });
+  return out.slice(0, 4);
+}
+function __reusedBlockHtml(fb) {
+  const rs = (fb && Array.isArray(fb.reused)) ? fb.reused : [];
+  if (!rs.length) return '';
+  return `<div style="margin:12px 0 4px;display:flex;flex-direction:column;gap:7px;">${rs.map((r) => {
+    const kept = r.kept !== false;
+    const note = String(r.note || '').trim() || (kept ? '예전에 배운 표현을 다시 꺼내 쓰셨어요! 이렇게 쌓이는 거예요 👏' : '이번 문장엔 다른 말이 더 잘 맞아서 바꿨어요. 표현 자체는 다른 장면에서 꼭 써보세요!');
+    return `<div style="padding:10px 12px;border-radius:12px;background:${kept ? '#EAF3DE' : '#F2EBFB'};border:1px solid ${kept ? 'rgba(107,142,78,0.35)' : 'rgba(122,77,184,0.28)'};">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <span style="font-size:10.5px;font-weight:800;color:${kept ? '#3B6D11' : '#7A4DB8'};">🔁 ${r.day ? 'Day ' + r.day + ' ' : ''}표현 ${kept ? '다시 썼어요!' : '다시 써봤어요'}</span>
+        <b style="font-size:13.5px;color:var(--ink);">${escapeHtml(r.phrase)}</b>
+      </div>
+      <div class="t-small" style="margin-top:4px;color:var(--ink-soft);line-height:1.55;">${escapeHtml(note)}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
 async function callAiReviewEdgeFunction(payload) {
   if (!hasSupabase()) throw new Error('no supabase');
+  let __learned = [];
+  try { __learned = __learnedBefore(payload); if (__learned.length) payload.learned = __learned; } catch (_) {}
   // 25초 타임아웃 (모바일 네트워크가 끊겨도 영원히 매달리지 않게). 2026-08-22
   const __ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
   const __to = __ctrl ? setTimeout(() => { try { __ctrl.abort(); } catch (_) {} }, 25000) : null;
@@ -2426,6 +2485,10 @@ async function callAiReviewEdgeFunction(payload) {
     variants: (data.variants && typeof data.variants === 'object') ? { email: String(data.variants.email || ''), meeting: String(data.variants.meeting || '') } : undefined,
     rule: typeof data.rule === 'string' ? data.rule : '',
     // 고친 곳 목록 (2026-10-22): [{from, to, why, added}] 최대 3개. 화면의 "전 → 후 + 한 줄 이유".
+    // 예전에 배운 표현 재활용 (2026-11-02). 서버가 안 주면(배포 전) 앱이 직접 찾아서 칭찬만.
+    reused: (Array.isArray(data.reused) && data.reused.length)
+      ? data.reused.slice(0, 4).map((r) => ({ phrase: String(r.phrase || ''), day: Number(r.day) || 0, kept: r.kept !== false, note: String(r.note || '') })).filter((r) => r.phrase)
+      : __detectReused(payload.text, data.corrected, __learned),
     changes: Array.isArray(data.changes) ? data.changes.filter((c) => c && (c.to || c.from)).slice(0, 3).map((c) => ({
       from: String(c.from || '').slice(0, 120), to: String(c.to || '').slice(0, 160), why: String(c.why || '').slice(0, 120), type: String(c.type || ''), added: !!c.added,
     })) : undefined,
@@ -2855,6 +2918,7 @@ const __TAG = {
   order:       { label: '어순', color: '#2456C4', bg: '#E9F0FD' },
   word:        { label: '단어 선택', color: '#1F6B47', bg: '#E8F3EC' },
   phrase:      { label: '오늘 표현', color: '#9C4B0F', bg: '#FDEFE3' },
+  nuance:      { label: '뉘앙스', color: '#7A4DB8', bg: '#F2EBFB' },
   added:       { label: '덧붙임', color: '#7A4DB8', bg: '#F2EBFB' },
   removed:     { label: '뺌', color: '#6B6B6B', bg: '#EFEFEF' },
   punctuation: { label: '문장부호', color: '#6B6B6B', bg: '#EFEFEF' },
@@ -2971,9 +3035,10 @@ function buildAiFeedbackHtml(fb, fallbackWhy) {
       </div>`;
   }
 
-  if (fb && fb.__noRows) return `${naturalBlock}${tail}`;
-  if (rows.length) return `${chg.length ? '<div style="margin:12px 0 6px;font-size:11.5px;font-weight:800;color:var(--orange-dark);">고친 곳</div>' : ''}<div style="display:flex;flex-direction:column;gap:7px;">${rows.join('')}</div>${naturalBlock}${tail}`;
-  return `<div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(fallbackWhy || '')}</div>${naturalBlock}${tail}`;
+  const reusedBlock = __reusedBlockHtml(fb);
+  if (fb && fb.__noRows) return `${reusedBlock}${naturalBlock}${tail}`;
+  if (rows.length) return `${reusedBlock}${chg.length ? '<div style="margin:12px 0 6px;font-size:11.5px;font-weight:800;color:var(--orange-dark);">고친 곳</div>' : ''}<div style="display:flex;flex-direction:column;gap:7px;">${rows.join('')}</div>${naturalBlock}${tail}`;
+  return `${reusedBlock}<div class="t-small" style="color:var(--ink-soft);line-height:1.55;"><b style="color:var(--orange-dark);">💡 Why.</b> ${escapeHtml(fallbackWhy || '')}</div>${naturalBlock}${tail}`;
 }
 
 // 같은 '원문'을 다시 제출한 경우: 이전에 준 교정을 글자 그대로 재현한다 (API 호출 X).

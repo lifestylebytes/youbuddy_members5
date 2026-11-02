@@ -111,9 +111,13 @@ FIELDS:
   "from": the exact words from the student's attempt that you replaced ("" if nothing was replaced).
   "to": the exact words in "corrected" that replace them.
   "why": ONE Korean line under 60 chars saying what was wrong in THIS sentence and the usable pattern, like a colleague would ("consist는 수동으로 안 써요. 팀을 꾸릴 땐 form", "오늘 표현은 throw it out there 모양 그대로"). Never a generic label ("주어-동사 일치", "어순 교정", "시제 교정") without the actual words. Never an order ("~로 고쳐주세요").
-  "type": exactly one of "spelling" | "grammar" | "tense" | "article" | "preposition" | "order" | "word" | "phrase" (the target phrase itself was fixed) | "added" | "removed" | "punctuation". One item per contiguous edited span, in the order they appear in "corrected". If one span mixes a misspelling and a word change, split it into two items.
+  "type": exactly one of "spelling" | "grammar" | "tense" | "article" | "preposition" | "order" | "word" | "phrase" (the target phrase itself was fixed) | "nuance" (a learned phrase from an earlier day swapped because its feel does not fit this scene) | "added" | "removed" | "punctuation". One item per contiguous edited span, in the order they appear in "corrected". If one span mixes a misspelling and a word change, split it into two items.
   "added": true when "to" carries meaning the student's English did not have at all (taken from the Korean). Then "from" is "". Prefer NOT adding: only add when the Korean core meaning is clearly missing, and keep it short.
   Every visible difference between the attempt and "corrected" must be covered by some item, unless it is only punctuation or capitalization.
+- "reused": phrases from the LEARNED EARLIER list (if one is given) that the student used in the attempt. [] when none. Each item:
+  "phrase": the learned phrase exactly as listed. "day": its Day number from the list.
+  "kept": true if it is still in "corrected", false if you replaced it.
+  "note": ONE warm Korean line under 70 chars. If kept: name what was good about using it HERE, specifically ("지난주 touch base를 바이어 팔로업에 딱 맞게 꺼내셨어요!"). If replaced: say what the phrase feels like and why it does not fit this scene, so the learner keeps the phrase for the right moment ("ballpark는 대충 잡은 숫자 느낌이라 확정 금액엔 안 맞아요").
 - "corrected": normal sentence case, no bold or tricks.
 Do not include markdown, code fences, or any prose outside the JSON.`;
 
@@ -135,6 +139,22 @@ function buildHistoryBlock(history?: PriorAttempt[], isRepeat?: boolean): string
     ? `\n*** This new attempt is ESSENTIALLY THE SAME as a prior attempt above. DO NOT correct it again: they already saw that correction. Switch to COACHING MODE: return the sentence verbatim and in "why" give a SHORT Korean coaching tip that pushes them to try a DIFFERENT scenario, formality level, channel (Slack vs email), or tense. NEVER suggest yet another single-word swap. ***`
     : `\n*** This is iteration ${history.length + 1}. The student has been working on this phrase. Reference what they got right before. If this new attempt has no grammar issue, RETURN VERBATIM and praise specifically what improved. ***`;
   return `=== Prior attempts (memory across turns) ===\n${lines}${repeatNote}\n=== End prior attempts ===\n\n`;
+}
+
+// 이전 Day 에 배운 표현 (2026-11-02 버디: "예전에 배운 표현 써서 예문 쓰면 다 다른 말로 고쳐버려요").
+// 멤버가 꺼내 쓰면 알아봐주고 칭찬, 정말 안 맞으면 뉘앙스를 설명하고 바꾼다. 말없이 바꾸는 건 금지.
+interface LearnedPhrase { en: string; day: number }
+function buildLearnedBlock(learned?: LearnedPhrase[]): string {
+  if (!learned || !learned.length) return '';
+  const lines = learned.map((l) => `"${l.en}" (Day ${l.day})`).join(', ');
+  return `=== LEARNED EARLIER in this course (the student studied these on previous days) ===
+${lines}
+If the attempt uses any of these (inflections count):
+- It is NOT slang and NOT an awkward choice by default. Recycling it is exactly what we want. If it fits the scene, or is only slightly off, KEEP it in "corrected" (fix only real grammar around it) and list it in "reused" with kept=true and a specific compliment.
+- Replace it ONLY when its meaning or feel truly does not fit this scene (wrong meaning, or clearly wrong tone such as very casual in a formal apology). Then add a "changes" item with type "nuance" whose "why" explains the phrase's feel and when it does fit, and list it in "reused" with kept=false. Never swap a learned phrase silently.
+=== End learned list ===
+
+`;
 }
 
 function buildSentenceUserMessage(
@@ -167,7 +187,7 @@ ${mixedLangHint}
 Your goal: make this sentence sound like something a native English business speaker would naturally say in a real meeting / email / Slack: while keeping "${word.en}" inside. Also fix any clear grammar issues (subject-verb agreement, mixed-language characters, tense, articles, prepositions).
 
 Return JSON:
-- "corrected": a polished, native-sounding business English sentence. **MUST contain "${word.en}"** (or a minimal grammatical inflection: e.g. "${word.en}d" / "${word.en}ing" / pluralized: never a synonym swap). MUST convey the FULL meaning of the Korean sentence above (if provided). If the student's attempt only covers part of the Korean, complete the rest yourself from the Korean, like a human tutor handing over the finished sentence. In "why", name the concrete change you made. Only say you added something ("뒷부분을 보탰어요") if you actually appended a clause that the student left out; if you fixed articles, plurals, capitalization, or verb forms, say that instead. Never open "why" with a stock phrase. MUST be entirely in English (no Korean/Japanese characters left in). Improve fluency: fix awkward word order, non-native phrasing, weird prepositions, clunky structure. Tone: business meeting / professional Slack / email-ready: clear, confident, concise. Avoid casual slang AND avoid stiff/archaic phrasing. **Edit aggressively for naturalness, but preserve the student's core intent + the target phrase.** If the sentence already reads as if a fluent native speaker wrote it (no awkward edges AND no Korean characters AND grammar is solid), return it VERBATIM.
+- "corrected": a polished, native-sounding business English sentence. **MUST contain "${word.en}"** (or a minimal grammatical inflection: e.g. "${word.en}d" / "${word.en}ing" / pluralized: never a synonym swap). MUST convey the FULL meaning of the Korean sentence above (if provided). If the student's attempt only covers part of the Korean, complete the rest yourself from the Korean, like a human tutor handing over the finished sentence. In "why", name the concrete change you made. Only say you added something ("뒷부분을 보탰어요") if you actually appended a clause that the student left out; if you fixed articles, plurals, capitalization, or verb forms, say that instead. Never open "why" with a stock phrase. MUST be entirely in English (no Korean/Japanese characters left in). Improve fluency: fix awkward word order, non-native phrasing, weird prepositions, clunky structure. Tone: business meeting / professional Slack / email-ready: clear, confident, concise. Avoid casual slang AND avoid stiff/archaic phrasing (phrases on the LEARNED EARLIER list are course material, never treat them as slang). **Edit aggressively for naturalness, but preserve the student's core intent + the target phrase.** If the sentence already reads as if a fluent native speaker wrote it (no awkward edges AND no Korean characters AND grammar is solid), return it VERBATIM.
 - "why": 1-2 Korean sentences (≤140 chars). **If unchanged, say so warmly ("이미 자연스러워요! 그대로 가셔도 됩니다.")**: otherwise briefly explain what type of fix you made (e.g. "한국어 표현 번역 / 어순 / 전치사 교정 / 주어-동사 일치 등").
 
 FINAL CHECK before returning, in order:
@@ -398,6 +418,10 @@ serve(async (req) => {
         attempt: typeof h.attempt === 'number' ? h.attempt : undefined,
       }));
     const isRepeat = Boolean(body?.isRepeatSubmission);
+    const learned: LearnedPhrase[] = (Array.isArray(body?.learned) ? body.learned : [])
+      .filter((l: any) => l && typeof l.en === 'string' && l.en.trim())
+      .slice(0, 240)
+      .map((l: any) => ({ en: String(l.en).slice(0, 60), day: Number(l.day) || 0 }));
 
     // === 결정적 에코 가드: 이전에 우리가 돌려준 corrected 를 그대로 재제출한 경우,
     // 모델을 부르지 않고 즉시 '최종 확정' 응답. (붙여넣기 재제출 시 흔들림 원천 차단)
@@ -448,6 +472,7 @@ serve(async (req) => {
       return json({ error: 'mode must be sentence|story' }, 400);
     }
 
+    userMessage = buildLearnedBlock(learned) + userMessage;
     const tierNote = isPremium
       ? '\n\n*** PREMIUM request. Fill "deep" following the FIELDS rule. ***'
       : '\n\n*** BASIC request. Return "deep" as an empty string "". ***';
@@ -540,6 +565,14 @@ serve(async (req) => {
         meeting: String(parsed?.variants?.meeting || '').slice(0, 300),
       },
       rule: String(parsed?.rule || '').slice(0, 120),
+      reused: Array.isArray(parsed?.reused)
+        ? parsed.reused.slice(0, 4).map((r: any) => ({
+            phrase: String(r?.phrase || '').slice(0, 60),
+            day: Number(r?.day) || 0,
+            kept: r?.kept !== false,
+            note: String(r?.note || '').slice(0, 140),
+          })).filter((r: any) => r.phrase && learned.some((l) => l.en.toLowerCase() === r.phrase.toLowerCase()))
+        : [],
       changes: Array.isArray(parsed?.changes)
         ? parsed.changes.slice(0, 3).map((c: any) => ({
             from: String(c?.from || '').slice(0, 120),
