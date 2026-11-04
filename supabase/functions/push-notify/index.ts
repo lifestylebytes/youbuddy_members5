@@ -1,5 +1,5 @@
 // ============================================================
-// Supabase Edge Function — push-notify
+// Supabase Edge Function · push-notify
 // ------------------------------------------------------------
 // 특정 멤버(또는 전체)에게 Web Push 알림을 보냄.
 // push_subscriptions 테이블에서 구독 정보를 읽어 VAPID 방식으로 발송.

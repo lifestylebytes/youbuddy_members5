@@ -54,7 +54,7 @@ function __trimAtSentence(t: string, max: number): string {
 }
 
 function json(body: unknown, status = 200) {
-  // em dash·en dash 는 멤버 화면에 절대 안 나가게 (2026-11-02 베타 테스트에서 '—you have a point' 발견).
+  // em dash·en dash 는 멤버 화면에 절대 안 나가게 (2026-11-02 베타 테스트에서 '(대시)you have a point' 발견).
   return new Response(JSON.stringify(body).replace(/\s*[\u2014\u2013]\s*/g, ', '), {
     status,
     headers: { 'content-type': 'application/json; charset=utf-8', ...CORS_HEADERS },
