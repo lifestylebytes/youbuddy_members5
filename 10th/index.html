@@ -25247,13 +25247,7 @@ function ProfilePage() {
     });
   });
   // 🧪 단어장 안에 '배운 단어 전체' + 검색 (2026-11-04 버디: "즐겨찾기 안 해도 전체 단어 볼 수 있게, 단어장 탭에 합쳐서").
-  // 아직 베타: 주소 끝 ?deckbeta=1 인 폰에서만 (?deckbeta=0 끄기). 확정되면 플래그만 빼면 전원 공개.
-  let __deckBeta = false;
-  try {
-    const q = new URLSearchParams(location.search).get('deckbeta');
-    if (q === '0') localStorage.removeItem('yb_deck_beta'); else if (q) localStorage.setItem('yb_deck_beta', '1');
-    __deckBeta = localStorage.getItem('yb_deck_beta') === '1';
-  } catch (_) {}
+  const __deckBeta = true; // 2026-11-04 버디 확인 후 전원 공개 (베타 플래그 제거)
   // '전체' 탭 = 오늘 Day 까지 배운 메인 표현 전부(하루 3개, 저장한 건 진한 🔖) + 저장한 유의어·예문·동료 문장.
   // '단어' 탭 = 내가 🔖 한 단어만 (기존 그대로). (2026-11-04 버디: "단어 탭은 내가 북마크한 단어여야")
   const learnedEntries = [];
