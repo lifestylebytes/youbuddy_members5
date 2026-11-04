@@ -25506,7 +25506,7 @@ function ProfilePage() {
         window.__deckQ = qRaw;
         const q = String(qRaw || '').trim().toLowerCase();
         let shown = 0;
-        list.querySelectorAll('[data-deck-text]').forEach((r) => { const ok = !q || r.getAttribute('data-deck-text').indexOf(q) >= 0; r.style.display = ok ? '' : 'none'; if (ok) shown++; });
+        list.querySelectorAll('[data-deck-text]').forEach((r) => { const ok = !q || r.getAttribute('data-deck-text').indexOf(q) >= 0; r.style.display = ok ? 'flex' : 'none'; // '' 로 두면 인라인 flex 가 지워져 줄이 세로로 깨짐 (2026-11-04) if (ok) shown++; });
         list.querySelectorAll(':scope > .kicker').forEach((k) => { k.style.display = q ? 'none' : ''; });
         emptyMsg.style.display = shown ? 'none' : '';
       };
