@@ -25468,6 +25468,82 @@ function ProfilePage() {
 
     bookmarkCard.appendChild(list);
   }
+  // 🧪 전체 단어 + 검색 (2026-11-04 버디: "즐겨찾기 안 해도 전체 단어 볼 수 있게 + 검색"). 아직 베타:
+  // 주소 끝 ?deckbeta=1 인 폰에서만 보임 (?deckbeta=0 끄기). 확정되면 플래그 빼고 전원 공개.
+  let __deckBeta = false;
+  try {
+    const q = new URLSearchParams(location.search).get('deckbeta');
+    if (q === '0') localStorage.removeItem('yb_deck_beta'); else if (q) localStorage.setItem('yb_deck_beta', '1');
+    __deckBeta = localStorage.getItem('yb_deck_beta') === '1';
+  } catch (_) {}
+  if (__deckBeta) {
+    const openDay = Math.min(Number(state.currentDay) || 1, CHALLENGE.total_days || 20);
+    const allRows = [];
+    CHALLENGE.weeks.forEach((w) => w.days.forEach((dy) => {
+      if (dy.day > openDay) return;
+      dy.words.forEach((word, idx) => allRows.push({ key: `d${dy.day}-${idx}`, day: dy.day, weekN: w.n, word }));
+    }));
+    const allCard = el('div', { class: 'card', style: { marginTop: '18px', padding: '18px' } });
+    allCard.innerHTML = `
+      <div class="row-between">
+        <div>
+          <div class="kicker">ALL WORDS · 지금까지 배운 표현</div>
+          <h3 class="h3" style="margin-top:6px;">전체 단어 <span class="mono" style="color:var(--muted);font-weight:500;">· ${allRows.length}개</span></h3>
+        </div>
+        <span style="font-size:10px;font-weight:800;color:#7A4DB8;background:#F2EBFB;border-radius:999px;padding:3px 9px;">🧪 베타</span>
+      </div>
+      <div style="margin-top:12px;position:relative;">
+        <input data-deck-search type="search" placeholder="단어·뜻·유의어로 찾기 (예: 미루다, push)" value="${escapeHtml(window.__deckQ || '')}"
+          style="width:100%;box-sizing:border-box;padding:11px 14px 11px 36px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:14px;font-family:inherit;color:var(--ink);outline:none;" />
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;opacity:0.55;">🔍</span>
+      </div>
+      <div data-deck-empty style="display:none;margin-top:14px;font-size:13px;color:var(--muted);">찾는 표현이 없어요. 다른 말로 검색해보세요.</div>
+      <div data-deck-list style="margin-top:12px;display:flex;flex-direction:column;gap:8px;max-height:460px;overflow-y:auto;padding-right:2px;"></div>`;
+    const listEl = allCard.querySelector('[data-deck-list]');
+    let lastDay = 0;
+    allRows.slice().reverse().forEach(({ key, day, weekN, word }) => {
+      if (day !== lastDay) {
+        lastDay = day;
+        const dh = el('div', { class: 'kicker', style: { color: 'var(--muted)', marginTop: '4px' } });
+        dh.setAttribute('data-deck-dayhead', String(day));
+        dh.textContent = `Day ${day} · ${(CHALLENGE.weeks.flatMap((w) => w.days).find((d) => d.day === day) || {}).title || ''}`;
+        listEl.appendChild(dh);
+      }
+      const saved = !!state.bookmarks[key];
+      const syns = (word.syn || []).join(', ');
+      const row = el('div', {
+        style: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '14px', background: 'var(--paper)', cursor: 'pointer' },
+        onClick: () => go('day', { week: weekN, day }),
+      });
+      row.setAttribute('data-deck-row', String(day));
+      row.setAttribute('data-deck-text', [word.en, word.def, syns, word.ex_en, word.ex_kr].join(' ').toLowerCase());
+      row.innerHTML = `
+        <span class="mono" style="font-size:10px;color:var(--muted);min-width:30px;">D${day}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14.5px;font-weight:800;color:var(--orange);line-height:1.2;">${escapeHtml(word.en)}</div>
+          <div class="t-small" style="margin-top:2px;font-size:12px;color:var(--ink-soft);">${escapeHtml(word.def || '')}</div>
+          ${syns ? `<div class="t-small" style="margin-top:2px;font-size:11px;color:var(--muted);">≈ ${escapeHtml(syns)}</div>` : ''}
+        </div>
+        <button class="icon-btn" title="${saved ? '단어장에서 빼기' : '단어장에 저장'}" style="width:30px;height:30px;border-radius:10px;background:transparent;border:none;color:var(--orange);opacity:${saved ? '1' : '0.45'};" onclick="event.stopPropagation(); window.__toggleBookmark('${key}')">${Icon(saved ? 'bookmarkFill' : 'bookmark', 13)}</button>`;
+      listEl.appendChild(row);
+    });
+    const applyFilter = (qRaw) => {
+      window.__deckQ = qRaw;
+      const q = String(qRaw || '').trim().toLowerCase();
+      let shown = 0;
+      const dayHas = {};
+      listEl.querySelectorAll('[data-deck-row]').forEach((r) => {
+        const ok = !q || r.getAttribute('data-deck-text').indexOf(q) >= 0;
+        r.style.display = ok ? '' : 'none';
+        if (ok) { shown++; dayHas[r.getAttribute('data-deck-row')] = true; }
+      });
+      listEl.querySelectorAll('[data-deck-dayhead]').forEach((h) => { h.style.display = dayHas[h.getAttribute('data-deck-dayhead')] ? '' : 'none'; });
+      allCard.querySelector('[data-deck-empty]').style.display = shown ? 'none' : '';
+    };
+    allCard.querySelector('[data-deck-search]').addEventListener('input', (e) => applyFilter(e.target.value));
+    applyFilter(window.__deckQ || '');
+    page.appendChild(allCard);
+  }
   page.appendChild(bookmarkCard);
 
   // Notion 내보내기는 20일(마지막 Day) 인증까지 끝낸 뒤에만 노출, 중간에 내보내면 반쪽짜리 기록이 돼서.
