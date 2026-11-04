@@ -25254,16 +25254,17 @@ function ProfilePage() {
     if (q === '0') localStorage.removeItem('yb_deck_beta'); else if (q) localStorage.setItem('yb_deck_beta', '1');
     __deckBeta = localStorage.getItem('yb_deck_beta') === '1';
   } catch (_) {}
+  // '전체' 탭 = 오늘 Day 까지 배운 메인 표현 전부(하루 3개, 저장한 건 진한 🔖) + 저장한 유의어·예문·동료 문장.
+  // '단어' 탭 = 내가 🔖 한 단어만 (기존 그대로). (2026-11-04 버디: "단어 탭은 내가 북마크한 단어여야")
+  const learnedEntries = [];
   if (__deckBeta) {
-    // 단어 칸 = 오늘 Day 까지 배운 메인 표현 전부(하루 3개). 저장한 건 진한 🔖, 안 한 건 흐린 🔖. 최신 Day 가 위.
     const __open = Math.min(Number(state.currentDay) || 1, CHALLENGE.total_days || 20);
     const __saved = new Set(bookmarkedEntries.map((e) => e.key));
-    bookmarkedEntries.length = 0;
     CHALLENGE.weeks.forEach((w) => w.days.forEach((dy) => {
       if (dy.day > __open) return;
-      dy.words.forEach((word, idx) => { const key = `d${dy.day}-${idx}`; bookmarkedEntries.push({ key, day: dy.day, weekN: w.n, word, saved: __saved.has(key) }); });
+      dy.words.forEach((word, idx) => { const key = `d${dy.day}-${idx}`; learnedEntries.push({ key, day: dy.day, weekN: w.n, word, saved: __saved.has(key) }); });
     }));
-    bookmarkedEntries.reverse();
+    learnedEntries.reverse();
   }
   // 저장한 예문 (2026-08-21): 데일리 예문 = state.saved_examples['d1-0'],
   // 유의어 예문 = state.saved_examples['d1-0::Syn'] 형식.
@@ -25299,13 +25300,14 @@ function ProfilePage() {
       .map((post) => [post.id, post])
   ).values());
   const totalSaved = bookmarkedEntries.length + synonymEntries.length + savedCommunityPosts.length + exampleEntries.length;
+  const __allCount = __deckBeta ? (learnedEntries.length + synonymEntries.length + savedCommunityPosts.length + exampleEntries.length) : totalSaved;
   const tab = state.savedTab || 'all';
   const bookmarkCard = el('div', { class: 'card', style: { marginTop: '18px', padding: '18px' } });
   const bookHead = el('div', { class: 'row-between' });
   bookHead.innerHTML = `
     <div>
       <div class="kicker">MY WORD DECK · 저장한 표현</div>
-      <h3 class="h3" style="margin-top:6px;">단어장 <span class="mono" style="color:var(--muted);font-weight:500;">· ${totalSaved}개</span></h3>
+      <h3 class="h3" style="margin-top:6px;">단어장 <span class="mono" style="color:var(--muted);font-weight:500;">· ${__allCount}개</span></h3>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
       <button onclick="window.__exportWordDeck(this)" ${totalSaved ? '' : 'disabled'} title="저장한 표현을 노션·메모장에 붙여넣게 복사" style="padding:7px 13px;border-radius:999px;border:1px solid var(--orange-soft);background:#fff;color:var(--orange-dark);font-size:11.5px;font-weight:800;cursor:${totalSaved ? 'pointer' : 'default'};opacity:${totalSaved ? '1' : '0.45'};font-family:inherit;white-space:nowrap;">📤 내보내기</button>
@@ -25315,8 +25317,8 @@ function ProfilePage() {
 
   // Filter tabs: 전체 / 단어 / 유의어 / 문장
   const tabs = [
-    { key: 'all',   label: '전체',  count: totalSaved },
-    { key: 'word',  label: __deckBeta ? '배운 단어' : '단어',  count: bookmarkedEntries.length },
+    { key: 'all',   label: '전체',  count: __allCount },
+    { key: 'word',  label: '단어',  count: bookmarkedEntries.length },
     { key: 'syn',   label: '유의어', count: synonymEntries.length },
     { key: 'ex',    label: '예문',  count: exampleEntries.length },
     { key: 'post',  label: '동료 문장', count: savedCommunityPosts.length },
@@ -25387,10 +25389,11 @@ function ProfilePage() {
       return moreBtn;
     };
 
-    if (showWords && bookmarkedEntries.length) {
-      if (tab === 'all') list.appendChild(el('div', { class: 'kicker', style: { color: 'var(--muted)' } }, `${__deckBeta ? '배운 단어' : '단어'} · ${bookmarkedEntries.length}`));
-      sliceFor('word', bookmarkedEntries).forEach(({ key, day, weekN, word, saved }) => {
-        const __on = __deckBeta ? !!saved : true;
+    const __wordRows = (__deckBeta && tab === 'all') ? learnedEntries : bookmarkedEntries.map((e) => Object.assign({ saved: true }, e));
+    if (showWords && __wordRows.length) {
+      if (tab === 'all') list.appendChild(el('div', { class: 'kicker', style: { color: 'var(--muted)' } }, `${__deckBeta ? '배운 단어' : '단어'} · ${__wordRows.length}`));
+      sliceFor('word', __wordRows).forEach(({ key, day, weekN, word, saved }) => {
+        const __on = !!saved;
         const row = el('div', {
           style: {
             display: 'flex', alignItems: 'center', gap: '12px',
@@ -25409,7 +25412,7 @@ function ProfilePage() {
         row.setAttribute('data-deck-text', [word.en, word.def, (word.syn || []).join(' '), word.ex_en, word.ex_kr].join(' ').toLowerCase());
         list.appendChild(row);
       });
-      const moreWordBtn = makeMoreBtn('word', bookmarkedEntries.length, sliceFor('word', bookmarkedEntries).length);
+      const moreWordBtn = makeMoreBtn('word', __wordRows.length, sliceFor('word', __wordRows).length);
       if (moreWordBtn) list.appendChild(moreWordBtn);
     }
 
@@ -25506,7 +25509,7 @@ function ProfilePage() {
         window.__deckQ = qRaw;
         const q = String(qRaw || '').trim().toLowerCase();
         let shown = 0;
-        list.querySelectorAll('[data-deck-text]').forEach((r) => { const ok = !q || r.getAttribute('data-deck-text').indexOf(q) >= 0; r.style.display = ok ? 'flex' : 'none'; // '' 로 두면 인라인 flex 가 지워져 줄이 세로로 깨짐 (2026-11-04) if (ok) shown++; });
+        list.querySelectorAll('[data-deck-text]').forEach((r) => { const ok = !q || r.getAttribute('data-deck-text').indexOf(q) >= 0; r.style.display = ok ? 'flex' : 'none'; /* '' 로 두면 인라인 flex 가 지워져 줄이 세로로 깨짐 (2026-11-04) */ if (ok) shown++; });
         list.querySelectorAll(':scope > .kicker').forEach((k) => { k.style.display = q ? 'none' : ''; });
         emptyMsg.style.display = shown ? 'none' : '';
       };
