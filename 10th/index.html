@@ -25246,6 +25246,25 @@ function ProfilePage() {
       });
     });
   });
+  // 🧪 단어장 안에 '배운 단어 전체' + 검색 (2026-11-04 버디: "즐겨찾기 안 해도 전체 단어 볼 수 있게, 단어장 탭에 합쳐서").
+  // 아직 베타: 주소 끝 ?deckbeta=1 인 폰에서만 (?deckbeta=0 끄기). 확정되면 플래그만 빼면 전원 공개.
+  let __deckBeta = false;
+  try {
+    const q = new URLSearchParams(location.search).get('deckbeta');
+    if (q === '0') localStorage.removeItem('yb_deck_beta'); else if (q) localStorage.setItem('yb_deck_beta', '1');
+    __deckBeta = localStorage.getItem('yb_deck_beta') === '1';
+  } catch (_) {}
+  if (__deckBeta) {
+    // 단어 칸 = 오늘 Day 까지 배운 메인 표현 전부(하루 3개). 저장한 건 진한 🔖, 안 한 건 흐린 🔖. 최신 Day 가 위.
+    const __open = Math.min(Number(state.currentDay) || 1, CHALLENGE.total_days || 20);
+    const __saved = new Set(bookmarkedEntries.map((e) => e.key));
+    bookmarkedEntries.length = 0;
+    CHALLENGE.weeks.forEach((w) => w.days.forEach((dy) => {
+      if (dy.day > __open) return;
+      dy.words.forEach((word, idx) => { const key = `d${dy.day}-${idx}`; bookmarkedEntries.push({ key, day: dy.day, weekN: w.n, word, saved: __saved.has(key) }); });
+    }));
+    bookmarkedEntries.reverse();
+  }
   // 저장한 예문 (2026-08-21): 데일리 예문 = state.saved_examples['d1-0'],
   // 유의어 예문 = state.saved_examples['d1-0::Syn'] 형식.
   const exampleEntries = [];
@@ -25297,7 +25316,7 @@ function ProfilePage() {
   // Filter tabs: 전체 / 단어 / 유의어 / 문장
   const tabs = [
     { key: 'all',   label: '전체',  count: totalSaved },
-    { key: 'word',  label: '단어',  count: bookmarkedEntries.length },
+    { key: 'word',  label: __deckBeta ? '배운 단어' : '단어',  count: bookmarkedEntries.length },
     { key: 'syn',   label: '유의어', count: synonymEntries.length },
     { key: 'ex',    label: '예문',  count: exampleEntries.length },
     { key: 'post',  label: '동료 문장', count: savedCommunityPosts.length },
@@ -25322,8 +25341,15 @@ function ProfilePage() {
     tabBar.appendChild(btn);
   });
   bookmarkCard.appendChild(tabBar);
+  if (__deckBeta) {
+    const sb = el('div', { style: { marginTop: '10px', position: 'relative' } });
+    sb.innerHTML = `<input data-deck-search type="search" placeholder="단어·뜻·유의어로 찾기 (예: 미루다, push)" value="${escapeHtml(window.__deckQ || '')}"
+        style="width:100%;box-sizing:border-box;padding:11px 14px 11px 36px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:14px;font-family:inherit;color:var(--ink);outline:none;" />
+      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;opacity:0.55;">🔍</span>`;
+    bookmarkCard.appendChild(sb);
+  }
 
-  if (!totalSaved) {
+  if (!totalSaved && !__deckBeta) {
     bookmarkCard.appendChild(el('p', { class: 't-body', style: { marginTop: '14px', fontSize: '13px', color: 'var(--muted)' } },
       'Day 노트에서 단어/유의어에 🔖 해보세요. 여기에 한 통에 모여요.'));
   } else {
@@ -25338,7 +25364,7 @@ function ProfilePage() {
     window.__savedExpanded = window.__savedExpanded || { word: false, syn: false, post: false, ex: false };
     const SAVED_PAGE_SIZE = 10;
     const sliceFor = (key, arr) => {
-      if (window.__savedExpanded[key]) return arr;
+      if (window.__savedExpanded[key] || __deckBeta) return arr;
       return arr.slice(0, SAVED_PAGE_SIZE);
     };
     const makeMoreBtn = (key, total, shown) => {
@@ -25362,8 +25388,9 @@ function ProfilePage() {
     };
 
     if (showWords && bookmarkedEntries.length) {
-      if (tab === 'all') list.appendChild(el('div', { class: 'kicker', style: { color: 'var(--muted)' } }, `단어 · ${bookmarkedEntries.length}`));
-      sliceFor('word', bookmarkedEntries).forEach(({ key, day, weekN, word }) => {
+      if (tab === 'all') list.appendChild(el('div', { class: 'kicker', style: { color: 'var(--muted)' } }, `${__deckBeta ? '배운 단어' : '단어'} · ${bookmarkedEntries.length}`));
+      sliceFor('word', bookmarkedEntries).forEach(({ key, day, weekN, word, saved }) => {
+        const __on = __deckBeta ? !!saved : true;
         const row = el('div', {
           style: {
             display: 'flex', alignItems: 'center', gap: '12px',
@@ -25378,7 +25405,8 @@ function ProfilePage() {
             <div style="font-size:14.5px;font-weight:800;color:var(--orange);line-height:1.2;">${escapeHtml(word.en)}</div>
             <div class="t-small" style="margin-top:2px;font-size:12px;color:var(--ink-soft);">${escapeHtml(word.def)}</div>
           </div>
-          <button class="icon-btn" style="width:30px;height:30px;border-radius:10px;background:transparent;border:none;color:var(--orange);" onclick="event.stopPropagation(); window.__toggleBookmark('${key}')">${Icon('bookmarkFill', 13)}</button>`;
+          <button class="icon-btn" title="${__on ? '단어장에서 빼기' : '단어장에 저장'}" style="width:30px;height:30px;border-radius:10px;background:transparent;border:none;color:var(--orange);opacity:${__on ? '1' : '0.4'};" onclick="event.stopPropagation(); window.__toggleBookmark('${key}')">${Icon(__on ? 'bookmarkFill' : 'bookmark', 13)}</button>`;
+        row.setAttribute('data-deck-text', [word.en, word.def, (word.syn || []).join(' '), word.ex_en, word.ex_kr].join(' ').toLowerCase());
         list.appendChild(row);
       });
       const moreWordBtn = makeMoreBtn('word', bookmarkedEntries.length, sliceFor('word', bookmarkedEntries).length);
@@ -25404,6 +25432,7 @@ function ProfilePage() {
             <div class="t-small" style="margin-top:2px;font-size:11.5px;color:var(--ink-soft);">≈ ${escapeHtml(parent)}</div>
           </div>
           <button class="icon-btn" style="width:30px;height:30px;border-radius:10px;background:transparent;border:none;color:var(--orange);" onclick="event.stopPropagation(); window.__toggleSynBookmark(this.getAttribute('data-syn-key'))" data-syn-key="${escapeHtml(key)}">${Icon('bookmarkFill', 13)}</button>`;
+        row.setAttribute('data-deck-text', [syn, parent].join(' ').toLowerCase());
         list.appendChild(row);
       });
       const moreSynBtn = makeMoreBtn('syn', synonymEntries.length, sliceFor('syn', synonymEntries).length);
@@ -25429,6 +25458,7 @@ function ProfilePage() {
             ${kr ? `<div class="t-small" style="margin-top:2px;font-size:11.5px;color:var(--ink-soft);line-height:1.45;">${escapeHtml(kr)}</div>` : ''}
           </div>
           <button class="icon-btn" style="flex-shrink:0;width:30px;height:30px;border-radius:10px;background:transparent;border:none;color:var(--orange);" onclick="event.stopPropagation(); window.__toggleExampleSave(this.getAttribute('data-ex-key'))" data-ex-key="${escapeHtml(key)}">${Icon('bookmarkFill', 13)}</button>`;
+        row.setAttribute('data-deck-text', [label, en, kr].join(' ').toLowerCase());
         list.appendChild(row);
       });
       const moreExBtn = makeMoreBtn('ex', exampleEntries.length, sliceFor('ex', exampleEntries).length);
@@ -25460,6 +25490,7 @@ function ProfilePage() {
             <div style="margin-top:3px;font-size:12.5px;line-height:1.45;color:var(--ink);font-weight:600;">${escapeHtml(post.sentence)}</div>
           </div>
           <button class="icon-btn" style="width:30px;height:30px;border-radius:10px;background:transparent;border:none;color:var(--orange);flex-shrink:0;" onclick="event.stopPropagation(); window.__toggleCommunityBookmark('${post.id}')">${Icon('bookmarkFill', 13)}</button>`;
+        row.setAttribute('data-deck-text', [postUserDisplay, post.word, post.sentence].join(' ').toLowerCase());
         list.appendChild(row);
       });
       const morePostBtn = makeMoreBtn('post', savedCommunityPosts.length, sliceFor('post', savedCommunityPosts).length);
@@ -25467,82 +25498,22 @@ function ProfilePage() {
     }
 
     bookmarkCard.appendChild(list);
-  }
-  // 🧪 전체 단어 + 검색 (2026-11-04 버디: "즐겨찾기 안 해도 전체 단어 볼 수 있게 + 검색"). 아직 베타:
-  // 주소 끝 ?deckbeta=1 인 폰에서만 보임 (?deckbeta=0 끄기). 확정되면 플래그 빼고 전원 공개.
-  let __deckBeta = false;
-  try {
-    const q = new URLSearchParams(location.search).get('deckbeta');
-    if (q === '0') localStorage.removeItem('yb_deck_beta'); else if (q) localStorage.setItem('yb_deck_beta', '1');
-    __deckBeta = localStorage.getItem('yb_deck_beta') === '1';
-  } catch (_) {}
-  if (__deckBeta) {
-    const openDay = Math.min(Number(state.currentDay) || 1, CHALLENGE.total_days || 20);
-    const allRows = [];
-    CHALLENGE.weeks.forEach((w) => w.days.forEach((dy) => {
-      if (dy.day > openDay) return;
-      dy.words.forEach((word, idx) => allRows.push({ key: `d${dy.day}-${idx}`, day: dy.day, weekN: w.n, word }));
-    }));
-    const allCard = el('div', { class: 'card', style: { marginTop: '18px', padding: '18px' } });
-    allCard.innerHTML = `
-      <div class="row-between">
-        <div>
-          <div class="kicker">ALL WORDS · 지금까지 배운 표현</div>
-          <h3 class="h3" style="margin-top:6px;">전체 단어 <span class="mono" style="color:var(--muted);font-weight:500;">· ${allRows.length}개</span></h3>
-        </div>
-        <span style="font-size:10px;font-weight:800;color:#7A4DB8;background:#F2EBFB;border-radius:999px;padding:3px 9px;">🧪 베타</span>
-      </div>
-      <div style="margin-top:12px;position:relative;">
-        <input data-deck-search type="search" placeholder="단어·뜻·유의어로 찾기 (예: 미루다, push)" value="${escapeHtml(window.__deckQ || '')}"
-          style="width:100%;box-sizing:border-box;padding:11px 14px 11px 36px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:14px;font-family:inherit;color:var(--ink);outline:none;" />
-        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;opacity:0.55;">🔍</span>
-      </div>
-      <div data-deck-empty style="display:none;margin-top:14px;font-size:13px;color:var(--muted);">찾는 표현이 없어요. 다른 말로 검색해보세요.</div>
-      <div data-deck-list style="margin-top:12px;display:flex;flex-direction:column;gap:8px;max-height:460px;overflow-y:auto;padding-right:2px;"></div>`;
-    const listEl = allCard.querySelector('[data-deck-list]');
-    let lastDay = 0;
-    allRows.slice().reverse().forEach(({ key, day, weekN, word }) => {
-      if (day !== lastDay) {
-        lastDay = day;
-        const dh = el('div', { class: 'kicker', style: { color: 'var(--muted)', marginTop: '4px' } });
-        dh.setAttribute('data-deck-dayhead', String(day));
-        dh.textContent = `Day ${day} · ${(CHALLENGE.weeks.flatMap((w) => w.days).find((d) => d.day === day) || {}).title || ''}`;
-        listEl.appendChild(dh);
-      }
-      const saved = !!state.bookmarks[key];
-      const syns = (word.syn || []).join(', ');
-      const row = el('div', {
-        style: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '14px', background: 'var(--paper)', cursor: 'pointer' },
-        onClick: () => go('day', { week: weekN, day }),
-      });
-      row.setAttribute('data-deck-row', String(day));
-      row.setAttribute('data-deck-text', [word.en, word.def, syns, word.ex_en, word.ex_kr].join(' ').toLowerCase());
-      row.innerHTML = `
-        <span class="mono" style="font-size:10px;color:var(--muted);min-width:30px;">D${day}</span>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:14.5px;font-weight:800;color:var(--orange);line-height:1.2;">${escapeHtml(word.en)}</div>
-          <div class="t-small" style="margin-top:2px;font-size:12px;color:var(--ink-soft);">${escapeHtml(word.def || '')}</div>
-          ${syns ? `<div class="t-small" style="margin-top:2px;font-size:11px;color:var(--muted);">≈ ${escapeHtml(syns)}</div>` : ''}
-        </div>
-        <button class="icon-btn" title="${saved ? '단어장에서 빼기' : '단어장에 저장'}" style="width:30px;height:30px;border-radius:10px;background:transparent;border:none;color:var(--orange);opacity:${saved ? '1' : '0.45'};" onclick="event.stopPropagation(); window.__toggleBookmark('${key}')">${Icon(saved ? 'bookmarkFill' : 'bookmark', 13)}</button>`;
-      listEl.appendChild(row);
-    });
-    const applyFilter = (qRaw) => {
-      window.__deckQ = qRaw;
-      const q = String(qRaw || '').trim().toLowerCase();
-      let shown = 0;
-      const dayHas = {};
-      listEl.querySelectorAll('[data-deck-row]').forEach((r) => {
-        const ok = !q || r.getAttribute('data-deck-text').indexOf(q) >= 0;
-        r.style.display = ok ? '' : 'none';
-        if (ok) { shown++; dayHas[r.getAttribute('data-deck-row')] = true; }
-      });
-      listEl.querySelectorAll('[data-deck-dayhead]').forEach((h) => { h.style.display = dayHas[h.getAttribute('data-deck-dayhead')] ? '' : 'none'; });
-      allCard.querySelector('[data-deck-empty]').style.display = shown ? 'none' : '';
-    };
-    allCard.querySelector('[data-deck-search]').addEventListener('input', (e) => applyFilter(e.target.value));
-    applyFilter(window.__deckQ || '');
-    page.appendChild(allCard);
+    if (__deckBeta) {
+      list.style.maxHeight = '520px'; list.style.overflowY = 'auto';
+      const emptyMsg = el('div', { style: { display: 'none', marginTop: '12px', fontSize: '13px', color: 'var(--muted)' } }, '찾는 표현이 없어요. 다른 말로 검색해보세요.');
+      bookmarkCard.appendChild(emptyMsg);
+      const applyFilter = (qRaw) => {
+        window.__deckQ = qRaw;
+        const q = String(qRaw || '').trim().toLowerCase();
+        let shown = 0;
+        list.querySelectorAll('[data-deck-text]').forEach((r) => { const ok = !q || r.getAttribute('data-deck-text').indexOf(q) >= 0; r.style.display = ok ? '' : 'none'; if (ok) shown++; });
+        list.querySelectorAll(':scope > .kicker').forEach((k) => { k.style.display = q ? 'none' : ''; });
+        emptyMsg.style.display = shown ? 'none' : '';
+      };
+      const inp = bookmarkCard.querySelector('[data-deck-search]');
+      if (inp) inp.addEventListener('input', (e) => applyFilter(e.target.value));
+      applyFilter(window.__deckQ || '');
+    }
   }
   page.appendChild(bookmarkCard);
 
