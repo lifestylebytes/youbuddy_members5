@@ -36,13 +36,21 @@ const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 // 비용 약 2.5배지만 기수당 $8 수준. 계정에 없으면 아래 FALLBACK_MODEL 로 자동 재시도.
 const OPENAI_MODEL = 'gpt-4.1-mini';
 const FALLBACK_MODEL = 'gpt-4o-mini';
-const MAX_TOKENS = 900;
+const MAX_TOKENS = 1300; // deep·variants 가 길면 900 에서 JSON 이 잘림 (2026-11-04)
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*', // tighten to 'https://youbuddy.co.kr' in prod if you want
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type',
 };
+
+// 길이 제한을 넘으면 마지막 문장 끝(. ! ? 요 다)에서 자른다. 단어 중간에서 끊기지 않게.
+function __trimAtSentence(t: string, max: number): string {
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  const m = cut.match(/^[\s\S]*[.!?。](?=\s|$)|^[\s\S]*(요|다)[.!]?(?=\s|$)/);
+  return (m && m[0].length > max * 0.5) ? m[0].trim() : cut.replace(/\s+\S*$/, '') + '...';
+}
 
 function json(body: unknown, status = 200) {
   // em dash·en dash 는 멤버 화면에 절대 안 나가게 (2026-11-02 베타 테스트에서 '—you have a point' 발견).
@@ -113,7 +121,7 @@ FIELDS:
   Do not repeat the same point across categories.
 - "deep": ONLY filled when the request says PREMIUM. Otherwise return "".
   3 Korean sentences, under 300 chars, spoken directly to the learner like a senior colleague (never like a textbook, never "한국어 화자는..." generalizations). In this order:
-  (1) Quote what they wrote and say what it means in THIS situation: "'pick my brain'이라고 쓰셨는데, 지금은 상대방에게 조언을 구하는 상황이에요."
+  (1) Quote ONLY the key words they used (2~6 words, never the whole sentence) and say what it means in THIS situation: "'pick my brain'이라고 쓰셨는데, 지금은 상대방에게 조언을 구하는 상황이에요."
   (2) Tell them the fix and the pattern behind it, in a formula they can reuse, as a colleague not an order: "이럴 땐 'pick your brain'이 맞아요. pick + 조언을 구하는 상대의 소유격 + brain 모양으로 기억해두면 돼요."
   (3) One 일잘러 move that goes beyond the fix: "일잘러는 이 뒤에 시간까지 덧붙여서 기한을 넌지시 물어봐요."
   If a learner profile is given, the situation in (1) and the move in (3) must be THEIR situation (바이어, 개발팀, 본사 등 실제 상대를 이름으로).
@@ -576,7 +584,8 @@ serve(async (req) => {
         nuance: String(parsed?.feedback?.nuance || '').slice(0, 200),
       },
       // 프리미엄 전용 심화 설명 (왜 고쳤는지). 베이직 요청이면 빈 문자열로 온다.
-      deep: isPremium ? String(parsed?.deep || '').slice(0, 400) : '',
+      // 400자에서 문장 중간에 잘려 "일잘러는 'please c" 로 끝나던 사고 (2026-11-04). 넉넉히 두고, 넘치면 문장 끝에서 자른다.
+      deep: isPremium ? __trimAtSentence(String(parsed?.deep || ''), 700) : '',
       variants: {
         email: String(parsed?.variants?.email || '').slice(0, 300),
         meeting: String(parsed?.variants?.meeting || '').slice(0, 300),
