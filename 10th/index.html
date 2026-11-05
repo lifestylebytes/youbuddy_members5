@@ -1943,6 +1943,18 @@ function persistedStateSnapshot(source = state) {
   return snapshot;
 }
 
+// 서버 상태를 로컬에 들일 때 로컬에만 있는 기록(인증·문장·시험)을 지우지 않게 '더하기'로 합친다. (2026-11-05)
+// 부팅·로그인·갱신 어디서든 서버 값으로 갈아끼우기 전에 이걸 거친다.
+function mergeRemoteKeepLocal(remote) {
+  if (!remote || typeof remote !== 'object') return remote;
+  try {
+    const loc = persistedStateSnapshot();
+    const out = Object.assign({}, remote);
+    ADD_ONLY_BOOL.forEach((k) => { out[k] = mergeAddOnly(out[k], loc[k], true); });
+    ADD_ONLY_MAP.forEach((k) => { out[k] = mergeAddOnly(out[k], loc[k], false); });
+    return out;
+  } catch (_) { return remote; }
+}
 function mergePersistedState(snapshot) {
   if (!snapshot || typeof snapshot !== 'object') return;
   // 베이직 프리뷰 모드는 로컬 전용 flag, 서버에서 tier='premium' 으로 내려와도
@@ -10788,7 +10800,7 @@ async function __doLogin() {
     return;
   }
   // 입장 처리: 서버 상태 병합 후 홈으로.
-  if (remote && typeof remote === 'object') { try { mergePersistedState(remote); } catch (_) {} }
+  if (remote && typeof remote === 'object') { try { mergePersistedState(mergeRemoteKeepLocal(remote)); statePersistQueued = true; } catch (_) {} }
   state.name = name;
   state.accountKey = probeKey;
   if (!state.timezoneOffsetText) { state.timezoneOffsetText = '+0h'; state.timezoneOffsetMinutes = DEFAULT_TIMEZONE_OFFSET; }
@@ -11241,7 +11253,7 @@ async function __onboardAdvance() {
       );
       if (remotelyRegistered) {
         // Existing account, treat as login. Merge server state and jump home.
-        try { mergePersistedState(remote); } catch (_) {}
+        try { mergePersistedState(mergeRemoteKeepLocal(remote)); statePersistQueued = true; } catch (_) {}
         // Make sure the essentials from this session's entry are honored
         state.name = name;
         if (code) state.accessCode = code;
