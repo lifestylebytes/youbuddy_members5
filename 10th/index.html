@@ -2176,7 +2176,11 @@ async function persistStateNow() {
     // 위에서 해뒀으니 사용자 입력은 안 날아가고, 다음 저장 때 다시 시도한다.
     // 예전엔 여기서 snapshot 을 그대로 올려서 서버 기록을 덮어썼다.
     if (!outgoing) {
-      statePersistQueued = true;
+      // 서버를 못 읽은 상태. 바로 되돌면 finally 에서 즉시 재시도 → 오프라인이면 무한 루프로 CPU 를 태운다.
+      // (2026-11-05 시뮬레이션에서 발견) 몇 초 뒤 다시 시도한다 (실패 누적 시 최대 30초).
+      window.__persistFailCount = (window.__persistFailCount || 0) + 1;
+      const wait = Math.min(30000, 2000 * window.__persistFailCount);
+      setTimeout(() => { try { persistStateNow(); } catch (_) {} }, wait);
       return false;
     }
     await supabaseRpc('upsert_member_app_state', {
