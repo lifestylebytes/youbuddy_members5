@@ -15318,12 +15318,22 @@ function VerifyPage(dayN) {
         state.verified_at['d'+dayN] = todayStr();
         state.verified_time = state.verified_time || {};
         state.verified_time['d'+dayN] = nowTimeStr();
-        saveState({ immediate: true }); // 인증은 450ms 기다리지 않고 바로 올린다 (2026-11-05)
+        // 인증은 450ms 기다리지 않고 바로 올리고, 서버 저장이 끝난 걸 화면에서 확인시킨다. (2026-11-05 Sue님: 맥북에서 인증 → 바로 아이폰으로)
+        // 저장 끝나기 전에 탭을 닫거나 노트북을 덮으면 서버에 안 올라가던 게 유실의 시작이었다.
+        finalBtn.disabled = true;
+        finalBtn.innerHTML = '<span style="font-size:18px;font-weight:700;">서버에 저장 중...</span><span style="font-size:11px;opacity:0.75;">잠깐만요, 이 화면을 닫지 마세요</span>';
         recordVerificationEvent(dayN);
-        showToast('🎉 Day ' + dayN + ' 인증 완료! 이제 녹음만 올리면 끝이에요');
-        fireConfetti();
-        // Route back to the Day page so 녹음 제출 카드가 바로 보이도록 함
-        setTimeout(() => go('day', { week: d.weekN, day: dayN }), 1400);
+        const __afterSave = (ok) => {
+          if (ok) {
+            showToast('🎉 Day ' + dayN + ' 인증 완료! 서버 저장까지 끝났어요');
+            fireConfetti();
+            setTimeout(() => go('day', { week: d.weekN, day: dayN }), 1400);
+          } else {
+            showToast('인증은 됐는데 서버 저장이 늦어지고 있어요. 이 화면을 잠시 그대로 두세요');
+            setTimeout(() => render(), 1200);
+          }
+        };
+        Promise.resolve(saveState({ immediate: true })).then(__afterSave).catch(() => __afterSave(false));
       }
     }
   });
