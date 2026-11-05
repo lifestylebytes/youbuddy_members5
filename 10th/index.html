@@ -7297,16 +7297,24 @@ async function supabaseRpc(fn, payload={}) {
   // 화면을 떠나는 순간의 저장은 keepalive 로 보내 페이지가 멈춰도 요청이 살아남게 (64KB 제한 안에서만). (2026-11-05)
   const keepalive = !!(window.__saveKeepalive && fn === 'upsert_member_app_state' && body.length < 60000);
   if (fn === 'upsert_member_app_state') window.__saveKeepalive = false;
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
-    method: 'POST',
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body,
-    keepalive,
-  });
+  // 요청이 영원히 매달리지 않게 20초 타임아웃 (2026-11-05). 노트북 깨운 직후처럼 망이 덜 붙은 상태에서
+  // 부팅 요청이 끝나지 않으면 stateHydrated 가 계속 false 라 그 세션의 저장이 전부 로컬에만 남았다.
+  const __ac = (typeof AbortController !== 'undefined' && !keepalive) ? new AbortController() : null;
+  const __to = __ac ? setTimeout(() => { try { __ac.abort(); } catch (_) {} }, 20000) : null;
+  let res;
+  try {
+    res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body,
+      keepalive,
+      signal: __ac ? __ac.signal : undefined,
+    });
+  } finally { if (__to) clearTimeout(__to); }
   if (!res.ok) {
     // 실제 원인(404/400/23505 등)을 콘솔에 남겨서 디버깅 가능하게, 메시지에도 같이 담아줌.
     let body = '';
@@ -33181,6 +33189,14 @@ if (!__DEMO_MODE__) {
 //    the meantime. The boot already renders once from cached state above; this
 //    re-renders cleanly once the true remote state is loaded.
 if (!__DEMO_MODE__ && hasSupabase()) {
+  // 부팅 요청이 25초 안에 안 끝나면 저장 잠금을 푼다. 저장은 어차피 서버와 '더하기' 병합 후에만 올라가니 안전하고,
+  // 안 풀면 그 세션의 인증·문장이 전부 로컬에만 남는다. (2026-11-05 박은실님·정주혜님 유실 추정 원인)
+  setTimeout(() => {
+    if (stateHydrated) return;
+    console.warn('[hydrate] 25초 내 미완료 → 저장 잠금 해제');
+    stateHydrated = true;
+    if (statePersistQueued) { statePersistQueued = false; persistStateNow(); }
+  }, 25000);
   (async () => {
     try {
       let remote = await loadRemoteState();
