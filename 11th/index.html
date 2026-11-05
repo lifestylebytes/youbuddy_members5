@@ -7336,6 +7336,10 @@ async function releasePresenter(weekN) {
 }
 
 async function supabaseRpc(fn, payload={}) {
+  const body = JSON.stringify(payload);
+  // 화면을 떠나는 순간의 저장은 keepalive 로 보내 페이지가 멈춰도 요청이 살아남게 (64KB 제한 안에서만). (2026-11-05)
+  const keepalive = !!(window.__saveKeepalive && fn === 'upsert_member_app_state' && body.length < 60000);
+  if (fn === 'upsert_member_app_state') window.__saveKeepalive = false;
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
     method: 'POST',
     headers: {
@@ -7343,7 +7347,8 @@ async function supabaseRpc(fn, payload={}) {
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(payload),
+    body,
+    keepalive,
   });
   if (!res.ok) {
     // 실제 원인(404/400/23505 등)을 콘솔에 남겨서 디버깅 가능하게, 메시지에도 같이 담아줌.
@@ -15313,7 +15318,7 @@ function VerifyPage(dayN) {
         state.verified_at['d'+dayN] = todayStr();
         state.verified_time = state.verified_time || {};
         state.verified_time['d'+dayN] = nowTimeStr();
-        saveState();
+        saveState({ immediate: true }); // 인증은 450ms 기다리지 않고 바로 올린다 (2026-11-05)
         recordVerificationEvent(dayN);
         showToast('🎉 Day ' + dayN + ' 인증 완료! 이제 녹음만 올리면 끝이에요');
         fireConfetti();
@@ -32444,6 +32449,22 @@ window.__submitPremiumCode = () => {
     showToast('❌ 코드가 맞지 않아요. 다시 확인해주세요.');
   }
 };
+// 운영자용: 유실된 인증을 서버에 되살린다. 브라우저 콘솔에서
+//   __opRestoreVerify('김소영', 13, '2026-11-04', '11:32')
+// 인증 로그(record_verification_event)에는 있는데 app_state 에서 빠진 날에 쓴다. (2026-11-05)
+window.__opRestoreVerify = async (name, day, date, hhmm) => {
+  if (!(state.isOperator || state.isStaff)) { console.warn('운영자만'); return; }
+  const p = await supabaseRpc('get_member_app_state', { p_cohort: CHALLENGE.cohort, p_member_key: name });
+  if (!p) { console.warn('서버에 상태 없음'); return; }
+  const k = 'd' + day;
+  p.verified = Object.assign({}, p.verified, { [k]: true });
+  p.verified_at = Object.assign({}, p.verified_at, { [k]: date });
+  p.verified_time = Object.assign({}, p.verified_time, { [k]: hhmm });
+  await supabaseRpc('upsert_member_app_state', { p_cohort: CHALLENGE.cohort, p_member_key: name, p_member_name: p.name || name, p_tier: p.tier || 'basic', p_app_state: p });
+  const q = await supabaseRpc('get_member_app_state', { p_cohort: CHALLENGE.cohort, p_member_key: name });
+  console.log('복구 결과', name, k, q.verified[k], q.verified_at[k], q.verified_time[k]);
+  showToast(`${name} Day ${day} 인증 복구됨`);
+};
 window.__toggleBookmark = (key) => {
   state.bookmarks[key] = !state.bookmarks[key];
   // vocab bank 와 동기화, key 에서 dayN/idx 뽑아 word 룩업.
@@ -33194,10 +33215,25 @@ if (!__DEMO_MODE__) {
 if (!__DEMO_MODE__ && hasSupabase()) {
   (async () => {
     try {
-      const remote = await loadRemoteState();
+      let remote = await loadRemoteState();
       if (remote && typeof remote === 'object') {
+        // 2026-11-05 (10기 김소영님 Day 13 인증 유실, 3번째): 여기서 서버 상태로 통째로 갈아끼우면,
+        // 아직 서버에 못 올라간 로컬 기록(인증·문장·시험)이 조용히 사라진다. 인증 버튼 누르고 바로
+        // 카톡으로 넘어가면 저장 요청이 끊기는데, 다음에 앱을 열 때 이 줄이 그 인증을 지웠다.
+        // 서버 값에 로컬 기록을 '더하기'로만 얹고, 서버에 없던 게 있으면 바로 올린다.
+        let needUpload = false;
+        try {
+          const loc = persistedStateSnapshot();
+          const before = JSON.stringify(remote);
+          remote = Object.assign({}, remote);
+          ADD_ONLY_BOOL.forEach((k) => { remote[k] = mergeAddOnly(remote[k], loc[k], true); });
+          ADD_ONLY_MAP.forEach((k) => { remote[k] = mergeAddOnly(remote[k], loc[k], false); });
+          needUpload = JSON.stringify(remote) !== before;
+          if (needUpload) console.warn('[hydrate] 서버에 없던 로컬 기록 발견 → 서버로 올림');
+        } catch (_) {}
         mergePersistedState(remote);
-        if (!statePersistQueued) { try { stateLastSavedJson = JSON.stringify(persistedStateSnapshot()); } catch (_) {} }
+        if (needUpload) statePersistQueued = true;
+        else if (!statePersistQueued) { try { stateLastSavedJson = JSON.stringify(persistedStateSnapshot()); } catch (_) {} }
         // Overwrite the stale localStorage snapshot NOW with the fresh remote
         // state, so next reload (even offline) starts clean. Prevents the
         // "local cache keeps resurrecting verified d2" bug on reset.
@@ -33237,7 +33273,22 @@ if (hasSupabase()) {
 window.addEventListener('focus', () => {
   if (hasSupabase() && !document.hidden) refreshRemoteStateAndCommunity({ force: true });
 });
+// 앱을 벗어나는 순간(카톡으로 전환·홈 버튼) 디바운스 대기 중인 저장을 즉시 올린다. (2026-11-05)
+// 아이폰은 화면을 떠나면 타이머가 멈추고 요청이 끊겨서, 인증 직후 카톡으로 넘어가면 저장이 안 올라갔다.
+function __flushPendingSave() {
+  try {
+    if (!hasSupabase() || !stateHydrated) return;
+    if (window.__statePersistTimerPending || statePersistQueued
+        || (stateLastSavedJson && JSON.stringify(persistedStateSnapshot()) !== stateLastSavedJson)) {
+      clearTimeout(statePersistTimer); window.__statePersistTimerPending = false;
+      window.__saveKeepalive = true;
+      persistStateNow();
+    }
+  } catch (_) {}
+}
+window.addEventListener('pagehide', __flushPendingSave);
 document.addEventListener('visibilitychange', () => {
+  if (document.hidden) __flushPendingSave();
   if (!document.hidden && hasSupabase()) refreshRemoteStateAndCommunity({ force: true });
   if (!document.hidden) __checkForUpdate();
 });
