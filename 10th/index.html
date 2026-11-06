@@ -28842,6 +28842,10 @@ function WeekSurveyResultPage() {
     'boss_save': '📚 오답 단어 저장 옵션',
     'premium_20': '💎 단어 시험 20개',
     'none_noticed': '🤔 잘 못 봤음',
+    'used_meeting': '🗣️ 회의·통화에서 말로',
+    'used_mail': '✉️ 메일·슬랙에',
+    'used_practice': '🔁 혼자 연습만',
+    'used_not_yet': '🙈 아직 못 씀',
   };
   const wishLabels = {
     'final_report': '📊 4주 종합 리포트',
@@ -30647,14 +30651,32 @@ function MiniWeekSurveyModal() {
       { id: 'ai_kr', emoji: '✨', label: 'AI 첨삭이 한국어 섞인 영작도 번역해줘요' },
       { id: 'boss_wrong_save', emoji: '📚', label: '시험에서 틀린 단어 → 결과 화면에서 단어장 저장' },
       { id: 'peer_alarm', emoji: '🔔', label: '동료가 문장 올리면 실시간 알림' },
-      { id: 'meeting_live', emoji: '🎬', label: '미팅 페이지에 "이렇게 진행돼요" 가이드 카드' },
+      { id: 'meeting_live', emoji: '🎬', label: '미팅 페이지에 "이렇게 진행돼요" 가이드 카드', premiumOnly: true },
       { id: 'survey_first', emoji: '📝', label: '시험 전 1분 회고로 직접 의견 전달 (지금 이거!)' },
     ],
     // Week 4 는 파이널/PDF 가 설문 시점엔 아직 안 보여서 '업데이트 좋았던 것' 질문 X.
     // → updates 비워두면 Q1 이 '단어 난이도' 질문으로 대체됨 (아래 q1Html).
     '4': [],
   };
-  const updates = WEEK_UPDATES[String(weekN)] || [];
+  const updates = (WEEK_UPDATES[String(weekN)] || []).filter(u => !u.premiumOnly || state.tier === 'premium');
+  // Q1 을 '업데이트 평가' 대신 다른 질문으로 바꾸는 주차. 베이직에게 더 쓸모 있는 질문으로 (2026-11-06 버디).
+  // 저장 키는 그대로 update_loved (대시보드 분포 집계 재사용), 옵션 id 만 다름.
+  const Q1_OVERRIDE = {
+    '3': {
+      title: '이번 주 배운 표현, 실제로 어디에 써봤어요? (여러 개 OK)',
+      opts: [
+        { id: 'used_meeting', emoji: '🗣️', label: '회의나 통화에서 말로 꺼냈어요' },
+        { id: 'used_mail', emoji: '✉️', label: '메일이나 슬랙에 써봤어요' },
+        { id: 'used_practice', emoji: '🔁', label: '혼자 소리 내어 연습만 했어요' },
+        { id: 'used_not_yet', emoji: '🙈', label: '아직 못 써봤어요 (쓸 자리가 없었어요)' },
+      ],
+      none: null,
+    },
+  };
+  const q1Override = Q1_OVERRIDE[String(weekN)] || null;
+  const q1Opts = q1Override ? q1Override.opts : updates;
+  const q1Title = q1Override ? q1Override.title : '이번 주 업데이트 중 어떤 게 제일 좋았어요? (여러 개 OK)';
+  const q1NoneLabel = q1Override ? q1Override.none : '🤔 잘 못 봤어요 / 그냥 그랬어요';
 
   // 다음 주 우선순위 옵션, 주차별
   const NEXT_WISH = {
@@ -30760,7 +30782,7 @@ function MiniWeekSurveyModal() {
     { v: 4, label: '😮‍💨 어려운 편' },
     { v: 5, label: '🥵 너무 어려웠어요' },
   ];
-  const q1Html = updates.length === 0 ? `
+  const q1Html = q1Opts.length === 0 ? `
     ${sectionH(1, '이번 주 단어 난이도는 어땠어요?')}
     <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
       ${DIFF_OPTS.map((o) => {
@@ -30769,18 +30791,19 @@ function MiniWeekSurveyModal() {
       }).join('')}
     </div>
   ` : `
-    ${sectionH(1, '이번 주 업데이트 중 어떤 게 제일 좋았어요? (여러 개 OK)')}
+    ${sectionH(1, q1Title)}
     <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
-      ${updates.map(u => {
+      ${q1Opts.map(u => {
         const active = (draft.update_loved || []).includes(u.id);
         return `<button data-mini-loved="${escapeHtml(u.id)}" style="width:100%;text-align:left;padding:10px 12px;border-radius:12px;background:${active ? 'rgba(156,107,63,0.14)' : '#fff'};color:var(--ink);border:1.5px solid ${active ? 'var(--orange)' : 'var(--line)'};font-size:12.5px;font-weight:${active ? '700' : '500'};cursor:pointer;display:flex;align-items:flex-start;gap:8px;line-height:1.45;">
           <span style="flex-shrink:0;width:18px;height:18px;border-radius:5px;border:1.5px solid ${active ? 'var(--orange)' : 'var(--line)'};background:${active ? 'var(--orange)' : '#fff'};color:#fff;display:grid;place-items:center;font-size:11px;font-weight:800;margin-top:1px;">${active ? '✓' : ''}</span>
           <span style="flex:1;text-align:left;">${u.emoji} ${escapeHtml(u.label)}</span>
         </button>`;
       }).join('')}
-      <button data-mini-loved="none_noticed" style="width:100%;text-align:left;padding:10px 12px;border-radius:12px;background:${(draft.update_loved || []).includes('none_noticed') ? 'rgba(154,139,115,0.12)' : '#fff'};color:var(--muted);border:1.5px solid ${(draft.update_loved || []).includes('none_noticed') ? 'rgba(154,139,115,0.5)' : 'var(--line)'};font-size:12px;cursor:pointer;line-height:1.45;">
-        🤔 잘 못 봤어요 / 그냥 그랬어요
-      </button>
+      ${q1NoneLabel ? `<button data-mini-loved="none_noticed" style="width:100%;text-align:left;padding:10px 12px;border-radius:12px;background:${(draft.update_loved || []).includes('none_noticed') ? 'rgba(154,139,115,0.12)' : '#fff'};color:var(--muted);border:1.5px solid ${(draft.update_loved || []).includes('none_noticed') ? 'rgba(154,139,115,0.5)' : 'var(--line)'};font-size:12px;cursor:pointer;line-height:1.45;">
+        ${escapeHtml(q1NoneLabel || '')}
+      </button>` : ''}
+
     </div>
   `;
 
