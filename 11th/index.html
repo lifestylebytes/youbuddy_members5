@@ -36372,10 +36372,41 @@ function __buildDonePopup() {
   const peerLine = peersToday > 1 ? `오늘 함께 끝낸 동료 ${peersToday}명 🤝` : '';
   return { icon, title, body, peerLine, confetti };
 }
+// 그 주 5일을 다 채운 날(Day 5/10/15/20)엔 '완료' 팝업을 닫자마자 주간 회고 설문을 바로 띄운다.
+// 예전엔 홈으로 돌아가거나 주간 시험에 들어가야만 떴다. (2026-11-06 버디)
+// 이미 답했거나 skip 한 주차는 안 띄움. Week 4 는 메인 설문(showSurveyFillModal), 1~3 은 미니 설문.
+window.__maybeWeekSurveyAfterDone = (day) => {
+  try {
+    const d = Number(day) || 0;
+    if (d < 1 || d % 5 !== 0) return false;
+    const weekN = Math.min(4, Math.max(1, Math.ceil(d / 5)));
+    const vd = (n) => !!(state.verified && state.verified['d' + n]);
+    for (let x = (weekN - 1) * 5 + 1; x <= weekN * 5; x++) { if (!vd(x)) return false; }
+    const sv = (state.week_survey || {})[String(weekN)] || {};
+    const mainDone = !!(sv.at && !sv.skipped);
+    const miniHandled = !!(sv.mini && (sv.mini.at || sv.mini.skipped));
+    if (mainDone || miniHandled) return false;
+    if (anyPopupOpen() || guidedTourStep !== null || !challengeStarted()) return false;
+    // 홈 자동 노출 가드도 같이 세워서 같은 주차가 두 번 안 뜨게.
+    window.__surveyNudgeSession = window.__surveyNudgeSession || {};
+    window.__surveyNudgeSession[String(weekN)] = true;
+    state.week_survey_nudged = state.week_survey_nudged || {};
+    state.week_survey_nudged[String(weekN)] = true;
+    try { saveState(); } catch (e) {}
+    setTimeout(() => {
+      if (anyPopupOpen() || guidedTourStep !== null) return;
+      if (weekN === 4) showSurveyFillModal = weekN; else showMiniWeekSurvey = weekN;
+      render();
+    }, 350);
+    return true;
+  } catch (e) { return false; }
+};
 window.__closeDonePopup = () => {
   const wasPreview = window.__donePreviewDay != null;
   const d = Number(state.currentDay) || 1;
   showDonePopup = null; window.__donePreviewDay = null;
+  // 주 마지막 날이면 공유 카드·보상 팝업보다 회고 설문이 먼저. (설문 끝나면 바로 주간 시험으로 이어짐)
+  if (!wasPreview && window.__maybeWeekSurveyAfterDone(d)) { render(); return; }
   // 매일, '다음에요'를 눌러도 카드가 한 번은 뜬다 (그날 1회).
   if (!wasPreview && SHARE_CARD_AUTO_DAYS.includes(d) && !((state.share_card_seen || {})['d' + d])) {
     setTimeout(() => { try { window.__openShareCard(d); } catch (e) {} }, 250);
