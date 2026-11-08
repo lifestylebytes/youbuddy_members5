@@ -25925,7 +25925,7 @@ function CommunityPage() {
       timezone_text: post.timezone_text,
     }));
   } else {
-    const myName = state.name || '박지혜';
+    const myName = state.name || '멤버';
     const myPosts = [];
     if (dayData && dayData.words) {
       dayData.words.forEach((w, i) => {
@@ -26246,7 +26246,7 @@ function SettingsModal() {
     <p class="t-body" style="margin-top:10px;font-size:13px;color:var(--ink-soft);line-height:1.5;">이름·시차는 가입 시 고정돼요. 직무·닉네임은 언제든 바꿀 수 있어요.</p>
     <div style="margin-top:16px;">
       <div class="kicker" style="color:var(--muted);">이름 (수정 불가)</div>
-      <div style="margin-top:6px;padding:12px 14px;border-radius:12px;background:var(--paper);color:var(--ink-soft);font-size:14px;font-weight:600;">${escapeHtml(state.name || '박지혜')}</div>
+      <div style="margin-top:6px;padding:12px 14px;border-radius:12px;background:var(--paper);color:var(--ink-soft);font-size:14px;font-weight:600;">${escapeHtml(state.name || '멤버')}</div>
     </div>
     <div style="margin-top:14px;">
       <div class="kicker" style="color:var(--muted);">닉네임 <span style="color:var(--muted);font-weight:400;">(선택 · 8자 이내 · 한글·영어 가능)</span></div>

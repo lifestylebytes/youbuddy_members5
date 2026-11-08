@@ -1068,7 +1068,7 @@ sup.ai-hl-n{font-size:0.62em;font-weight:800;color:#C47A12;margin-right:2px;vert
 /* ── 11기 크리스마스 테마 (2026-11-08 버디 요청) ──
    html.xmas 클래스가 있을 때만 적용. 끄려면 <head> 의 xmas 스크립트 한 줄만 지우면 됨.
    2027-01-01 부터는 자동으로 꺼짐. 색 변수(--orange 등)는 건드리지 않음 (인라인 네이비가 많아서). */
-html.xmas { --xmas-red: #B8403F; --xmas-green: #2F6B4F; --xmas-gold: #D9A84E; }
+html.xmas { --word-on-dark: #A8DDB9; --xmas-red: #B8403F; --xmas-green: #2F6B4F; --xmas-gold: #D9A84E; }
 /* 파란(네이비) 계열을 초록으로: 변수는 여기서, 인라인·클래스 색은 맨 아래 xmas 스크립트가 바꿈 */
 html.xmas { --orange: #2F6B4F; --orange-dark: #1F4D38; --orange-soft: #DCEADF; --orange-ghost: #EEF5F0; --lilac: #B8403F; --lilac-soft: #F7E4E2; }
 /* 눈 내리는 레이어: 클릭 방해 없음, 탭바·모달보다 아래 */
@@ -15037,6 +15037,8 @@ function VerifyPage(dayN) {
   window.__verifyUi = window.__verifyUi || {};
   const ui = window.__verifyUi[dayN] || { idx: 0, value: '', done: false, score: 0, activeStep: null };
   window.__verifyUi[dayN] = ui;
+  // 녹음 단계(Step 4) 버튼이 단계 목록 그릴 때 이 값을 쓰므로 맨 위에서 선언 (2026-11-08: 아래에 있어서 인증 페이지가 통째로 깨졌음)
+  const verified = !!state.verified['d'+dayN];
 
   const copyKey = `d${dayN}-copy`;
   const sentenceDone = d.words.every((_, i) => !!state.submitted[`d${dayN}-${i}`]);
@@ -15279,7 +15281,7 @@ function VerifyPage(dayN) {
   } else if (activeStep === 'copy') {
     d.words.forEach((w, i) => {
       const row = el('div', { style: { padding: '12px 14px', borderRadius: '14px', background: 'rgba(251,247,240,0.06)', display: 'flex', alignItems: 'center', gap: '10px', marginTop: i === 0 ? '18px' : '10px' } });
-      row.innerHTML = `<span class="mono" style="font-size:11px;color:rgba(251,247,240,0.4)">0${i+1}</span><span style="font-size:24px;color:var(--orange);font-weight:700;letter-spacing:-0.03em;">${escapeHtml(w.en)}</span><button class="icon-btn" style="margin-left:auto;background:rgba(251,247,240,0.1);border:none;color:var(--cream);" onclick="window.__speakWord(${dayN}, ${i})">${Icon('volume', 14)}</button>`;
+      row.innerHTML = `<span class="mono" style="font-size:11px;color:rgba(251,247,240,0.4)">0${i+1}</span><span style="font-size:24px;color:var(--word-on-dark, var(--orange));font-weight:700;letter-spacing:-0.03em;">${escapeHtml(w.en)}</span><button class="icon-btn" style="margin-left:auto;background:rgba(251,247,240,0.1);border:none;color:var(--cream);" onclick="window.__speakWord(${dayN}, ${i})">${Icon('volume', 14)}</button>`;
       panel.appendChild(row);
     });
     panel.appendChild(el('button', { class: 'btn btn-primary btn-full', style: { marginTop: '16px' }, onClick: () => {
@@ -15395,7 +15397,6 @@ function VerifyPage(dayN) {
   });
   page.appendChild(stepList);
 
-  const verified = !!state.verified['d'+dayN];
   const allDone = steps.every((step) => step.done);
   const finalBtn = el('button', {
     class: 'btn btn-full btn-lg',
@@ -26035,7 +26036,7 @@ function CommunityPage() {
       timezone_text: post.timezone_text,
     }));
   } else {
-    const myName = state.name || '박지혜';
+    const myName = state.name || '멤버';
     const myPosts = [];
     if (dayData && dayData.words) {
       dayData.words.forEach((w, i) => {
@@ -26356,7 +26357,7 @@ function SettingsModal() {
     <p class="t-body" style="margin-top:10px;font-size:13px;color:var(--ink-soft);line-height:1.5;">이름·시차는 가입 시 고정돼요. 직무·닉네임은 언제든 바꿀 수 있어요.</p>
     <div style="margin-top:16px;">
       <div class="kicker" style="color:var(--muted);">이름 (수정 불가)</div>
-      <div style="margin-top:6px;padding:12px 14px;border-radius:12px;background:var(--paper);color:var(--ink-soft);font-size:14px;font-weight:600;">${escapeHtml(state.name || '박지혜')}</div>
+      <div style="margin-top:6px;padding:12px 14px;border-radius:12px;background:var(--paper);color:var(--ink-soft);font-size:14px;font-weight:600;">${escapeHtml(state.name || '멤버')}</div>
     </div>
     <div style="margin-top:14px;">
       <div class="kicker" style="color:var(--muted);">닉네임 <span style="color:var(--muted);font-weight:400;">(선택 · 8자 이내 · 한글·영어 가능)</span></div>
@@ -38451,7 +38452,7 @@ if (currentPage === 'weeks' || currentPage === 'day') {
     if (!document.documentElement.classList.contains('xmas')) return;
     var MAP = {
       '47,74,109': '47,107,79', '31,51,80': '31,77,56', '217,227,238': '220,234,223', '241,245,249': '238,245,240',
-      '205,226,242': '213,232,218', '30,95,160': '47,107,79',
+      '205,226,242': '213,232,218', '30,95,160': '47,107,79', '30,42,56': '20,48,31', '44,74,102': '29,68,52',
       '169,139,184': '184,64,63', '123,94,140': '142,47,46', '107,79,125': '122,41,40', '123,94,167': '142,47,46',
       '194,169,209': '217,139,133', '143,110,163': '163,59,58', '155,127,174': '184,64,63', '238,230,243': '247,228,226'
     };
