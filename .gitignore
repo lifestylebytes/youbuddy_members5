@@ -35,3 +35,6 @@ _archive/**/*_비공개.json
 # 수료식 산출물에 멤버 실명·호명이 들어간다. 공개 저장소 커밋 금지.
 _archive/**/수료식/data.json
 _archive/**/수료식/announcements.md
+
+# 멤버 실명 들어간 1:1 톡 원고 (공개 저장소 금지)
+_archive/**/*1on1톡*.txt
