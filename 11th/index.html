@@ -1069,9 +1069,8 @@ sup.ai-hl-n{font-size:0.62em;font-weight:800;color:#C47A12;margin-right:2px;vert
    html.xmas 클래스가 있을 때만 적용. 끄려면 <head> 의 xmas 스크립트 한 줄만 지우면 됨.
    2027-01-01 부터는 자동으로 꺼짐. 색 변수(--orange 등)는 건드리지 않음 (인라인 네이비가 많아서). */
 html.xmas { --xmas-red: #B8403F; --xmas-green: #2F6B4F; --xmas-gold: #D9A84E; }
-html.xmas .app { background:
-  radial-gradient(1200px 260px at 50% -120px, rgba(47,107,79,0.07), transparent 70%),
-  var(--ivory); }
+/* 파란(네이비) 계열을 초록으로: 변수는 여기서, 인라인·클래스 색은 맨 아래 xmas 스크립트가 바꿈 */
+html.xmas { --orange: #2F6B4F; --orange-dark: #1F4D38; --orange-soft: #DCEADF; --orange-ghost: #EEF5F0; --lilac: #B8403F; --lilac-soft: #F7E4E2; }
 /* 눈 내리는 레이어: 클릭 방해 없음, 탭바·모달보다 아래 */
 html.xmas .app::after {
   content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 30;
@@ -1107,12 +1106,6 @@ html.xmas [data-tour="home-hero"]::after {
     radial-gradient(2px 2px at 280px 180px, rgba(255,255,255,0.40) 50%, transparent 51%);
   background-size: 300px 220px;
   animation: xmasSnow 22s linear infinite;
-}
-/* 상단바 아래 캔디케인 띠 */
-html.xmas .topbar { position: relative; }
-html.xmas .topbar::after {
-  content: ""; position: absolute; left: 4px; right: 4px; bottom: 6px; height: 4px; border-radius: 4px; opacity: .85;
-  background: repeating-linear-gradient(135deg, var(--xmas-red) 0 8px, #fff 8px 14px, var(--xmas-green) 14px 22px, #fff 22px 28px);
 }
 /* 홈 카드 메인 버튼: 크리스마스 레드 */
 html.xmas [data-tour="home-hero"] .btn-primary { background: var(--xmas-red); border-color: var(--xmas-red); position: relative; z-index: 2; }
@@ -38431,6 +38424,76 @@ render();
 if (currentPage === 'weeks' || currentPage === 'day') {
   restoreCurrentScroll();
 }
+</script>
+<script>
+/* 11기 크리스마스 테마: 파랑·보라 계열 색을 초록·빨강으로 바꿔 칠함 (html.xmas 일 때만).
+   CSS 규칙과 인라인 style, svg fill/stroke 를 rgb 숫자로 찾아 바꾼다. 원본 코드는 그대로. */
+(function () {
+  try {
+    if (!document.documentElement.classList.contains('xmas')) return;
+    var MAP = {
+      '47,74,109': '47,107,79', '31,51,80': '31,77,56', '217,227,238': '220,234,223', '241,245,249': '238,245,240',
+      '205,226,242': '213,232,218', '30,95,160': '47,107,79',
+      '169,139,184': '184,64,63', '123,94,140': '142,47,46', '107,79,125': '122,41,40', '123,94,167': '142,47,46',
+      '194,169,209': '217,139,133', '143,110,163': '163,59,58', '155,127,174': '184,64,63', '238,230,243': '247,228,226'
+    };
+    var HEX = {};
+    Object.keys(MAP).forEach(function (k) {
+      var h = '#' + k.split(',').map(function (n) { return (+n).toString(16).padStart(2, '0'); }).join('');
+      var t = '#' + MAP[k].split(',').map(function (n) { return (+n).toString(16).padStart(2, '0'); }).join('');
+      HEX[h] = t;
+    });
+    var RE = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/g;
+    var HRE = /#[0-9a-fA-F]{6}\b/g;
+    function swap(txt) {
+      if (!txt) return txt;
+      var out = txt.replace(RE, function (m, r, g, b) {
+        var k = r + ',' + g + ',' + b; if (!MAP[k]) return m;
+        var t = MAP[k].split(','); return m.replace(/\d+\s*,\s*\d+\s*,\s*\d+/, t[0] + ', ' + t[1] + ', ' + t[2]);
+      });
+      return out.replace(HRE, function (h) { return HEX[h.toLowerCase()] || h; });
+    }
+    function fixRules(rules) {
+      for (var i = 0; i < rules.length; i++) {
+        var r = rules[i];
+        if (r.cssRules && !r.style) { fixRules(r.cssRules); continue; }
+        if (!r.style) continue;
+        var a = r.style.cssText, b = swap(a);
+        if (a !== b) r.style.cssText = b;
+      }
+    }
+    function fixSheets() {
+      for (var i = 0; i < document.styleSheets.length; i++) {
+        var sh = document.styleSheets[i];
+        if (sh.__xmas) continue;
+        try { fixRules(sh.cssRules); sh.__xmas = true; } catch (e) { sh.__xmas = true; }
+      }
+    }
+    function fixEl(el) {
+      if (el.nodeType !== 1) return;
+      var st = el.getAttribute('style');
+      if (st) { var n = swap(st); if (n !== st) el.setAttribute('style', n); }
+      var f = el.getAttribute('fill'); if (f && f[0] === '#' && HEX[f.toLowerCase()]) el.setAttribute('fill', HEX[f.toLowerCase()]);
+      var s2 = el.getAttribute('stroke'); if (s2 && s2[0] === '#' && HEX[s2.toLowerCase()]) el.setAttribute('stroke', HEX[s2.toLowerCase()]);
+    }
+    function fixTree(root) {
+      fixEl(root);
+      if (root.querySelectorAll) root.querySelectorAll('[style],[fill],[stroke]').forEach(fixEl);
+    }
+    function start() {
+      fixSheets(); fixTree(document.body);
+      new MutationObserver(function (list) {
+        for (var i = 0; i < list.length; i++) {
+          var m = list[i];
+          if (m.type === 'attributes') fixEl(m.target);
+          else for (var j = 0; j < m.addedNodes.length; j++) { var n = m.addedNodes[j]; if (n.nodeType === 1) { if (n.tagName === 'STYLE') { fixSheets(); } fixTree(n); } }
+        }
+      }).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['style', 'fill', 'stroke'] });
+    }
+    if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+    var mt = document.querySelector('meta[name="theme-color"]'); if (mt) mt.setAttribute('content', '#1D4434');
+  } catch (e) {}
+})();
 </script>
 </body>
 </html>
