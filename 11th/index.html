@@ -15453,6 +15453,13 @@ function VerifyPage(dayN) {
     }
   }
   page.appendChild(finalBtn);
+  if (verified) {
+    page.appendChild(el('button', {
+      class: 'btn btn-ghost btn-full',
+      style: { marginTop: '10px', justifyContent: 'center' },
+      onClick: () => { try { window.__openShareCard(dayN); } catch (e) {} },
+    }, '📸 오늘 인증 카드 받기'));
+  }
   return page;
 }
 
@@ -19522,6 +19529,12 @@ function DayPage(dayN) {
     const doneChip = el('span');
     doneChip.innerHTML = '<span class="badge badge-green" style="padding:6px 12px;">✓ DONE</span>';
     chipRow.appendChild(doneChip);
+    // 인증한 날은 언제든 인증 카드를 다시 받을 수 있게 (2026-11-09 버디)
+    chipRow.appendChild(el('button', {
+      class: 'badge',
+      style: { padding: '6px 12px', border: '1px solid var(--line)', background: '#fff', color: 'var(--ink)', cursor: 'pointer', fontWeight: '700' },
+      onClick: () => { try { window.__openShareCard(dayN); } catch (e) {} },
+    }, '📸 인증 카드'));
   }
   page.appendChild(chipRow);
 
