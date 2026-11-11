@@ -25,6 +25,11 @@ def collect(cohort):
             except Exception: continue
         for f in (st.get('ai_review_feedback') or []):
             if isinstance(f,dict): items.append(dict(f, member=k, nick=st.get('englishName') or ''))
+        # 녹음 인증 결과 피드백 (11기~, state.rec_feedback = { d1: {rating, text, at, accuracy, scores, transcript} })
+        for dk, f in (st.get('rec_feedback') or {}).items():
+            if isinstance(f,dict) and f.get('sent'):
+                items.append(dict(f, kind='rec', key='rec-'+dk, member=k, nick=st.get('englishName') or '',
+                                  sentences=[(st.get('sentences') or {}).get(f'{dk}-{i}','') for i in range(3)]))
     return items
 def main():
     cohorts=sys.argv[1:] or ['9기']
@@ -45,9 +50,17 @@ def main():
             new.append(f)
             with open(p,'a',encoding='utf-8') as out:
                 out.write(f"<!--id:{fid}-->\n")
+                if f.get('kind')=='rec':
+                    emo={'down':'🤔','mid':'😐'}.get(f.get('rating'),'👍')
+                    out.write(f"## 🎙 {emo} {f.get('nick') or f['member']} · 녹음 Day {str(f.get('key',''))[5:]} · {str(f.get('at',''))[:16]}\n")
+                    if f.get('text'): out.write(f"- 한 줄: {f['text']}\n")
+                    out.write(f"- 들린 정도: {f.get('accuracy')}% (문장별 {f.get('scores')}) · 인증 {'완료' if f.get('verified') else '미완료'}\n")
+                    out.write(f"- 내 문장: {' / '.join(x for x in f.get('sentences',[]) if x)}\n- 인식 결과: {f.get('transcript','')}\n\n")
+                    continue
                 out.write(f"## {'👎' if f.get('rating')=='down' else '👍'} {f.get('nick') or f['member']} · {f.get('word','')} · {str(f.get('at',''))[:16]}\n")
                 if f.get('text'): out.write(f"- 한 줄: {f['text']}\n")
                 out.write(f"- 원문: {f.get('original','')}\n- 교정: {f.get('corrected','')}\n- why: {f.get('why','')}\n\n")
         down=sum(1 for f in items if f.get('rating')=='down')
-        print(f"{c}: 총 {len(items)}건 (👎 {down}) · 새로 추가 {len(new)}건 → {p}")
+        rec=sum(1 for f in items if f.get('kind')=='rec')
+        print(f"{c}: 총 {len(items)}건 (👎 {down} · 🎙 녹음 {rec}) · 새로 추가 {len(new)}건 → {p}")
 if __name__=='__main__': main()

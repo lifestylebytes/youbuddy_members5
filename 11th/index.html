@@ -1046,6 +1046,9 @@ sup.ai-hl-n{font-size:0.62em;font-weight:800;color:#C47A12;margin-right:2px;vert
 .rec-acc-mini{display:flex;align-items:baseline;gap:4px;flex-wrap:wrap;padding:10px 12px;}
 .rec-acc-mini .rec-acc-num{font-size:28px;}
 .rec-acc-week{margin-left:auto;font-size:11.5px;font-weight:700;color:rgba(255,255,255,0.7);}
+.rec-review{margin-top:10px;font-size:12px;color:rgba(255,255,255,0.65);}
+.rec-review>summary{cursor:pointer;font-weight:700;color:rgba(255,255,255,0.75);}
+.rec-review .rec-sent{margin-top:8px;color:#fff;}
 .rec-heard{margin-top:10px;font-size:12px;color:rgba(255,255,255,0.65);}
 .rec-heard summary{cursor:pointer;font-weight:700;color:rgba(255,255,255,0.75);}
 .rec-heard div{margin-top:6px;padding:10px 12px;border-radius:10px;background:rgba(0,0,0,0.18);line-height:1.6;font-style:italic;}
@@ -36258,6 +36261,13 @@ function RecorderCard(dayN) {
     card.innerHTML = head('녹음 인증 완료', `오늘 녹음 끝! ${saved.matched === 3 ? '세 문장 다 또렷했어요' : saved.needs_review ? '운영진이 한 번 들어볼게요' : '잘 들렸어요'}`,
       `${new Date(saved.at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 제출`)
       + (typeof saved.accuracy === 'number' ? (() => { const wk = recWeekAvg(dayN); return `<div class="rec-acc rec-acc-mini"><span class="rec-acc-num">${saved.accuracy}</span><span class="rec-acc-unit">%</span><span class="rec-acc-grade">오늘 들린 정도</span>${wk && wk.n > 1 ? `<span class="rec-acc-week">이번 주 평균 ${wk.avg}% · ${wk.n}일</span>` : ''}</div>`; })() : '')
+      + (() => { // 끝낸 날도 어디가 안 들렸는지 다시 볼 수 있게. 완료 화면이라 접어둔다 (2026-11-11)
+          if (!saved.transcript || !sentences.length) return '';
+          const mm = recMissMarks(sentences, saved.transcript); const sc = Array.isArray(saved.scores) ? saved.scores : [];
+          const anyMiss = mm.marks.some((a) => a.some(Boolean));
+          const lis = sentences.map((s, i) => `<li class="${(sc[i] == null || sc[i] >= 0.6) ? 'ok' : 'miss'}"><span>${(sc[i] == null || sc[i] >= 0.6) ? '✓' : '·'}</span>${recMarkedSentHtml(mm, i, s)}${krs[i] ? `<div class="rec-kr">${H(krs[i])}</div>` : ''}</li>`).join('');
+          return `<details class="rec-review"><summary>${anyMiss ? '어디가 덜 들렸는지 보기' : '내 문장 다시 보기'}</summary><ol class="rec-sent rec-check">${lis}</ol>${anyMiss ? '<div class="rec-legend"><b>빨간 글자</b>는 안 들렸거나 다르게 들린 부분이에요. 인증은 이미 끝났으니 복습용으로만 보세요.</div>' : ''}${recHeardHtml(saved.transcript)}${recFbHtml(dayN)}</details>`;
+        })()
       + `<div class="rec-row">
            <button class="btn rec-btn-ghost" data-rec-play onclick="window.__recPlaySaved(${JSON.stringify(saved.path)}, this)">▶ 내 녹음 듣기</button>
            <button class="btn rec-btn-ghost" onclick="window.__rec.status='idle';window.__recStart(${dayN})">다시 녹음</button>
