@@ -1020,6 +1020,16 @@ sup.ai-hl-n{font-size:0.62em;font-weight:800;color:#C47A12;margin-right:2px;vert
 .rec-sent.rec-check li>span{position:absolute;left:12px;top:10px;font-weight:900;}
 .rec-sent.rec-check li.ok{background:rgba(120,220,160,0.18);}
 .rec-sent.rec-check li.miss{background:rgba(255,160,120,0.16);opacity:0.9;}
+.rec-sent li .rec-missw{color:#FF8E8E;font-weight:800;text-decoration:underline;text-decoration-color:rgba(255,142,142,0.55);text-underline-offset:3px;}
+.rec-legend{margin-top:8px;font-size:11.5px;color:rgba(255,255,255,0.7);line-height:1.5;}
+.rec-legend b{color:#FF8E8E;}
+.rec-fb{margin-top:12px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.18);font-size:12px;color:rgba(255,255,255,0.8);}
+.rec-fb-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.rec-fb button.rec-fb-e{padding:5px 11px;border-radius:999px;border:1px solid rgba(255,255,255,0.28);background:rgba(255,255,255,0.08);color:#fff;font-size:12.5px;cursor:pointer;}
+.rec-fb button.rec-fb-e.on{background:#fff;color:#1F2A38;border-color:#fff;font-weight:800;}
+.rec-fb input{width:100%;margin-top:8px;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,0.25);background:rgba(0,0,0,0.18);color:#fff;font-size:13px;}
+.rec-fb input::placeholder{color:rgba(255,255,255,0.5);}
+.rec-fb .rec-fb-send{margin-top:7px;padding:8px 13px;border-radius:10px;border:none;background:#fff;color:#1F2A38;font-size:12.5px;font-weight:800;cursor:pointer;}
 .rec-kr{margin-top:3px;font-size:12px;font-weight:500;line-height:1.45;color:rgba(255,255,255,0.55);}
 .rec-acc{margin-top:12px;padding:14px;border-radius:14px;background:rgba(0,0,0,0.18);}
 .rec-acc-big{display:flex;align-items:baseline;gap:4px;}
@@ -1838,6 +1848,7 @@ const defaultState = () => ({
   holiday_popup_seen: {},           // { 'chuseok': true } 공휴일 인증 안내 팝업 본 상태 (1회)
   gift_popup_seen: {},              // { d18: true } 완주 선물 기준 팝업 본 날 (하루 1회)
   grad_popup_seen: null,            // 졸업 안내 팝업 본 시각 (수료식 이후 1회 자동, 이후 배너로 재열람)
+  rec_feedback: {},                 // { d1: { sent, rating: up|mid|down, text, at, accuracy, scores, transcript } } 녹음 결과 피드백 (2026-11-11)
   recordings: {},                   // { d1: { at, path, matched, verified, needs_review, attempts } } 앱 녹음 인증 (11기)
   recording_notice_seen: false,     // 녹음 보관 안내 1회
   share_card_shared: {},            // { d1: ISO } 실제로 공유 시트까지 간 날 (운영자 분석용)
@@ -1948,6 +1959,7 @@ const PERSISTED_STATE_KEYS = [
   'review_counts',
   'review_ask_seen',
   'ai_review_feedback',
+  'rec_feedback',
   'qna_w4_seen',
   'rr_snooze_day',
   'review_clicked',
@@ -2183,7 +2195,7 @@ const ADD_ONLY_MAP = [
   'sentences', 'sentence_notes', 'submitted_text', 'saved_examples', 'saved_syns',
   'bookmarks', 'week_survey', 'vocab_stats', 'review_counts', 'personal_quiz_answers',
   // 2026-10-11 추가: 전부 "한 번 쌓이면 되돌릴 수 없는" 기록인데 보호 밖에 있었다.
-  'ai_history', 'ai_feedback', 'ai_review_feedback', 'ai_daily_usage',
+  'ai_history', 'ai_feedback', 'ai_review_feedback', 'rec_feedback', 'ai_daily_usage',
   'personal_quiz', 'personal_quiz_fill_answers', 'personal_quiz_submitted',
   'community_comments', 'community_edits', 'meeting_notes', 'pitch_scratch',
   'bingo', 'bingo_marked', 'sentences_first', 'checkpoints', 'final_downloads',
@@ -36134,6 +36146,69 @@ function recAccHtml(acc, scores, sentences) {
       <div class="rec-acc-note">발음 점수가 아니에요. 음성인식이 내 문장을 얼마나 알아들었는지예요. 매일 쌓여서 나중에 그래프로 볼 수 있어요.</div>
     </div>`;
 }
+// 안 들렸거나 다르게 들린 단어를 빨갛게 (2026-11-11 버디). 내 문장 단어열과 음성인식 결과 단어열을 순서대로 맞춰보고(LCS),
+// 짝이 안 맞은 단어만 표시한다. 한 글자 차이(복수형·오타 수준)는 들린 걸로 친다.
+function recNormW(w) { return String(w || '').toLowerCase().replace(/[’‘`]/g, "'").replace(/[^a-z0-9']/g, '').replace(/'/g, ''); }
+function recNearW(a, b) {
+  if (a === b) return true;
+  if (a.length < 4 || b.length < 4 || Math.abs(a.length - b.length) > 1) return false;
+  let i = 0, j = 0, diff = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) { i++; j++; continue; }
+    if (++diff > 1) return false;
+    if (a.length > b.length) i++; else if (a.length < b.length) j++; else { i++; j++; }
+  }
+  return diff + (a.length - i) + (b.length - j) <= 1;
+}
+function recMissMarks(sentences, transcript) {
+  const toks = sentences.map((s) => String(s || '').split(/\s+/).filter(Boolean));
+  const flat = []; toks.forEach((ws, si) => ws.forEach((w, wi) => { const n = recNormW(w); if (n) flat.push({ si, wi, n }); }));
+  const heard = String(transcript || '').split(/\s+/).map(recNormW).filter(Boolean);
+  const A = flat.length, B = heard.length;
+  const marks = toks.map((ws) => ws.map(() => false));
+  if (!A) return { toks, marks };
+  const dp = Array.from({ length: A + 1 }, () => new Uint16Array(B + 1));
+  for (let i = A - 1; i >= 0; i--) for (let j = B - 1; j >= 0; j--) {
+    dp[i][j] = recNearW(flat[i].n, heard[j]) ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  }
+  const hit = new Array(A).fill(false);
+  let i = 0, j = 0;
+  while (i < A && j < B) {
+    if (recNearW(flat[i].n, heard[j]) && dp[i][j] === dp[i + 1][j + 1] + 1) { hit[i] = true; i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) i++; else j++;
+  }
+  flat.forEach((f, k) => { if (!hit[k]) marks[f.si][f.wi] = true; });
+  return { toks, marks };
+}
+function recMarkedSentHtml(mm, i, fallback) {
+  if (!mm || !mm.toks[i]) return escapeHtml(String(fallback || ''));
+  return mm.toks[i].map((w, k) => mm.marks[i][k] ? `<b class="rec-missw">${escapeHtml(w)}</b>` : escapeHtml(w)).join(' ');
+}
+// 녹음 결과 피드백 (이모지 + 한 줄). state.rec_feedback['d'+day] 로 쌓여 서버에 동기화된다.
+function recFbHtml(dayN) {
+  const mine = (state.rec_feedback || {})['d' + dayN];
+  if (mine && mine.sent) return `<div class="rec-fb">${mine.rating === 'down' ? '🤔' : mine.rating === 'mid' ? '😐' : '👍'} 의견 전달됐어요. 버디가 읽고 녹음 인증을 계속 다듬을게요 🧡</div>`;
+  const pick = window.__recFbPick && window.__recFbPick.day === dayN ? window.__recFbPick.rating : '';
+  const B = (v, t) => `<button type="button" class="rec-fb-e${pick === v ? ' on' : ''}" onclick="window.__recFbRate(${dayN},'${v}')">${t}</button>`;
+  return `<div class="rec-fb">
+      <div class="rec-fb-row"><span style="font-weight:700;">이 결과 어땠어요?</span>${B('up', '👍 맞아요')}${B('mid', '😐 애매해요')}${B('down', '🤔 이상해요')}</div>
+      ${pick ? `<input data-rec-fb-text maxlength="300" placeholder="어떤 점이요? 한 줄만 (선택) · 버디에게만 보여요" value="${escapeHtml((window.__recFbPick && window.__recFbPick.text) || '')}" oninput="window.__recFbPick.text=this.value" />
+      <button type="button" class="rec-fb-send" onclick="window.__recFbSend(${dayN})">버디에게 보내기</button>` : ''}
+    </div>`;
+}
+window.__recFbRate = (dayN, rating) => { const prev = (window.__recFbPick && window.__recFbPick.day === dayN) ? window.__recFbPick.text : ''; window.__recFbPick = { day: dayN, rating, text: prev || '' }; recRepaint(); };
+window.__recFbSend = (dayN) => {
+  const p = window.__recFbPick; if (!p || p.day !== dayN) return;
+  const r = (window.__rec && window.__rec.result) || {}; const sv = (state.recordings || {})['d' + dayN] || {};
+  state.rec_feedback = state.rec_feedback || {};
+  state.rec_feedback['d' + dayN] = { sent: true, rating: p.rating, text: String(p.text || '').trim().slice(0, 300), at: new Date().toISOString(),
+    accuracy: (typeof r.accuracy === 'number') ? r.accuracy : (typeof sv.accuracy === 'number' ? sv.accuracy : null),
+    scores: r.scores || sv.scores || [], verified: !!(r.verified || sv.verified), transcript: String(r.transcript || sv.transcript || '').slice(0, 300) };
+  window.__recFbPick = null;
+  try { saveState({ immediate: true }); } catch (_) { try { saveState(); } catch (__) {} }
+  try { showToast('버디에게 전달됐어요. 고마워요 🧡'); } catch (_) {}
+  recRepaint();
+};
 function recHeardHtml(transcript) {
   const t = String(transcript || '').trim();
   if (!t) return '';
@@ -36252,21 +36327,26 @@ function RecorderCard(dayN) {
   } else if (R.status === 'done' && R.result) {
     const r = R.result; const sc = Array.isArray(r.scores) ? r.scores : [];
     const krs2 = recSentenceKr(dayN);
-    const chips = sentences.map((s, i) => `<li class="${sc[i] >= 0.6 ? 'ok' : 'miss'}"><span>${sc[i] >= 0.6 ? '✓' : '·'}</span>${H(s)}${krs2[i] ? `<div class="rec-kr">${H(krs2[i])}</div>` : ''}</li>`).join('');
+    const mm = (r.stt_ok !== false && r.transcript) ? recMissMarks(sentences, r.transcript) : null;
+    const anyMiss = !!(mm && mm.marks.some((a) => a.some(Boolean)));
+    const legend = anyMiss ? '<div class="rec-legend"><b>빨간 글자</b>는 안 들렸거나 다르게 들린 부분이에요.</div>' : '';
+    const chips = sentences.map((s, i) => `<li class="${sc[i] >= 0.6 ? 'ok' : 'miss'}"><span>${sc[i] >= 0.6 ? '✓' : '·'}</span>${recMarkedSentHtml(mm, i, s)}${krs2[i] ? `<div class="rec-kr">${H(krs2[i])}</div>` : ''}</li>`).join('');
     if (r.verified) {
       card.classList.add('rec-done');
       body = `<div class="rec-result ok">${H(r.message)}</div>
         ${r.stt_ok ? recAccHtml(r.accuracy, sc, sentences) : ''}
-        ${r.stt_ok ? `<ol class="rec-sent rec-check">${chips}</ol>` : ''}
+        ${r.stt_ok ? `<ol class="rec-sent rec-check">${chips}</ol>${legend}` : ''}
         ${r.stt_ok ? recHeardHtml(r.transcript) : ''}
+        ${recFbHtml(dayN)}
         <button class="btn btn-full rec-btn-main" onclick="window.__recReset(${dayN});window.__openRecShare(${dayN})">다음 · 단톡방에 올리기 →</button>`;
     } else {
       body = `<div class="rec-result miss">${H(r.message)}</div>
         ${recAccHtml(r.accuracy, sc, sentences)}
-        <ol class="rec-sent rec-check">${chips}</ol>
+        <ol class="rec-sent rec-check">${chips}</ol>${legend}
         ${recHeardHtml(r.transcript)}
-        <div class="rec-hint" style="text-align:left;">· 표시된 문장이 안 들렸어요. 그 문장을 조금 더 천천히 읽어주세요.${R.attempt >= 2 ? ' 한 번 더 제출하시면 운영진 확인으로 넘기고 인증은 완료해드릴게요.' : ''}</div>
-        <button class="btn btn-full rec-btn-main" onclick="window.__recStart(${dayN})">🎙 다시 녹음</button>`;
+        <div class="rec-hint" style="text-align:left;">· ${anyMiss ? '빨간 부분만 조금 더 천천히, 또박또박 읽어주세요.' : '표시된 문장이 안 들렸어요. 그 문장을 조금 더 천천히 읽어주세요.'}${R.attempt >= 2 ? ' 한 번 더 제출하시면 운영진 확인으로 넘기고 인증은 완료해드릴게요.' : ''}</div>
+        <button class="btn btn-full rec-btn-main" onclick="window.__recStart(${dayN})">🎙 다시 녹음</button>
+        ${recFbHtml(dayN)}`;
     }
   }
   const kick = (R.status === 'done' && R.result && R.result.verified) ? '녹음 인증 완료' : '마지막 한 걸음 · 녹음 인증';
