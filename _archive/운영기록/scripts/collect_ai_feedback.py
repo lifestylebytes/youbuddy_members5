@@ -23,7 +23,9 @@ def collect(cohort):
         if isinstance(st,str):
             try: st=json.loads(st)
             except Exception: continue
-        for f in (st.get('ai_review_feedback') or []):
+        fb=st.get('ai_review_feedback') or []
+        if isinstance(fb,dict): fb=list(fb.values())  # 10기 부터 {"0":{...}} 형태
+        for f in fb:
             if isinstance(f,dict): items.append(dict(f, member=k, nick=st.get('englishName') or ''))
         # 녹음 인증 결과 피드백 (11기~, state.rec_feedback = { d1: {rating, text, at, accuracy, scores, transcript} })
         for dk, f in (st.get('rec_feedback') or {}).items():
@@ -32,7 +34,7 @@ def collect(cohort):
                                   sentences=[(st.get('sentences') or {}).get(f'{dk}-{i}','') for i in range(3)]))
     return items
 def main():
-    cohorts=sys.argv[1:] or ['9기']
+    cohorts=sys.argv[1:] or ['10기']
     for c in cohorts:
         items=collect(c)
         d=os.path.join(ROOT,'_archive',c,'운영'); os.makedirs(d,exist_ok=True)
