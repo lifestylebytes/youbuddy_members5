@@ -27698,7 +27698,8 @@ function FinalReportPage() {
     }, '⚙ 운영자 미리보기 모드, 인증 부족해도 다운로드 가능');
     guideCard.appendChild(opNote);
   }
-  page.appendChild(guideCard);
+  // 단어집·약점 노트 카드는 맨 위 요약 바로 아래로 (2026-11-13 버디: 받으러 온 사람이 스크롤 안 하게)
+  if (hero && hero.parentNode === page) page.insertBefore(guideCard, hero.nextSibling); else page.appendChild(guideCard);
 
   // ─────────────────────────────────────────────────────────────
   // PHASE 3 · 7기 CTA (단일 강조)
