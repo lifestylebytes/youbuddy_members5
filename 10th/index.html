@@ -3610,6 +3610,7 @@ function routeToHash() {
       case 'my-review': return '#my-review';
       case 'quiz': return '#quiz';
       case 'weak-test': return '#weak-test';
+      case 'final-report': return '#report';
       case 'meeting-deck': return '#meeting-deck';
       case 'screenshot-guide': return '#screenshot-guide';
       default: return '';
@@ -3688,6 +3689,11 @@ function applyHashRoute(rawHash) {
       return true;
     case 'quiz':
       currentPage = 'quiz';
+      return true;
+    case 'report':
+    case 'final-report':
+      // 4주 종합 리포트 고유 주소 (#report). 수료식 공지에 바로 붙일 수 있게 (2026-11-13)
+      currentPage = 'final-report';
       return true;
     case 'random-test':
       // 단어집 표지 QR 진입점 (2026-09-04): 홈에서 랜덤 단어 테스트 팝업 자동 오픈.
@@ -27656,6 +27662,23 @@ function FinalReportPage() {
             : '🔒 파이널 테스트 완료 시 활성화 (18일 인증 ✓)')));
   pdfBtnWrap.appendChild(pdfBtn);
   guideCard.appendChild(pdfBtnWrap);
+
+  // 📓 나만의 약점 복습 노트: 정시 18일 + 파이널 통과자에게만 보인다 (2026-11-13). 안 되는 사람에게는 아예 안 보여준다.
+  if (weakNoteEligible()) {
+    const wnBtn = el('button', {
+      class: 'btn btn-full',
+      style: {
+        marginTop: '8px', background: '#fff', color: 'var(--orange-dark)',
+        border: '1.5px solid var(--orange)', fontSize: '14px', padding: '13px', fontWeight: '800',
+        letterSpacing: '-0.01em', cursor: 'pointer',
+      },
+      onClick: () => { try { window.__openWeakNote(); } catch (e) {} },
+    }, '📓 나만의 약점 복습 노트 열기');
+    guideCard.appendChild(wnBtn);
+    guideCard.appendChild(el('div', {
+      style: { marginTop: '6px', fontSize: '11.5px', color: 'var(--ink-soft)', lineHeight: '1.5', textAlign: 'center' },
+    }, '정시 완주 선물이에요. 내가 흔들렸던 표현만 모았어요. 열린 화면에서 PDF로 저장할 수 있어요.'));
+  }
 
   // 보조 액션, 문장 모아보기 (Notion export)
   const subBtn = el('button', {
