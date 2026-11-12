@@ -2045,10 +2045,12 @@ function seedDemoState(s) {
 const __DEMO_MODE__ = (() => {
   try {
     if (typeof location !== 'undefined' && /[?&]demo=1\b/.test(location.search || '')) {
-      try { localStorage.setItem('demoMode', '1'); } catch (_) {}
       return true;
     }
-    return localStorage.getItem('demoMode') === '1';
+    // 데모는 주소에 ?demo=1 이 있을 때만 (2026-11-12). 예전엔 한 번 열면 기기에 눌어붙어서,
+    // 테스터 계정에 가짜 인증(Day 1·2·3·5·7)이 서버까지 올라가 보드에 찍혔다.
+    try { localStorage.removeItem('demoMode'); } catch (_) {}
+    return false;
   } catch (_) { return false; }
 })();
 let state = __DEMO_MODE__ ? seedDemoState(defaultState()) : defaultState();
@@ -2143,6 +2145,7 @@ function loadCachedState() {
 }
 
 function cacheState(snapshot = persistedStateSnapshot()) {
+  if (__DEMO_MODE__) return; // 데모 가짜 진행도를 기기에 남기지 않는다. 남으면 다음 정상 접속 때 서버로 올라간다 (2026-11-12)
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({
       member_key: memberKey(),
@@ -2152,8 +2155,12 @@ function cacheState(snapshot = persistedStateSnapshot()) {
   } catch (e) {}
 }
 
+// 로그인 전(member key = anonymous)에는 서버를 읽지도 쓰지도 않는다 (2026-11-12).
+// 모두가 같이 쓰는 'anonymous' 행에 테스트 진행도가 올라가 있으면, 처음 들어온 사람이 그걸 받아서
+// 코드 입력 순간 자기 계정에 저장해버린다 (11기 테스터 보드에 Day 1·2·3·5·7 이 찍힌 원인).
+const __isAnonKey = () => { try { return memberKey() === 'anonymous'; } catch (_) { return true; } };
 async function loadRemoteState() {
-  if (!hasSupabase()) return null;
+  if (!hasSupabase() || __isAnonKey()) return null;
   try {
     const payload = await supabaseRpc('get_member_app_state', {
       p_cohort: CHALLENGE.cohort,
@@ -2174,7 +2181,7 @@ async function loadRemoteState() {
    없음" 으로 읽는 순간, 낡은 로컬 사본이 서버를 통째로 덮어쓴다.
    (2026-10-11 김옥진님 2차 유실: Day 10~20 + 문장 24개 + 파이널 기록 날아감) */
 async function loadRemoteStateForMerge() {
-  if (!hasSupabase()) return { ok: true, data: null };
+  if (!hasSupabase() || __isAnonKey()) return { ok: true, data: null };
   try {
     const payload = await supabaseRpc('get_member_app_state', {
       p_cohort: CHALLENGE.cohort,
@@ -2260,7 +2267,7 @@ async function persistStateNow() {
   const snapshotJson = JSON.stringify(snapshot);
   if (snapshotJson === stateLastSavedJson && !statePersistQueued) return true;
   cacheState(snapshot);
-  if (!hasSupabase()) {
+  if (!hasSupabase() || __DEMO_MODE__ || __isAnonKey()) { // 데모 화면의 가짜 진행도는 서버에 절대 올리지 않는다 (2026-11-12)
     stateLastSavedJson = snapshotJson;
     return true;
   }
