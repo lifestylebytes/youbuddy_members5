@@ -17,10 +17,14 @@ wr=by(lambda m:m['chars'],3); ai=by(lambda m:m['ai'],3)
 quiz=[m for m in order if m['nq']>=18 and m['perfectq']>=m['nq']-1]
 coll=by(lambda m:m['syn']+m['bm'],3)
 tz=[m for m in order if m['tz'] not in (540,None)]
+MAIN={}
+for wk in json.load(open('/home/claude/youbuddy_members5/_archive/10기/단어/10기_단어_60_full.json')):
+    for d in wk['days']:
+        for w in d['words']: MAIN[w['en'].strip().lower()]=w['en'].strip()
 fw=collections.Counter()
 for m in M:
     for k,v in m['vs'].items():
-        if isinstance(v,dict) and v.get('firstResult')=='wrong': fw[k]+=1
+        if k.lower() in MAIN and isinstance(v,dict) and v.get('firstResult')=='wrong': fw[MAIN[k.lower()]]+=1
 top3=fw.most_common(3)
 cap=lambda s: s[0].upper()+s[1:]
 N=lambda L: ' / '.join(e(m['nick']) for m in L)
@@ -52,7 +56,7 @@ body{width:1080px;height:1080px;font-family:Pretendard,'Noto Sans CJK KR',sans-s
 .st{padding:34px 34px 30px;border:3px solid #2B1A21;background:#fff}.st .n{font-size:86px;font-weight:900;letter-spacing:-3px;line-height:1;color:#7B3B4E}.st .n small{font-size:34px;letter-spacing:0;margin-left:6px;color:#2B1A21}
 .st .l{margin-top:14px;font-size:27px;font-weight:700;color:#6B5F58}
 .ft{font-size:25px;font-weight:700;letter-spacing:.02em}.dark .ft,.wine .ft{color:#D9A3B4}.light .ft{color:#7B3B4E}
-.row{display:flex;align-items:baseline;gap:26px;padding:38px 0;border-bottom:2px solid #7B3B4E}.row .r{font-size:44px;font-weight:900;color:#D9A3B4;width:60px}.row .w{font-size:46px;font-weight:900;letter-spacing:-1px;flex:1}.row .c2{font-size:26px;font-weight:700;color:#CDB7BE}
+.row{display:flex;align-items:baseline;gap:26px;padding:26px 0;border-bottom:2px solid #7B3B4E}.row .r{font-size:44px;font-weight:900;color:#D9A3B4;width:60px}.row .w{font-size:44px;line-height:1.2;font-weight:900;letter-spacing:-1px;flex:1}.row .c2{font-size:26px;font-weight:700;color:#CDB7BE}
 .gift{display:flex;gap:24px;align-items:flex-start;padding:36px 0;border-bottom:2px solid rgba(251,247,240,.35)}.gift .no{font-size:30px;font-weight:900;width:50px;color:#EBD5DC}.gift .t{font-size:46px;font-weight:900;letter-spacing:-.5px}.gift .d{margin-top:10px;font-size:28px;font-weight:600;color:#F3E3E8}
 """
 def card(i,cls,body,foot=''):
@@ -66,8 +70,8 @@ C.append(card(4,'light',f"<div class=k>정시 장인상</div><div class='h s'>18
 C.append(card(5,'dark',f"<div class=k>얼리버드상 / 막차 장인상</div><div class='h s'>하루의 시작과 끝을<br>영어로 연 분들</div><div class=box><div class=l>얼리버드상 (아침 10시 전 인증)</div><div class=n>{' / '.join(f'{e(n)} {c}번' for n,c in summary['eb'])}</div></div><div class=box><div class=l>막차 장인상 (밤 10시 이후 인증)</div><div class=n>{' / '.join(f'{e(n)} {c}번' for n,c,_ in summary['ow'])}</div></div>","언제 하든, 한 날이 이긴 날이에요"))
 C.append(card(6,'light',f"<div class=k>예문 장인상 / AI 단짝상</div><div class='h s'>문장에 진심이었던<br>분들</div><div class=box><div class=l>예문 장인상 (가장 많이 쓴 분)</div><div class=n>{' / '.join(f'{e(n)} {f(c)}자' for n,c in summary['wr'])}</div></div><div class=box><div class=l>AI 단짝상 (가장 많이 다시 고친 분)</div><div class=n>{' / '.join(f'{e(n)} {c}번' for n,c in summary['ai'])}</div></div>","고쳐 쓴 문장이 제일 오래 남아요"))
 C.append(card(7,'dark',f"<div class=k>퀴즈 만점왕 / 수집왕 / 시차 불사상</div><div class='h s'>각자의 방식으로<br>빛난 분들</div><div class=box><div class=l>퀴즈 만점왕 (데일리 퀴즈 거의 전부 만점)</div><div class=n>{N(quiz)}</div></div><div class=box><div class=l>수집왕 (표현, 유의어 저장 최다)</div><div class=n>{' / '.join(f'{e(n)} {c}개' for n,c in summary['coll'])}</div></div><div class=box><div class=l>시차 불사상 (한국 밖에서 함께)</div><div class=n>{N(tz)}</div></div>",""))
-rows=''.join(f"<div class=row><div class=r>{i+1}</div><div class=w>{e(cap(w))}</div><div class=c2>첫 시도에 {c}명 오답</div></div>" for i,(w,c) in enumerate(top3))
-C.append(card(8,'dark',f"<div class=k>보너스</div><div class='h s'>10기가 가장 많이<br>헷갈린 표현 TOP 3</div><div style='margin-top:40px'>{rows}</div><div class=p>틀렸던 표현이 제일 오래 기억나요.<br>오늘 이 세 개만 다시 보고 가세요.</div>",""))
+rows=''.join(f"<div class=row><div class=r>{i+1}</div><div style='flex:1;min-width:0'><div class=w>{e(cap(w))}</div><div class=c2 style='margin-top:6px'>첫 시도에 {c}명 오답</div></div></div>" for i,(w,c) in enumerate(top3))
+C.append(card(8,'dark',f"<div class=k>보너스</div><div class='h s'>10기가 가장 많이<br>헷갈린 표현 TOP 3</div><div class=p style='margin-top:14px'>60개 메인 표현 기준</div><div style='margin-top:40px'>{rows}</div><div class=p>틀렸던 표현이 제일 오래 기억나요.<br>오늘 이 세 개만 다시 보고 가세요.</div>",""))
 C.append(card(9,'light',f"<div class=k>10기, 한 분도 빠짐없이</div><div class='h s'>4주를 함께한<br>모든 이름</div><div class=names style='font-size:47px;line-height:1.62;margin-top:50px'>{N(order)}</div>","속도는 달라도, 같이 걸은 4주였어요"))
 gifts=[("단어집 PDF","18일 이상 + 파이널 응시 (지각 포함)"),("1일1비 1개월 정기권","18일 이상 + 파이널 응시. 이용 중이면 1개월 연장"),("나만의 약점 복습 노트","정시 18일 이상 + 파이널 응시")]
 g=''.join(f"<div class=gift><div class=no>{i+1}</div><div><div class=t>{t}</div><div class=d>{d}</div></div></div>" for i,(t,d) in enumerate(gifts))
