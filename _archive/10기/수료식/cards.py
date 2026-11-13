@@ -7,7 +7,7 @@ def by(key,n=3,flt=None):
 tot=dict(verif=sum(m['days'] for m in M),sent=sum(m['nsent'] for m in M),chars=sum(m['chars'] for m in M),ai=sum(m['ai'] for m in M))
 order=sorted(M,key=lambda m:(-m['days'],m['late']))
 comp=[m for m in order if m['days']>=18]
-allclear=[m for m in order if m['days']>=20]
+allclear=[m for m in order if m['days']-m['late']>=20]
 ontime=[m for m in order if m['days']-m['late']>=18]
 def early(m): return sum(1 for x in m['mins'] if 300<=x<600)
 def night(m): return sum(1 for x in m['mins'] if x>=1320 or x<180)
