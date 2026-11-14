@@ -1623,7 +1623,7 @@ const MORNING_MEETUP_ACTIVE = false;
 */
 const MEMBER_DIRECTORY = [
   { code: '00', id: 'op1', name: '유버디', color: 'ink',   tier: 'premium', role: '운영팀', isOperator: true,  isStaff: true },
-  { code: '01', id: 'p1',  name: '이규태', color: 'ink',   tier: 'premium', role: '운영팀', isStaff: true, memberHidden: true }, // 사전 테스터 (프리미엄 시점)
+  { code: '01', id: 'p1',  name: '이규태', color: 'ink',   tier: 'basic', role: '운영팀', isStaff: true }, // 사전 테스터. 2026-11-14 버디: 베이직으로, 멤버 화면에도 보이게
   { code: '02', id: 'b1',  name: '이지흔', color: 'cream', tier: 'basic',   role: '운영팀', isStaff: true }, // 사전 테스터 (베이직 시점)
 
   // COHORT-SLOT(manual): 11기 멤버 명단. 추가 결제자는 code 22 부터 이어서.
@@ -33807,6 +33807,47 @@ if (!__DEMO_MODE__) {
 //    so `persistStateNow()` cannot upload stale cache back to the server in
 //    the meantime. The boot already renders once from cached state above; this
 //    re-renders cleanly once the true remote state is loaded.
+
+// 일회성 기록 리셋 (2026-11-14 버디). 사전 테스트로 찍힌 Day 를 기기마다 딱 한 번 지운다.
+// 서버 병합이 '더하기'라서 기기 캐시가 지운 기록을 되살릴 수 있다 → 기기별 localStorage 플래그로 각 기기에서 1회씩 지우고 서버로 올린다.
+const ONE_SHOT_RESETS = [
+  { name: '이규태', token: '11th-d1-20261114', days: [1] },
+];
+function runOneShotResets() {
+  try {
+    const me = (state.name || '').trim();
+    ONE_SHOT_RESETS.forEach((r) => {
+      if (me !== r.name) return;
+      const flag = 'yb11_reset_' + r.token;
+      try { if (localStorage.getItem(flag)) return; } catch (_) { return; }
+      r.days.forEach((d) => {
+        const dk = 'd' + d;
+        const words = [];
+        try { (CHALLENGE.weeks || []).forEach((w) => (w.days || []).forEach((dd) => { if (dd.day === d) (dd.words || []).forEach((x) => words.push(String(x.en || '').toLowerCase())); })); } catch (_) {}
+        Object.keys(state).forEach((k) => {
+          const v = state[k];
+          if (Array.isArray(v)) {
+            if (k === 'pitch_vocab') state[k] = v.filter((x) => !(x && typeof x.sourceKey === 'string' && (x.sourceKey === dk || x.sourceKey.indexOf(dk + '-') === 0)));
+            return;
+          }
+          if (!v || typeof v !== 'object') return;
+          Object.keys(v).forEach((kk) => {
+            const low = kk.toLowerCase();
+            if (kk === dk || kk.indexOf(dk + '-') === 0) { delete v[kk]; return; }
+            if ((k === 'vocab_stats' || k === 'ai_history') && words.some((w) => w && low.indexOf(w) >= 0)) delete v[kk];
+          });
+        });
+      });
+      try { localStorage.setItem(flag, new Date().toISOString()); } catch (_) {}
+      console.warn('[one-shot reset] ' + r.token + ' 적용');
+      // 저장은 서버와 '더하기' 병합을 거치면 지운 기록이 되살아나니, 의도적 리셋 통로로 딱 한 번 올린다.
+      state.__allowDestructiveSave = true;
+      try { persistStateNow(); } catch (_) {}
+      try { cacheState(); } catch (_) {}
+      try { render(); } catch (_) {}
+    });
+  } catch (e) { console.warn('one-shot reset failed', e); }
+}
 if (!__DEMO_MODE__ && hasSupabase()) {
   // 부팅 요청이 25초 안에 안 끝나면 저장 잠금을 푼다. 저장은 어차피 서버와 '더하기' 병합 후에만 올라가니 안전하고,
   // 안 풀면 그 세션의 인증·문장이 전부 로컬에만 남는다. (2026-11-05 박은실님·정주혜님 유실 추정 원인)
@@ -33852,6 +33893,7 @@ if (!__DEMO_MODE__ && hasSupabase()) {
       stateHydrated = true;
       // Hydrate 이후 기존 북마크를 pitch_vocab 으로 일회성 이관.
       try { migrateBookmarksToVocabBank(); } catch (e) { console.warn('vocab migration failed', e); }
+      try { runOneShotResets(); } catch (_) {}
       // If anything was queued while we were hydrating, flush it now -
       // but only the latest snapshot (which is now post-remote-merge).
       if (statePersistQueued) {
