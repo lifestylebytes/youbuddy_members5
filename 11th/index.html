@@ -4049,28 +4049,29 @@ let guidedTourStep = null; // null = 비활성, 0..N-1
 // 단톡 인증 일러스트 (인라인 SVG, '유버디 챌린지 단톡방' 음성 인증 모습)
 const KAKAO_ILLUST = `
 <svg viewBox="0 0 340 232" width="100%" style="display:block;" xmlns="http://www.w3.org/2000/svg">
-  <rect width="340" height="232" fill="#9DB6D8"/>
-  <rect width="340" height="42" fill="#FFFFFF"/>
-  <path d="M22 21 l9 -7 v14 z" fill="#333333"/>
-  <text x="170" y="26" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="14" font-weight="700" fill="#191919">유버디 챌린지 단톡방</text>
-  <text x="322" y="26" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" fill="#9AA0A6">38</text>
-  <rect x="14" y="56" width="30" height="30" rx="10" fill="#F4B6C2"/><text x="29" y="77" text-anchor="middle" font-size="15">🙂</text>
-  <text x="52" y="62" font-family="-apple-system,sans-serif" font-size="10" fill="#48566B">소영</text>
-  <rect x="52" y="66" width="150" height="34" rx="16" fill="#FFFFFF"/>
-  <circle cx="70" cy="83" r="11" fill="#FEE500"/><path d="M67 78 l8 5 l-8 5 z" fill="#3A2A00"/>
-  <rect x="88" y="80" width="3" height="6" rx="1.5" fill="#CBD4DE"/><rect x="95" y="76" width="3" height="14" rx="1.5" fill="#CBD4DE"/><rect x="102" y="78" width="3" height="10" rx="1.5" fill="#CBD4DE"/><rect x="109" y="74" width="3" height="18" rx="1.5" fill="#CBD4DE"/><rect x="116" y="80" width="3" height="6" rx="1.5" fill="#CBD4DE"/><rect x="123" y="77" width="3" height="12" rx="1.5" fill="#CBD4DE"/><rect x="130" y="79" width="3" height="8" rx="1.5" fill="#CBD4DE"/>
-  <text x="195" y="87" text-anchor="end" font-family="-apple-system,sans-serif" font-size="10" fill="#8A93A0">0:14</text>
-  <rect x="14" y="108" width="30" height="30" rx="10" fill="#A7D7C5"/><text x="29" y="129" text-anchor="middle" font-size="15">😄</text>
-  <text x="52" y="114" font-family="-apple-system,sans-serif" font-size="10" fill="#48566B">민지</text>
-  <rect x="52" y="118" width="140" height="34" rx="16" fill="#FFFFFF"/>
-  <circle cx="70" cy="135" r="11" fill="#FEE500"/><path d="M67 130 l8 5 l-8 5 z" fill="#3A2A00"/>
-  <rect x="88" y="132" width="3" height="8" rx="1.5" fill="#CBD4DE"/><rect x="95" y="129" width="3" height="14" rx="1.5" fill="#CBD4DE"/><rect x="102" y="133" width="3" height="6" rx="1.5" fill="#CBD4DE"/><rect x="109" y="128" width="3" height="16" rx="1.5" fill="#CBD4DE"/><rect x="116" y="132" width="3" height="8" rx="1.5" fill="#CBD4DE"/><rect x="123" y="130" width="3" height="12" rx="1.5" fill="#CBD4DE"/>
-  <text x="185" y="139" text-anchor="end" font-family="-apple-system,sans-serif" font-size="10" fill="#8A93A0">0:09</text>
-  <text x="306" y="166" text-anchor="end" font-family="-apple-system,sans-serif" font-size="10" fill="#44546B">나</text>
-  <rect x="150" y="172" width="158" height="34" rx="16" fill="#FEE500"/>
-  <circle cx="168" cy="189" r="11" fill="#FFFFFF"/><path d="M165 184 l8 5 l-8 5 z" fill="#3A2A00"/>
-  <rect x="186" y="186" width="3" height="6" rx="1.5" fill="#B9A300"/><rect x="193" y="182" width="3" height="14" rx="1.5" fill="#B9A300"/><rect x="200" y="184" width="3" height="10" rx="1.5" fill="#B9A300"/><rect x="207" y="180" width="3" height="18" rx="1.5" fill="#B9A300"/><rect x="214" y="186" width="3" height="6" rx="1.5" fill="#B9A300"/><rect x="221" y="183" width="3" height="12" rx="1.5" fill="#B9A300"/><rect x="228" y="185" width="3" height="8" rx="1.5" fill="#B9A300"/><rect x="235" y="182" width="3" height="13" rx="1.5" fill="#B9A300"/>
-  <text x="300" y="193" text-anchor="end" font-family="-apple-system,sans-serif" font-size="10" fill="#6B5E00">0:21</text>
+  <rect width="340" height="232" fill="#EEF3F8"/>
+  <rect x="12" y="14" width="150" height="204" rx="14" fill="#FFFFFF" stroke="#D9E3EE"/>
+  <text x="26" y="36" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="9.5" font-weight="800" fill="#2F4A6D">① 앱에서 녹음</text>
+  <text x="26" y="54" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="11" font-weight="800" fill="#16202E">오늘 쓴 문장 3개</text>
+  <rect x="26" y="62" width="122" height="7" rx="3.5" fill="#E3EAF2"/><rect x="26" y="74" width="104" height="7" rx="3.5" fill="#E3EAF2"/><rect x="26" y="86" width="114" height="7" rx="3.5" fill="#E3EAF2"/>
+  <circle cx="87" cy="128" r="22" fill="#1F3350"/>
+  <rect x="82" y="116" width="10" height="17" rx="5" fill="#FFFFFF"/><path d="M77 128 a10 10 0 0 0 20 0" stroke="#FFFFFF" stroke-width="2" fill="none"/><rect x="86" y="138" width="2" height="5" fill="#FFFFFF"/>
+  <g fill="#9DB7D6"><rect x="34" y="160" width="3" height="10" rx="1.5"/><rect x="41" y="156" width="3" height="18" rx="1.5"/><rect x="48" y="159" width="3" height="12" rx="1.5"/><rect x="55" y="153" width="3" height="24" rx="1.5"/><rect x="62" y="158" width="3" height="14" rx="1.5"/><rect x="69" y="155" width="3" height="20" rx="1.5"/><rect x="76" y="160" width="3" height="10" rx="1.5"/><rect x="83" y="156" width="3" height="18" rx="1.5"/><rect x="90" y="159" width="3" height="12" rx="1.5"/><rect x="97" y="154" width="3" height="22" rx="1.5"/><rect x="104" y="158" width="3" height="14" rx="1.5"/><rect x="111" y="160" width="3" height="10" rx="1.5"/><rect x="118" y="156" width="3" height="18" rx="1.5"/><rect x="125" y="159" width="3" height="12" rx="1.5"/><rect x="132" y="157" width="3" height="16" rx="1.5"/></g>
+  <rect x="26" y="186" width="122" height="22" rx="11" fill="#2F4A6D"/>
+  <text x="87" y="201" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="10" font-weight="800" fill="#FFFFFF">녹음 제출 ✓</text>
+  <path d="M167 116 l10 0 m-5 -5 l5 5 l-5 5" stroke="#2F4A6D" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="182" y="14" width="146" height="204" rx="14" fill="#FFFFFF" stroke="#D9E3EE"/>
+  <text x="196" y="36" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="9.5" font-weight="800" fill="#2F4A6D">② 문구 복사 → 단톡방</text>
+  <rect x="194" y="46" width="122" height="78" rx="8" fill="#F5F8FB" stroke="#E3EAF2"/>
+  <text x="202" y="62" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="9.5" font-weight="800" fill="#16202E">[Day 1] Mia</text>
+  <text x="202" y="78" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="8.5" fill="#5E6672">1. Let's touch base...</text>
+  <text x="202" y="93" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="8.5" fill="#5E6672">2. Could you loop me...</text>
+  <text x="202" y="108" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="8.5" fill="#5E6672">3. I'll circle back...</text>
+  <rect x="194" y="132" width="122" height="26" rx="13" fill="#E8833A"/>
+  <text x="255" y="149" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="10" font-weight="800" fill="#FFFFFF">📋 복사하고 단톡방 열기</text>
+  <rect x="216" y="170" width="100" height="30" rx="13" fill="#FEE500"/>
+  <text x="266" y="189" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="9.5" font-weight="800" fill="#3A2A00">[Day 1] Mia 1. …</text>
+  <text x="208" y="212" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="8.5" font-weight="700" fill="#2F4A6D">붙여넣으면 인증 완료!</text>
 </svg>`;
 const GUIDED_TOUR_STEPS = [
   { page: 'home',      target: '[data-tour="home-hero"]',     title: '👋 환영해요!', bodyHtml: '여기가 홈이에요. 오늘 며칠째인지 진도가 보이고, 이 카드의 큰 버튼으로 오늘 학습을 바로 열 수 있어요.<br><br><span style="font-size:12px;color:#8A93A0;">이 안내는 조금 길어요. 중간에 그만둬도 괜찮아요. 언제든 "나" 탭 &gt; 앱 사용법 다시 보기로 다시 볼 수 있어요.</span>', body: '여기가 홈이에요. 오늘 며칠째인지 진도가 보이고, 이 카드의 큰 버튼으로 오늘 학습을 바로 열 수 있어요. (이 안내는 언제든 "나" 탭 > 앱 사용법 다시 보기로 다시 볼 수 있어요.)' },
@@ -4083,7 +4084,7 @@ const GUIDED_TOUR_STEPS = [
   { page: 'day', opts: { day: 1, week: 1 }, previewSubmit: true, target: '[data-tour="day-ai-btn"]', title: '⑤ AI 첨삭', bodyHtml: '문장을 제출하면 이 <b>AI 첨삭</b> 버튼이 생겨요. 누르면 어색한 부분을 자연스럽게 고쳐줘요.<div style="margin-top:11px;display:flex;gap:8px;"><div style="flex:1;padding:10px 11px;border-radius:11px;background:#F5F2EC;border:1px solid #E0D9CD;"><div style="font-size:11px;font-weight:800;color:#94897A;">베이직</div><div style="margin-top:3px;font-size:13px;font-weight:800;color:#2A2620;">문장당 1회</div></div><div style="flex:1;padding:10px 11px;border-radius:11px;background:#F4F0FA;border:1.5px solid #B79AD0;"><div style="font-size:11px;font-weight:800;color:#7B5E8C;">👑 프리미엄</div><div style="margin-top:3px;font-size:13px;font-weight:800;color:#7B5E8C;">무제한</div></div></div><div style="margin-top:8px;font-size:12.5px;line-height:1.6;color:#5C5449;">프리미엄은 <b style="color:#2A2620;">고칠 때까지 몇 번이고</b> 받을 수 있어요. 한 문장을 여러 번 다듬어보는 게 실력이 제일 빨리 늘거든요.</div><div style="margin-top:10px;padding:10px 12px;border-radius:11px;background:#F1F5F9;border:1.5px solid #2F4A6D;font-size:13px;font-weight:800;color:#1F3350;line-height:1.5;">🎁 이번 기수 한정: 베이직도 AI 첨삭 무제한이 적용돼요!</div>', body: '문장을 제출하면 AI 첨삭 버튼이 생겨요. 어색한 부분을 자연스럽게 고쳐줘요. 이번 기수는 베이직도 무제한으로 받을 수 있어요.' },
   { page: 'community', target: '[data-tour="tab-community"]', title: '커뮤니티', body: '내가 제출한 문장과 동료들의 문장을 여기서 함께 봐요. 다른 사람은 어떻게 썼는지 구경하며 표현을 늘려요.' },
   { page: 'home',      target: '[data-tour="streak-board"]',  targetUnion: ['.cb-name.cb-row-me', '.cb-cell.cb-cell-me'], title: '인증 완료', body: '단어 시험까지 풀면 그날 인증 완료! 홈 보드의 내 칸에 바로 표시돼요.' },
-  { page: 'day', opts: { day: 1, week: 1 }, previewVerify: true, target: '[data-tour="day-video"]', title: '마지막 한 걸음, 녹음 인증', media: KAKAO_ILLUST, bodyHtml: '앱에서 인증을 마치면 이 자리에 <b>녹음 카드</b>가 열려요. 오늘 쓴 문장 3개를 앱에서 바로 녹음하면 끝! 카톡에 따로 올리지 않아도 돼요.<br><br>보드 색으로 구분돼요: 앱 인증만 하면 <b style="color:#C9A57A;">연한 색</b>, 녹음까지 마치면 <b style="color:#1F3350;">진한 색</b>. <b>진한 색이 완전한 인증</b>이에요. 입으로 나와야 내 표현이 되니까요 💪 (지금은 미리보기로 보여드려요)', body: '앱 인증을 마치면 "녹음 제출하러 가기" 버튼이 열려요. 문장 3개를 녹음해 카톡방에 올리면 끝. 앱 인증만 하면 연한 갈색, 녹음까지 하면 진한 갈색으로 보드에 표시되고, 진한 갈색이 완전한 인증이에요.' },
+  { page: 'day', opts: { day: 1, week: 1 }, previewVerify: true, target: '[data-tour="day-video"]', title: '마지막 한 걸음, 녹음 인증', media: KAKAO_ILLUST, bodyHtml: '앱에서 인증을 마치면 이 자리에 <b>녹음 카드</b>가 열려요. 오늘 쓴 문장 3개를 <b>앱에서 바로 녹음</b>해 제출하면, 내 문장 3개가 정리된 문구가 나와요.<br><br>👉 <b>[📋 복사하고 단톡방 열기]</b>를 눌러 그 문구를 <b>단톡방에 붙여넣어야 마지막 인증</b>이 돼요!<br><br>보드 색으로 구분돼요: 앱 인증만 하면 <b style="color:#C9A57A;">연한 색</b>, 녹음까지 마치면 <b style="color:#1F3350;">진한 색</b>. <b>진한 색이 완전한 인증</b>이에요. 입으로 나와야 내 표현이 되니까요 💪 (지금은 미리보기로 보여드려요)', body: '앱 인증을 마치면 녹음 카드가 열려요. 문장 3개를 앱에서 녹음해 제출하고, 나오는 문구를 복사해서 단톡방에 올리면 마지막 인증 완료예요. 앱 인증만 하면 연한 색, 녹음까지 하면 진한 색으로 보드에 표시돼요.' },
   { page: 'weeks',     previewQuiz: true, target: '[data-tour="week-quiz"]', title: '주간 미션 / 파이널', body: '한 주(5일)를 다 채우면 이 주간 미션 퀴즈가 열려요. 통과하면 선물이 있어요 🎁. 마지막엔 종합 파이널 퀴즈가 있고, 20일 중 18일 이상 인증하면 단어집 PDF가 열려요. (지금은 미리보기)' },
   { page: 'profile',   target: '[data-tour="profile-replay"]', title: '여기서 다시 볼 수 있어요', body: '이 안내가 헷갈리면 언제든 "나" 탭의 이 버튼을 눌러 처음부터 다시 볼 수 있어요. 부담 없이 활용해주세요!' },
   { page: 'home',      target: '[data-tour="home-hero"]',     title: '준비 끝!', bodyHtml: '이제 오늘의 학습을 열어볼까요? 매일 20분이면 충분해요 🧡<br><br>💡 미리 하나만 말씀드리면, <b style="color:#2F4A6D;">둘째~셋째 주가 가장 고비</b>예요. 그때 하루 빠져도 정상이니, 포기하지 말고 가볍게 복귀하면 돼요. 월요일마다 응원 들고 올게요!<br><br>📌 <b>방금 본 "나" 탭 &gt; 앱 사용법 다시 보기 버튼으로 언제든 이 안내를 다시 볼 수 있어요.</b>', body: '이제 오늘의 학습을 열어볼까요? 매일 20분이면 충분해요 🧡 미리 하나만: 둘째~셋째 주가 가장 고비예요. 하루 빠져도 포기하지 말고 가볍게 복귀하면 돼요. "나" 탭 > 앱 사용법 다시 보기로 언제든 이 안내를 다시 볼 수 있어요.', last: true },
@@ -36704,7 +36705,7 @@ function RecorderCard(dayN) {
   }
   // 2) 안내 1회
   if (!state.recording_notice_seen && R.status === 'idle') {
-    card.innerHTML = head('마지막 한 걸음', '오늘 쓴 문장 3개, 소리 내어 읽어볼까요?', '앱에서 바로 녹음하면 녹음 인증이 자동으로 끝나요. 카톡에 따로 올리지 않아도 돼요.')
+    card.innerHTML = head('마지막 한 걸음', '오늘 쓴 문장 3개, 소리 내어 읽어볼까요?', '앱에서 녹음해 제출한 뒤, 나오는 문구를 복사해서 단톡방에 올리면 오늘 인증 완료예요.')
       + sentHtml
       + `<div class="rec-notice">
            <div><b>🔒 녹음은 이렇게 다뤄요</b></div>
