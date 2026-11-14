@@ -388,6 +388,7 @@ input, textarea, select { font-family: inherit; }
 .gt-spot { position: fixed; display: none; border-radius: 16px; pointer-events: none; z-index: 4001; box-shadow: 0 0 0 9999px rgba(20,12,6,0.34); animation: gtPulse 1.8s ease-in-out infinite; transition: top .32s cubic-bezier(.4,0,.2,1), left .32s cubic-bezier(.4,0,.2,1), width .32s cubic-bezier(.4,0,.2,1), height .32s cubic-bezier(.4,0,.2,1); }
 .gt-card { position: fixed; left: 50%; transform: translateX(-50%); z-index: 4002; max-width: 420px; width: calc(100% - 28px); background: #fff; border-radius: 22px; padding: 20px; box-shadow: 0 20px 54px rgba(0,0,0,0.34); max-height: 58vh; overflow-y: auto; -webkit-overflow-scrolling: touch; animation: gtCardIn .3s cubic-bezier(.22,.9,.3,1); }
 .gt-wrap { animation: gtFadeIn .22s ease; }
+@media (min-width: 700px) { .gt-card.gt-has-media { max-width: 620px; max-height: 82vh; } }
 .gt-wrap.gt-swap { animation: none; }
 .gt-wrap.gt-swap .gt-card { animation: gtCardSwap .26s cubic-bezier(.22,.9,.3,1); }
 @keyframes gtFadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -4171,9 +4172,12 @@ function GuidedTourOverlay() {
     <p style="margin:0;font-size:14px;line-height:1.6;color:var(--ink-soft);">${step.bodyHtml || escapeHtml(step.body)}</p>`;
   card.appendChild(head);
   if (step.media) {
-    const med = el('div', { style: { margin: '14px 0 2px', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.08)', border: '1px solid var(--line)' } });
+    // 2026-11-14 버디: 그림이 글 밑에 깔려 잘려 보이니, 제목 바로 아래로 올리고 넓은 화면에선 크게.
+    card.classList.add('gt-has-media');
+    const med = el('div', { class: 'gt-media', style: { margin: '4px 0 12px', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.08)', border: '1px solid var(--line)' } });
     med.innerHTML = step.media;
-    card.appendChild(med);
+    const p = head.querySelector('p');
+    if (p) head.insertBefore(med, p); else card.appendChild(med);
   }
   const row = el('div', { style: { display: 'flex', gap: '10px', marginTop: '18px', alignItems: 'center' } });
   row.appendChild(el('button', { style: { background: 'transparent', border: 'none', color: 'var(--muted)', fontSize: '13px', textDecoration: 'underline', cursor: 'pointer', padding: '8px 4px' }, onClick: () => endGuidedTour(true) }, '건너뛰기'));
