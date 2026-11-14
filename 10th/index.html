@@ -9895,12 +9895,13 @@ function HelpPage() {
         <details ${k ? 'style="border-top:1px solid var(--line-soft);"' : ''}>
           <summary style="list-style:none;padding:13px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;">
             <span style="flex:1;min-width:0;font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.5;">Q. ${q}</span>
-            <span style="flex:0 0 auto;color:var(--muted);font-size:12px;font-weight:800;">＋</span>
+            <span data-tg style="flex:0 0 auto;color:var(--muted);font-size:12px;font-weight:800;">＋</span>
           </summary>
           <div style="padding:0 16px 15px;font-size:13px;line-height:1.75;color:var(--ink-soft);">${a}</div>
         </details>`).join('') + `
         <div style="padding:12px 16px;border-top:1px solid var(--line-soft);font-size:12.5px;color:var(--muted);">여기 없는 질문은 <a href="http://pf.kakao.com/_ExdxcGX/chat" target="_blank" rel="noopener" style="color:var(--orange-dark);font-weight:800;">유버디 1:1 챗</a>으로 편하게 보내주세요 :)</div>`;
-      const first = gw.querySelector('details'); if (first) first.open = true;
+      gw.querySelectorAll('details').forEach((d) => d.addEventListener('toggle', () => { const t = d.querySelector('[data-tg]'); if (t) t.textContent = d.open ? '－' : '＋'; }));
+      const first = gw.querySelector('details'); if (first) { first.open = true; const t = first.querySelector('[data-tg]'); if (t) t.textContent = '－'; }
       page.appendChild(gw);
       __gradBox = gw;
     }
@@ -10435,8 +10436,19 @@ function HelpPage() {
           <span style="display:block;font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.45;">${p.isNew ? '<span style="display:inline-block;margin-right:6px;padding:1.5px 8px;border-radius:999px;border:1.2px solid #E8720C;color:#E8720C;font-size:9.5px;font-weight:800;letter-spacing:0.06em;vertical-align:1.5px;">NEW</span>' : ''}${escapeHtml(p.title)}</span>
           <span style="display:block;margin-top:2px;font-size:11px;color:${isQ ? '#7B5E8C' : 'var(--muted)'};font-weight:700;">${escapeHtml(p.cat)}</span>
         </span>
-        <span style="flex-shrink:0;color:var(--muted);font-size:13px;">›</span>`;
-      listWrap.appendChild(row);
+        <span data-tg style="flex-shrink:0;color:var(--muted);font-size:13px;font-weight:800;">＋</span>`;
+      // 2026-11-14 버디: 글 상세 페이지로 넘어가지 말고 그 자리에서 드롭다운으로 펼친다.
+      const det = document.createElement('details');
+      if (i2) det.style.borderTop = '1px solid var(--line-soft)';
+      const sm = document.createElement('summary');
+      sm.style.cssText = 'list-style:none;display:flex;align-items:center;gap:11px;padding:13px 16px;cursor:pointer;';
+      sm.innerHTML = row.innerHTML;
+      det.appendChild(sm);
+      const body = el('div', { style: { padding: '2px 16px 16px', fontSize: '13px', lineHeight: '1.75', color: 'var(--ink-soft)' } });
+      p.nodes.forEach((n) => { body.appendChild(n); });
+      det.appendChild(body);
+      det.addEventListener('toggle', () => { const t = sm.querySelector('[data-tg]'); if (t) t.textContent = det.open ? '－' : '＋'; });
+      listWrap.appendChild(det);
     });
     page.insertBefore(listWrap, foot);
     foot.style.marginTop = '18px';
