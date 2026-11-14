@@ -57,7 +57,7 @@ body{width:1080px;height:1080px;font-family:Pretendard,'Noto Sans CJK KR',sans-s
 .st .l{margin-top:14px;font-size:27px;font-weight:700;color:#6B5F58}
 .ft{font-size:25px;font-weight:700;letter-spacing:.02em}.dark .ft,.wine .ft{color:#D9A3B4}.light .ft{color:#7B3B4E}
 .row{display:flex;align-items:baseline;gap:26px;padding:26px 0;border-bottom:2px solid #7B3B4E}.row .r{font-size:44px;font-weight:900;color:#D9A3B4;width:60px}.row .w{font-size:44px;line-height:1.2;font-weight:900;letter-spacing:-1px;flex:1}.row .c2{font-size:26px;font-weight:700;color:#CDB7BE}
-.gift{display:flex;gap:24px;align-items:flex-start;padding:36px 0;border-bottom:2px solid rgba(251,247,240,.35)}.gift .no{font-size:30px;font-weight:900;width:50px;color:#EBD5DC}.gift .t{font-size:46px;font-weight:900;letter-spacing:-.5px}.gift .d{margin-top:10px;font-size:28px;font-weight:600;color:#F3E3E8}
+.gift{display:flex;gap:24px;align-items:flex-start;padding:16px 0;border-bottom:2px solid rgba(251,247,240,.35)}.gift .no{font-size:30px;font-weight:900;width:50px;color:#EBD5DC}.gift .t{font-size:40px;font-weight:900;letter-spacing:-.5px}.gift .d{margin-top:6px;font-size:25px;font-weight:600;color:#F3E3E8}
 """
 def card(i,cls,body,foot=''):
     return f"<!doctype html><meta charset=utf-8><style>{CSS}</style><div class='c {cls}'><div class=top><span>YOUBUDDY CHALLENGE 10</span><span>{i:02d} / 10</span></div><div class=rule></div>{body}<div class=sp></div><div class=ft>{foot}</div></div>"
@@ -75,7 +75,7 @@ C.append(card(8,'dark',f"<div class=k>보너스</div><div class='h s'>10기가 �
 C.append(card(9,'light',f"<div class=k>10기, 한 분도 빠짐없이</div><div class='h s'>4주를 함께한<br>모든 이름</div><div class=names style='font-size:47px;line-height:1.62;margin-top:50px'>{N(order)}</div>","속도는 달라도, 같이 걸은 4주였어요"))
 gifts=[("단어집 PDF","18일 이상 + 파이널 응시 (지각 포함)"),("1일1비 1개월 정기권","18일 이상 + 파이널 응시. 이용 중이면 1개월 연장"),("나만의 약점 복습 노트","정시 18일 이상 + 파이널 응시")]
 g=''.join(f"<div class=gift><div class=no>{i+1}</div><div><div class=t>{t}</div><div class=d>{d}</div></div></div>" for i,(t,d) in enumerate(gifts))
-C.append(card(10,'wine',f"<div class=k>수료를 축하합니다</div><div class='h s'>받아가실 선물,<br>이렇게 열려요</div><div style='margin-top:34px'>{g}</div>","앱 수료 리포트에서 바로 받을 수 있어요"))
+C.append(card(10,'wine',f"<div class=k>수료를 축하합니다</div><div class='h s' style='font-size:54px'>받아가실 선물, 이렇게 열려요</div><div style='margin-top:24px;background:#FBF7F0;color:#2B1A21;padding:22px 28px'><div style='font-size:22px;font-weight:800;color:#7B3B4E'>★ 꼭 확인</div><div style='margin-top:6px;font-size:44px;font-weight:900;letter-spacing:-1px;line-height:1.25'>파이널 테스트를 봐야<br>선물이 열려요</div><div style='margin-top:8px;font-size:25px;font-weight:700;color:#6B5F58'>Day 20 인증 후 열려요. 10분이면 끝, 점수 상관없어요</div></div><div style='margin-top:6px'>{g}</div>","파이널 응시 후 앱 수료 리포트에서 받을 수 있어요"))
 os.makedirs('html',exist_ok=True)
 for i,h in enumerate(C,1):
     assert '—' not in h and '–' not in h and '가비' not in h
