@@ -1100,6 +1100,8 @@ html.xmas .app::after {
   opacity: .9;
 }
 @keyframes xmasSnow { from { background-position: 0 0; } to { background-position: 60px 220px; } }
+/* 눈은 홈 화면에서만 (2026-11-14 버디) */
+html.xmas[data-page]:not([data-page="home"]) .app::after { display: none; }
 /* 홈 진도 카드: 위쪽 전구 줄 + 은은한 눈 */
 html.xmas [data-tour="home-hero"]::before {
   content: ""; position: absolute; left: 0; right: 0; top: 0; height: 16px; pointer-events: none; z-index: 1;
@@ -8721,6 +8723,8 @@ function renderOperatorQuickToggle() {
 }
 
 function render() {
+  // 2026-11-14 버디: 눈 내리는 효과는 홈 화면에만. html[data-page] 로 CSS 가 판단한다.
+  try { document.documentElement.setAttribute('data-page', String(currentPage || 'home')); } catch (_) {}
   // Keyboard stays open on mobile as long as the focused textarea/input stays in the DOM.
   // If a typing field is focused right now, defer the re-render until blur, otherwise
   // the wholesale innerHTML replacement below tears down the focused node and dismisses
