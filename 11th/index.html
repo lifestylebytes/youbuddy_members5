@@ -4049,29 +4049,37 @@ let guidedTourStep = null; // null = 비활성, 0..N-1
 // 단톡 인증 일러스트 (인라인 SVG, '유버디 챌린지 단톡방' 음성 인증 모습)
 const KAKAO_ILLUST = `
 <svg viewBox="0 0 340 232" width="100%" style="display:block;" xmlns="http://www.w3.org/2000/svg">
-  <rect width="340" height="232" fill="#EEF3F8"/>
-  <rect x="12" y="14" width="150" height="204" rx="14" fill="#FFFFFF" stroke="#D9E3EE"/>
-  <text x="26" y="36" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="9.5" font-weight="800" fill="#2F4A6D">① 앱에서 녹음</text>
-  <text x="26" y="54" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="11" font-weight="800" fill="#16202E">오늘 쓴 문장 3개</text>
-  <rect x="26" y="62" width="122" height="7" rx="3.5" fill="#E3EAF2"/><rect x="26" y="74" width="104" height="7" rx="3.5" fill="#E3EAF2"/><rect x="26" y="86" width="114" height="7" rx="3.5" fill="#E3EAF2"/>
-  <circle cx="87" cy="128" r="22" fill="#1F3350"/>
-  <rect x="82" y="116" width="10" height="17" rx="5" fill="#FFFFFF"/><path d="M77 128 a10 10 0 0 0 20 0" stroke="#FFFFFF" stroke-width="2" fill="none"/><rect x="86" y="138" width="2" height="5" fill="#FFFFFF"/>
-  <g fill="#9DB7D6"><rect x="34" y="160" width="3" height="10" rx="1.5"/><rect x="41" y="156" width="3" height="18" rx="1.5"/><rect x="48" y="159" width="3" height="12" rx="1.5"/><rect x="55" y="153" width="3" height="24" rx="1.5"/><rect x="62" y="158" width="3" height="14" rx="1.5"/><rect x="69" y="155" width="3" height="20" rx="1.5"/><rect x="76" y="160" width="3" height="10" rx="1.5"/><rect x="83" y="156" width="3" height="18" rx="1.5"/><rect x="90" y="159" width="3" height="12" rx="1.5"/><rect x="97" y="154" width="3" height="22" rx="1.5"/><rect x="104" y="158" width="3" height="14" rx="1.5"/><rect x="111" y="160" width="3" height="10" rx="1.5"/><rect x="118" y="156" width="3" height="18" rx="1.5"/><rect x="125" y="159" width="3" height="12" rx="1.5"/><rect x="132" y="157" width="3" height="16" rx="1.5"/></g>
-  <rect x="26" y="186" width="122" height="22" rx="11" fill="#2F4A6D"/>
-  <text x="87" y="201" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="10" font-weight="800" fill="#FFFFFF">녹음 제출 ✓</text>
-  <path d="M167 116 l10 0 m-5 -5 l5 5 l-5 5" stroke="#2F4A6D" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <rect x="182" y="14" width="146" height="204" rx="14" fill="#FFFFFF" stroke="#D9E3EE"/>
-  <text x="196" y="36" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="9.5" font-weight="800" fill="#2F4A6D">② 문구 복사 → 단톡방</text>
-  <rect x="194" y="46" width="122" height="78" rx="8" fill="#F5F8FB" stroke="#E3EAF2"/>
-  <text x="202" y="62" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="9.5" font-weight="800" fill="#16202E">[Day 1] Mia</text>
-  <text x="202" y="78" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="8.5" fill="#5E6672">1. Let's touch base...</text>
-  <text x="202" y="93" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="8.5" fill="#5E6672">2. Could you loop me...</text>
-  <text x="202" y="108" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="8.5" fill="#5E6672">3. I'll circle back...</text>
-  <rect x="194" y="132" width="122" height="26" rx="13" fill="#E8833A"/>
-  <text x="255" y="149" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="10" font-weight="800" fill="#FFFFFF">📋 복사하고 단톡방 열기</text>
-  <rect x="216" y="170" width="100" height="30" rx="13" fill="#FEE500"/>
-  <text x="266" y="189" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="9.5" font-weight="800" fill="#3A2A00">[Day 1] Mia 1. …</text>
-  <text x="208" y="212" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="8.5" font-weight="700" fill="#2F4A6D">붙여넣으면 인증 완료!</text>
+  <rect width="340" height="232" fill="#F3EEE3"/>
+  <rect x="8" y="10" width="146" height="212" rx="12" fill="#1F3A2E"/>
+  <text x="20" y="30" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="8.5" font-weight="700" fill="#8FB8A0">① 앱에서 녹음</text>
+  <text x="20" y="46" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="12" font-weight="800" fill="#F3EEE3">오늘 녹음 끝!</text>
+  <rect x="16" y="56" width="130" height="92" rx="9" fill="#2A4A3B"/>
+  <text x="24" y="86" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="26" font-weight="900" fill="#F3EEE3">95</text>
+  <text x="58" y="86" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="11" font-weight="800" fill="#F3EEE3">%</text>
+  <rect x="74" y="74" width="46" height="15" rx="7.5" fill="#3E6B53"/><text x="97" y="85" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="8.5" font-weight="800" fill="#F3EEE3">또렷해요</text>
+  <text x="24" y="102" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="7.5" fill="#8FB8A0">내 문장이 들린 정도</text>
+  <g font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="7.5" font-weight="800" fill="#F3EEE3">
+    <text x="24" y="117">1</text><rect x="32" y="112" width="84" height="5" rx="2.5" fill="#46685A"/><rect x="32" y="112" width="84" height="5" rx="2.5" fill="#9DC3AE"/><text x="140" y="117" text-anchor="end">100%</text>
+    <text x="24" y="130">2</text><rect x="32" y="125" width="84" height="5" rx="2.5" fill="#46685A"/><rect x="32" y="125" width="72" height="5" rx="2.5" fill="#9DC3AE"/><text x="140" y="130" text-anchor="end">86%</text>
+    <text x="24" y="143">3</text><rect x="32" y="138" width="84" height="5" rx="2.5" fill="#46685A"/><rect x="32" y="138" width="84" height="5" rx="2.5" fill="#9DC3AE"/><text x="140" y="143" text-anchor="end">100%</text>
+  </g>
+  <rect x="16" y="160" width="130" height="50" rx="9" fill="#F3EEE3"/>
+  <text x="81" y="178" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="8.5" font-weight="800" fill="#1F3A2E">마지막으로, 문장 3개를</text>
+  <rect x="24" y="186" width="114" height="17" rx="8.5" fill="#3E6B53"/>
+  <text x="81" y="198" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="8.5" font-weight="800" fill="#FFFFFF">📋 복사하고 단톡방 열기</text>
+  <path d="M159 116 l12 0 m-5 -5 l5 5 l-5 5" stroke="#3E6B53" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="176" y="10" width="156" height="212" rx="12" fill="#9DB6D8"/>
+  <path d="M176 22 a12 12 0 0 1 12 -12 h132 a12 12 0 0 1 12 12 v12 h-156 z" fill="#FFFFFF"/>
+  <text x="254" y="27" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="9.5" font-weight="800" fill="#191919">② 유버디 챌린지 단톡방</text>
+  <rect x="184" y="42" width="18" height="18" rx="6" fill="#F4B6C2"/><text x="193" y="55" text-anchor="middle" font-size="10">🙂</text>
+  <text x="206" y="47" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="7" fill="#48566B">Sue</text>
+  <rect x="206" y="50" width="104" height="44" rx="8" fill="#FFFFFF"/>
+  <g font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="7.5" fill="#191919"><text x="212" y="61" font-weight="800">[Day 1] Sue</text><text x="212" y="72">1. Worth a shot, right?</text><text x="212" y="82">2. Let's give it a go.</text><text x="212" y="91" fill="#8A93A0">3. ...</text></g>
+  <text x="324" y="108" text-anchor="end" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="7" fill="#44546B">나</text>
+  <rect x="200" y="112" width="126" height="66" rx="9" fill="#FEE500"/>
+  <g font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="7.5" fill="#3A2A00"><text x="207" y="125" font-weight="800">[Day 1] Mia</text><text x="207" y="137">1. Not sure it'll work, but</text><text x="207" y="146">    let's give it a shot.</text><text x="207" y="158">2. Sounds like a plan?</text><text x="207" y="170">3. Fair enough.</text></g>
+  <rect x="210" y="190" width="112" height="20" rx="10" fill="#1F3A2E"/>
+  <text x="266" y="203" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif" font-size="8.5" font-weight="800" fill="#FFFFFF">이렇게 올리면 인증 완료!</text>
 </svg>`;
 const GUIDED_TOUR_STEPS = [
   { page: 'home',      target: '[data-tour="home-hero"]',     title: '👋 환영해요!', bodyHtml: '여기가 홈이에요. 오늘 며칠째인지 진도가 보이고, 이 카드의 큰 버튼으로 오늘 학습을 바로 열 수 있어요.<br><br><span style="font-size:12px;color:#8A93A0;">이 안내는 조금 길어요. 중간에 그만둬도 괜찮아요. 언제든 "나" 탭 &gt; 앱 사용법 다시 보기로 다시 볼 수 있어요.</span>', body: '여기가 홈이에요. 오늘 며칠째인지 진도가 보이고, 이 카드의 큰 버튼으로 오늘 학습을 바로 열 수 있어요. (이 안내는 언제든 "나" 탭 > 앱 사용법 다시 보기로 다시 볼 수 있어요.)' },
