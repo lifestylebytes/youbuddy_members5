@@ -6,6 +6,7 @@ J=lambda L: '  '.join('@'+n for n in L)
 t=S['tot']; f=lambda n:f"{n:,}"
 CS="http://pf.kakao.com/_ExdxcGX"
 REPORT="https://youbuddy.co.kr/10th/#report"
+HELP="https://youbuddy.co.kr/10th/#help"
 WAIT="https://docurise.io/youbuddy/d/youbuddy-challenge-11-apply?src=kakao_10th"
 OB="https://1day-1biz.youbuddy.co.kr/onboarding"
 REVIEW="https://www.latpeed.com/products/en0l_/reviews/create"
@@ -130,7 +131,9 @@ Day 20 인증을 마치면 파이널 테스트가 열려요.
 파이널 보시면 단어집이랑 약점 노트는 앱 수료 리포트에서 바로 받으실 수 있어요.
 {REPORT}
 
-1일1비는 바로 아래에 따로 안내드릴게요 👇"""),
+1일1비는 바로 아래에 따로 안내드릴게요 👇
+궁금한 건 여기 Q&A에 다 모아뒀어요!
+{HELP}"""),
 ]
 
 after=[
@@ -216,6 +219,9 @@ https://open.kakao.com/o/ggQrpsei
 회의에서 오늘 배운 표현이 툭 튀어나오는 날, 꼭 알려주세요 ㅎㅎ
 
 수료 진심으로 축하드려요 🧡
+
+선물 / 1일1비 / 수료 후 궁금한 건 여기 먼저 봐주세요 :)
+{HELP}
 회사 제출용 수강증이 필요하신 분은 유버디 1:1 챗으로 말씀해주세요~
 {CS}"""),
 ]
@@ -329,7 +335,7 @@ ul.chk b{{display:block}}
 {''.join(block(l,tx,None,f'공지 {i+1}',['guide/g1.jpg','guide/g2.jpg','guide/g3.jpg'] if '단어집 PDF' in l else None) for i,(l,tx) in enumerate(after))}</section>
 
 <section id="faq"><h2>질문 대비<small>나올 만한 것과 답</small></h2>
-<p class="note">'확인' 표시는 위에서 가정한 내용이 들어간 답이에요. 버디가 정하면 그 답만 바꾸면 돼요.</p>
+<p class="note">멤버용 Q&amp;A는 앱 도움말 맨 위에 넣어뒀어요 (youbuddy.co.kr/10th/#help). 아래는 버디용 전체 목록이고, '확인' 표시는 가정이 들어간 답이에요.</p>
 <ol class="q">{''.join(f"<li><div class='qq'>Q. {e(q)}{'<span class=flag>확인</span>' if c else ''}</div><div class='aa'>{e(a)}</div></li>" for q,a,c in faq)}</ol></section>
 
 <section id="miss"><h2>빠뜨리기 쉬운 것</h2>
