@@ -36569,7 +36569,10 @@ window.__recAckNotice = () => { state.recording_notice_seen = true; try { saveSt
 function recShareText(dayN) {
   const ss = recSentences(dayN);
   const who = (state.englishName || state.name || '').trim();
-  return [`[Day ${dayN}] ${who}`, ...ss.map((t, i) => `${i + 1}. ${t}`)].join('\n');
+  // 녹음 정확도를 맨 앞에 (2026-11-16 버디). 단톡에서 서로 몇 % 나왔는지 보이게.
+  const rec = (state.recordings || {})['d' + dayN] || {};
+  const acc = (typeof rec.accuracy === 'number') ? ` · 🎙 ${rec.accuracy}%` : '';
+  return [`[Day ${dayN}] ${who}${acc}`, ...ss.map((t, i) => `${i + 1}. ${t}`)].join('\n');
 }
 async function recCopyText(dayN) {
   const text = recShareText(dayN);
