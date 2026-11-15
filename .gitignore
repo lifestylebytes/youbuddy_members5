@@ -42,3 +42,4 @@ _archive/**/*1on1톡*.txt
 # 수료식 초안(멤버 닉네임 포함)은 공개 저장소에 올리지 않는다
 _archive/**/수료식/*.json
 _archive/**/수료식/*.jpg
+_archive/**/*_비공개.csv
