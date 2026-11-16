@@ -27743,6 +27743,54 @@ function RateHistoryModal(initialTier) {
 }
 window.__closeRateHistory = () => { showRateHistory = null; render(); };
 
+// ── 운영팀용: 다른 멤버 녹음 목록 ──
+window.__memberRecCache = window.__memberRecCache || {};
+async function loadMemberRecordings(name, force) {
+  const C = window.__memberRecCache;
+  if (C[name] && !force && (C[name].loading || Date.now() - C[name].at < 60000)) return;
+  C[name] = Object.assign(C[name] || {}, { loading: true });
+  try {
+    const st = await supabaseRpc('get_member_app_state', { p_cohort: CHALLENGE.cohort, p_member_key: name });
+    C[name] = { loading: false, at: Date.now(), rec: (st && st.recordings) || {}, ver: (st && st.verified) || {} };
+  } catch (e) { C[name] = { loading: false, at: Date.now(), err: true, rec: {}, ver: {} }; }
+  const box = document.querySelector(`[data-member-rec-box="${CSS.escape(name)}"]`);
+  if (box) box.innerHTML = memberRecBoxHtml(name);
+}
+function memberRecBoxHtml(name) {
+  const C = (window.__memberRecCache || {})[name];
+  const head = '<div class="kicker" style="color:var(--muted);">🎙 녹음 <span style="font-weight:600;">(운영팀만 보여요)</span></div>';
+  if (!C || C.loading && !C.at) return head + '<div class="t-small" style="margin-top:8px;color:var(--muted);">불러오는 중…</div>';
+  if (C.err) return head + '<div class="t-small" style="margin-top:8px;color:var(--muted);">불러오지 못했어요. 카드를 다시 열어주세요.</div>';
+  const days = new Set();
+  Object.keys(C.rec || {}).forEach((k) => { const m = k.match(/^d(\d+)$/); if (m) days.add(Number(m[1])); });
+  Object.keys(C.ver || {}).forEach((k) => { const m = k.match(/^d(\d+)$/); if (m && C.ver[k]) days.add(Number(m[1])); });
+  const list = [...days].sort((a, b) => a - b);
+  if (!list.length) return head + '<div class="t-small" style="margin-top:8px;color:var(--muted);">아직 인증한 Day 가 없어요.</div>';
+  const rows = list.map((d) => {
+    const r = (C.rec || {})['d' + d];
+    if (!r || !r.path) {
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:13px;"><b>Day ${d}</b><span style="color:#B07A3A;font-weight:700;">앱 인증만 · 녹음 없음</span></div>`;
+    }
+    const acc = (typeof r.accuracy === 'number') ? `${r.accuracy}%` : '';
+    const ok = r.verified ? '' : ' <span style="color:#B04A3A;">(미인정)</span>';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:13px;"><span><b>Day ${d}</b> <span class="mono" style="color:var(--muted);">${escapeHtml(acc)}</span>${ok}</span><button class="btn btn-ghost" style="padding:6px 12px;font-size:12.5px;font-weight:800;" onclick="window.__playMemberRec(${JSON.stringify(r.path).replace(/"/g, '&quot;')}, this)">▶ 듣기</button></div>`;
+  }).join('');
+  return head + `<div style="margin-top:8px;">${rows}</div>`;
+}
+window.__playMemberRec = async (path, btn) => {
+  try {
+    if (window.__memberRecAudio) { try { window.__memberRecAudio.pause(); } catch (_) {} }
+    if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/recording`, { method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'url', path }) });
+    const data = await res.json();
+    if (!data.url) throw new Error('no url');
+    const a = new Audio(data.url); window.__memberRecAudio = a;
+    await a.play();
+    if (btn) { btn.textContent = '■ 재생 중'; a.onended = () => { btn.textContent = '▶ 듣기'; }; }
+  } catch (e) { try { showToast('녹음을 불러오지 못했어요. 파일이 정리됐을 수도 있어요.'); } catch (_) {} if (btn) btn.textContent = '▶ 듣기'; }
+  finally { if (btn) btn.disabled = false; }
+};
+
 function MemberCardModal(memberRef) {
   const member = memberCardData(memberRef);
   if (!member) return document.createDocumentFragment();
@@ -27866,6 +27914,15 @@ function MemberCardModal(memberRef) {
     });
     note.textContent = '아직 프로필을 꾸미지 않은 동료예요. 같이 달리는 루틴에서 소리 없이 페이스를 맞춰주고 있어요.';
     modal.appendChild(note);
+  }
+
+  // 운영팀 전용: 이 멤버의 Day별 녹음 듣기 (2026-11-16 버디). 멤버끼리는 안 보인다.
+  if (viewerIsStaff && !member.me && member.name) {
+    const recBox = el('div', { style: { marginTop: '14px', padding: '14px', borderRadius: '18px', background: 'var(--paper)' } });
+    recBox.setAttribute('data-member-rec-box', member.name);
+    recBox.innerHTML = memberRecBoxHtml(member.name);
+    modal.appendChild(recBox);
+    loadMemberRecordings(member.name);
   }
 
   const footer = el('div', { style: { display: 'flex', gap: '8px', marginTop: '14px', flexWrap: 'wrap' } });
