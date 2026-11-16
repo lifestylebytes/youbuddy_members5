@@ -21370,6 +21370,19 @@ function PremiumPage() {
   // 탭 최상단에는 '이 탭은 프리미엄 전용이에요' 안내 배너 한 줄만 삽입.
   const isPremium = state.tier === 'premium';
 
+  // 12기 미리 대기 (2026-11-16 버디). 프리미엄 탭 최상단, 눈에 띄게.
+  const waitCard = el('a', { href: 'https://docurise.io/youbuddy/d/youbuddy-challenge-11-apply?utm_content=app11_premium_top', target: '_blank', rel: 'noopener', style: {
+    display: 'block', position: 'relative', overflow: 'hidden', marginBottom: '14px', padding: '20px 18px 18px', borderRadius: '20px', textDecoration: 'none',
+    background: 'linear-gradient(135deg,#2B2233 0%,#4A3358 55%,#7B5E8C 100%)', color: '#fff', boxShadow: '0 14px 30px -18px rgba(74,51,88,0.9)' } });
+  waitCard.innerHTML = `
+    <div style="position:absolute;right:-18px;top:-22px;font-size:96px;opacity:0.12;line-height:1;">👑</div>
+    <div style="display:inline-block;padding:4px 10px;border-radius:999px;background:#F3589B;font-size:11px;font-weight:800;letter-spacing:0.04em;">NEXT · 12기</div>
+    <div style="margin-top:10px;font-size:21px;font-weight:900;letter-spacing:-0.02em;line-height:1.3;">2027년 1월 11일,<br>12기가 시작돼요</div>
+    <div style="margin-top:8px;font-size:13px;line-height:1.6;color:rgba(255,255,255,0.85);">오픈 알림은 <b style="color:#FFD3E6;">대기자한테만 먼저</b> 가요.<br>선착순 모집 예정이라 미리 줄 서두세요 🏃‍♀️</div>
+    <div style="margin-top:14px;display:flex;align-items:center;justify-content:center;gap:6px;padding:13px;border-radius:14px;background:#fff;color:#4A3358;font-size:15px;font-weight:900;">🔥 12기 미리 대기하기 <span style="font-size:17px;">→</span></div>
+    <div style="margin-top:8px;text-align:center;font-size:11px;color:rgba(255,255,255,0.7);">30초면 끝나요 · 베이직 / 프리미엄 둘 다 받아요</div>`;
+  page.appendChild(waitCard);
+
   // Premium hero
   const hero = el('div', { class: 'premium-banner' });
   const heroKicker = isPremium ? `⭐ PREMIUM · ${state.name}님` : `⭐ PREMIUM · 다음 기수 프리뷰`;
@@ -21385,17 +21398,6 @@ function PremiumPage() {
     </div>`;
   page.appendChild(hero);
 
-  // 12기 미리 대기 링크 (2026-11-16 버디). 프리미엄 탭 맨 위.
-  const waitCard = el('a', { href: 'https://docurise.io/youbuddy/d/youbuddy-challenge-11-apply?utm_content=app11_premium_top', target: '_blank', rel: 'noopener', style: {
-    display: 'flex', alignItems: 'center', gap: '12px', marginTop: '14px', padding: '15px 16px', borderRadius: '16px', textDecoration: 'none',
-    background: '#fff', border: '1.5px solid var(--lilac)', color: 'var(--ink)' } });
-  waitCard.innerHTML = `<span style="flex-shrink:0;font-size:22px;">👑</span>
-    <span style="flex:1;min-width:0;">
-      <span style="display:block;font-size:15px;font-weight:800;letter-spacing:-0.01em;">12기 미리 대기하기</span>
-      <span style="display:block;margin-top:3px;font-size:12px;color:var(--ink-soft);">2027년 1/11(월) 시작 · 선착순 모집 예정</span>
-    </span>
-    <span style="flex-shrink:0;color:var(--lilac);font-size:17px;font-weight:800;">→</span>`;
-  page.appendChild(waitCard);
 
   // PT prep 바로가기 카드, 프리미엄 유저 전용, PT 준비 메인 페이지로 점프
   if (isPremium) {
