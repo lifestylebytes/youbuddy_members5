@@ -27775,7 +27775,7 @@ function memberRecBoxHtml(name) {
     const ok = r.verified ? '' : ' <span style="color:#B04A3A;">(미인정)</span>';
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:13px;"><span><b>Day ${d}</b> <span class="mono" style="color:var(--muted);">${escapeHtml(acc)}</span>${ok}</span><button class="btn btn-ghost" style="padding:6px 12px;font-size:12.5px;font-weight:800;" onclick="window.__playMemberRec(${JSON.stringify(r.path).replace(/"/g, '&quot;')}, this)">▶ 듣기</button></div>`;
   }).join('');
-  return head + `<div style="margin-top:8px;">${rows}</div>`;
+  return head + `<div style="margin-top:8px;">${rows}</div><div class="t-small" style="margin-top:8px;font-size:11px;color:var(--muted);">녹음 파일은 기수 종료 후 30일 이내에 삭제돼요.</div>`;
 }
 window.__playMemberRec = async (path, btn) => {
   try {
@@ -27785,7 +27785,7 @@ window.__playMemberRec = async (path, btn) => {
     const data = await res.json();
     if (!data.url) throw new Error('no url');
     const a = new Audio(data.url); window.__memberRecAudio = a;
-    await a.play();
+    try { await a.play(); } catch (pe) { try { window.open(data.url, '_blank', 'noopener'); } catch (_) {} if (btn) btn.textContent = '▶ 듣기'; return; }
     if (btn) { btn.textContent = '■ 재생 중'; a.onended = () => { btn.textContent = '▶ 듣기'; }; }
   } catch (e) { try { showToast('녹음을 불러오지 못했어요. 파일이 정리됐을 수도 있어요.'); } catch (_) {} if (btn) btn.textContent = '▶ 듣기'; }
   finally { if (btn) btn.disabled = false; }
@@ -36613,7 +36613,10 @@ async function recPlaySaved(path, btn) {
     const data = await res.json();
     if (!data.url) throw new Error('no url');
     const a = document.querySelector('[data-rec-saved-audio]');
-    if (a) { a.src = data.url; a.style.display = 'block'; try { await a.play(); } catch (_) {} }
+    // 재생이 안 되는 브라우저(카톡 인앱·일부 사파리)는 새 창으로 파일을 연다 (2026-11-16)
+    let played = false;
+    if (a) { a.src = data.url; a.style.display = 'block'; try { await a.play(); played = true; } catch (_) {} }
+    if (!played) { try { window.open(data.url, '_blank', 'noopener'); } catch (_) { location.href = data.url; } }
   } catch (e) { try { showToast('녹음을 불러오지 못했어요. 잠시 뒤 다시 눌러주세요.'); } catch (_) {} }
   finally { if (btn) { btn.disabled = false; btn.textContent = '▶ 내 녹음 듣기'; } }
 }
@@ -36814,7 +36817,7 @@ function RecorderCard(dayN) {
           return `<details class="rec-review"><summary>${anyMiss ? '어디가 덜 들렸는지 보기' : '내 문장 다시 보기'}</summary><ol class="rec-sent rec-check">${lis}</ol>${anyMiss ? '<div class="rec-legend"><b>빨간 글자</b>는 안 들렸거나 다르게 들린 부분이에요. 인증은 이미 끝났으니 복습용으로만 보세요.</div>' : ''}${recHeardHtml(saved.transcript)}${recFbHtml(dayN)}</details>`;
         })()
       + `<div class="rec-row">
-           <button class="btn rec-btn-ghost" data-rec-play onclick="window.__recPlaySaved(${JSON.stringify(saved.path)}, this)">▶ 내 녹음 듣기</button>
+           <button class="btn rec-btn-ghost" data-rec-play onclick="window.__recPlaySaved(${escapeHtml(JSON.stringify(saved.path))}, this)">▶ 내 녹음 듣기</button>
            <button class="btn rec-btn-ghost" onclick="window.__rec.status='idle';window.__recStart(${dayN})">다시 녹음</button>
          </div>
          <audio data-rec-saved-audio controls style="display:none;width:100%;margin-top:10px;"></audio>
