@@ -12629,7 +12629,9 @@ function HomePage() {
   const __dormantCount = statsPoolAll.length - statsPool.length;
   const fallbackTodayRate = Math.round((statsPool.filter(isVerifiedToday).length / Math.max(1, statsPool.length)) * 100);
   // 서버 집계(current_rate_pct)는 쉬는 중 포함이라, 쉬는 중이 1명이라도 있으면 클라 계산을 우선.
-  const todayRate = __dormantCount > 0 ? fallbackTodayRate : (dashboardStats.todayRate ?? fallbackTodayRate);
+  // 서버 집계(get_hourly_completion_delta)는 운영팀·테스트 계정 인증까지 세서 100%를 넘기도 한다
+  // (2026-11-16 Day 1: 22/21 = 105%). 숫자는 항상 클라 계산(실참가자 기준)으로. 서버 값은 '어제 대비' 문구에만.
+  const todayRate = fallbackTodayRate;
 
   // Hero progress
   const hero = el('div', { 'data-tour': 'home-hero', class: 'card card-ink', style: { padding: '20px', borderRadius: '26px', position: 'relative', overflow: 'hidden' } });
