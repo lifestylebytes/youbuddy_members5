@@ -21454,76 +21454,58 @@ function PremiumPage() {
     page.appendChild(intakeCard);
   }
 
-  page.appendChild(el('div', { class: 'kicker', style: { marginTop: '24px' } }, `${calBaseY}년 ${calBaseMo}월 · 목요일 미팅`));
-  page.appendChild(el('h2', { class: 'h2', style: { marginTop: '6px', marginBottom: '12px' } },
-    (() => { const s = el('span'); s.innerHTML = '<span class="serif">Meeting</span> calendar'; return s; })()
-  ));
-
-  const calendarCard = el('div', { class: 'card', style: { padding: '18px', background: 'linear-gradient(165deg, #FFFDF7 0%, #F4ECFA 100%)', borderColor: 'rgba(169,139,184,0.28)', overflow: 'hidden' } });
-  calendarCard.innerHTML = `
-    <div class="row-between" style="margin-bottom:14px;">
-      <div>
-        <div class="kicker" style="color:var(--lilac);">${__MON_EN[calBaseMo-1]}${calNextMo !== calBaseMo ? '-' + __MON_EN[calNextMo-1] : ''} ${calBaseY}</div>
-        <div class="h3" style="margin-top:6px;">매주 목요일 21:00</div>
-        <div class="t-small" style="margin-top:6px;color:var(--ink-soft);">첫 미팅은 ${calFirstMeet.mo}/${calFirstMeet.d} 목요일에 시작해요.</div>
-      </div>
-      <span class="badge badge-lilac">${totalMeetings}회 예정</span>
-    </div>`;
-  const weekHeader = el('div', { class: 'premium-calendar-grid', style: { marginBottom: '8px' } });
-  ['일','월','화','수','목','금','토'].forEach((label) => {
-    weekHeader.appendChild(el('div', { style: { textAlign: 'center', fontSize: '12px', color: 'var(--muted)', padding: '6px 0' } }, label));
-  });
-  calendarCard.appendChild(weekHeader);
-  const grid = el('div', { class: 'premium-calendar-grid' });
-  const openMeetingNote = (mid) => { window.__currentMeetingId = mid; go('meeting-notes'); };
-  // 리딩 빈칸: 기준 월 1일의 요일 수만큼
-  for (let i = 0; i < calFirstDow; i++) {
-    grid.appendChild(el('div', { class: 'premium-calendar-cell', style: { background: 'transparent', border: 'none', boxShadow: 'none' } }));
+  // 11기에는 프리미엄 미팅이 없다. 이 자리는 다음 기수(12기, 2027-01) 프리미엄 예고로 쓴다. (2026-11-16 버디)
+  // 날짜 바꿀 땐 NEXT_PREMIUM 만 고치면 된다.
+  const NEXT_PREMIUM = { label: '12기', y: 2027, start: '1/11(월)', meets: ['2027-01-14', '2027-01-21', '2027-01-28', '2027-02-04'], time: '목요일 21:00',
+    waitUrl: 'https://docurise.io/youbuddy/d/youbuddy-challenge-11-apply?utm_content=app11_premium_tab' };
+  {
+    const NP = NEXT_PREMIUM;
+    const md = NP.meets.map((x) => { const [y, m, d] = x.split('-').map(Number); return { y, m, d }; });
+    const baseM = md[0].m, baseY = md[0].y;
+    const meetSet = new Set(md.map((x) => `${x.m}-${x.d}`));
+    const lastNext = md.filter((x) => x.m !== baseM).reduce((a, x) => Math.max(a, x.d), 0);
+    const firstDow = new Date(baseY, baseM - 1, 1).getDay();
+    const daysIn = new Date(baseY, baseM, 0).getDate();
+    const nextM = baseM === 12 ? 1 : baseM + 1;
+    page.appendChild(el('div', { class: 'kicker', style: { marginTop: '24px', color: 'var(--lilac)' } }, `다음 기수 예고 · ${NP.label} 프리미엄`));
+    page.appendChild(el('h2', { class: 'h2', style: { marginTop: '6px', marginBottom: '12px' } },
+      (() => { const sp = el('span'); sp.innerHTML = '<span class="serif">Meeting</span> calendar'; return sp; })()
+    ));
+    const card = el('div', { class: 'card', style: { padding: '18px', background: 'linear-gradient(165deg, #FFFDF7 0%, #F4ECFA 100%)', borderColor: 'rgba(169,139,184,0.28)', overflow: 'hidden' } });
+    card.innerHTML = `
+      <div class="row-between" style="margin-bottom:14px;align-items:flex-start;">
+        <div>
+          <div class="kicker" style="color:var(--lilac);">${__MON_EN[baseM - 1]}${lastNext ? '-' + __MON_EN[nextM - 1] : ''} ${baseY} · ${NP.label}</div>
+          <div class="h3" style="margin-top:6px;">매주 ${NP.time} 온라인 미팅</div>
+          <div class="t-small" style="margin-top:6px;color:var(--ink-soft);">${NP.label}는 ${NP.start}에 시작하고, 첫 미팅은 ${md[0].m}/${md[0].d} 목요일이에요.</div>
+        </div>
+        <span class="badge badge-lilac">${md.length}회 예정</span>
+      </div>`;
+    const wh = el('div', { class: 'premium-calendar-grid', style: { marginBottom: '8px' } });
+    ['일','월','화','수','목','금','토'].forEach((lb) => wh.appendChild(el('div', { style: { textAlign: 'center', fontSize: '12px', color: 'var(--muted)', padding: '6px 0' } }, lb)));
+    card.appendChild(wh);
+    const g = el('div', { class: 'premium-calendar-grid' });
+    for (let i = 0; i < firstDow; i++) g.appendChild(el('div', { class: 'premium-calendar-cell', style: { background: 'transparent', border: 'none', boxShadow: 'none' } }));
+    const cellOf = (m, d, inBase) => {
+      const mt = meetSet.has(`${m}-${d}`);
+      const c = el('div', { class: 'premium-calendar-cell', style: {
+        background: mt ? 'var(--lilac)' : (inBase ? '#fff' : 'rgba(255,253,247,0.55)'),
+        color: mt ? '#fff' : (inBase ? 'var(--ink)' : 'var(--muted)'),
+        border: mt ? 'none' : (inBase ? '1px solid rgba(231,221,200,0.9)' : '1px dashed rgba(231,221,200,0.7)'),
+        boxShadow: mt ? '0 8px 20px -12px rgba(169,139,184,0.8)' : 'none', opacity: (mt || inBase) ? '1' : '0.6' } });
+      c.appendChild(el('div', { style: { fontSize: '15px', fontWeight: '700' } }, String(d)));
+      c.appendChild(mt ? el('div', { style: { fontSize: '10px', letterSpacing: '0.08em', opacity: '0.95' } }, 'MEET') : (inBase ? el('div') : el('div', { style: { fontSize: '9px', letterSpacing: '0.04em', opacity: '0.7' } }, __MON_EN[m - 1])));
+      return c;
+    };
+    for (let d = 1; d <= daysIn; d++) g.appendChild(cellOf(baseM, d, true));
+    for (let d = 1; d <= lastNext; d++) g.appendChild(cellOf(nextM, d, false));
+    card.appendChild(g);
+    const foot = el('div', { style: { marginTop: '14px', padding: '12px 14px', borderRadius: '14px', background: '#fff', border: '1px solid rgba(169,139,184,0.28)', fontSize: '12.5px', lineHeight: '1.6', color: 'var(--ink-soft)' } });
+    foot.innerHTML = `👑 ${NP.label} 프리미엄은 <b style="color:var(--ink);">1월 대기 등록하신 분께 먼저</b> 열려요 (선착순 마감)
+      <a href="${NP.waitUrl}" target="_blank" rel="noopener" style="display:block;margin-top:10px;text-align:center;padding:11px;border-radius:12px;background:var(--lilac);color:#fff;font-weight:800;text-decoration:none;">1월 대기 등록하기 →</a>`;
+    card.appendChild(foot);
+    page.appendChild(card);
   }
-  // 기준 월 (예: 6월) 1~말일. 미팅일은 클릭하면 미팅 노트 열림
-  for (let day = 1; day <= calDaysInBase; day++) {
-    const mt = calBaseMeet[day];
-    const cell = el('div', {
-      class: 'premium-calendar-cell',
-      style: {
-        background: mt ? 'var(--lilac)' : '#fff',
-        color: mt ? '#fff' : 'var(--ink)',
-        border: mt ? 'none' : '1px solid rgba(231,221,200,0.9)',
-        boxShadow: mt ? '0 8px 20px -12px rgba(169,139,184,0.8)' : 'none',
-        cursor: mt ? 'pointer' : 'default',
-      },
-      onClick: mt ? (() => openMeetingNote(mt.id)) : undefined,
-    });
-    cell.appendChild(el('div', { style: { fontSize: '15px', fontWeight: '700' } }, String(day)));
-    cell.appendChild(mt ? el('div', { style: { fontSize: '10px', letterSpacing: '0.08em', opacity: '0.95' } }, 'MEET') : el('div'));
-    grid.appendChild(cell);
-  }
-  // 다음 달 머리 (마지막 미팅이 다음 달이면, 예: 7/2)
-  for (let day = 1; day <= calNextMax; day++) {
-    const mt = calNextMeet[day];
-    const cell = el('div', {
-      class: 'premium-calendar-cell',
-      style: {
-        background: mt ? 'var(--lilac)' : 'rgba(255,253,247,0.55)',
-        color: mt ? '#fff' : 'var(--muted)',
-        border: mt ? 'none' : '1px dashed rgba(231,221,200,0.7)',
-        boxShadow: mt ? '0 8px 20px -12px rgba(169,139,184,0.8)' : 'none',
-        opacity: mt ? '1' : '0.6',
-        cursor: mt ? 'pointer' : 'default',
-      },
-      onClick: mt ? (() => openMeetingNote(mt.id)) : undefined,
-    });
-    cell.appendChild(el('div', { style: { fontSize: '15px', fontWeight: '700' } }, String(day)));
-    cell.appendChild(mt ? el('div', { style: { fontSize: '10px', letterSpacing: '0.08em', opacity: '0.95' } }, 'MEET') : el('div', { style: { fontSize: '9px', letterSpacing: '0.04em', opacity: '0.7' } }, __MON_EN[calNextMo-1]));
-    grid.appendChild(cell);
-  }
-  calendarCard.appendChild(grid);
-  const legend = el('div', { style: { display: 'flex', gap: '14px', marginTop: '14px', fontSize: '12px', color: 'var(--muted)' } });
-  legend.innerHTML = `
-    <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:3px;background:var(--lilac);display:inline-block;"></span>미팅일</span>
-    <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:3px;background:#fff;border:1px solid rgba(231,221,200,0.9);display:inline-block;"></span>일반일</span>`;
-  calendarCard.appendChild(legend);
-  page.appendChild(calendarCard);
 
   // Weekly meetings, 발표자 선착순(현재 4명) 중심의 통합 카드.
   // Basic 사용자에겐 전체 섹션 (타이틀 + 미팅 카드 스택) 을 blur 처리 + 가운데
