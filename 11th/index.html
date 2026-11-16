@@ -21385,6 +21385,18 @@ function PremiumPage() {
     </div>`;
   page.appendChild(hero);
 
+  // 12기 미리 대기 링크 (2026-11-16 버디). 프리미엄 탭 맨 위.
+  const waitCard = el('a', { href: 'https://docurise.io/youbuddy/d/youbuddy-challenge-11-apply?utm_content=app11_premium_top', target: '_blank', rel: 'noopener', style: {
+    display: 'flex', alignItems: 'center', gap: '12px', marginTop: '14px', padding: '15px 16px', borderRadius: '16px', textDecoration: 'none',
+    background: '#fff', border: '1.5px solid var(--lilac)', color: 'var(--ink)' } });
+  waitCard.innerHTML = `<span style="flex-shrink:0;font-size:22px;">👑</span>
+    <span style="flex:1;min-width:0;">
+      <span style="display:block;font-size:15px;font-weight:800;letter-spacing:-0.01em;">12기 미리 대기하기</span>
+      <span style="display:block;margin-top:3px;font-size:12px;color:var(--ink-soft);">2027년 1/11(월) 시작 · 선착순 모집 예정</span>
+    </span>
+    <span style="flex-shrink:0;color:var(--lilac);font-size:17px;font-weight:800;">→</span>`;
+  page.appendChild(waitCard);
+
   // PT prep 바로가기 카드, 프리미엄 유저 전용, PT 준비 메인 페이지로 점프
   if (isPremium) {
     const vocabCount = Array.isArray(state.pitch_vocab) ? state.pitch_vocab.length : 0;
@@ -21501,7 +21513,7 @@ function PremiumPage() {
     for (let d = 1; d <= lastNext; d++) g.appendChild(cellOf(nextM, d, false));
     card.appendChild(g);
     const foot = el('div', { style: { marginTop: '14px', padding: '12px 14px', borderRadius: '14px', background: '#fff', border: '1px solid rgba(169,139,184,0.28)', fontSize: '12.5px', lineHeight: '1.6', color: 'var(--ink-soft)' } });
-    foot.innerHTML = `👑 ${NP.label} 프리미엄은 <b style="color:var(--ink);">1월 대기 등록하신 분께 먼저</b> 열려요 (선착순 마감)
+    foot.innerHTML = `👑 ${NP.label} 프리미엄은 <b style="color:var(--ink);">1월 대기 등록하신 분께 먼저</b> 열려요 (선착순 모집 예정)
       <a href="${NP.waitUrl}" target="_blank" rel="noopener" style="display:block;margin-top:10px;text-align:center;padding:11px;border-radius:12px;background:var(--lilac);color:#fff;font-weight:800;text-decoration:none;">1월 대기 등록하기 →</a>`;
     card.appendChild(foot);
     page.appendChild(card);
