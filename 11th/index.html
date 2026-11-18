@@ -28019,13 +28019,15 @@ function MemberCardModal(memberRef) {
   }
 
   // Day별 녹음 듣기: 본인은 항상, 동료는 그 사람이 공개를 켰을 때만, 운영팀은 항상. (2026-11-18 버디)
-  if (member.name && (member.me || viewerIsStaff || recShareOn(member.name))) {
-    if (member.me) window.__memberRecCache[member.name] = { loading: false, at: Date.now(), rec: state.recordings || {}, ver: state.verified || {} };
+  // 보드에서 이름으로 열면 me 플래그 없는 명단 항목이 잡힐 수 있어서, 본인 여부는 이름으로도 확인한다. (2026-11-18: 내 프로필에 녹음이 안 뜨던 버그)
+  const __recIsMe = !!member.me || (!!member.name && String(member.name).trim() === String(state.name || '').trim());
+  if (member.name && (__recIsMe || viewerIsStaff || recShareOn(member.name))) {
+    if (__recIsMe) window.__memberRecCache[member.name] = { loading: false, at: Date.now(), rec: state.recordings || {}, ver: state.verified || {} };
     const recBox = el('div', { style: { marginTop: '14px', padding: '14px', borderRadius: '18px', background: 'var(--paper)' } });
     recBox.setAttribute('data-member-rec-box', member.name);
     recBox.innerHTML = memberRecBoxHtml(member.name);
     modal.appendChild(recBox);
-    if (!member.me) loadMemberRecordings(member.name);
+    if (!__recIsMe) loadMemberRecordings(member.name);
   }
 
   const footer = el('div', { style: { display: 'flex', gap: '8px', marginTop: '14px', flexWrap: 'wrap' } });
