@@ -34918,6 +34918,7 @@ const OPS_TALK = {"morning": {"1": "오늘도 좋은 아침이에요, Day 1 시�
 // 파일은 이 폴더의 assets/tips/ 에 둔다. 파일이 없으면 톡 창에 "파일 없음" 으로만 뜨고 다른 기능엔 영향 없음.
 // (2026-10-18 버디: 앱 팁 이미지를 매번 폰으로 캡처해야 해서 불편)
 OPS_TALK.extra = Object.assign({}, OPS_TALK.extra || {}, {
+  '4': { time: '08:30', title: '아침 공지 · 녹음은 내가 제출한 문장으로', body: '해피 day4입니다 :)\n\n녹음 화면 하나 고쳤어요!\n\n지금까지는 녹음할 때\n내가 쓴 문장이 아니라 AI가 다듬어준 문장이 보였는데요,\n이제는 <내가 제출한 문장> 그대로 나와요.\n(피드백 주신 덕분이에요 🧡)\n\n앱 새로고침 한 번만 해주시면 바로 적용됩니다~\n\n그리고 오늘부터 앱을 열면\n<동료에게 내 녹음 공개하기> 창이 한 번 떠요.\n공개하셔도, 안 하셔도 괜찮아요 :)', images: [] },
   '3': { time: '17:00', title: '새 기능 안내 · 내 녹음 다시 듣기', body: '<내 녹음 다시 듣기> 기능이 생겼어요 :)\n\n홈 보드에서 내 이름을 누르면\nDay별로 내가 녹음한 걸 바로 다시 들어볼 수 있어요!\n\nDay 1 녹음이랑 오늘 녹음, 한번 비교해서 들어보세요.\n(벌써 달라진 게 들릴 수도... ㅎㅎ)\n\n그리고 내일부터는\n동료에게 내 녹음을 공개할지 고르는 창이 한 번 떠요.\n공개하신 분은 이름 옆에 🔊 가 붙고,\n서로 녹음을 들어볼 수 있답니다~\n\n공개 안 하셔도 전혀 괜찮아요!\n설정에서 언제든 바꿀 수 있어요 :)', images: ['assets/tips/d3_rec.png'] },
 });
 OPS_TALK.tip_images = Object.assign({}, OPS_TALK.tip_images || {}, {
@@ -35143,6 +35144,8 @@ window.__openTodaySendBrief = function () {
     try { add('21:00', '매니저', '미인증 명단 리마인드 · Day ' + cDay, vsCopyText(cDay, 'basic', true)); } catch (e) { add('21:00', '매니저', '미인증 명단 리마인드 (📋 인증 상태 복사 버튼으로)', ''); }
   }
 
+  // 추가 공지(extra)가 아침 시각일 수도 있어서, 전부 HH:MM 이면 시각 순으로 다시 정렬 (같은 시각은 넣은 순서 유지).
+  if (items.every((it) => /^\d\d:\d\d/.test(String(it.time || '')))) items.sort((x, y) => String(x.time).slice(0, 5).localeCompare(String(y.time).slice(0, 5)));
   const backdrop = el('div', { class: 'modal-backdrop', 'data-today-send-brief': '1' });
   const close = () => backdrop.remove();
   backdrop.onclick = (e) => { if (e.target === backdrop) close(); };
