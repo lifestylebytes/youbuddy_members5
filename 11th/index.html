@@ -36581,7 +36581,8 @@ function recSentences(dayN) {
   const d = getDay(dayN); if (!d) return [];
   return d.words.map((w, i) => {
     const key = `d${dayN}-${i}`;
-    const t = (state.ai_feedback && state.ai_feedback[key] && state.ai_feedback[key].corrected) || (state.sentences && state.sentences[key]) || '';
+    // 녹음은 내가 제출한 문장 그대로 읽는다. AI 첨삭본으로 바꿔 보여주면 "내 문장이 아니다"로 읽힌다. (2026-11-19 버디 · Day 1 멤버 피드백)
+    const t = (state.sentences && state.sentences[key]) || (state.ai_feedback && state.ai_feedback[key] && state.ai_feedback[key].corrected) || '';
     return String(t || '').trim();
   }).filter(Boolean);
 }
@@ -36590,7 +36591,7 @@ function recSentenceKr(dayN) {
   const d = getDay(dayN); if (!d) return [];
   return d.words.map((w, i) => {
     const key = `d${dayN}-${i}`;
-    const en = (state.ai_feedback && state.ai_feedback[key] && state.ai_feedback[key].corrected) || (state.sentences && state.sentences[key]) || '';
+    const en = (state.sentences && state.sentences[key]) || (state.ai_feedback && state.ai_feedback[key] && state.ai_feedback[key].corrected) || '';
     if (!String(en || '').trim()) return null;
     const kr = (state.community_edits && state.community_edits['me-' + key] && state.community_edits['me-' + key].translation) || (state.sentence_notes && state.sentence_notes[key]) || '';
     return String(kr || '').trim();
