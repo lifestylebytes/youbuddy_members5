@@ -34915,6 +34915,9 @@ const OPS_TALK = {"morning": {"1": "오늘도 좋은 아침이에요, Day 1 시�
 // 유버디 톡에 같이 붙는 이미지 (앱 화면 안내 캡처 등). 키 = Day 번호, '0' = 시작 전날(D-1).
 // 파일은 이 폴더의 assets/tips/ 에 둔다. 파일이 없으면 톡 창에 "파일 없음" 으로만 뜨고 다른 기능엔 영향 없음.
 // (2026-10-18 버디: 앱 팁 이미지를 매번 폰으로 캡처해야 해서 불편)
+OPS_TALK.extra = Object.assign({}, OPS_TALK.extra || {}, {
+  '3': { time: '17:00', title: '새 기능 안내 · 내 녹음 다시 듣기', body: '<내 녹음 다시 듣기> 기능이 생겼어요 :)\n\n홈 보드에서 내 이름을 누르면\nDay별로 내가 녹음한 걸 바로 다시 들어볼 수 있어요!\n\nDay 1 녹음이랑 오늘 녹음, 한번 비교해서 들어보세요.\n(벌써 달라진 게 들릴 수도... ㅎㅎ)\n\n그리고 내일부터는\n동료에게 내 녹음을 공개할지 고르는 창이 한 번 떠요.\n공개하신 분은 이름 옆에 🔊 가 붙고,\n서로 녹음을 들어볼 수 있답니다~\n\n공개 안 하셔도 전혀 괜찮아요!\n설정에서 언제든 바꿀 수 있어요 :)', images: ['assets/tips/d3_rec.png'] },
+});
 OPS_TALK.tip_images = Object.assign({}, OPS_TALK.tip_images || {}, {
   '0': ['assets/tips/d0_howto_1.png', 'assets/tips/d0_howto_2.png', 'assets/tips/d0_howto_3.png', 'assets/tips/reward.png'],
   '1': ['assets/tips/d1_tip.png', 'assets/tips/reward.png'],
@@ -35126,6 +35129,8 @@ window.__openTodaySendBrief = function () {
       const tipImgs = __tipImgs(cDay);
       if (tipBody || tipImgs.length) add(seniorBody ? '15:00' : '12:30', '버디', '오늘의 앱 팁 · Day ' + cDay + (tipImgs.length ? ' (이미지 ' + tipImgs.length + '장)' : ''), tipBody, tipImgs);
     }
+    // 그날만 나가는 추가 공지 (새 기능 안내 등). 키 = Day 번호. (2026-11-18 버디: 내 녹음 다시 듣기)
+    { const ex = (OPS_TALK.extra || {})[String(cDay)]; if (ex) add(ex.time, '버디', ex.title + (ex.images && ex.images.length ? ' (이미지 ' + ex.images.length + '장)' : ''), ex.body, ex.images); }
     add('19:00', '버디', '한 스푼 더 · Day ' + cDay + (spBody ? '' : ' ⚠️ 원고 비어 있음'), spBody);
     // 공휴일 안내 (2026-09-23): 해당 Day 저녁에만.
     { const hb = (OPS_TALK.holiday || {})[String(cDay)] || ''; if (hb) add('20:00', '버디', '추석 연휴 인증 안내 · Day ' + cDay, hb); }
