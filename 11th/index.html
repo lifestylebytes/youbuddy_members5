@@ -1878,6 +1878,8 @@ const defaultState = () => ({
   rec_feedback: {},                 // { d1: { sent, rating: up|mid|down, text, at, accuracy, scores, transcript } } 녹음 결과 피드백 (2026-11-11)
   recordings: {},                   // { d1: { at, path, matched, verified, needs_review, attempts } } 앱 녹음 인증 (11기)
   recording_notice_seen: false,     // 녹음 보관 안내 1회
+  recShare: null,                   // 동료에게 내 녹음 공개 (true/false, null = 아직 안 고름 · 2026-11-18)
+  recSharePrompted: false,          // 공개 여부 팝업 1회
   share_card_shared: {},            // { d1: ISO } 실제로 공유 시트까지 간 날 (운영자 분석용)
   review_counts: {},                // { retake: N, weak: N, random: N } 복습 테스트 횟수 (2026-08-31)
   review_ask_seen: false,           // 수료 후기 부탁 팝업 1회 노출 여부 (2026-09-03)
@@ -1982,6 +1984,8 @@ const PERSISTED_STATE_KEYS = [
   'grad_popup_seen',
   'recordings',
   'recording_notice_seen',
+  'recShare',
+  'recSharePrompted',
   'share_card_shared',
   'review_counts',
   'review_ask_seen',
@@ -13915,10 +13919,12 @@ function Checkboard() {
     JSON.stringify(state.bingo_done || {}),
     JSON.stringify(window.__recChecks.data || {}),
     !!window.__recCheckMode,
+    JSON.stringify(window.__recShare.data || {}), String(state.recShare),
   ];
   const fingerprint = fpParts.join('::');
   // 녹음 체크 데이터 lazy load (첫 보드 렌더 때 1회, 도착하면 fingerprint 무효화 후 재렌더)
   try { loadRecordingChecks(); } catch (e) {}
+  try { loadRecShare(); } catch (e) {}
   const cachedRowsHtml = window.__cbCachedFingerprint === fingerprint
     ? window.__cbCachedRowsHtml
     : null;
@@ -13975,6 +13981,7 @@ function Checkboard() {
             <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto;${nameStyle}">${escapeHtml(displayName(m))}</span>
             ${restBadge}
             ${cbCompleted ? `<span title="완주 · 18일+ 인증" style="flex-shrink:0;font-size:11px;line-height:1;">🏅</span>` : ''}
+            ${(!isUnreg && recShareOn(m.name)) ? `<span title="녹음 공개 중 · 이름을 누르면 들어볼 수 있어요" style="flex-shrink:0;font-size:10.5px;line-height:1;">🔊</span>` : ''}
             ${krShadow ? `<span style="font-size:10px;color:var(--muted);font-weight:500;flex-shrink:0;letter-spacing:-0.01em;opacity:0.85;" title="한글 이름 (운영자 view 전용)">· ${escapeHtml(krShadow)}</span>` : ''}
             ${premiumPill(m)}
             ${showTz ? `<span style="font-size:9.5px;font-family:var(--font-mono);color:var(--muted);font-weight:500;flex-shrink:0;letter-spacing:-0.02em;" title="한국(KST) 대비 시차">${escapeHtml(memberTz)}</span>` : ''}
@@ -21380,7 +21387,7 @@ function PremiumPage() {
     <div style="position:absolute;right:-18px;top:-22px;font-size:96px;opacity:0.12;line-height:1;">👑</div>
     <div style="display:inline-block;padding:4px 10px;border-radius:999px;background:#F3589B;font-size:11px;font-weight:800;letter-spacing:0.04em;">NEXT · 12기</div>
     <div style="margin-top:10px;font-size:21px;font-weight:900;letter-spacing:-0.02em;line-height:1.3;">2027년 1월 11일,<br>12기가 시작돼요</div>
-    <div style="margin-top:8px;font-size:13px;line-height:1.6;color:rgba(255,255,255,0.85);">오픈 알림은 <b style="color:#FFD3E6;">대기자한테만 먼저</b> 가요.<br>선착순 모집 예정이라 미리 줄 서두세요 🏃‍♀️</div>
+    <div style="margin-top:8px;font-size:13px;line-height:1.6;color:rgba(255,255,255,0.85);"><b style="color:#FFD3E6;">12/28(월), 대기자한테만 먼저</b> 열려요.<br>선착순 모집 예정이라 미리 줄 서두세요 🏃‍♀️</div>
     <div style="margin-top:14px;display:flex;align-items:center;justify-content:center;gap:6px;padding:13px;border-radius:14px;background:#fff;color:#4A3358;font-size:15px;font-weight:900;">🔥 12기 미리 대기하기 <span style="font-size:17px;">→</span></div>
     <div style="margin-top:8px;text-align:center;font-size:11px;color:rgba(255,255,255,0.7);">30초면 끝나요 · 베이직 / 프리미엄 둘 다 받아요</div>`;
   page.appendChild(waitCard);
@@ -21517,7 +21524,7 @@ function PremiumPage() {
     for (let d = 1; d <= lastNext; d++) g.appendChild(cellOf(nextM, d, false));
     card.appendChild(g);
     const foot = el('div', { style: { marginTop: '14px', padding: '12px 14px', borderRadius: '14px', background: '#fff', border: '1px solid rgba(169,139,184,0.28)', fontSize: '12.5px', lineHeight: '1.6', color: 'var(--ink-soft)' } });
-    foot.innerHTML = `👑 ${NP.label} 프리미엄은 <b style="color:var(--ink);">1월 대기 등록하신 분께 먼저</b> 열려요 (선착순 모집 예정)
+    foot.innerHTML = `👑 ${NP.label} 프리미엄은 <b style="color:var(--ink);">12/28(월), 1월 대기 등록하신 분께 먼저</b> 열려요 (선착순 모집 예정)
       <a href="${NP.waitUrl}" target="_blank" rel="noopener" style="display:block;margin-top:10px;text-align:center;padding:11px;border-radius:12px;background:var(--lilac);color:#fff;font-weight:800;text-decoration:none;">1월 대기 등록하기 →</a>`;
     card.appendChild(foot);
     page.appendChild(card);
@@ -26831,6 +26838,12 @@ function SettingsModal() {
            <div style="margin-top:6px;font-size:10.5px;color:var(--muted);line-height:1.5;">Day 인증 롤오버 기준점이라 가입 후에는 고정돼요. 이사·여행 등으로 변경 필요하면 운영팀에 문의해주세요.</div>`
       }
     </div>
+    <div style="margin-top:14px;padding:14px;border-radius:14px;background:var(--paper);border:1px solid var(--line);">
+      <div class="kicker" style="color:var(--muted);">🔊 동료에게 내 녹음 공개</div>
+      <div style="margin-top:6px;font-size:13px;line-height:1.55;color:var(--ink);font-weight:700;">지금 <span style="color:${state.recShare === true ? '#1F8F58' : 'var(--ink-soft)'};">${state.recShare === true ? '공개 중' : '비공개'}</span>이에요</div>
+      <div style="margin-top:4px;font-size:11.5px;line-height:1.55;color:var(--muted);">공개하면 동료가 보드에서 내 이름을 눌러 Day별 녹음을 들을 수 있고, 이름 옆에 🔊 가 붙어요. 끄면 바로 운영진만 확인해요.</div>
+      <button class="btn btn-ghost btn-full" style="margin-top:10px;" onclick="window.__setRecShare(${state.recShare === true ? 'false' : 'true'})">${state.recShare === true ? '🔒 비공개로 바꾸기' : '🔊 공개하기'}</button>
+    </div>
     ${(state.isStaff || state.ghost || state.isOperator) ? `
       <div style="margin-top:14px;padding:14px;border-radius:14px;background:#F5F1FA;border:1px solid rgba(155,127,174,0.22);">
         <div class="kicker" style="color:#7B5E8C;">STAFF · 티어 자유 토글</div>
@@ -27741,7 +27754,91 @@ function RateHistoryModal(initialTier) {
 }
 window.__closeRateHistory = () => { showRateHistory = null; render(); };
 
-// ── 운영팀용: 다른 멤버 녹음 목록 ──
+// ── 녹음 공개 (동료에게 내 녹음 들려주기 · 2026-11-18 버디) ──
+// 기본은 비공개. 본인이 켠 사람만 동료가 프로필에서 들을 수 있다. 보드 이름 옆 🔊 = 공개 중.
+// 저장: 고스트 멤버키 __rec_share__ 의 app_state.members { "이름": true }. (녹음 체크와 같은 방식, SQL 변경 없음)
+const REC_SHARE_KEY = '__rec_share__';
+const REC_SHARE_POPUP_FROM = Date.parse('2026-11-19T00:00:00+09:00');
+window.__recShare = window.__recShare || { data: {}, loaded: false, loading: false };
+async function loadRecShare(force) {
+  if (!hasSupabase()) return;
+  const rs = window.__recShare;
+  if (rs.loading || (rs.loaded && !force)) return;
+  rs.loading = true;
+  try {
+    const payload = await supabaseRpc('get_member_app_state', { p_cohort: CHALLENGE.cohort, p_member_key: REC_SHARE_KEY });
+    const next = (payload && payload.members) || {};
+    const changed = JSON.stringify(next) !== JSON.stringify(rs.data || {});
+    rs.data = next; rs.loaded = true;
+    if (changed) { window.__cbCachedFingerprint = null; render(); }
+  } catch (e) {} finally { rs.loading = false; }
+}
+function recShareOn(name) {
+  const n = String(name || '').trim();
+  if (!n) return false;
+  if (n === String(state.name || '').trim() && typeof state.recShare === 'boolean') return state.recShare;
+  return !!((window.__recShare.data || {})[n]);
+}
+window.__setRecShare = async (on) => {
+  const me = String(state.name || '').trim();
+  if (!me) return;
+  on = !!on;
+  state.recShare = on; state.recSharePrompted = true;
+  try { saveState(); } catch (e) {}
+  window.__cbCachedFingerprint = null; render();
+  try {
+    // 서버 최신본을 읽고 내 이름만 얹는다 (다른 사람 설정을 덮어쓰지 않게). 못 읽으면 쓰지 않는다.
+    const latest = await supabaseRpc('get_member_app_state', { p_cohort: CHALLENGE.cohort, p_member_key: REC_SHARE_KEY });
+    const base = (latest && latest.members) || {};
+    if (on) base[me] = true; else delete base[me];
+    await supabaseRpc('upsert_member_app_state', {
+      p_cohort: CHALLENGE.cohort, p_member_key: REC_SHARE_KEY, p_member_name: REC_SHARE_KEY, p_tier: 'basic',
+      p_app_state: { ghost: true, members: base, updated_at: new Date().toISOString() },
+    });
+    window.__recShare.data = base; window.__recShare.loaded = true;
+    window.__cbCachedFingerprint = null; render();
+    try { showToast(on ? '🔊 동료에게 내 녹음을 공개했어요' : '🔒 내 녹음을 비공개로 바꿨어요'); } catch (_) {}
+  } catch (e) {
+    try { showToast('저장하지 못했어요. 네트워크 확인 후 설정에서 다시 눌러주세요'); } catch (_) {}
+  }
+};
+window.__maybeRecSharePopup = (force) => {
+  if (!force) {
+    if (Date.now() < REC_SHARE_POPUP_FROM) return;
+    if (!state.onboarded || !state.name || state.recSharePrompted || typeof state.recShare === 'boolean') return;
+    if (currentPage !== 'home' || guidedTourStep !== null || document.hidden) return;
+    if (anyPopupOpen() || document.querySelector('[data-reward-popup],[data-recshare-popup],[data-consent-modal]')) return;
+  }
+  if (document.querySelector('[data-recshare-popup]')) return;
+  const ov = document.createElement('div');
+  ov.setAttribute('data-recshare-popup', '1');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9100;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;padding:18px;';
+  ov.innerHTML = `
+    <div style="width:100%;max-width:360px;max-height:88vh;overflow-y:auto;background:var(--paper);border-radius:24px;padding:22px 18px 18px;text-align:center;">
+      <div style="font-size:40px;line-height:1;">🔊</div>
+      <div class="kicker" style="margin-top:8px;color:var(--orange-dark);">새 기능</div>
+      <div style="margin-top:4px;font-size:20px;font-weight:800;color:var(--ink);letter-spacing:-0.02em;">동료에게 내 녹음 공개하기</div>
+      <div style="margin-top:8px;font-size:13px;color:var(--ink-soft);line-height:1.6;">공개하면 같은 기수 동료가 보드에서 내 이름을 눌러<br>Day별 녹음을 들어볼 수 있어요.</div>
+      <div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:rgba(243,88,155,0.08);font-size:12px;color:var(--ink-soft);line-height:1.7;text-align:left;">
+        · 공개한 사람은 보드 이름 옆에 🔊 가 붙어요<br>
+        · 공개하지 않으면 지금처럼 운영진만 확인해요<br>
+        · [나] 탭 ⚙️ 설정에서 언제든 켜고 끌 수 있어요<br>
+        · 내 녹음은 공개 여부와 상관없이 내 프로필에서 다시 들을 수 있어요
+      </div>
+      <button data-rs-yes class="btn btn-full" style="margin-top:14px;background:var(--ink);color:var(--cream);border:none;padding:14px;font-size:14.5px;font-weight:800;border-radius:999px;">공개하겠습니다</button>
+      <button data-rs-no class="btn btn-ghost btn-full" style="margin-top:8px;padding:13px;font-size:14px;font-weight:700;border-radius:999px;">안 하겠습니다</button>
+    </div>`;
+  ov.querySelector('[data-rs-yes]').onclick = () => { ov.remove(); window.__setRecShare(true); };
+  ov.querySelector('[data-rs-no]').onclick = () => { ov.remove(); window.__setRecShare(false); };
+  document.body.appendChild(ov);
+};
+setTimeout(() => { try { window.__maybeRecSharePopup(); } catch (e) {} }, 3500);
+setInterval(() => {
+  try { window.__maybeRecSharePopup(); } catch (e) {}
+  try { if (!document.hidden && currentPage === 'home' && state.onboarded) loadRecShare(true); } catch (e) {}
+}, 90000);
+
+// ── 멤버 카드: Day별 녹음 목록 (본인 · 공개한 동료 · 운영팀) ──
 window.__memberRecCache = window.__memberRecCache || {};
 async function loadMemberRecordings(name, force) {
   const C = window.__memberRecCache;
@@ -27756,24 +27853,31 @@ async function loadMemberRecordings(name, force) {
 }
 function memberRecBoxHtml(name) {
   const C = (window.__memberRecCache || {})[name];
-  const head = '<div class="kicker" style="color:var(--muted);">🎙 녹음 <span style="font-weight:600;">(운영팀만 보여요)</span></div>';
+  const __isMe = String(name || '').trim() === String(state.name || '').trim();
+  const __staffView = !!((state.isOperator || state.isStaff) && !state.operatorViewAsMember);
+  const __shared = recShareOn(name);
+  const __headNote = __isMe ? (__shared ? '(동료에게 공개 중)' : '(나만 들을 수 있어요)') : (__shared ? '(공개 중)' : '(운영팀만 보여요)');
+  const head = `<div class="kicker" style="color:var(--muted);">🎙 ${__isMe ? '내 녹음' : '녹음'} <span style="font-weight:600;">${__headNote}</span></div>`;
   if (!C || C.loading && !C.at) return head + '<div class="t-small" style="margin-top:8px;color:var(--muted);">불러오는 중…</div>';
   if (C.err) return head + '<div class="t-small" style="margin-top:8px;color:var(--muted);">불러오지 못했어요. 카드를 다시 열어주세요.</div>';
   const days = new Set();
   Object.keys(C.rec || {}).forEach((k) => { const m = k.match(/^d(\d+)$/); if (m) days.add(Number(m[1])); });
   Object.keys(C.ver || {}).forEach((k) => { const m = k.match(/^d(\d+)$/); if (m && C.ver[k]) days.add(Number(m[1])); });
-  const list = [...days].sort((a, b) => a - b);
-  if (!list.length) return head + '<div class="t-small" style="margin-top:8px;color:var(--muted);">아직 인증한 Day 가 없어요.</div>';
+  let list = [...days].sort((a, b) => a - b);
+  // 동료가 볼 땐 녹음 파일이 있는 Day 만 (인증 상태 메모는 본인·운영팀에게만)
+  if (!__isMe && !__staffView) list = list.filter((d) => { const r = (C.rec || {})['d' + d]; return !!(r && r.path); });
+  if (!list.length) return head + `<div class="t-small" style="margin-top:8px;color:var(--muted);">${(__isMe || __staffView) ? '아직 인증한 Day 가 없어요.' : '아직 올라온 녹음이 없어요.'}</div>`;
   const rows = list.map((d) => {
     const r = (C.rec || {})['d' + d];
     if (!r || !r.path) {
       return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:13px;"><b>Day ${d}</b><span style="color:#B07A3A;font-weight:700;">앱 인증만 · 녹음 없음</span></div>`;
     }
     const acc = (typeof r.accuracy === 'number') ? `${r.accuracy}%` : '';
-    const ok = r.verified ? '' : ' <span style="color:#B04A3A;">(미인정)</span>';
+    const ok = (r.verified || (!__isMe && !__staffView)) ? '' : ' <span style="color:#B04A3A;">(미인정)</span>';
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:13px;"><span><b>Day ${d}</b> <span class="mono" style="color:var(--muted);">${escapeHtml(acc)}</span>${ok}</span><button class="btn btn-ghost" style="padding:6px 12px;font-size:12.5px;font-weight:800;" onclick="window.__playMemberRec(${JSON.stringify(r.path).replace(/"/g, '&quot;')}, this)">▶ 듣기</button></div>`;
   }).join('');
-  return head + `<div style="margin-top:8px;">${rows}</div><div class="t-small" style="margin-top:8px;font-size:11px;color:var(--muted);">녹음 파일은 기수 종료 후 30일 이내에 삭제돼요.</div>`;
+  const meNote = __isMe ? `<div class="t-small" style="margin-top:6px;font-size:11px;color:var(--muted);">동료 공개는 [나] 탭 ⚙️ 설정에서 켜고 끌 수 있어요.</div>` : '';
+  return head + `<div style="margin-top:8px;">${rows}</div><div class="t-small" style="margin-top:8px;font-size:11px;color:var(--muted);">녹음 파일은 기수 종료 후 30일 이내에 삭제돼요.</div>${meNote}`;
 }
 window.__playMemberRec = async (path, btn) => {
   try {
@@ -27914,13 +28018,14 @@ function MemberCardModal(memberRef) {
     modal.appendChild(note);
   }
 
-  // 운영팀 전용: 이 멤버의 Day별 녹음 듣기 (2026-11-16 버디). 멤버끼리는 안 보인다.
-  if (viewerIsStaff && !member.me && member.name) {
+  // Day별 녹음 듣기: 본인은 항상, 동료는 그 사람이 공개를 켰을 때만, 운영팀은 항상. (2026-11-18 버디)
+  if (member.name && (member.me || viewerIsStaff || recShareOn(member.name))) {
+    if (member.me) window.__memberRecCache[member.name] = { loading: false, at: Date.now(), rec: state.recordings || {}, ver: state.verified || {} };
     const recBox = el('div', { style: { marginTop: '14px', padding: '14px', borderRadius: '18px', background: 'var(--paper)' } });
     recBox.setAttribute('data-member-rec-box', member.name);
     recBox.innerHTML = memberRecBoxHtml(member.name);
     modal.appendChild(recBox);
-    loadMemberRecordings(member.name);
+    if (!member.me) loadMemberRecordings(member.name);
   }
 
   const footer = el('div', { style: { display: 'flex', gap: '8px', marginTop: '14px', flexWrap: 'wrap' } });
@@ -36792,7 +36897,7 @@ function RecorderCard(dayN) {
         ${sub ? `<div class="rec-sub">${sub}</div>` : ''}
       </div>
     </div>`;
-  const retention = `<div class="rec-foot">🔒 녹음은 인증 확인용으로만 쓰고, 기수가 끝나고 30일 뒤 자동 삭제돼요. 운영진 외엔 아무도 듣지 않고, 인증 기록은 그대로 남아요.</div>`;
+  const retention = `<div class="rec-foot">🔒 녹음은 인증 확인용으로만 쓰고, 기수가 끝나고 30일 뒤 자동 삭제돼요. 내가 공개를 켜지 않으면 운영진 외엔 아무도 듣지 않고, 인증 기록은 그대로 남아요.</div>`;
 
   // 0) 지원 안 되는 환경
   if (recInKakao() || !recSupported()) {
@@ -36832,7 +36937,7 @@ function RecorderCard(dayN) {
            <div><b>🔒 녹음은 이렇게 다뤄요</b></div>
            <ul>
              <li>내 문장을 읽었는지 확인하는 데만 써요</li>
-             <li>운영진 외엔 아무도 듣지 않아요</li>
+             <li>내가 공개를 켜지 않으면 운영진 외엔 아무도 듣지 않아요</li>
              <li>기수가 끝나고 30일 뒤 자동으로 지워져요. 인증 기록은 남아요</li>
            </ul>
          </div>
