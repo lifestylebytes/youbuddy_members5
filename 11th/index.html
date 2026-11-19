@@ -27833,8 +27833,10 @@ window.__maybeRecSharePopup = (force) => {
   document.body.appendChild(ov);
 };
 setTimeout(() => { try { window.__maybeRecSharePopup(); } catch (e) {} }, 3500);
+// 4초마다 가볍게 확인한다. 처음엔 3.5초 뒤 한 번 + 90초마다였는데, 앱을 열면 팁 팝업이 먼저 떠 있거나
+// 바로 Day 화면으로 넘어가서 첫날(11/19) 대부분이 팝업을 못 봤다. (조건이 안 맞으면 바로 return 이라 부담 없음)
+setInterval(() => { try { window.__maybeRecSharePopup(); } catch (e) {} }, 4000);
 setInterval(() => {
-  try { window.__maybeRecSharePopup(); } catch (e) {}
   try { if (!document.hidden && currentPage === 'home' && state.onboarded) loadRecShare(true); } catch (e) {}
 }, 90000);
 
