@@ -1146,6 +1146,11 @@ html.xmas .tab.active { box-shadow: inset 0 -2px 0 var(--xmas-red); }
 @media (prefers-reduced-motion: reduce) {
   html.xmas .app::after, html.xmas [data-tour="home-hero"]::before, html.xmas [data-tour="home-hero"]::after { animation: none; }
 }
+
+[data-ai-premium-fold] > summary::-webkit-details-marker,[data-real-use] > summary::-webkit-details-marker{display:none}
+[data-ai-premium-fold] [data-fold-close],[data-real-use] [data-fold-close]{display:none}
+[data-ai-premium-fold][open] [data-fold-close],[data-real-use][open] [data-fold-close]{display:inline}
+[data-ai-premium-fold][open] [data-fold-open],[data-real-use][open] [data-fold-open]{display:none}
 </style>
 </head>
 <body>
@@ -3220,6 +3225,14 @@ function buildAiFeedbackHtml(fb, fallbackWhy) {
       </div>`;
   }
 
+  // 첨삭 아래가 너무 길어져서 (2026-11-24 버디) 프리미엄 부분은 접어두고 눌러서 펼친다.
+  if (tail) {
+    const parts = [deepTxt ? '왜 고쳤는지' : '', ((vr.email || '').trim() || (vr.meeting || '').trim()) ? '메일·회의 버전' : '', ruleTxt ? '한 줄 규칙' : ''].filter(Boolean).join(' · ');
+    tail = `<details data-ai-premium-fold style="margin-top:10px;border-radius:12px;border:1px solid rgba(123,94,140,0.28);background:#FBFAFF;">
+        <summary style="list-style:none;cursor:pointer;padding:11px 14px;display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;color:#7B5E8C;">${PB}<span style="flex:1;min-width:0;">${escapeHtml(parts || '더 보기')}</span><span data-fold-open style="flex-shrink:0;font-size:12px;">펼치기 ▾</span><span data-fold-close style="flex-shrink:0;font-size:12px;">접기 ▴</span></summary>
+        <div style="padding:0 12px 12px;">${tail}</div>
+      </details>`;
+  }
   const reusedBlock = ((fb && fb.__beta) ? `<div style="margin-top:10px;font-size:10.5px;font-weight:800;color:#7A4DB8;">🧪 베타 첨삭 · ${escapeHtml(String(fb.__beta))}</div>` : '') + __reusedBlockHtml(fb);
   if (fb && fb.__noRows) return `${reusedBlock}${naturalBlock}${tail}`;
   if (rows.length) return `${reusedBlock}${chg.length ? '<div style="margin:12px 0 6px;font-size:11.5px;font-weight:800;color:var(--orange-dark);">고친 곳</div>' : ''}<div style="display:flex;flex-direction:column;gap:7px;">${rows.join('')}</div>${naturalBlock}${tail}`;
@@ -20373,6 +20386,32 @@ function DayPage(dayN) {
       card.appendChild(detail);
     }
 
+    // "이거 진짜 쓸까?" (2026-11-24 버디): 단어 카드 맨 밑 토글. 실무에서 얼마나 쓰는지, 어디선 쓰고 어디선 피하는지.
+    const __ru = (typeof REAL_USE !== 'undefined') ? REAL_USE[w.en] : null;
+    if (__ru) {
+      const ruBox = el('details', { 'data-real-use': '1', style: { marginTop: '12px', borderRadius: '16px', border: '1px solid var(--line-soft)', background: '#FFFDF8' } });
+      const exRow = (x) => `<div style="margin-top:8px;padding:9px 11px;border-radius:10px;background:#fff;border:1px solid var(--line-soft);">
+          <div style="display:flex;align-items:flex-start;gap:6px;"><div style="flex:1;min-width:0;font-size:14px;line-height:1.55;color:var(--ink);">${escapeHtml(x.en)}</div>
+          <button type="button" onclick="window.__speakText(${escapeHtml(JSON.stringify(x.en))})" style="flex-shrink:0;background:transparent;border:none;color:var(--orange);cursor:pointer;padding:2px 4px;">🔊</button></div>
+          ${x.kr ? `<div style="margin-top:3px;font-size:12px;color:var(--muted);">${escapeHtml(x.kr)}</div>` : ''}</div>`;
+      const sec = (icon, title, body, exs) => `<div style="margin-top:12px;">
+          <div style="font-size:12.5px;font-weight:800;color:var(--ink);">${icon} ${title}</div>
+          ${body ? `<div class="day-fs-sm" style="margin-top:5px;line-height:1.65;color:var(--ink-soft);">${escapeHtml(body)}</div>` : ''}
+          ${(exs || []).map(exRow).join('')}</div>`;
+      ruBox.innerHTML = `
+        <summary style="list-style:none;cursor:pointer;padding:12px 16px;display:flex;align-items:center;gap:8px;">
+          <span style="flex:1;font-size:13px;font-weight:800;color:var(--ink);">🤔 이거 진짜 쓸까?</span>
+          <span data-fold-open style="font-size:12px;color:var(--muted);">펼치기 ▾</span><span data-fold-close style="font-size:12px;color:var(--muted);">접기 ▴</span>
+        </summary>
+        <div style="padding:0 16px 14px;">
+          <div class="day-fs-sm" style="font-weight:800;color:var(--ink);line-height:1.6;">${escapeHtml(__ru.verdict || '')}</div>
+          ${sec('✅', '자주 쓰는 곳', __ru.use, __ru.use_ex)}
+          ${sec('⚠️', '덜 쓰는 곳', __ru.avoid, __ru.avoid_ex)}
+          ${__ru.tip ? `<div style="margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--orange-ghost);font-size:12.5px;line-height:1.6;color:var(--ink);">💡 ${escapeHtml(__ru.tip)}</div>` : ''}
+        </div>`;
+      card.appendChild(ruBox);
+    }
+
     vocabStack.appendChild(card);
   });
   s1.appendChild(vocabStack);
@@ -30797,6 +30836,24 @@ async function __buildTopWrongPopup(limit = 5) {
     quiz: true,
   };
 }
+
+/* "이거 진짜 쓸까?" 토글 내용. 키 = 단어 en 그대로. 있는 단어만 카드 맨 밑에 뜬다. (2026-11-24) */
+const REAL_USE = {
+  "Quick and dirty": {
+    verdict: "네, 실무에서 꽤 자주 써요. 다만 자리를 좀 가려요.",
+    use: "개발·데이터·기획 쪽 팀 안 대화에서 특히 많이 나와요. 슬랙이나 내부 회의처럼 편한 자리에서 \"완벽하진 않은데 일단 빠르게\"라는 뜻으로 자연스럽게 써요.",
+    use_ex: [
+      { en: "Let me do a quick and dirty analysis first.", kr: "일단 대충 빠르게 돌려볼게요." },
+      { en: "It's a quick and dirty fix. We'll clean it up later.", kr: "임시방편으로 막아둔 거예요. 나중에 제대로 고칠게요." },
+    ],
+    avoid: "클라이언트 앞이나 임원 보고에서는 잘 안 써요. dirty 가 대충 했다는 인상을 줄 수 있어서요. 그런 자리에서는 이렇게 바꿔 말하면 무난해요.",
+    avoid_ex: [
+      { en: "Here's a first pass. Happy to refine it.", kr: "1차 버전이에요. 더 다듬을게요." },
+      { en: "These are back-of-the-envelope numbers.", kr: "대략 뽑아본 숫자예요." },
+    ],
+    tip: "팀끼리 슬랙이나 회의에서 쓰면 딱, 보고서나 고객 앞에선 a first pass 로.",
+  },
+};
 
 const SPACED_REPEAT_PRESETS = {
   // Day 7 (Week 2 시작), Week 1 약점 어휘 후보 (7기 런칭 전 placeholder, 운영자가 통계 보고 갱신).
