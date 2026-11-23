@@ -30821,9 +30821,51 @@ const SPACED_REPEAT_PRESETS = {
   },
 };
 
+/* 복습 팝업·주간 설문 뒤 약점 단어를 "이번 기수 단어"로 다시 채운다. (2026-11-24 버디 제보)
+   위의 목록은 7기 때 placeholder 라 11기 Day 7 에 엉뚱한 단어 + 기계음(그 문장 mp3 가 없음)이 나왔다.
+   1) 일단 그 주 단어에서 3개 (긴 표현 우선, Day 가 겹치지 않게) → 2) 팝업이 열리면 실제 통계로 약점 Top 3 로 교체. */
+function __weekReviewWords(weekN, n) {
+  const wk = (CHALLENGE.weeks || []).find((w) => Number(w.n) === Number(weekN));
+  if (!wk) return [];
+  const all = [];
+  (wk.days || []).forEach((d) => (d.words || []).forEach((w) => { if (w && w.en) all.push({ w, day: d.day }); }));
+  all.sort((a, b) => String(b.w.en).length - String(a.w.en).length);
+  const out = []; const usedDays = new Set();
+  for (const x of all) { if (out.length >= n) break; if (usedDays.has(x.day)) continue; usedDays.add(x.day); out.push(x); }
+  for (const x of all) { if (out.length >= n) break; if (!out.includes(x)) out.push(x); }
+  return out.map((x) => ({ en: x.w.en, ko: x.w.def || '', ex_en: x.w.ex_en || '', stat: `Day ${x.day} · Week ${weekN} 복습` }));
+}
+async function __weekWeakWordsFromStats(weekN, n) {
+  try {
+    if (typeof supabaseRpc !== 'function') return null;
+    const wk = (CHALLENGE.weeks || []).find((w) => Number(w.n) === Number(weekN));
+    if (!wk) return null;
+    const meta = {};
+    (wk.days || []).forEach((d) => (d.words || []).forEach((w) => { const k = String(w.en || '').toLowerCase().trim(); if (k) meta[k] = { w, day: d.day }; }));
+    const data = await supabaseRpc('get_cohort_vocab_stats', { p_cohort: CHALLENGE.cohort });
+    const rows = (Array.isArray(data && data.words) ? data.words : [])
+      .filter((r) => meta[String(r.word || '').toLowerCase().trim()] && (Number(r.weakness_score) || 0) > 0)
+      .sort((a, b) => (Number(b.weakness_score) || 0) - (Number(a.weakness_score) || 0))
+      .slice(0, n);
+    if (rows.length < n) return null;
+    return rows.map((r) => { const m = meta[String(r.word).toLowerCase().trim()]; return { en: m.w.en, ko: m.w.def || '', ex_en: m.w.ex_en || '', stat: `Day ${m.day} · 이번 기수가 많이 헷갈린 표현` }; });
+  } catch (e) { return null; }
+}
+try {
+  [['7', 1], ['12', 2]].forEach(([dk, wn]) => {
+    const ws = __weekReviewWords(wn, 3);
+    if (ws.length && SPACED_REPEAT_PRESETS[dk]) { SPACED_REPEAT_PRESETS[dk].words = ws; SPACED_REPEAT_PRESETS[dk].weekN = wn; }
+  });
+  [1, 2, 3, 4].forEach((wn) => { const ws = __weekReviewWords(wn, 3); if (ws.length) SURVEY_WEAK_WORDS_BY_WEEK[String(wn)] = ws.map(({ en, ko, ex_en }) => ({ en, ko, ex_en })); });
+} catch (e) {}
+
 function SpacedRepeatPopupModal() {
   const ctx = showSpacedRepeatPopup;
   if (!ctx) return el('div');
+  if (ctx.weekN && !ctx._statsTried) {
+    ctx._statsTried = true;
+    __weekWeakWordsFromStats(ctx.weekN, 3).then((ws) => { if (ws && showSpacedRepeatPopup === ctx) { ctx.words = ws; render(); } });
+  }
   const dayKey = String(ctx.dayN);
   // 커스텀 seen key 가 있으면 그걸 사용, 없으면 기본 `day${dayN}` (dynamic Day 15 top-wrong 같은 경우)
   const seenKey = ctx._seenKey || `day${dayKey}`;
