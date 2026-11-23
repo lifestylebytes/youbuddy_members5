@@ -3229,7 +3229,7 @@ function buildAiFeedbackHtml(fb, fallbackWhy) {
   if (tail) {
     const parts = [deepTxt ? '왜 고쳤는지' : '', ((vr.email || '').trim() || (vr.meeting || '').trim()) ? '메일·회의 버전' : '', ruleTxt ? '한 줄 규칙' : ''].filter(Boolean).join(' · ');
     tail = `<details data-ai-premium-fold style="margin-top:10px;border-radius:12px;border:1px solid rgba(123,94,140,0.28);background:#FBFAFF;">
-        <summary style="list-style:none;cursor:pointer;padding:11px 14px;display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;color:#7B5E8C;">${PB}<span style="flex:1;min-width:0;">${escapeHtml(parts || '더 보기')}</span><span data-fold-open style="flex-shrink:0;font-size:12px;">펼치기 ▾</span><span data-fold-close style="flex-shrink:0;font-size:12px;">접기 ▴</span></summary>
+        <summary style="list-style:none;cursor:pointer;padding:11px 14px;display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;color:#7B5E8C;white-space:nowrap;">${PB}<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(parts)}">심화 첨삭 더 보기</span><span data-fold-open style="flex-shrink:0;font-size:12px;">펼치기 ▾</span><span data-fold-close style="flex-shrink:0;font-size:12px;">접기 ▴</span></summary>
         <div style="padding:0 12px 12px;">${tail}</div>
       </details>`;
   }
