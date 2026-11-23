@@ -20400,7 +20400,7 @@ function DayPage(dayN) {
           ${(exs || []).map(exRow).join('')}</div>`;
       ruBox.innerHTML = `
         <summary style="list-style:none;cursor:pointer;padding:12px 16px;display:flex;align-items:center;gap:8px;">
-          <span style="flex:1;font-size:13px;font-weight:800;color:var(--ink);">🤔 이거 진짜 쓸까?</span>
+          <span style="flex:1;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:10px;font-weight:800;color:#7B5E8C;letter-spacing:0.06em;">👑 PREMIUM</span><span style="font-size:13px;font-weight:800;color:var(--ink);">🤔 이거 진짜 쓸까?</span></span>
           <span data-fold-open style="font-size:12px;color:var(--muted);">펼치기 ▾</span><span data-fold-close style="font-size:12px;color:var(--muted);">접기 ▴</span>
         </summary>
         <div style="padding:0 16px 14px;">
@@ -30839,20 +30839,1139 @@ async function __buildTopWrongPopup(limit = 5) {
 
 /* "이거 진짜 쓸까?" 토글 내용. 키 = 단어 en 그대로. 있는 단어만 카드 맨 밑에 뜬다. (2026-11-24) */
 const REAL_USE = {
-  "Quick and dirty": {
-    verdict: "네, 실무에서 꽤 자주 써요. 다만 자리를 좀 가려요.",
-    use: "개발·데이터·기획 쪽 팀 안 대화에서 특히 많이 나와요. 슬랙이나 내부 회의처럼 편한 자리에서 \"완벽하진 않은데 일단 빠르게\"라는 뜻으로 자연스럽게 써요.",
-    use_ex: [
-      { en: "Let me do a quick and dirty analysis first.", kr: "일단 대충 빠르게 돌려볼게요." },
-      { en: "It's a quick and dirty fix. We'll clean it up later.", kr: "임시방편으로 막아둔 거예요. 나중에 제대로 고칠게요." },
-    ],
-    avoid: "클라이언트 앞이나 임원 보고에서는 잘 안 써요. dirty 가 대충 했다는 인상을 줄 수 있어서요. 그런 자리에서는 이렇게 바꿔 말하면 무난해요.",
-    avoid_ex: [
-      { en: "Here's a first pass. Happy to refine it.", kr: "1차 버전이에요. 더 다듬을게요." },
-      { en: "These are back-of-the-envelope numbers.", kr: "대략 뽑아본 숫자예요." },
-    ],
-    tip: "팀끼리 슬랙이나 회의에서 쓰면 딱, 보고서나 고객 앞에선 a first pass 로.",
-  },
+ "Worth a shot": {
+  "verdict": "네, 아주 자주 써요. 회의든 슬랙이든 어디서나 편하게 나와요.",
+  "use": "누가 아이디어를 냈는데 될지 안 될지 모를 때, 일단 해보자고 등 떠밀어줄 때 딱이에요.",
+  "use_ex": [
+   {
+    "en": "It's worth a shot. What's the worst that can happen?",
+    "kr": "해볼 만하죠. 안 돼도 손해 볼 건 없잖아요."
+   },
+   {
+    "en": "Worth a shot, right?",
+    "kr": "한번 해볼 만하지 않아요?"
+   }
+  ],
+  "avoid": "공식 제안서나 경영진 보고에서는 살짝 가볍게 들려요. 거기선 이렇게 바꾸면 무난합니다.",
+  "avoid_ex": [
+   {
+    "en": "I think it's worth exploring.",
+    "kr": "검토해볼 가치가 있다고 봐요."
+   }
+  ],
+  "tip": "편한 자리에선 worth a shot, 보고 자리에선 worth exploring."
+ },
+ "Give it a go": {
+  "verdict": "네, 자주 써요. 특히 영국·호주 동료들이 입에 달고 살아요.",
+  "use": "처음 해보는 툴이나 방식을 일단 시도해보겠다고 할 때 써요. 가볍고 긍정적인 느낌이라 부탁받았을 때 대답으로 좋아요.",
+  "use_ex": [
+   {
+    "en": "I've never used Figma, but I'll give it a go.",
+    "kr": "피그마 써본 적은 없는데 한번 해볼게요."
+   },
+   {
+    "en": "Want to give it a go this sprint?",
+    "kr": "이번 스프린트에 한번 해볼래요?"
+   }
+  ],
+  "avoid": "미국 동료들은 give it a try 를 조금 더 많이 써요. 둘 다 통하니 걱정은 안 해도 돼요.",
+  "avoid_ex": [
+   {
+    "en": "Sure, I'll give it a try.",
+    "kr": "네, 한번 해볼게요."
+   }
+  ],
+  "tip": "어느 쪽을 써도 OK. 상대가 영국계면 give it a go 가 더 자연스러워요."
+ },
+ "Goes without saying": {
+  "verdict": "네, 꽤 써요. 다만 말로 할 때가 더 많아요.",
+  "use": "다들 아는 얘기지만 그래도 짚고 넘어갈 때 써요. 강조하려고 일부러 \"말할 것도 없지만\"을 붙이는 느낌이에요.",
+  "use_ex": [
+   {
+    "en": "It goes without saying, but please keep this internal.",
+    "kr": "당연한 얘기지만, 이건 내부에서만 공유해주세요."
+   },
+   {
+    "en": "That goes without saying.",
+    "kr": "그건 말할 것도 없죠."
+   }
+  ],
+  "avoid": "글로 쓸 때 너무 자주 쓰면 잔소리처럼 읽혀요. 메일에선 한 번이면 충분해요.",
+  "avoid_ex": [
+   {
+    "en": "As you know, this is confidential.",
+    "kr": "아시겠지만 이건 기밀이에요."
+   }
+  ],
+  "tip": "꼭 강조하고 싶은 한 가지에만 쓰기."
+ },
+ "Plate is full": {
+  "verdict": "네, 정말 자주 써요. 부탁 거절할 때 1순위 표현이에요.",
+  "use": "일이 꽉 차서 더 못 받는다고 부드럽게 말할 때 써요. \"바빠요\"보다 덜 딱딱하고 상대 기분도 안 상해요.",
+  "use_ex": [
+   {
+    "en": "I'd love to, but my plate is full this week.",
+    "kr": "하고 싶은데 이번 주는 일이 꽉 찼어요."
+   },
+   {
+    "en": "Is your plate full, or can you take this?",
+    "kr": "지금 일 많아요? 아니면 이거 받아줄 수 있어요?"
+   }
+  ],
+  "avoid": "따로 피할 자리는 거의 없어요. 매니저한테도 써도 돼요. 다만 대안을 같이 주면 더 프로 같아요.",
+  "avoid_ex": [
+   {
+    "en": "My plate is full until Friday. Could Monday work?",
+    "kr": "금요일까진 꽉 찼는데, 월요일은 어떨까요?"
+   }
+  ],
+  "tip": "거절할 땐 plate is full + 가능한 날짜 하나."
+ },
+ "Snowed under": {
+  "verdict": "네, 자주 써요. 영국 쪽에서 특히 많이 들려요.",
+  "use": "일에 파묻혀서 답장이 늦었을 때 사과 겸 핑계로 딱이에요. with 뒤에 무엇에 파묻혔는지 붙여요.",
+  "use_ex": [
+   {
+    "en": "Sorry, I've been snowed under with month-end.",
+    "kr": "죄송해요, 월말 마감에 파묻혀 있었어요."
+   },
+   {
+    "en": "We're snowed under right now.",
+    "kr": "지금 저희 팀 일이 산더미예요."
+   }
+  ],
+  "avoid": "미국에선 swamped 를 더 많이 써요. 둘 다 알아두면 좋아요.",
+  "avoid_ex": [
+   {
+    "en": "I'm swamped this week.",
+    "kr": "이번 주 완전 정신없어요."
+   }
+  ],
+  "tip": "답장 늦었을 땐 Sorry, I've been snowed under 로 시작."
+ },
+ "Breathing room": {
+  "verdict": "네, 자주 써요. 일정 협상할 때 특히 많이 나와요.",
+  "use": "일정이나 예산에 여유를 좀 달라고 할 때 써요. \"시간 더 주세요\"보다 부드럽고 이유가 있어 보여요.",
+  "use_ex": [
+   {
+    "en": "Can we push it a day? I need some breathing room.",
+    "kr": "하루만 미룰 수 있을까요? 숨 좀 돌려야 해서요."
+   },
+   {
+    "en": "Let's build in some breathing room before launch.",
+    "kr": "런칭 전에 여유를 좀 둡시다."
+   }
+  ],
+  "avoid": "공식 일정표나 계약서에는 buffer 를 써요.",
+  "avoid_ex": [
+   {
+    "en": "We added a two-day buffer.",
+    "kr": "이틀 버퍼를 넣었어요."
+   }
+  ],
+  "tip": "말로는 breathing room, 문서에는 buffer."
+ },
+ "More or less": {
+  "verdict": "네, 아주 자주 써요. 일상 표현이라 부담 없어요.",
+  "use": "거의 다 됐다, 대충 맞다고 할 때 써요. 완벽하진 않다는 여지를 남겨서 책임을 살짝 덜어줘요.",
+  "use_ex": [
+   {
+    "en": "The draft is done, more or less.",
+    "kr": "초안은 거의 끝났어요."
+   },
+   {
+    "en": "That's more or less what we agreed.",
+    "kr": "대충 그게 우리가 합의한 내용이에요."
+   }
+  ],
+  "avoid": "숫자나 데이터를 보고할 때 쓰면 불확실해 보여요. 그땐 approximately 가 깔끔해요.",
+  "avoid_ex": [
+   {
+    "en": "It's approximately 20 percent.",
+    "kr": "대략 20퍼센트예요."
+   }
+  ],
+  "tip": "진행 상황엔 more or less, 숫자엔 approximately."
+ },
+ "Educated guess": {
+  "verdict": "네, 자주 써요. 회의에서 숫자 물어볼 때 특히 유용해요.",
+  "use": "데이터는 아직 없지만 근거는 있는 추측을 말할 때 써요. 틀려도 덜 민망하게 미리 깔아두는 표현이에요.",
+  "use_ex": [
+   {
+    "en": "My educated guess is mid-Q2.",
+    "kr": "제 추정으로는 2분기 중반쯤이에요."
+   },
+   {
+    "en": "Can you give me an educated guess?",
+    "kr": "대략적인 추정이라도 줄 수 있어요?"
+   }
+  ],
+  "avoid": "따로 피할 자리는 없어요. 오히려 임원 회의에서 숫자 압박 받을 때 방패가 돼요.",
+  "avoid_ex": [],
+  "tip": "모르는 숫자를 물으면 Educated guess, 로 시작하고 근거 한 줄."
+ },
+ "Gut feeling": {
+  "verdict": "네, 자주 써요. 회의에서 의견 말할 때 꽤 나와요.",
+  "use": "숫자로는 설명 안 되는데 뭔가 이상할 때, 직감을 솔직하게 말할 때 써요.",
+  "use_ex": [
+   {
+    "en": "My gut feeling says something's off.",
+    "kr": "왠지 뭔가 이상한 것 같아요."
+   },
+   {
+    "en": "What's your gut feeling on this?",
+    "kr": "이거 감으로는 어때요?"
+   }
+  ],
+  "avoid": "데이터 중심 조직에선 근거 없이 이것만 말하면 약해 보여요. 확인해보겠다는 말을 같이 붙이세요.",
+  "avoid_ex": [
+   {
+    "en": "It's just a gut feeling, but I'll check the data.",
+    "kr": "감이긴 한데, 데이터 한번 확인해볼게요."
+   }
+  ],
+  "tip": "gut feeling 다음엔 다음 행동을 붙이기."
+ },
+ "In the long run": {
+  "verdict": "네, 아주 자주 써요. 설득할 때 단골이에요.",
+  "use": "지금은 손해 같아도 길게 보면 이득이라고 설득할 때 써요. 비용 얘기에 특히 잘 붙어요.",
+  "use_ex": [
+   {
+    "en": "It costs more now, but it saves us in the long run.",
+    "kr": "지금은 더 들지만 길게 보면 아끼는 거예요."
+   },
+   {
+    "en": "In the long run, this is the safer option.",
+    "kr": "길게 보면 이게 더 안전해요."
+   }
+  ],
+  "avoid": "따로 피할 자리는 없어요. 보고서에도 그대로 써도 돼요.",
+  "avoid_ex": [],
+  "tip": "반대 의견을 설득할 때 마지막 한 줄로 쓰기 좋아요."
+ },
+ "For what it's worth": {
+  "verdict": "네, 정말 자주 써요. 슬랙에서 FWIW 로 줄여 쓰기도 해요.",
+  "use": "내 의견이 정답은 아니지만 참고로 말해본다는 겸손한 느낌이에요. 윗사람한테 의견 낼 때 특히 좋아요.",
+  "use_ex": [
+   {
+    "en": "For what it's worth, I'd wait until legal signs off.",
+    "kr": "참고로 말씀드리면, 법무 승인 나고 하는 게 좋을 것 같아요."
+   },
+   {
+    "en": "FWIW, the old version loaded faster.",
+    "kr": "참고로, 예전 버전이 더 빨리 떴어요."
+   }
+  ],
+  "avoid": "FWIW 줄임말은 슬랙·채팅에서만. 메일이나 고객 앞에선 풀어서 쓰세요.",
+  "avoid_ex": [],
+  "tip": "윗사람에게 반대 의견 낼 때 For what it's worth 로 시작하면 부드러워요."
+ },
+ "Needless to say": {
+  "verdict": "네, 써요. 다만 goes without saying 보다 글에서 더 많이 보여요.",
+  "use": "결과가 뻔할 때 \"말할 것도 없이\" 하고 덧붙여요. 메일이나 보고서에서 자연스러워요.",
+  "use_ex": [
+   {
+    "en": "Needless to say, the client was not happy.",
+    "kr": "말할 것도 없이 고객이 불만이 컸어요."
+   },
+   {
+    "en": "Needless to say, we're doubling down on QA.",
+    "kr": "당연히 QA 를 더 강화할 거예요."
+   }
+  ],
+  "avoid": "말로 할 때 너무 자주 쓰면 딱딱하게 들려요. 회의에선 obviously 가 편해요.",
+  "avoid_ex": [
+   {
+    "en": "Obviously, the client wasn't happy.",
+    "kr": "당연히 고객은 불만이었죠."
+   }
+  ],
+  "tip": "글에선 needless to say, 말에선 obviously."
+ },
+ "Back on track": {
+  "verdict": "네, 아주 자주 써요. 진행 상황 보고의 단골이에요.",
+  "use": "문제가 있었지만 이제 다시 정상으로 돌아왔다고 안심시킬 때 써요. 상태 업데이트에 딱이에요.",
+  "use_ex": [
+   {
+    "en": "We lost a week, but we're back on track now.",
+    "kr": "일주일 날렸지만 이제 다시 정상 궤도예요."
+   },
+   {
+    "en": "What do we need to get back on track?",
+    "kr": "다시 정상으로 돌리려면 뭐가 필요해요?"
+   }
+  ],
+  "avoid": "피할 자리는 없어요. 임원 보고에서도 그대로 써요.",
+  "avoid_ex": [],
+  "tip": "지연 보고는 문제 한 줄 + we're back on track 으로 끝내기."
+ },
+ "Set in stone": {
+  "verdict": "네, 자주 써요. 보통 not set in stone 으로 부정문에서 많이 나와요.",
+  "use": "아직 확정 아니니 의견 달라고 여지를 줄 때 써요. 상대가 편하게 말할 수 있게 해줘요.",
+  "use_ex": [
+   {
+    "en": "The date isn't set in stone yet.",
+    "kr": "날짜는 아직 확정 아니에요."
+   },
+   {
+    "en": "Nothing is set in stone.",
+    "kr": "정해진 건 아무것도 없어요."
+   }
+  ],
+  "avoid": "이미 확정된 걸 말할 땐 오히려 finalized 나 confirmed 가 깔끔해요.",
+  "avoid_ex": [
+   {
+    "en": "The date is confirmed.",
+    "kr": "날짜 확정됐어요."
+   }
+  ],
+  "tip": "의견 받고 싶을 땐 isn't set in stone, 확정 공지는 confirmed."
+ },
+ "Hanging in the balance": {
+  "verdict": "가끔 써요. 회의 말보다는 글이나 무게 있는 상황에서 나와요.",
+  "use": "계약 연장이나 큰 결정처럼 결과가 아직 안 나서 조마조마한 상황에 써요. 말로 하면 조금 극적으로 들려요.",
+  "use_ex": [
+   {
+    "en": "The renewal is hanging in the balance.",
+    "kr": "재계약이 아직 어떻게 될지 몰라요."
+   }
+  ],
+  "avoid": "가벼운 일에 쓰면 과장처럼 들려요. 평소엔 이렇게 말하는 게 더 흔해요.",
+  "avoid_ex": [
+   {
+    "en": "It's still up in the air.",
+    "kr": "아직 미정이에요."
+   }
+  ],
+  "tip": "일상 대화는 up in the air, 정말 중요한 건 hanging in the balance."
+ },
+ "Crunch time": {
+  "verdict": "네, 자주 써요. 마감 직전 팀 분위기 얘기할 때 많이 나와요.",
+  "use": "런칭이나 마감 직전에 다 같이 몰아치는 시기를 말해요. 팀을 다독이거나 회의를 줄이자고 할 때 좋아요.",
+  "use_ex": [
+   {
+    "en": "It's crunch time, so let's keep meetings short.",
+    "kr": "막판이니 회의는 짧게 가죠."
+   },
+   {
+    "en": "We're in crunch time until Friday.",
+    "kr": "금요일까지 막판 집중 기간이에요."
+   }
+  ],
+  "avoid": "피할 자리는 거의 없어요. 다만 너무 자주 쓰면 팀이 늘 야근하는 것처럼 들려요.",
+  "avoid_ex": [],
+  "tip": "진짜 막판에만 아껴 쓰기."
+ },
+ "Up to one's ears": {
+  "verdict": "네, 써요. 다만 swamped 나 snowed under 가 조금 더 흔해요.",
+  "use": "할 일이 너무 많아서 정신없을 때 써요. in 뒤에 무엇이 많은지 붙여요.",
+  "use_ex": [
+   {
+    "en": "I'm up to my ears in invoices.",
+    "kr": "인보이스 처리에 파묻혀 있어요."
+   },
+   {
+    "en": "She's up to her ears in interviews.",
+    "kr": "그분 요즘 면접 때문에 정신없어요."
+   }
+  ],
+  "avoid": "공식 메일보다는 말이나 슬랙에서 편하게 써요.",
+  "avoid_ex": [
+   {
+    "en": "I'm swamped this week.",
+    "kr": "이번 주 정신없어요."
+   }
+  ],
+  "tip": "바쁜 이유를 in 뒤에 붙이면 거절이 덜 성의 없어 보여요."
+ },
+ "Burn the midnight oil": {
+  "verdict": "가끔 써요. 조금 옛날 느낌이라 젊은 동료들은 덜 써요.",
+  "use": "팀이 밤늦게까지 고생했다고 칭찬하거나 감사할 때 써요. 내가 야근했다고 자랑하듯 쓰면 어색해요.",
+  "use_ex": [
+   {
+    "en": "The team burned the midnight oil to get this done.",
+    "kr": "팀이 밤새가며 이걸 끝냈어요."
+   }
+  ],
+  "avoid": "요즘 실무에선 더 쉬운 말을 많이 써요.",
+  "avoid_ex": [
+   {
+    "en": "We worked late to get the demo ready.",
+    "kr": "데모 준비하느라 늦게까지 일했어요."
+   }
+  ],
+  "tip": "남을 칭찬할 때 쓰면 딱, 내 얘기엔 worked late."
+ },
+ "Good enough for now": {
+  "verdict": "네, 아주 자주 써요. 완벽주의 끊을 때 필수예요.",
+  "use": "100점은 아니지만 일단 내보내자고 할 때 써요. 회의가 끝없이 늘어질 때 정리하는 한마디로 좋아요.",
+  "use_ex": [
+   {
+    "en": "It's good enough for now. Let's ship it.",
+    "kr": "지금은 이 정도면 돼요. 내보냅시다."
+   },
+   {
+    "en": "Is this good enough for now?",
+    "kr": "일단 이 정도면 될까요?"
+   }
+  ],
+  "avoid": "고객에게 결과물 넘길 때 쓰면 대충 한 것처럼 들릴 수 있어요.",
+  "avoid_ex": [
+   {
+    "en": "This is version one. We'll keep improving it.",
+    "kr": "1차 버전이고, 계속 개선할 예정이에요."
+   }
+  ],
+  "tip": "팀 안에선 good enough for now, 고객에겐 version one."
+ },
+ "Band-aid fix": {
+  "verdict": "네, 자주 써요. 특히 개발·운영 쪽에서 많이 나와요.",
+  "use": "급한 불만 끈 임시방편이라 근본 해결이 아니라고 짚을 때 써요. \"이걸로 끝내면 안 된다\"는 경고가 담겨요.",
+  "use_ex": [
+   {
+    "en": "Restarting the server is a band-aid fix.",
+    "kr": "서버 재시작은 임시방편일 뿐이에요."
+   },
+   {
+    "en": "Let's do a band-aid fix today and a proper one next week.",
+    "kr": "오늘은 임시로 막고 다음 주에 제대로 고치죠."
+   }
+  ],
+  "avoid": "따로 피할 자리는 없어요. 장애 보고서에도 그대로 써요. 공식 문서에선 workaround 도 많이 써요.",
+  "avoid_ex": [
+   {
+    "en": "We applied a temporary workaround.",
+    "kr": "임시 우회책을 적용했어요."
+   }
+  ],
+  "tip": "임시방편을 쓸 땐 진짜 해결 계획을 같이 말하기."
+ },
+ "Slip through the cracks": {
+  "verdict": "네, 자주 써요. 놓친 걸 사과할 때 1순위예요.",
+  "use": "누구 잘못이라기보다 중간에 틈새로 빠져버렸다는 느낌이라 사과가 덜 무거워져요.",
+  "use_ex": [
+   {
+    "en": "Sorry, that slipped through the cracks.",
+    "kr": "죄송해요, 그게 중간에 빠졌네요."
+   },
+   {
+    "en": "Let's make sure nothing slips through the cracks.",
+    "kr": "빠지는 거 없게 챙깁시다."
+   }
+  ],
+  "avoid": "피할 자리는 없어요. 다만 같은 실수가 반복되면 이 말만으로는 핑계처럼 들려요.",
+  "avoid_ex": [
+   {
+    "en": "I've added it to our checklist so it won't happen again.",
+    "kr": "다시 안 생기게 체크리스트에 넣었어요."
+   }
+  ],
+  "tip": "사과는 slipped through the cracks + 재발 방지 한 줄."
+ },
+ "Miss the boat": {
+  "verdict": "네, 써요. 기회나 타이밍 얘기할 때 자연스러워요.",
+  "use": "지금 안 하면 기회를 놓친다고 급함을 만들 때 써요. on 뒤에 무슨 기회인지 붙여요.",
+  "use_ex": [
+   {
+    "en": "If we wait, we'll miss the boat on this market.",
+    "kr": "기다리면 이 시장 기회를 놓쳐요."
+   },
+   {
+    "en": "I think we missed the boat on that one.",
+    "kr": "그건 이미 타이밍 놓친 것 같아요."
+   }
+  ],
+  "avoid": "딱딱한 보고서에선 miss the window 가 더 깔끔해요.",
+  "avoid_ex": [
+   {
+    "en": "We may miss the window for Q1.",
+    "kr": "1분기 시점을 놓칠 수 있어요."
+   }
+  ],
+  "tip": "말로는 miss the boat, 보고서엔 miss the window."
+ },
+ "Catch someone off guard": {
+  "verdict": "네, 자주 써요. 회의에서 당황했을 때 솔직하게 말하기 좋아요.",
+  "use": "예상 못 한 질문에 당황했다고 인정하면서 나중에 답하겠다고 할 때 딱이에요. 부끄러운 게 아니라 프로다운 대응이에요.",
+  "use_ex": [
+   {
+    "en": "That question caught me off guard. Let me follow up by email.",
+    "kr": "그 질문은 예상 못 했네요. 메일로 따로 답드릴게요."
+   },
+   {
+    "en": "The announcement caught everyone off guard.",
+    "kr": "그 발표에 다들 당황했어요."
+   }
+  ],
+  "avoid": "피할 자리는 없어요. 임원 앞에서도 써도 괜찮아요.",
+  "avoid_ex": [],
+  "tip": "당황했을 땐 caught me off guard + follow up 약속으로 시간 벌기."
+ },
+ "Wing it": {
+  "verdict": "네, 아주 자주 써요. 편한 자리 단골이에요.",
+  "use": "준비 없이 즉흥으로 하겠다고 할 때 써요. 동료끼리는 웃으면서 많이 해요.",
+  "use_ex": [
+   {
+    "en": "The deck isn't ready, so I'll wing it.",
+    "kr": "덱이 안 돼서 그냥 즉흥으로 할게요."
+   },
+   {
+    "en": "Did you prepare, or are you winging it?",
+    "kr": "준비했어요, 아니면 즉흥이에요?"
+   }
+  ],
+  "avoid": "윗사람이나 고객에게 \"wing it 할게요\"라고 하면 준비 안 한 사람처럼 보여요.",
+  "avoid_ex": [
+   {
+    "en": "I'll keep it high level for now.",
+    "kr": "지금은 큰 그림 위주로 말씀드릴게요."
+   }
+  ],
+  "tip": "동료끼리는 wing it, 윗사람 앞에선 keep it high level."
+ },
+ "Off-the-cuff": {
+  "verdict": "네, 써요. 숫자나 의견에 여지를 둘 때 유용해요.",
+  "use": "즉석에서 나온 거라 정확하지 않다고 미리 깔아둘 때 써요. 내 말이 확정으로 인용되는 걸 막아줘요.",
+  "use_ex": [
+   {
+    "en": "That was an off-the-cuff estimate.",
+    "kr": "그건 즉석에서 대충 낸 숫자예요."
+   },
+   {
+    "en": "Just some off-the-cuff thoughts.",
+    "kr": "그냥 즉석에서 떠오른 생각이에요."
+   }
+  ],
+  "avoid": "피할 자리는 없어요. 다만 공식 수치를 말할 땐 쓰지 마세요.",
+  "avoid_ex": [],
+  "tip": "대충 말한 숫자 뒤엔 off-the-cuff, don't quote me on it."
+ },
+ "Shoot from the hip": {
+  "verdict": "가끔 써요. 주로 남의 말투를 평가할 때 나와요.",
+  "use": "생각 없이 바로바로 말하는 사람이나 그런 스타일을 말해요. 칭찬보다는 살짝 걱정 섞인 평가예요.",
+  "use_ex": [
+   {
+    "en": "He tends to shoot from the hip in client calls.",
+    "kr": "그분은 고객 콜에서 생각 없이 바로 말하는 편이에요."
+   }
+  ],
+  "avoid": "당사자 앞에서 쓰면 비판으로 들려요. 피드백 줄 땐 이렇게 바꾸면 부드러워요.",
+  "avoid_ex": [
+   {
+    "en": "Maybe we can align on talking points before the call.",
+    "kr": "콜 전에 할 말을 미리 맞춰보면 어떨까요?"
+   }
+  ],
+  "tip": "남 평가엔 조심. 피드백은 align on talking points 로."
+ },
+ "Take the fall": {
+  "verdict": "가끔 써요. 책임 소재가 예민한 자리에서 나와요.",
+  "use": "내 잘못이 아닌데 책임을 뒤집어쓰지 않겠다고 선 그을 때 써요. 말이 꽤 세요.",
+  "use_ex": [
+   {
+    "en": "I'm not going to take the fall for this.",
+    "kr": "이걸 제가 뒤집어쓸 순 없어요."
+   }
+  ],
+  "avoid": "회의에서 공개적으로 쓰면 싸우자는 말처럼 들려요. 공식 자리에선 이렇게 돌려 말해요.",
+  "avoid_ex": [
+   {
+    "en": "I want to be clear about who made that call.",
+    "kr": "그 결정을 누가 했는지는 분명히 하고 싶어요."
+   }
+  ],
+  "tip": "1:1 이나 믿는 사람 앞에서만. 공개 자리에선 돌려 말하기."
+ },
+ "Hang someone out to dry": {
+  "verdict": "가끔 써요. 서운함이나 불만을 털어놓을 때 나와요.",
+  "use": "도와줘야 할 사람들이 등 돌려서 혼자 책임지게 됐을 때 써요. 감정이 꽤 실린 표현이에요.",
+  "use_ex": [
+   {
+    "en": "They hung me out to dry in the review.",
+    "kr": "리뷰에서 다들 저만 내버려뒀어요."
+   }
+  ],
+  "avoid": "당사자 앞이나 공식 자리에서는 너무 세요. 이렇게 바꾸면 덜 공격적입니다.",
+  "avoid_ex": [
+   {
+    "en": "I didn't feel supported in that meeting.",
+    "kr": "그 회의에서 지원받지 못한 느낌이었어요."
+   }
+  ],
+  "tip": "감정 털어놓는 1:1 용. 공식 피드백은 didn't feel supported."
+ },
+ "Hold someone's feet to the fire": {
+  "verdict": "가끔 써요. 협력사나 약속 관리할 때 나와요.",
+  "use": "약속을 지키게 강하게 압박하자고 할 때 써요. 팀 안에서 전략 짤 때 쓰는 말이에요.",
+  "use_ex": [
+   {
+    "en": "We need to hold the vendor's feet to the fire on this.",
+    "kr": "이건 업체가 약속 지키게 세게 압박해야 해요."
+   }
+  ],
+  "avoid": "압박하는 상대에게 직접 쓰면 공격적이에요. 상대에겐 이렇게 말합니다.",
+  "avoid_ex": [
+   {
+    "en": "We'll need a firm commitment on the date.",
+    "kr": "날짜는 확실하게 약속해주셔야 해요."
+   }
+  ],
+  "tip": "팀 안 전략 회의용. 상대에겐 firm commitment."
+ },
+ "Calculated risk": {
+  "verdict": "네, 자주 써요. 의사결정 설명할 때 좋아요.",
+  "use": "위험한 건 알지만 따져보고 감수하는 거라고 설득할 때 써요. 무모하지 않다는 느낌을 줘요.",
+  "use_ex": [
+   {
+    "en": "Launching early is a calculated risk.",
+    "kr": "일찍 런칭하는 건 따져보고 감수하는 위험이에요."
+   },
+   {
+    "en": "It's a calculated risk, and here's why.",
+    "kr": "계산된 위험이에요. 이유는 이래요."
+   }
+  ],
+  "avoid": "피할 자리는 없어요. 임원 보고에서 특히 잘 먹혀요.",
+  "avoid_ex": [],
+  "tip": "calculated risk 뒤에는 꼭 이유 한두 개."
+ },
+ "Play it safe": {
+  "verdict": "네, 아주 자주 써요.",
+  "use": "모험하지 말고 안전한 쪽으로 가자고 할 때 써요. 가볍고 어디서나 통해요.",
+  "use_ex": [
+   {
+    "en": "Let's play it safe and keep the old pricing.",
+    "kr": "안전하게 기존 가격으로 가죠."
+   },
+   {
+    "en": "I'd rather play it safe on this one.",
+    "kr": "이건 안전하게 가고 싶어요."
+   }
+  ],
+  "avoid": "피할 자리는 없어요.",
+  "avoid_ex": [],
+  "tip": "반대로 과감하게 가자고 할 땐 take a bet 이나 calculated risk."
+ },
+ "Cover one's bases": {
+  "verdict": "네, 자주 써요. 미국 쪽에서 특히 많이 나와요.",
+  "use": "빠진 데 없이 다 대비해뒀다고 할 때 써요. 여러 팀을 미리 엮어둘 때 잘 어울려요.",
+  "use_ex": [
+   {
+    "en": "I looped in legal, just to cover our bases.",
+    "kr": "만일을 위해 법무팀도 넣었어요."
+   },
+   {
+    "en": "Let's cover all our bases before the launch.",
+    "kr": "런칭 전에 빠진 거 없게 다 챙기죠."
+   }
+  ],
+  "avoid": "피할 자리는 없어요. 다만 너무 자주 쓰면 몸 사리는 사람처럼 보여요.",
+  "avoid_ex": [],
+  "tip": "cc 추가할 때 just to cover our bases 한 줄이면 딱."
+ },
+ "Play hardball": {
+  "verdict": "네, 써요. 협상 얘기할 때 자연스러워요.",
+  "use": "상대가 양보 없이 세게 나온다고 팀 안에서 공유할 때 써요.",
+  "use_ex": [
+   {
+    "en": "They're playing hardball on price.",
+    "kr": "가격에서 양보를 전혀 안 해요."
+   },
+   {
+    "en": "We may need to play hardball here.",
+    "kr": "여기선 우리도 세게 나가야 할 수도 있어요."
+   }
+  ],
+  "avoid": "협상 상대에게 직접 쓰면 싸움 거는 말이에요.",
+  "avoid_ex": [
+   {
+    "en": "This is our final offer.",
+    "kr": "이게 저희 최종 제안이에요."
+   }
+  ],
+  "tip": "팀 안 전략 공유용. 상대 앞에선 final offer."
+ },
+ "Lowball": {
+  "verdict": "네, 자주 써요. 연봉·가격 협상에서 특히 많이 나와요.",
+  "use": "터무니없이 낮은 제안을 받았거나 줬을 때 써요. 명사로도 동사로도 써요.",
+  "use_ex": [
+   {
+    "en": "Their first offer was a lowball.",
+    "kr": "첫 제안이 너무 낮았어요."
+   },
+   {
+    "en": "I don't want to lowball them.",
+    "kr": "너무 낮게 부르고 싶진 않아요."
+   }
+  ],
+  "avoid": "상대에게 \"lowball 이에요\"라고 직접 말하면 무례할 수 있어요.",
+  "avoid_ex": [
+   {
+    "en": "That's below what we expected.",
+    "kr": "저희 예상보다 낮네요."
+   }
+  ],
+  "tip": "연봉 협상에서 내 쪽 얘기할 땐 OK, 상대 앞에선 below what we expected."
+ },
+ "Sweeten the deal": {
+  "verdict": "네, 자주 써요. 영업·협상에서 단골이에요.",
+  "use": "조건을 하나 더 얹어서 상대가 받아들이기 쉽게 만들 때 써요.",
+  "use_ex": [
+   {
+    "en": "We can sweeten the deal with onboarding support.",
+    "kr": "온보딩 지원을 얹어서 조건을 더 좋게 할 수 있어요."
+   },
+   {
+    "en": "What would sweeten the deal for you?",
+    "kr": "어떤 조건이 더 있으면 좋을까요?"
+   }
+  ],
+  "avoid": "피할 자리는 없어요. 고객 앞에서도 그대로 써요.",
+  "avoid_ex": [],
+  "tip": "가격을 깎기 전에 sweeten the deal 할 거리부터 찾기."
+ },
+ "Eat the cost": {
+  "verdict": "네, 써요. 비용 책임 얘기할 때 자연스러워요.",
+  "use": "우리 실수니까 손실은 우리가 떠안겠다고 할 때 써요. 고객 신뢰를 지키는 말이에요.",
+  "use_ex": [
+   {
+    "en": "That was our error, so we'll eat the cost.",
+    "kr": "저희 실수니까 비용은 저희가 부담할게요."
+   },
+   {
+    "en": "Can we eat the cost on this one?",
+    "kr": "이번 건은 우리가 떠안을 수 있을까요?"
+   }
+  ],
+  "avoid": "공식 문서나 계약 얘기에선 absorb the cost 가 더 깔끔해요.",
+  "avoid_ex": [
+   {
+    "en": "We'll absorb the cost of reshipping.",
+    "kr": "재발송 비용은 저희가 부담합니다."
+   }
+  ],
+  "tip": "말로는 eat the cost, 문서엔 absorb the cost."
+ },
+ "Throw good money after bad": {
+  "verdict": "가끔 써요. 무게 있는 결정 회의에서 나와요.",
+  "use": "이미 망한 데에 돈을 더 붓지 말자고 할 때 써요. 매몰비용을 끊자는 설득에 딱이에요.",
+  "use_ex": [
+   {
+    "en": "Another round of fixes would be throwing good money after bad.",
+    "kr": "또 고치는 건 밑 빠진 독에 물 붓기예요."
+   }
+  ],
+  "avoid": "조금 길고 옛날 느낌이라 평소엔 더 짧게 말해요.",
+  "avoid_ex": [
+   {
+    "en": "Let's cut our losses.",
+    "kr": "손절하죠."
+   }
+  ],
+  "tip": "짧게는 cut our losses, 설득할 땐 throw good money after bad."
+ },
+ "Shoestring budget": {
+  "verdict": "네, 써요. 예산 얘기할 때 자연스러워요.",
+  "use": "아주 빠듯한 예산으로 해냈다고 할 때 많이 써요. 성과 자랑할 때 특히 좋아요.",
+  "use_ex": [
+   {
+    "en": "We ran the pilot on a shoestring budget.",
+    "kr": "아주 빠듯한 예산으로 파일럿을 돌렸어요."
+   },
+   {
+    "en": "It's a shoestring operation.",
+    "kr": "아주 적은 돈으로 굴리는 프로젝트예요."
+   }
+  ],
+  "avoid": "피할 자리는 없어요. 다만 예산 요청할 때 쓰면 불평처럼 들릴 수 있어요.",
+  "avoid_ex": [],
+  "tip": "성과 보고에 쓰면 효과 만점: on a shoestring budget, we still hit target."
+ },
+ "Long shot": {
+  "verdict": "네, 자주 써요.",
+  "use": "가능성은 낮지만 일단 시도해보겠다고 할 때 써요. 기대치를 미리 낮춰줘요.",
+  "use_ex": [
+   {
+    "en": "It's a long shot, but I'll ask.",
+    "kr": "가능성 낮지만 물어는 볼게요."
+   },
+   {
+    "en": "This is a long shot, but do you know anyone at Google?",
+    "kr": "혹시나 해서 그런데, 구글에 아는 분 있어요?"
+   }
+  ],
+  "avoid": "피할 자리는 없어요.",
+  "avoid_ex": [],
+  "tip": "부탁할 때 This is a long shot, but 으로 시작하면 상대가 거절하기도 편해요."
+ },
+ "Safe bet": {
+  "verdict": "네, 자주 써요.",
+  "use": "실패 없는 확실한 선택이라고 추천할 때 써요.",
+  "use_ex": [
+   {
+    "en": "For the venue, the hotel is a safe bet.",
+    "kr": "장소는 그 호텔이 무난해요."
+   },
+   {
+    "en": "It's a safe bet they'll ask about pricing.",
+    "kr": "가격 질문은 거의 확실히 나올 거예요."
+   }
+  ],
+  "avoid": "피할 자리는 없어요.",
+  "avoid_ex": [],
+  "tip": "두 번째 예문처럼 \"거의 확실히 ~할 거예요\"로도 써요."
+ },
+ "Pie in the sky": {
+  "verdict": "가끔 써요. 비현실적인 계획을 꼬집을 때 나와요.",
+  "use": "현실성 없는 희망사항이라고 지적할 때 써요. 꽤 직설적이에요.",
+  "use_ex": [
+   {
+    "en": "Two weeks is pie in the sky.",
+    "kr": "2주는 꿈같은 얘기예요."
+   }
+  ],
+  "avoid": "아이디어 낸 사람 앞에서 쓰면 무시하는 것처럼 들려요.",
+  "avoid_ex": [
+   {
+    "en": "I'm not sure that timeline is realistic.",
+    "kr": "그 일정이 현실적인지 잘 모르겠어요."
+   }
+  ],
+  "tip": "직접 반박할 땐 not sure it's realistic 이 훨씬 안전해요."
+ },
+ "On thin ice": {
+  "verdict": "네, 써요. 관계나 평가가 위태로울 때 나와요.",
+  "use": "한 번만 더 실수하면 끝인 상황을 말해요. 고객 관계나 내 평가 얘기에 많이 써요.",
+  "use_ex": [
+   {
+    "en": "We're on thin ice with this client.",
+    "kr": "이 고객이랑은 지금 살얼음판이에요."
+   },
+   {
+    "en": "After that call, I'm on thin ice.",
+    "kr": "그 콜 이후로 제 입장이 위태로워요."
+   }
+  ],
+  "avoid": "남에게 \"you're on thin ice\"라고 하면 경고처럼 들려요.",
+  "avoid_ex": [],
+  "tip": "우리 상황을 말할 땐 OK, 상대에게 직접은 피하기."
+ },
+ "Out of the woods": {
+  "verdict": "네, 자주 써요. 보통 not out of the woods yet 으로 나와요.",
+  "use": "위기를 넘겼는지, 아직인지 말할 때 써요. 섣부른 안심을 막아줘요.",
+  "use_ex": [
+   {
+    "en": "We're not out of the woods yet.",
+    "kr": "아직 안심하긴 일러요."
+   },
+   {
+    "en": "I think we're finally out of the woods.",
+    "kr": "이제 드디어 고비 넘긴 것 같아요."
+   }
+  ],
+  "avoid": "피할 자리는 없어요. 장애 보고에도 그대로 써요.",
+  "avoid_ex": [],
+  "tip": "상황 보고할 땐 not out of the woods yet 로 기대치 관리."
+ },
+ "Over the hump": {
+  "verdict": "네, 써요.",
+  "use": "제일 힘든 구간을 지났다고 팀을 다독일 때 써요. 남은 건 쉽다는 느낌이에요.",
+  "use_ex": [
+   {
+    "en": "We're over the hump on this project.",
+    "kr": "이 프로젝트 제일 힘든 고비는 넘겼어요."
+   },
+   {
+    "en": "Once we're over the hump, it gets easier.",
+    "kr": "이 고비만 넘기면 수월해져요."
+   }
+  ],
+  "avoid": "피할 자리는 없어요. 수요일을 hump day 라고 부르는 것도 같은 그림이에요.",
+  "avoid_ex": [],
+  "tip": "out of the woods 는 위기 탈출, over the hump 는 힘든 구간 통과."
+ },
+ "Have someone's back": {
+  "verdict": "네, 아주 자주 써요.",
+  "use": "든든하게 뒤에 있겠다고 응원할 때 써요. 동료나 팀원에게 힘이 되는 말이에요.",
+  "use_ex": [
+   {
+    "en": "Go ahead and present it. I've got your back.",
+    "kr": "그냥 발표해요. 제가 뒤에서 받쳐줄게요."
+   },
+   {
+    "en": "Thanks for having my back in that meeting.",
+    "kr": "그 회의에서 편들어줘서 고마워요."
+   }
+  ],
+  "avoid": "피할 자리는 없어요. 매니저가 팀원에게 쓰면 특히 좋아요.",
+  "avoid_ex": [],
+  "tip": "도움 받았으면 Thanks for having my back 한 줄로 감사 표시."
+ },
+ "Pull one's weight": {
+  "verdict": "네, 자주 써요. 다만 부정문에서 비판으로 많이 나와요.",
+  "use": "각자 자기 몫을 하자고 할 때 써요. \"제 몫도 포함해서\"를 붙이면 덜 공격적이에요.",
+  "use_ex": [
+   {
+    "en": "Everyone needs to pull their weight, including me.",
+    "kr": "저 포함해서 다들 자기 몫을 해야 해요."
+   }
+  ],
+  "avoid": "특정인에게 \"not pulling your weight\"라고 하면 꽤 센 비판이에요.",
+  "avoid_ex": [
+   {
+    "en": "I'd like to talk about how we split the work.",
+    "kr": "일 나누는 방식 얘기 좀 하고 싶어요."
+   }
+  ],
+  "tip": "남 얘기엔 조심. 업무 분배 얘기로 돌려서."
+ },
+ "Take one for the team": {
+  "verdict": "네, 자주 써요. 웃으면서 많이 해요.",
+  "use": "다들 싫어하는 일을 내가 맡겠다고 할 때 써요. 생색 반 농담 반이라 분위기가 밝아져요.",
+  "use_ex": [
+   {
+    "en": "Someone has to present at 7am. I'll take one for the team.",
+    "kr": "누군가는 아침 7시에 발표해야죠. 제가 희생할게요."
+   },
+   {
+    "en": "Thanks for taking one for the team.",
+    "kr": "궂은일 맡아줘서 고마워요."
+   }
+  ],
+  "avoid": "피할 자리는 없어요.",
+  "avoid_ex": [],
+  "tip": "궂은일 맡아준 동료에게 Thanks for taking one for the team."
+ },
+ "Pull rank": {
+  "verdict": "가끔 써요. 주로 남의 행동을 설명할 때 나와요.",
+  "use": "논의 대신 직급으로 눌러서 결정했다고 할 때 써요. 대부분 불만이 섞여 있어요.",
+  "use_ex": [
+   {
+    "en": "She pulled rank and overruled the team.",
+    "kr": "그분이 직급으로 눌러서 팀 결정을 뒤집었어요."
+   }
+  ],
+  "avoid": "내가 \"pull rank 할게요\"라고 하면 강압적으로 들려요. 리더라면 이렇게 말합니다.",
+  "avoid_ex": [
+   {
+    "en": "I'm going to make the call on this one.",
+    "kr": "이건 제가 결정할게요."
+   }
+  ],
+  "tip": "결정권을 쓸 땐 I'll make the call."
+ },
+ "Pull strings": {
+  "verdict": "네, 써요.",
+  "use": "인맥을 써서 일을 되게 했다고 할 때 써요. 좋은 의미로도, 살짝 꼼수 느낌으로도 써요.",
+  "use_ex": [
+   {
+    "en": "He pulled some strings to get us a slot.",
+    "kr": "그분이 인맥 써서 자리 하나 구해줬어요."
+   },
+   {
+    "en": "Let me see if I can pull some strings.",
+    "kr": "제가 아는 데 한번 알아볼게요."
+   }
+  ],
+  "avoid": "공정성이 중요한 자리(채용, 평가)에선 오해 살 수 있어요.",
+  "avoid_ex": [
+   {
+    "en": "Let me reach out to my contact there.",
+    "kr": "거기 아는 분께 연락해볼게요."
+   }
+  ],
+  "tip": "부탁할 땐 reach out to my contact 가 더 깔끔해요."
+ },
+ "Stay in one's lane": {
+  "verdict": "네, 자주 써요. 요즘 꽤 유행하는 표현이에요.",
+  "use": "내 영역만 지키고 남의 결정엔 끼어들지 않겠다고 할 때 써요. 나에게 쓰면 겸손해 보여요.",
+  "use_ex": [
+   {
+    "en": "I'll stay in my lane and let design decide.",
+    "kr": "제 영역만 할게요. 디자인팀이 정하세요."
+   }
+  ],
+  "avoid": "남에게 \"stay in your lane\"이라고 하면 \"참견하지 마\"라는 무례한 말이에요.",
+  "avoid_ex": [],
+  "tip": "나에게만 쓰기. 남에게 쓰면 싸움 나요."
+ },
+ "Ruffle feathers": {
+  "verdict": "네, 자주 써요.",
+  "use": "의도치 않게 누군가의 심기를 건드렸을 때 써요. 조직 개편이나 민감한 공지 뒤에 많이 나와요.",
+  "use_ex": [
+   {
+    "en": "The memo ruffled some feathers in sales.",
+    "kr": "그 공지로 영업팀 몇몇이 기분 상했어요."
+   },
+   {
+    "en": "I don't want to ruffle any feathers.",
+    "kr": "괜히 분위기 건드리고 싶진 않아요."
+   }
+  ],
+  "avoid": "피할 자리는 없어요.",
+  "avoid_ex": [],
+  "tip": "민감한 말 꺼내기 전 I don't want to ruffle any feathers, but 으로 시작."
+ },
+ "Mend fences": {
+  "verdict": "가끔 써요. 관계 회복 얘기할 때 나와요.",
+  "use": "틀어진 관계를 다시 좋게 만들자고 할 때 써요.",
+  "use_ex": [
+   {
+    "en": "It's time to mend fences with procurement.",
+    "kr": "구매팀이랑 관계 좀 회복해야 해요."
+   }
+  ],
+  "avoid": "평소엔 더 쉬운 말을 많이 써요.",
+  "avoid_ex": [
+   {
+    "en": "Let's reset things with their team.",
+    "kr": "그 팀이랑 관계를 다시 잡아보죠."
+   }
+  ],
+  "tip": "가벼운 오해엔 clear the air 도 자주 써요."
+ },
+ "Water under the bridge": {
+  "verdict": "네, 자주 써요.",
+  "use": "지난 일은 다 잊고 앞으로 가자고 할 때 써요. 관계를 풀어주는 말이에요.",
+  "use_ex": [
+   {
+    "en": "That's water under the bridge. Let's focus on Q4.",
+    "kr": "다 지난 일이에요. 4분기에 집중하죠."
+   },
+   {
+    "en": "Don't worry, it's water under the bridge.",
+    "kr": "걱정 마세요, 다 지난 일이에요."
+   }
+  ],
+  "avoid": "피해자가 아닌 쪽이 먼저 쓰면 \"덮고 가자\"는 회피처럼 들릴 수 있어요.",
+  "avoid_ex": [],
+  "tip": "사과받은 쪽이 쓰면 최고의 마무리."
+ },
+ "Level the playing field": {
+  "verdict": "네, 자주 써요. 공정성 얘기에 단골이에요.",
+  "use": "모두에게 같은 조건을 주자고 할 때 써요. 입찰, 채용, 평가 얘기에 잘 어울려요.",
+  "use_ex": [
+   {
+    "en": "Sharing the brief with all vendors levels the playing field.",
+    "kr": "모든 업체에 같은 자료를 주면 조건이 공평해져요."
+   }
+  ],
+  "avoid": "피할 자리는 없어요. 공식 문서에도 그대로 써요.",
+  "avoid_ex": [],
+  "tip": "불공평한 상황을 지적할 땐 Let's level the playing field."
+ },
+ "Bridge the gap": {
+  "verdict": "네, 아주 자주 써요. 이력서·자기소개에도 많이 나와요.",
+  "use": "두 팀이나 두 상황 사이를 이어주는 역할을 말할 때 써요.",
+  "use_ex": [
+   {
+    "en": "This role bridges the gap between sales and engineering.",
+    "kr": "이 역할은 영업과 개발 사이를 이어줘요."
+   },
+   {
+    "en": "How do we bridge the gap?",
+    "kr": "이 간극을 어떻게 메울까요?"
+   }
+  ],
+  "avoid": "피할 자리는 없어요. 면접에서 내 역할 설명할 때 특히 좋아요.",
+  "avoid_ex": [],
+  "tip": "자기소개에 I bridge the gap between A and B 한 줄 넣어보기."
+ },
+ "Set the bar": {
+  "verdict": "네, 자주 써요.",
+  "use": "이게 앞으로의 기준이 됐다고 할 때 써요. 칭찬으로 많이 나와요.",
+  "use_ex": [
+   {
+    "en": "Last quarter's launch set the bar.",
+    "kr": "지난 분기 런칭이 기준이 됐어요."
+   },
+   {
+    "en": "You really set the bar high.",
+    "kr": "기준을 확 높여놨네요."
+   }
+  ],
+  "avoid": "피할 자리는 없어요. 반대로 기대치를 낮출 땐 lower the bar.",
+  "avoid_ex": [],
+  "tip": "동료 칭찬할 때 You set the bar high 한 줄."
+ },
+ "Across the finish line": {
+  "verdict": "네, 자주 써요. 마무리 단계 독려할 때 나와요.",
+  "use": "거의 다 왔으니 끝까지 끌고 가자고 할 때 써요. get 이랑 같이 많이 써요.",
+  "use_ex": [
+   {
+    "en": "Two more approvals and we get this across the finish line.",
+    "kr": "승인 두 개만 더 받으면 끝나요."
+   },
+   {
+    "en": "Let's get it across the finish line.",
+    "kr": "끝까지 마무리합시다."
+   }
+  ],
+  "avoid": "피할 자리는 없어요.",
+  "avoid_ex": [],
+  "tip": "막바지 독려는 Let's get it across the finish line."
+ },
+ "Go the distance": {
+  "verdict": "가끔 써요. 회의보다는 응원이나 평가에서 나와요.",
+  "use": "끝까지 해낼 수 있다, 오래 버틸 수 있다고 할 때 써요.",
+  "use_ex": [
+   {
+    "en": "This team can go the distance.",
+    "kr": "이 팀은 끝까지 해낼 수 있어요."
+   }
+  ],
+  "avoid": "일상 업무 얘기엔 더 쉬운 말을 많이 써요.",
+  "avoid_ex": [
+   {
+    "en": "I'll see it through.",
+    "kr": "끝까지 책임지고 할게요."
+   }
+  ],
+  "tip": "내가 끝까지 한다고 할 땐 see it through."
+ },
+ "Blessing in disguise": {
+  "verdict": "네, 자주 써요.",
+  "use": "나쁜 일인 줄 알았는데 결과적으로 다행이었을 때 써요. 실패를 긍정적으로 돌릴 때 좋아요.",
+  "use_ex": [
+   {
+    "en": "The delay was a blessing in disguise.",
+    "kr": "지연된 게 오히려 다행이었어요."
+   },
+   {
+    "en": "Losing that client was a blessing in disguise.",
+    "kr": "그 고객 잃은 게 전화위복이었어요."
+   }
+  ],
+  "avoid": "피할 자리는 없어요. 다만 상대가 아직 힘들어할 땐 너무 빨리 쓰지 마세요.",
+  "avoid_ex": [],
+  "tip": "회고에서 실패를 말할 때 It turned out to be a blessing in disguise."
+ },
+ "Quick and dirty": {
+  "verdict": "네, 실무에서 꽤 자주 써요. 다만 쓸 상황을 좀 구분하셔야 합니다!",
+  "use": "개발·데이터·기획 쪽 팀 안 대화에서 특히 많이 나와요. 슬랙이나 내부 회의처럼 편한 자리에서 \"완벽하진 않은데 일단 빠르게\"라는 뜻으로 자연스럽게 써요.",
+  "use_ex": [
+   {
+    "en": "Let me do a quick and dirty analysis first.",
+    "kr": "일단 대충 빠르게 돌려볼게요."
+   },
+   {
+    "en": "It's a quick and dirty fix. We'll clean it up later.",
+    "kr": "임시방편으로 막아둔 거예요. 나중에 제대로 고칠게요."
+   }
+  ],
+  "avoid": "클라이언트 앞이나 임원 보고에서는 잘 안 써요. dirty 가 대충 했다는 인상을 줄 수 있어서요. 그런 자리에서는 이렇게 바꿔 말하면 무난합니다.",
+  "avoid_ex": [
+   {
+    "en": "Here's a first pass. Happy to refine it.",
+    "kr": "1차 버전이에요. 더 다듬을게요."
+   },
+   {
+    "en": "These are back-of-the-envelope numbers.",
+    "kr": "대략 뽑아본 숫자예요."
+   }
+  ],
+  "tip": "팀끼리 슬랙이나 회의에서 쓰면 딱인데, 보고서나 고객 앞에선 a first pass 느낌으로 써주세요"
+ }
 };
 
 const SPACED_REPEAT_PRESETS = {
